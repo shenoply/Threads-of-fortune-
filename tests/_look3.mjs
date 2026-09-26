@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+import fs from 'fs';
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 })).newPage();
+await p.goto('http://localhost:4173/');
+const s = JSON.parse(fs.readFileSync('/home/claude/shots/save.json','utf8'));
+const r = s.state.world.parties.find((x) => x.kind === 'raiders');
+s.state.world.at = null; s.state.world.x = r.x - 12; s.state.world.y = r.y + 4;
+await p.evaluate((x) => { localStorage.clear(); localStorage.setItem('tof-intro-seen-v2','1'); localStorage.setItem('threads-of-fortune-save', x); }, JSON.stringify(s));
+await p.reload(); await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
+await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
+await p.click('button[aria-label="Zoom in"]').catch(()=>{}); await p.waitForTimeout(400);
+await p.screenshot({ path: '/home/claude/shots/l3-raiders.png' });
+await b.close();

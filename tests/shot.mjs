@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+const mode = process.argv[2] || 'phone';
+const b = await chromium.launch();
+const vp = mode==='wide' ? {width:1280,height:760} : mode==='small' ? {width:360,height:640} : {width:390,height:760};
+const p = await b.newPage({ viewport: vp, deviceScaleFactor: 2 });
+const errs=[]; p.on('pageerror', e=>errs.push(e.message));
+await p.goto('http://localhost:4173/');
+await p.click('[data-testid=skip-to-day]');
+await p.click('[data-testid=begin-day-one]');
+const shot = async (n)=>p.screenshot({ path: `/home/claude/shots/${mode}-${n}.png` });
+await p.waitForTimeout(3500); await shot('1');
+await p.click('[data-testid=act-ask_room]');
+await p.waitForTimeout(7000); await shot('2');
+await p.click('[data-testid=rug-desert-star]');
+await p.waitForTimeout(6000); await shot('3');
+console.log('errors', errs);
+await b.close();

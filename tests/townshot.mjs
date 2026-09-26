@@ -1,0 +1,30 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+const sid = process.argv[2] || 'giza';
+const pos = { giza: [293.1, 447.5], cairo: [299.3, 443.8], damascus: [561.7, 229] }[sid];
+const d = JSON.parse(fs.readFileSync('/home/claude/shots/save.json', 'utf8'));
+Object.assign(d.state.world, { at: sid, x: pos[0], y: pos[1] });
+d.state.cash = 900;
+d.state.world.party.animals = { falahi: 1, bishari: 1, baladi_d: 2 };
+d.state.world.party.food = 20;
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push(e.message));
+await p.goto('http://localhost:4173/');
+await p.evaluate((s) => localStorage.setItem('threads-of-fortune-save', s), JSON.stringify(d));
+await p.reload();
+if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
+await p.waitForTimeout(400);
+await p.click('[data-testid=nav-map]');
+await p.waitForTimeout(600);
+if (await p.locator('[data-testid=enter]').count()) await p.click('[data-testid=enter]');
+await p.waitForTimeout(500);
+await p.screenshot({ path: `/home/claude/shots/town-${sid}-1.png` });
+const el = p.locator('[data-testid=breed-falahi], [data-testid^=breed-]').first();
+if (await el.count()) { await el.scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await p.screenshot({ path: `/home/claude/shots/town-${sid}-2.png` }); }
+const n = p.locator('[data-testid^=notes-]').first();
+if (await n.count()) { await n.click(); await p.waitForTimeout(150); await p.screenshot({ path: `/home/claude/shots/town-${sid}-3.png` }); }
+const herd = p.locator('[data-testid=herd]');
+console.log('herd', await herd.count(), 'errors', errors);
+await b.close();

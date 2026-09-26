@@ -1,0 +1,40 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 });
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+await p.evaluate(() => { const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); d.state.tutorial={done:true,step:'done',inspected:true}; localStorage.setItem(k, JSON.stringify(d)); });
+await p.reload(); await p.click('[data-testid=continue]'); await p.waitForTimeout(400);
+let n=0; const shot=(t)=>p.screenshot({path:`/home/claude/shots/w-${String(++n).padStart(2,'0')}-${t}.png`});
+const S = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state);
+await p.click('[data-testid=nav-map]'); await p.waitForTimeout(500); await shot('world');
+await p.click('[data-testid=place-cairo]'); await p.waitForTimeout(300); await shot('plan');
+console.log('plan card:', (await p.textContent('[data-testid=world-card]')).trim());
+const day0 = (await S()).day, cash0 = (await S()).cash;
+await p.click('[data-testid=travel]'); await p.waitForTimeout(1500); await shot('moving');
+for (let i=0;i<40;i++){ if (await p.locator('[data-testid=road-encounter]').count()) { await shot('encounter'); console.log('ENCOUNTER', await p.textContent('[data-testid=road-encounter] h2')); await p.click('[data-testid=road-encounter] .btn >> nth=0'); console.log(' ->', await p.textContent('[data-testid=encounter-result]')); await p.click('[data-testid=encounter-continue]'); }
+  if (await p.locator('[data-testid=settlement]').count()) break; await p.waitForTimeout(300); }
+await shot('cairo');
+const st = await S(); console.log('arrived at', st.world.at, 'day', day0, '->', st.day, 'cash', cash0, '->', st.cash, 'hour', st.world.hour.toFixed(1));
+await p.click('[data-testid=npc-rashid]'); await p.waitForTimeout(1500); await shot('talk');
+console.log('dlg:', (await p.textContent('[data-testid=dlg-text]')).slice(0,80));
+await p.click('text=Tell me about my father.'); await p.waitForTimeout(400);
+await p.click('text=Who would know?'); await p.waitForTimeout(400);
+await p.click('text=Thank you, uncle.'); await p.waitForTimeout(300);
+console.log('note:', await p.textContent('[data-testid=set-note]').catch(()=>'-'));
+await p.click('[data-testid=npc-hagop]'); await p.waitForTimeout(300);
+await p.click('text=I am looking for a Kashan for a client.'); await p.waitForTimeout(300); await p.click('text=I will look.'); await p.waitForTimeout(300);
+await shot('after-talk');
+await p.locator('.sell-box summary').click(); await p.waitForTimeout(200); await shot('market');
+const st2 = await S(); console.log('known', st2.world.known.join(','), 'quests', JSON.stringify(st2.world.quests), 'rumours', st2.world.rumours.length);
+await p.click('[data-testid=leave-settlement]'); await p.waitForTimeout(300);
+await p.click('[data-testid=place-giza]'); await p.waitForTimeout(300);
+console.log('back plan:', (await p.textContent('[data-testid=world-card]')).trim());
+if (await p.locator('[data-testid=train]').count()) await p.click('[data-testid=train]'); else await p.click('[data-testid=travel]');
+for (let i=0;i<30;i++){ if (await p.locator('[data-testid=road-encounter]').count()) { await p.click('[data-testid=road-encounter] .btn >> nth=0'); await p.click('[data-testid=encounter-continue]'); } if (await p.locator('[data-testid=settlement]').count()) break; await p.waitForTimeout(300); }
+await shot('giza');
+await p.click('[data-testid=open-stall-world]'); await p.waitForTimeout(1500); await shot('stall-back');
+console.log('stall visible', await p.locator('[data-testid=stall]').count(), 'buyer', await p.locator('[data-testid=buyer-plate] .name').textContent().catch(()=>'none'));
+console.log('errors', errs);
+await b.close();

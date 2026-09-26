@@ -1,0 +1,34 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+const base = JSON.parse(fs.readFileSync('/home/claude/shots/save.json', 'utf8'));
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 });
+const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+const dismiss = async () => { for (let i = 0; i < 4; i++) for (const t of ['tip-ok', 'mission-ok', 'guide-skip']) if (await p.locator(`[data-testid=${t}]`).count()) await p.click(`[data-testid=${t}]`).catch(() => {}); };
+const S = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state);
+const load = async (mut) => {
+  const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.tipsSeen = ['map', 'town', 'auction', 'levelup', 'rumours', 'rashid', 'stock', 'audience'];
+  mut(s);
+  await p.goto('http://localhost:4173/');
+  await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+  await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
+  await p.waitForTimeout(800); await dismiss();
+};
+const shot = (n) => p.screenshot({ path: `/home/claude/shots/v34-${n}.png` });
+await load((s) => { Object.assign(s.world, { at: 'giza', hour: 9 }); s.onboard = {}; s.buyersSeen = []; s.satDay = undefined; s.missions = { ...s.missions, alexandria: 'active' }; s.ledger = []; s.visitIdx = 1; s.world.walks = {}; s.whereabouts = {}; s.district = undefined; });
+await shot('stall');
+await p.click('[data-testid=chapter-bar]'); await p.waitForTimeout(600); await dismiss(); await shot('buyers');
+for (let i = 0; i < 3; i++) { await p.click(`button[data-testid^=cust-] >> nth=${i}`); await p.waitForTimeout(250); await p.click('[data-testid=buyer-card-close]'); }
+console.log('seen', (await S()).buyersSeen);
+await shot('buyers-after');
+await p.click('[data-testid=chapter-bar]'); await p.waitForTimeout(700); await shot('paper');
+await p.click('[data-testid=newspaper-close]'); await p.waitForTimeout(300);
+await p.click('[data-testid=chapter-bar]'); await p.waitForTimeout(500); await p.click('[data-testid=radio-power]').catch(() => {}); await p.waitForTimeout(500); await p.click('[data-testid=radio-close]');
+await p.click('[data-testid=chapter-bar]'); await p.waitForTimeout(600); await dismiss(); await shot('rashid');
+await p.locator('[data-testid=buy-cash]:not([disabled])').first().click().catch((e) => console.log('buy fail'));
+await p.waitForTimeout(300);
+await p.click('[data-testid=chapter-bar]'); await p.waitForTimeout(3800); await shot('ch2-world');
+console.log('onboard', (await S()).onboard, 'step bar', await p.textContent('[data-testid=chapter-bar]').catch(() => 'none'));
+await p.click('[data-testid=chapter-bar]'); await p.waitForTimeout(900); await shot('ch2-district');
+console.log('errors', errors);
+await b.close();

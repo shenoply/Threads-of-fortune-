@@ -1,0 +1,26 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+const base = JSON.parse(fs.readFileSync('/home/claude/shots/save.json', 'utf8'));
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 780 } });
+p.on('console', (m) => console.log('console', m.type(), m.text().slice(0, 200)));
+p.on('pageerror', (e) => console.log('pageerror', e.message));
+const d = JSON.parse(JSON.stringify(base)); const s = d.state;
+Object.assign(s.world, { at: 'cairo', x: 214.3, y: 413.7 }); s.day = 15; s.cash = 50000; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
+s.tipsSeen = ['map', 'town', 'auction', 'levelup', 'rumours'];
+await p.goto('http://localhost:4173/');
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
+await p.waitForTimeout(800);
+for (const t of ['tip-ok', 'mission-ok']) if (await p.locator(`[data-testid=${t}]`).count()) await p.click(`[data-testid=${t}]`).catch(() => {});
+console.log('layer', await p.getAttribute('[data-testid=campaign]', 'data-layer').catch(() => '?'), await p.locator('[data-testid=settlement]').count(), await p.locator('[data-testid=enter]').count());
+await p.click('[data-testid=enter]'); await p.waitForTimeout(500);
+for (const t of ['tip-ok']) if (await p.locator(`[data-testid=${t}]`).count()) await p.click(`[data-testid=${t}]`).catch(() => {});
+const house = await p.locator('[data-testid^=house-]').first().getAttribute('data-testid');
+await p.click(`[data-testid=${house}]`); await p.waitForTimeout(1000);
+if (await p.locator('[data-testid=tip-ok]').count()) await p.click('[data-testid=tip-ok]');
+await p.click('[data-testid=venue-enter-floor]'); await p.waitForTimeout(1200);
+if (await p.locator('[data-testid=tip-ok]').count()) await p.click('[data-testid=tip-ok]');
+await p.click('[data-testid=auction-sit]');
+for (let i = 0; i < 14; i++) { await p.waitForTimeout(1000); console.log(i, await p.textContent('[data-testid=floor-call]').catch(() => '-'), '|', await p.locator('[data-testid=bid-hold]:not([disabled])').count()); }
+await b.close();

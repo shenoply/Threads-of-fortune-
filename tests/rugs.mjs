@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const p = await b.newPage({ viewport:{width:900,height:900}, deviceScaleFactor:1 });
+await p.goto('http://localhost:4173/');
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+await p.waitForTimeout(500);
+await p.evaluate(()=>{ const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); d.state.tutorial={done:true,step:'done',inspected:true};
+ d.state.inventory=['red-medina','nile-reed','sapphire-night'].map((t,i)=>({uid:'x'+i,typeId:t,condition:'Good',restored:false,provenance:'Likely',paid:10,notes:[]})); localStorage.setItem(k,JSON.stringify(d)); });
+await p.reload(); await p.click('[data-testid=continue]'); await p.waitForTimeout(400);
+await p.click('[data-testid=nav-inventory]'); await p.waitForTimeout(300);
+await p.click('text=Inspect >> nth=2'); await p.waitForTimeout(500);
+await p.screenshot({path:'/home/claude/shots/rug-sapphire.png'});
+await b.close();

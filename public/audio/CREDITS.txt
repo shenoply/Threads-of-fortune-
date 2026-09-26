@@ -1,0 +1,37 @@
+Sound effects and ambience are built from clips of the ESC-50 dataset (K. J. Piczak, https://github.com/karolpiczak/ESC-50),
+using only clips whose original Freesound recordings are CC0 or CC BY. CC BY recordings used as one-shots:
+
+"Steam Train L To R.WAV" by Benboncan, http://www.freesound.org/people/Benboncan/sounds/119125/ (CC BY 3.0)
+"Shop Door Knocks Original.wav" by fogma, http://www.freesound.org/people/fogma/sounds/26188/ (CC BY 3.0)
+"070422-cats-sample.wav" by sazman, http://www.freesound.org/people/sazman/sounds/34094/ (CC BY 3.0)
+"Rooster chicken calls_2.wav" by AGFX, http://www.freesound.org/people/AGFX/sounds/43382/ (CC BY 3.0)
+"church bells stolnica.wav" by Satoration, http://www.freesound.org/people/Satoration/sounds/54747/ (CC BY 3.0)
+"Wren and other birds.wav" by inchadney, http://www.freesound.org/people/inchadney/sounds/54918/ (CC BY 3.0)
+"cat meow 01.wav" by Kyster, http://www.freesound.org/people/Kyster/sounds/79113/ (CC BY 3.0)
+"Sheep.WAV" by inchadney, http://www.freesound.org/people/inchadney/sounds/88574/ (CC BY 3.0)
+"WATER POURING MULTIPLE.mp3" by deankonidaris, http://www.freesound.org/people/deankonidaris/sounds/102414/ (CC BY 3.0)
+"birds_evening.wav" by soundbytez, http://www.freesound.org/people/soundbytez/sounds/108760/ (CC BY 3.0)
+"birds_late_morning.wav" by soundbytez, http://www.freesound.org/people/soundbytez/sounds/108761/ (CC BY 3.0)
+"crows and magpie.WAV" by inchadney, http://www.freesound.org/people/inchadney/sounds/109231/ (CC BY 3.0)
+"sheep sheering.mp3" by soundmary, http://www.freesound.org/people/soundmary/sounds/196688/ (CC BY 3.0)
+"Few short Laughs and mighty Laughs.mp3" by J.Zazvurek, http://www.freesound.org/people/J.Zazvurek/sounds/60791/ (CC BY 3.0)
+"Laugh 11.mp3" by J.Zazvurek, http://www.freesound.org/people/J.Zazvurek/sounds/60795/ (CC BY 3.0)
+"Riga Latvia. Dome church bells.MP3" by ariepaul, http://www.freesound.org/people/ariepaul/sounds/61618/ (CC BY 3.0)
+"bells.wav" by ondrosik, http://www.freesound.org/people/ondrosik/sounds/122110/ (CC BY 3.0)
+"cock and hen.WAV" by Setuniman, http://www.freesound.org/people/Setuniman/sounds/134049/ (CC BY 3.0)
+"0005 Cough" by bmoreno, http://www.freesound.org/people/bmoreno/sounds/145487/ (CC BY 3.0)
+"Birds of Tiengemeten-1.aiff" by ducksingel, http://www.freesound.org/people/ducksingel/sounds/155583/ (CC BY 3.0)
+"excited chickens" by Setuniman, http://www.freesound.org/people/Setuniman/sounds/178096/ (CC BY 3.0)
+"Creaky Garden Door 1" by Anton, http://www.freesound.org/people/Anton/sounds/160036/ (CC BY 3.0)
+"Creaky Garden Door 1" by Anton, http://www.freesound.org/people/Anton/sounds/160036/ (CC BY 3.0)
+"audience clapping 06 130525_13.wav" by klankbeeld, http://www.freesound.org/people/klankbeeld/sounds/189832/ (CC BY 3.0)
+"audience clapping 06 130525_13.wav" by klankbeeld, http://www.freesound.org/people/klankbeeld/sounds/189832/ (CC BY 3.0)
+"audience clapping 10 130525_13.wav" by klankbeeld, http://www.freesound.org/people/klankbeeld/sounds/189838/ (CC BY 3.0)
+"Two Chickens "Talking"" by SquaredGlasses, http://www.freesound.org/people/SquaredGlasses/sounds/253649/ (CC BY 3.0)
+"Old wooden door creaking" by VlatkoBlazek, http://www.freesound.org/people/VlatkoBlazek/sounds/187444/ (CC BY 3.0)
+"Crows and Rooks 3" by Jagadamba, http://www.freesound.org/people/Jagadamba/sounds/222041/ (CC BY 3.0)
+"Cuckoo and crow (noisy).wav" by Martineerok, http://www.freesound.org/people/Martineerok/sounds/242711/ (CC BY 3.0)
+"Evil Laugh 9.wav" by Nanakisan, http://www.freesound.org/people/Nanakisan/sounds/253534/ (CC BY 3.0)
+
+Ambience beds also layer CC0 and CC BY clips of wind, sea, water, crickets, insects, clocks and footsteps from the same dataset.
+Music rendered with the GeneralUser GS soundfont by S. Christian Collins (free for any use).

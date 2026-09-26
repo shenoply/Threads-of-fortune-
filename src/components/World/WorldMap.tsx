@@ -1,0 +1,675 @@
+import { venueFor } from '../../data/venues';
+import { Tip } from '../Tips/Tip';
+import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import { fmt } from '../../game/economy/money';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useGame } from '../../game/state/store';
+import { SETTLEMENTS, type Settlement } from '../../data/world';
+import { ROADS, TROOPS, MARKETS } from '../../data/caravan';
+import { routeDanger,
+  MAP_W, MAP_H, findPath, pathLength, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  settlementById, type Pt, type Party,
+} from '../../game/systems/world';
+import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
+import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood } from '../../game/systems/caravan';
+import { Icon } from '../Icon';
+import { audio } from '../../game/audio/engine';
+import { SettlementPanel, type SetTab } from './Settlement';
+import { openJobs } from '../../data/jobs';
+import { Objectives } from '../Objectives/Objectives';
+import { Ambush } from './Ambush';
+import { dateLine } from '../../game/economy/newspaper';
+import { CaravanStrip } from './CaravanPanels';
+import { milesPerDay } from './CaravanScreen';
+import { StallOverhead } from './StallOverhead';
+import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R } from '../../game/systems/mapNews';
+
+export const DAYS_PER_SECOND = 1 / 8; // one game hour per second at 1x, on the road or standing still; every new day stops for the news
+const MAJOR = ['home', 'city', 'port'];
+const kindIcon: Record<string, string> = { home: 'store', city: 'star', town: 'room', village: 'room', oasis: 'sun', port: 'anchor', monastery: 'book', camp: 'camel' };
+
+interface Plan {
+  to: Pt;
+  settlement?: Settlement;
+  path: Pt[] | null;
+  days: number;
+  train?: { days: number; fare: number; stops: string[] };
+  ships: { to: string; days: number; fare: number }[];
+  motor: { to: string; days: number; fare: number }[];
+}
+
+function tint(hour: number) {
+  if (hour >= 20 || hour < 5) return 'rgba(24,34,72,0.26)';
+  if (hour >= 18) return `rgba(120,50,20,${0.12 + (hour - 18) * 0.12})`;
+  if (hour < 7) return `rgba(120,60,30,${0.3 - (hour - 5) * 0.14})`;
+  return 'rgba(0,0,0,0)';
+}
+
+export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, scale, setScale, frozen, startZoom, onZoomGiza }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void }) {
+  const g = useGame();
+  const w = g.world;
+  const wrap = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 390, h: 500 });
+  const [z, setZ] = useState(startZoom ?? 1.8);
+  const [pan, setPanState] = useState<Pt>({ x: 0, y: 0 });
+  const [live, setLive] = useState<Pt | null>(null);
+  // panRef is the live camera: the travel loop moves it every frame and writes the transform straight to the DOM;
+  // React state only catches up on each commit, so the big map re-renders a few times a second, not every frame
+  const panRef = useRef(pan);
+  const setPan = useCallback((p: Pt) => { panRef.current = p; setPanState(p); }, []);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const meRef = useRef<HTMLSpanElement>(null);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [alt, setAlt] = useState<Plan | null>(null);
+  const [altFerry, setAltFerry] = useState(false);
+  const [short, setShort] = useState<{ plan: Plan; need: number; price: number } | null>(null);
+  const planState = plan;
+  const dawnSeen = useRef(useGame.getState().day);
+  const [moving, setMoving] = useState<null | { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number }>(null);
+  const [ownScale, setOwnScale] = useState(1);
+  const timeScale = scale ?? ownScale;
+  const setTimeScale = setScale ?? setOwnScale;
+  const [encounter, setEncounter] = useState<Party | null>(null);
+  const [report, setReport] = useState<string>('');
+  const [panel, setPanel] = useState<string | null>(openPanel ?? null);
+  const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
+  const pts = useRef(new Map<number, Pt>());
+  const pinch = useRef<{ d: number; z: number } | null>(null);
+  const follow = useRef(true);
+  const lastTap = useRef(0);
+  const scaleRef = useRef(1);
+  scaleRef.current = timeScale;
+
+  const base = Math.max(size.w / MAP_W, size.h / MAP_H);
+  const s = base * z;
+  const sRef = useRef(s);
+  sRef.current = s;
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
+  const sp = speedInfo(w.party, g.inventory);
+  const jobs = openJobs(g.jobsDone, g.reputation);
+  const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
+  const [jobsOpen, setJobsOpen] = useState(false);
+  const missionTarget = MAIN_ORDER.map((id) => (g.missions?.[id] === 'active' ? MISSIONS[id].target : undefined)).find(Boolean) ?? null;
+
+  const roads = useMemo(
+    () => ROADS.map(([a, b]) => findPath(settlementById(a), settlementById(b))).filter(Boolean) as Pt[][],
+    [],
+  );
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
+  const [artTick, setArtTick] = useState(0);
+  useEffect(() => { paintedMap(); return onPaintedMap(() => setArtTick((t) => t + 1)); }, []);
+  /** Paint the map at the live camera (panRef), not the last committed one; the travel loop calls this every frame. */
+  const paintRef = useRef<() => void>(() => {});
+  paintRef.current = () => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const sz = sizeRef.current;
+    const W = Math.max(1, sz.w), H = Math.max(1, sz.h);
+    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) {
+      c.width = Math.round(W * dpr);
+      c.height = Math.round(H * dpr);
+    }
+    const p = panRef.current;
+    drawWorld(c.getContext('2d')!, { w: W, h: H, s: sRef.current, tx: p.x, ty: p.y, dpr }, { fog: fogImg, roads });
+  };
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => paintRef.current());
+    return () => cancelAnimationFrame(raf);
+  }, [pan.x, pan.y, s, size.w, size.h, fogImg, roads, artTick]);
+
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setSize({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, []);
+
+  const clampPan = useCallback(
+    (p: Pt, sc = s) => ({ x: Math.min(0, Math.max(size.w - MAP_W * sc, p.x)), y: Math.min(0, Math.max(size.h - MAP_H * sc, p.y)) }),
+    [s, size],
+  );
+  const clampRef = useRef(clampPan);
+  clampRef.current = clampPan;
+  const centreOn = useCallback((p: Pt, sc = s) => setPan(clampPan({ x: size.w / 2 - p.x * sc, y: size.h / 2 - p.y * sc }, sc)), [clampPan, s, size, setPan]);
+
+  useEffect(() => {
+    centreOn({ x: w.x, y: w.y });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size.w, size.h]);
+
+  const zoomTo = (nz: number) => {
+    // zooming past the closest view over Giza, while you are there, takes you down into the district
+    if (nz > 4.5 && onZoomGiza && w.at === 'giza' && !moving) {
+      const gz = settlementById('giza');
+      const gx = gz.x * s + pan.x, gy = gz.y * s + pan.y;
+      if (Math.abs(gx - size.w / 2) < size.w * 0.4 && Math.abs(gy - size.h / 2) < size.h * 0.4) { onZoomGiza(); return; }
+    }
+    nz = Math.max(1, Math.min(4.5, nz));
+    const cx = size.w / 2, cy = size.h / 2;
+    const ns = base * nz;
+    const cur = panRef.current;
+    setPan(clampPan({ x: cx - ((cx - cur.x) / s) * ns, y: cy - ((cy - cur.y) / s) * ns }, ns));
+    setZ(nz);
+  };
+
+  const here = w.at ? settlementById(w.at) : undefined;
+  // while travelling the map takes the whole screen: the mission banner and extras step aside
+  useEffect(() => {
+    document.body.classList.toggle('travelling', !!moving);
+    return () => document.body.classList.remove('travelling');
+  }, [moving]);
+
+  const planTo = (to: Pt, st?: Settlement, reroute = false): Plan | undefined => {
+    if (moving && !reroute) return;
+    const from = { x: w.x, y: w.y };
+    const target = st ? { x: st.x, y: st.y } : to;
+    const ships = here && st ? seaRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
+    const motor = here && st ? motorRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
+    if (!st && isWaterPx(to)) {
+      const p0: Plan = { to, path: null, days: 0, ships: [], motor: [] };
+      setPlan(p0);
+      return p0;
+    }
+    const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
+    const days = path ? pathLength(path) / sp.pxPerDay : 0;
+    const train = here && st ? railJourney(here.id, st.id) ?? undefined : undefined;
+    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor };
+    setPlan(p);
+    audio.sfx('tap');
+    return p;
+  };
+  /** Tap and go: the caravan sets off at once. Faster ways (train, ferry, ship) stay offered on the card while you walk. */
+  const goTo = (to: Pt, st?: Settlement) => {
+    // Giza and Cairo face each other across the river: the ferry takes an hour and a half, never days on foot
+    if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza')) && !moving) {
+      const note = g.ferry(st.id as 'giza' | 'cairo');
+      setReport(note);
+      if (useGame.getState().world.at === st.id) { if (st.id === 'giza' && onDistrict) onDistrict(); else setPanel(st.id); }
+      return;
+    }
+    const p = planTo(to, st, true);
+    if (!p || !p.path) return; // water or no road: the card explains and offers boats and trains
+    // leaving a town short of food: offer to buy what the road needs, in one tap, before setting off
+    const need = Math.ceil(Math.max(1, p.days) * dailyFood(w.party)) - w.party.food;
+    if (need > 0 && w.at && MARKETS[w.at] && !moving) {
+      setShort({ plan: p, need, price: Math.ceil(need * MARKETS[w.at].food) });
+      setPlan(null);
+      return;
+    }
+    setOff(p);
+  };
+  const setOff = (p: Plan) => {
+    setShort(null);
+    if (!p.path) return;
+    follow.current = true;
+    setMoving({ path: p.path, done: 0, train: false, dest: p.settlement?.id });
+    setPlan(null);
+    const ferry = (w.at === 'giza' && p.settlement?.id === 'cairo') || (w.at === 'cairo' && p.settlement?.id === 'giza');
+    setAlt(p.train || p.ships.length || p.motor.length || ferry ? p : null);
+    setAltFerry(ferry);
+    const now = useGame.getState().world;
+    const danger = routeDanger(p.path, now.parties);
+    const mine = strength(now.party);
+    setReport(danger > mine ? `Warning: raiders ride this road, about ${danger} strong. Your strength is ${mine}. Hire guards, or risk your cash and packed rugs.` : foodDaysLeft(now.party) < p.days ? 'Not enough food for the whole journey. Buy some in a town.' : '');
+    audio.sfx('step');
+  };  // a chapter can send you here with a journey already planned
+  useEffect(() => {
+    if (!planFor || w.at === planFor) return;
+    const st = SETTLEMENTS.find((x) => x.id === planFor);
+    if (st) setTimeout(() => planTo(st, st), 50);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+
+  const stop = (why = '') => {
+    setMoving(null);
+    setTimeScale(1);
+    if (why) setReport(why);
+    audio.sfx('tap');
+  };
+
+  const start = (train: boolean, given?: Plan | null) => {
+    const plan = given ?? planState;
+    if (!plan) return;
+    setAlt(null);
+    if (train && plan.train) {
+      if (g.cash < plan.train.fare) return setReport('You cannot afford the train fare.');
+      useGame.setState((st) => ({ cash: st.cash - plan.train!.fare, ledger: [...st.ledger, { day: st.day, kind: 'expense', label: `Third-class tickets to ${plan.settlement?.name}`, amount: -plan.train!.fare }] }));
+      const path = plan.train.stops.map((id) => { const x = settlementById(id); return { x: x.x, y: x.y }; });
+      follow.current = true;
+      setMoving({ path, done: 0, train: true, dest: plan.settlement?.id, pxPerDay: pathLength(path) / plan.train.days });
+      setPlan(null);
+      setReport(`By rail: ${plan.train.stops.map((id) => settlementById(id).name).join(' – ')}.`);
+      audio.sfx('train');
+      return;
+    }
+    if (!plan.path) return;
+    follow.current = true;
+    setMoving({ path: plan.path, done: 0, train, dest: plan.settlement?.id });
+    setPlan(null);
+    setReport('');
+    audio.sfx(train ? 'train' : 'step');
+  };
+
+  // Standing still, time stands still too: it only runs while you travel.
+
+  // Travel loop: runs by itself until you arrive, stop, or something finds you on the road.
+  useEffect(() => {
+    if (!moving || encounter || frozen) return;
+    let raf = 0;
+    let last = performance.now();
+    let acc = 0;
+    let lastCommit = performance.now();
+    let done = moving.done;
+    let stepAudio = 0;
+    let livePos = along(moving.path, done).pos;
+    let lastView = performance.now();
+    let inSand = false;
+    // the frame-by-frame view goes straight to the DOM; React hears about it only a few times a second
+    const syncView = () => { setLive(livePos); setPan(panRef.current); };
+    const loop = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const st0 = useGame.getState();
+      let speed = moving.train ? moving.pxPerDay ?? 220 : speedInfo(st0.world.party, st0.inventory).pxPerDay;
+      // a khamsin blowing over the road: sand in the eyes, the camels keep their heads down
+      const sand = !moving.train && inKhamsin(st0.day, livePos);
+      if (sand) speed *= 0.6;
+      if (sand && !inSand) setReport('A khamsin is blowing: the caravan slows.');
+      inSand = sand;
+      const days = dt * DAYS_PER_SECOND * scaleRef.current;
+      done += days * speed;
+      acc += days;
+      const { pos, done: arrived } = along(moving.path, done);
+      livePos = pos;
+      // smooth every frame: the caravan glides and the camera eases after it
+      const sc = sRef.current;
+      if (follow.current) {
+        const sz = sizeRef.current, cur = panRef.current;
+        const target = { x: sz.w / 2 - pos.x * sc, y: sz.h / 2 - pos.y * sc };
+        const k = Math.min(1, dt * 4);
+        panRef.current = clampRef.current({ x: cur.x + (target.x - cur.x) * k, y: cur.y + (target.y - cur.y) * k });
+        if (innerRef.current) innerRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px)`;
+        paintRef.current();
+      }
+      if (meRef.current) { meRef.current.style.left = `${pos.x * sc}px`; meRef.current.style.top = `${pos.y * sc}px`; }
+      if (now - lastView > 140) { lastView = now; syncView(); }
+      stepAudio += dt * scaleRef.current;
+      if (stepAudio > 0.6 && !moving.train && scaleRef.current > 0) {
+        stepAudio = 0;
+        audio.sfx('step');
+      }
+      if ((now - lastCommit > 140 && acc > 0) || arrived) {
+        lastCommit = now;
+        syncView();
+        const notes = useGame.getState().travelStep(pos, acc, moving.train);
+        acc = 0;
+        if (notes.length) setReport(notes.slice(-3).join(' '));
+        const today = useGame.getState().day;
+        if (today > dawnSeen.current) { dawnSeen.current = today; setReport(`A new day on the road: ${dateLine(today)}.`); }
+        if (!moving.train) {
+          const st = useGame.getState();
+          // only raiders stop you; everyone else you can tap on the map if you want to talk
+          const hit = st.world.parties.find((p) => p.kind === 'raiders' && dist(p, pos) < 5 && (p.cooldownUntil ?? 0) < st.day);
+          if (hit) {
+            const mine = strength(st.world.party);
+            if (hit.kind === 'raiders' && hit.strength && mine >= hit.strength * 2) {
+              useGame.setState({ world: { ...st.world, parties: st.world.parties.map((p) => (p.id === hit.id ? { ...p, cooldownUntil: st.day + 1 } : p)) } });
+              setReport('Raiders watched your guards from the ridge and thought better of it.');
+            } else {
+              setMoving({ ...moving, done });
+              setEncounter(hit);
+              audio.sfx(hit.kind === 'raiders' ? 'chest' : 'arrive');
+              return;
+            }
+          }
+        }
+      }
+      if (arrived) {
+        setMoving(null);
+        setTimeScale(1);
+        const dest = moving.dest;
+        if (dest) {
+          useGame.getState().arriveAt(dest);
+          if (dest === 'giza' && onDistrict) onDistrict();
+          else setPanel(dest);
+          setReport('');
+        } else {
+          const near = SETTLEMENTS.find((x) => dist(x, pos) < 10);
+          if (near) useGame.getState().arriveAt(near.id);
+        }
+        return;
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(raf); syncView(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moving?.path, encounter, frozen]);
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    pts.current.delete(e.pointerId);
+    if (pts.current.size < 2) pinch.current = null;
+    const d = drag.current;
+    drag.current = null;
+    if (!d || d.moved) return;
+    const now = performance.now();
+    void now; void lastTap;
+    // tap anywhere to go there, even mid-journey: the caravan simply turns
+    const r = wrap.current!.getBoundingClientRect();
+    const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
+    const st = SETTLEMENTS.filter((x) => w.known.includes(x.id)).map((x) => ({ x, d: dist(x, mp) })).filter((o) => o.d * s < 22).sort((a, b) => a.d - b.d)[0]?.x;
+    if (st && st.id === w.at && !moving) { setPanel(st.id); return; }
+    goTo(mp, st);
+  };
+
+  // anyone within a day's sight of the caravan is seen, fog or not; raiders further off once the land is known
+  const visibleParties = w.parties.filter((p) => isExplored(w.fog, p) || dist(p, moving && live ? live : w) < (p.kind === 'raiders' ? 48 : 30));
+  const news = newsMarks(g.day);
+  const sandZones = khamsinZones(g.day);
+  const routeSvg = plan?.path ?? (moving ? moving.path : null);
+  const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
+  const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food ${foodDaysLeft(w.party)} days`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
+  const status = moving ? (moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Camped in the open';
+  const giza = settlementById('giza');
+  const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
+  const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
+
+  return (
+    <div className="world" data-testid="world">
+      <div
+        className="world-map"
+        ref={wrap}
+        data-testid="world-map"
+        onScroll={(e) => { e.currentTarget.scrollLeft = 0; e.currentTarget.scrollTop = 0; }}
+        onWheel={(e) => zoomTo(z * (e.deltaY < 0 ? 1.15 : 0.87))}
+        onPointerDown={(e) => {
+          pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pts.current.size === 2) {
+            const [a, b] = [...pts.current.values()];
+            pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z };
+            drag.current = null;
+          } else drag.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y, moved: false };
+        }}
+        onPointerMove={(e) => {
+          if (!pts.current.has(e.pointerId)) return;
+          pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pinch.current && pts.current.size === 2) {
+            const [a, b] = [...pts.current.values()];
+            zoomTo(pinch.current.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.d));
+          } else if (drag.current) {
+            const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
+            if (Math.abs(dx) + Math.abs(dy) > 6) {
+              drag.current.moved = true;
+              follow.current = false;
+            }
+            if (drag.current.moved) setPan(clampPan({ x: drag.current.px + dx, y: drag.current.py + dy }));
+          }
+        }}
+        onPointerUp={onPointerUp}
+        onPointerLeave={() => { drag.current = null; }}
+      >
+        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
+        <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)}>
+          <div className="daynight" style={{ background: tint(w.hour) }} />
+          {sandZones.map((c, i) => (
+            <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
+          ))}
+          <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
+            {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''}`} />}
+            {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
+          </svg>
+          {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => (
+            <button
+              key={st.id}
+              className={`place kind-${st.kind} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''}`}
+              style={{ left: st.x * s, top: st.y * s }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); if (w.at === st.id && !moving) setPanel(st.id); else goTo(st, st); }}
+              data-testid={`place-${st.id}`}
+            >
+              <span className="pdot"><Icon name={kindIcon[st.kind] ?? 'pin'} /></span>
+              {missionTarget === st.id && <span className="pmission" data-testid="mission-pin"><Icon name="star" /> Mission</span>}
+              {missionTarget !== st.id && visits.some((v) => v.city === st.id) ? <span className="pjob visit" data-testid={`visit-pin-${st.id}`}><Icon name="hourglass" /> {visits.find((v) => v.city === st.id)!.who}</span>
+                : missionTarget !== st.id && jobs.some((j) => j.target === st.id) && <span className="pjob" data-testid={`job-pin-${st.id}`}><Icon name="scroll" /> {jobs.find((j) => j.target === st.id)!.title}</span>}
+              {venueFor(st.id) && <span className="pcrown" title="Royal court" data-testid={`crown-${st.id}`}><Icon name="crown" /></span>}
+              {news[st.id] && (
+                <span className="pnews" data-testid={`news-pin-${st.id}`}>
+                  {news[st.id].map((m) => <i key={m} className={`pn-${m}`} title={NEWS_TIP[m]} aria-label={NEWS_TIP[m]}><Icon name={NEWS_ICON[m]} /></i>)}
+                </span>
+              )}
+              {(venueFor(st.id) || MAJOR.includes(st.kind) || z >= 2.4 || plan?.settlement?.id === st.id || w.at === st.id) && <span className="plbl">{st.name}</span>}
+            </button>
+          ))}
+          {visibleParties.map((p) => {
+            const mine = strength(w.party);
+            const raid = p.kind === 'raiders' && !!p.strength;
+            const d = dist(p, moving && live ? live : w);
+            const hunting = raid && d < 22 && mine < (p.strength ?? 0) * 1.4;
+            const threat = raid ? ((p.strength ?? 0) > mine ? 'strong' : 'weak') : '';
+            const gd = partyGoods(p);
+            return (
+              <span key={p.id} className={`party party-${p.kind} ${threat ? `threat-${threat}` : ''} ${hunting ? 'hunting' : ''}`} style={{ left: p.x * s, top: p.y * s }} data-testid={`party-${p.kind}`} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => { e.stopPropagation(); if (dist(p, w) < 18) { setMoving(null); setEncounter(p); } else goTo({ x: p.x, y: p.y }); }}>
+                {raid && <i className="pring" style={{ width: 44 * s, height: 44 * s }} aria-hidden="true" />}
+                <span className="pbadge"><Icon name={p.kind === 'raiders' ? 'sword' : p.kind === 'pilgrims' ? 'people' : p.kind === 'mercenaries' ? 'shield' : 'camel'} /></span>
+                {raid ? (
+                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? 'Hunting you · ' : ''}{p.name} · {p.strength} vs {mine}</span>
+                ) : p.kind === 'caravan' || p.kind === 'bedouin' ? (
+                  <span className="pgoods" data-testid={`goods-${p.id}`}><Icon name={gd?.icon ?? 'camel'} />{gd ? `Trader · ${gd.label}` : 'Trader'}</span>
+                ) : z >= 2.2 ? <span className="pname">{p.name}{p.size ? ` · ${p.size}` : ''}</span> : null}
+              </span>
+            );
+          })}
+          <span ref={meRef} className={`me ${moving && timeScale ? 'moving' : ''}`} style={{ left: (moving && live ? live.x : w.x) * s, top: (moving && live ? live.y : w.y) * s }} data-testid="me" data-x={Math.round(w.x)} data-y={Math.round(w.y)}>
+            <span className="pbadge me-badge"><Icon name="camel" /></span>
+            {z >= 3 && <span className="pname me-name">You · {partySize(w.party)}</span>}
+          </span>
+        </div>
+
+        {showOverhead && (
+          <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 100, Math.max(100, gizaScreen.x)), top: Math.max(100, gizaScreen.y - 110) }} data-testid="overhead-pin">
+            <StallOverhead compact onOpen={() => (w.at === 'giza' ? onStall() : planTo(giza, giza))} />
+            <span className="overhead-cap">{w.at === 'giza' ? 'Your stall. Tap to open it.' : 'Your stall in Giza'}</span>
+          </div>
+        )}
+
+        {frozen === undefined && (
+          <div className="world-hud">
+            <span><b>{status}</b> · Day {g.day}, {String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</span>
+            <CaravanStrip />
+          </div>
+        )}
+        {moving && (
+          <div className="map-speed" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} role="group" aria-label="Travel speed" data-testid="map-speed">
+            <span className="ms-pace" data-testid="pace">{moving.train ? 'By train' : `Pace ${milesPerDay(sp.pxPerDay)} mi/day`}</span>
+            {[0, 1, 2, 4].map((k) => (
+              <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => setTimeScale(k)} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
+            ))}
+          </div>
+        )}
+        <div className="scalebar" aria-hidden="true"><i style={{ width: milesPx(s) }} /><span>100 miles</span></div>
+        <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+          <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
+          <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
+          <button onClick={() => { follow.current = true; centreOn({ x: w.x, y: w.y }); }} aria-label="Centre on your caravan"><Icon name="pin" /></button>
+          <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives: story, jobs and visitors" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
+        </div>
+      </div>
+
+      <div className="world-card" data-testid="world-card">
+        {report && <p className="world-report" data-testid="world-report">{report}</p>}
+        {moving ? (
+          <div className="wc-row">
+            <div className="wc-main">
+              <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
+              <span>{moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}</span>
+            </div>
+            <button className="btn" onClick={() => { setAlt(null); stop('You stop and make camp.'); }} data-testid="stop">Stop</button>
+          </div>
+        ) : null}
+        {short && !moving && (
+          <div className="wc-col" data-testid="food-short">
+            <div className="wc-main">
+              <b>Short of food for {short.plan.settlement ? short.plan.settlement.name : 'the road'}</b>
+              <span>The journey needs {short.need} more rations than you carry.</span>
+            </div>
+            <div className="wc-btns">
+              <button className="btn primary" disabled={g.cash < short.price} onClick={() => { setReport(g.buyFood(short.need)); setOff(short.plan); }} data-testid="food-buy-go">Buy {short.need} rations · {fmt(short.price)} and go</button>
+              <button className="btn" onClick={() => setOff(short.plan)} data-testid="food-go">Go anyway</button>
+            </div>
+          </div>
+        )}
+        {moving && alt && !moving.train && (
+          <div className="wc-alt" data-testid="alt-routes">
+            <span>Faster:</span>
+            {altFerry && alt.settlement && (
+              <button className="btn" onClick={() => { const to = alt.settlement!.id as 'giza' | 'cairo'; setMoving(null); setAlt(null); setReport(g.ferry(to)); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">Nile ferry · £0.01</button>
+            )}
+            {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)}</button>}
+            {alt.ships.map((r) => <button key={r.to} className="btn" onClick={() => { setMoving(null); setAlt(null); setReport(g.sail(r.to)); setPanel(r.to); }} data-testid="ship">Ship · {fmt(r.fare)}</button>)}
+          </div>
+        )}
+        {moving ? null : plan ? (
+          plan.path ? (
+            <div className="wc-col">
+              <div className="wc-main">
+                <b>{plan.settlement ? plan.settlement.name : isExplored(w.fog, plan.to) ? 'Open country' : 'Unexplored land'}</b>
+                <span>
+                  {plan.days < 0.1 ? 'A short walk' : `${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
+                </span>
+              </div>
+              <div className="wc-btns">
+                <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
+                {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) && (
+                  <button className="btn primary" onClick={() => { const to = plan.settlement!.id as 'giza' | 'cairo'; setReport(g.ferry(to)); setPlan(null); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">Nile ferry · 1½ h · £0.01</button>
+                )}
+                {plan.train && <button className="btn" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {plan.train.days < 1 ? `${Math.max(1, Math.round(plan.train.days * 24))} h` : `${plan.train.days.toFixed(1)} d`}</button>}
+                {plan.ships.map((r) => (
+                  <button key={r.to} className="btn" onClick={() => { setReport(g.sail(r.to)); setPlan(null); setPanel(r.to); }} data-testid="ship">Ship · {fmt(r.fare)} · {r.days} d</button>
+                ))}
+                {plan.motor.map((r) => (
+                  <button key={r.to} className="btn" onClick={() => { setReport(g.sail(r.to, 'motor')); setPlan(null); setPanel(r.to); }} data-testid="motor">Nairn motor car · {fmt(r.fare)} · {r.days} d</button>
+                ))}
+                <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div className="wc-row">
+              <div className="wc-main">
+                <b>{plan.settlement ? plan.settlement.name : 'Open water'}</b>
+                <span>{plan.ships.length || plan.train ? 'Not reachable on foot from here.' : plan.settlement ? 'Not reachable on foot. Go to a port or a railway station.' : 'You cannot walk on water. Find a port and take a ship.'}</span>
+              </div>
+              {plan.train && <button className="btn primary" onClick={() => start(true)}>Train · {fmt(plan.train.fare)}</button>}
+              {plan.ships.map((r) => (
+                <button key={r.to} className="btn primary" onClick={() => { setReport(g.sail(r.to)); setPlan(null); setPanel(r.to); }}>Ship · {fmt(r.fare)}</button>
+              ))}
+              <button className="btn" onClick={() => setPlan(null)}>OK</button>
+            </div>
+          )
+        ) : here ? (
+          <div className="wc-row">
+            <div className="wc-main">
+              <b>{here.name}</b>
+              <span className={foodDaysLeft(w.party) < 1 ? 'warn' : ''}>{caravanLine}</span>
+            </div>
+            <button className="btn primary" onClick={() => (here.id === 'giza' && onDistrict ? onDistrict() : setPanel(here.id))} data-testid="enter">{here.id === 'giza' ? 'Zoom into Giza' : 'Enter'}</button>
+          </div>
+        ) : (
+          <div className="wc-row">
+            <div className="wc-main">
+              <b>Camped in the open</b>
+              <span className={foodDaysLeft(w.party) < 1 ? 'warn' : ''}>{caravanLine}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {encounter && encounter.kind === 'raiders' && (
+        <Ambush
+          party={encounter}
+          onDone={(msg) => { setReport(msg); setEncounter(null); }}
+          onTurnBack={() => { setMoving(null); setEncounter(null); }}
+        />
+      )}
+      {encounter && encounter.kind !== 'raiders' && (
+        <EncounterCard
+          party={encounter}
+          onDone={(msg) => {
+            setReport(msg);
+            setEncounter(null);
+          }}
+          onTurnBack={() => {
+            setMoving(null);
+            setEncounter(null);
+          }}
+        />
+      )}
+      {jobsOpen && (
+        <Objectives
+          onClose={() => setJobsOpen(false)}
+          onFocus={(id) => {
+            setJobsOpen(false);
+            const st = settlementById(id);
+            if (!st) return;
+            if (w.at === id) { useGame.getState().checkJobs(id); if (id === 'giza' && onDistrict) onDistrict(); else setPanel(id); return; }
+            follow.current = false;
+            centreOn({ x: st.x, y: st.y });
+            planTo(st, st);
+          }}
+        />
+      )}
+      {panel && <SettlementPanel id={panel} tab={panel === openPanel ? openTab : undefined} onClose={() => setPanel(null)} onStall={onStall} />}
+    </div>
+  );
+}
+
+function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m: string) => void; onTurnBack: () => void }) {
+  const g = useGame();
+  const [msg, setMsg] = useState('');
+  const mine = strength(g.world.party);
+  const men = Object.entries(g.world.party.troops).filter(([, n]) => n > 0).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`).join(', ');
+  const text = useMemo(() => {
+    switch (party.kind) {
+      case 'caravan': return `A string of camels comes over the rise: the ${party.name.toLowerCase()}. The caravan master raises a hand in greeting.`;
+      case 'pilgrims': return `${party.name}, dusty and cheerful, stop to share the shade.`;
+      case 'raiders': return `${party.size ?? 'Several'} riders come down off the ridge and block the track. Rifles across their saddles, not yet pointed at anyone.`;
+      case 'mercenaries': return `${party.name}: four armed men resting their horses. Their leader looks your camels over and asks if you need protection.`;
+      default: return 'Tarabin herders with goats and two thin camels. They watch you with interest.';
+    }
+  }, [party]);
+  const odds = party.strength ? Math.round((mine / (mine + party.strength)) * 100) : 0;
+  const opts: [string, string][] =
+    party.kind === 'caravan' ? [['news', 'Ask for news'], ['trade', 'See what they carry'], ['move', 'Move on']]
+    : party.kind === 'pilgrims' ? [['news', 'Ask about the road'], ['share', 'Share bread and water (£0.03)'], ['move', 'Move on']]
+    : party.kind === 'raiders' ? [['fight', `Fight (${odds}% chance)`], ['toll', 'Pay what they ask'], ['talk', 'Talk your way through'], ['turn', 'Turn back']]
+    : party.kind === 'mercenaries' ? [['hire', 'Hire all four (£4)'], ['news', 'Ask for news'], ['move', 'Move on']]
+    : [['news', 'Ask for news'], ['move', 'Move on']];
+  return (
+    <div className="overlay" data-testid="road-encounter">
+      <Tip id="road" />
+      <div className="modal-card">
+        <h2>{party.name}</h2>
+        <p style={{ color: 'var(--parchment)' }}>{text}</p>
+        {partyGoods(party) && <p className="enc-goods" data-testid="encounter-goods"><Icon name={partyGoods(party)!.icon} /> <b>Carrying {partyGoods(party)!.label}.</b> {partyGoods(party)!.note}</p>}
+        {party.kind === 'raiders' && <p>Your side: strength {mine}{men ? ` (${men})` : ', just you'}. Theirs: about {party.strength}.</p>}
+        {msg ? (
+          <>
+            <p style={{ color: 'var(--parchment)' }} data-testid="encounter-result">{msg}</p>
+            <button className="btn primary" onClick={() => (msg.includes('turn back') ? onTurnBack() : onDone(msg))} data-testid="encounter-continue">Continue</button>
+          </>
+        ) : (
+          <div style={{ display: 'grid', gap: 6 }}>
+            {opts.map(([id, label]) => (
+              <button key={id} className="btn" onClick={() => { setMsg(g.partyChoice(party.id, id)); audio.sfx(id === 'fight' ? 'chest' : 'tap'); }} data-testid={`enc-${id}`}>{label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

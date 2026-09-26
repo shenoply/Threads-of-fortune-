@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+const base = JSON.parse(fs.readFileSync('/home/claude/shots/save.json', 'utf8'));
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 });
+const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
+Object.assign(s.world, { at: null, hour: 2, x: 190, y: 430 }); s.world.party.food = 0; s.world.party.troops = {};
+await p.goto('http://localhost:4173/');
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
+await p.waitForTimeout(1200);
+await p.screenshot({ path: '/home/claude/shots/lay-camp.png' });
+await p.locator('[data-testid=place-alexandria]').dispatchEvent('click'); await p.waitForTimeout(1500);
+await p.screenshot({ path: '/home/claude/shots/lay-travel.png' });
+console.log('errors', errors);
+await b.close();

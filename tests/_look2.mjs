@@ -1,0 +1,28 @@
+import { chromium } from 'playwright';
+import fs from 'fs';
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 })).newPage();
+const errs=[]; p.on('pageerror', e => errs.push(e.message));
+await p.goto('http://localhost:4173/');
+const save = JSON.parse(fs.readFileSync('/home/claude/shots/save.json','utf8'));
+const has = async s => (await p.locator(s).count())>0;
+const load = async (mut) => { const s = structuredClone(save); mut?.(s.state); await p.evaluate((x) => { localStorage.clear(); localStorage.setItem('tof-intro-seen-v2','1'); localStorage.setItem('threads-of-fortune-save', x); }, JSON.stringify(s)); await p.reload(); await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
+await load();
+await p.click('[data-testid=nav-map]'); await p.waitForTimeout(500);
+if (await has('[data-testid=leave-settlement]')) await p.click('[data-testid=leave-settlement]');
+for (let i=0;i<2;i++) await p.click('button[aria-label="Zoom out"]').catch(()=>{});
+await p.waitForTimeout(500);
+await p.screenshot({ path: '/home/claude/shots/l2-map.png' });
+// travel toward jaffa to see pace
+await p.locator('[data-testid=place-jaffa]').dispatchEvent('click').catch(()=>{});
+await p.waitForTimeout(400);
+if (await has('[data-testid=food-go]')) await p.click('[data-testid=food-go]');
+await p.waitForTimeout(1500);
+await p.screenshot({ path: '/home/claude/shots/l2-travel.png' });
+await p.click('[data-testid=nav-caravan]'); await p.waitForTimeout(400);
+await p.screenshot({ path: '/home/claude/shots/l2-caravan.png' });
+await load((st) => { st.world.at = 'giza'; st.world.x = 146.9; st.world.y = 443.7; st.dayOver = false; st.world.hour = 8; });
+await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(1500);
+await p.screenshot({ path: '/home/claude/shots/l2-stall.png' });
+console.log('errors', errs);
+await b.close();

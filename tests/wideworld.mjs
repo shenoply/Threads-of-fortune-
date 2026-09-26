@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1280, height: 760 } });
+await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+await p.evaluate(() => { const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); d.state.tutorial={done:true,step:'done',inspected:true}; localStorage.setItem(k, JSON.stringify(d)); });
+await p.reload(); await p.click('[data-testid=continue]'); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(600);
+await p.screenshot({ path: '/home/claude/shots/ww1.png' });
+for (let i=0;i<3;i++) await p.click('[data-testid=world-zoom-in]'); await p.waitForTimeout(800);
+await p.screenshot({ path: '/home/claude/shots/ww2.png' });
+await b.close();

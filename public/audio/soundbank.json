@@ -1,0 +1,427 @@
+{
+ "fx": {
+  "hen": [
+   {
+    "file": "audio/fx/hen-0.mp3",
+    "dur": 5.0,
+    "src": "4-197103-A-6.wav"
+   },
+   {
+    "file": "audio/fx/hen-1.mp3",
+    "dur": 5.0,
+    "src": "3-178096-A-6.wav"
+   },
+   {
+    "file": "audio/fx/hen-2.mp3",
+    "dur": 5.0,
+    "src": "4-253649-A-6.wav"
+   }
+  ],
+  "rooster": [
+   {
+    "file": "audio/fx/rooster-0.mp3",
+    "dur": 2.37,
+    "src": "4-164859-A-1.wav"
+   },
+   {
+    "file": "audio/fx/rooster-1.mp3",
+    "dur": 2.72,
+    "src": "1-43382-A-1.wav"
+   },
+   {
+    "file": "audio/fx/rooster-2.mp3",
+    "dur": 3.21,
+    "src": "3-134049-A-1.wav"
+   }
+  ],
+  "dog": [
+   {
+    "file": "audio/fx/dog-0.mp3",
+    "dur": 4.67,
+    "src": "3-136288-A-0.wav"
+   },
+   {
+    "file": "audio/fx/dog-1.mp3",
+    "dur": 4.84,
+    "src": "5-208030-A-0.wav"
+   },
+   {
+    "file": "audio/fx/dog-2.mp3",
+    "dur": 5.0,
+    "src": "2-117271-A-0.wav"
+   },
+   {
+    "file": "audio/fx/dog-3.mp3",
+    "dur": 4.86,
+    "src": "3-155312-A-0.wav"
+   }
+  ],
+  "sheep": [
+   {
+    "file": "audio/fx/sheep-0.mp3",
+    "dur": 5.0,
+    "src": "1-88574-A-8.wav"
+   },
+   {
+    "file": "audio/fx/sheep-1.mp3",
+    "dur": 5.0,
+    "src": "3-140199-D-8.wav"
+   },
+   {
+    "file": "audio/fx/sheep-2.mp3",
+    "dur": 5.0,
+    "src": "2-196688-A-8.wav"
+   }
+  ],
+  "cow": [
+   {
+    "file": "audio/fx/cow-0.mp3",
+    "dur": 5.0,
+    "src": "4-181955-B-3.wav"
+   },
+   {
+    "file": "audio/fx/cow-1.mp3",
+    "dur": 5.0,
+    "src": "3-160993-A-3.wav"
+   }
+  ],
+  "crow": [
+   {
+    "file": "audio/fx/crow-0.mp3",
+    "dur": 5.0,
+    "src": "2-109231-A-9.wav"
+   },
+   {
+    "file": "audio/fx/crow-1.mp3",
+    "dur": 5.0,
+    "src": "5-242711-A-9.wav"
+   },
+   {
+    "file": "audio/fx/crow-2.mp3",
+    "dur": 5.0,
+    "src": "5-222041-A-9.wav"
+   }
+  ],
+  "chirping_birds": [
+   {
+    "file": "audio/fx/chirping_birds-0.mp3",
+    "dur": 5.0,
+    "src": "1-54918-B-14.wav"
+   },
+   {
+    "file": "audio/fx/chirping_birds-1.mp3",
+    "dur": 5.0,
+    "src": "2-108760-A-14.wav"
+   },
+   {
+    "file": "audio/fx/chirping_birds-2.mp3",
+    "dur": 5.0,
+    "src": "3-155583-A-14.wav"
+   },
+   {
+    "file": "audio/fx/chirping_birds-3.mp3",
+    "dur": 5.0,
+    "src": "4-187769-A-14.wav"
+   },
+   {
+    "file": "audio/fx/chirping_birds-4.mp3",
+    "dur": 5.0,
+    "src": "2-108761-A-14.wav"
+   }
+  ],
+  "laughing": [
+   {
+    "file": "audio/fx/laughing-0.mp3",
+    "dur": 5.0,
+    "src": "4-181599-A-26.wav"
+   },
+   {
+    "file": "audio/fx/laughing-1.mp3",
+    "dur": 5.0,
+    "src": "2-60791-A-26.wav"
+   },
+   {
+    "file": "audio/fx/laughing-2.mp3",
+    "dur": 5.0,
+    "src": "2-60795-A-26.wav"
+   },
+   {
+    "file": "audio/fx/laughing-3.mp3",
+    "dur": 5.0,
+    "src": "5-253534-A-26.wav"
+   },
+   {
+    "file": "audio/fx/laughing-4.mp3",
+    "dur": 4.4,
+    "src": "3-119459-A-26.wav"
+   }
+  ],
+  "coughing": [
+   {
+    "file": "audio/fx/coughing-0.mp3",
+    "dur": 3.75,
+    "src": "1-63679-A-24.wav"
+   },
+   {
+    "file": "audio/fx/coughing-1.mp3",
+    "dur": 3.21,
+    "src": "3-125418-A-24.wav"
+   },
+   {
+    "file": "audio/fx/coughing-2.mp3",
+    "dur": 4.67,
+    "src": "5-208761-A-24.wav"
+   },
+   {
+    "file": "audio/fx/coughing-3.mp3",
+    "dur": 0.74,
+    "src": "3-145487-A-24.wav"
+   },
+   {
+    "file": "audio/fx/coughing-4.mp3",
+    "dur": 5.0,
+    "src": "4-157296-A-24.wav"
+   }
+  ],
+  "pouring_water": [
+   {
+    "file": "audio/fx/pouring_water-0.mp3",
+    "dur": 5.0,
+    "src": "4-182839-A-17.wav"
+   },
+   {
+    "file": "audio/fx/pouring_water-1.mp3",
+    "dur": 3.68,
+    "src": "2-102414-A-17.wav"
+   },
+   {
+    "file": "audio/fx/pouring_water-2.mp3",
+    "dur": 4.88,
+    "src": "1-51436-A-17.wav"
+   }
+  ],
+  "drinking_sipping": [
+   {
+    "file": "audio/fx/drinking_sipping-0.mp3",
+    "dur": 5.0,
+    "src": "4-188191-C-29.wav"
+   },
+   {
+    "file": "audio/fx/drinking_sipping-1.mp3",
+    "dur": 4.73,
+    "src": "4-188191-B-29.wav"
+   },
+   {
+    "file": "audio/fx/drinking_sipping-2.mp3",
+    "dur": 4.84,
+    "src": "4-188191-A-29.wav"
+   }
+  ],
+  "door_wood_creaks": [
+   {
+    "file": "audio/fx/door_wood_creaks-0.mp3",
+    "dur": 5.0,
+    "src": "4-160036-A-33.wav"
+   },
+   {
+    "file": "audio/fx/door_wood_creaks-1.mp3",
+    "dur": 5.0,
+    "src": "4-160036-B-33.wav"
+   },
+   {
+    "file": "audio/fx/door_wood_creaks-2.mp3",
+    "dur": 5.0,
+    "src": "5-187444-A-33.wav"
+   },
+   {
+    "file": "audio/fx/door_wood_creaks-3.mp3",
+    "dur": 5.0,
+    "src": "4-132839-A-33.wav"
+   }
+  ],
+  "door_wood_knock": [
+   {
+    "file": "audio/fx/door_wood_knock-0.mp3",
+    "dur": 4.69,
+    "src": "1-26188-A-30.wav"
+   },
+   {
+    "file": "audio/fx/door_wood_knock-1.mp3",
+    "dur": 2.29,
+    "src": "2-134915-A-30.wav"
+   },
+   {
+    "file": "audio/fx/door_wood_knock-2.mp3",
+    "dur": 2.02,
+    "src": "2-133889-A-30.wav"
+   },
+   {
+    "file": "audio/fx/door_wood_knock-3.mp3",
+    "dur": 5.0,
+    "src": "3-180147-A-30.wav"
+   }
+  ],
+  "footsteps": [
+   {
+    "file": "audio/fx/footsteps-0.mp3",
+    "dur": 5.0,
+    "src": "3-94343-A-25.wav"
+   },
+   {
+    "file": "audio/fx/footsteps-1.mp3",
+    "dur": 5.0,
+    "src": "3-249913-A-25.wav"
+   },
+   {
+    "file": "audio/fx/footsteps-2.mp3",
+    "dur": 5.0,
+    "src": "3-94342-A-25.wav"
+   },
+   {
+    "file": "audio/fx/footsteps-3.mp3",
+    "dur": 3.88,
+    "src": "5-51149-A-25.wav"
+   },
+   {
+    "file": "audio/fx/footsteps-4.mp3",
+    "dur": 5.0,
+    "src": "4-198962-B-25.wav"
+   },
+   {
+    "file": "audio/fx/footsteps-5.mp3",
+    "dur": 5.0,
+    "src": "5-244310-A-25.wav"
+   }
+  ],
+  "cat": [
+   {
+    "file": "audio/fx/cat-0.mp3",
+    "dur": 5.0,
+    "src": "4-149940-B-5.wav"
+   },
+   {
+    "file": "audio/fx/cat-1.mp3",
+    "dur": 5.0,
+    "src": "5-169983-A-5.wav"
+   },
+   {
+    "file": "audio/fx/cat-2.mp3",
+    "dur": 5.0,
+    "src": "1-34094-B-5.wav"
+   },
+   {
+    "file": "audio/fx/cat-3.mp3",
+    "dur": 5.0,
+    "src": "3-146964-A-5.wav"
+   },
+   {
+    "file": "audio/fx/cat-4.mp3",
+    "dur": 3.99,
+    "src": "1-79113-A-5.wav"
+   },
+   {
+    "file": "audio/fx/cat-5.mp3",
+    "dur": 5.0,
+    "src": "4-149940-A-5.wav"
+   }
+  ],
+  "clapping": [
+   {
+    "file": "audio/fx/clapping-0.mp3",
+    "dur": 5.0,
+    "src": "4-189832-A-22.wav"
+   },
+   {
+    "file": "audio/fx/clapping-1.mp3",
+    "dur": 5.0,
+    "src": "4-189838-A-22.wav"
+   },
+   {
+    "file": "audio/fx/clapping-2.mp3",
+    "dur": 5.0,
+    "src": "4-189832-B-22.wav"
+   },
+   {
+    "file": "audio/fx/clapping-3.mp3",
+    "dur": 4.86,
+    "src": "5-221568-A-22.wav"
+   }
+  ],
+  "church_bells": [
+   {
+    "file": "audio/fx/church_bells-0.mp3",
+    "dur": 5.0,
+    "src": "2-61618-A-46.wav"
+   },
+   {
+    "file": "audio/fx/church_bells-1.mp3",
+    "dur": 5.0,
+    "src": "3-122110-A-46.wav"
+   },
+   {
+    "file": "audio/fx/church_bells-2.mp3",
+    "dur": 5.0,
+    "src": "1-54747-A-46.wav"
+   }
+  ],
+  "train": [
+   {
+    "file": "audio/fx/train-0.mp3",
+    "dur": 5.0,
+    "src": "1-119125-A-45.wav"
+   },
+   {
+    "file": "audio/fx/train-1.mp3",
+    "dur": 5.0,
+    "src": "5-188945-A-45.wav"
+   },
+   {
+    "file": "audio/fx/train-2.mp3",
+    "dur": 5.0,
+    "src": "4-165791-A-45.wav"
+   }
+  ],
+  "crackling_fire": [
+   {
+    "file": "audio/fx/crackling_fire-0.mp3",
+    "dur": 5.0,
+    "src": "5-213802-A-12.wav"
+   },
+   {
+    "file": "audio/fx/crackling_fire-1.mp3",
+    "dur": 5.0,
+    "src": "4-164661-A-12.wav"
+   }
+  ]
+ },
+ "beds": {
+  "market": {
+   "file": "audio/amb/market.mp3",
+   "dur": 93.0
+  },
+  "port": {
+   "file": "audio/amb/port.mp3",
+   "dur": 93.0
+  },
+  "palace": {
+   "file": "audio/amb/palace.mp3",
+   "dur": 93.0
+  },
+  "auction-small": {
+   "file": "audio/amb/auction-small.mp3",
+   "dur": 93.0
+  },
+  "auction-grand": {
+   "file": "audio/amb/auction-grand.mp3",
+   "dur": 93.0
+  },
+  "road": {
+   "file": "audio/amb/road.mp3",
+   "dur": 93.0
+  },
+  "night": {
+   "file": "audio/amb/night.mp3",
+   "dur": 93.0
+  }
+ }
+}

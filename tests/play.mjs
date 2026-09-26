@@ -1,0 +1,34 @@
+// Human-style playthrough: waits for lines to finish, reads the full dialogue, screenshots each beat.
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 });
+await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+let n = 0;
+const shot = (tag) => p.screenshot({ path: `/home/claude/shots/play-${String(++n).padStart(2,'0')}-${tag}.png` });
+const idle = async () => { for (let i = 0; i < 80; i++) { if (!(await p.locator('.skip-hint').count())) return; await p.waitForTimeout(250); } };
+const acts = async () => (await p.locator('.act:not([disabled]) .t').allTextContents());
+const click = async (sel, tag) => { await p.click(sel); await p.waitForTimeout(300); await idle(); await shot(tag); console.log(`> ${tag} | actions: ${(await acts()).join(' / ')}`); };
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+await idle(); await shot('arrive');
+await click('[data-testid=act-ask_room]', 'room');
+await click('[data-testid=rug-desert-star]', 'present');
+await p.click('[data-testid=rug-desert-star]'); await p.click('[data-testid=zoom-in]'); await p.click('[data-testid=inspector-close]'); await idle();
+await click('[data-testid=act-story]', 'story');
+await p.click('[data-testid=act-name_price]'); await shot('dial');
+await click('[data-testid=offer-price]', 'ask');
+await click('[data-testid=act-halfway]', 'halfway').catch(()=>{});
+if (await p.locator('[data-testid=act-accept_offer]').count()) await click('[data-testid=act-accept_offer]', 'accept');
+const log1 = await p.evaluate(() => 1);
+await click('[data-testid=next-visit]', 'yusuf-arrive');
+await click('[data-testid=act-ask_room]', 'y-room');
+await click('[data-testid=act-ask_budget]', 'y-budget');
+const rugs = await p.locator('.rugcard .nm').allTextContents(); console.log('rugs', rugs);
+await click('.rugcard:not(.empty) >> nth=0', 'y-present');
+if (await p.locator('[data-testid=act-saffron_move]').count()) await click('[data-testid=act-saffron_move]', 'y-cat');
+await click('[data-testid=act-durability]', 'y-dur').catch(()=>{});
+for (const a of ['obj_honest','fit','name_price']) if (await p.locator(`[data-testid=act-${a}]`).count()) { if (a==='name_price'){ await p.click('[data-testid=act-name_price]'); await click('[data-testid=offer-price]','y-ask'); } else await click(`[data-testid=act-${a}]`, 'y-'+a); }
+if (await p.locator('[data-testid=act-accept_offer]').count()) await click('[data-testid=act-accept_offer]', 'y-accept');
+console.log('result:', await p.locator('[data-testid=result]').textContent().catch(()=>'none'));
+const st = await p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state);
+console.log('cash', st.cash, 'rep', st.reputation, 'ledger', JSON.stringify(st.ledger));
+await b.close();
