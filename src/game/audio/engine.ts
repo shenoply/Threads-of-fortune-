@@ -2,6 +2,7 @@
 // that change with the place and the hour and cross-fade into each other.
 // Dialogue plays recorded clips only. With no clip, captions carry the line.
 import { voice } from './voice';
+import { fetchMedia } from './cdn';
 
 export type Channel = 'dialogue' | 'music' | 'sfx' | 'ambience';
 type Toggles = Record<Channel, boolean>;
@@ -113,7 +114,7 @@ class AudioEngine {
   private buffer(url: string): Promise<AudioBuffer | null> {
     if (!this.bufs.has(url)) {
       const c = this.ctx!;
-      this.bufs.set(url, fetch(url).then((r) => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); }).then((b) => c.decodeAudioData(b)).catch(() => null));
+      this.bufs.set(url, fetchMedia(url).then((r) => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); }).then((b) => c.decodeAudioData(b)).catch(() => null));
       // keep memory in check: forget the oldest music buffers
       const music = [...this.bufs.keys()].filter((k) => k.includes('/music/'));
       if (music.length > 5) this.bufs.delete(music[0]);

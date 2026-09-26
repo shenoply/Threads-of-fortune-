@@ -1,5 +1,6 @@
 // Plays a bulletin through a warm, crackling wireless set. The music ducks while the announcer speaks.
 import { audio } from '../audio/engine';
+import { fetchMedia } from '../audio/cdn';
 import type { Lang, Segment, Group } from './bulletin';
 
 interface Manifest { [lang: string]: { [g: string]: { file: string; clips: Record<string, [number, number]> } } }
@@ -20,7 +21,7 @@ class RadioPlayer {
   }
   private buffer(url: string) {
     const ctx = audio.ctx!;
-    if (!this.bufs.has(url)) this.bufs.set(url, fetch(url).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)).catch(() => null));
+    if (!this.bufs.has(url)) this.bufs.set(url, fetchMedia(url).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)).catch(() => null));
     return this.bufs.get(url)!;
   }
 

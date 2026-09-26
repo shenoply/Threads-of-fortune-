@@ -2,6 +2,7 @@
 // Clips are packed one file per character ("audio sprites"), described by voices/manifest.json:
 //   { "sprites": { "samira": { "file": "voices/samira.mp3", "clips": { "1a2b3c4d": [start, dur], "9f8e7d6c.a": [...], "num-120": [...] } } } }
 // Missing clips fall back to captions. Lines never overlap.
+import { fetchMedia } from './cdn';
 
 export function lineId(speaker: string, text: string) {
   let h = 0x811c9dc5;
@@ -79,7 +80,7 @@ class Voice {
       if (!s || this.buffers[sp]) continue;
       this.buffers[sp] = 'loading';
       const ctx = this.audioCtx();
-      fetch(`${s.file}?v=${Object.keys(s.clips).length}`)
+      fetchMedia(`${s.file}?v=${Object.keys(s.clips).length}`)
         .then((r) => r.arrayBuffer())
         .then((b) => ctx.decodeAudioData(b))
         .then((buf) => { this.buffers[sp] = buf; })
