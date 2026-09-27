@@ -837,7 +837,7 @@ table.ledger .neg { color: var(--bad); }
 .scene.split .buyer-side img.lane { object-position: 100% 40%; transform: scale(1.75); transform-origin: 100% 45%; filter: brightness(.9); }
 .scene.split .buyer-figure.has-photo { top: 6%; right: 2%; bottom: 0; left: auto; height: auto; }
 .scene.split .buyer-side { margin-left: -5%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%); mask-image: linear-gradient(90deg, transparent, #000 10%); }
-.split-rug { position: absolute; left: 50%; bottom: 4%; width: 34%; max-width: 300px; transform: translateX(-50%) perspective(600px) rotateX(42deg); transform-origin: 50% 100%; box-shadow: 0 10px 26px rgba(0,0,0,.6); animation: unfold2 .6s ease-out; border: 2px solid rgba(236,220,184,.45); z-index: 4; }
+.split-rug { position: absolute; left: 50%; bottom: 3%; width: 25%; max-width: 220px; transform: translateX(-50%) perspective(600px) rotateX(46deg); transform-origin: 50% 100%; box-shadow: 0 10px 26px rgba(0,0,0,.6); animation: unfold2 .6s ease-out; border: 2px solid rgba(236,220,184,.45); z-index: 4; }
 .split-rug img { display: block; width: 100%; }
 @keyframes unfold2 { from { transform: translateX(-50%) perspective(600px) rotateX(85deg); opacity: 0; } }
 .cat-badge { position: absolute; left: 47%; bottom: 1%; width: min(17%, 120px); padding: 0; border: 0; background: none; cursor: pointer; }
