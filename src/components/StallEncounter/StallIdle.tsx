@@ -20,6 +20,10 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
 
   return (
     <div className="screen idle" data-testid="stall-idle">
+      <div className="idle-scene" aria-hidden="true">
+        <img src="art/stall-empty.webp" alt="" draggable={false} />
+        <span className="idle-clock-chip">{clock(h)}</span>
+      </div>
       <div className="idle-next" data-testid="idle-next">
         {g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}

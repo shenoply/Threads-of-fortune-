@@ -1828,3 +1828,7 @@ body.travelling .mission-strip{display:none}
 .btn.auto-next{position:relative;overflow:hidden}
 .btn.auto-next .auto-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:rgba(27,17,10,.55);transform-origin:left;animation:auto-bar 8s linear forwards}
 @keyframes auto-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* the stall between customers: the empty counter, folded rugs and the pyramids beyond */
+.idle-scene{position:relative;width:100%;aspect-ratio:3/2;max-height:36vh;border-radius:10px;overflow:hidden;border:1px solid var(--line-strong);box-shadow:inset 0 0 40px #0006}
+.idle-scene img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;display:block}
+.idle-clock-chip{position:absolute;right:10px;top:10px;font-family:var(--display);font-size:22px;letter-spacing:.04em;color:var(--brass-hi);background:#140c06cc;padding:3px 10px;border-radius:8px;border:1px solid #7a5028}
