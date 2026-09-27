@@ -11,5 +11,8 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
    keeping the same relative paths.
 3. npm install; npx vite build; cp public/page.html dist/.
 4. Commit and push to main.
-5. Then point heavy audio at https://cdn.jsdelivr.net/gh/shenoply/Threads-of-fortune-@main/public/...
-   so the artifact no longer has to carry it.
+5. Keep every file under art/, audio/ and voices/ in the artifact. Do NOT remove the voices or
+   radio mp3s to save space: the jsDelivr route (src/game/audio/cdn.ts) did not serve them in the
+   published game, and without them dialogue and the radio fall silent. The game loads audio from
+   next to the page first and only tries jsDelivr if a file is missing.
+   The whole game is about 254 MB, just under the artifact's 256 MB limit; new art must be small.
