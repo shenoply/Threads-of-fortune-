@@ -82,8 +82,52 @@ def fix(a):
         depth = np.clip((yy - (cy - ry)) / (2 * ry), 0, 1)
         shade = 0.28 + 0.34 * depth
         fill = np.where(B[..., None], arm[..., :3] * shade[..., None], np.array([40, 26, 16], float))
+        # the back rim of the cuff below the oval: his arm comes out in front of it
+        arm_cols = [x for x, b in run if SKIN[b + 3: b + 12, x].mean() > 0.8]
+        if arm_cols:
+            xl, xr = min(arm_cols) + 2, max(arm_cols) - 2
+            rim = np.zeros_like(m)
+            rim[int(cy): int(bots.max()) + 3, xl: xr + 1] = 1
+            rim = ndimage.gaussian_filter(rim, 1.5)
+            m = np.maximum(m, rim)
+            below = np.clip((yy - cy) / max(1.0, bots.max() - cy), 0, 1)
+            shade = np.where(yy > cy, 0.55 + 0.4 * below, shade)
+            fill = np.where(B[..., None], arm[..., :3] * shade[..., None], np.array([40, 26, 16], float))
         k = m * (a[..., 3] / 255.0)
         out[..., :3] = out[..., :3] * (1 - k[..., None]) + fill * k[..., None]
+    return out
+
+
+def collar(a):
+    """Fill the see-through gaps beside his neck with the back of the collar, in shadow."""
+    out = a.copy()
+    A = a[..., 3] > 40
+    ys = np.nonzero(A.any(axis=1))[0]
+    if not len(ys):
+        return out
+    top = ys.min()
+    n = 0
+    for y in range(max(0, top - 4), min(Hh, top + 80)):
+        row_g, row_b = A[y], B[y]
+        both = row_g | row_b
+        xs = np.nonzero(both)[0]
+        if not len(xs):
+            continue
+        for side in (-1, 1):
+            # walk from the centre of the neck outwards: neck, then a gap, then cloth
+            x = CX
+            while 0 < x < W - 1 and row_b[x] and not row_g[x]:
+                x += side
+            start = x
+            while 0 < x < W - 1 and not both[x] and abs(x - start) < 70:
+                x += side
+            if 0 < x < W - 1 and row_g[x] and x != start and abs(x - start) < 70:
+                lo, hi = sorted((start, x))
+                c = a[y, x + side * 3, :3] if 0 < x + side * 3 < W else a[y, x, :3]
+                out[y, lo:hi + 1, :3] = c * 0.45
+                out[y, lo:hi + 1, 3] = 255
+                n += hi - lo + 1
+    # soften the filled patch
     return out
 
 
@@ -92,5 +136,5 @@ if __name__ == '__main__':
         f = HERO / 'wardrobe' / f'{pid}.png'
         a = np.array(Image.open(f).convert('RGBA')).astype(np.float32)
         n = len(cuffs(a))
-        Image.fromarray(fix(a).clip(0, 255).astype(np.uint8)).save(f, optimize=True)
+        Image.fromarray(collar(fix(a)).clip(0, 255).astype(np.uint8)).save(f, optimize=True)
         print(f'{pid}: {n} cuff(s) shaded')

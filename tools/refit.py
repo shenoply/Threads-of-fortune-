@@ -97,6 +97,28 @@ def warp(img, ax, ay, sx, sy, dx, dy, box=None):
     return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
 
 
+WAIST = int(H * 0.47)
+
+
+def let_down(img, pivot, hem):
+    a = np.array(img).astype(np.float32)
+    rows = np.nonzero((a[..., 3] > 40).any(axis=1))[0]
+    bottom = rows.max()
+    if bottom >= hem or bottom <= pivot:
+        return img
+    k = (hem - pivot) / (bottom - pivot)
+    out = a.copy()
+    out[pivot:] = 0
+    # each output row below the pivot samples the painted skirt higher up
+    for y in range(pivot, min(H, hem + 4)):
+        src = pivot + (y - pivot) / k
+        y0 = int(src); t = src - y0
+        if y0 + 1 >= H:
+            break
+        out[y] = a[y0] * (1 - t) + a[y0 + 1] * t
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
+
 def save(pid, img, moves):
     f = DIR / f'{pid}.png'
     RAW.mkdir(parents=True, exist_ok=True)
@@ -147,15 +169,21 @@ def fit_body(pid, legs):
     if not best:
         print(f'{pid}: no fit keeps it covering him; left as is'); return
     _, sx, sy, dx, dy = best
-    if pid in ANKLE_LENGTH:
-        # an ankle-length robe painted short: let the hem down to just above the ankle
-        full = np.nonzero(np.array(img)[..., 3] > 40)[0]
-        sy = max(sy, (ANKLE - 30 - full.min()) / (full.max() - full.min()))
     mv = (CX, ay * Q, sx, sy, dx * Q, dy * Q)
     out = warp(img, *mv)
-    if not legs and pid not in SLEEVELESS:
-        # his forearm goes into the sleeve instead of past an empty cuff (tools/cuffs.py)
-        out = Image.fromarray(cuffs.fix(np.array(out).astype(np.float32)).clip(0, 255).astype(np.uint8))
+    if pid in ANKLE_LENGTH:
+        # an ankle-length robe painted short: let the hem down to just above the ankle,
+        # stretching only the skirt below the waist so the neckline and sleeves stay as painted
+        out = let_down(out, WAIST, ANKLE - 30)
+    if not legs:
+        # his forearm goes into the sleeve instead of past an empty cuff, and the back of the
+        # collar closes the see-through gaps beside his neck (tools/cuffs.py)
+        a = np.array(out).astype(np.float32)
+        if pid not in SLEEVELESS:
+            a = cuffs.fix(a)
+        if pid in SLEEVELESS:
+            a = cuffs.collar(a)
+        out = Image.fromarray(a.clip(0, 255).astype(np.uint8))
     save(pid, out, [mv])
     print(f'{pid}: width x{sx:.2f}, length x{sy:.2f}, shift {dx * Q:+.0f}px')
 
