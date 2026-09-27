@@ -15,7 +15,8 @@ import { isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod
 import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
 import { progressScore } from '../economy/progress';
-import { START_MANNER, SKILLS, levelOf, hasPerk, charismaOf, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
+import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
+import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
@@ -35,7 +36,7 @@ import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKI
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { CELEB_INFO } from '../../data/buyers';
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -96,6 +97,8 @@ export interface GameState {
   /** how the bazaar sees you */
   manner: Manner;
   attire: { owned: string[]; worn: string; clean: number };
+  /** the hero's clothes, piece by piece; attire.worn is kept in step as a summary for older code */
+  wardrobe: WardrobeState;
   books: string[];
   /** level-ups waiting to be announced */
   levelUps: { skill: SkillId; level: number }[];
@@ -230,6 +233,12 @@ interface Actions {
   seeTip: (id: string) => void;
   buyAttire: (id: string) => string;
   wear: (id: string) => void;
+  /** buy pieces of clothing at the current town; returns a line for the player */
+  buyPieces: (ids: string[]) => string;
+  /** change into an outfit made of pieces you own */
+  dressIn: (o: Outfit) => void;
+  /** leave the first-sale lesson: everything unlocks, the current customer stays as an ordinary sale */
+  skipTutorial: () => void;
   bathe: (sid: string) => string;
   readBook: (id: string) => string;
   buyOffer: (uid: string, credit: boolean) => string;
@@ -371,6 +380,7 @@ function initial(): Omit<GameState, keyof Actions> {
     skills: {},
     manner: { ...START_MANNER },
     attire: { owned: ['galabiya'], worn: 'galabiya', clean: 100 },
+    wardrobe: { owned: [...START_WARDROBE.owned], outfit: { ...START_WARDROBE.outfit, extras: [] } },
     books: [],
     levelUps: [],
     titles: [],
@@ -446,7 +456,7 @@ export const useGame = create<GameState & Actions>()(
         rng,
         skills: s.skills,
         manner: s.manner,
-        charisma: charismaOf(s.attire?.worn ?? 'galabiya', s.attire?.clean ?? 100),
+        charisma: heroCharisma((s.wardrobe ?? START_WARDROBE).outfit, s.attire?.clean ?? 100),
         eventBudget: s.world.at === 'giza' ? budgetMod(s.day) : 1,
         clean: s.attire?.clean ?? 100,
         attire: s.attire?.worn ?? 'galabiya',
@@ -1375,11 +1385,50 @@ export const useGame = create<GameState & Actions>()(
           const a = ATTIRE[id];
           if (!a || s.attire.owned.includes(id)) return '';
           if (s.cash < a.cost) return 'Not enough cash.';
-          set({ cash: s.cash - a.cost, attire: { owned: [...s.attire.owned, id], worn: id, clean: 100 }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: a.name, amount: -a.cost }], journal: [...s.journal, { day: s.day, text: `Bought ${a.name.toLowerCase()} from a tailor.` }] });
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          const setPieces = Object.values(LEGACY_SETS[id] ?? {}).filter((v): v is string => typeof v === 'string');
+          const outfit = { ...w0.outfit, ...LEGACY_SETS[id], extras: w0.outfit.extras } as Outfit;
+          set({ cash: s.cash - a.cost, wardrobe: { owned: [...new Set([...w0.owned, ...setPieces])], outfit }, attire: { owned: [...s.attire.owned, id], worn: legacyWorn(outfit), clean: 100 }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: a.name, amount: -a.cost }], journal: [...s.journal, { day: s.day, text: `Bought ${a.name.toLowerCase()} from a tailor.` }] });
           audio.sfx('coins');
           return `The tailor brushes the shoulders and steps back. ${a.name}: charisma +${a.charisma}.`;
         },
-        wear: (id) => { const s = get(); if (s.attire.owned.includes(id)) set({ attire: { ...s.attire, worn: id } }); },
+        wear: (id) => {
+          const s = get();
+          if (!s.attire.owned.includes(id)) return;
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          const outfit = id === 'galabiya' ? { ...START_WARDROBE.outfit, extras: [] } : ({ ...w0.outfit, ...LEGACY_SETS[id] } as Outfit);
+          set({ wardrobe: { ...w0, outfit }, attire: { ...s.attire, worn: legacyWorn(outfit) } });
+        },
+        buyPieces: (ids) => {
+          const s = get();
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          const fresh = [...new Set(ids)].filter((id) => PIECES[id] && !w0.owned.includes(id));
+          if (!fresh.length) return '';
+          const total = fresh.reduce((n, id) => n + PIECES[id].price, 0);
+          if (s.cash < total) return `Not enough cash: that comes to ${fmt(total)}.`;
+          const PROPER = /^(Albanian|Pasha|Lee-Enfield|Ottoman|Mauser|Webley|Red Fez)/;
+          const names = fresh.map((id) => { const n = PIECES[id].name; return PROPER.test(n) ? n : n.charAt(0).toLowerCase() + n.slice(1); });
+          const said = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+          set({
+            cash: s.cash - total,
+            wardrobe: { ...w0, owned: [...w0.owned, ...fresh] },
+            ledger: [...s.ledger, ...fresh.map((id) => ({ day: s.day, kind: 'expense' as const, label: PIECES[id].name, amount: -PIECES[id].price }))],
+            journal: [...s.journal, { day: s.day, text: `Bought ${said}.` }],
+          });
+          audio.sfx('coins');
+          return `Wrapped in brown paper and tied with string: ${said}, ${fmt(total)}.`;
+        },
+        skipTutorial: () => {
+          const s = get();
+          if (s.tutorial.done) return;
+          set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false } : s.encounter });
+        },
+        dressIn: (o) => {
+          const s = get();
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          if (!wornIds(o).every((id) => w0.owned.includes(id))) return;
+          set({ wardrobe: { ...w0, outfit: { ...o, extras: [...o.extras] } }, attire: { ...s.attire, worn: legacyWorn(o) } });
+        },
         bathe: (sid) => {
           const s = get();
           const h = HAMMAMS[sid];
@@ -1406,7 +1455,7 @@ export const useGame = create<GameState & Actions>()(
           const b = BUYERS[buyerId];
           if (!b?.royal) return '';
           if (s.reputation < b.royal.minRep) return `The chamberlain regrets that the ${b.name.startsWith('Queen') ? 'Queen' : b.name.includes('President') || b.name.includes('Kemal') ? 'President' : b.name.startsWith('Emir') ? 'Emir' : 'King'} receives merchants of greater standing. Come back with reputation ${b.royal.minRep} (you have ${s.reputation}).`;
-          const ch = charismaOf(s.attire?.worn ?? 'galabiya', s.attire?.clean ?? 100);
+          const ch = heroCharisma((s.wardrobe ?? START_WARDROBE).outfit, s.attire?.clean ?? 100);
           if (ch < 6) return (s.attire?.clean ?? 100) < 40 && (s.attire?.worn ?? 'galabiya') !== 'galabiya'
             ? 'The chamberlain looks at the road dust on your coat and does not write your name down. Wash at a hammam first.'
             : 'The chamberlain looks at your work galabiya and politely closes his book. Nobody enters the palace dressed for the bazaar. A tailor can fix that.';
@@ -1754,6 +1803,11 @@ export const useGame = create<GameState & Actions>()(
       },
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
+        if (version < 13) {
+          // clothes are sold piece by piece now; old whole outfits become their pieces
+          const a = p.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 };
+          p.wardrobe = wardrobeFromLegacy(a.owned, a.worn);
+        }
         if (version < 3) {
           p.world = initialWorld();
         }

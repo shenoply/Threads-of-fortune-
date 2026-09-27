@@ -1,22 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { SKILLS, SKILL_ORDER, MANNER_AXES, ATTIRE, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, charismaOf, START_MANNER } from '../../data/character';
+import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER } from '../../data/character';
+import { PIECES, START_WARDROBE, heroCharisma } from '../../data/wardrobe';
+import { HeroBadge } from '../Wardrobe/HeroFigure';
+import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { rankOf, RANKS } from '../../game/economy/progress';
 import { TITLES } from '../../data/titles';
 
 // The merchant's character sheet: reputation, how the bazaar sees you, charisma and skills.
-export function MeSection() {
+export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
   const g = useGame();
   const m = g.manner ?? START_MANNER;
   const att = g.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 };
-  const ch = charismaOf(att.worn, att.clean);
+  const wr = g.wardrobe ?? START_WARDROBE;
+  const ch = heroCharisma(wr.outfit, att.clean);
+  const [wardrobe, setWardrobe] = useState(false);
+  const dress = [wr.outfit.head, wr.outfit.outer ?? wr.outfit.top].filter((x): x is string => !!x).map((id) => PIECES[id]?.name.toLowerCase()).join(', ');
   const { rank, next } = rankOf(g);
   const repNext = next?.rep ?? 100;
   return (
     <div className="charsheet inline" data-testid="character">
+      {!hideDress && (
       <div className="cs-head">
-        <div><small>THE MERCHANT OF GIZA</small><h2>{rank.name}</h2><span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span></div>
-      </div>
+          <div><small>THE MERCHANT OF GIZA</small><h2>{rank.name}</h2><span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span></div>
+        </div>
+      )}
       <div className="cs-section">
         <div className="cs-label"><b>Reputation</b><span data-testid="rep-value">{g.reputation}{next ? ` / ${repNext} for ${next.name}` : ''}</span></div>
         <i className="cs-bar rep"><em style={{ width: `${Math.min(100, (g.reputation / Math.max(1, repNext)) * 100)}%` }} /></i>
@@ -37,14 +45,14 @@ export function MeSection() {
         <p className="cs-note">{MANNER_AXES.map((a) => a.note).join(' ')}</p>
       </div>
       <div className="cs-section">
-        <div className="cs-label"><b>Charisma {ch}</b><span>{ATTIRE[att.worn]?.name} · {att.clean >= 70 ? 'clean' : att.clean >= 35 ? 'dusty' : 'filthy from the road'}</span></div>
+        <div className="cs-label"><b>Charisma {ch}</b><span>{dress} · {att.clean >= 70 ? 'clean' : att.clean >= 35 ? 'dusty' : 'filthy from the road'}</span></div>
         <i className="cs-bar clean"><em style={{ width: `${att.clean}%` }} /></i>
-        <div className="cs-attire">
-          {att.owned.map((id) => (
-            <button key={id} className={`chip ${att.worn === id ? 'on' : ''}`} onClick={() => g.wear(id)} data-testid={`wear-${id}`}>{ATTIRE[id].name}</button>
-          ))}
-        </div>
-        <p className="cs-note">Clothes and cleanliness set your charisma. Buyers trust a well-dressed merchant, and palaces will not admit you in a work galabiya. The road gets you dirty; a city hammam washes it off. Tailors in the big cities sell better clothes.</p>
+        {!hideDress && <div className="cs-dress">
+          <HeroBadge outfit={wr.outfit} size={64} />
+          <button className="btn" onClick={() => setWardrobe(true)} data-testid="open-wardrobe">Open wardrobe</button>
+        </div>}
+        {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
+        <p className="cs-note">Clothes and cleanliness set your charisma. Buyers trust a well-dressed merchant, and palaces will not admit you in a work galabiya. The road gets you dirty; a city hammam washes it off. Every piece is sold separately: hats, coats, shoes, rings, even rifles. Tailors in the big cities sell the better ones.</p>
       </div>
       <Titles />
     </div>

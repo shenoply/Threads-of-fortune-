@@ -9,6 +9,9 @@ import { rugSrc } from '../RugViewer/rugArt';
 import type { PlaybackView } from '../BuyerDialogue/usePlayback';
 import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
+import { useGame } from '../../game/state/store';
+import { START_WARDROBE } from '../../data/wardrobe';
+import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
 
 const SELLER_IMG = 'art/stall-seller.jpg';
 const SAMIRA_IMG = 'art/stall-samira-v2.jpg';
@@ -66,6 +69,9 @@ export function Dust() {
 }
 
 export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: SceneProps) {
+  // the hero as the player dressed him, once every piece he wears is painted for the stall
+  const outfit = (useGame((st) => st.wardrobe) ?? START_WARDROBE).outfit;
+  const heroReady = usePoseReady('stall', outfit);
   const box = useRef<HTMLDivElement>(null);
   const { w: W, h: H } = useSize(box);
   const buyer = enc ? BUYERS[enc.buyerId] : null;
@@ -115,7 +121,14 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   return (
     <div className={`scene split ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       <div className="panel seller-side">
-        <img src={SELLER_IMG} alt="The merchant at his stall in the Giza bazaar, the pyramids beyond" draggable={false} />
+        {heroReady ? (
+          <>
+            <img className="lane" src={SELLER_IMG} alt="" draggable={false} />
+            <div className="hero-at-stall" data-testid="hero-at-stall"><HeroFigure pose="stall" outfit={outfit} /></div>
+          </>
+        ) : (
+          <img src={SELLER_IMG} alt="The merchant at his stall in the Giza bazaar, the pyramids beyond" draggable={false} />
+        )}
       </div>
       <div className="panel buyer-side">
         {isSamira ? (

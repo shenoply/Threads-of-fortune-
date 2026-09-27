@@ -23,7 +23,9 @@ import { useAudioEnv, townEnv, townMusic } from '../../game/audio/useAudioEnv';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { auctionVenue } from '../../data/auctionVenues';
 import { dateLabel } from '../Auction/Auction';
-import { ATTIRE, BOOKS, HAMMAMS, SKILLS } from '../../data/character';
+import { BOOKS, HAMMAMS, SKILLS } from '../../data/character';
+import { PIECES, PIECE_ORDER, soldIn } from '../../data/wardrobe';
+import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { BUYERS } from '../../data/buyers';
 import { PortraitOrCameo } from '../People/Person';
 import { personFor } from '../../data/people';
@@ -32,6 +34,7 @@ export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town' }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab }) {
   const g = useGame();
   const [tab, setTab] = useState<SetTab>(initialTab);
+  const [wardrobe, setWardrobe] = useState(false);
   const st = settlementById(id);
   const [talkTo, setTalkTo] = useState<string | null>(null);
   const [inVenue, setInVenue] = useState(false);
@@ -57,6 +60,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
 
   return (
     <div className="overlay settlement" role="dialog" aria-label={st.name} data-testid="settlement">
+      {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
       <div className="set-head">
         {id === 'giza' ? <img className="thumb" src="art/world/giza-district.jpg" alt="" style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={walk.map} alt="" style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
         <div className="set-head-shade" />
@@ -123,7 +127,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </>
         )}
 
-        {(HAMMAMS[id] || Object.values(ATTIRE).some((a) => a.where.includes(id)) || Object.values(BOOKS).some((b) => b.where.includes(id))) && (
+        {(HAMMAMS[id] || PIECE_ORDER.some((pid) => soldIn(PIECES[pid], id)) || Object.values(BOOKS).some((b) => b.where.includes(id))) && (
           <>
             <div className="section-label">BATHS, TAILORS AND BOOKS</div>
             <div className="mkt">
@@ -134,15 +138,17 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                   <button className="btn primary" disabled={g.cash < HAMMAMS[id].cost || (g.attire?.clean ?? 100) >= 100} onClick={() => setNote(g.bathe(id))} data-testid="bathe">Bathe {fmt(HAMMAMS[id].cost)}</button>
                 </div>
               )}
-              {Object.values(ATTIRE).filter((a) => a.where.includes(id)).map((a) => (
-                <div className="mkt-row" key={a.id} data-testid={`tailor-${a.id}`}>
-                  <span className="svc-ico"><Icon name="needle" /></span>
-                  <span><b>{a.name}</b><small>Charisma +{a.charisma}. {a.note}</small></span>
-                  {g.attire?.owned.includes(a.id)
-                    ? <button className="btn" disabled={g.attire.worn === a.id} onClick={() => g.wear(a.id)}>{g.attire.worn === a.id ? 'Wearing' : 'Wear'}</button>
-                    : <button className="btn primary" disabled={g.cash < a.cost} onClick={() => setNote(g.buyAttire(a.id))} data-testid={`buy-attire-${a.id}`}>Buy {fmt(a.cost)}</button>}
-                </div>
-              ))}
+              {(() => {
+                const special = PIECE_ORDER.filter((pid) => PIECES[pid].where.includes(id));
+                const all = PIECE_ORDER.filter((pid) => soldIn(PIECES[pid], id));
+                return (
+                  <div className="mkt-row" data-testid="tailor">
+                    <span className="svc-ico"><Icon name="needle" /></span>
+                    <span><b>Tailors and outfitters</b><small>{all.length} pieces for sale{special.length ? `, among them ${special.slice(0, 3).map((pid) => PIECES[pid].name.toLowerCase()).join(', ')}` : ''}. Try anything on before you pay.</small></span>
+                    <button className="btn primary" onClick={() => setWardrobe(true)} data-testid="open-tailor">Try on</button>
+                  </div>
+                );
+              })()}
               {Object.values(BOOKS).filter((b) => b.where.includes(id)).map((b) => (
                 <div className="mkt-row" key={b.id} data-testid={`book-${b.id}`}>
                   <span className="svc-ico"><Icon name="book" /></span>
