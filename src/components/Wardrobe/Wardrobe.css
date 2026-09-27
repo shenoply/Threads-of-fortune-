@@ -19,12 +19,15 @@
     linear-gradient(180deg, #2b1c10 0%, #1a110a 70%, #120c07 100%);
   border-right: 1px solid var(--line);
 }
-.wr-stage::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 14px; height: 18px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%); pointer-events: none; }
+.wr-stage::after { display: none; content: none; }
 .wr-poses { display: flex; gap: 6px; justify-content: center; }
 .wr-poses .chip, .wr-fitlist .chip { font-family: var(--label); font-size: 14px; padding: 4px 11px; border-radius: 12px; border: 1px solid var(--line); background: #150e08; color: var(--text); }
 .wr-poses .chip.on, .wr-fitlist .chip.on { border-color: var(--brass-hi); color: var(--brass-hi); }
-.wr-stage { background-size: cover; background-position: 50% 60%; }
-.wr-figure-wrap { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+.wr-stage { background-size: cover; background-position: 50% 60%; overflow: hidden; }
+/* the figure fills the whole stage, so zooming never shows a clipped box inside it */
+.wr-figure-wrap { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+.wr-stage > .wr-poses, .wr-stage > .wr-unpainted { position: relative; z-index: 1; }
+.wr-stage > .wr-unpainted { margin-top: auto; background: linear-gradient(0deg, rgba(18,12,7,0.85), rgba(18,12,7,0)); padding: 10px 0 2px; }
 .wr-figure-wrap.zoomed { cursor: grab; touch-action: none; }
 .wr-figure-box { position: absolute; inset: 0; display: flex; justify-content: center; transform-origin: 50% 7%; transition: transform 0.25s ease; will-change: transform; }
 .wr-figure-wrap.zoomed:active .wr-figure-box { transition: none; }

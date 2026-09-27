@@ -5,7 +5,7 @@ import { fmt } from '../../game/economy/money';
 import { SETTLEMENTS } from '../../data/world';
 import {
   PIECES, PIECE_ORDER, POSES, POSE_INFO, SLOTS, START_WARDROBE,
-  heroCharisma, layerSrc, removePiece, soldIn, wearPiece, wornIds,
+  heroCharisma, layerSrc, removePiece, soldIn, wearPiece, wornIds, wouldReplace,
   type FitTable, type Outfit, type Piece, type Pose, type Slot,
 } from '../../data/wardrobe';
 import { FIT } from '../../data/wardrobeFit';
@@ -79,7 +79,9 @@ export function Wardrobe({ onClose, startSlot }: { onClose: () => void; startSlo
         setTrial(next);
       } else setTrial(removePiece(trial, p.id, w.owned));
     } else {
+      const gone = wouldReplace(trial, p.id);
       setTrial(wearPiece(trial, p.id));
+      if (gone.length) setNote(`${p.name} on, ${gone.map((x) => PIECES[x].name.toLowerCase()).join(' and ')} off.`);
       
     }
   };
