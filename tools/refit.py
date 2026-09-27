@@ -19,6 +19,9 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cuffs  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 DIR = ROOT / 'public' / 'art' / 'hero' / 'wardrobe'
 RAW = Path(os.environ.get('RAW', DIR / '_raw'))
@@ -149,7 +152,11 @@ def fit_body(pid, legs):
         full = np.nonzero(np.array(img)[..., 3] > 40)[0]
         sy = max(sy, (ANKLE - 30 - full.min()) / (full.max() - full.min()))
     mv = (CX, ay * Q, sx, sy, dx * Q, dy * Q)
-    save(pid, warp(img, *mv), [mv])
+    out = warp(img, *mv)
+    if not legs and pid not in SLEEVELESS:
+        # his forearm goes into the sleeve instead of past an empty cuff (tools/cuffs.py)
+        out = Image.fromarray(cuffs.fix(np.array(out).astype(np.float32)).clip(0, 255).astype(np.uint8))
+    save(pid, out, [mv])
     print(f'{pid}: width x{sx:.2f}, length x{sy:.2f}, shift {dx * Q:+.0f}px')
 
 
