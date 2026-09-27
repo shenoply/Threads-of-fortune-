@@ -855,7 +855,7 @@ export const useGame = create<GameState & Actions>()(
               notes.push(`You found ${st.name}.`);
             }
           }
-          const parties = stepParties(s.world.parties, days, rng, pos, strength(s.world.party));
+          const parties = stepParties(s.world.parties, days, rng, pos, strength(s.world.party), s.day);
           const where = { ...(s.whereabouts ?? {}) };
           if (leaving && !where[startDay]) where[startDay] = leaving;
           for (let d = startDay + (leaving ? 1 : 0); d <= s.day; d++) if (!where[d] || d > startDay) where[d] = 'road';
@@ -888,7 +888,7 @@ export const useGame = create<GameState & Actions>()(
           }
           s = { ...s, ...patch } as GameState;
           const pos = { x: s.world.x, y: s.world.y };
-          const parties = stepParties(s.world.parties, days, rng, s.world.at ? undefined : pos, strength(s.world.party));
+          const parties = stepParties(s.world.parties, days, rng, s.world.at ? undefined : pos, strength(s.world.party), s.day);
           const where = { ...(s.whereabouts ?? {}) };
           where[s.day] = s.world.at ?? 'road';
           set({ ...patch, whereabouts: where, encounter: null, dayOver: false, world: { ...get().world, ...patch.world, at: s.world.at, x: pos.x, y: pos.y, hour, parties } });
@@ -960,7 +960,11 @@ export const useGame = create<GameState & Actions>()(
           if (o.joiners) troops.reformed = (troops.reformed ?? 0) + o.joiners;
           const parties = s.world.parties.map((x) => (x.id === partyId ? {
             ...x,
-            ...(o.theyLeave ? { x: x.home?.x ?? x.x, y: x.home?.y ?? x.y, cooldownUntil: s.day + 3 } : { cooldownUntil: s.day + 1 }),
+            // a band that has had its answer, in loot or in lead, rides home and leaves this caravan alone
+            // for days: it neither hunts nor stops the same merchant twice on one journey
+            ...(o.theyLeave || o.cashLoss || o.rugsLost
+              ? { x: x.home?.x ?? x.x, y: x.home?.y ?? x.y, path: [{ x: x.home?.x ?? x.x, y: x.home?.y ?? x.y }, { x: x.home?.x ?? x.x, y: x.home?.y ?? x.y }], travelled: 0, cooldownUntil: s.day + (o.enemyLost ? 4 : 3) }
+              : { cooldownUntil: s.day + 2 }),
             ...(o.enemyLost ? { size: Math.max(2, (x.size ?? 4) - o.enemyLost), strength: Math.max(4, (x.strength ?? 8) - o.enemyLost * 2) } : {}),
           } : x));
           const hour = s.world.hour + (o.delayHours ?? 0);

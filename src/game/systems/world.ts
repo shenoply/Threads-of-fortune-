@@ -304,10 +304,11 @@ export function routeDanger(path: Pt[], parties: Party[]): number {
   return worst;
 }
 
-export function stepParties(parties: Party[], days: number, rng: () => number, player?: Pt, playerStrength = 2): Party[] {
+export function stepParties(parties: Party[], days: number, rng: () => number, player?: Pt, playerStrength = 2, day = 0): Party[] {
   return parties.map((p) => {
-    // Raiders hunt weaker caravans nearby and avoid strong ones, like bandits on a Bannerlord map.
-    if (p.kind === 'raiders' && player && p.strength) {
+    // Raiders hunt weaker caravans nearby and avoid strong ones, like bandits on a Bannerlord map;
+    // a band that has already had its encounter with this caravan keeps to its own road for a while.
+    if (p.kind === 'raiders' && player && p.strength && (p.cooldownUntil ?? 0) <= day) {
       const d = dist(p, player);
       if (d < 22 && playerStrength < p.strength * 1.4) {
         const step = Math.min(d, 26 * days); // about a laden camel's pace: animals and horses can outrun them
