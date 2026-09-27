@@ -2,7 +2,37 @@
 // Clips are packed one file per character ("audio sprites"), described by voices/manifest.json:
 //   { "sprites": { "samira": { "file": "voices/samira.mp3", "clips": { "1a2b3c4d": [start, dur], "9f8e7d6c.a": [...], "num-120": [...] } } } }
 // Missing clips fall back to captions. Lines never overlap.
+//
+// A character's file is kept as the compressed MP3 it came as (a few MB) and each line is decoded
+// on its own just before it is spoken. Decoding a whole file up front is what it replaced: half an
+// hour of speech comes to some 400 MB of raw samples, and six such files at once had iPhones
+// reloading the page for want of memory.
 import { fetchMedia } from './cdn';
+
+interface Frame { len: number; bytesPerSec: number }
+
+/** The MP3 frame header at byte i, or null if the bytes there are not one. */
+function frameAt(b: Uint8Array, i: number): Frame | null {
+  if (i + 4 > b.length || b[i] !== 0xff || (b[i + 1] & 0xe0) !== 0xe0) return null;
+  const version = (b[i + 1] >> 3) & 3, layer = (b[i + 1] >> 1) & 3;
+  const bitrateIdx = b[i + 2] >> 4, srIdx = (b[i + 2] >> 2) & 3, padding = (b[i + 2] >> 1) & 1;
+  if (version === 1 || layer !== 1 || bitrateIdx === 0 || bitrateIdx === 15 || srIdx === 3) return null;
+  const v1 = version === 3;
+  const kbps = (v1 ? [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320] : [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160])[bitrateIdx];
+  const sr = (v1 ? [44100, 48000, 32000] : version === 2 ? [22050, 24000, 16000] : [11025, 12000, 8000])[srIdx];
+  return { len: Math.floor(((v1 ? 144 : 72) * kbps * 1000) / sr) + padding, bytesPerSec: (kbps * 1000) / 8 };
+}
+
+/** The first frame boundary at or after byte i: a header whose length leads to another header. */
+function syncFrom(b: Uint8Array, i: number): number {
+  for (let p = Math.max(0, i); p < b.length - 4; p++) {
+    const f = frameAt(b, p);
+    if (f && (p + f.len >= b.length || frameAt(b, p + f.len))) return p;
+  }
+  return Math.max(0, i);
+}
+
+const CLIP_CACHE = 40; // recent lines kept decoded; a few seconds each
 
 export function lineId(speaker: string, text: string) {
   let h = 0x811c9dc5;
@@ -37,7 +67,8 @@ interface Sprite { file: string; clips: Record<string, [number, number]> }
 
 class Voice {
   private sprites: Record<string, Sprite> = {};
-  private buffers: Record<string, AudioBuffer | 'loading' | 'failed'> = {};
+  private files: Record<string, Uint8Array | 'loading' | 'failed'> = {};
+  private clips = new Map<string, Promise<{ buf: AudioBuffer; lead: number } | null>>();
   private loading: Promise<void> | null = null;
   private ctx: AudioContext | null = null;
   private gain: GainNode | null = null;
@@ -77,21 +108,19 @@ class Voice {
   preload(speakers: string[]) {
     for (const sp of speakers) {
       const s = this.sprites[sp];
-      if (!s || this.buffers[sp]) continue;
-      this.buffers[sp] = 'loading';
-      const ctx = this.audioCtx();
+      if (!s || this.files[sp]) continue;
+      this.files[sp] = 'loading';
       fetchMedia(`${s.file}?v=${Object.keys(s.clips).length}`)
         .then((r) => r.arrayBuffer())
-        .then((b) => ctx.decodeAudioData(b))
-        .then((buf) => { this.buffers[sp] = buf; })
-        .catch(() => { this.buffers[sp] = 'failed'; });
+        .then((b) => { this.files[sp] = new Uint8Array(b); })
+        .catch(() => { this.files[sp] = 'failed'; });
     }
   }
 
   isLoading(speaker: string) {
     if (!this.enabled) return false;
     if (this.loading && !Object.keys(this.sprites).length && this.count === 0 && !this.loadedOnce) return true;
-    return this.buffers[speaker] === 'loading';
+    return this.files[speaker] === 'loading';
   }
   loadedOnce = false;
 
@@ -101,7 +130,7 @@ class Voice {
     if (!this.sprites[speaker]) return;
     this.preload([speaker]);
     const t0 = performance.now();
-    while (this.buffers[speaker] === 'loading' && performance.now() - t0 < timeoutMs) await new Promise((r) => setTimeout(r, 80));
+    while (this.files[speaker] === 'loading' && performance.now() - t0 < timeoutMs) await new Promise((r) => setTimeout(r, 80));
   }
 
   private segments(speaker: string, text: string): [number, number][] | null {
@@ -121,12 +150,41 @@ class Voice {
 
   has(speaker: string, text: string) {
     if (!this.enabled) return false;
-    const buf = this.buffers[speaker];
-    if (!buf || buf === 'loading' || buf === 'failed') {
-      if (!buf) this.preload([speaker]);
+    const f = this.files[speaker];
+    if (!f || f === 'loading' || f === 'failed') {
+      if (!f) this.preload([speaker]);
       return false;
     }
     return !!this.segments(speaker, text);
+  }
+
+  /**
+   * One line, decoded on its own: the bytes for its stretch of the file with a little margin on
+   * each side, cut at a frame boundary so the decoder starts cleanly. `lead` is where in the
+   * decoded sound the line begins. Kept for a while in case the line comes round again.
+   */
+  private clip(speaker: string, seg: [number, number]) {
+    const key = `${speaker}:${seg[0]}`;
+    const hit = this.clips.get(key);
+    if (hit) return hit;
+    const f = this.files[speaker];
+    const p = (async () => {
+      if (!f || f === 'loading' || f === 'failed') return null;
+      const rate = frameAt(f, syncFrom(f, 0))?.bytesPerSec ?? 4000;
+      const margin = 0.3;
+      const from = syncFrom(f, Math.floor((seg[0] - margin) * rate));
+      const to = Math.min(f.length, Math.ceil((seg[0] + seg[1] + margin) * rate));
+      try {
+        const buf = await this.audioCtx().decodeAudioData(f.slice(from, to).buffer);
+        // the decoder's own priming delay puts the sound a few ms later than the bytes say
+        return { buf, lead: Math.max(0, seg[0] - from / rate - 0.02) };
+      } catch {
+        return null;
+      }
+    })();
+    this.clips.set(key, p);
+    if (this.clips.size > CLIP_CACHE) this.clips.delete(this.clips.keys().next().value!);
+    return p;
   }
 
   /** True when this line will actually be heard: recorded, loaded, and the sound device running. */
@@ -138,17 +196,19 @@ class Voice {
   say(speaker: string, text: string): Promise<void> {
     this.stop();
     if (!this.enabled) return Promise.resolve();
-    const buf = this.buffers[speaker];
-    if (!buf) this.preload([speaker]);
-    if (!buf || buf === 'loading' || buf === 'failed') return Promise.resolve();
+    const f = this.files[speaker];
+    if (!f) this.preload([speaker]);
+    if (!f || f === 'loading' || f === 'failed') return Promise.resolve();
     const segs = this.segments(speaker, text);
     if (!segs) return Promise.resolve();
     const ctx = this.audioCtx();
     const my = ++this.token;
     this.playing = true;
+    // the next segment decodes while this one plays
+    if (segs[1]) this.clip(speaker, segs[1]);
     return new Promise((resolve) => {
       let i = 0;
-      const next = () => {
+      const next = async () => {
         if (my !== this.token) return resolve();
         const seg = segs[i++];
         if (!seg) {
@@ -156,12 +216,16 @@ class Voice {
           this.current = null;
           return resolve();
         }
+        const c = await this.clip(speaker, seg);
+        if (my !== this.token) return resolve();
+        if (!c) return next();
+        if (segs[i]) this.clip(speaker, segs[i]);
         const src = ctx.createBufferSource();
-        src.buffer = buf;
+        src.buffer = c.buf;
         src.connect(this.gain!);
         src.onended = next;
         this.current = src;
-        src.start(0, seg[0], seg[1]);
+        src.start(0, c.lead, seg[1] + 0.02);
       };
       next();
     });

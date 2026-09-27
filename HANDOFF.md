@@ -25,6 +25,10 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
 - tools/refit.py fits tops, coats, trousers and shoes to the base body (sleeves and legs no wider
   than needed, trousers to the ankle, shoes covering the toes). Run it after adding or repainting
   one of those pieces, then tools/webp.py.
+- Voices are one MP3 per character (32 kbps CBR, 22.05 kHz). src/game/audio/voice.ts keeps the
+  compressed file and decodes each line on its own, cut at an MP3 frame boundary. Never decode a
+  whole file with decodeAudioData: half an hour of speech is ~400 MB of samples, and that is what
+  crashed the game on iPhones. Keep new recordings constant-bitrate so byte offsets follow time.
 - Battle art: masters in art-src/battle (not deployed; prompts and manifest alongside). Run
   `python3 tools/battle.py` to make the WebP copies in public/art/battle. The fight in
   src/components/World/Ambush.tsx draws them through BattleField.tsx (BAND_ART lists each band's
