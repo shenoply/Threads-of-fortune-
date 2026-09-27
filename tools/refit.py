@@ -25,6 +25,8 @@ RAW = Path(os.environ.get('RAW', DIR / '_raw'))
 TOPS = ['linen-shirt', 'galabiya-work', 'galabiya-white', 'galabiya-wool', 'dress-shirt', 'kaftan',
         'vest-embroidered', 'stambouli', 'linen-suit', 'bisht', 'frock-coat', 'burnous']
 LEGS = ['sirwal', 'linen-trousers', 'wool-trousers', 'morning-trousers']
+SLEEVELESS = {'vest-embroidered'}
+ANKLE_LENGTH = {'galabiya-white', 'galabiya-work', 'galabiya-wool', 'kaftan'}
 FEET = ['babouche', 'markub-red', 'oxfords', 'spectator', 'boots']
 Q = 4  # search at a quarter of full size
 
@@ -130,11 +132,22 @@ def fit_body(pid, legs):
         shins = np.zeros_like(b); shins[bottom:(ANKLE - 12) // Q, low.min(): low.max() + 1] = True
         must = must | (b & shins)
         best = search(px, py, ax, ay, np.arange(0.80, 1.07, 0.02), np.arange(0.96, 1.20, 0.02), np.arange(-4, 5, 2), [0], must, 0.97)
+    elif pid in SLEEVELESS:
+        # a vest covers his chest and back only: his arms hang outside it
+        sh = B[int(H * 0.26)]
+        xs0 = np.nonzero(sh)[0]
+        chest = np.zeros_like(b); chest[int(top): int(py.max()), (xs0.min() + 14) // Q: (xs0.max() - 14) // Q] = True
+        must = b & p & chest
+        best = search(px, py, ax, ay, np.arange(0.70, 1.02, 0.02), [1.0], np.arange(-4, 5, 2), [0], must, 0.97)
     else:
         best = search(px, py, ax, ay, np.arange(0.80, 1.05, 0.02), [1.0], np.arange(-4, 5, 2), [0], must, 0.985)
     if not best:
         print(f'{pid}: no fit keeps it covering him; left as is'); return
     _, sx, sy, dx, dy = best
+    if pid in ANKLE_LENGTH:
+        # an ankle-length robe painted short: let the hem down to just above the ankle
+        full = np.nonzero(np.array(img)[..., 3] > 40)[0]
+        sy = max(sy, (ANKLE - 30 - full.min()) / (full.max() - full.min()))
     mv = (CX, ay * Q, sx, sy, dx * Q, dy * Q)
     save(pid, warp(img, *mv), [mv])
     print(f'{pid}: width x{sx:.2f}, length x{sy:.2f}, shift {dx * Q:+.0f}px')
