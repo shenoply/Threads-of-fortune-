@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PIECES, POSE_INFO, baseSrc, coverSrc, layerSrc, wornIds, type FitTable, type Outfit, type Pose } from '../../data/wardrobe';
+import { PIECES, POSE_INFO, baseSrc, coverSrc, footSrc, layerSrc, wornIds, type FitTable, type Outfit, type Pose } from '../../data/wardrobe';
 import { FIT } from '../../data/wardrobeFit';
 import './Wardrobe.css';
 
@@ -50,6 +50,12 @@ export function HeroFigure({ pose, outfit, fit = FIT, highlight, className = '',
   // a coat with sleeves hides the shirt under it outside its own outline
   const coat = outfit.outer && PIECES[outfit.outer]?.hidesUnder ? coverSrc(pose, outfit.outer) : null;
   const coatMask = useLoaded(coat);
+  // shoes hide his bare foot where it would poke out around them (full-length pose only)
+  const feet = pose === 'wardrobe' && outfit.feet && PIECES[outfit.feet] ? footSrc(pose, outfit.feet) : null;
+  const feetMask = useLoaded(feet);
+  const baseStyle: React.CSSProperties = feet && feetMask
+    ? { WebkitMaskImage: `url(${feet})`, maskImage: `url(${feet})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat' }
+    : {};
   const layerImg = (p: (typeof layers)[number]) => {
     const src = layerSrc(pose, p.id);
     if (miss.has(src)) return null;
@@ -70,7 +76,7 @@ export function HeroFigure({ pose, outfit, fit = FIT, highlight, className = '',
           <span>Base picture not painted yet</span>
         </div>
       ) : (
-        <img className="hero-layer" src={base} alt="" onError={() => markMissing(base)} draggable={false} />
+        <img className="hero-layer" src={base} alt="" style={baseStyle} onError={() => markMissing(base)} draggable={false} />
       )}
       {!baseMissing && layers.filter((p) => p.z >= 0).map((p) => layerImg(p))}
     </div>

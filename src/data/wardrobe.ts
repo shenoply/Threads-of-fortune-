@@ -222,6 +222,8 @@ export function wardrobeFromLegacy(owned: string[], worn: string): WardrobeState
 export const baseSrc = (pose: Pose) => `art/hero/hero-base-${pose}.webp`;
 export const layerSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}.webp`;
 export const coverSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}-cover.webp`;
+/** For shoes: a mask over the base body that hides his bare foot around the shoe (tools/feet.py). */
+export const footSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}-foot.webp`;
 
 /** Nudges for layers that came back from the generator a little off. Filled in from the wardrobe's fit mode. */
 export interface Fit { x: number; y: number; s: number }

@@ -9,6 +9,7 @@ body (sleeves standing off his arms, trouser legs wider than his legs) while sti
 the piece covered before. Shoes are fitted one at a time so each covers its whole foot, sole on
 the floor. A coat's -cover.png mask gets the same move as the coat.
 
+Afterwards run tools/feet.py for shoes and tools/webp.py.
 Originals are kept in <scratch>/_raw (pass RAW=dir in the environment), never overwritten twice.
 """
 import os
@@ -98,6 +99,9 @@ def warp(img, ax, ay, sx, sy, dx, dy, box=None):
 
 
 WAIST = int(H * 0.47)
+# the base of his neck: the narrowest row between chin and shoulders, a few px lower
+_w = [(B[r].sum(), r) for r in range(int(H * 0.17), int(H * 0.25))]
+NECK_BASE = min(_w)[1] + 10
 
 
 def let_down(img, pivot, hem):
@@ -169,6 +173,9 @@ def fit_body(pid, legs):
     if not best:
         print(f'{pid}: no fit keeps it covering him; left as is'); return
     _, sx, sy, dx, dy = best
+    if pid in SLEEVELESS:
+        # a vest rests on the shoulders: its top sits at the base of his neck, not up the neck
+        dy = (NECK_BASE - py.min() * Q) / Q
     mv = (CX, ay * Q, sx, sy, dx * Q, dy * Q)
     out = warp(img, *mv)
     if pid in ANKLE_LENGTH:

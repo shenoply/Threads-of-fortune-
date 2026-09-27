@@ -16,8 +16,8 @@ for png in sorted(HERO.rglob('*.png')):
         continue
     webp = png.with_suffix('.webp')
     im = Image.open(png).convert('RGBA')
-    # cover masks only carry an outline: keep them exact
-    im.save(webp, 'WEBP', lossless=png.stem.endswith('-cover'), quality=90, method=6, alpha_quality=100)
+    # masks only carry an outline: keep them exact
+    im.save(webp, 'WEBP', lossless=png.stem.endswith(('-cover', '-foot')), quality=90, method=6, alpha_quality=100)
     before += png.stat().st_size
     after += webp.stat().st_size
 print(f'{before / 1e6:.1f} MB of PNG -> {after / 1e6:.1f} MB of WebP')
