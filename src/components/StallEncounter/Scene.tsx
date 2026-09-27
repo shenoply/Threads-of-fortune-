@@ -152,6 +152,8 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
                 <ScenePerson id={buyer.id} />
               </div>
             )}
+            {/* folded stock on the counter, in front of the buyer: the picture ends where the rugs begin */}
+            <img className="counter-stack" src="art/rugstack-stall.webp" alt="" draggable={false} />
           </>
         )}
       </div>
