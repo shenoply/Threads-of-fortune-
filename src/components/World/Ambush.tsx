@@ -8,7 +8,7 @@ import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
-import { BattleField, BATTLE_ART } from './BattleField';
+import { BattleField, BATTLE_ART, fieldFor } from './BattleField';
 
 type Stage = 'standoff' | 'demand' | 'battle' | 'result';
 type Stance = 'charge' | 'hold';
@@ -40,7 +40,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const leader = THREAT_VOICE[threat.id] ?? 'robberchief';
   useEffect(() => { voice.load().then(() => voice.preload([leader])); return () => voice.stop(); }, [leader]);
   // the battlefield pictures, fetched while they talk so a fight opens on a painted field
-  useEffect(() => { for (const src of BATTLE_ART) new Image().src = src; }, []);
+  const field = useMemo(() => fieldFor(threat.id, party.id, g.day), [threat.id, party.id, g.day]);
+  useEffect(() => { for (const src of [field, ...BATTLE_ART]) new Image().src = src; }, [field]);
   useEffect(() => {
     if (stage !== 'demand') return;
     let live = true;
@@ -171,7 +172,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         )}
 
         {(stage === 'battle' || (stage === 'result' && round > 0)) && (
-          <BattleField bandId={threat.id} mySide={mySide} enemyN={enemy.n} enemyStart={size} party={g.world.party} charging={stage === 'battle' && stance === 'charge'} />
+          <BattleField bandId={threat.id} field={field} mySide={mySide} enemyN={enemy.n} enemyStart={size} party={g.world.party} charging={stage === 'battle' && stance === 'charge'} />
         )}
 
         {stage === 'battle' && (

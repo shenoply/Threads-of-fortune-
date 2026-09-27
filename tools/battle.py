@@ -23,7 +23,7 @@ for f in sorted(SRC.iterdir()):
     elif f.suffix == '.jpg':
         im = Image.open(f).convert('RGB')
         dst = OUT / f'{f.stem}.webp'
-        im.save(dst, 'WEBP', quality=80, method=6)
+        im.save(dst, 'WEBP', quality=72, method=6)
     else:
         continue
     before += f.stat().st_size

@@ -1,4 +1,4 @@
-THREADS OF FORTUNE - BATTLE ART PROMPTS (29)
+THREADS OF FORTUNE - BATTLE ART PROMPTS (35)
 One prompt per ChatGPT message. Save each image with the file name shown.
 Tokens: make #5 (guard) first, then attach it to every other token prompt and add at the top:
 "Match the attached token exactly: same view, same scale, same painting style."
@@ -413,3 +413,105 @@ Only this one figure and the things he dropped. No ground, no shadow on the grou
 Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
 Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image.
 Canvas: square 1024x1024.
+
+
+############################################################
+MORE BATTLEFIELDS (30-35): the rest of the map
+############################################################
+
+============================================================
+30. battle-nile.jpg   (Nile farmland and canal)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: flat green Egyptian farmland beside the Nile: a straight irrigation canal crossing from left to right with a narrow mud-brick footbridge, fields of sugar cane (tall, gives cover) and low cotton, a raised earth dyke track, a grove of date palms in one corner, the edge of a mud-brick village with two houses at the top edge.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+31. battle-ford.jpg   (River ford)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a slow, muddy river (like the Jordan or the Euphrates) crossing the map from left to right, about a fifth of the map wide, with a shallow sandy ford in the middle where the track crosses, thick reeds and tamarisk bushes along both banks (good cover), a few flat rocks in the water, open ground on both sides.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+32. battle-hills.jpg   (Olive hills)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: rocky Judean hills: a road climbing through a narrow valley from the bottom edge to the top edge, dry-stone terrace walls stepping up the slopes on both sides with old olive trees on them (walls and trees give cover), a stone shepherd's hut, white limestone outcrops.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+33. battle-basalt.jpg   (Basalt plateau)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: the black basalt plateau of the Hawran: dark volcanic boulders scattered across dry yellow grass, the tumbled black-stone walls of a ruined village (good cover), a low rise on one side, a track of pale dust running through the middle.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+34. battle-ruins.jpg   (Desert ruins)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: an ancient ruined city in the Syrian desert like Palmyra: a line of broken Roman columns along an old colonnaded street, fallen column drums and blocks lying in the sand (good cover), the foundations of a small temple, open desert around, a caravan track passing the ruins.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+35. battle-mountain.jpg   (Mountain pass)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a high mountain pass in the Taurus: a narrow road winding between steep grey cliffs on both sides, dark pine trees on the slopes, patches of old snow in the shadows, a fast stream beside the road with a small stone bridge, boulders fallen onto the track.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+

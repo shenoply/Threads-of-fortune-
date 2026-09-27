@@ -2,18 +2,31 @@ import { useMemo } from 'react';
 import { BREEDS } from '../../data/animals';
 import type { PartyState } from '../../game/systems/caravan';
 
-/** One band's look on the field: its men, its leader, the ground it fights on. */
-export const BAND_ART: Record<string, { man: string; leader: string; field: string }> = {
-  'egypt-rural-highway-robbers': { man: 'robber', leader: 'robber-leader', field: 'road' },
-  'sinai-transjordan-desert-raiders': { man: 'raider', leader: 'raider-leader', field: 'dunes' },
-  'palestine-road-thieves': { man: 'thief', leader: 'thief-leader', field: 'pass' },
-  'syria-1925-rebels': { man: 'rebel', leader: 'rebel-leader', field: 'pass' },
-  'iraq-border-smuggler-brigands': { man: 'smuggler', leader: 'smuggler-leader', field: 'oasis' },
+/** One band's look on the field: its men, its leader, and the ground where it waits for caravans. */
+export const BAND_ART: Record<string, { man: string; leader: string; fields: string[] }> = {
+  // Delta and valley tracks between the canals and the cane
+  'egypt-rural-highway-robbers': { man: 'robber', leader: 'robber-leader', fields: ['nile', 'road'] },
+  // Sinai and the Transjordan steppe
+  'sinai-transjordan-desert-raiders': { man: 'raider', leader: 'raider-leader', fields: ['dunes', 'oasis', 'ruins'] },
+  // the Judean and Samarian hills, the Jordan fords
+  'palestine-road-thieves': { man: 'thief', leader: 'thief-leader', fields: ['hills', 'ford', 'pass'] },
+  // the 1925 revolt: the Hauran basalt and the Druze mountain
+  'syria-1925-rebels': { man: 'rebel', leader: 'rebel-leader', fields: ['basalt', 'mountain', 'pass'] },
+  // the Euphrates crossings and the desert border posts
+  'iraq-border-smuggler-brigands': { man: 'smuggler', leader: 'smuggler-leader', fields: ['ruins', 'ford', 'dunes', 'oasis'] },
 };
+
+/** The ground for one fight: fixed for a given band on a given day, different from one fight to the next. */
+export function fieldFor(bandId: string, partyId: string, day: number) {
+  const fields = (BAND_ART[bandId] ?? BAND_ART['egypt-rural-highway-robbers']).fields;
+  let h = day;
+  for (const ch of partyId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `art/battle/battle-${fields[h % fields.length]}.webp`;
+}
 const MOUNTED_BANDS = new Set(['raider', 'smuggler']);
 const MOUNTED = new Set(['bedouin', 'desertcaptain', 'arnaut', 'reformed']);
 const art = (id: string) => `art/battle/${id}.webp`;
-export const BATTLE_ART = [...new Set([...Object.values(BAND_ART).flatMap((b) => [b.man, b.leader, `battle-${b.field}`]), 'hero', 'guard', 'fellah', 'veteran', 'watchman', 'sentinel', 'harbour', 'camel', 'horse', 'fallen-light', 'fallen-dark', ...MOUNTED])].map(art);
+export const BATTLE_ART = [...new Set([...Object.values(BAND_ART).flatMap((b) => [b.man, b.leader]), 'hero', 'guard', 'fellah', 'veteran', 'watchman', 'sentinel', 'harbour', 'camel', 'horse', 'fallen-light', 'fallen-dark', ...MOUNTED])].map(art);
 
 interface Token { key: string; img: string; x: number; y: number; size: number; down: boolean; flip: boolean }
 export interface FieldUnit { id: string; n: number; start: number }
@@ -38,7 +51,7 @@ function layout(ids: { id: string; img: string; big: boolean; down: boolean }[],
  * The fight seen from above, like a painted map: their band at the top, your caravan below.
  * Men who fall stay where they fell. On a charge both lines close in; holding, they keep their distance.
  */
-export function BattleField({ bandId, mySide, enemyN, enemyStart, party, charging }: { bandId: string; mySide: FieldUnit[]; enemyN: number; enemyStart: number; party: PartyState; charging: boolean }) {
+export function BattleField({ bandId, field, mySide, enemyN, enemyStart, party, charging }: { bandId: string; field: string; mySide: FieldUnit[]; enemyN: number; enemyStart: number; party: PartyState; charging: boolean }) {
   const band = BAND_ART[bandId] ?? BAND_ART['egypt-rural-highway-robbers'];
 
   const mine = useMemo(() => {
@@ -86,7 +99,7 @@ export function BattleField({ bandId, mySide, enemyN, enemyStart, party, chargin
 
   const gap = charging ? 7 : 0;
   return (
-    <div className="bf" data-testid="battlefield" style={{ backgroundImage: `url(${art(`battle-${band.field}`)})` }}>
+    <div className="bf" data-testid="battlefield" style={{ backgroundImage: `url(${field})` }}>
       {[...theirs.map((t) => ({ ...t, y: t.down ? t.y : t.y + gap })), ...mine.map((t) => ({ ...t, y: t.down ? t.y : t.y - gap })), ...animals].map((t) => (
         <img
           key={t.key}
