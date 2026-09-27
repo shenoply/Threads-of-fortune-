@@ -1738,3 +1738,7 @@ body.travelling .mission-strip{display:none}
 .atmo-crowd { opacity: 0.94; }
 .title-screen .atmo { inset: -4%; }
 .skip-lesson{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:40;padding:7px 14px;border-radius:14px;border:1px solid var(--line-strong);background:#1b110aee;color:var(--parchment);font-family:var(--label);font-size:14px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.atmo-lamps { mix-blend-mode: screen; transition: opacity 4s ease; }
+.atmo-lamps span { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255,200,125,.75) 0, rgba(255,165,75,.36) 22%, rgba(255,130,40,.12) 45%, transparent 68%); animation: lampFlicker 2.5s ease-in-out infinite; }
+@keyframes lampFlicker { 0%, 100% { opacity: 1; transform: scale(1); } 14% { opacity: .86; transform: scale(.97); } 27% { opacity: .96; } 41% { opacity: .82; transform: scale(.95); } 55% { opacity: 1; transform: scale(1.01); } 70% { opacity: .9; } 84% { opacity: .97; transform: scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .atmo-lamps span { animation: none; } }

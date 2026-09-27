@@ -16,6 +16,9 @@ import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
 
 const SELLER_IMG = 'art/stall-seller.jpg';
 const SAMIRA_IMG = 'art/stall-samira-v2.jpg';
+// lantern flames in each painting, as fractions of the image (see Atmosphere)
+const SELLER_LAMPS = '0.537,0.124;0.412,0.252;0.949,0.287';
+const SAMIRA_LAMPS = '0.398,0.139';
 
 interface SceneProps {
   enc: Encounter | null;
@@ -129,12 +132,12 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
             <div className="hero-at-stall" data-testid="hero-at-stall"><HeroFigure pose="stall" outfit={outfit} /></div>
           </>
         ) : (
-          <img src={SELLER_IMG} alt="The merchant at his stall in the Giza bazaar, the pyramids beyond" draggable={false} />
+          <img src={SELLER_IMG} alt="The merchant at his stall in the Giza bazaar, the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         )}
       </div>
       <div className="panel buyer-side">
         {isSamira ? (
-          <img src={SAMIRA_IMG} alt="Samira, leaning on the rug-covered table" draggable={false} />
+          <img src={SAMIRA_IMG} alt="Samira, leaning on the rug-covered table" data-lamps={SAMIRA_LAMPS} draggable={false} />
         ) : (
           <>
             <img className="lane" src={SELLER_IMG} alt="" draggable={false} />

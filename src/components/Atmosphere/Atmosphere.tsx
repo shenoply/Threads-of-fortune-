@@ -1,6 +1,6 @@
 // The air of a painted scene: light that follows the hour, dust drifting in it, and (outdoors)
 // people passing close to the camera, soft and out of focus. Nothing here reacts to the player.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
 
 type RGBA = [number, number, number, number];
@@ -47,8 +47,66 @@ export function Atmosphere({ indoor = false, crowd = false, hour }: { indoor?: b
     <div className={`atmo ${indoor ? 'indoor' : ''}`} aria-hidden="true">
       <div className="atmo-tint" style={{ background: css(L.tint, k) }} />
       <div className="atmo-glow" style={{ background: `radial-gradient(ellipse 75% 90% at ${L.gx}% ${L.gy}%, ${css(L.glow, indoor ? 0.7 : 1)}, transparent 70%)` }} />
+      <Lamps night={Math.min(1, Math.max(0, (0.9 - L.sun) / 0.75))} />
       <Air hourRef={hourRef} indoor={indoor} />
       {crowd && <Passers hourRef={hourRef} />}
+    </div>
+  );
+}
+
+// Lanterns painted into a scene. A painting marks them on its <img>:
+//   data-lamps="0.537,0.124;0.412,0.252"  (flame centres as fractions of the image)
+//   data-lamp-size="260"                   (halo diameter in image pixels, optional)
+// Each gets a softly breathing halo, faint by day and warm after dark.
+type Lamp = { x: number; y: number; d: number };
+
+function lampsIn(root: HTMLElement): Lamp[] {
+  const box = root.getBoundingClientRect();
+  const out: Lamp[] = [];
+  root.closest('.atmo')?.parentElement?.querySelectorAll<HTMLImageElement>('img[data-lamps]').forEach((img) => {
+    if (!img.naturalWidth || img.style.display === 'none') return;
+    const W = img.offsetWidth, H = img.offsetHeight;
+    if (!W || !H) return;
+    const r = img.getBoundingClientRect();
+    const clip = img.parentElement!.getBoundingClientRect();
+    const [px, py] = getComputedStyle(img).objectPosition.split(' ').map((v) => (v.endsWith('%') ? parseFloat(v) / 100 : 0.5));
+    const s = Math.max(W / img.naturalWidth, H / img.naturalHeight); // object-fit: cover
+    const cw = img.naturalWidth * s, ch = img.naturalHeight * s;
+    const kx = r.width / W, ky = r.height / H; // any transform: scale
+    const d = parseFloat(img.dataset.lampSize ?? '260') * s * kx;
+    for (const pt of img.dataset.lamps!.split(';')) {
+      const [fx, fy] = pt.split(',').map(Number);
+      const x = r.left + ((W - cw) * px + fx * cw) * kx;
+      const y = r.top + ((H - ch) * py + fy * ch) * ky;
+      if (x < clip.left || x > clip.right || y < clip.top || y > clip.bottom) continue;
+      out.push({ x: x - box.left, y: y - box.top, d });
+    }
+  });
+  return out;
+}
+
+function Lamps({ night }: { night: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [lamps, setLamps] = useState<Lamp[]>([]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const next = lampsIn(el);
+      setLamps((cur) => (JSON.stringify(cur) === JSON.stringify(next) ? cur : next));
+    };
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    // paintings load and swap (a new buyer, a new pose), so look again now and then
+    const t = setInterval(update, 1000);
+    update();
+    return () => { ro.disconnect(); clearInterval(t); };
+  }, []);
+  return (
+    <div className="atmo-lamps" ref={ref} style={{ opacity: 0.14 + night * 0.8 }}>
+      {lamps.map((l, i) => (
+        <span key={i} style={{ left: l.x - l.d / 2, top: l.y - l.d / 2, width: l.d, height: l.d, animationDuration: `${2.3 + (i % 3) * 0.45}s`, animationDelay: `${-i * 0.7}s` }} />
+      ))}
     </div>
   );
 }
