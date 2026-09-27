@@ -295,12 +295,13 @@ function ScenePerson({ id }: { id: string }) {
   );
 }
 
-/** Saffron on the rug: the painted cut-out if there is one, otherwise the small square picture. */
+/** Saffron on the rug, as a painted cut-out (art/saffron-stall.png). Until that is painted she stays out of the picture. */
 function Saffron({ onCat }: { onCat: () => void }) {
-  const [cutout, setCutout] = useState(true);
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
   return (
-    <button className={`cat-badge ${cutout ? '' : 'photo'}`} aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
-      <img src={cutout ? 'art/saffron-stall.png' : 'art/saffron.jpg'} alt="" onError={() => setCutout(false)} />
+    <button className="cat-badge" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
+      <img src="art/saffron-stall.png" alt="" onError={() => setOk(false)} />
     </button>
   );
 }

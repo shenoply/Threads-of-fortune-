@@ -842,9 +842,6 @@ table.ledger .neg { color: var(--bad); }
 @keyframes unfold2 { from { transform: translateX(-50%) perspective(600px) rotateX(85deg); opacity: 0; } }
 .cat-badge { position: absolute; left: 3%; top: 8px; width: min(22%, 120px); padding: 0; border: 0; background: none; z-index: 6; cursor: pointer; }
 .cat-badge img { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)); }
-/* until the cut-out of Saffron is painted, the square picture sits in as a small plain photo */
-.cat-badge.photo, .scene.split .cat-badge.photo { width: min(15%, 72px); left: 8px; bottom: 8px; }
-.cat-badge.photo img { aspect-ratio: 200 / 190; object-fit: cover; border-radius: 6px; filter: none; box-shadow: 0 3px 10px rgba(0,0,0,.55); }
 .scene.split .bubble.low { z-index: 7; }
 .scene.split .seller-side img { object-position: 18% 58%; }
 .scene.split .buyer-side > img { object-position: 80% 52%; }
