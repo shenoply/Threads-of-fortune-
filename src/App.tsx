@@ -23,6 +23,7 @@ import type { SetTab } from './components/World/Settlement';
 import { Tip } from './components/Tips/Tip';
 import { Rumours } from './components/Rumours/Rumours';
 import { levelOf } from './data/character';
+import { HeroHub } from './components/Hero/HeroHub';
 import { Merchant, progressScore, type MerchantSub } from './components/Merchant/Merchant';
 import { Calendar } from './components/Calendar/Calendar';
 import { settlementById } from './game/systems/world';
@@ -31,7 +32,7 @@ import { rentFor } from './data/suppliers';
 import { paintedMap } from './game/systems/mapRender';
 import { Atmosphere } from './components/Atmosphere/Atmosphere';
 
-type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan';
+type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan' | 'hero';
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
 
 export default function App() {
@@ -40,7 +41,7 @@ export default function App() {
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
   const [settings, setSettings] = useState(false);
-  const [msub, setMsub] = useState<MerchantSub>('me');
+  const [msub, setMsub] = useState<MerchantSub>('customers');
   const [guide, setGuide] = useState(false);
   const [cal, setCal] = useState(false);
   const [toastMsg, setToast] = useState('');
@@ -231,7 +232,7 @@ export default function App() {
           <span className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Cash: 100 piastres make one Egyptian pound" data-testid="hud-cash" data-pt={g.cash}>
             <Icon name="coin" />{fmt(g.cash)}
           </span>
-          <button className="hud-chip hud-rep" title="Your character: reputation, manner and skills" onClick={() => { setMsub('me'); setTab('ledger'); }} data-testid="hud-rep">
+          <button className="hud-chip hud-rep" title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep">
             <Icon name="star" />{g.reputation}
           </button>
           <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
@@ -269,6 +270,7 @@ export default function App() {
         {tab === 'supplier' && <Supplier toast={toast} />}
         {tab === 'inventory' && <Inventory onRashid={() => setTab('supplier')} />}
         {tab === 'ledger' && <Merchant sub={msub} setSub={setMsub} />}
+        {tab === 'hero' && <HeroHub />}
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
         {tab === 'map' && <Campaign key={mapIntent?.n ?? 0} intent={mapIntent} onGo={chapterGo} frozen={frozen} clearIntent={() => setMapIntent(null)} />}
         {cal && <Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} />}
@@ -291,6 +293,9 @@ export default function App() {
           </button>
         </div>
       )}
+      {phase === 'game' && tutorialActive && !(tab === 'stall' && g.encounter) && (
+        <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
+      )}
       <nav className="nav" aria-label="Screens">
         {(
           [
@@ -298,11 +303,12 @@ export default function App() {
             ['stall', g.world.at === 'giza' && !g.dayOver ? 'Stall' : 'Stall', 'store'],
             ['caravan', 'Caravan', 'camel'],
             ['inventory', 'Stock', 'scroll'],
+            ['hero', 'Me', 'face'],
             ['ledger', 'Progress', 'star'],
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
           <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id !== 'map'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
-            <Icon name={icon} />
+            {icon === 'face' ? <img className="nav-face" src="art/hero/hero-face-reference.jpg" alt="" /> : <Icon name={icon} />}
             {label}
           </button>
         ))}

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useGame } from '../../game/state/store';
-import { MeSection, SkillsSection } from '../Character/Character';
 import { Fortune, Ledger } from '../Ledger/Ledger';
 import { Customers } from './Customers';
 
@@ -13,12 +12,11 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
   return (
     <div className="screen merchant" data-testid="merchant">
       <div className="merchant-tabs" role="tablist">
-        {([['me', 'Me'], ['skills', 'Skills'], ['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Book']] as [MerchantSub, string][]).map(([k, label]) => (
+        {([['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Book']] as [MerchantSub, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)} data-testid={`msub-${k}`}>{label}</button>
         ))}
       </div>
-      {sub === 'me' && <MeSection />}
-      {sub === 'skills' && <SkillsSection />}
+      {(sub === 'me' || sub === 'skills') && <Customers />}
       {sub === 'customers' && <Customers />}
       {sub === 'collection' && <Fortune />}
       {sub === 'book' && <Ledger />}

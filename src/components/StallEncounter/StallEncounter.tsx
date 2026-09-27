@@ -90,6 +90,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       {enc && !enc.outcome && !enc.tutorial && !enc.venue && (
         <button className="step-away" onClick={() => g.stepAway()} data-testid="step-away">⟵ Step away<small>they wait an hour</small></button>
       )}
+      {tut && enc && !enc.outcome && (
+        <button className="step-away" onClick={() => g.skipTutorial()} data-testid="skip-lesson">Skip the lesson<small>sell it your own way</small></button>
+      )}
       <InfoBand enc={enc} presented={presented} view={view} tierName={tier.name} priorities={priorities} />
 
       <div className="rugstrip" data-testid="rugstrip">

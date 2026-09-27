@@ -1737,3 +1737,4 @@ body.travelling .mission-strip{display:none}
 .atmo-glow { mix-blend-mode: screen; }
 .atmo-crowd { opacity: 0.94; }
 .title-screen .atmo { inset: -4%; }
+.skip-lesson{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:40;padding:7px 14px;border-radius:14px;border:1px solid var(--line-strong);background:#1b110aee;color:var(--parchment);font-family:var(--label);font-size:14px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.5)}
