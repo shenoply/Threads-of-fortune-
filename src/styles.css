@@ -840,7 +840,7 @@ table.ledger .neg { color: var(--bad); }
 .split-rug { position: absolute; left: 50%; bottom: 4%; width: 34%; max-width: 300px; transform: translateX(-50%) perspective(600px) rotateX(42deg); transform-origin: 50% 100%; box-shadow: 0 10px 26px rgba(0,0,0,.6); animation: unfold2 .6s ease-out; border: 2px solid rgba(236,220,184,.45); z-index: 4; }
 .split-rug img { display: block; width: 100%; }
 @keyframes unfold2 { from { transform: translateX(-50%) perspective(600px) rotateX(85deg); opacity: 0; } }
-.cat-badge { position: absolute; left: 0; top: 8px; width: min(22%, 120px); padding: 0; border: 0; background: none; z-index: 6; cursor: pointer; }
+.cat-badge { position: absolute; left: 1%; bottom: 1%; width: min(24%, 150px); padding: 0; border: 0; background: none; cursor: pointer; }
 .cat-badge img { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)); }
 .scene.split .bubble.low { z-index: 7; }
 .scene.split .seller-side img { object-position: 18% 58%; }
@@ -848,7 +848,6 @@ table.ledger .neg { color: var(--bad); }
 .scene.split .buyer-figure.has-photo { top: 10%; right: 0; bottom: 0; width: 92%; }
 .scene.split .buyer-figure.has-photo .buyer-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 100% 0%; }
 .scene.split .bubble.top { position: absolute; bottom: auto; z-index: 7; overflow: hidden; }
-.scene.split .cat-badge { top: auto; bottom: 0; }
 .scene.split { aspect-ratio: 780 / 420; }
 
 /* Calendar */
@@ -1763,3 +1762,26 @@ body.travelling .mission-strip{display:none}
 .evening-strip .es-lines i { color: #6d5234; margin-right: 3px; }
 .evening-strip em.pos { color: #2f5a1e; }
 .evening-strip em.neg { color: #8a2a18; }
+
+/* The wireless on the counter, at the join of the two paintings */
+.stall-radio { position: absolute; left: 39%; bottom: 2%; width: min(15%, 110px); padding: 0; border: 0; background: none; cursor: pointer; }
+.stall-radio img { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)); }
+.stall-radio.on img { filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)) drop-shadow(0 0 6px rgba(255,190,110,.55)); }
+
+/* The paper held up in your hands: the front page printed onto the blank pages of the painting */
+.paper-pov-wrap { position: fixed; inset: 0; z-index: 80; background: rgba(8,5,2,0.9); display: grid; place-items: center; }
+.paper-pov { position: relative; width: min(100vw, calc(100dvh * 2 / 3)); aspect-ratio: 1024 / 1536; container-type: inline-size; animation: fadein .35s ease; }
+.paper-pov > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.pov-page { position: absolute; top: 22%; height: 44%; overflow: hidden; color: #2a1b0e; mix-blend-mode: multiply; font-family: 'Alegreya', serif; }
+.pov-page.left { left: 18%; width: 30%; }
+.pov-page.right { left: 55%; width: 29%; }
+.pov-mast { font-family: 'UnifrakturCook', var(--display); font-weight: 700; font-size: 5.4cqw; line-height: 1.05; text-align: center; }
+.pov-date { font-family: var(--label); font-size: 1.9cqw; letter-spacing: .06em; text-align: center; border-top: 1px solid #2a1b0e; border-bottom: 3px double #2a1b0e; padding: .4cqw 0; margin: .8cqw 0 1.4cqw; }
+.pov-page h2 { font-family: var(--display); font-size: 3.4cqw; line-height: 1.12; margin: 0 0 1cqw; }
+.pov-page p { font-size: 2.5cqw; line-height: 1.35; margin: 0 0 1.2cqw; text-align: justify; hyphens: auto; }
+.pov-page.right .pov-also:not(:first-child) { margin-top: 1.4cqw; }
+.pov-page { -webkit-mask-image: linear-gradient(180deg, #000 88%, transparent); mask-image: linear-gradient(180deg, #000 88%, transparent); }
+.pov-also { font-family: var(--label); font-size: 2cqw; letter-spacing: .14em; text-transform: uppercase; color: #7a2a1a; border-bottom: 1px solid #2a1b0e; padding-bottom: .5cqw; margin-bottom: 1.2cqw; }
+.pov-page h4 { font-family: var(--display); font-size: 2.9cqw; line-height: 1.18; margin: 0 0 1.6cqw; padding-bottom: 1.2cqw; border-bottom: 1px solid rgba(42,27,14,.35); }
+.paper-pov .paper-close { top: 2%; right: 3%; }
+.paper-pov .pov-read { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); white-space: nowrap; }

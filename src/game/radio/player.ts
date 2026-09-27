@@ -26,7 +26,7 @@ class RadioPlayer {
   }
 
   /** Play the bulletin; onLine is called with the index of each piece as it starts. */
-  async play(lang: Lang, segs: Segment[], onLine: (i: number) => void, onEnd: () => void) {
+  async play(lang: Lang, segs: Segment[], onLine: (i: number) => void, onEnd: () => void, volume = 1) {
     this.stop();
     if (!audio.ensure()) return;
     const run = ++this.runId;
@@ -36,7 +36,7 @@ class RadioPlayer {
     if (!m || run !== this.runId) return;
     // the set warms up: a gentle hiss with the odd crackle
     this.out = ctx.createGain();
-    this.out.gain.value = 1;
+    this.out.gain.value = volume; // lower when it plays in the background at the stall
     this.out.connect(audio.gains.dialogue);
     const n = ctx.sampleRate * 3, hb = ctx.createBuffer(1, n, ctx.sampleRate), d = hb.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.012 + (Math.random() < 0.0004 ? (Math.random() * 2 - 1) * 0.5 : 0);

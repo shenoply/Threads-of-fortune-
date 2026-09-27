@@ -10,6 +10,8 @@ import type { PlaybackView } from '../BuyerDialogue/usePlayback';
 import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
 import { Atmosphere } from '../Atmosphere/Atmosphere';
+import { radio } from '../../game/radio/player';
+import { bulletin, type Lang } from '../../game/radio/bulletin';
 import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
@@ -155,8 +157,9 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
           <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
         </div>
       )}
-      <Atmosphere />
+      <StallRadio />
       <Saffron onCat={onCat} />
+      <Atmosphere />
       {text && (
         <div
           className={`bubble top ${who === 'seller' ? 'tail-left' : 'tail-right'} ${who === 'buyer' ? moodRing : ''}`}
@@ -292,7 +295,7 @@ export function BuyerFace({ id, size = 36 }: { id: string; size?: number }) {
   );
 }
 
-/** The buyer across the table: a painted cut-out from art/portraits/<id>-stall.png if added, otherwise drawn from behind. */
+/** The buyer across the table: a painted cut-out from art/portraits/<id>-stall.webp if added, otherwise drawn from behind. */
 function ScenePerson({ id }: { id: string }) {
   const [ok, setOk] = useState<boolean | null>(null);
   const [framed, setFramed] = useState<boolean | null>(null);
@@ -301,18 +304,42 @@ function ScenePerson({ id }: { id: string }) {
       {ok === false && framed === false && <PersonBack spec={personFor(id)} className="buyer-art" />}
       {/* no cut-out yet: the painted portrait stands in, framed like a photograph on the counter */}
       {ok === false && framed !== false && <img src={`art/portraits/${id}.jpg`} alt="" className="buyer-framed" style={{ display: framed ? 'block' : 'none' }} onLoad={() => setFramed(true)} onError={() => setFramed(false)} />}
-      <img src={`art/portraits/${id}-stall.png?v=2`} alt="" className="buyer-art" style={{ display: ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setOk(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={(e) => { setOk(false); e.currentTarget.parentElement?.classList.remove('has-photo'); }} />
+      <img src={`art/portraits/${id}-stall.webp`} alt="" className="buyer-art" style={{ display: ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setOk(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={(e) => { setOk(false); e.currentTarget.parentElement?.classList.remove('has-photo'); }} />
     </>
   );
 }
 
-/** Saffron on the rug, as a painted cut-out (art/saffron-stall.png). Until that is painted she stays out of the picture. */
+/** Saffron lying on the rug at the corner of the counter. Tap her. */
 function Saffron({ onCat }: { onCat: () => void }) {
   const [ok, setOk] = useState(true);
   if (!ok) return null;
   return (
     <button className="cat-badge" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
-      <img src="art/saffron-stall.png" alt="" onError={() => setOk(false)} />
+      <img src="art/saffron-stall.webp" alt="" onError={() => setOk(false)} />
+    </button>
+  );
+}
+
+/** The wireless on the counter. Tap it and the morning bulletin plays quietly while you trade; tap again to switch it off. */
+function StallRadio() {
+  const g = useGame();
+  const [on, setOn] = useState(radio.playing);
+  useEffect(() => {
+    const t = setInterval(() => setOn(radio.playing), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (radio.playing) { radio.stop(); setOn(false); return; }
+    let lang: Lang = 'en';
+    try { lang = (localStorage.getItem('tof-radio-lang') as Lang) || 'en'; } catch { /* private mode */ }
+    if ((g.radioHeard ?? 0) < g.day) useGame.setState({ radioHeard: g.day });
+    radio.play(lang, bulletin(g.day, lang), () => {}, () => setOn(false), 0.4);
+    setOn(true);
+  };
+  return (
+    <button className={`stall-radio ${on ? 'on' : ''}`} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
+      <img src="art/radio-stall.webp" alt="" />
     </button>
   );
 }

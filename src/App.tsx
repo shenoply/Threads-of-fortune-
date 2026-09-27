@@ -4,6 +4,8 @@ import { Radio } from './components/Radio/Radio';
 import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
+import { radio } from './game/radio/player';
+import { preload, buyerArt, STALL_ART, CITY_ART } from './game/preload';
 import { useGame, dateFor, clock } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, type Channel } from './game/audio/engine';
@@ -135,10 +137,23 @@ export default function App() {
     if (phase === 'game' && tab === 'stall' && g.tutorial.done && !g.encounter && !g.dayOver) { if (!g.held) openStallNext(); setTab('map'); }
   }, [phase, g.started, g.encounter, g.dayOver, g.visitIdx, g.queue.length, g, tab, g.world.hour]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // the wireless stays at the stall: leaving Giza switches it off
+  useEffect(() => { if (g.world.at !== 'giza') radio.stop(); }, [g.world.at]);
+
+  // today's customers: fetch their pictures before they walk up, the next one first
+  useEffect(() => {
+    if (phase !== 'game') return;
+    preload(STALL_ART, true);
+    const coming = g.queue.slice(g.visitIdx);
+    preload(coming.slice(0, 1).flatMap(buyerArt), true);
+    preload(coming.slice(1).flatMap(buyerArt));
+  }, [phase, g.day, g.visitIdx, g.queue]);
+
   const enterGame = () => {
     audio.ensure();
-    // warm the cache for the paintings shown first, so nothing pops in
-    ['art/world/giza-district.jpg', 'art/portraits/yusuf-stall.png', 'art/portraits/mariam-stall.png', 'art/portraits/samira.jpg', 'art/portraits/yusuf.jpg', 'art/portraits/mariam.jpg', 'art/world/stall-top.jpg'].forEach((src) => { const im = new Image(); im.src = src; });
+    // warm the cache for the paintings shown first, so nothing pops in; the cities follow in idle moments
+    preload([...STALL_ART, ...g.queue.slice(g.visitIdx).flatMap(buyerArt)], true);
+    preload(CITY_ART);
     voice.load().then(() => voice.preload(['seller', 'narrator', 'samira', 'yusuf', 'mariam', 'rashid']));
     paintedMap(); // start loading the travel map so the World tab opens on it
     if (g.settings.ambience) audio.startAmbience();
