@@ -1812,3 +1812,10 @@ body.travelling .mission-strip{display:none}
 @keyframes bf-flash{0%{opacity:0;transform:scale(.4)}30%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(.8)}}
 .bf-smoke{position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:radial-gradient(rgba(240,230,210,.7),rgba(205,195,172,.32) 50%,transparent 72%);opacity:0;filter:blur(1.5px);animation:bf-smoke 2.4s ease-out both}
 @keyframes bf-smoke{0%{opacity:0;transform:translate(0,0) scale(.4)}12%{opacity:.9}100%{opacity:0;transform:translate(7px,calc(var(--dir,-1)*24px)) scale(2.3)}}
+/* leaving a town: a fixed bar at the foot of the panel, and a second door in the street view */
+.set-exit{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;justify-content:center;padding:14px 14px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(rgba(8,5,3,0),rgba(8,5,3,.96) 45%);pointer-events:none}
+.set-exit .btn{pointer-events:auto;width:100%;max-width:520px;min-height:54px;font-size:17.5px}
+.settlement .set-body{padding-bottom:104px}
+.venue-doors{flex-wrap:wrap}
+.venue-doors .door-btn{flex:1 1 45%}
+.door-btn.exit-city{background:#2a1a0e;border-color:#d99a3c;color:#ffe2a8}

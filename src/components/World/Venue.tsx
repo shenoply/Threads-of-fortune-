@@ -18,7 +18,7 @@ export function AudienceOverlay({ onDone }: { onDone: () => void }) {
   );
 }
 
-export function Venue({ id, def, onLeave, onAction }: { id?: string; def?: VenueDef; onLeave: () => void; onAction?: (a: string) => void }) {
+export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { id?: string; def?: VenueDef; onLeave: () => void; onAction?: (a: string) => void; onExitCity?: () => void; exitLabel?: string }) {
   const v = def ?? VENUES[id!];
   const g = useGame();
   const royal = v.royal ? BUYERS[v.royal] : undefined;
@@ -266,6 +266,7 @@ export function Venue({ id, def, onLeave, onAction }: { id?: string; def?: Venue
       </div>
       <div className="venue-doors">
         <button className="btn door-btn leave" onClick={onLeave} data-testid="venue-leave">⟵ {v.id.startsWith('auction-') || def?.pois.some((p) => p.action === 'floor') ? 'Leave, back to town' : isCity ? 'Back to the town square' : 'Leave the palace'}</button>
+        {onExitCity && <button className="btn door-btn leave exit-city" onClick={onExitCity} data-testid="venue-exit-city">{exitLabel ?? 'Leave the city'} ⟶</button>}
         {v.pois.filter((p) => p.kind === 'goto' && p.action).length <= 2 && v.pois.filter((p) => p.kind === 'goto' && p.action).map((p) => (
           <button key={p.id} className="btn primary door-btn enter" onClick={() => onAction?.(p.action!)} data-testid={`venue-enter-${p.id}`}>Enter {p.name.toLowerCase()} ⟶</button>
         ))}

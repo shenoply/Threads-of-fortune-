@@ -282,17 +282,23 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         )}
         </>)}
       </div>
+      {/* the way out, always in reach: the panel scrolls, so the button in the header goes off the top */}
+      {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && (
+        <div className="set-exit">
+          <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">⟵ Leave {st.name} · back to the map</button>
+        </div>
+      )}
       <Tip id="town" when={!inCity && !inVenue && !talkTo && !inAuction} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
       {houseWalk && (
         <div className="venue-overlay">
-          <Venue def={auctionVenue(houseWalk)} onLeave={() => setHouseWalk(null)} onAction={(a) => { if (a === 'floor') setInAuction(houseWalk); }} />
+          <Venue def={auctionVenue(houseWalk)} onLeave={() => setHouseWalk(null)} onExitCity={() => { setHouseWalk(null); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => { if (a === 'floor') setInAuction(houseWalk); }} />
         </div>
       )}
       {inAuction && <Auction houseId={inAuction} onClose={() => setInAuction(null)} />}
       {inCity && walk && (
         <div className="venue-overlay">
-          <Venue def={walk} onLeave={() => setInCity(false)} onAction={(a) => {
+          <Venue def={walk} onLeave={() => setInCity(false)} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
             setInCity(false);
             if (a === 'palace') { if (venue?.map) setInVenue(true); else setTab('town'); }
             else if (a.startsWith('house:')) setHouseWalk(a.slice(6));
