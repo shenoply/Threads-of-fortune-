@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PIECES, POSE_INFO, baseSrc, layerSrc, wornIds, type FitTable, type Outfit, type Pose } from '../../data/wardrobe';
+import { PIECES, POSE_INFO, baseSrc, coverSrc, layerSrc, wornIds, type FitTable, type Outfit, type Pose } from '../../data/wardrobe';
 import { FIT } from '../../data/wardrobeFit';
 import './Wardrobe.css';
 
@@ -47,11 +47,18 @@ export function HeroFigure({ pose, outfit, fit = FIT, highlight, className = '',
   const key = unpainted.join(',');
   useEffect(() => { onMissing?.(unpainted); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // a coat with sleeves hides the shirt under it outside its own outline
+  const coat = outfit.outer && PIECES[outfit.outer]?.hidesUnder ? coverSrc(pose, outfit.outer) : null;
+  const coatMask = useLoaded(coat);
   const layerImg = (p: (typeof layers)[number]) => {
     const src = layerSrc(pose, p.id);
     if (miss.has(src)) return null;
     const f = fit[`${pose}/${p.id}`];
-    const style = f ? { transform: `translate(${f.x}%, ${f.y}%) scale(${f.s})` } : undefined;
+    const style: React.CSSProperties = f ? { transform: `translate(${f.x}%, ${f.y}%) scale(${f.s})` } : {};
+    if (p.slot === 'top' && coat && coatMask) {
+      const m = `url(${coat})`;
+      Object.assign(style, { WebkitMaskImage: m, maskImage: m, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat' });
+    }
     return <img key={p.id} className={`hero-layer ${highlight === p.id ? 'hl' : ''}`} src={src} alt="" style={style} onError={() => markMissing(src)} draggable={false} />;
   };
 
@@ -68,6 +75,20 @@ export function HeroFigure({ pose, outfit, fit = FIT, highlight, className = '',
       {!baseMissing && layers.filter((p) => p.z >= 0).map((p) => layerImg(p))}
     </div>
   );
+}
+
+/** True once an image has loaded (a mask is only applied when it exists: a missing mask would hide the layer). */
+const loaded = new Set<string>();
+function useLoaded(src: string | null) {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!src || loaded.has(src) || missing.has(src)) return;
+    const im = new Image();
+    im.onload = () => { loaded.add(src); bump((n) => n + 1); };
+    im.onerror = () => markMissing(src);
+    im.src = src;
+  }, [src]);
+  return !!src && loaded.has(src);
 }
 
 /**

@@ -48,6 +48,8 @@ export interface Piece {
   looks: string;
   /** swatch colour for the card before the picture exists */
   swatch: string;
+  /** a coat with sleeves: the shirt under it only shows inside its outline (see tools/cover-masks.py) */
+  hidesUnder?: boolean;
 }
 
 const ALL: Pose[] = ['wardrobe', 'stall', 'profile'];
@@ -78,12 +80,12 @@ export const PIECES: Record<string, Piece> = Object.fromEntries([
 
   // ---------- coats and vests ----------
   P({ id: 'vest-embroidered', name: 'Embroidered vest', slot: 'outer', price: 45, charisma: 0, where: [], poses: ALL, z: 30, swatch: '#5b3a1e', note: 'Brown wool with gold braid down the fronts. Your father\'s.', looks: 'an open-fronted dark brown wool waistcoat with wide bands of gold and rust embroidered braid down both fronts' }),
-  P({ id: 'stambouli', name: 'Stambouli jacket', slot: 'outer', price: 180, charisma: 4, where: BIG_CITIES, poses: ALL, z: 30, swatch: '#2c2a2e', note: 'The effendi\'s buttoned black jacket. Hotel owners and officials take you seriously.', looks: 'a single-breasted black wool Stambouli frock jacket, high-buttoning, fitted, reaching mid-thigh' }),
-  P({ id: 'linen-suit', name: 'Cream linen jacket', slot: 'outer', price: 160, charisma: 3, where: ['alexandria', 'portsaid', 'cairo'], poses: ALL, z: 30, swatch: '#e8dcc8', note: 'Cool and pale, the Alexandrian cotton men\'s jacket.', looks: 'a single-breasted cream linen suit jacket with notched lapels, three buttons, slightly creased' }),
-  P({ id: 'kaftan', name: 'Silk kaftan', slot: 'outer', price: 400, charisma: 6, where: LEVANT, poses: ALL, z: 30, swatch: '#7a3b2e', note: 'Striped Damascus silk to the ankle. Old families and sheikhs respect it.', looks: 'an ankle-length open kaftan of striped wine-red and gold Damascus silk, lined, with a narrow collar' }),
-  P({ id: 'bisht', name: 'Camel-hair bisht', slot: 'outer', price: 300, charisma: 5, where: ['baghdad', 'damascus', 'amman'], poses: ALL, z: 32, swatch: '#9b7650', note: 'A sheikh\'s cloak, edged in gold.', looks: 'a flowing sheer camel-brown wool bisht cloak worn open over the shoulders, edged with gold zari braid' }),
-  P({ id: 'frock-coat', name: 'Court frock coat', slot: 'outer', price: 1050, charisma: 9, where: ['cairo', 'istanbul', 'alexandria'], poses: ALL, z: 30, swatch: '#141416', note: 'Black, knee-length, silk lapels. Chamberlains will not admit you to a palace without something like it.', looks: 'a black knee-length double-breasted court frock coat with silk-faced lapels, buttoned, sharply tailored' }),
-  P({ id: 'burnous', name: 'Wool travel cloak', slot: 'outer', price: 90, charisma: 1, where: ['bedouin', 'sinai', 'suez', 'amman'], poses: ALL, z: 32, swatch: '#b9a98b', note: 'Heavy undyed wool. Cold desert nights stop mattering.', looks: 'a heavy undyed oatmeal wool hooded burnous cloak, hood down, worn open' }),
+  P({ hidesUnder: true, id: 'stambouli', name: 'Stambouli jacket', slot: 'outer', price: 180, charisma: 4, where: BIG_CITIES, poses: ALL, z: 30, swatch: '#2c2a2e', note: 'The effendi\'s buttoned black jacket. Hotel owners and officials take you seriously.', looks: 'a single-breasted black wool Stambouli frock jacket, high-buttoning, fitted, reaching mid-thigh' }),
+  P({ hidesUnder: true, id: 'linen-suit', name: 'Cream linen jacket', slot: 'outer', price: 160, charisma: 3, where: ['alexandria', 'portsaid', 'cairo'], poses: ALL, z: 30, swatch: '#e8dcc8', note: 'Cool and pale, the Alexandrian cotton men\'s jacket.', looks: 'a single-breasted cream linen suit jacket with notched lapels, three buttons, slightly creased' }),
+  P({ hidesUnder: true, id: 'kaftan', name: 'Silk kaftan', slot: 'outer', price: 400, charisma: 6, where: LEVANT, poses: ALL, z: 30, swatch: '#7a3b2e', note: 'Striped Damascus silk to the ankle. Old families and sheikhs respect it.', looks: 'an ankle-length open kaftan of striped wine-red and gold Damascus silk, lined, with a narrow collar' }),
+  P({ hidesUnder: true, id: 'bisht', name: 'Camel-hair bisht', slot: 'outer', price: 300, charisma: 5, where: ['baghdad', 'damascus', 'amman'], poses: ALL, z: 32, swatch: '#9b7650', note: 'A sheikh\'s cloak, edged in gold.', looks: 'a flowing sheer camel-brown wool bisht cloak worn open over the shoulders, edged with gold zari braid' }),
+  P({ hidesUnder: true, id: 'frock-coat', name: 'Court frock coat', slot: 'outer', price: 1050, charisma: 9, where: ['cairo', 'istanbul', 'alexandria'], poses: ALL, z: 30, swatch: '#141416', note: 'Black, knee-length, silk lapels. Chamberlains will not admit you to a palace without something like it.', looks: 'a black knee-length double-breasted court frock coat with silk-faced lapels, buttoned, sharply tailored' }),
+  P({ hidesUnder: true, id: 'burnous', name: 'Wool travel cloak', slot: 'outer', price: 90, charisma: 1, where: ['bedouin', 'sinai', 'suez', 'amman'], poses: ALL, z: 32, swatch: '#b9a98b', note: 'Heavy undyed wool. Cold desert nights stop mattering.', looks: 'a heavy undyed oatmeal wool hooded burnous cloak, hood down, worn open' }),
 
   // ---------- trousers ----------
   P({ id: 'sirwal', name: 'Cotton sirwal', slot: 'legs', price: 15, charisma: 0, where: [], poses: FULL, z: 10, swatch: '#d9cdb4', note: 'Loose trousers gathered at the ankle.', looks: 'loose off-white cotton sirwal trousers, full through the leg and gathered at the ankle' }),
@@ -159,12 +161,33 @@ export function legacyWorn(o: Outfit): string {
   return 'stambouli';
 }
 
-/** Put a piece on, replacing whatever held that slot. Extras toggle. */
+/** Pieces that take the same place on him: putting one on takes the others off. */
+export const CLASHES: string[][] = [
+  ['sash', 'belt'],             // both go round the waist
+  ['cane', 'misbaha'],          // both in his right hand
+  ['webley', 'khanjar'],        // the holster belt and the dagger both sit at the front of the waist
+];
+const clashesWith = (id: string) => CLASHES.filter((g) => g.includes(id)).flat().filter((x) => x !== id);
+
+/** Put a piece on, replacing whatever held that slot or the same place on him. Extras toggle. */
 export function wearPiece(o: Outfit, id: string): Outfit {
   const p = PIECES[id];
   if (!p) return o;
-  if (p.slot === 'extras') return { ...o, extras: o.extras.includes(id) ? o.extras.filter((x) => x !== id) : [...o.extras, id] };
-  return { ...o, [p.slot]: id } as Outfit;
+  const off = new Set(clashesWith(id));
+  const clear = (x: string | null) => (x && off.has(x) ? null : x);
+  const base: Outfit = { ...o, extras: o.extras.filter((x) => !off.has(x)), weapon: clear(o.weapon), carry: clear(o.carry) };
+  if (p.slot === 'extras') return { ...base, extras: o.extras.includes(id) ? base.extras.filter((x) => x !== id) : [...base.extras, id] };
+  return { ...base, [p.slot]: id } as Outfit;
+}
+
+/** What putting this piece on would take off (for the wardrobe to say so). */
+export function wouldReplace(o: Outfit, id: string): string[] {
+  const p = PIECES[id];
+  if (!p) return [];
+  const worn = wornIds(o);
+  if (worn.includes(id)) return [];
+  const same = p.slot === 'extras' ? [] : worn.filter((x) => PIECES[x].slot === p.slot);
+  return [...same, ...worn.filter((x) => clashesWith(id).includes(x))];
 }
 
 /** Take a piece off. Shirt and trousers cannot go: there is always something underneath. */
@@ -197,6 +220,7 @@ export function wardrobeFromLegacy(owned: string[], worn: string): WardrobeState
 
 export const baseSrc = (pose: Pose) => `art/hero/hero-base-${pose}.png`;
 export const layerSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}.png`;
+export const coverSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}-cover.png`;
 
 /** Nudges for layers that came back from the generator a little off. Filled in from the wardrobe's fit mode. */
 export interface Fit { x: number; y: number; s: number }

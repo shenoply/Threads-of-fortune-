@@ -21,6 +21,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parent.parent
 HERO = ROOT / 'public' / 'art' / 'hero'
@@ -29,6 +30,8 @@ BODY = {'linen-shirt', 'galabiya-work', 'galabiya-white', 'galabiya-wool', 'dres
         'vest-embroidered', 'stambouli', 'linen-suit', 'kaftan', 'bisht', 'frock-coat', 'burnous'}
 # pieces whose painted collar stands higher than a plain neckline: push them down this many px
 COLLAR_DROP = {}
+# pieces that leave his arms bare: never widened to cover the shoulders
+SLEEVELESS = {'vest-embroidered'}
 # extra px to clear below the neckline for pieces painted with a filled neck or a tall collar
 NECK_CLEAR = {'dress-shirt': 24, 'kaftan': 14}
 # which row of the hat (fraction of its height from the top) is the band that grips the head,
@@ -103,7 +106,7 @@ def measure_base(pose):
         ys, xs = np.where(sub)
         hb = ys.max()
         hands.append(((xs.min() + xs.max()) / 2 + lo_x, crotch - 180 + hb - 42, xs.max() - xs.min()))
-    return dict(top=top, neck=neck, brow=brow, fore_w=fore_w, cx=cx, shoulder=shoulder, size=m.shape[::-1],
+    return dict(m=m, top=top, neck=neck, brow=brow, fore_w=fore_w, cx=cx, shoulder=shoulder, size=m.shape[::-1],
                 waist=waist, waist_w=wr - wl, hands=hands, waist_cx=(wl + wr) / 2, crotch=crotch, ankle=ankle, bottom=bottom, feet=feet)
 
 
@@ -134,6 +137,133 @@ def fit_hat(im, pid, b):
     return place(im, s, b['cx'] - band_cx * s, land - band_y * s, b['size'])
 
 
+def cover_shoulders(out, b):
+    """Stretch a garment's shoulder band sideways, row by row, until it covers his shoulders and
+    the short sleeves of the undershirt painted on the base; the stretch fades out down the chest."""
+    a = np.asarray(out).copy()
+    H, W = a.shape[:2]
+    m = a[..., 3] > 100
+    y_start, y_full, y_end = b['neck'] + 15, b['neck'] + 160, b['neck'] + 250
+    res = a.copy()
+    for y in range(y_start, min(y_end, H)):
+        gx = np.where(m[y])[0]
+        bx = np.where(b['m'][y])[0]
+        if len(gx) < 10 or len(bx) < 10:
+            continue
+        gl, gr = gx.min(), gx.max()
+        bl, br = bx.min() - 4, bx.max() + 4
+        w = 1.0 if y <= y_full else max(0.0, 1 - (y - y_full) / (y_end - y_full))
+        L = round(gl + (min(gl, bl) - gl) * w)
+        R = round(gr + (max(gr, br) - gr) * w)
+        if L >= gl and R <= gr:
+            continue
+        xs = np.arange(L, R + 1)
+        src = gl + (xs - L) * (gr - gl) / max(1, R - L)
+        s0 = np.clip(np.floor(src).astype(int), 0, W - 1)
+        s1 = np.clip(s0 + 1, 0, W - 1)
+        f = (src - s0)[:, None]
+        row = a[y]
+        res[y, L:R + 1] = (row[s0] * (1 - f) + row[s1] * f).astype(np.uint8)
+    return Image.fromarray(res)
+
+
+def _segments(row):
+    lab, n = ndimage.label(row)
+    return [(np.where(lab == i)[0].min(), np.where(lab == i)[0].max()) for i in range(1, n + 1)]
+
+
+def _stretch(res, a, y, s0, s1, t0, t1):
+    """Resample row y of a so the run s0..s1 fills t0..t1."""
+    W = a.shape[1]
+    xs = np.arange(t0, t1 + 1)
+    src = s0 + (xs - t0) * (s1 - s0) / max(1, t1 - t0)
+    i0 = np.clip(np.floor(src).astype(int), 0, W - 1)
+    i1 = np.clip(i0 + 1, 0, W - 1)
+    f = (src - i0)[:, None]
+    res[y, t0:t1 + 1] = (a[y][i0] * (1 - f) + a[y][i1] * f).astype(np.uint8)
+
+
+def cover_torso(out, b):
+    """Below the armpits, stretch the edge of the garment's body out to his torso's edge, so the
+    undershirt never shows down his sides. Sleeves and an open front are left alone."""
+    a = np.asarray(out).copy()
+    m = a[..., 3] > 100
+    res = a.copy()
+    cx = int(b['cx'])
+    for y in range(b['neck'] + 120, b['crotch'] - 10):
+        segs = _segments(b['m'][y])
+        torso = next(((l, r) for l, r in segs if l <= cx <= r), None)
+        if not torso:
+            continue
+        tl, tr = torso[0] - 3, torso[1] + 3
+        gsegs = _segments(m[y])
+        # left side: the garment run nearest inside his left edge
+        inside = [(l, r) for l, r in gsegs if tl < l < tl + 70 and r > l + 8]
+        if inside and not any(l <= tl < r for l, r in gsegs):
+            l, r = min(inside)
+            _stretch(res, a, y, l, r, tl, r)
+        inside = [(l, r) for l, r in gsegs if tr - 70 < r < tr and r > l + 8]
+        if inside and not any(l < tr <= r for l, r in gsegs):
+            l, r = max(inside, key=lambda t: t[1])
+            _stretch(res, a, y, l, r, l, tr)
+    return Image.fromarray(res)
+
+
+def widen_to_torso(out, b):
+    """Scale the garment sideways (only sideways, evenly about his centre line) by just enough that
+    its body reaches his torso's edges below the armpits. Even scaling keeps stripes straight."""
+    a = np.asarray(out)
+    m = a[..., 3] > 100
+    cx = b['cx']
+    need = 1.0
+    for y in range(b['neck'] + 130, b['crotch'] - 20, 6):
+        segs = _segments(b['m'][y])
+        torso = next(((l, r) for l, r in segs if l <= cx <= r), None)
+        if not torso:
+            continue
+        gsegs = [(l, r) for l, r in _segments(m[y]) if r > l + 8 and torso[0] - 10 < r and l < torso[1] + 10]
+        if not gsegs:
+            continue
+        gl = min(l for l, r in gsegs); gr = max(r for l, r in gsegs)
+        if gl > torso[0] - 3:
+            need = max(need, (cx - torso[0] + 3) / max(1, cx - gl))
+        if gr < torso[1] + 3:
+            need = max(need, (torso[1] + 3 - cx) / max(1, gr - cx))
+    need = min(need, 1.18)
+    if need <= 1.001:
+        return out
+    W, H = out.size
+    wide = out.resize((round(W * need), H), Image.LANCZOS)
+    res = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    res.paste(wide, (round(cx - cx * need), 0), wide)
+    return res
+
+
+def close_armpits(out, b):
+    """Close small gaps between a sleeve and the body of the garment where his undershirt would
+    show, by extending the fabric on each side into the gap. The open front is never closed."""
+    a = np.asarray(out).copy()
+    m = a[..., 3] > 100
+    res = a.copy()
+    cx = b['cx']
+    front = b['shoulder'] * 0.2
+    for y in range(b['neck'] + 40, min(b['crotch'] - 60, a.shape[0])):
+        segs = [(l, r) for l, r in _segments(m[y]) if r > l + 3]
+        for (l1, r1), (l2, r2) in zip(segs, segs[1:]):
+            gap = l2 - r1 - 1
+            if gap <= 0 or gap > 70:
+                continue
+            if abs((r1 + l2) / 2 - cx) < front:  # the open front of a coat
+                continue
+            if not b['m'][y, r1 + 1: l2].all():  # real air between arm and body: leave it
+                continue
+            mid = (r1 + l2) // 2
+            e1, e2 = max(l1, r1 - 10), min(r2, l2 + 10)  # only a thin strip at each edge moves
+            _stretch(res, a, y, e1, r1, e1, mid)
+            _stretch(res, a, y, l2, e2, mid + 1, e2)
+    return Image.fromarray(res)
+
+
 def fit_body(im, pid, b):
     m = mask(im)
     x0, y0, x1, y1 = bbox(m)
@@ -142,8 +272,37 @@ def fit_body(im, pid, b):
     l, r = width_at(m, y0 + 3)
     collar_cx = (l + r) / 2 if l is not None else (x0 + x1) / 2
     s = b['shoulder'] / span
+    top_y = b['neck'] - 12 + COLLAR_DROP.get(pid, 0)
     # collar top sits a little above the narrowest point of the neck
-    out = place(im, s, b['cx'] - collar_cx * s, (b['neck'] - 12 + COLLAR_DROP.get(pid, 0)) - y0 * s, b['size'])
+    out = place(im, s, b['cx'] - collar_cx * s, top_y - y0 * s, b['size'])
+    # sleeved pieces: search size and height together for the best cover of his shoulders and
+    # arms with the least paint off his body (drawn garments have their own shoulder slope)
+    if pid not in SLEEVELESS:
+        k = 4  # work at quarter size
+        bm_s = b['m'][::k, ::k]
+        band = np.zeros_like(bm_s)
+        band[(b['neck'] + 25) // k: (b['crotch'] - 200) // k] = True
+        want = bm_s & band
+        body_d = ndimage.binary_dilation(bm_s, iterations=7) | ~band
+        small = im.resize((im.width // k, im.height // k), Image.BILINEAR)
+        best = None
+        for ds in np.linspace(0.9, 1.25, 15):
+            for dy in range(0, 64, 6):
+                ss = s * ds
+                o = place(small, ss, (b['cx'] - collar_cx * ss * k) / k, (top_y + dy - y0 * ss * k) / k, (b['size'][0] // k, b['size'][1] // k))
+                om = np.asarray(o)[..., 3] > 100
+                cover = (om & want).sum() / max(1, want.sum())
+                spill = (om & ~body_d).sum() / max(1, om.sum())
+                score = cover - 2.5 * spill
+                if best is None or score > best[0]:
+                    best = (score, ss, dy)
+        _, s, dy = best
+        top_y += dy
+        out = place(im, s, b['cx'] - collar_cx * s, top_y - y0 * s, b['size'])
+    if pid not in SLEEVELESS:
+        out = widen_to_torso(out, b)
+        out = cover_shoulders(out, b)
+        out = close_armpits(out, b)
     # nothing a shirt or coat carries may cover his chin and beard: clear the patch above the neckline
     a = np.asarray(out).copy()
     half = int(b['fore_w'] * 0.42)
