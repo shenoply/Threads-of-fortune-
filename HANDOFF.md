@@ -25,6 +25,13 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
 - tools/refit.py fits tops, coats, trousers and shoes to the base body (sleeves and legs no wider
   than needed, trousers to the ankle, shoes covering the toes). Run it after adding or repainting
   one of those pieces, then tools/webp.py.
+- The stall scene (src/components/StallEncounter/Scene.tsx) is one painting, art/stall-empty.webp,
+  on a 3:2 stage anchored to the bottom of the frame. The merchant (hero-base-stall, no clothes are
+  painted for this pose yet) stands at the left and the buyer's cut-out (art/portraits/<id>-stall.webp,
+  drawn flush to its right edge, so it sits flush to the frame) at the right, both behind
+  art/counter-stall.webp: the counter cloth plus the folded rug stack, cut from the painting
+  (masters in art-src/: stall-empty.png, counter-overlay.png, samira-stall.png). Figure height is
+  set from the visible frame (--fig-h) so heads stay in shot on a phone and a wide desktop panel.
 - Voices are one MP3 per character (32 kbps CBR, 22.05 kHz). src/game/audio/voice.ts keeps the
   compressed file and decodes each line on its own, cut at an MP3 frame boundary. Never decode a
   whole file with decodeAudioData: half an hour of speech is ~400 MB of samples, and that is what

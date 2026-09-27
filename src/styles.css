@@ -829,26 +829,11 @@ table.ledger .neg { color: var(--bad); }
 }
 
 /* Stall two-shot */
-.scene.split { display: flex; background: #120c07; }
-.scene.split .panel { position: relative; flex: 1 1 50%; overflow: hidden; }
-.scene.split .panel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.scene.split .seller-side img { object-position: 22% 38%; }
-.scene.split .buyer-side > img { object-position: 78% 36%; }
-.scene.split .buyer-side img.lane { object-position: 100% 40%; transform: scale(1.75); transform-origin: 100% 45%; filter: brightness(.9); }
-.scene.split .buyer-figure.has-photo { top: 6%; right: 2%; bottom: 0; left: auto; height: auto; }
-.scene.split .buyer-side { margin-left: -5%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%); mask-image: linear-gradient(90deg, transparent, #000 10%); }
 .split-rug { position: absolute; left: 50%; bottom: 3%; width: 25%; max-width: 220px; transform: translateX(-50%) perspective(600px) rotateX(46deg); transform-origin: 50% 100%; box-shadow: 0 10px 26px rgba(0,0,0,.6); animation: unfold2 .6s ease-out; border: 2px solid rgba(236,220,184,.45); z-index: 4; }
 .split-rug img { display: block; width: 100%; }
 @keyframes unfold2 { from { transform: translateX(-50%) perspective(600px) rotateX(85deg); opacity: 0; } }
 .cat-badge { position: absolute; left: 47%; bottom: 1%; width: min(17%, 120px); padding: 0; border: 0; background: none; cursor: pointer; }
 .cat-badge img { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)); }
-.scene.split .bubble.low { z-index: 7; }
-.scene.split .seller-side img { object-position: 18% 58%; }
-.scene.split .buyer-side > img { object-position: 80% 52%; }
-.scene.split .buyer-figure.has-photo { top: 10%; right: 0; bottom: 0; width: 92%; }
-.scene.split .buyer-figure.has-photo .buyer-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 100% 0%; }
-.scene.split .bubble.top { position: absolute; bottom: auto; z-index: 7; overflow: hidden; }
-.scene.split { aspect-ratio: 780 / 420; }
 
 /* Calendar */
 .hud-cal { background: none; border: none; text-align: left; padding: 0; cursor: pointer; display: flex; flex-direction: column; min-width: 0; }
@@ -1479,7 +1464,7 @@ table.ledger .neg { color: var(--bad); }
 .waiting-pill span{display:flex;flex-direction:column}
 .waiting-pill b{font-size:15px}.waiting-pill small{font-size:12.5px;color:#e8d3ae}
 .stall{position:relative}
-.step-away{position:absolute;left:8px;top:8px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;padding:6px 12px;border-radius:12px;border:2px solid #b07a3f;background:#1b110ae6;color:#ffe7c2;font-weight:700;font-size:15px}
+.step-away{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;padding:6px 12px;border-radius:12px;border:2px solid #b07a3f;background:#1b110ae6;color:#ffe7c2;font-weight:700;font-size:15px}
 .step-away small{font-weight:400;font-size:11.5px;color:#d8c09a}
 .waiting-pill img{width:36px;height:36px}.waiting-pill b{font-size:14px}.waiting-pill small{font-size:12px}
 .pjob{position:absolute;left:50%;top:-24px;transform:translateX(-50%);white-space:nowrap;padding:2px 8px;border-radius:10px;background:#3a2410;border:1px solid #e0a24a;color:#ffe2a8;font-size:12px;pointer-events:none;max-width:170px;overflow:hidden;text-overflow:ellipsis}
@@ -1822,7 +1807,6 @@ body.travelling .mission-strip{display:none}
 /* a buyer's last price, and the customer taking their leave once the deal is done */
 .value-chip.offer.final{background:rgba(196,84,52,.28);border-color:#e0704a;color:#ffd9c4;font-weight:700}
 .buyer-figure.has-photo.leaving{animation:buyer-leave 1.8s ease-in 3.2s forwards}
-.scene.split .buyer-side img.leaving{z-index:2;animation:buyer-fade 1.6s ease-in 3.2s forwards}
 @keyframes buyer-fade{to{opacity:0}}
 @keyframes buyer-leave{to{transform:translateX(38%);opacity:0}}
 .btn.auto-next{position:relative;overflow:hidden}
@@ -1833,4 +1817,23 @@ body.travelling .mission-strip{display:none}
 .idle-scene img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;display:block}
 .idle-clock-chip{position:absolute;right:10px;top:10px;font-family:var(--display);font-size:22px;letter-spacing:.04em;color:var(--brass-hi);background:#140c06cc;padding:3px 10px;border-radius:8px;border:1px solid #7a5028}
 /* the folded stock on the counter in front of a visiting buyer */
-.scene.split .buyer-side .counter-stack{position:absolute;right:-2%;bottom:-3%;left:auto;top:auto;width:auto;height:34%;max-width:96%;object-fit:contain;z-index:4;pointer-events:none;filter:drop-shadow(-6px 4px 8px rgba(0,0,0,.45))}
+/* the stall as one painting: figures behind the counter, the counter cloth in front */
+.scene.stall{background:#120c07;aspect-ratio:780/380}
+.scene.stall .stage{position:absolute;bottom:0}
+.scene.stall .stage-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scene.stall .hero-at-stall{position:absolute;left:1%;bottom:21%;height:var(--fig-h,50%);aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
+.scene.stall .hero-at-stall .hero-fig{height:100%;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
+.scene.stall img.hero-still{width:auto;object-fit:contain;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
+.scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:22%;top:auto;left:auto;height:var(--fig-h,52%);width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}
+.scene.stall .buyer-figure.has-photo .buyer-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(-6px 0 12px rgba(0,0,0,.45)) sepia(.12)}
+.scene.stall .buyer-figure.has-photo[data-buyer="samira"]{right:0;bottom:27.5%;height:calc(var(--fig-h,50%) * .86);aspect-ratio:577/692}
+.scene.stall .buyer-figure.has-photo[data-buyer="mariam"]{aspect-ratio:571/1050}
+.scene.stall .buyer-figure.has-photo[data-buyer="yusuf"]{aspect-ratio:655/1050}
+.scene.stall .buyer-figure.has-photo.leaving{animation:buyer-leave 1.8s ease-in 3.2s forwards}
+.scene.stall .counter{position:absolute;left:0;bottom:0;width:100%;height:auto;z-index:3;pointer-events:none}
+.scene.stall .split-rug{position:absolute;left:50%;bottom:7%;width:24%;max-width:260px;transform:translateX(-50%) perspective(600px) rotateX(48deg);transform-origin:50% 100%;z-index:4;box-shadow:0 10px 26px rgba(0,0,0,.6);animation:unfold2 .6s ease-out}
+.scene.stall .split-rug img{display:block;width:100%}
+.scene.stall .stall-radio{left:1%;bottom:2%;width:min(12%,120px);z-index:5}
+.scene.stall .stall-paper{left:15%;bottom:4%;width:min(11%,110px);z-index:5}
+.scene.stall .cat-badge{left:27%;bottom:0;width:min(12%,120px);z-index:5}
+.scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}

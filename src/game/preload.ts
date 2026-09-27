@@ -34,5 +34,5 @@ export function preload(srcs: string[], soon = false) {
 /** A buyer's pictures, at the exact addresses the stall scene asks for. */
 export const buyerArt = (id: string) => [`art/portraits/${id}.jpg`, `art/portraits/${id}-stall.webp`];
 
-export const STALL_ART = ['art/stall-seller.jpg', 'art/stall-empty.webp', 'art/rugstack-stall.webp', 'art/stall-samira-v2.jpg', 'art/saffron-stall.webp', 'art/radio-stall.webp', 'art/newspaper-pov.jpg', 'art/world/giza-district.jpg', 'art/world/stall-top.jpg'];
+export const STALL_ART = ['art/stall-empty.webp', 'art/counter-stall.webp', 'art/hero/hero-base-stall.webp', 'art/portraits/samira-stall.webp', 'art/saffron-stall.webp', 'art/radio-stall.webp', 'art/newspaper-pov.jpg', 'art/world/giza-district.jpg', 'art/world/stall-top.jpg'];
 export const CITY_ART = ['alexandria', 'jerusalem', 'damascus', 'amman', 'baghdad', 'istanbul'].map((c) => `art/world/city-${c}.jpg`);

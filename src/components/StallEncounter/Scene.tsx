@@ -16,11 +16,9 @@ import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
 
-const SELLER_IMG = 'art/stall-seller.jpg';
-const SAMIRA_IMG = 'art/stall-samira-v2.jpg';
+const STAGE_IMG = 'art/stall-empty.webp';
 // lantern flames in each painting, as fractions of the image (see Atmosphere)
 const SELLER_LAMPS = '0.537,0.124;0.412,0.252;0.949,0.287';
-const SAMIRA_LAMPS = '0.398,0.139';
 
 interface SceneProps {
   enc: Encounter | null;
@@ -81,7 +79,6 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   const box = useRef<HTMLDivElement>(null);
   const { w: W, h: H } = useSize(box);
   const buyer = enc ? BUYERS[enc.buyerId] : null;
-  const isSamira = !enc || enc.buyerId === 'samira';
   const [unfoldKey, setUnfoldKey] = useState(0);
   useEffect(() => setUnfoldKey((k) => k + 1), [presented?.uid]);
 
@@ -121,51 +118,42 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
     );
   }
 
-  // The stall: a two-shot of two paintings, the merchant on the left and the buyer across the table on the right.
+  // The stall: one painting of the counter with the pyramids beyond. The merchant stands at the left,
+  // the buyer at the right, both behind the counter cloth, which hides where their pictures end.
+  // The painting is laid out on a 3:2 stage anchored to the bottom of the frame, so whatever a
+  // narrow screen crops off the top, every figure keeps its place on the counter.
   const who: 'seller' | 'buyer' = view.speaking ?? (view.lastSpeaker === 'seller' ? 'seller' : 'buyer');
   const text = who === 'seller' ? view.seller : view.buyer;
   const bw = Math.min(W * 0.62, 440);
+  const sw = Math.max(W, H * 1.5), sh = sw / 1.5;
+  // figures stand on the counter (a fixed share of the stage) and must keep their heads inside the
+  // visible frame, whose height is what a phone or a wide desktop panel actually shows
+  const figH = Math.min(sh * 0.55, H * 0.93 - sh * 0.21);
   return (
-    <div className={`scene split ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
-      <div className="panel seller-side">
+    <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
+      <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px` }}>
+        <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         {heroReady ? (
-          <>
-            <img className="lane" src={SELLER_IMG} alt="" draggable={false} />
-            <div className="hero-at-stall" data-testid="hero-at-stall"><HeroFigure pose="stall" outfit={outfit} /></div>
-          </>
+          <div className="hero-at-stall" data-testid="hero-at-stall"><HeroFigure pose="stall" outfit={outfit} /></div>
         ) : (
-          <img src={SELLER_IMG} alt="The merchant at his stall in the Giza bazaar, the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
+          <img className="hero-at-stall hero-still" src="art/hero/hero-base-stall.webp" alt="" draggable={false} />
         )}
-      </div>
-      <div className="panel buyer-side">
-        {isSamira ? (
-          <>
-            {/* Samira is painted into her picture: when she goes, it gives way to the empty lane */}
-            {enc?.outcome && <img className="lane" src={SELLER_IMG} alt="" draggable={false} />}
-            <img className={enc?.outcome ? 'leaving' : undefined} src={SAMIRA_IMG} alt="Samira, leaning on the rug-covered table" data-lamps={SAMIRA_LAMPS} draggable={false} data-testid="buyer-figure" data-buyer="samira" />
-          </>
-        ) : (
-          <>
-            <img className="lane" src={SELLER_IMG} alt="" draggable={false} />
-            {buyer && (
-              <div className={`buyer-figure has-photo${enc?.outcome ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
-                <ScenePerson id={buyer.id} />
-              </div>
-            )}
-            {/* folded stock on the counter, in front of the buyer: the picture ends where the rugs begin */}
-            <img className="counter-stack" src="art/rugstack-stall.webp" alt="" draggable={false} />
-          </>
+        {buyer && (
+          <div className={`buyer-figure has-photo${enc?.outcome ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
+            <ScenePerson id={buyer.id} />
+          </div>
         )}
+        <img className="counter" src="art/counter-stall.webp" alt="" draggable={false} />
+        {rugT && presented && (
+          <div className="split-rug" key={unfoldKey} data-testid="table-rug">
+            <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
+          </div>
+        )}
+        <StallRadio />
+        <StallPaper />
+        <Saffron onCat={onCat} />
       </div>
       {upgrades.includes('bazaar') && <div className="awning" aria-hidden="true" />}
-      {rugT && presented && (
-        <div className="split-rug" key={unfoldKey} data-testid="table-rug">
-          <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
-        </div>
-      )}
-      <StallRadio />
-      <StallPaper />
-      <Saffron onCat={onCat} />
       <Atmosphere />
       {text && (
         <div
