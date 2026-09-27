@@ -190,8 +190,19 @@ export function InfoBand({ enc, presented, view, tierName, priorities }: BandPro
   const buyer = enc ? BUYERS[enc.buyerId] : null;
   const stageIdx = enc ? STAGES.findIndex((x) => x.id === enc.stage) : -1;
   const allP = buyer && enc ? [...prefsFor(enc).roomPriorities, ...buyer.priorities.drawn] : [];
+  // On phones the speech sits here, under the picture, instead of in a bubble over it.
+  const who: 'seller' | 'buyer' = view.speaking ?? (view.lastSpeaker === 'seller' ? 'seller' : 'buyer');
+  const said = who === 'seller' ? view.seller : view.buyer;
+  const shown = said && view.speaking === who && view.active ? said.slice(0, view.typed) : said;
+  const mood = who === 'buyer' && (view.buyerMood === 'pleased' || view.buyerMood === 'warm') ? 'mood-good' : who === 'buyer' && (view.buyerMood === 'skeptical' || view.buyerMood === 'leaving') ? 'mood-bad' : '';
   return (
     <div className={`band ${view.narrator ? 'has-narr' : ''}`} data-testid="band">
+      {said && (
+        <div className={`speech ${mood}`} data-testid="speech">
+          <b>{who === 'seller' ? 'You' : buyer?.name ?? 'Samira'}</b>
+          {shown}
+        </div>
+      )}
       {view.narrator && (
         <div className="narrator" data-testid="narrator" key={view.narrator}>
           <small>NARRATOR</small>

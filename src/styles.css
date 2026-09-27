@@ -1744,3 +1744,14 @@ body.travelling .mission-strip{display:none}
 .atmo-lamps span { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255,200,125,.75) 0, rgba(255,165,75,.36) 22%, rgba(255,130,40,.12) 45%, transparent 68%); animation: lampFlicker 2.5s ease-in-out infinite; }
 @keyframes lampFlicker { 0%, 100% { opacity: 1; transform: scale(1); } 14% { opacity: .86; transform: scale(.97); } 27% { opacity: .96; } 41% { opacity: .82; transform: scale(.95); } 55% { opacity: 1; transform: scale(1.01); } 70% { opacity: .9; } 84% { opacity: .97; transform: scale(.98); } }
 @media (prefers-reduced-motion: reduce) { .atmo-lamps span { animation: none; } }
+
+/* Speech: in bubbles over the picture on wide screens; on phones as a subtitle under it, so the painting stays clear */
+.band .speech { display: none; font-size: 16px; line-height: 1.35; color: var(--parchment); border-left: 2px solid var(--brass); padding: 2px 0 2px 9px; }
+.band .speech b { display: block; font-family: var(--label); font-weight: 500; font-size: 13px; letter-spacing: 0.06em; color: var(--brass); }
+.band .speech.mood-good { border-left-color: #8fae5b; }
+.band .speech.mood-bad { border-left-color: #c0553f; }
+@media (max-width: 899px), (max-aspect-ratio: 5/4) {
+  .scene .bubble { display: none; }
+  .band .speech { display: block; }
+  .band .echo { display: none; }
+}
