@@ -840,7 +840,7 @@ table.ledger .neg { color: var(--bad); }
 .split-rug { position: absolute; left: 50%; bottom: 4%; width: 34%; max-width: 300px; transform: translateX(-50%) perspective(600px) rotateX(42deg); transform-origin: 50% 100%; box-shadow: 0 10px 26px rgba(0,0,0,.6); animation: unfold2 .6s ease-out; border: 2px solid rgba(236,220,184,.45); z-index: 4; }
 .split-rug img { display: block; width: 100%; }
 @keyframes unfold2 { from { transform: translateX(-50%) perspective(600px) rotateX(85deg); opacity: 0; } }
-.cat-badge { position: absolute; left: 3%; top: 8px; width: min(22%, 120px); padding: 0; border: 0; background: none; z-index: 6; cursor: pointer; }
+.cat-badge { position: absolute; left: 0; top: 8px; width: min(22%, 120px); padding: 0; border: 0; background: none; z-index: 6; cursor: pointer; }
 .cat-badge img { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)); }
 .scene.split .bubble.low { z-index: 7; }
 .scene.split .seller-side img { object-position: 18% 58%; }
