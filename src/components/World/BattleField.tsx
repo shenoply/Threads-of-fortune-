@@ -47,7 +47,7 @@ function layout(ids: { id: string; img: string; big: boolean; down: boolean }[],
     const inRow = Math.min(perRow, ids.length - r * perRow);
     const y = rows === 1 ? front : front + ((back - front) * r) / (rows - 1);
     const x = 50 + (c - (inRow - 1) / 2) * 14 + jitter(i, mine ? 1 : 2) * 5;
-    return { key: `${mine ? 'm' : 'e'}${i}`, img: u.img, x, y: y + jitter(i, 3) * 3, size: u.down ? 15 : u.big ? 34 : 24, down: u.down, flip: !mine };
+    return { key: `${mine ? 'm' : 'e'}${i}`, img: u.img, x, y: y + jitter(i, 3) * 3, size: u.down ? 18 : u.big ? 34 : 24, down: u.down, flip: !mine };
   });
 }
 
@@ -118,8 +118,8 @@ export function BattleField({ bandId, field, mySide, enemyN, enemyStart, party, 
     <div className="bf" data-testid="battlefield" style={{ backgroundImage: `url(${field})` }}>
       {[...placed, ...animals].map((t) => (
         <img
-          key={t.key}
-          className={`bf-tok${t.down ? ' down' : ''}`}
+          key={t.down ? `${t.key}-down` : t.key}
+          className={`bf-tok${t.down ? ' down' : ''}${t.flip ? ' flip' : ''}`}
           src={t.img}
           alt=""
           style={{ left: `${t.x}%`, top: `${t.y}%`, width: `${t.size}%`, transform: `translate(-50%,-50%)${t.flip ? ' rotate(180deg)' : ''}` }}

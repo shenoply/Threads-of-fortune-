@@ -1797,7 +1797,11 @@ body.travelling .mission-strip{display:none}
 /* the fight from above: a painted field, tokens for the men, the fallen left where they fell */
 .bf{position:relative;width:min(100%,46vh);aspect-ratio:1/1;flex-shrink:0;margin:0 auto;border-radius:12px;overflow:hidden;background-size:cover;background-position:center;border:1px solid #5a3b20;box-shadow:inset 0 0 60px #0008}
 .bf-tok{position:absolute;height:auto;pointer-events:none;transition:top 1.6s ease-in-out;filter:drop-shadow(3px 5px 3px #0007)}
-.bf-tok.down{filter:drop-shadow(1px 2px 1px #0006) saturate(.8) brightness(.9)}
+.bf-tok.down{filter:drop-shadow(2px 3px 2px #0008) saturate(.85) brightness(.92);animation:bf-fall .7s ease-out both}
+/* the moment a man falls: he drops into the picture and a little dust settles around him */
+@keyframes bf-fall{0%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}40%{opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+.bf-tok.down.flip{animation-name:bf-fall-flip}
+@keyframes bf-fall-flip{0%{opacity:0;transform:translate(-50%,-50%) rotate(180deg) scale(1.25)}40%{opacity:1}100%{transform:translate(-50%,-50%) rotate(180deg) scale(1)}}
 /* in the fight the two big cards give way to one line, so the field and the orders fit one screen */
 .amb-strip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-radius:10px;background:#140c06cc;border:1px solid #7a5028;font-size:14px;color:#e8d3ae}
 .amb-strip b{display:block;color:#fff3dc;font-size:15px}.amb-strip i{font-family:Cinzel,serif;color:#ffd27a;font-style:normal}
