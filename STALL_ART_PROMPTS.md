@@ -1,51 +1,56 @@
-# Threads of Fortune: stall art prompts for ChatGPT (radio, Saffron)
+# Stall art: prompts for ChatGPT
 
-Attach the radio design picture (the walnut cabinet with the two arched cloth grilles, the brass half-moon dial and three knobs) to the first message as the reference. Paste the **STYLE LOCK** from `GPT-image-prompts.md` first if this is a new chat.
+Four pictures: Saffron on the rug, the radio and the newspaper at the stall, and the newspaper held in your hands. Send each finished picture back with the file name shown.
 
-Send each finished image back with the file name in its heading and it goes into the game.
+## Reference pictures to save first
 
----
-
-## 1. In-game radio (front view): `radio-front.png`
-Size: **square 1:1 (1024×1024)**, transparent background
-
-This replaces the drawn radio in the Radio screen. The game draws the dial needle and the valve glow on top, so they must not be painted in.
-
-```
-Using the attached radio as the design, paint the same wireless set seen exactly from the front, straight on, no perspective, centred, filling most of the square, on a fully transparent background.
-Keep its design: polished walnut cabinet with thin light inlay lines and small inlaid leaf motifs on the side pilasters, a moulded top, two arched openings of woven gold speaker cloth divided by carved wooden ribs, a brass half-moon dial with a cream face and fine printed scale marks, one dark bakelite knob with a brass ring on each side and a larger brass knob in the middle, four turned brass feet.
-Leave the dial face without a needle. No glow behind the cloth. No text, numbers or station names anywhere (only unlabelled tick marks on the dial).
-Soft warm light from the upper left, gentle shadow inside the grille arches, realistic painted finish in the style above, not photographic, not cartoon.
-```
-
-## 2. Radio at the stall: `radio-stall.png`
-Size: **square 1:1 (1024×1024)**, transparent background
-
-A cut-out placed on a shelf in the stall scene. It must match the stall paintings' light.
-
-```
-Paint the same radio from the attached design, seen from a slight three-quarter angle from the front left, as it would sit on a wooden shelf at a carpet stall in the Giza bazaar in 1925. Fully transparent background, the radio only, with a soft contact shadow under the feet.
-Golden late-afternoon sunlight from the right, warm reflections on the brass dial and feet, a little fine dust on the top surface and a small folded embroidered cloth under it, as a proud merchant would keep it.
-Painterly oil style matching the stall paintings, not photographic, not glossy, no text or logos.
-```
+- **A. Style (the stall painting):** https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/public/art/stall-seller.jpg
+- **B. Saffron:** https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/public/art/saffron.jpg
+- **C. Your character's body (for the hands and clothes):** https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/public/art/hero/hero-body-reference.jpg
+- **D. The radio:** your radio design picture
 
 ---
 
-### A note on the period
-In 1925 Egypt the few wireless sets in use were plainer boxes with a separate horn loudspeaker; arched cabinet sets like this became common around 1930. If you would rather be strictly period-accurate, add this line to either prompt:
+## Step 1: start a new ChatGPT chat, attach A, paste
 
 ```
-Make it a mid-1920s set instead: a flat walnut box with three dials on a black panel and a separate brass-and-black horn loudspeaker standing beside it.
+I'm making art for a historical game set in Giza, Egypt, in 1925. Every image in this chat must match the attached painting: realistic oil painting in the tradition of 19th-century Orientalist genre painters (Gérôme, Ludwig Deutsch), warm golden late-afternoon light from the right, soft painterly brushwork, fine detail on fabrics and carpets. No text, letters, logos, borders or watermarks. Nothing modern.
+Reply "ready" and wait for my prompts. One image per message.
+```
+
+## Step 2: attach B, paste. Save as `saffron-stall.png`
+
+```
+Paint this same ginger tabby cat (attached), Saffron, lying on a carpet in a relaxed loaf pose, head up and turned slightly to the right, seen from a little above. Show her whole body including tail and paws. Fully transparent background with only a soft contact shadow under her: no carpet, no floor, no frame. Square 1024×1024 PNG.
+```
+
+## Step 3: attach D, paste. Save as `radio-stall.png`
+
+```
+Paint this same radio (attached) from a slight three-quarter angle, as it would sit on a wooden shelf at a carpet stall. The radio only, fully transparent background, soft contact shadow under its feet, a small folded embroidered cloth beneath it. Warm reflections on the brass. Square 1024×1024 PNG.
+```
+
+## Step 4: no attachment, paste. Save as `newspaper-stall.png`
+
+```
+Paint a folded 1925 Egyptian newspaper lying on a stall counter, seen from a slight angle above, with a small brass coffee cup beside it. Newspaper and cup only, fully transparent background, soft contact shadow. The printed columns are only suggested as soft grey texture: no readable words, letters or headlines. Square 1024×1024 PNG.
+```
+
+## Step 5: attach C, paste. Save as `newspaper-pov.png`
+
+```
+First-person view through the eyes of this man (attached): his two hands holding an open broadsheet newspaper up in front of the viewer, as if reading it. Match his skin tone and the sleeves of his clothes exactly. The newspaper pages are plain blank cream paper with no print at all, flat and facing the viewer, filling most of the frame. At the edges, a softly out-of-focus glimpse of the Giza bazaar stall behind. Portrait 1024×1536 PNG.
 ```
 
 ---
 
-## 3. Saffron on the rug: `saffron-stall.png`
-Size: **square 1:1 (1024×1024)**, transparent background
+## Tips
 
-Attach `public/art/saffron.jpg` so she keeps the same look. This replaces the small square picture in the corner of the stall scene; she sits at the bottom-left, on the rug in front of the merchant.
+- If a picture comes back with a background when it should be transparent, reply: *"Same image, but with a fully transparent background."*
+- If one looks too modern or glossy, reply: *"More painterly, like the reference painting, less digital."*
 
-```
-Paint this same ginger tabby cat (attached), Saffron, lying curled on a carpet in a relaxed loaf pose, head up and turned slightly towards the viewer, seen from a little above, as a cut-out on a fully transparent background with only a soft contact shadow under her body. Nothing else: no carpet, no floor, no frame.
-Warm golden late-afternoon light from the right, painterly oil style matching Orientalist genre painting, fur detail soft, not photographic, not cartoon, no text.
-```
+## What happens with them
+
+- **Saffron** lies on the rug in the corner of the stall, and you can still tap her.
+- **The radio** sits in the stall picture. Tap it and the bulletin plays quietly in the background while you keep trading; tap again to switch it off.
+- **The newspaper** lies on the counter. Tap it and you see your hands holding it up, with that day's news printed on the pages.
