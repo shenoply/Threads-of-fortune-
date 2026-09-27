@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Newspaper } from './components/Newspaper/Newspaper';
 import { Radio } from './components/Radio/Radio';
-import { eventsStarting } from './game/economy/life';
+import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
 import { useGame, dateFor, clock } from './game/state/store';
@@ -88,6 +88,7 @@ export default function App() {
   useEffect(() => {
     audio.setClock(g.world.hour, g.dayOver);
   }, [g.world.hour, g.dayOver]);
+  useEffect(() => { audio.setLane(laneDay(g.day).level); }, [g.day]);
   // other screens can ask for the paper or the radio
   useEffect(() => {
     const p = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) useGame.setState({ paperSeen: st.day }); };
@@ -283,9 +284,15 @@ export default function App() {
 
       {g.dayOver && (
         <div className="evening-strip" role="status" data-testid="day-end">
+          {/* the day's page in the ledger, written up by lamplight */}
           <span className="es-text">
-            <b>Evening, day {g.day}</b>
-            <small>{g.dayStats.sales} sale{g.dayStats.sales === 1 ? '' : 's'} · takings {fmt(g.dayStats.revenue)} · profit <em className={g.dayStats.gross > 0 ? 'pos' : ''}>{fmt(g.dayStats.gross)}</em>{g.bills?.due ? ` · bill owed ${fmt(g.bills.due)}` : ''}</small>
+            <b>{dateFor(g.day).long}</b>
+            <span className="es-lines">
+              <span><i>Sales</i> {g.dayStats.sales}</span>
+              <span><i>Takings</i> {fmt(g.dayStats.revenue)}</span>
+              <span><i>Profit</i> <em className={g.dayStats.gross > 0 ? 'pos' : g.dayStats.gross < 0 ? 'neg' : ''}>{fmt(g.dayStats.gross)}</em></span>
+              {g.bills?.due ? <span><i>Owed</i> {fmt(g.bills.due)}</span> : null}
+            </span>
           </span>
           {tab !== 'supplier' && <button className="btn" onClick={() => setTab('supplier')} data-testid="visit-rashid-evening">Rashid</button>}
           <button className="btn primary" onClick={() => { g.endDay(); setMapIntent({ view: 'district', n: Date.now() }); setTab('map'); }} data-testid="close-stall">

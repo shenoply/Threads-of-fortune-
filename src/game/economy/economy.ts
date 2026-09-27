@@ -73,7 +73,8 @@ export function dateFor(day: number) {
   const d = new Date(Date.UTC(1925, 2, 9 + day));
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const wd = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getUTCDay()];
-  return { short: `${d.getUTCDate()} ${months[d.getUTCMonth()].slice(0, 3)} 1925`, long: `${wd}, ${d.getUTCDate()} ${months[d.getUTCMonth()]} 1925`, weekday: wd };
+  const y = d.getUTCFullYear();
+  return { short: `${d.getUTCDate()} ${months[d.getUTCMonth()].slice(0, 3)} ${y}`, long: `${wd}, ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${y}`, weekday: wd };
 }
 
 export function goalsFor(day: number, opts: { commission?: string; debt: number; visitors?: number }): Goal[] {

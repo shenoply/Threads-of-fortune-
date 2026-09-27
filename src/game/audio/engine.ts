@@ -71,7 +71,7 @@ class AudioEngine {
     this.master.connect(this.ctx.destination);
     (Object.keys(LEVELS) as Channel[]).forEach((c) => {
       const g = this.ctx!.createGain();
-      g.gain.value = this.toggles[c] ? LEVELS[c] : 0;
+      g.gain.value = this.toggles[c] ? this.level(c) : 0;
       g.connect(this.master);
       this.gains[c] = g;
     });
@@ -96,15 +96,26 @@ class AudioEngine {
     voice.enabled = t.dialogue;
     if (!t.dialogue) voice.stop();
     if (!this.ctx) return;
-    (Object.keys(LEVELS) as Channel[]).forEach((c) => this.gains[c].gain.setTargetAtTime(t[c] ? LEVELS[c] : 0, this.ctx!.currentTime, 0.1));
+    (Object.keys(LEVELS) as Channel[]).forEach((c) => this.gains[c].gain.setTargetAtTime(t[c] ? this.level(c) : 0, this.ctx!.currentTime, 0.1));
     if (this.voice) this.voice.muted = !t.dialogue;
+  }
+
+  /** How full the lane is today (Friday quiet, feast days crowded): the market bed and its passing sounds follow. */
+  laneBusy = 1;
+  setLane(level: number) {
+    if (level === this.laneBusy) return;
+    this.laneBusy = level;
+    if (this.ctx) this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') : 0, this.ctx.currentTime, 1.5);
+  }
+  private level(c: Channel) {
+    return c === 'ambience' ? LEVELS.ambience * (0.75 + 0.25 * this.laneBusy) : LEVELS[c];
   }
 
   /** Lower the music while the radio announcer speaks. */
   duckMusic(on: boolean) {
     if (!this.ctx) return;
     this.gains.music.gain.setTargetAtTime(this.toggles.music ? LEVELS.music * (on ? 0.18 : 1) : 0, this.ctx.currentTime, 0.4);
-    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? LEVELS.ambience * (on ? 0.5 : 1) : 0, this.ctx.currentTime, 0.4);
+    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') * (on ? 0.5 : 1) : 0, this.ctx.currentTime, 0.4);
   }
 
   private loadBank() {
@@ -369,7 +380,7 @@ class AudioEngine {
         const pick = list.find((e) => (r -= e[1]) <= 0) ?? list[0];
         this.clip(pick[0], { gain: pick[2], far: pick[3], indoor: INDOOR.includes(env), dur: 4 });
       }
-      const gap = busy ? 3000 + Math.random() * 7000 : 6000 + Math.random() * 14000;
+      const gap = (busy ? 3000 + Math.random() * 7000 : 6000 + Math.random() * 14000) / (env === 'market' ? this.laneBusy : 1);
       this.eventTimer = window.setTimeout(tick, gap);
     };
     this.eventTimer = window.setTimeout(tick, 3500);

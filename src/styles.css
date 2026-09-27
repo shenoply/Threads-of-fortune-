@@ -1755,3 +1755,11 @@ body.travelling .mission-strip{display:none}
   .band .speech { display: block; }
   .band .echo { display: none; }
 }
+
+/* The evening: the day's page in the ledger, ink on ruled paper */
+.evening-strip { background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(90,60,30,.16) 21px 22px), linear-gradient(90deg, transparent 22px, rgba(150,40,30,.35) 22px 23px, transparent 23px), linear-gradient(180deg, #efe0bd, #e2cc9e); background-position: 0 7px, 0 0, 0 0; border-color: #8a6a3a; padding: 8px 8px 8px 32px; }
+.evening-strip b { font-family: 'Alegreya', serif; font-style: italic; font-weight: 500; font-size: 16px; line-height: 22px; color: #3a2412; }
+.evening-strip .es-lines { display: flex; flex-wrap: wrap; column-gap: 12px; row-gap: 0; font-family: 'Alegreya', serif; font-size: 15px; color: #2e1c0e; line-height: 22px; }
+.evening-strip .es-lines i { color: #6d5234; margin-right: 3px; }
+.evening-strip em.pos { color: #2f5a1e; }
+.evening-strip em.neg { color: #8a2a18; }

@@ -5,6 +5,7 @@ import type { Target } from '../World/Campaign';
 import { BUYERS } from '../../data/buyers';
 import { useGame, arrivalAt, clock } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
+import { laneDay } from '../../game/economy/life';
 
 /** The stall between customers: the road ahead, the next customer, and the auction calendar. */
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
@@ -15,11 +16,12 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   const next = left ? arrivalAt(g, g.visitIdx) : null;
   const mins = next !== null ? Math.max(0, Math.round((next - h) * 60)) : 0;
   const midday = next !== null && next >= 15 && h < 15;
+  const friday = next !== null && laneDay(g.day).late && h < 13;
 
   return (
     <div className="screen idle" data-testid="stall-idle">
       <div className="idle-next" data-testid="idle-next">
-        {g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
+        {g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}
       </div>
 

@@ -11,7 +11,7 @@ import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
 import { applyAuctionObservation, type MarketIntelRecord } from '../auction/marketIntel';
 import { shouldReofferUnsoldLot, reducedReserveForReoffer, totalAuctionCost } from '../auction/auctionSystem';
 import { houseOfFortune } from '../economy/progress';
-import { isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
+import { laneDay, isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
 import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
 import { progressScore } from '../economy/progress';
@@ -725,7 +725,10 @@ export const useGame = create<GameState & Actions>()(
           if (grand.length && rng() < 0.18) queue.push(grand[Math.floor(rng() * grand.length)]);
           queue.sort(() => rng() - 0.5);
           // a small corner draws three or four buyers a day; a bigger stall draws more
-          queue = queue.slice(0, 3 + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0));
+          // Fridays are quiet, Thursdays and feast days busy
+          const lane = laneDay(day);
+          queue = queue.slice(0, Math.max(1, 3 + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + lane.extra));
+          if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
           const vips = rankIdx >= 2 ? CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !queue.includes(id)) : [];
           if (vips.length && rng() < 0.22) {
@@ -782,7 +785,7 @@ export const useGame = create<GameState & Actions>()(
             dayOver: false,
             encounter: null,
             world: { ...s.world, party },
-            arrivals: arrivalTimes(queue.length, rng),
+            arrivals: arrivalTimes(queue.length, rng, lane.late),
             errandsDone: [],
           };
           patch.errands = []; // errands are retired; the field stays for old saves
@@ -791,8 +794,14 @@ export const useGame = create<GameState & Actions>()(
 
 
       /** Customers spread through the day, the first soon after the stall opens. */
-      function arrivalTimes(n: number, rnd: () => number) {
+      function arrivalTimes(n: number, rnd: () => number, late = false) {
         const out: number[] = [];
+        if (late) {
+          // Friday: nobody shops before the noon prayer
+          let h = 13.5 + rnd() * 0.5;
+          for (let i = 0; i < n; i++) { out.push(Math.min(19.5, Math.round(h * 4) / 4)); h += 1.4 + rnd() * 0.8; }
+          return out;
+        }
         // the lane is busy in the morning and the evening; in the midday heat nobody shops
         const am = Math.ceil(n / 2);
         let h = 8.4 + rnd() * 0.6;
