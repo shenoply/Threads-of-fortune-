@@ -11,6 +11,7 @@ import {
 import { FIT } from '../../data/wardrobeFit';
 import { basePrompt, piecePrompt } from '../../data/wardrobePrompts';
 import { HeroFigure } from './HeroFigure';
+import { preload } from '../../game/preload';
 import './Wardrobe.css';
 
 const placeName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
@@ -58,6 +59,8 @@ export function Wardrobe({ onClose, startSlot }: { onClose: () => void; startSlo
 
   // zooming always starts on his head; drag to look elsewhere
   useEffect(() => { setPan({ x: 0, y: 0 }); }, [zoom, pose]);
+  // every piece he might try on, fetched in the background so each appears the moment it is picked
+  useEffect(() => { preload(Object.values(PIECES).filter((p) => p.poses.includes('wardrobe')).map((p) => layerSrc('wardrobe', p.id))); }, []);
   const clampPan = (x: number, y: number) => {
     const el = stage.current;
     if (!el) return { x, y };

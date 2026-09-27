@@ -5,6 +5,7 @@ import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
+import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/wardrobe';
 import { preload, buyerArt, STALL_ART, CITY_ART } from './game/preload';
 import { useGame, dateFor, clock } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
@@ -136,6 +137,13 @@ export default function App() {
     // a sale is over: back to the lane, with the stall open
     if (phase === 'game' && tab === 'stall' && g.tutorial.done && !g.encounter && !g.dayOver) { if (!g.held) openStallNext(); setTab('map'); }
   }, [phase, g.started, g.encounter, g.dayOver, g.visitIdx, g.queue.length, g, tab, g.world.hour]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the hero as he is dressed now, ready before the wardrobe or a mirror shows him
+  useEffect(() => {
+    if (phase !== 'game') return;
+    const o = (g.wardrobe ?? START_WARDROBE).outfit;
+    preload([baseSrc('wardrobe'), ...wornIds(o).map((id) => layerSrc('wardrobe', id)), ...(o.outer ? [coverSrc('wardrobe', o.outer)] : [])]);
+  }, [phase, g.wardrobe]);
 
   // the wireless stays at the stall: leaving Giza switches it off
   useEffect(() => { if (g.world.at !== 'giza') radio.stop(); }, [g.world.at]);

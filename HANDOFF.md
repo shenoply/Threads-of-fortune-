@@ -16,3 +16,12 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
    published game, and without them dialogue and the radio fall silent. The game loads audio from
    next to the page first and only tries jsDelivr if a file is missing.
    The whole game is about 254 MB, just under the artifact's 256 MB limit; new art must be small.
+
+## Where the game lives now
+- It is published from GitHub to https://shenoply.github.io/Threads-of-fortune-/ by
+  .github/workflows/pages.yml on every push to main. The artifact is kept in step as well.
+- The wardrobe loads WebP copies of the hero PNGs (src/data/wardrobe.ts baseSrc/layerSrc/coverSrc).
+  The PNGs are the masters: after changing any, run `python3 tools/webp.py` to refresh the WebP copies.
+- tools/refit.py fits tops, coats, trousers and shoes to the base body (sleeves and legs no wider
+  than needed, trousers to the ankle, shoes covering the toes). Run it after adding or repainting
+  one of those pieces, then tools/webp.py.

@@ -44,14 +44,8 @@ export function Radio({ onClose }: { onClose: () => void }) {
     <div className="radio-wrap" role="dialog" aria-label="Radio Giza" data-testid="radio" onClick={() => { stop(); onClose(); }}>
       <div className="radio-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="radio-set">
-          <div className="radio-arch">
-            <div className="radio-grille"><span className={on ? 'glow on' : 'glow'} /></div>
-          </div>
+          <div className={`radio-pic ${on ? 'on' : ''}`}><img src="art/radio-stall.webp" alt="The wireless set" draggable={false} /></div>
           <div className="radio-face">
-            <div className="radio-dial" aria-hidden>
-              <div className="needle" style={{ left: lang === 'en' ? '28%' : '72%' }} />
-              <span>EN</span><span>ع</span>
-            </div>
             <div className="radio-knobs">
               <button className={`knob ${lang === 'en' ? 'sel' : ''}`} onClick={() => tune('en')} data-testid="radio-en">Radio Giza<small>English</small></button>
               <button className="knob power" onClick={() => (on ? stop() : start(lang))} data-testid="radio-power">{on ? '■' : '▶'}</button>

@@ -218,9 +218,10 @@ export function wardrobeFromLegacy(owned: string[], worn: string): WardrobeState
 
 // ---------- art paths and fitting ----------
 
-export const baseSrc = (pose: Pose) => `art/hero/hero-base-${pose}.png`;
-export const layerSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}.png`;
-export const coverSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}-cover.png`;
+// the game loads WebP copies of the PNG masters (tools/webp.py makes them)
+export const baseSrc = (pose: Pose) => `art/hero/hero-base-${pose}.webp`;
+export const layerSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}.webp`;
+export const coverSrc = (pose: Pose, id: string) => `art/hero/${pose}/${id}-cover.webp`;
 
 /** Nudges for layers that came back from the generator a little off. Filled in from the wardrobe's fit mode. */
 export interface Fit { x: number; y: number; s: number }

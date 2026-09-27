@@ -158,6 +158,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
         </div>
       )}
       <StallRadio />
+      <StallPaper />
       <Saffron onCat={onCat} />
       <Atmosphere />
       {text && (
@@ -320,7 +321,16 @@ function Saffron({ onCat }: { onCat: () => void }) {
   );
 }
 
-/** The wireless on the counter. Tap it and the morning bulletin plays quietly while you trade; tap again to switch it off. */
+/** This morning's paper folded on the counter, with a coffee. Tap it to pick it up and read. */
+function StallPaper() {
+  return (
+    <button className="stall-paper" aria-label="Read today's paper" data-testid="stall-paper" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new Event('tof:paper')); }}>
+      <img src="art/newspaper-stall.webp" alt="" />
+    </button>
+  );
+}
+
+/** The wireless on the counter at your end. Tap it and the morning bulletin plays quietly while you trade; tap again to switch it off. */
 function StallRadio() {
   const g = useGame();
   const [on, setOn] = useState(radio.playing);
