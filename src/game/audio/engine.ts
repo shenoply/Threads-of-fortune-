@@ -189,6 +189,15 @@ class AudioEngine {
     src.stop(t + dur + 0.05);
   }
 
+  /** One rifle shot at a distance: a sharp crack, a low thump, and a long soft tail as it rolls away. */
+  private shot(delay: number) {
+    const d = this.gains.sfx;
+    const far = 0.7 + Math.random() * 0.5; // some closer, some farther off
+    this.noise(0.06, d, { type: 'highpass', f: 1800, gain: 0.5 / far, attack: 0.002, delay });
+    this.noise(0.22, d, { type: 'lowpass', f: 220, gain: 0.55 / far, attack: 0.004, delay: delay + 0.005 });
+    this.noise(0.9, d, { type: 'lowpass', f: 900, f2: 250, gain: 0.16 / far, attack: 0.03, delay: delay + 0.04 });
+  }
+
   /** A coin: a short noise strike through a few inharmonic resonances, every coin a little different. */
   private coin(delay: number, gain = 0.1) {
     const c = this.ctx!;
@@ -283,6 +292,15 @@ class AudioEngine {
       case 'tap':
         this.noise(0.05, d, { type: 'bandpass', f: 1600 + Math.random() * 500, q: 2, gain: 0.1 });
         break;
+      case 'shot':
+        this.shot(0);
+        break;
+      case 'volley': {
+        // a ragged volley: a few rifles, never quite together, the last echoing off the hills
+        const n = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) this.shot(i * (0.12 + Math.random() * 0.2));
+        break;
+      }
       case 'sold':
         this.sfx('coins');
         break;

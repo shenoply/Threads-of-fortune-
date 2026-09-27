@@ -8,7 +8,7 @@ import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
-import { BattleField, BATTLE_ART, fieldFor } from './BattleField';
+import { BattleField, BATTLE_ART, fieldFor, type Volley } from './BattleField';
 
 type Stage = 'standoff' | 'demand' | 'battle' | 'result';
 type Stance = 'charge' | 'hold';
@@ -59,6 +59,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const [stance, setStance] = useState<Stance>('hold');
   const [log, setLog] = useState<string[]>([]);
   const [round, setRound] = useState(0);
+  const [volley, setVolley] = useState<Volley>();
   const acc = useRef({ e: 0, m: 0 });
   const over = useRef(false);
 
@@ -83,16 +84,20 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
 
   useEffect(() => {
     if (stage !== 'battle' || over.current) return;
+    // the lines face each other for a moment before the first shots, then a volley every second and a half
     const t = setTimeout(() => {
+      const standing = mySide.reduce((a, u) => a + u.n, 0);
+      setVolley({ round: round + 1, mine: Math.max(1, Math.round(standing * (stance === 'charge' ? 0.6 : 0.45))), theirs: Math.max(1, Math.round(enemy.n * 0.5)) });
       const myPow = mySide.reduce((a, u) => a + u.n * u.str, 0);
       const enPow = enemy.n * enemy.str;
-      const dealt = myPow * (stance === 'charge' ? 1.3 : 0.85) * rnd(0.7, 1.3) * 0.3;
-      const taken = enPow * (stance === 'charge' ? 1.2 : 0.75) * rnd(0.7, 1.3) * 0.3;
+      const dealt = myPow * (stance === 'charge' ? 1.3 : 0.85) * rnd(0.7, 1.3) * 0.2;
+      const taken = enPow * (stance === 'charge' ? 1.2 : 0.75) * rnd(0.7, 1.3) * 0.2;
       acc.current.e += dealt / enemy.str;
       acc.current.m += taken / 3.5;
-      const kills = Math.min(enemy.n, Math.floor(acc.current.e));
+      // no more than two men fall on a side in one exchange: a fight is watched, not settled in a flash
+      const kills = Math.min(enemy.n, 2, Math.floor(acc.current.e));
       acc.current.e -= kills;
-      let losses = Math.floor(acc.current.m);
+      let losses = Math.min(2, Math.floor(acc.current.m));
       acc.current.m -= losses;
       const next = mySide.map((u) => ({ ...u }));
       const hit: string[] = [];
@@ -107,12 +112,13 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       const line = kills && hit.length ? `Your men drop ${kills}; you lose ${hit.length === 1 ? `a ${TROOPS[hit[0]].name.toLowerCase()}` : `${hit.length} men`}.`
         : kills ? `Your men drop ${kills} of them.` : hit.length ? `You lose ${hit.length === 1 ? `a ${TROOPS[hit[0]].name.toLowerCase()}` : `${hit.length} men`}.` : stance === 'charge' ? 'Shots, shouting, dust. Nobody falls.' : 'Your men hold behind the camels. Shots go wide.';
       setLog((l) => [line, ...l].slice(0, 4));
-      audio.sfx(kills || hit.length ? 'chest' : 'tap');
+      audio.sfx('volley');
       const myLeft = next.reduce((a, u) => a + u.n * u.str, 0);
-      if (en.n <= Math.ceil(size * 0.4)) endBattle(true);
-      else if (myLeft <= 2 && en.n > 0 && next.every((u) => u.id === 'you' || u.n === 0) && round >= 1) endBattle(false);
-      else if (round >= 11) endBattle(myLeft / (myStart.reduce((a, u) => a + u.start * u.str, 0)) > en.n / size);
-    }, 950);
+      // a fight lasts a few volleys at least, long enough to choose how to fight it
+      if (en.n <= Math.ceil(size * 0.4) && round >= 2) endBattle(true);
+      else if (myLeft <= 2 && en.n > 0 && next.every((u) => u.id === 'you' || u.n === 0) && round >= 4) endBattle(false);
+      else if (round >= 14) endBattle(myLeft / (myStart.reduce((a, u) => a + u.start * u.str, 0)) > en.n / size);
+    }, round === 0 ? 2200 : 1800);
     return () => clearTimeout(t);
   }, [stage, round, stance]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -125,7 +131,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {threat.regions[0]}</small><b>{threat.displayName}</b></div>
-        <div className="amb-sides">
+        {stage !== 'battle' && <div className="amb-sides">
           <div className="amb-side amb-me">
             <img className="amb-face" src="art/troops/escort-road.jpg" alt="" />
             <b>Your caravan</b>
@@ -144,7 +150,14 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
             <b>{threat.displayName}</b>
             <span>{enemy.n} men · strength {enPow}</span>
           </div>
-        </div>
+        </div>}
+        {stage === 'battle' && (
+          <div className="amb-strip" data-testid="amb-strip">
+            <div><b>Your caravan</b>{mySide.reduce((a, u) => a + u.n, 0)} men · strength {myPow}</div>
+            <i>vs</i>
+            <div><b>{threat.displayName}</b>{enemy.n} of {size} men · strength {enPow}</div>
+          </div>
+        )}
         <div className="amb-bar" aria-label={`Your share of the fighting strength: ${share}%`}><i style={{ width: `${share}%` }} /></div>
 
         {stage === 'standoff' && (
@@ -172,12 +185,12 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         )}
 
         {(stage === 'battle' || (stage === 'result' && round > 0)) && (
-          <BattleField bandId={threat.id} field={field} mySide={mySide} enemyN={enemy.n} enemyStart={size} party={g.world.party} charging={stage === 'battle' && stance === 'charge'} />
+          <BattleField bandId={threat.id} field={field} mySide={mySide} enemyN={enemy.n} enemyStart={size} party={g.world.party} charging={stage === 'battle' && stance === 'charge'} volley={stage === 'battle' ? volley : undefined} />
         )}
 
         {stage === 'battle' && (
           <>
-            <div className="amb-log" data-testid="amb-log">{log.length ? log.map((l, i) => <p key={i} style={{ opacity: 1 - i * 0.22 }}>{l}</p>) : <p>Your men take cover behind the camels…</p>}</div>
+            <div className="amb-log" data-testid="amb-log">{log.length ? log.map((l, i) => <p key={i} style={{ opacity: 1 - i * 0.22 }}>{l}</p>) : <p>The two lines face each other across the ground. Choose how to fight.</p>}</div>
             <div className="amb-opts row">
               <button className={`btn ${stance === 'charge' ? 'primary' : ''}`} onClick={() => setStance('charge')} data-testid="amb-charge"><Icon name="sword" /> Charge</button>
               <button className={`btn ${stance === 'hold' ? 'primary' : ''}`} onClick={() => setStance('hold')} data-testid="amb-hold"><Icon name="shield" /> Hold the line</button>
