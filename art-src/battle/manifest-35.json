@@ -1,0 +1,596 @@
+{
+  "title": "Threads of Fortune \u2014 Battle Art",
+  "asset_count": 35,
+  "assets": [
+    {
+      "number": 1,
+      "filename": "battle-road.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1387902
+    },
+    {
+      "number": 2,
+      "filename": "battle-dunes.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 720180
+    },
+    {
+      "number": 3,
+      "filename": "battle-oasis.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1226346
+    },
+    {
+      "number": 4,
+      "filename": "battle-pass.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1293126
+    },
+    {
+      "number": 5,
+      "filename": "guard.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        338,
+        285,
+        685,
+        647
+      ],
+      "bytes": 147504
+    },
+    {
+      "number": 6,
+      "filename": "fellah.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        332,
+        286,
+        698,
+        651
+      ],
+      "bytes": 156663
+    },
+    {
+      "number": 7,
+      "filename": "veteran.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        340,
+        296,
+        685,
+        651
+      ],
+      "bytes": 152970
+    },
+    {
+      "number": 8,
+      "filename": "watchman.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        377,
+        333,
+        667,
+        626
+      ],
+      "bytes": 115654
+    },
+    {
+      "number": 9,
+      "filename": "sentinel.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        344,
+        299,
+        684,
+        667
+      ],
+      "bytes": 145603
+    },
+    {
+      "number": 10,
+      "filename": "harbour.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        337,
+        293,
+        686,
+        670
+      ],
+      "bytes": 154141
+    },
+    {
+      "number": 11,
+      "filename": "hero.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        357,
+        272,
+        649,
+        667
+      ],
+      "bytes": 168485
+    },
+    {
+      "number": 12,
+      "filename": "bedouin.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        361,
+        102,
+        663,
+        921
+      ],
+      "bytes": 354345
+    },
+    {
+      "number": 13,
+      "filename": "desertcaptain.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        347,
+        102,
+        677,
+        921
+      ],
+      "bytes": 340857
+    },
+    {
+      "number": 14,
+      "filename": "arnaut.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        349,
+        102,
+        674,
+        922
+      ],
+      "bytes": 324550
+    },
+    {
+      "number": 15,
+      "filename": "reformed.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        358,
+        103,
+        666,
+        922
+      ],
+      "bytes": 361171
+    },
+    {
+      "number": 16,
+      "filename": "robber.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        310,
+        284,
+        664,
+        676
+      ],
+      "bytes": 162210
+    },
+    {
+      "number": 17,
+      "filename": "robber-leader.png",
+      "type": "foot_leader",
+      "approximate_shoulder_width": 328,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        344,
+        439,
+        675,
+        713
+      ],
+      "bytes": 157320
+    },
+    {
+      "number": 18,
+      "filename": "raider.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        383,
+        102,
+        639,
+        922
+      ],
+      "bytes": 288509
+    },
+    {
+      "number": 19,
+      "filename": "raider-leader.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        356,
+        102,
+        668,
+        921
+      ],
+      "bytes": 347033
+    },
+    {
+      "number": 20,
+      "filename": "thief.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        375,
+        327,
+        665,
+        652
+      ],
+      "bytes": 159034
+    },
+    {
+      "number": 21,
+      "filename": "thief-leader.png",
+      "type": "foot_leader",
+      "approximate_shoulder_width": 328,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        345,
+        309,
+        678,
+        708
+      ],
+      "bytes": 188900
+    },
+    {
+      "number": 22,
+      "filename": "rebel.png",
+      "type": "foot_unit",
+      "approximate_shoulder_width": 287,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        334,
+        291,
+        684,
+        686
+      ],
+      "bytes": 171890
+    },
+    {
+      "number": 23,
+      "filename": "rebel-leader.png",
+      "type": "foot_leader",
+      "approximate_shoulder_width": 328,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        348,
+        395,
+        680,
+        700
+      ],
+      "bytes": 189678
+    },
+    {
+      "number": 24,
+      "filename": "smuggler.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        362,
+        102,
+        662,
+        921
+      ],
+      "bytes": 339990
+    },
+    {
+      "number": 25,
+      "filename": "smuggler-leader.png",
+      "type": "mounted_unit",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        350,
+        103,
+        673,
+        921
+      ],
+      "bytes": 368013
+    },
+    {
+      "number": 26,
+      "filename": "camel.png",
+      "type": "animal",
+      "intended_subject_height": 870,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        307,
+        76,
+        718,
+        946
+      ],
+      "bytes": 476760
+    },
+    {
+      "number": 27,
+      "filename": "horse.png",
+      "type": "animal",
+      "intended_subject_height": 819,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        399,
+        102,
+        625,
+        922
+      ],
+      "bytes": 282690
+    },
+    {
+      "number": 28,
+      "filename": "fallen-light.png",
+      "type": "fallen",
+      "intended_subject_height": 717,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        230,
+        154,
+        794,
+        871
+      ],
+      "bytes": 528633
+    },
+    {
+      "number": 29,
+      "filename": "fallen-dark.png",
+      "type": "fallen",
+      "intended_subject_height": 717,
+      "width": 1024,
+      "height": 1024,
+      "transparency": true,
+      "anchor": {
+        "x": 512,
+        "y": 512
+      },
+      "visible_bounds": [
+        313,
+        153,
+        711,
+        870
+      ],
+      "bytes": 364536
+    },
+    {
+      "number": 30,
+      "filename": "battle-nile.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1580223
+    },
+    {
+      "number": 31,
+      "filename": "battle-ford.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1364557
+    },
+    {
+      "number": 32,
+      "filename": "battle-hills.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1402494
+    },
+    {
+      "number": 33,
+      "filename": "battle-basalt.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1309777
+    },
+    {
+      "number": 34,
+      "filename": "battle-ruins.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1362074
+    },
+    {
+      "number": 35,
+      "filename": "battle-mountain.jpg",
+      "type": "battlefield",
+      "width": 1024,
+      "height": 1536,
+      "transparency": false,
+      "bytes": 1312106
+    }
+  ]
+}
