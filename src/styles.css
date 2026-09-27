@@ -1819,3 +1819,12 @@ body.travelling .mission-strip{display:none}
 .venue-doors{flex-wrap:wrap}
 .venue-doors .door-btn{flex:1 1 45%}
 .door-btn.exit-city{background:#2a1a0e;border-color:#d99a3c;color:#ffe2a8}
+/* a buyer's last price, and the customer taking their leave once the deal is done */
+.value-chip.offer.final{background:rgba(196,84,52,.28);border-color:#e0704a;color:#ffd9c4;font-weight:700}
+.buyer-figure.has-photo.leaving{animation:buyer-leave 1.8s ease-in 3.2s forwards}
+.scene.split .buyer-side img.leaving{z-index:2;animation:buyer-fade 1.6s ease-in 3.2s forwards}
+@keyframes buyer-fade{to{opacity:0}}
+@keyframes buyer-leave{to{transform:translateX(38%);opacity:0}}
+.btn.auto-next{position:relative;overflow:hidden}
+.btn.auto-next .auto-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:rgba(27,17,10,.55);transform-origin:left;animation:auto-bar 8s linear forwards}
+@keyframes auto-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}

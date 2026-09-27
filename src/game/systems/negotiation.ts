@@ -370,11 +370,13 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       );
       break;
     case 'bargaining': {
-      if (enc.buyerOffer) out.push({ id: 'accept_offer', label: `Accept ${fmt(enc.buyerOffer)}`, sub: enc.finalOffered ? 'Their last word' : 'Close the sale', icon: 'check' });
-      if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10)
+      // once they have named their last price, every other road leads out of the stall
+      const last = !!enc.finalOffered;
+      if (enc.buyerOffer) out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
+      if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10 && !last)
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference', icon: 'scale' });
-      if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: 'Be firm', icon: 'shield' });
-      out.push({ id: 'name_price', label: 'Name a new price', sub: 'Adjust your ask', icon: 'coin' });
+      if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm', icon: 'shield' });
+      out.push({ id: 'name_price', label: 'Name a new price', sub: last ? 'They leave unless it is theirs' : 'Adjust your ask', icon: 'coin' });
       if (!enc.sweetened && out.length < 4) out.push({ id: 'sweetener', label: 'Add delivery', sub: 'Costs you £0.05', icon: 'cart' });
       break;
     }

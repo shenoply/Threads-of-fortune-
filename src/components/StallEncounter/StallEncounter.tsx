@@ -1,7 +1,7 @@
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
 import { availableRugs, tutorialAllows, useGame } from '../../game/state/store';
 import { getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, type ActionId } from '../../game/systems/negotiation';
@@ -34,6 +34,14 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const buyer = enc ? BUYERS[enc.buyerId] : null;
   const priorities = buyer && enc ? [...prefsFor(enc).roomPriorities, ...buyer.priorities.drawn].filter((p) => enc.revealed.includes(p.id)) : [];
   const tut = !!enc?.tutorial && !g.tutorial.done;
+  // the deal done, the customer takes their leave: the next one comes on their own unless you are
+  // quicker (a plain timer, so a phone with its sound off is not kept waiting on a voice line)
+  const autoNext = !!enc?.outcome && !atCourt && !tut;
+  useEffect(() => {
+    if (!autoNext) return;
+    const t = window.setTimeout(() => { setDial(null); useGame.getState().nextVisit(); }, 8000);
+    return () => window.clearTimeout(t);
+  }, [autoNext]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = g.tutorial.step;
 
   const ctx = { inventory: g.inventory, upgrades: g.upgrades, reputation: g.reputation, rel: rel ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] }, rng: Math.random };
@@ -177,8 +185,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                   Leave the audience
                 </button>
               ) : (
-                <button className="btn primary" onClick={() => { setDial(null); g.nextVisit(); }} data-testid="next-visit">
+                <button className={`btn primary${autoNext ? ' auto-next' : ''}`} onClick={() => { setDial(null); g.nextVisit(); }} data-testid="next-visit">
                   {isLast ? 'End of day' : 'Next customer'}
+                  {autoNext && <i className="auto-bar" aria-hidden="true" />}
                 </button>
               )}
               {onGoto && !atCourt && !isLast && avail.length <= 3 && (
@@ -196,7 +205,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             </div>
             <div className="price">
               <b data-testid="dial-value" data-pt={dial}>{fmt(dial)}</b>
-              <small>{est(presented.uid)}{enc?.buyerOffer ? ` · Offer ${fmt(enc.buyerOffer)}` : ''}</small>
+              <small>{est(presented.uid)}{enc?.buyerOffer ? ` · ${enc.finalOffered ? 'Final offer' : 'Offer'} ${fmt(enc.buyerOffer)}` : ''}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
             </div>
             <div className="dial-btns">

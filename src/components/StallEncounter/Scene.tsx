@@ -139,12 +139,16 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
       </div>
       <div className="panel buyer-side">
         {isSamira ? (
-          <img src={SAMIRA_IMG} alt="Samira, leaning on the rug-covered table" data-lamps={SAMIRA_LAMPS} draggable={false} />
+          <>
+            {/* Samira is painted into her picture: when she goes, it gives way to the empty lane */}
+            {enc?.outcome && <img className="lane" src={SELLER_IMG} alt="" draggable={false} />}
+            <img className={enc?.outcome ? 'leaving' : undefined} src={SAMIRA_IMG} alt="Samira, leaning on the rug-covered table" data-lamps={SAMIRA_LAMPS} draggable={false} data-testid="buyer-figure" data-buyer="samira" />
+          </>
         ) : (
           <>
             <img className="lane" src={SELLER_IMG} alt="" draggable={false} />
             {buyer && (
-              <div className="buyer-figure has-photo" data-testid="buyer-figure" data-buyer={buyer.id}>
+              <div className={`buyer-figure has-photo${enc?.outcome ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
                 <ScenePerson id={buyer.id} />
               </div>
             )}
@@ -248,7 +252,9 @@ export function InfoBand({ enc, presented, view, tierName, priorities }: BandPro
               );
             })}
             {enc.budgetKnown && <span className="value-chip">≈ {fmt(enc.budgetKnown[0])}–{fmt(enc.budgetKnown[1])}</span>}
-            {enc.buyerOffer && !enc.outcome && <span className="value-chip offer">Offer {fmt(enc.buyerOffer)}</span>}
+            {enc.buyerOffer && !enc.outcome && (enc.finalOffered
+              ? <span className="value-chip offer final" data-testid="final-offer">Final offer {fmt(enc.buyerOffer)} · take it or they go</span>
+              : <span className="value-chip offer">Offer {fmt(enc.buyerOffer)}</span>)}
           </div>
         </div>
       )}
