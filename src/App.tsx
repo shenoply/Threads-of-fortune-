@@ -29,6 +29,7 @@ import { settlementById } from './game/systems/world';
 import { RUGS } from './data/rugs';
 import { rentFor } from './data/suppliers';
 import { paintedMap } from './game/systems/mapRender';
+import { Atmosphere } from './components/Atmosphere/Atmosphere';
 
 type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan';
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
@@ -172,6 +173,7 @@ export default function App() {
     return (
       <div className="title-screen" data-testid="title">
         <div className="bg" style={{ backgroundImage: 'url(art/stall-seller.jpg)' }} />
+        <Atmosphere hour={17.4} />
         <div className="title-card">
           <div className="eyebrow">GIZA · 1925</div>
           <h1>Threads of Fortune</h1>

@@ -9,6 +9,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import type { PlaybackView } from '../BuyerDialogue/usePlayback';
 import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
+import { Atmosphere } from '../Atmosphere/Atmosphere';
 
 const SELLER_IMG = 'art/stall-seller.jpg';
 const SAMIRA_IMG = 'art/stall-samira-v2.jpg';
@@ -92,6 +93,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
             <img src={rugSrc(rugT)} alt={`${rugT.name}, unrolled before ${buyer.name}`} />
           </div>
         )}
+        <Atmosphere indoor />
         {text && (
           <div className={`bubble low ${who === 'seller' ? 'tail-up-left' : 'tail-up-right'} ${who === 'buyer' ? moodRing : ''}`} style={{ left: 8, bottom: 8, width: Math.min(W * 0.7, 480), maxHeight: H * 0.55 }} data-testid={who === 'seller' ? 'seller-bubble' : 'buyer-bubble'}>
             <b>{who === 'seller' ? 'You' : buyer.name}</b>
@@ -138,6 +140,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
           <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
         </div>
       )}
+      <Atmosphere crowd />
       <button className="cat-badge" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
         <img src="art/saffron.jpg" alt="" />
       </button>

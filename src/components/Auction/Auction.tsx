@@ -15,6 +15,7 @@ import { dateOfDay } from '../../game/economy/life';
 import { Tip } from '../Tips/Tip';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
+import { Atmosphere } from '../Atmosphere/Atmosphere';
 
 const r01 = (s: string) => Math.abs(Math.sin([...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1000003, 7) * 12.9898) * 43758.5453) % 1;
 const lotTitle = (l: Lot) => (l.bundle ? `A bundle of ${l.typeIds.length} rugs` : RUGS[l.typeIds[0]].name);
@@ -94,6 +95,7 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
   return (
     <div className="auction-overlay floor" data-testid="auction">
       <img className="auction-bg pov" src={art(h.floorPov)} alt="" />
+      <Atmosphere indoor />
       <div className="auction-shade light" />
       {lot ? (
         <Floor key={lot.key} h={h} houseId={houseId} lot={lot} n={idx} total={lots.length} room={room} appr={appr}

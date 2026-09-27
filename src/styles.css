@@ -1729,3 +1729,11 @@ body.travelling .mission-strip{display:none}
 .campaign{grid-template-rows:minmax(0,1fr) !important}
 .caravan-screen [data-testid=caravan-roster] > .section-label, .caravan-screen [data-testid=caravan-roster] > .cstrip, .caravan-screen [data-testid=caravan-roster] > p.set-demand:first-of-type { display: none; }
 .party-raiders{flex-direction:column-reverse}
+
+/* Atmosphere: light that follows the hour, dust in the air, passers-by close to the camera */
+.atmo { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.atmo > * { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.atmo-tint { mix-blend-mode: multiply; transition: background-color 4s ease; }
+.atmo-glow { mix-blend-mode: screen; }
+.atmo-crowd { opacity: 0.94; }
+.title-screen .atmo { inset: -4%; }
