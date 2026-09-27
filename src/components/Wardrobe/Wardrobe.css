@@ -90,6 +90,6 @@
 .cs-dress { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
 
 /* the hero at his stall, dressed as the player chose (only once every worn piece is painted) */
-.scene.split .seller-side img.lane { object-position: 100% 40%; transform: scale(1.75); transform-origin: 100% 45%; filter: blur(1.2px) brightness(.9); }
+.scene.split .seller-side img.lane { object-position: 100% 40%; transform: scale(1.75); transform-origin: 100% 45%; filter: brightness(.9); }
 .hero-at-stall { position: absolute; left: -6%; bottom: 0; height: 104%; aspect-ratio: 1024 / 1536; z-index: 3; pointer-events: none; animation: sil 6s ease-in-out infinite; }
 .hero-at-stall .hero-fig { height: 100%; filter: drop-shadow(8px 0 14px rgba(0,0,0,.55)); }
