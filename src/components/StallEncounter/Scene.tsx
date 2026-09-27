@@ -149,7 +149,6 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
           </>
         )}
       </div>
-      <div className="seam" />
       {upgrades.includes('bazaar') && <div className="awning" aria-hidden="true" />}
       {rugT && presented && (
         <div className="split-rug" key={unfoldKey} data-testid="table-rug">
@@ -157,9 +156,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
         </div>
       )}
       <Atmosphere />
-      <button className="cat-badge" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
-        <img src="art/saffron.jpg" alt="" />
-      </button>
+      <Saffron onCat={onCat} />
       {text && (
         <div
           className={`bubble top ${who === 'seller' ? 'tail-left' : 'tail-right'} ${who === 'buyer' ? moodRing : ''}`}
@@ -295,5 +292,15 @@ function ScenePerson({ id }: { id: string }) {
       {ok === false && framed !== false && <img src={`art/portraits/${id}.jpg`} alt="" className="buyer-framed" style={{ display: framed ? 'block' : 'none' }} onLoad={() => setFramed(true)} onError={() => setFramed(false)} />}
       <img src={`art/portraits/${id}-stall.png?v=2`} alt="" className="buyer-art" style={{ display: ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setOk(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={(e) => { setOk(false); e.currentTarget.parentElement?.classList.remove('has-photo'); }} />
     </>
+  );
+}
+
+/** Saffron on the rug: the painted cut-out if there is one, otherwise the small square picture. */
+function Saffron({ onCat }: { onCat: () => void }) {
+  const [cutout, setCutout] = useState(true);
+  return (
+    <button className={`cat-badge ${cutout ? '' : 'photo'}`} aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
+      <img src={cutout ? 'art/saffron-stall.png' : 'art/saffron.jpg'} alt="" onError={() => setCutout(false)} />
+    </button>
   );
 }

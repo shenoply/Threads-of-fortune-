@@ -1,4 +1,4 @@
-# Threads of Fortune: radio image prompts for ChatGPT
+# Threads of Fortune: stall art prompts for ChatGPT (radio, Saffron)
 
 Attach the radio design picture (the walnut cabinet with the two arched cloth grilles, the brass half-moon dial and three knobs) to the first message as the reference. Paste the **STYLE LOCK** from `GPT-image-prompts.md` first if this is a new chat.
 
@@ -36,4 +36,16 @@ In 1925 Egypt the few wireless sets in use were plainer boxes with a separate ho
 
 ```
 Make it a mid-1920s set instead: a flat walnut box with three dials on a black panel and a separate brass-and-black horn loudspeaker standing beside it.
+```
+
+---
+
+## 3. Saffron on the rug: `saffron-stall.png`
+Size: **square 1:1 (1024×1024)**, transparent background
+
+Attach `public/art/saffron.jpg` so she keeps the same look. This replaces the small square picture in the corner of the stall scene; she sits at the bottom-left, on the rug in front of the merchant.
+
+```
+Paint this same ginger tabby cat (attached), Saffron, lying curled on a carpet in a relaxed loaf pose, head up and turned slightly towards the viewer, seen from a little above, as a cut-out on a fully transparent background with only a soft contact shadow under her body. Nothing else: no carpet, no floor, no frame.
+Warm golden late-afternoon light from the right, painterly oil style matching Orientalist genre painting, fur detail soft, not photographic, not cartoon, no text.
 ```

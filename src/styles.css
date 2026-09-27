@@ -836,19 +836,22 @@ table.ledger .neg { color: var(--bad); }
 .scene.split .buyer-side > img { object-position: 78% 36%; }
 .scene.split .buyer-side img.lane { object-position: 100% 40%; transform: scale(1.75); transform-origin: 100% 45%; filter: blur(1.2px) brightness(.9); }
 .scene.split .buyer-figure.has-photo { top: 6%; right: 2%; bottom: 0; left: auto; height: auto; }
-.scene.split .seam { position: absolute; top: 0; bottom: 0; left: 50%; width: 36px; transform: translateX(-50%); background: linear-gradient(90deg, transparent, rgba(12,7,3,.55), transparent); pointer-events: none; }
+.scene.split .buyer-side { margin-left: -5%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%); mask-image: linear-gradient(90deg, transparent, #000 10%); }
 .split-rug { position: absolute; left: 50%; bottom: 4%; width: 34%; max-width: 300px; transform: translateX(-50%) perspective(600px) rotateX(42deg); transform-origin: 50% 100%; box-shadow: 0 10px 26px rgba(0,0,0,.6); animation: unfold2 .6s ease-out; border: 2px solid rgba(236,220,184,.45); z-index: 4; }
 .split-rug img { display: block; width: 100%; }
 @keyframes unfold2 { from { transform: translateX(-50%) perspective(600px) rotateX(85deg); opacity: 0; } }
-.cat-badge { position: absolute; left: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; padding: 0; overflow: hidden; border: 2px solid var(--brass-hi); box-shadow: 0 3px 10px rgba(0,0,0,.6); z-index: 6; background: #000; }
-.cat-badge img { width: 100%; height: 100%; object-fit: cover; }
+.cat-badge { position: absolute; left: 3%; top: 8px; width: min(22%, 120px); padding: 0; border: 0; background: none; z-index: 6; cursor: pointer; }
+.cat-badge img { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)); }
+/* until the cut-out of Saffron is painted, the square picture sits in as a small plain photo */
+.cat-badge.photo, .scene.split .cat-badge.photo { width: min(15%, 72px); left: 8px; bottom: 8px; }
+.cat-badge.photo img { aspect-ratio: 200 / 190; object-fit: cover; border-radius: 6px; filter: none; box-shadow: 0 3px 10px rgba(0,0,0,.55); }
 .scene.split .bubble.low { z-index: 7; }
 .scene.split .seller-side img { object-position: 18% 58%; }
 .scene.split .buyer-side > img { object-position: 80% 52%; }
 .scene.split .buyer-figure.has-photo { top: 10%; right: 0; bottom: 0; width: 92%; }
 .scene.split .buyer-figure.has-photo .buyer-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 100% 0%; }
 .scene.split .bubble.top { position: absolute; bottom: auto; z-index: 7; overflow: hidden; }
-.scene.split .cat-badge { top: auto; bottom: 8px; }
+.scene.split .cat-badge { top: auto; bottom: 0; }
 .scene.split { aspect-ratio: 780 / 420; }
 
 /* Calendar */
