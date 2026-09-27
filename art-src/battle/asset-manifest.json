@@ -1,0 +1,475 @@
+{
+  "title": "Threads of Fortune — Battle Art",
+  "asset_count": 29,
+  "battlefields": 4,
+  "transparent_tokens": 25,
+  "placement_note": "Token canvases retain deliberate transparent padding. Keep the full 1024 by 1024 canvas when placing and scaling them.",
+  "coverage_measurement": "Approximate span uses substantial artwork (alpha at least 128 of 255), excluding near-transparent fringes. Standing units use the broad solid shoulder/upper-arm region; animals, mounted units and fallen figures use vertical artwork extent.",
+  "assets": [
+    {
+      "number": 1,
+      "filename": "battle-road.jpg",
+      "type": "battlefield",
+      "format": "JPEG",
+      "width": 1024,
+      "height": 1536,
+      "alpha": false,
+      "coverage": "Full canvas"
+    },
+    {
+      "number": 2,
+      "filename": "battle-dunes.jpg",
+      "type": "battlefield",
+      "format": "JPEG",
+      "width": 1024,
+      "height": 1536,
+      "alpha": false,
+      "coverage": "Full canvas"
+    },
+    {
+      "number": 3,
+      "filename": "battle-oasis.jpg",
+      "type": "battlefield",
+      "format": "JPEG",
+      "width": 1024,
+      "height": 1536,
+      "alpha": false,
+      "coverage": "Full canvas"
+    },
+    {
+      "number": 4,
+      "filename": "battle-pass.jpg",
+      "type": "battlefield",
+      "format": "JPEG",
+      "width": 1024,
+      "height": 1536,
+      "alpha": false,
+      "coverage": "Full canvas"
+    },
+    {
+      "number": 5,
+      "filename": "guard.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 357,
+        "top": 365,
+        "right": 682,
+        "bottom": 642
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 6,
+      "filename": "fellah.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 361,
+        "top": 360,
+        "right": 715,
+        "bottom": 642
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 7,
+      "filename": "veteran.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 361,
+        "top": 380,
+        "right": 698,
+        "bottom": 652
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 8,
+      "filename": "watchman.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 375,
+        "top": 386,
+        "right": 673,
+        "bottom": 640
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 9,
+      "filename": "sentinel.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 360,
+        "top": 365,
+        "right": 685,
+        "bottom": 648
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 10,
+      "filename": "harbour.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 357,
+        "top": 371,
+        "right": 688,
+        "bottom": 650
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 11,
+      "filename": "hero.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 372,
+        "top": 398,
+        "right": 659,
+        "bottom": 654
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 12,
+      "filename": "bedouin.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 353,
+        "top": 103,
+        "right": 672,
+        "bottom": 922
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 13,
+      "filename": "desertcaptain.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 345,
+        "top": 103,
+        "right": 699,
+        "bottom": 922
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 14,
+      "filename": "arnaut.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 314,
+        "top": 112,
+        "right": 754,
+        "bottom": 932
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 15,
+      "filename": "reformed.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 354,
+        "top": 108,
+        "right": 691,
+        "bottom": 926
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 16,
+      "filename": "robber.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 366,
+        "top": 337,
+        "right": 710,
+        "bottom": 656
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 17,
+      "filename": "robber-leader.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 32% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 348,
+        "top": 363,
+        "right": 676,
+        "bottom": 677
+      },
+      "approximate_primary_span_percent": 32.0
+    },
+    {
+      "number": 18,
+      "filename": "raider.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 346,
+        "top": 102,
+        "right": 675,
+        "bottom": 921
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 19,
+      "filename": "raider-leader.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 348,
+        "top": 103,
+        "right": 802,
+        "bottom": 922
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 20,
+      "filename": "thief.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 377,
+        "top": 361,
+        "right": 668,
+        "bottom": 656
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 21,
+      "filename": "thief-leader.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 32% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 350,
+        "top": 344,
+        "right": 706,
+        "bottom": 662
+      },
+      "approximate_primary_span_percent": 32.0
+    },
+    {
+      "number": 22,
+      "filename": "rebel.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 28% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 356,
+        "top": 367,
+        "right": 702,
+        "bottom": 646
+      },
+      "approximate_primary_span_percent": 28.0
+    },
+    {
+      "number": 23,
+      "filename": "rebel-leader.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Solid shoulder/upper-arm span approximately 32% of canvas width",
+      "substantial_artwork_bounds": {
+        "left": 348,
+        "top": 353,
+        "right": 680,
+        "bottom": 678
+      },
+      "approximate_primary_span_percent": 32.0
+    },
+    {
+      "number": 24,
+      "filename": "smuggler.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 363,
+        "top": 109,
+        "right": 670,
+        "bottom": 929
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 25,
+      "filename": "smuggler-leader.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 343,
+        "top": 115,
+        "right": 766,
+        "bottom": 935
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 26,
+      "filename": "camel.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Camel length approximately 85% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 290,
+        "top": 76,
+        "right": 737,
+        "bottom": 947
+      },
+      "approximate_primary_span_percent": 85.0
+    },
+    {
+      "number": 27,
+      "filename": "horse.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Mount length approximately 80% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 361,
+        "top": 106,
+        "right": 664,
+        "bottom": 925
+      },
+      "approximate_primary_span_percent": 80.0
+    },
+    {
+      "number": 28,
+      "filename": "fallen-light.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Fallen figure approximately 70% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 90,
+        "top": 154,
+        "right": 928,
+        "bottom": 871
+      },
+      "approximate_primary_span_percent": 70.0
+    },
+    {
+      "number": 29,
+      "filename": "fallen-dark.png",
+      "type": "token",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "coverage": "Fallen figure approximately 70% of canvas height",
+      "substantial_artwork_bounds": {
+        "left": 53,
+        "top": 171,
+        "right": 971,
+        "bottom": 882
+      },
+      "approximate_primary_span_percent": 69.5
+    }
+  ]
+}

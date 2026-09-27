@@ -25,3 +25,7 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
 - tools/refit.py fits tops, coats, trousers and shoes to the base body (sleeves and legs no wider
   than needed, trousers to the ankle, shoes covering the toes). Run it after adding or repainting
   one of those pieces, then tools/webp.py.
+- Battle art: masters in art-src/battle (not deployed; prompts and manifest alongside). Run
+  `python3 tools/battle.py` to make the WebP copies in public/art/battle. The fight in
+  src/components/World/Ambush.tsx draws them through BattleField.tsx (BAND_ART picks each band's
+  men, leader and field).

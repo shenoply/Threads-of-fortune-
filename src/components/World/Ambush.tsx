@@ -8,6 +8,7 @@ import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
+import { BattleField, BATTLE_ART } from './BattleField';
 
 type Stage = 'standoff' | 'demand' | 'battle' | 'result';
 type Stance = 'charge' | 'hold';
@@ -38,6 +39,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // the leader speaks his demand aloud
   const leader = THREAT_VOICE[threat.id] ?? 'robberchief';
   useEffect(() => { voice.load().then(() => voice.preload([leader])); return () => voice.stop(); }, [leader]);
+  // the battlefield pictures, fetched while they talk so a fight opens on a painted field
+  useEffect(() => { for (const src of BATTLE_ART) new Image().src = src; }, []);
   useEffect(() => {
     if (stage !== 'demand') return;
     let live = true;
@@ -165,6 +168,10 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {!rebels && <button className="btn primary" onClick={() => { setStage('battle'); audio.sfx('chest'); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}%</small></button>}
             </div>
           </>
+        )}
+
+        {(stage === 'battle' || (stage === 'result' && round > 0)) && (
+          <BattleField bandId={threat.id} mySide={mySide} enemyN={enemy.n} enemyStart={size} party={g.world.party} charging={stage === 'battle' && stance === 'charge'} />
         )}
 
         {stage === 'battle' && (

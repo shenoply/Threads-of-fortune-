@@ -1794,3 +1794,7 @@ body.travelling .mission-strip{display:none}
 .radio-pic img { display: block; width: 100%; height: auto; filter: drop-shadow(0 8px 14px rgba(0,0,0,.55)); transition: filter .6s ease; }
 .radio-pic.on img { filter: drop-shadow(0 8px 14px rgba(0,0,0,.55)) drop-shadow(0 0 14px rgba(255,180,90,.45)); }
 .radio-set .radio-face { margin-top: 6px; background: none; border: 0; padding: 0; }
+/* the fight from above: a painted field, tokens for the men, the fallen left where they fell */
+.bf{position:relative;width:min(100%,52vh);aspect-ratio:1/1;flex-shrink:0;margin:0 auto;border-radius:12px;overflow:hidden;background-size:cover;background-position:center;border:1px solid #5a3b20;box-shadow:inset 0 0 60px #0008}
+.bf-tok{position:absolute;height:auto;pointer-events:none;transition:top 1.6s ease-in-out;filter:drop-shadow(3px 5px 3px #0007)}
+.bf-tok.down{filter:drop-shadow(1px 2px 1px #0006) saturate(.8) brightness(.9)}
