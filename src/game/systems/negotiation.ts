@@ -33,6 +33,7 @@ export interface Encounter {
   asked: string[];
   budgetKnown?: [number, number];
   presented?: string; // rug uid
+  finalOffered?: boolean; // the buyer has named a last price before leaving
   presentedFit: number;
   rugsShown: string[];
   argsUsed: string[];
@@ -180,7 +181,7 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     buyerId,
     stage: 'discovery',
     interest: clamp(b.interest + Math.min(10, Math.floor(ctx.reputation / 2)), 0, 100),
-    patience: b.patience + tier.idx * 6 + (ctx.upgrades.includes('bazaar') ? 10 : 0),
+    patience: b.patience + 8 + tier.idx * 6 + (ctx.upgrades.includes('bazaar') ? 10 : 0),
     trust: clamp(b.trust + tier.idx * 8 + Math.round(ctx.rel.affinity / 5) + (ctx.upgrades.includes('mat') ? 6 : 0), 0, 100),
     revealed: [],
     asked: [],
@@ -275,6 +276,13 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
 }
 
 const Q = { cost: 6, arg: 8, present: 5, bargain: 10 };
+/** What a buyer says when naming a last price, unless they have their own way of putting it. */
+const FINAL_OFFER = [
+  'My last word: {price}. Take it, or I go.',
+  'I will not stand here all day. {price}, and that is final.',
+  '{price}. That is the end of it from my side. Yes or no?',
+  'Enough. {price}, and I take it with me now, or I leave it.',
+];
 
 function say(enc: Encounter, speaker: Line['speaker'], text: string, mood?: Line['mood']) {
   enc.log.push({ speaker, text, mood });
@@ -362,7 +370,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       );
       break;
     case 'bargaining': {
-      if (enc.buyerOffer) out.push({ id: 'accept_offer', label: `Accept ${fmt(enc.buyerOffer)}`, sub: 'Close the sale', icon: 'check' });
+      if (enc.buyerOffer) out.push({ id: 'accept_offer', label: `Accept ${fmt(enc.buyerOffer)}`, sub: enc.finalOffered ? 'Their last word' : 'Close the sale', icon: 'check' });
       if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10)
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference', icon: 'scale' });
       if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: 'Be firm', icon: 'shield' });
@@ -390,6 +398,22 @@ function checkWalk(enc: Encounter, ctx: Ctx, justPresented = false) {
   }
   // A bad first look does not end the visit; losing interest afterwards does.
   const bored = !justPresented && enc.stage !== 'bargaining' && enc.presented && enc.interest <= 12;
+  // A buyer out of patience who still wants the rug does not just go: they name their last price,
+  // once. Refuse that, or dawdle, and they leave.
+  // (an insult on the first price ends it; one that comes after offers have been traded does not)
+  const item = (enc.patience <= 0 || enc.trust <= 5) && !bored && !enc.finalOffered && (!enc.insulted || enc.buyerOffer) ? presentedItem(enc, ctx) : undefined;
+  if (item) {
+    const w = wtp(enc, item);
+    const prev = enc.buyerOffer ?? 0;
+    // a real step up from their last figure, as far as they will go
+    const last = Math.min(snapDown(w * 0.97), Math.max(snapDown(w * (enc.stage === 'bargaining' ? 0.9 : 0.82)), snap(prev * 1.06)));
+    enc.finalOffered = true;
+    enc.buyerOffer = Math.max(last, prev);
+    enc.stage = 'bargaining';
+    enc.patience = 12;
+    buyerSay(enc, pick(b.lines.finalOffer ?? FINAL_OFFER, ctx.rng).replace('{price}', fmt(enc.buyerOffer)), 'skeptical');
+    return;
+  }
   if (enc.patience <= 0 || bored || enc.trust <= 5) {
     enc.outcome = 'walked';
     enc.stage = 'close';

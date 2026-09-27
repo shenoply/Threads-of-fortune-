@@ -113,6 +113,8 @@ export interface DialoguePool {
   success: string[];
   badSale: string[];
   walkAway: string[];
+  /** a last price named before leaving; the stock lines serve when absent */
+  finalOffer?: string[];
   saffron: string[];
   commission: string[];
   commissionDone: string[];
