@@ -209,6 +209,7 @@ interface Actions {
   buyLocal: (sid: string, key: string) => string;
   partyChoice: (partyId: string, choice: string) => string;
   buyFood: (n: number) => string;
+  butcherAnimal: (breed: string) => string;
   trade: (breed: string, delta: number) => string;
   recruit: (troop: string, key: string, n: number) => string;
   dismiss: (troop: string, n: number) => void;
@@ -596,15 +597,28 @@ export const useGame = create<GameState & Actions>()(
             ledger.push({ day: s.day, kind: 'expense', label: `Bread and dates in ${settlementById(s.world.at).name}`, amount: -foodCost });
             cash -= foodCost;
           }
-          if (party.food >= need) party.food -= need;
+          let repBill = 0;
+          if (party.food >= need) { party.food -= need; party.hungryDays = 0; }
           else {
             party.food = 0;
+            party.hungryDays = (party.hungryDays ?? 0) + 1;
+            const hd = party.hungryDays;
             const ids = Object.keys(party.troops).filter((k) => party.troops[k] > 0);
             if (ids.length) {
               const id = ids[Math.floor(rng() * ids.length)];
               party.troops[id] -= 1;
               notes.push(`No food. A ${TROOPS[id].name.toLowerCase()} walked off in the night.`);
-            } else notes.push('No food left. You are hungry and the caravan is slower.');
+            }
+            // after a couple of lean days, a starving animal can collapse; the risk climbs the longer it goes on
+            const animalIds = Object.keys(party.animals).filter((k) => party.animals[k] > 0);
+            if (hd >= 2 && animalIds.length && rng() < Math.min(0.6, (hd - 1) * 0.15)) {
+              const id = animalIds[Math.floor(rng() * animalIds.length)];
+              party.animals = { ...party.animals, [id]: party.animals[id] - 1 };
+              notes.push(`No food for days. Your ${BREEDS[id].name.toLowerCase()} could not go on and had to be left behind.`);
+              repBill -= 1;
+            }
+            if (hd === 1) notes.push('No food left. You are hungry and the caravan is slower.');
+            else { notes.push(`${hd} days with no food. The caravan is exhausted and moving badly.`); repBill -= 1; }
           }
           const pay = wages(party);
           if (pay > 0) {
@@ -624,7 +638,6 @@ export const useGame = create<GameState & Actions>()(
           // The first of the month: rent, dues, household. Unpaid bills grow and cost you your pitch.
           let bills = { ...(s.bills ?? { due: 0, since: 0, warned: 0 }) };
           let upgrades = s.upgrades;
-          let repBill = 0;
           if (isFirstOfMonth(day)) {
             const lines = monthlyBill(s.upgrades, rankOf(s).idx, s.inventory.filter((i) => i.stored).length);
             const total = billTotal(lines);
@@ -1366,6 +1379,22 @@ export const useGame = create<GameState & Actions>()(
           set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, food: s.world.party.food + n } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `${n} rations in ${settlementById(sid).name}`, amount: -price }] });
           audio.sfx('coin');
           return `Bought ${n} days of bread and dates for ${fmt(price)}.`;
+        },
+
+        /** A last resort on the road with the sacks empty: butcher a pack animal for rations. You lose the animal for good. */
+        butcherAnimal: (breed) => {
+          const s = get();
+          const b = BREEDS[breed];
+          const animals = { ...s.world.party.animals };
+          if (!b || (animals[breed] ?? 0) <= 0) return '';
+          animals[breed] -= 1;
+          const rations = 8 + Math.round(b.load / 2);
+          set({
+            world: { ...s.world, party: { ...s.world.party, animals, food: s.world.party.food + rations, hungryDays: 0 } },
+            journal: [...s.journal, { day: s.day, text: `Butchered your ${b.name.toLowerCase()} for meat. Grim, but it will feed everyone for days.`, kind: 'road' }],
+          });
+          audio.sfx('step');
+          return `You butcher the ${b.name.toLowerCase()}. Hard, but it buys you ${rations} days of food.`;
         },
 
         trade: (breed, delta) => {

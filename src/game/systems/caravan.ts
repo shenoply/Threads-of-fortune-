@@ -6,6 +6,7 @@ export interface PartyState {
   animals: Record<string, number>; // breed id -> count
   food: number; // rations: one feeds one person for a day
   troops: Record<string, number>;
+  hungryDays?: number; // consecutive rollovers with no food left; resets the day rations cover the party again
 }
 
 export const startingParty = (): PartyState => ({ animals: {}, food: 6, troops: {} }); // you start on foot: carrying more means buying an animal
@@ -56,7 +57,8 @@ export function speedInfo(p: PartyState, inv: RugItem[]) {
   const cap = capacity(p);
   const l = load(p, inv);
   const over = l > cap ? Math.max(0.35, cap / l) : 1;
-  const hungry = p.food <= 0 ? 0.7 : 1;
+  // the pace worsens the longer the caravan goes hungry, down to a crawl, rather than a flat penalty forever
+  const hungry = p.food <= 0 ? Math.max(0.4, 0.75 - (p.hungryDays ?? 0) * 0.05) : 1;
   const mult = pace * over * hungry * SKILL_MODS.speed;
   const slowest = walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name.toLowerCase() : 'nobody';
   return { pxPerDay: BASE_SPEED * mult, mult, mounted, over: l > cap, hungry: p.food <= 0, cap, load: l, slowest };

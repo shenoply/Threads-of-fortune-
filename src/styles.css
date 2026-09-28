@@ -910,6 +910,8 @@ table.ledger .neg { color: var(--bad); }
 .reg-card b { font-size: 14px; line-height: 1.2; color: var(--parchment); }
 .reg-card small { font-size: 12.5px; line-height: 1.25; color: var(--text-dim); }
 .set-demand.dim { color: var(--text-dim); font-style: italic; }
+.set-demand.warn { color: #f0a070; }
+.cv-butcher { margin-top: 4px; }
 
 /* City walk entry */
 .city-walk { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 8px; margin: 4px 0 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: linear-gradient(180deg, #2a1c10, #1a110a); color: var(--text); cursor: pointer; }

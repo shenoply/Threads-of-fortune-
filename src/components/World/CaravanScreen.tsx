@@ -2,6 +2,7 @@ import { useGame } from '../../game/state/store';
 import { Icon } from '../Icon';
 import { fmt } from '../../game/economy/money';
 import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dailyFood } from '../../game/systems/caravan';
+import { BREEDS } from '../../data/animals';
 import { milesPx } from '../../game/systems/mapRender';
 import { CaravanRoster, TownSupplies } from './CaravanPanels';
 import { settlementById } from '../../game/systems/world';
@@ -44,7 +45,20 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
       {town ? (
         <TownSupplies />
       ) : (
-        <p className="set-demand">You can buy food, animals and guards in any town or village.</p>
+        <>
+          <p className="set-demand">You can buy food, animals and guards in any town or village.</p>
+          {food <= 0 && animalCount(p) > 0 && (
+            <div className="cv-butcher" data-testid="cv-butcher">
+              <p className="set-demand warn">The sacks are empty out here. As a last resort, you can butcher a pack animal for meat — you lose it for good.</p>
+              {Object.entries(p.animals).filter(([, n]) => n > 0).map(([id, n]) => (
+                <div className="mkt-row" key={id}>
+                  <span><b>{BREEDS[id]?.name ?? id}</b><small>{n} in your string</small></span>
+                  <button className="btn" onClick={() => g.butcherAnimal(id)} data-testid={`butcher-${id}`}>Butcher</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
       {g.world.at === 'giza' && (
         <div className="cv-go">
