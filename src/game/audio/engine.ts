@@ -23,7 +23,7 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   evening: ['evening-saba', 'evening-bayati'],
   road: ['road-hijaz', 'road-bayati'],
   town: ['khan-rast', 'khan-kurd', 'khan-bayati'],
-  istanbul: ['istanbul-ussak', 'khan-kurd'],
+  istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev'],
   palace: ['palace-rast', 'palace-nahawand'],
   'auction-small': ['auction'],
   'auction-grand': ['salon-waltz', 'auction'],
