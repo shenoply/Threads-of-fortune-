@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist', assetsInlineLimit: 0, modulePreload: false,
-    rollupOptions: { output: { entryFileNames: 'assets/game.js', chunkFileNames: 'assets/[name].js', assetFileNames: 'assets/[name][extname]' } }
+    // hashed filenames so every deploy forces a fresh fetch instead of relying on the CDN's cache TTL
+    rollupOptions: { output: { entryFileNames: 'assets/game-[hash].js', chunkFileNames: 'assets/[name]-[hash].js', assetFileNames: 'assets/[name]-[hash][extname]' } }
   }
 });
