@@ -272,7 +272,10 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 <div className="mkt">
                   {g.inventory.filter((i) => !i.restoringUntil && !i.stored).map((i) => {
                     const t = RUGS[i.typeId];
-                    const bid = localBid(id, i, g.day);
+                    // matches the same-day-same-town cap sellLocal() applies, so the price on the
+                    // button is the price you actually get, not the higher uncapped number
+                    const sameToday = offers.find((o) => o.typeId === i.typeId && o.condition === i.condition);
+                    const bid = sameToday ? Math.min(localBid(id, i, g.day), Math.max(0, sameToday.price - 1)) : localBid(id, i, g.day);
                     return (
                       <div className="mkt-row" key={i.uid} data-testid={`sell-${t.id}`}>
                         <img src={rugSrc(t)} alt="" />

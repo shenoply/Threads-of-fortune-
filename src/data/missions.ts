@@ -46,7 +46,7 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'tanta',
     locks: 'Your rank cannot rise past Bazaar merchant until you can carry stock of your own.',
     reward: { cash: 300, rep: 3, trust: 10, text: 'Rashid counts the bale twice and pays you £3. "You look almost like a merchant now. Almost. The donkey looks more like one than you."' },
-    hint: (s) => ((s as unknown as { world: { party: { animals: Record<string, number> } } }).world.party ? 'Buy a pack animal, then fetch Rashid\'s bale from Tanta.' : 'Fetch Rashid\'s bale from Tanta.'),
+    hint: (s) => ((s as unknown as { world: { party: { animals: Record<string, number> } } }).world.party ? 'Buy two pack animals, then fetch Rashid\'s bale from Tanta.' : 'Fetch Rashid\'s bale from Tanta.'),
     check: (s) => ((s as unknown as { jobsDone?: string[] }).jobsDone ?? []).includes('tanta-bale'),
   },
   farid: {

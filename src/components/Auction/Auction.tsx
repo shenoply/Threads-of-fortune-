@@ -35,7 +35,10 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
   const day = g.day;
   // the catalogue and the room are fixed when you sit down
   const [lots] = useState(() => catalogue(houseId, day, g.reoffers ?? []));
-  const [room] = useState(() => roomFor(houseId, day, { cash: g.cash, rep: g.reputation, rival: !!g.missions?.rival }));
+  // Selim only sits in while "The stall next door" is actually running — once it's 'done' he has left
+  // for Port Said and has no business bidding against you (missions?.rival is still a truthy string
+  // once the mission is done, so this has to check the value, not just whether the key exists).
+  const [room] = useState(() => roomFor(houseId, day, { cash: g.cash, rep: g.reputation, rival: g.missions?.rival === 'active' }));
   const [seated, setSeated] = useState(false);
   const [results, setResults] = useState<{ title: string; text: string; you: boolean }[]>([]);
   const firstOpen = lots.findIndex((l) => !(g.lotsSold ?? []).includes(l.key));

@@ -3,7 +3,7 @@ import { RUGS, RUG_IDS, CONDITION_FACTOR } from '../../data/rugs';
 import { UPGRADES } from '../../data/suppliers';
 import { BUYERS } from '../../data/buyers';
 import type { RugItem } from '../types';
-import { missionsDone } from '../../data/missions';
+import { missionsDone, MAIN_ORDER, MISSIONS } from '../../data/missions';
 
 interface S { cash: number; reputation: number; inventory: RugItem[]; upgrades: string[]; supplier: { debt: number }; court: { warrants: string[] }; register?: string[]; missions?: Record<string, string> }
 
@@ -31,10 +31,17 @@ export const RANKS = [
 
 export function rankOf(s: S) {
   const w = netWorth(s);
-  let idx = 0;
-  RANKS.forEach((r, i) => { if (w >= r.worth && s.reputation >= r.rep && s.court.warrants.length >= r.warrants) idx = i; });
-  idx = Math.min(idx, missionsDone(s.missions)); // each finished main mission lets the rank rise one more step
-  return { idx, rank: RANKS[idx], next: RANKS[idx + 1] as (typeof RANKS)[number] | undefined, worth: w };
+  let natural = 0;
+  RANKS.forEach((r, i) => { if (w >= r.worth && s.reputation >= r.rep && s.court.warrants.length >= r.warrants) natural = i; });
+  const mDone = missionsDone(s.missions);
+  const idx = Math.min(natural, mDone); // each finished main mission lets the rank rise one more step
+  const next = RANKS[idx + 1] as (typeof RANKS)[number] | undefined;
+  // reputation, net worth and warrants can all clear the next rank's bar while the story itself still
+  // holds it back (Selim still has a stall, say) — that reads as a stuck progress bar unless callers
+  // can say which of the three is actually the one still missing
+  const blockedByStory = next ? natural > mDone : false;
+  const blockingMission = blockedByStory ? MISSIONS[MAIN_ORDER[mDone]] : undefined;
+  return { idx, rank: RANKS[idx], next, worth: w, blockedByStory, blockingMission };
 }
 
 /** The four conditions of the ultimate goal. */

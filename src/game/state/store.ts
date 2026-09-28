@@ -1020,13 +1020,16 @@ export const useGame = create<GameState & Actions>()(
             else {
               const t = RUGS[rug.typeId];
               const pay = snap(((t.valueBand[0] + t.valueBand[1]) / 2) * CONDITION_FACTOR[rug.condition] * visit.mult);
+              // visit.who reads as a sentence subject ("A Tanta cotton merchant is...") capital and all,
+              // but these two lines drop it into the middle of a sentence instead
+              const midWho = visit.who.charAt(0).toLowerCase() + visit.who.slice(1);
               set({
                 cash: s.cash + pay,
                 reputation: s.reputation + visit.rep,
                 inventory: s.inventory.filter((i) => i.uid !== rug.uid),
                 visits: (s.visits ?? []).filter((v) => v.id !== visit.id),
-                ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${t.name} to ${visit.who}`, amount: pay, cost: rug.paid }],
-                journal: [...s.journal, { day: s.day, text: `Sold the ${t.name} to ${visit.who} in ${settlementById(id).name} for ${fmt(pay)}.`, kind: 'arrive' }],
+                ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${t.name} to ${midWho}`, amount: pay, cost: rug.paid }],
+                journal: [...s.journal, { day: s.day, text: `Sold the ${t.name} to ${midWho} in ${settlementById(id).name} for ${fmt(pay)}.`, kind: 'arrive' }],
                 jobNote: `${visit.who} buys your ${t.name} for ${fmt(pay)}.`,
               });
               audio.sfx('coins');
@@ -1214,7 +1217,13 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const it = s.inventory.find((i) => i.uid === uid);
           if (!it || it.restoringUntil) return 0;
-          const bid = localBid(sid, it, s.day);
+          let bid = localBid(sid, it, s.day);
+          // a dealer never pays more for a rug than they are asking for the same rug today: without
+          // this, a type this town both sells and has high local demand for (its own specialty, most
+          // often) could be bought and sold straight back for a same-day, no-travel profit
+          const sameToday = localOffers(sid, s.day, s.world.boughtLocal, s.world.friends, s.reputation)
+            .find((o) => o.typeId === it.typeId && o.condition === it.condition);
+          if (sameToday) bid = Math.min(bid, Math.max(0, sameToday.price - 1));
           set({
             cash: s.cash + bid,
             inventory: s.inventory.filter((i) => i.uid !== uid),

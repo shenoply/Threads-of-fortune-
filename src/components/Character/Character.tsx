@@ -16,7 +16,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
   const ch = heroCharisma(wr.outfit, att.clean);
   const [wardrobe, setWardrobe] = useState(false);
   const dress = [wr.outfit.head, wr.outfit.outer ?? wr.outfit.top].filter((x): x is string => !!x).map((id) => PIECES[id]?.name.toLowerCase()).join(', ');
-  const { rank, next } = rankOf(g);
+  const { rank, next, blockedByStory, blockingMission } = rankOf(g);
   const repNext = next?.rep ?? 100;
   return (
     <div className="charsheet inline" data-testid="character">
@@ -28,7 +28,10 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
       <div className="cs-section">
         <div className="cs-label"><b>Reputation</b><span data-testid="rep-value">{g.reputation}{next ? ` / ${repNext} for ${next.name}` : ''}</span></div>
         <i className="cs-bar rep"><em style={{ width: `${Math.min(100, (g.reputation / Math.max(1, repNext)) * 100)}%` }} /></i>
-        <p className="cs-note">Earned by good sales, honest dealing, commissions and royal warrants. Lost when you are caught lying or miss a debt. It opens better stock, the back rooms of city dealers and palace doors ({RANKS.length} ranks).</p>
+        <p className="cs-note">Earned by good sales, honest dealing, commissions and royal warrants. Lost when you are caught lying or miss a debt. It opens better stock, the back rooms of city dealers and palace doors ({RANKS.length} ranks). Rank needs reputation and net worth together — {next?.note ?? 'you have reached the top rank.'}</p>
+        {blockedByStory && blockingMission && (
+          <p className="cs-note" data-testid="rank-story-lock">Reputation and net worth are there, but the rank will not move until an unfinished matter is settled: <b>{blockingMission.title}</b>. {blockingMission.locks}</p>
+        )}
       </div>
       <div className="cs-section">
         <div className="cs-label"><b>How the bazaar sees you</b></div>
