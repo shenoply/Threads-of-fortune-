@@ -603,6 +603,10 @@ table.ledger .neg { color: var(--bad); }
 .wc-main span { font-size: 14.5px; color: var(--text-dim); }
 .wc-btns { display: flex; gap: 6px; flex-wrap: wrap; }
 .wc-btns .btn { padding: 8px 10px; font-size: 14.5px; }
+/* the sea (and desert-car) option: a port route is usually the faster way, so it's given a colour of
+   its own rather than blending into the walking/cancel buttons beside it */
+.sail-btn { border-color: #4a86a8; color: #cfe9fb; }
+.sail-btn.faster { background: linear-gradient(180deg, #3f7fa8, #23506b); border-color: #8fd0f5; color: #eaf7ff; font-weight: 700; box-shadow: 0 0 10px rgba(90,190,240,.35); }
 
 .settlement { overflow-y: auto; }
 .set-head { position: relative; min-height: 150px; background-color: #2b200f; background-repeat: no-repeat; flex: none; display: flex; align-items: flex-end; padding: 12px 14px; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
@@ -1846,6 +1850,7 @@ body.travelling .mission-strip{display:none}
 .scene.stall .stall-prop.stall-cat{z-index:4;pointer-events:auto;cursor:pointer}
 .scene.stall .stall-gramophone-art{z-index:1;pointer-events:none}
 .scene.stall .stall-gramophone-hit{position:absolute;left:25.5%;top:22%;width:11%;height:13%;z-index:6;padding:0;border:0;background:none;cursor:pointer}
+.scene.stall .stall-gramophone-hint{position:absolute;left:calc(25.5% + 5.5%);top:19%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#f0b35a;font-size:22px;text-shadow:0 0 8px rgba(240,179,90,.9),0 2px 3px rgba(0,0,0,.6);animation:beckon 1.4s ease-in-out infinite}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
 /* cabarets and music halls: the card in the town, and the evening itself */
 .venue-pic{position:relative}

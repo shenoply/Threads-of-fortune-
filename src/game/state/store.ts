@@ -140,6 +140,8 @@ export interface GameState {
   paperSeen?: number;
   /** the last day whose radio bulletin you switched on */
   radioHeard?: number;
+  /** true once you have opened the gramophone at the stall; a hint shows over it until then */
+  gramoSeen?: boolean;
   /** prices you have seen rugs fetch at auction, by rug type */
   intel?: Record<string, MarketIntelRecord>;
   /** unsold lots that will come back cheaper at the same house */

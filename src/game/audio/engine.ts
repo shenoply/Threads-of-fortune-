@@ -118,6 +118,14 @@ class AudioEngine {
     this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') * (on ? 0.5 : 1) : 0, this.ctx.currentTime, 0.4);
   }
 
+  /** Silence the background score and ambience entirely while a record plays on the gramophone,
+   *  so the two pieces of music never overlap; restores both fully once the lid closes. */
+  muteMusic(on: boolean) {
+    if (!this.ctx) return;
+    this.gains.music.gain.setTargetAtTime(this.toggles.music && !on ? this.level('music') : 0, this.ctx.currentTime, 0.3);
+    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience && !on ? this.level('ambience') : 0, this.ctx.currentTime, 0.3);
+  }
+
   private loadBank() {
     if (!this.bankLoading) this.bankLoading = fetch('audio/soundbank.json').then((r) => r.json()).then((b: Bank) => (this.bank = b)).catch(() => null);
     return this.bankLoading;

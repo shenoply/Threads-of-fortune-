@@ -36,6 +36,9 @@ interface Plan {
   train?: { days: number; fare: number; stops: string[] };
   ships: { to: string; days: number; fare: number }[];
   motor: { to: string; days: number; fare: number }[];
+  /** the port or town this plan was made from, so a ship can still be booked from it even after
+   *  you've since set off on foot and world.at has gone back to null on the road */
+  from?: Settlement;
 }
 
 function tint(hour: number) {
@@ -65,7 +68,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [short, setShort] = useState<{ plan: Plan; need: number; price: number } | null>(null);
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
-  const [moving, setMoving] = useState<null | { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number }>(null);
+  const [moving, setMoving] = useState<null | { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' }>(null);
   const [ownScale, setOwnScale] = useState(1);
   const timeScale = scale ?? ownScale;
   const setTimeScale = setScale ?? setOwnScale;
@@ -171,14 +174,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     const ships = here && st ? seaRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
     const motor = here && st ? motorRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
     if (!st && isWaterPx(to)) {
-      const p0: Plan = { to, path: null, days: 0, ships: [], motor: [] };
+      const p0: Plan = { to, path: null, days: 0, ships: [], motor: [], from: here };
       setPlan(p0);
       return p0;
     }
     const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
     const days = path ? pathLength(path) / sp.pxPerDay : 0;
     const train = here && st ? railJourney(here.id, st.id) ?? undefined : undefined;
-    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor };
+    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here };
     setPlan(p);
     audio.sfx('tap');
     return p;
@@ -194,6 +197,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     }
     const p = planTo(to, st, true);
     if (!p || !p.path) return; // water or no road: the card explains and offers boats and trains
+    // a port or a desert-car route gets you there faster than walking: show the card so that choice
+    // is actually in view, rather than setting off on foot before the player ever sees it
+    if (p.ships.length || p.motor.length) return;
     // leaving a town short of food: offer to buy what the road needs, in one tap, before setting off
     const need = Math.ceil(Math.max(1, p.days) * dailyFood(w.party)) - w.party.food;
     if (need > 0 && w.at && MARKETS[w.at] && !moving) {
@@ -253,6 +259,26 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     setPlan(null);
     setReport('');
     audio.sfx(train ? 'train' : 'step');
+  };
+
+  /** Book passage by sea or by the Nairn desert car: pay now, then watch the ship or motor car
+   *  actually cross the map along the route, the same way the train does, instead of jumping there. */
+  const startSea = (r: { to: string; days: number; fare: number }, mode: 'ship' | 'motor', origin?: Settlement) => {
+    if (g.cash < r.fare) { setReport('You cannot afford the fare.'); return; }
+    const from = origin ?? here;
+    if (!from) return;
+    const dest = settlementById(r.to);
+    useGame.setState((st) => ({
+      cash: st.cash - r.fare,
+      ledger: [...st.ledger, { day: st.day, kind: 'expense', label: mode === 'motor' ? `Nairn desert car to ${dest.name}` : `Deck passage to ${dest.name}`, amount: -r.fare }],
+    }));
+    const path = [{ x: from.x, y: from.y }, { x: dest.x, y: dest.y }];
+    follow.current = true;
+    setMoving({ path, done: 0, train: true, dest: r.to, pxPerDay: pathLength(path) / Math.max(0.1, r.days), mode });
+    setPlan(null);
+    setAlt(null);
+    setReport(mode === 'motor' ? `By Nairn motor car across the desert to ${dest.name}.` : `By ship to ${dest.name}.`);
+    audio.sfx('tap');
   };
 
   // Standing still, time stands still too: it only runs while you travel.
@@ -374,7 +400,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const routeSvg = plan?.path ?? (moving ? moving.path : null);
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
   const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food ${foodDaysLeft(w.party)} days`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
-  const status = moving ? (moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Camped in the open';
+  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Camped in the open';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
   const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
@@ -486,7 +512,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         )}
         {moving && (
           <div className="map-speed" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} role="group" aria-label="Travel speed" data-testid="map-speed">
-            <span className="ms-pace" data-testid="pace">{moving.train ? 'By train' : `Pace ${milesPerDay(sp.pxPerDay)} mi/day`}</span>
+            <span className="ms-pace" data-testid="pace">{moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : `Pace ${milesPerDay(sp.pxPerDay)} mi/day`}</span>
             {[0, 1, 2, 4].map((k) => (
               <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => setTimeScale(k)} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
             ))}
@@ -507,9 +533,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           <div className="wc-row">
             <div className="wc-main">
               <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
-              <span>{moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}</span>
+              <span>
+                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}
+              </span>
             </div>
-            <button className="btn" onClick={() => { setAlt(null); stop('You stop and make camp.'); }} data-testid="stop">Stop</button>
+            <button className="btn" onClick={() => { setAlt(null); stop('You stop and make camp.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
           </div>
         ) : null}
         {short && !moving && (
@@ -531,7 +559,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
               <button className="btn" onClick={() => { const to = alt.settlement!.id as 'giza' | 'cairo'; setMoving(null); setAlt(null); setReport(g.ferry(to)); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">Nile ferry · £0.01</button>
             )}
             {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)}</button>}
-            {alt.ships.map((r) => <button key={r.to} className="btn" onClick={() => { setMoving(null); setAlt(null); setReport(g.sail(r.to)); setPanel(r.to); }} data-testid="ship">Ship · {fmt(r.fare)}</button>)}
+            {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)}</button>)}
           </div>
         )}
         {moving ? null : plan ? (
@@ -550,10 +578,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
                 )}
                 {plan.train && <button className="btn" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {plan.train.days < 1 ? `${Math.max(1, Math.round(plan.train.days * 24))} h` : `${plan.train.days.toFixed(1)} d`}</button>}
                 {plan.ships.map((r) => (
-                  <button key={r.to} className="btn" onClick={() => { setReport(g.sail(r.to)); setPlan(null); setPanel(r.to); }} data-testid="ship">Ship · {fmt(r.fare)} · {r.days} d</button>
+                  <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
                 ))}
                 {plan.motor.map((r) => (
-                  <button key={r.to} className="btn" onClick={() => { setReport(g.sail(r.to, 'motor')); setPlan(null); setPanel(r.to); }} data-testid="motor">Nairn motor car · {fmt(r.fare)} · {r.days} d</button>
+                  <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
                 ))}
                 <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
               </div>
@@ -566,7 +594,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
               </div>
               {plan.train && <button className="btn primary" onClick={() => start(true)}>Train · {fmt(plan.train.fare)}</button>}
               {plan.ships.map((r) => (
-                <button key={r.to} className="btn primary" onClick={() => { setReport(g.sail(r.to)); setPlan(null); setPanel(r.to); }}>Ship · {fmt(r.fare)}</button>
+                <button key={r.to} className="btn primary sail-btn" data-testid="ship" onClick={() => startSea(r, 'ship', plan.from)}>⚓ Ship · {fmt(r.fare)}</button>
               ))}
               <button className="btn" onClick={() => setPlan(null)}>OK</button>
             </div>

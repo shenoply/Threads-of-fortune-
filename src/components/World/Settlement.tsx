@@ -322,24 +322,29 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       )}
       <Tip id="town" when={!inCity && !inVenue && !talkTo && !inAuction} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
-      {houseWalk && (
-        <div className="venue-overlay">
-          <Venue def={auctionVenue(houseWalk)} onLeave={() => setHouseWalk(null)} onExitCity={() => { setHouseWalk(null); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => { if (a === 'floor') setInAuction(houseWalk); }} />
-        </div>
-      )}
-      {inAuction && <Auction houseId={inAuction} onClose={() => setInAuction(null)} />}
+      {/* Walking the streets stays open underneath whatever shop or hall it leads to, so stepping back
+          out of that door returns you to the same street, not all the way out to the town panel. */}
       {inCity && walk && (
         <div className="venue-overlay">
           <Venue def={walk} onLeave={() => setInCity(false)} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
-            setInCity(false);
-            if (a === 'palace') { if (venue?.map) setInVenue(true); else setTab('town'); }
-            else if (a.startsWith('venue:')) { const v = VENUES_1925[a.slice(6)]; setTab('town'); if (v && venueOpen(v, g.day)) setCabaret(v.id); else setNote(`${v?.name ?? 'The hall'} is shuttered. A sign on the door says it opens in 1926.`); }
+            if (a === 'palace') { if (venue?.map) setInVenue(true); else { setInCity(false); setTab('town'); } }
+            else if (a.startsWith('venue:')) {
+              const v = VENUES_1925[a.slice(6)];
+              if (v && venueOpen(v, g.day)) setCabaret(v.id);
+              else { setInCity(false); setTab('town'); setNote(`${v?.name ?? 'The hall'} is shuttered. A sign on the door says it opens in 1926.`); }
+            }
             else if (a.startsWith('house:')) setHouseWalk(a.slice(6));
-            else if (a.startsWith('npc:')) { setTab('town'); setTalkTo(a.slice(4)); }
-            else setTab(a as SetTab);
+            else if (a.startsWith('npc:')) setTalkTo(a.slice(4));
+            else { setInCity(false); setTab(a as SetTab); }
           }} />
         </div>
       )}
+      {houseWalk && (
+        <div className="venue-overlay">
+          <Venue def={auctionVenue(houseWalk)} onLeave={() => setHouseWalk(null)} onExitCity={() => { setHouseWalk(null); setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => { if (a === 'floor') setInAuction(houseWalk); }} />
+        </div>
+      )}
+      {inAuction && <Auction houseId={inAuction} onClose={() => setInAuction(null)} />}
       {inVenue && venue && <div className="venue-overlay"><Venue id={venue.id} onLeave={() => setInVenue(false)} /></div>}
       {cabaret && <div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div>}
       {audience && <AudienceOverlay onDone={() => setAudience(false)} />}

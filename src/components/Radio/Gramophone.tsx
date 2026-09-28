@@ -1,20 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '../../game/audio/engine';
 
-// Friendly titles for tracks whose key doesn't read well title-cased; everything else falls back to that.
+// Friendly titles for the records on offer.
 const LABELS: Record<string, string> = {
-  'khan-bayati': 'Khan, Bayati',
-  'khan-rast': 'Khan, Rast',
-  'khan-kurd': 'Khan, Kurd',
-  'palace-rast': 'At the Palace, Rast',
-  'palace-nahawand': 'At the Palace, Nahawand',
-  'road-hijaz': 'On the Road, Hijaz',
-  'road-bayati': 'On the Road, Bayati',
-  'evening-saba': 'Evening, Saba',
-  'evening-bayati': 'Evening, Bayati',
-  auction: 'The Auction Room',
-  'salon-waltz': 'A Waltz for the Salon',
-  'istanbul-ussak': 'Istanbul, Ussak',
   'title-hijaz': 'Threads of Fortune (Theme)',
   'nightingale-club': 'The Nightingale Club',
   'bu-geceyi-sev': 'Bu Geceyi Sev',
@@ -23,28 +11,35 @@ const LABELS: Record<string, string> = {
   'la-vie-du-levant': 'La Vie du Levant',
 };
 const label = (id: string) => LABELS[id] ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+// The gramophone is a jukebox of finished songs, not every incidental theme cue the score also uses
+// elsewhere (those play on their own as you move around); only offer the tracks named above, in this order.
+const SONG_ORDER = Object.keys(LABELS);
 
-/** The gramophone on the shelf: pick any recording you have collected and it plays through the horn,
- *  ducking whatever ambient theme is already going, the way the radio ducks it for the bulletin. */
+/** The gramophone on the shelf: pick any record you have collected and it plays through the horn.
+ *  The game's own score and ambience go fully quiet while it plays, so the two never overlap, and
+ *  come back once the lid is closed. */
 export function Gramophone({ onClose }: { onClose: () => void }) {
   const [tracks, setTracks] = useState<string[] | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const elRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    fetch('audio/music/tracks.json').then((r) => r.json()).then((m: Record<string, number>) => setTracks(Object.keys(m))).catch(() => setTracks([]));
+    fetch('audio/music/tracks.json')
+      .then((r) => r.json())
+      .then((m: Record<string, number>) => setTracks(SONG_ORDER.filter((id) => id in m)))
+      .catch(() => setTracks([]));
   }, []);
 
-  useEffect(() => () => { elRef.current?.pause(); audio.duckMusic(false); }, []);
+  useEffect(() => () => { elRef.current?.pause(); audio.muteMusic(false); }, []);
 
   const play = (id: string) => {
     audio.sfx('tap');
     audio.ensure();
     if (elRef.current) { elRef.current.pause(); elRef.current = null; }
-    audio.duckMusic(true);
+    audio.muteMusic(true);
     const el = new Audio(`audio/music/${id}.mp3`);
     el.volume = 0.85;
-    el.onended = () => { setPlaying(null); audio.duckMusic(false); };
+    el.onended = () => { setPlaying(null); audio.muteMusic(false); };
     el.play().catch(() => {});
     elRef.current = el;
     setPlaying(id);
@@ -53,7 +48,7 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
     elRef.current?.pause();
     elRef.current = null;
     setPlaying(null);
-    audio.duckMusic(false);
+    audio.muteMusic(false);
   };
 
   return (

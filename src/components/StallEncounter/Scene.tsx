@@ -379,10 +379,21 @@ function StallCat({ onCat, rugOnCounter }: { onCat: () => void; rugOnCounter: bo
  *  stays out of the way of clicks elsewhere on the stage); a small invisible button sized to the
  *  actual horn-and-cabinet, at its measured position in that canvas, is the tap target. */
 function StallGramophone() {
+  const seen = useGame((st) => st.gramoSeen);
   return (
     <>
       <img className="stall-prop stall-gramophone-art" src="art/stall2/props/prop-gramophone.webp" alt="" draggable={false} />
-      <button className="stall-gramophone-hit" aria-label="Play the gramophone" data-testid="stall-gramophone" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new Event('tof:gramophone')); }} />
+      {!seen && <span className="stall-gramophone-hint" aria-hidden="true">♪</span>}
+      <button
+        className="stall-gramophone-hit"
+        aria-label="Play the gramophone"
+        data-testid="stall-gramophone"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!seen) useGame.setState({ gramoSeen: true });
+          window.dispatchEvent(new Event('tof:gramophone'));
+        }}
+      />
     </>
   );
 }
