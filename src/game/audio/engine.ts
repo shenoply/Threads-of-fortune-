@@ -20,10 +20,10 @@ const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.5, sfx: 0.7, amb
 const PLAYLISTS: Record<MusicCtx, string[]> = {
   documentary: ['title-hijaz'],
   stall: ['khan-bayati', 'khan-rast', 'khan-kurd'],
-  evening: ['evening-saba', 'evening-bayati'],
+  evening: ['evening-saba', 'evening-bayati', 'sahil-al-layl'],
   road: ['road-hijaz', 'road-bayati'],
-  town: ['khan-rast', 'khan-kurd', 'khan-bayati'],
-  istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev'],
+  town: ['khan-rast', 'khan-kurd', 'khan-bayati', 'la-vie-du-levant'],
+  istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev', 'larg-nga-malet'],
   palace: ['palace-rast', 'palace-nahawand'],
   'auction-small': ['auction'],
   'auction-grand': ['salon-waltz', 'auction'],
