@@ -1821,7 +1821,7 @@ body.travelling .mission-strip{display:none}
 .scene.stall{background:#120c07;aspect-ratio:780/380}
 .scene.stall .stage{position:absolute;bottom:0}
 .scene.stall .stage-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.scene.stall .hero-at-stall{position:absolute;left:1%;bottom:21%;height:var(--fig-h,50%);aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
+.scene.stall .hero-at-stall{position:absolute;left:2%;aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
 .scene.stall .hero-at-stall .hero-fig{height:100%;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
 .scene.stall img.hero-still{width:auto;object-fit:contain;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
 .scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:22%;top:auto;left:auto;height:var(--fig-h,52%);width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}

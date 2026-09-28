@@ -26,8 +26,9 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   than needed, trousers to the ankle, shoes covering the toes). Run it after adding or repainting
   one of those pieces, then tools/webp.py.
 - The stall scene (src/components/StallEncounter/Scene.tsx) is one painting, art/stall-empty.webp,
-  on a 3:2 stage anchored to the bottom of the frame. The merchant (hero-base-stall, no clothes are
-  painted for this pose yet) stands at the left and the buyer's cut-out (art/portraits/<id>-stall.webp,
+  on a 3:2 stage anchored to the bottom of the frame. The merchant stands at the left in the
+  wardrobe pose, dressed as the player dressed him (only that pose has clothing art), sized so the
+  counter hides him from the waist down; and the buyer's cut-out (art/portraits/<id>-stall.webp,
   drawn flush to its right edge, so it sits flush to the frame) at the right, both behind
   art/counter-stall.webp: the counter cloth plus the folded rug stack, cut from the painting
   (masters in art-src/: stall-empty.png, counter-overlay.png, samira-stall.png). Figure height is
