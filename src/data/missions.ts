@@ -32,8 +32,8 @@ const strengthOf = (troops: Record<string, number>) => 2 + Object.entries(troops
 export const MISSIONS: Record<string, Mission> = {
   alexandria: {
     id: 'alexandria', title: 'Rashid\'s errand in Alexandria', giver: 'Uncle Rashid',
-    brief: 'Rashid will not sell you more than village rugs, or give you a piastre of credit, until you prove you can buy for yourself. "Go to Alexandria. Walk the Souq el-Attarin. Bring me back one rug you chose with your own eyes, and tell me what you paid."',
-    steps: ['Open the World map', 'Travel to Alexandria (the train from Cairo takes about a day)', 'Walk the streets and find the Souq el-Attarin, or open the Market tab', 'Buy any rug in the Alexandria market'],
+    brief: 'Rashid will not sell you more than village rugs, or give you a piastre of credit, until you prove you can buy for yourself. "Go to Alexandria. Walk the Souq el-Attarin, or find its dealers on the Market tab. Choose one rug with your own eyes and pay for it — the seller will send Rashid the receipt, and that is proof enough."',
+    steps: ['Open the World map', 'Travel to Alexandria (the train from Cairo takes about a day)', 'Walk the streets and find the Souq el-Attarin, or open the Market tab', 'Buy any rug in the Alexandria market — the errand is done the moment you pay'],
     target: 'alexandria',
     locks: 'Until then Rashid sells only Common rugs, gives no credit, and your rank cannot rise.',
     reward: { cash: 200, rep: 3, trust: 15, text: 'Rashid reads your receipt twice. "Not bad. Not good, but not bad." He pays you £2 for the errand, opens his back room and his credit book.' },
@@ -41,8 +41,8 @@ export const MISSIONS: Record<string, Mission> = {
   },
   beasts: {
     id: 'beasts', title: 'Beasts of burden', giver: 'Uncle Rashid',
-    brief: 'Rashid has a bale of village rugs waiting at the Tanta market and no one to fetch it. "A merchant who carries everything on his own back is a porter, not a merchant. Buy a donkey or a camel, go to Tanta, bring my bale. Keep two rugs for your trouble."',
-    steps: ['Buy a pack animal at the animal market in Giza (tap the Animals place in the lane)', 'Travel to Tanta with at least two animals', 'Collect the bale at the market (it is a job on the map)'],
+    brief: 'Rashid has a bale of village rugs waiting at the Tanta market and no one to fetch it. "A merchant who carries everything on his own back is a porter, not a merchant. Buy two donkeys or camels, go to Tanta, bring my bale. Keep two rugs for your trouble."',
+    steps: ['Buy two pack animals at any animal market (tap the Animals place in a town, or open the Animals tab)', 'Travel to Tanta with both animals', 'Open the Tanta town panel to collect the bale — it happens as soon as you arrive with two animals, or the moment you buy the second one there'],
     target: 'tanta',
     locks: 'Your rank cannot rise past Bazaar merchant until you can carry stock of your own.',
     reward: { cash: 300, rep: 3, trust: 10, text: 'Rashid counts the bale twice and pays you £3. "You look almost like a merchant now. Almost. The donkey looks more like one than you."' },

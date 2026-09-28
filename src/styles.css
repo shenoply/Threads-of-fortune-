@@ -37,7 +37,7 @@ body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
-button { font: inherit; color: inherit; cursor: pointer; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
 button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 2px; }
 img { max-width: 100%; }
 
@@ -248,7 +248,9 @@ canvas.dust { position: absolute; left: 0; top: 0; width: 1312px; height: 380px;
 .rugcard .thumb { aspect-ratio: 2.35 / 1; width: 100%; overflow: hidden; border-radius: 2px; background: #000; }
 .rugcard .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rugcard .nm { font-family: var(--display); font-size: 13.5px; line-height: 1.15; margin-top: 3px; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rugcard .meta { font-family: var(--label); font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* two lines instead of one hard-truncated line: on a phone-width card this is the difference between
+   "Cairo / Maml…" and actually being able to read where the rug is from */
+.rugcard .meta { font-family: var(--label); font-size: 11px; line-height: 1.25; color: var(--text-dim); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .rugcard.presented { border-color: var(--brass-hi); box-shadow: 0 0 0 1px var(--brass-hi), 0 0 18px rgba(231,189,110,0.35); transform: translateY(-2px); }
 .rugcard .badge { position: absolute; top: 5px; left: 5px; font-family: var(--label); font-size: 11.5px; padding: 0 5px; border-radius: 2px; background: rgba(0,0,0,0.7); color: var(--parchment); }
 .rugcard .paw { position: absolute; top: 4px; right: 5px; width: 20px; height: 20px; border-radius: 50%; background: #e08a2e; display: grid; place-items: center; }
@@ -1842,8 +1844,13 @@ body.travelling .mission-strip{display:none}
 .scene.stall .counter{position:absolute;left:0;bottom:0;width:100%;height:auto;z-index:3;pointer-events:none}
 .scene.stall .split-rug{position:absolute;left:50%;bottom:7%;width:24%;max-width:260px;transform:translateX(-50%) perspective(600px) rotateX(48deg);transform-origin:50% 100%;z-index:4;box-shadow:0 10px 26px rgba(0,0,0,.6);animation:unfold2 .6s ease-out}
 .scene.stall .split-rug img{display:block;width:100%}
-.scene.stall .stall-radio{left:3%;bottom:8%;width:min(11%,105px);z-index:5}
-.scene.stall .stall-paper{left:16%;bottom:9%;width:min(10%,95px);z-index:5}
+/* a small wood ledge fixed to the front rail of the counter, so the radio and paper read as resting
+   on a shelf rather than floating over the hanging cloth below the tabletop */
+.scene.stall .stall-ledge{position:absolute;left:1.5%;bottom:6.5%;width:28%;height:3%;min-height:7px;z-index:4;pointer-events:none;
+  background:linear-gradient(180deg,#8a6a3e 0%,#6b4e2a 55%,#4a3218 100%);border-radius:2px;
+  box-shadow:0 3px 6px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,220,160,.35)}
+.scene.stall .stall-radio{left:3%;bottom:9.3%;width:min(11%,105px);z-index:5}
+.scene.stall .stall-paper{left:16%;bottom:9.3%;width:min(10%,95px);z-index:5}
 /* the daily shelf/wall dressing: each is a full-canvas cut-out already positioned in the painting */
 .scene.stall .stall-prop{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:1;padding:0;border:0;background:none}
 .scene.stall .stall-prop img{display:block;width:100%;height:100%}
@@ -1851,6 +1858,9 @@ body.travelling .mission-strip{display:none}
 .scene.stall .stall-gramophone-art{z-index:1;pointer-events:none}
 .scene.stall .stall-gramophone-hit{position:absolute;left:25.5%;top:22%;width:11%;height:13%;z-index:6;padding:0;border:0;background:none;cursor:pointer}
 .scene.stall .stall-gramophone-hint{position:absolute;left:calc(25.5% + 5.5%);top:19%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#f0b35a;font-size:22px;text-shadow:0 0 8px rgba(240,179,90,.9),0 2px 3px rgba(0,0,0,.6);animation:beckon 1.4s ease-in-out infinite}
+/* once the player has found it, the note stops shouting for attention but still marks the horn as tappable */
+.scene.stall .stall-gramophone-hint.faint{font-size:15px;color:#e8cf9a;text-shadow:0 0 5px rgba(240,179,90,.55),0 1px 2px rgba(0,0,0,.6);animation:gramo-breathe 2.6s ease-in-out infinite;opacity:.75}
+@keyframes gramo-breathe{0%,100%{opacity:.45}50%{opacity:.85}}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
 /* cabarets and music halls: the card in the town, and the evening itself */
 .venue-pic{position:relative}

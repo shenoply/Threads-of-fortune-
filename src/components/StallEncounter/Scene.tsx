@@ -185,6 +185,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
             <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
           </div>
         )}
+        <div className="stall-ledge" aria-hidden="true" />
         <StallRadio />
         <StallPaper />
         <StallCat onCat={onCat} rugOnCounter={!!(rugT && presented)} />
@@ -383,7 +384,10 @@ function StallGramophone() {
   return (
     <>
       <img className="stall-prop stall-gramophone-art" src="art/stall2/props/prop-gramophone.webp" alt="" draggable={false} />
-      {!seen && <span className="stall-gramophone-hint" aria-hidden="true">♪</span>}
+      {/* the first time, a bright pulsing note calls attention to it; after that a small, steady
+       *  note stays put so the horn is never just a picture — the player always has a cue that it
+       *  can be tapped, not only until the hint happens to be seen once. */}
+      <span className={`stall-gramophone-hint ${seen ? 'faint' : ''}`} aria-hidden="true">♪</span>
       <button
         className="stall-gramophone-hit"
         aria-label="Play the gramophone"

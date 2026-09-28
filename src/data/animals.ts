@@ -16,6 +16,11 @@ export interface Breed {
   notes: string[];
 }
 
+// Breed names lead with a nationality/regional adjective ("Egyptian donkey", "Cypriot mule") that stays capitalized
+// mid-sentence in English, so callers should use the name as-is rather than lowercasing it; this just picks the
+// article ("a"/"an") to put in front of it.
+export const withArticle = (name: string) => `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+
 export const BREEDS: Record<string, Breed> = {
   falahi: {
     id: 'falahi', kind: 'camel', name: 'Falahi camel', arabic: 'جمل فلاحي', origin: 'Nile valley and Delta', role: 'Farm and short-haul pack camel',

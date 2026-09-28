@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- maximum-scale/user-scalable=no stop a quick double-tap on a button (the objective banner, a
+     bazaar sign) from being read as the browser's own double-tap-to-zoom gesture, which otherwise
+     zooms the whole page in and leaves it "stuck" there — this is a native app-like map/stall UI,
+     not a document meant to be pinch-zoomed. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Threads of Fortune</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=UnifrakturCook:wght@700&display=swap" />

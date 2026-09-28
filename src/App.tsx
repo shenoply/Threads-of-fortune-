@@ -81,7 +81,10 @@ export default function App() {
     if (!m) return;
     setToast(m);
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(''), Math.max(2600, m.length * 55));
+    // a sale the player did not choose (a visitor buying a rug they packed days ago) is easy to miss
+    // if it flashes by at the usual reading pace, so it gets extra time on screen
+    const money = /\bbuys? your\b|\bbuys? the\b/.test(m);
+    toastTimer.current = window.setTimeout(() => setToast(''), Math.max(money ? 5000 : 2600, m.length * (money ? 85 : 55)));
   };
   const tutorialActive = !g.tutorial.done;
   // the first-day tour points at the button to press next
@@ -125,10 +128,16 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // a customer reached the stall while you were on the map: the sale opens
+  // a customer reached the stall while you were on the map: the sale opens. This overrides
+  // whatever the player just tapped (Map, another tab), which otherwise looks like the button
+  // silently did nothing — so say why, once, rather than just snapping the screen back.
   useEffect(() => {
-    if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.world.at === 'giza') setTab('stall');
-  }, [g.encounter, tab, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.world.at === 'giza') {
+      setTab('stall');
+      toast('A customer has reached your stall — see to them, or step away.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.encounter, tab, phase]);
   // Resume a saved game: bring the next buyer in.
   useEffect(() => {
     // at the stall, a customer who has arrived walks straight up; otherwise the stall waits

@@ -179,7 +179,7 @@ function BreedMarket({ sid, onNote }: { sid: string; onNote: (s: string) => void
       {!sold.length && <p className="set-demand">No animals for sale here, but a dealer will buy yours.</p>}
       <div className="breeds">
         {[...sold, ...owned].map((id) => (
-          <BreedCard key={id} breed={BREEDS[id]} price={animalPrice(sid, id)} have={p.animals[id] ?? 0} cash={g.cash} onBuy={() => onNote(g.trade(id, 1))} onSell={() => onNote(g.trade(id, -1))} />
+          <BreedCard key={id} breed={BREEDS[id]} price={animalPrice(sid, id)} have={p.animals[id] ?? 0} cash={g.cash} onBuy={() => { onNote(g.trade(id, 1)); g.checkJobs(sid); }} onSell={() => onNote(g.trade(id, -1))} />
         ))}
       </div>
     </>

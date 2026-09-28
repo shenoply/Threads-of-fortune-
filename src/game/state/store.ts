@@ -31,7 +31,7 @@ import {
 import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
-import { BREEDS, ANIMAL_MARKETS } from '../../data/animals';
+import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
@@ -616,7 +616,7 @@ export const useGame = create<GameState & Actions>()(
             if (hd >= 2 && animalIds.length && rng() < Math.min(0.6, (hd - 1) * 0.15)) {
               const id = animalIds[Math.floor(rng() * animalIds.length)];
               party.animals = { ...party.animals, [id]: party.animals[id] - 1 };
-              notes.push(`No food for days. Your ${BREEDS[id].name.toLowerCase()} could not go on and had to be left behind.`);
+              notes.push(`No food for days. Your ${BREEDS[id].name} could not go on and had to be left behind.`);
               repBill -= 1;
             }
             if (hd === 1) notes.push('No food left. You are hungry and the caravan is slower.');
@@ -1396,10 +1396,10 @@ export const useGame = create<GameState & Actions>()(
           const rations = 8 + Math.round(b.load / 2);
           set({
             world: { ...s.world, party: { ...s.world.party, animals, food: s.world.party.food + rations, hungryDays: 0 } },
-            journal: [...s.journal, { day: s.day, text: `Butchered your ${b.name.toLowerCase()} for meat. Grim, but it will feed everyone for days.`, kind: 'road' }],
+            journal: [...s.journal, { day: s.day, text: `Butchered your ${b.name} for meat. Grim, but it will feed everyone for days.`, kind: 'road' }],
           });
           audio.sfx('step');
-          return `You butcher the ${b.name.toLowerCase()}. Hard, but it buys you ${rations} days of food.`;
+          return `You butcher the ${b.name}. Hard, but it buys you ${rations} days of food.`;
         },
 
         trade: (breed, delta) => {
@@ -1410,18 +1410,18 @@ export const useGame = create<GameState & Actions>()(
           const price = animalPrice(sid, breed);
           const animals = { ...s.world.party.animals };
           if (delta > 0) {
-            if (!price) return `Nobody sells the ${b.name.toLowerCase()} here.`;
+            if (!price) return `Nobody sells the ${b.name} here.`;
             if (s.cash < price) return 'Not enough cash.';
             animals[breed] = (animals[breed] ?? 0) + 1;
-            set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, animals } }, ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought a ${b.name}`, amount: -price }] });
+            set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, animals } }, ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${withArticle(b.name)}`, amount: -price }] });
             audio.sfx('step');
-            return `You buy a ${b.name.toLowerCase()} for ${fmt(price)}.`;
+            return `You buy ${withArticle(b.name)} for ${fmt(price)}.`;
           }
           if ((animals[breed] ?? 0) <= 0) return '';
           const back = Math.round((price ?? b.price) * 0.6);
           animals[breed] -= 1;
-          set({ cash: s.cash + back, world: { ...s.world, party: { ...s.world.party, animals } }, ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold a ${b.name}`, amount: back }] });
-          return `You sell the ${b.name.toLowerCase()} for ${fmt(back)}.`;
+          set({ cash: s.cash + back, world: { ...s.world, party: { ...s.world.party, animals } }, ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${withArticle(b.name)}`, amount: back }] });
+          return `You sell the ${b.name} for ${fmt(back)}.`;
         },
 
         recruit: (troop, key, n) => {

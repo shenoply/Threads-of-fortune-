@@ -7,7 +7,7 @@ interface Step { id: string; text: (s: S) => string; btn: string; go: Target | '
 
 // The first hour, one step at a time. Each step ticks itself off from what you have actually done.
 const STEPS: Step[] = [
-  { id: 'stall', text: () => 'Open your stall in the Giza lane and serve your first customer.', btn: 'Open the stall', go: 'stall', done: (s) => s.tutorial.done },
+  { id: 'stall', text: () => 'Walk to your stall in the Giza lane, then serve your first customer.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
   { id: 'rashid', text: () => 'Your shelves are thin. Buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
   { id: 'map', text: () => 'Zoom out from the lane until Giza is a dot on the map.', btn: 'Show the map', go: 'map', done: (s) => !!s.onboard?.map },
   { id: 'cairo', text: () => 'Cross the Nile to Cairo. The ferry takes an hour and a half.', btn: 'To the ferry', go: 'cairo', done: (s) => s.world.at === 'cairo' || Object.values(s.whereabouts ?? {}).includes('cairo') },

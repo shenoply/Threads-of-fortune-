@@ -18,7 +18,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         <div>
           <div className="eyebrow">STOCK AND STALL</div>
           <h2>Inventory</h2>
-          <p>{g.inventory.length} rug{g.inventory.length === 1 ? '' : 's'}, {g.inventory.filter((i) => !i.stored).length} packed for the road. Rugs left at the stall do not slow the caravan.</p>
+          <p>{g.inventory.length} rug{g.inventory.length === 1 ? '' : 's'}, {g.inventory.filter((i) => !i.stored).length} packed for the road. Rugs left at the stall do not slow the caravan. Packing and unpacking can only be done at the Giza stall.</p>
         </div>
         {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
       </div>
@@ -52,7 +52,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   {g.world.at === 'giza' ? (
                     <button className="btn" onClick={() => g.toggleStored(i.uid)} data-testid="toggle-stored">{i.stored ? 'Pack for the road' : 'Leave at the stall'}</button>
                   ) : (
-                    <span className="cond">{i.stored ? 'At your stall in Giza' : 'With the caravan'}</span>
+                    <span className="cond">{i.stored ? 'At your stall in Giza · return there to pack it for the road' : 'With the caravan'}</span>
                   )}
                   {r && !i.restoringUntil && (
                     <button className="btn" disabled={g.cash < r.cost} onClick={() => g.restore(i.uid)} data-testid="restore" title={r.label}>

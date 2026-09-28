@@ -61,6 +61,21 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const demandTraits = Object.entries(st.demand).filter(([, v]) => (v ?? 0) > 0).map(([k]) => k);
   const zoom = 3;
 
+  // Re-check jobs and waiting visitors whenever this town's panel opens while you're actually
+  // there — not just on arrival. A job's requirement (an extra pack animal, say) can be met
+  // locally, after arriving short of it, and without this the job silently never becomes
+  // collectible again until the player leaves and re-enters the town.
+  useEffect(() => {
+    if (g.world.at !== id) return;
+    useGame.getState().checkJobs(id);
+    // a waiting visitor's sale (or a job becoming collectible) fires here too, and otherwise only
+    // shows as a toast that can come and go before the player looks up from what they were doing —
+    // put it in the settlement panel's own note as well, where it stays until they dismiss it
+    const jn = useGame.getState().jobNote;
+    if (jn) setNote(jn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   return (
     <div className="overlay settlement" role="dialog" aria-label={st.name} data-testid="settlement">
       {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
@@ -137,7 +152,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               {HAMMAMS[id] && (
                 <div className="mkt-row" data-testid="hammam">
                   <span className="svc-ico"><Icon name="tea" /></span>
-                  <span><b>{HAMMAMS[id].name}</b><small>Wash off the road. Your clothes are {g.attire?.clean >= 70 ? 'clean' : g.attire?.clean >= 35 ? 'dusty' : 'filthy'} ({g.attire?.clean ?? 100}%). Clean clothes mean charisma.</small></span>
+                  <span><b>{HAMMAMS[id].name}</b><small>Wash off the road. Your clothes are {g.attire?.clean >= 70 ? 'clean' : g.attire?.clean >= 35 ? 'dusty' : 'filthy'} ({Math.round(g.attire?.clean ?? 100)}%). Clean clothes mean charisma.</small></span>
                   <button className="btn primary" disabled={g.cash < HAMMAMS[id].cost || (g.attire?.clean ?? 100) >= 100} onClick={() => setNote(g.bathe(id))} data-testid="bathe">Bathe {fmt(HAMMAMS[id].cost)}</button>
                 </div>
               )}

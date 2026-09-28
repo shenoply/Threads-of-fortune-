@@ -197,9 +197,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     }
     const p = planTo(to, st, true);
     if (!p || !p.path) return; // water or no road: the card explains and offers boats and trains
-    // a port or a desert-car route gets you there faster than walking: show the card so that choice
-    // is actually in view, rather than setting off on foot before the player ever sees it
-    if (p.ships.length || p.motor.length) return;
+    // a port, a desert-car route or a railway gets you there faster than walking: show the card so
+    // that choice is in view, rather than pricing a walking-food shortfall for a trip the player is
+    // about to take by train (which has its own, usually much smaller, food needs)
+    if (p.ships.length || p.motor.length || p.train) return;
     // leaving a town short of food: offer to buy what the road needs, in one tap, before setting off
     const need = Math.ceil(Math.max(1, p.days) * dailyFood(w.party)) - w.party.food;
     if (need > 0 && w.at && MARKETS[w.at] && !moving) {
@@ -568,13 +569,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
               <div className="wc-main">
                 <b>{plan.settlement ? plan.settlement.name : isExplored(w.fog, plan.to) ? 'Open country' : 'Unexplored land'}</b>
                 <span>
-                  {plan.days < 0.1 ? 'A short walk' : `${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
+                  {plan.days < 0.1 ? 'A short walk' : `On foot: ${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
                 </span>
               </div>
               <div className="wc-btns">
-                <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
+                {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) ? (
+                  <button className="btn primary sail-btn faster" onClick={() => { const to = plan.settlement!.id as 'giza' | 'cairo'; setReport(g.ferry(to)); setPlan(null); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">⛴ Nile ferry · £0.01 · 1½ h · fastest way there</button>
+                ) : (
+                  <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
+                )}
                 {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) && (
-                  <button className="btn primary" onClick={() => { const to = plan.settlement!.id as 'giza' | 'cairo'; setReport(g.ferry(to)); setPlan(null); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">Nile ferry · 1½ h · £0.01</button>
+                  <button className="btn" onClick={() => start(false)} data-testid="travel">Walk instead · {plan.days.toFixed(1)} d</button>
                 )}
                 {plan.train && <button className="btn" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {plan.train.days < 1 ? `${Math.max(1, Math.round(plan.train.days * 24))} h` : `${plan.train.days.toFixed(1)} d`}</button>}
                 {plan.ships.map((r) => (
