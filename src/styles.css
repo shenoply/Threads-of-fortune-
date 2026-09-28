@@ -1833,9 +1833,9 @@ body.travelling .mission-strip{display:none}
 .scene.stall .counter{position:absolute;left:0;bottom:0;width:100%;height:auto;z-index:3;pointer-events:none}
 .scene.stall .split-rug{position:absolute;left:50%;bottom:7%;width:24%;max-width:260px;transform:translateX(-50%) perspective(600px) rotateX(48deg);transform-origin:50% 100%;z-index:4;box-shadow:0 10px 26px rgba(0,0,0,.6);animation:unfold2 .6s ease-out}
 .scene.stall .split-rug img{display:block;width:100%}
-.scene.stall .stall-radio{left:1%;bottom:2%;width:min(12%,120px);z-index:5}
-.scene.stall .stall-paper{left:15%;bottom:4%;width:min(11%,110px);z-index:5}
-.scene.stall .cat-badge{left:27%;bottom:0;width:min(12%,120px);z-index:5}
+.scene.stall .stall-radio{left:3%;bottom:8%;width:min(11%,105px);z-index:5}
+.scene.stall .stall-paper{left:16%;bottom:9%;width:min(10%,95px);z-index:5}
+.scene.stall .cat-badge{left:29%;bottom:4%;width:min(11%,105px);z-index:5}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
 /* cabarets and music halls: the card in the town, and the evening itself */
 .venue-pic{position:relative}
