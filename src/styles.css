@@ -1835,7 +1835,10 @@ body.travelling .mission-strip{display:none}
 .scene.stall .split-rug img{display:block;width:100%}
 .scene.stall .stall-radio{left:3%;bottom:8%;width:min(11%,105px);z-index:5}
 .scene.stall .stall-paper{left:16%;bottom:9%;width:min(10%,95px);z-index:5}
-.scene.stall .cat-badge{left:64%;bottom:2%;width:min(12%,120px);z-index:5}
+/* the daily shelf/wall dressing: each is a full-canvas cut-out already positioned in the painting */
+.scene.stall .stall-prop{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:1;padding:0;border:0;background:none}
+.scene.stall .stall-prop img{display:block;width:100%;height:100%}
+.scene.stall .stall-prop.stall-cat{z-index:4;pointer-events:auto;cursor:pointer}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
 /* cabarets and music halls: the card in the town, and the evening itself */
 .venue-pic{position:relative}

@@ -16,9 +16,38 @@ import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
 
-const STAGE_IMG = 'art/stall-empty.webp';
+const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
 // lantern flames in each painting, as fractions of the image (see Atmosphere)
 const SELLER_LAMPS = '0.537,0.124;0.412,0.252;0.949,0.287';
+
+// One item per shelf/wall spot, each cut as a full 1536x1024 canvas already positioned in place,
+// so a spot's chosen prop just layers as a full-bleed overlay on the stage. One is picked per spot,
+// per day, deterministically (see dayPick) so the shelves look freshly dressed but stay put all day.
+const PROP_SPOTS: Record<string, string[]> = {
+  'top-left': ['prop-clock', 'prop-lamp'],
+  'top-mid': ['prop-vase', 'prop-photo'],
+  'top-right': ['prop-astrolabe', 'prop-incense'],
+  'mid-left': ['prop-gramophone', 'prop-telephone'],
+  'mid-mid': ['prop-camera', 'prop-tawla'],
+  'bottom-left': ['prop-books', 'prop-cashbox'],
+  'bottom-right': ['prop-hookah', 'prop-copper'],
+  'above-shelves': ['prop-swords', 'prop-calligraphy', 'prop-prayerrug', 'prop-birdcage', 'prop-herbs'],
+  hooks: ['prop-lanterns'],
+};
+const CAT_VARIANTS: Record<string, { hideWhileRugOnCounter?: boolean; replaces?: string }> = {
+  'cat-doorway': {},
+  'cat-counter': { hideWhileRugOnCounter: true },
+  'cat-topshelf': { replaces: 'top-right' },
+  'cat-radio': { replaces: 'mid-mid' },
+};
+const CAT_REPLACES: Record<string, string | undefined> = Object.fromEntries(Object.entries(CAT_VARIANTS).map(([k, v]) => [k, v.replaces]));
+
+/** Deterministic day-seeded pick, so the shelf dressing changes daily but doesn't flicker mid-day. */
+function dayPick<T>(day: number, salt: string, options: T[]): T {
+  let h = day * 2654435761;
+  for (let i = 0; i < salt.length; i++) h = (h * 33 + salt.charCodeAt(i)) >>> 0;
+  return options[h % options.length];
+}
 
 interface SceneProps {
   enc: Encounter | null;
@@ -139,6 +168,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
+        <StallProps />
         {heroReady ? (
           <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfit={outfit} /></div>
         ) : (
@@ -157,7 +187,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
         )}
         <StallRadio />
         <StallPaper />
-        <Saffron onCat={onCat} />
+        <StallCat onCat={onCat} rugOnCounter={!!(rugT && presented)} />
       </div>
       {upgrades.includes('bazaar') && <div className="awning" aria-hidden="true" />}
       <Atmosphere />
@@ -298,27 +328,48 @@ export function BuyerFace({ id, size = 36 }: { id: string; size?: number }) {
   );
 }
 
-/** The buyer across the table: a painted cut-out from art/portraits/<id>-stall.webp if added, otherwise drawn from behind. */
+/** The buyer across the table: the redrawn stall2 cut-out, the older cut-out, or the framed portrait, in that order. */
 function ScenePerson({ id }: { id: string }) {
+  const [v2ok, setV2ok] = useState<boolean | null>(null);
   const [ok, setOk] = useState<boolean | null>(null);
   const [framed, setFramed] = useState<boolean | null>(null);
   return (
     <>
-      {ok === false && framed === false && <PersonBack spec={personFor(id)} className="buyer-art" />}
+      {v2ok === false && ok === false && framed === false && <PersonBack spec={personFor(id)} className="buyer-art" />}
       {/* no cut-out yet: the painted portrait stands in, framed like a photograph on the counter */}
-      {ok === false && framed !== false && <img src={`art/portraits/${id}.jpg`} alt="" className="buyer-framed" style={{ display: framed ? 'block' : 'none' }} onLoad={() => setFramed(true)} onError={() => setFramed(false)} />}
-      <img src={`art/portraits/${id}-stall.webp`} alt="" className="buyer-art" style={{ display: ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setOk(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={(e) => { setOk(false); e.currentTarget.parentElement?.classList.remove('has-photo'); }} />
+      {v2ok === false && ok === false && framed !== false && <img src={`art/portraits/${id}.jpg`} alt="" className="buyer-framed" style={{ display: framed ? 'block' : 'none' }} onLoad={() => setFramed(true)} onError={() => setFramed(false)} />}
+      {v2ok === false && (
+        <img src={`art/portraits/${id}-stall.webp`} alt="" className="buyer-art" style={{ display: ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setOk(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={(e) => { setOk(false); e.currentTarget.parentElement?.classList.remove('has-photo'); }} />
+      )}
+      <img src={`art/portraits/${id}-stall2.webp`} alt="" className="buyer-art" style={{ display: v2ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setV2ok(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={() => setV2ok(false)} />
     </>
   );
 }
 
-/** Saffron lying on the rug at the corner of the counter. Tap her. */
-function Saffron({ onCat }: { onCat: () => void }) {
-  const [ok, setOk] = useState(true);
-  if (!ok) return null;
+/** The daily shelf dressing: one prop per named spot, each a full-canvas cut-out already positioned, so it just layers over the empty stall. */
+function StallProps() {
+  const day = useGame((st) => st.day);
   return (
-    <button className="cat-badge" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
-      <img src="art/saffron-stall.webp" alt="" onError={() => setOk(false)} />
+    <>
+      {Object.entries(PROP_SPOTS).map(([spot, options]) => {
+        if (spot === CAT_REPLACES[dayPick(day, 'cat', Object.keys(CAT_VARIANTS))]) return null;
+        const pick = dayPick(day, spot, options);
+        return <img key={spot} className="stall-prop" src={`art/stall2/props/${pick}.webp`} alt="" draggable={false} />;
+      })}
+    </>
+  );
+}
+
+/** Saffron the cat: one of four daily poses (doorway, counter, top shelf, by the radio), also a full-canvas overlay. Tap her. */
+function StallCat({ onCat, rugOnCounter }: { onCat: () => void; rugOnCounter: boolean }) {
+  const day = useGame((st) => st.day);
+  const [ok, setOk] = useState(true);
+  const variant = dayPick(day, 'cat', Object.keys(CAT_VARIANTS));
+  const rule = CAT_VARIANTS[variant];
+  if (!ok || (rule.hideWhileRugOnCounter && rugOnCounter)) return null;
+  return (
+    <button className="stall-prop stall-cat" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
+      <img src={`art/stall2/props/${variant}.webp`} alt="" onError={() => setOk(false)} />
     </button>
   );
 }

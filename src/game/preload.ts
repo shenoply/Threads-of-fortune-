@@ -32,7 +32,14 @@ export function preload(srcs: string[], soon = false) {
 }
 
 /** A buyer's pictures, at the exact addresses the stall scene asks for. */
-export const buyerArt = (id: string) => [`art/portraits/${id}.jpg`, `art/portraits/${id}-stall.webp`];
+export const buyerArt = (id: string) => [`art/portraits/${id}.jpg`, `art/portraits/${id}-stall.webp`, `art/portraits/${id}-stall2.webp`];
 
-export const STALL_ART = ['art/stall-empty.webp', 'art/counter-stall.webp', 'art/hero/hero-base-stall.webp', 'art/portraits/samira-stall.webp', 'art/saffron-stall.webp', 'art/radio-stall.webp', 'art/newspaper-pov.jpg', 'art/world/giza-district.jpg', 'art/world/stall-top.jpg'];
+const STALL_PROPS = [
+  'prop-clock', 'prop-lamp', 'prop-vase', 'prop-photo', 'prop-astrolabe', 'prop-incense',
+  'prop-gramophone', 'prop-telephone', 'prop-camera', 'prop-tawla', 'prop-books', 'prop-cashbox',
+  'prop-hookah', 'prop-copper', 'prop-swords', 'prop-calligraphy', 'prop-prayerrug', 'prop-birdcage',
+  'prop-herbs', 'prop-lanterns', 'cat-doorway', 'cat-counter', 'cat-topshelf', 'cat-radio',
+].map((p) => `art/stall2/props/${p}.webp`);
+
+export const STALL_ART = ['art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/hero-base-stall.webp', 'art/portraits/samira-stall2.webp', 'art/radio-stall.webp', 'art/newspaper-pov.jpg', 'art/world/giza-district.jpg', 'art/world/stall-top.jpg', ...STALL_PROPS];
 export const CITY_ART = ['alexandria', 'jerusalem', 'damascus', 'amman', 'baghdad', 'istanbul'].map((c) => `art/world/city-${c}.jpg`);

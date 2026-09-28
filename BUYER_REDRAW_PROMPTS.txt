@@ -1,0 +1,76 @@
+THREADS OF FORTUNE - REDRAW THE 15 BUYERS FOR THE NEW STALL
+=============================================================
+
+WHY: the current buyer pictures are cut off at both sides and have their own table painted in.
+The new pictures show each person whole from the waist up, with nothing cut off, so they fit
+the new stall cleanly.
+
+HOW
+- One buyer per message. Attach that buyer's current picture: art/portraits/<id>-stall.png
+  (for example antonios-stall.png). If you don't have it, attach art/portraits/<id>.jpg instead.
+- Paste the MAIN PROMPT below, then that buyer's line from the list.
+- Do Father Antonios first and send him to me. I'll test him on the stall before you do the other 14.
+- Download each result at full size (tap Download; don't send a screenshot).
+- Name the file <id>-stall2.png, e.g. antonios-stall2.png.
+
+
+MAIN PROMPT (paste this every time)
+-----------------------------------
+Redraw the person in the attached image as the SAME person: same face, age, hair, beard,
+clothes, colours, accessories and warm painted style. Only the framing and the pose change.
+
+- Portrait image, 1024 x 1536.
+- Show them from the waist up, standing behind a counter that you do NOT draw: both forearms
+  and hands rest flat or relaxed on an invisible counter top at 80% of the way down the image.
+  Below that line, just continue their clothes to the bottom of the image.
+- The WHOLE person must be inside the picture: both shoulders, both arms, both elbows and both
+  hands clearly inside, with empty space between them and the left and right edges.
+  Nothing touches or is cut by the sides.
+- The top of the head (or hat) sits about 12% down from the top edge.
+- Body turned slightly to the LEFT of the image, face looking toward the left, as if talking to
+  a merchant standing on the left.
+- Warm golden late-afternoon light coming from the upper left.
+- Background: plain flat pure white, nothing else. No table, no rug, no counter, no props on
+  the counter, no floor, no shadow on the background, no text.
+
+
+BUYER LINES (add the right one after the main prompt)
+------------------------------------------------------
+1.  antonios   - Father Antonios, Coptic priest: black hooded robe embroidered with small
+                 crosses, long white beard, holding a carved wooden cross in one hand.
+2.  benakis    - Mr Benakis, Greek cotton broker: cream three-piece linen suit, dark tie, slicked
+                 dark hair, holding a straw boater hat in one hand.
+3.  hassan     - Hassan, coffee-house keeper: striped galabiya, white knitted cap, white towel over
+                 one shoulder, grey beard, amber prayer beads in one hand, big friendly smile.
+4.  hollister  - Mr Hollister, American collector: cream suit, Panama hat with black band, long
+                 white beard, pocket watch on a chain.
+5.  kasparian  - Dr Kasparian, Armenian physician: dark brown suit and waistcoat with watch chain,
+                 red fez, neat moustache; his doctor's bag rests beside his hand (keep the bag).
+6.  kassab     - Selim Kassab, the dealer next door: striped robe over a shirt, gold tie,
+                 moustache, sly grin, one hand open as if making an offer.
+7.  levy       - Madame Levy, store carpet buyer: dark green 1920s dress, long pearl necklace,
+                 short dark waved hair, red lips, small notebook and pencil in her hands.
+8.  mariam     - Mariam, newly married: orange headscarf, green embroidered dress, gold earrings,
+                 gentle expression, hands together.
+9.  martel     - the Comte de Martel, French diplomat: black three-piece suit, white gloves,
+                 small red rosette medal on the lapel, slicked hair, thin moustache.
+10. rustam     - Rustam Isfahani, Persian carpet merchant: tall black astrakhan hat, dark coat
+                 with embroidered border over a light shirt, black beard, holding prayer beads.
+11. salem      - Sheikh Salem, Sinai notable: white keffiyeh with black agal, brown and gold
+                 bisht cloak over a white robe, round spectacles, curved dagger at the belt.
+12. shivakiar  - Princess Shivakiar: pale silver-grey silk 1920s gown, long pearls, drop earrings,
+                 dark waved hair, chin resting lightly on one hand.
+13. wasif      - Wasif Bey Ghali, Coptic advocate: dark suit, red tie, red fez, round spectacles,
+                 grey hair, talking with one hand raised.
+14. whitcombe  - Miss Whitcombe, English governess: cream high-collared blouse with a cameo brooch,
+                 wide-brim straw hat, round spectacles, holding a furled umbrella.
+15. yusuf      - Yusuf, hotel owner: dark suit, red fez, round spectacles, grey moustache,
+                 serious look, one hand slightly raised.
+
+
+IF IT GOES WRONG
+- Cut off at the side: "The person is cut off at the edge. Zoom out so both arms and hands are
+  fully inside the picture with white space on both sides."
+- Table or rug drawn: "Remove the table and rug completely. Plain white background only; the
+  hands rest on an invisible counter."
+- Face changed: "Keep the face exactly as in the attached image."

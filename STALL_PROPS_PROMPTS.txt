@@ -1,0 +1,101 @@
+THREADS OF FORTUNE - PROPS AND CAT FOR THE FINAL STALL
+========================================================
+
+ATTACH: stall-empty.png (the empty stall I sent you) to EVERY message. Nothing else.
+The map picture (prop-spots.jpg) shows where each one goes: yellow = props, blue = the cat.
+Everything sits in the middle of the stall or on the counter, so nothing hides behind the hero
+(left) or the buyer (right).
+
+One prop per message. Paste the START line, then the prop line. Download full size.
+Name each file as in [brackets].
+
+START (paste first every time):
+"Edit the attached image. Add ONLY the object described below, exactly where described, at a
+believable real size for this stall, lit by the same warm sunlight from the upper left, with its
+own small shadow. Change nothing else at all: same stall, same camera, every other pixel the same.
+No people, no animals, no text or letters."
+
+---------------------------------------------------------------
+ALWAYS THERE (tap these in the game)
+---------------------------------------------------------------
+P1  [prop-radio.png]     A 1920s wooden valve radio with a curved top, a round cloth speaker grille
+                         and two brass knobs, standing on the MIDDLE shelf at its RIGHT end.
+P2  [prop-coffee.png]    On the round brass tray table: a brass dallah coffee pot, two small
+                         handleless cups and a little dish of dates.
+P3  [prop-newspaper.png] A folded newspaper (grey columns, no readable letters) lying on the red
+                         floor cushion, one corner hanging over its edge.
+P4  [prop-ledger.png]    A worn leather account book lying open with a brass inkwell and reed pen,
+                         on the counter top at its far LEFT end, near the front edge.
+
+---------------------------------------------------------------
+ANTIQUES YOU BUY (each has its own spot)
+---------------------------------------------------------------
+TOP SHELF
+P5  [prop-clock.png]     An Ottoman brass bracket clock, top shelf, LEFT end.
+P6  [prop-vase.png]      A tall blue-and-white Iznik vase, top shelf, MIDDLE.
+P7  [prop-astrolabe.png] A brass astrolabe on a small stand, top shelf, RIGHT end.
+MIDDLE SHELF
+P8  [prop-gramophone.png] A small table gramophone with a brass horn, middle shelf, LEFT end.
+P9  [prop-camera.png]    A 1920s wooden bellows camera, middle shelf, MIDDLE.
+BOTTOM SHELF
+P10 [prop-books.png]     A row of old leather-bound books with a brass bookend, bottom shelf, LEFT.
+P11 [prop-hookah.png]    An ornate brass-and-glass hookah, bottom shelf, RIGHT.
+WALL AND BEAM
+P12 [prop-swords.png]    Two crossed curved antique swords mounted on the wall ABOVE the top shelf.
+P13 [prop-lanterns.png]  Two pierced-brass lanterns, UNLIT, hanging on the two iron hooks at the top.
+FLOOR AND COUNTER
+P14 [prop-rolls.png]     Four rolled rugs standing upright, leaning against the wooden post between
+                         the shelves and the open view of the pyramids.
+P15 [prop-scale.png]     A small brass hanging balance scale on the counter top, RIGHT part of the
+                         counter, just left of where the open view ends.
+
+---------------------------------------------------------------
+MORE PROPS - second choices for the same spots, plus two new spots
+(the game shows one item per spot; buying a second choice swaps it in)
+---------------------------------------------------------------
+TOP SHELF
+P16 [prop-lamp.png]      A brass kerosene lamp with a glass chimney, top shelf, LEFT end.   (swaps with P5)
+P17 [prop-photo.png]     A framed old sepia photograph of Cairo standing on the top shelf, MIDDLE.  (swaps with P6)
+P18 [prop-incense.png]   A pierced brass incense burner with a thin curl of smoke, top shelf, RIGHT end. (swaps with P7)
+MIDDLE SHELF
+P19 [prop-telephone.png] A 1920s black candlestick telephone, middle shelf, LEFT end.  (swaps with P8)
+P20 [prop-tawla.png]     An inlaid wooden backgammon board, closed, standing on its edge, middle shelf, MIDDLE. (swaps with P9)
+BOTTOM SHELF
+P21 [prop-cashbox.png]   A small mother-of-pearl inlaid cash box, bottom shelf, LEFT.  (swaps with P10)
+P22 [prop-copper.png]    A set of three copper coffee pots of different sizes, bottom shelf, RIGHT. (swaps with P11)
+WALL ABOVE THE SHELVES
+P23 [prop-calligraphy.png] A framed panel of gold calligraphy-style ornament on dark green (no readable
+                         words), on the wall above the top shelf.  (swaps with P12)
+P24 [prop-prayerrug.png] A small silk prayer rug hung on the wall above the top shelf.  (swaps with P12)
+BEAM (NEW SPOT: hanging from the awning beam, between the two iron hooks)
+P25 [prop-birdcage.png]  A domed brass birdcage with a yellow canary, hanging on a chain from the beam
+                         between the two hooks.
+P26 [prop-herbs.png]     Bunches of dried herbs and a string of garlic hanging from the beam between the hooks.
+WOODEN POST (between the shelves and the open view)
+P27 [prop-saddlebags.png] Woven camel saddle bags with tassels hanging on the wooden post.  (swaps with P14)
+FLOOR (NEW SPOT: on the floor just right of the red cushion, in front of the post)
+P28 [prop-zir.png]       A tall clay water jar on a small wooden stand, with a brass cup on top.
+P29 [prop-samovar.png]   A large copper samovar standing on the floor.  (swaps with P28)
+COUNTER
+P30 [prop-teatray.png]   A small brass tray with two glasses of mint tea, on the counter, RIGHT part. (swaps with P15)
+P31 [prop-abacus.png]    A wooden abacus beside a small inlaid cash box, on the counter at its far LEFT end. (swaps with P4)
+
+---------------------------------------------------------------
+SAFFRON THE CAT (attach stall-empty.png AND saffron.jpg)
+---------------------------------------------------------------
+START for the cat:
+"Edit the first attached image. Add ONLY this cat - the ginger tabby with white chest from the second
+image, the real size of a house cat - in the pose and place described. Change nothing else."
+
+C1 [cat-cushion.png]  Curled up asleep on the red floor cushion.
+C2 [cat-shelf.png]    Lying on the BOTTOM shelf, middle, one paw hanging over the edge.
+C3 [cat-doorway.png]  Stretched out asleep in the sun on the floor in the open doorway, in front of
+                      the view of the pyramids.
+C4 [cat-counter.png]  Sitting upright on the counter top, left part, tail hanging over the front.
+C5 [cat-topshelf.png] Sitting on the TOP shelf, right end, licking a paw.
+C6 [cat-radio.png]    Sitting on the MIDDLE shelf just left of the radio spot, ears up.
+
+---------------------------------------------------------------
+Send the first four (P1-P4) and two cats first; I'll test them in the scene before you do the rest.
+If ChatGPT moves anything else in the picture: "You changed the rest of the picture. Start again
+from the attached image and add only the <object>; every other part must stay exactly the same."

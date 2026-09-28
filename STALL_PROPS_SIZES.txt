@@ -1,0 +1,191 @@
+THREADS OF FORTUNE - EXACT SIZES AND PLACES FOR EVERY PROP (for ChatGPT)
+========================================================================
+
+Canvas: the empty stall image, 1536 x 1024 px. x = pixels from the LEFT edge, y = pixels from the TOP edge.
+Box = the area the object should fill (left-right, top-bottom), with % of the image in brackets.
+Scale in this stall: about 4 px per cm at the back wall. For reference: the brass tray table is 235 px wide
+(60 cm), the red cushion 175 px wide (45 cm), the gap between two shelves 135 px (35 cm).
+
+EVERY PROMPT = the START line + the item line.
+START: "Edit the attached image. Add ONLY the object below, exactly in the box given, at the real size given,
+lit by the same warm sunlight from the upper left, with its own small soft shadow. Change nothing else: same
+stall, same camera, every other pixel the same. Keep the image 1536 x 1024. No people, no text."
+
+------------------------------------------------------------------------
+TOP SHELF  (the shelf board top is at y=207 px / 20% down; objects stand ON it)
+------------------------------------------------------------------------
+P5  [prop-clock.png]  Ottoman bracket clock
+    What: Brass bracket clock with a white enamel dial and Arabic numerals, small carved dome on top.
+    Box:  x 392-462, y 112-207   (26-30% across, 11-20% down)  = 70 x 95 px
+    Real size: 30 cm tall, 20 cm wide. Size check: about as tall as three-quarters of the gap between two shelves.
+
+P6  [prop-vase.png]  Iznik vase
+    What: Tall blue-and-white Iznik vase with red tulip and carnation pattern, narrow neck.
+    Box:  x 563-618, y 97-207   (37-40% across, 9-20% down)  = 55 x 110 px
+    Real size: 40 cm tall, 18 cm wide. Size check: a little shorter than the gap between two shelves.
+
+P7  [prop-astrolabe.png]  Astrolabe
+    What: Round brass astrolabe with pierced star plate, standing on a small wooden base.
+    Box:  x 700-782, y 120-207   (46-51% across, 12-20% down)  = 82 x 87 px
+    Real size: 30 cm tall, 25 cm wide. Size check: same height as the clock.
+
+P16  [prop-lamp.png]  Kerosene lamp (swaps with clock)
+    What: Brass kerosene lamp with a clear glass chimney, unlit, round base.
+    Box:  x 400-450, y 100-207   (26-29% across, 10-20% down)  = 50 x 107 px
+    Real size: 40 cm tall. Size check: same spot as the clock.
+
+P17  [prop-photo.png]  Framed Cairo photo (swaps with vase)
+    What: Sepia photograph of a Cairo street in a dark wooden frame, standing on a little easel back.
+    Box:  x 553-628, y 130-207   (36-41% across, 13-20% down)  = 75 x 77 px
+    Real size: 25 x 20 cm. Size check: same spot as the vase.
+
+P18  [prop-incense.png]  Incense burner (swaps with astrolabe)
+    What: Pierced brass incense burner on three short legs, a thin curl of grey smoke rising 15 cm above it.
+    Box:  x 712-772, y 130-207   (46-50% across, 13-20% down)  = 60 x 77 px
+    Real size: 18 cm tall + smoke. Size check: same spot as the astrolabe.
+
+------------------------------------------------------------------------
+MIDDLE SHELF  (shelf board top at y=343 px / 33.5% down)
+------------------------------------------------------------------------
+P8  [prop-gramophone.png]  Table gramophone
+    What: Small wooden box gramophone with a brass flower-shaped horn pointing up and to the right, a black record on it.
+    Box:  x 392-540, y 235-343   (26-35% across, 23-33% down)  = 148 x 108 px
+    Real size: box 30 cm wide, horn 25 cm high. Size check: the horn must stay under the shelf above.
+
+P9  [prop-camera.png]  Bellows camera
+    What: 1920s wooden folding camera with brown leather bellows and a brass lens, facing the viewer.
+    Box:  x 556-636, y 283-343   (36-41% across, 28-33% down)  = 80 x 60 px
+    Real size: 20 cm wide, 15 cm tall. Size check: small, about half the height of the radio.
+
+P19  [prop-telephone.png]  Candlestick telephone (swaps with gramophone)
+    What: Black 1920s candlestick telephone with its earpiece hanging on the hook, cord curled beside it.
+    Box:  x 420-475, y 243-343   (27-31% across, 24-33% down)  = 55 x 100 px
+    Real size: 30 cm tall. Size check: same spot as the gramophone.
+
+P20  [prop-tawla.png]  Backgammon board (swaps with camera)
+    What: Closed inlaid wooden backgammon board with mother-of-pearl pattern, standing on its edge, leaning slightly.
+    Box:  x 552-640, y 268-343   (36-42% across, 26-33% down)  = 88 x 75 px
+    Real size: 45 x 25 cm, standing. Size check: same spot as the camera.
+
+------------------------------------------------------------------------
+BOTTOM SHELF  (shelf board top at y=478 px / 46.7% down)
+------------------------------------------------------------------------
+P10  [prop-books.png]  Old books
+    What: A row of six old leather-bound books in brown, red and green, gold on the spines (no readable letters), with a brass bookend.
+    Box:  x 392-540, y 405-478   (26-35% across, 40-47% down)  = 148 x 73 px
+    Real size: 50 cm long row, 22 cm tall. Size check: books about as tall as half the gap between shelves.
+
+P11  [prop-hookah.png]  Hookah
+    What: Ornate brass hookah with a green glass base, one coiled hose.
+    Box:  x 680-780, y 360-478   (44-51% across, 35-47% down)  = 100 x 118 px
+    Real size: 45 cm tall. Size check: almost touching the shelf above.
+
+P21  [prop-cashbox.png]  Inlaid cash box (swaps with books)
+    What: Small wooden box inlaid with mother-of-pearl, brass lock on the front, lid closed.
+    Box:  x 410-500, y 440-478   (27-33% across, 43-47% down)  = 90 x 38 px
+    Real size: 25 x 12 cm. Size check: same spot as the books.
+
+P22  [prop-copper.png]  Copper coffee pots (swaps with hookah)
+    What: Three copper Turkish coffee pots (cezve) of different sizes in a row, long handles pointing right.
+    Box:  x 660-790, y 432-478   (43-51% across, 42-47% down)  = 130 x 46 px
+    Real size: 10-15 cm tall. Size check: same spot as the hookah.
+
+------------------------------------------------------------------------
+WALL ABOVE THE TOP SHELF  (between the two iron hooks, under the beam)
+------------------------------------------------------------------------
+P12  [prop-swords.png]  Crossed swords
+    What: Two curved antique swords (shamshir) crossed in an X, blades up, mounted on the wall on a small wooden plaque.
+    Box:  x 485-705, y 92-190   (32-46% across, 9-19% down)  = 220 x 98 px
+    Real size: swords 80 cm long. Size check: the X is about half as wide as the shelves.
+
+P23  [prop-calligraphy.png]  Calligraphy-style panel (swaps with swords)
+    What: Framed dark-green panel with gold flowing ornament that looks like calligraphy but has no readable words.
+    Box:  x 510-680, y 100-180   (33-44% across, 10-18% down)  = 170 x 80 px
+    Real size: 60 x 30 cm. Size check: same spot as the swords.
+
+P24  [prop-prayerrug.png]  Hanging prayer rug (swaps with swords)
+    What: Small silk prayer rug with an arch design, hanging from a wooden rod on the wall, fringe at the bottom.
+    Box:  x 525-665, y 88-200   (34-43% across, 9-20% down)  = 140 x 112 px
+    Real size: 60 x 45 cm hanging. Size check: same spot as the swords.
+
+------------------------------------------------------------------------
+HANGING FROM THE AWNING BEAM  (the two iron hooks are at x=455 and x=750 px, rings end at y=90 px)
+------------------------------------------------------------------------
+P13  [prop-lanterns.png]  Two lanterns
+    What: Two pierced-brass Moroccan-style lanterns, UNLIT, one hanging on each iron hook by a short chain.
+    Box:  x 430-480, y 88-190   (28-31% across, 9-19% down)  = 50 x 102 px
+    Real size: each 35 cm tall. Size check: second one at x 725-775, same height.
+
+P25  [prop-birdcage.png]  Birdcage
+    What: Domed brass birdcage with a small yellow canary inside, hanging on a chain from the beam halfway between the hooks.
+    Box:  x 560-660, y 30-165   (36-43% across, 3-16% down)  = 100 x 135 px
+    Real size: 40 cm tall. Size check: hangs lower than the lanterns top, never touches the shelf.
+
+P26  [prop-herbs.png]  Dried herbs and garlic (swaps with birdcage)
+    What: Three bunches of dried herbs and one string of garlic hanging from the beam halfway between the hooks.
+    Box:  x 545-675, y 30-150   (35-44% across, 3-15% down)  = 130 x 120 px
+    Real size: hanging 35 cm. Size check: same spot as the birdcage.
+
+------------------------------------------------------------------------
+WOODEN POST AND FLOOR  (the post is at x=805-840 px; the floor there is at y=700 px)
+------------------------------------------------------------------------
+P14  [prop-rolls.png]  Rolled rugs
+    What: Four rolled rugs standing upright on the floor, leaning against the wooden post, in red, blue and cream.
+    Box:  x 785-885, y 440-705   (51-58% across, 43-69% down)  = 100 x 265 px
+    Real size: rolls 1.1 m tall. Size check: the tops reach about the height of the bottom shelf.
+
+P27  [prop-saddlebags.png]  Camel saddlebags (swaps with rolled rugs)
+    What: A pair of woven camel saddlebags in red and black with long wool tassels, hanging from a peg on the post.
+    Box:  x 780-870, y 300-480   (51-57% across, 29-47% down)  = 90 x 180 px
+    Real size: 70 cm tall. Size check: hanging, bottom well above the floor.
+
+P28  [prop-zir.png]  Clay water jar
+    What: Tall unglazed clay water jar on a small wooden stand, a brass cup on its lid, a dark damp patch at the bottom.
+    Box:  x 800-880, y 450-712   (52-57% across, 44-70% down)  = 80 x 262 px
+    Real size: jar + stand 80 cm. Size check: just right of the red cushion, in front of the post.
+
+P29  [prop-samovar.png]  Samovar (swaps with water jar)
+    What: Large copper samovar with brass handles and a small tap, standing on the floor.
+    Box:  x 800-880, y 500-712   (52-57% across, 49-70% down)  = 80 x 212 px
+    Real size: 60 cm tall. Size check: same spot as the water jar.
+
+------------------------------------------------------------------------
+COUNTER TOP  (the back edge of the counter is at y=768 px; objects stand on the cloth, bottom at about y=790)
+------------------------------------------------------------------------
+P15  [prop-scale.png]  Balance scale
+    What: Small brass hanging balance scale: an upright stand with a beam and two shallow pans.
+    Box:  x 1040-1130, y 650-795   (68-74% across, 63-78% down)  = 90 x 145 px
+    Real size: 35 cm tall. Size check: small, on the right part of the counter.
+
+P30  [prop-teatray.png]  Mint tea tray (swaps with scale)
+    What: Small round brass tray with two tall glasses of mint tea with green leaves.
+    Box:  x 1035-1150, y 735-795   (67-75% across, 72-78% down)  = 115 x 60 px
+    Real size: tray 30 cm across. Size check: same spot as the scale.
+
+P31  [prop-abacus.png]  Abacus and cash box (swaps with ledger)
+    What: Wooden abacus lying flat beside a small inlaid cash box.
+    Box:  x 25-200, y 738-795   (2-13% across, 72-78% down)  = 175 x 57 px
+    Real size: abacus 35 cm long. Size check: at the far LEFT end of the counter, same spot as the ledger.
+
+------------------------------------------------------------------------
+CAT POSES  (attach stall-empty.png AND saffron.jpg; same ginger tabby, house-cat size ~45 cm long)
+------------------------------------------------------------------------
+C3  [cat-doorway.png]  Asleep in the doorway
+    What: Stretched out on her side asleep on the sunny floor in the open doorway, in front of the view of the pyramids.
+    Box:  x 880-1040, y 705-762   (57-68% across, 69-74% down)  = 160 x 57 px
+    Real size: 45 cm long lying. Size check: about as long as the red cushion.
+
+C4  [cat-counter.png]  Sitting on the counter
+    What: Sitting upright on the counter top, left part, facing the viewer, tail hanging over the front edge.
+    Box:  x 235-330, y 660-795   (15-21% across, 64-78% down)  = 95 x 135 px
+    Real size: 30 cm tall sitting. Size check: sits on the counter cloth.
+
+C5  [cat-topshelf.png]  Licking a paw on the top shelf
+    What: Sitting on the TOP shelf at its right end, licking one front paw.
+    Box:  x 690-775, y 125-207   (45-50% across, 12-20% down)  = 85 x 82 px
+    Real size: sitting, fits under the beam. Size check: in place of the astrolabe spot.
+
+C6  [cat-radio.png]  Beside the radio
+    What: Sitting on the MIDDLE shelf just left of the radio, ears up as if listening.
+    Box:  x 560-650, y 255-343   (36-42% across, 25-33% down)  = 90 x 88 px
+    Real size: sitting. Size check: must fit under the top shelf.

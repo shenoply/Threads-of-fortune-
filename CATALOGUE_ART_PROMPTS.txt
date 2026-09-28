@@ -1,0 +1,146 @@
+THREADS OF FORTUNE - THE SHOP CATALOGUE BOOK (prompts for ChatGPT)
+====================================================================
+
+WHAT IT IS
+A printed 1920s trade catalogue, like the mail-order catalogues in Red Dead Redemption 2, but for Cairo:
+"THE LEVANT MERCHANT'S CATALOGUE". Every shop (antique dealer, chemist, tailor, general store, gunsmith)
+is a section with its own coloured ribbon tab. Each page shows items as black-ink engravings in frames,
+with the name, a short line of description and the price underneath. You tap an item to buy it.
+
+HOW WE SPLIT THE WORK
+- ChatGPT paints the BOOK (cover, empty pages, tabs, shop headers) and the ITEM ENGRAVINGS.
+- ALL TEXT is left EMPTY in the pictures. I write names, descriptions and prices in the game in a
+  period typeface, so prices can change and nothing is misspelled.
+- Tailor and gunsmith items use the wardrobe pictures we already have, turned into engravings in code,
+  so they need no new art.
+
+STYLE LINE (put at the end of EVERY prompt):
+"Style: authentic 1920s printed trade catalogue, black-ink steel engraving with fine cross-hatching,
+printed on aged cream paper with slight foxing, no colour except where stated. No text, no letters,
+no numbers anywhere."
+
+
+=====================================================================
+PART 1 - THE BOOK (6 pictures)
+=====================================================================
+
+B1 [book-cover.png]  1024 x 1536 (portrait)
+A closed hardback catalogue lying flat, seen straight from above. Dark green cloth cover, worn at the
+corners, gold-stamped ornamental border with Islamic geometric corners, a large EMPTY gold-bordered
+oval cartouche in the upper middle (I put the title there), and a small gold engraving of a camel caravan
+passing palm trees in the lower middle. Five coloured cloth ribbon tabs stick out of the right edge
+(dark red, ochre, blue, green, black), evenly spaced from top to bottom. Plain dark wood table visible
+only as a thin margin around the book.
+
+B2 [book-spread.png]  1536 x 1024 (landscape)  - THE MOST IMPORTANT ONE, exact layout matters
+The catalogue lying open, seen straight from above, filling the picture, a thin dark wood margin around
+it. Two cream pages with the spine down the exact centre (x = 768).
+Each page has the SAME empty layout:
+ - A thin double-line ornamental border 30 px inside the page edge.
+ - A header band across the top of the page, 110 px tall, with a thin decorative rule above and below;
+   the band is EMPTY (I write the shop name there).
+ - Below it, a grid of 6 item boxes: 2 columns x 3 rows, equal size, with 20 px gaps.
+   Each item box contains: a square frame with a thin double-line border for the picture (the upper
+   two-thirds of the box, EMPTY inside), and under it three faint empty ruled lines for the name and
+   description, and a small empty rectangular price cartouche with rounded ends at the bottom right.
+ - A small empty oval at the bottom centre of each page for the page number.
+Five coloured ribbon tabs (dark red, ochre, blue, green, black) stick out of the right page's edge,
+matching the cover.
+
+B3 [book-spread-header.png]  1536 x 1024
+Exactly the same open book as B2, but the LEFT page has no item grid: instead, the top half of the left
+page is an EMPTY engraved frame for a shop picture, and the bottom half has 10 faint ruled lines (for a
+short introduction text). The right page is the same 6-box grid as B2.
+(This is the first spread of every shop section.)
+
+B4-B8 SHOP HEADER ENGRAVINGS (go inside the empty frame of B3), each 1024 x 640 (landscape)
+B4 [header-antiques.png]  The front of a crowded Cairo antique shop in a narrow lane: brass lanterns,
+   old swords, vases and a gramophone in the window, a mashrabiya balcony above.
+B5 [header-chemist.png]   A 1920s Cairo pharmacy: tall glass jars and bottles on shelves, a marble counter,
+   a pharmacist in a fez weighing powders on brass scales.
+B6 [header-tailor.png]    A tailor's shop: bolts of cloth on shelves, a tailor in waistcoat and fez measuring
+   a customer, a dress form with a jacket, a sewing machine.
+B7 [header-general.png]   A general store in a souk: sacks of coffee, tea, sugar, rope coils, lamps and
+   water skins hanging from the ceiling, a shopkeeper behind scales.
+B8 [header-gunsmith.png]  A gunsmith's workshop: rifles in a rack on the wall, a workbench with tools and
+   a vice, a pistol being cleaned, a curved dagger on a cloth.
+
+B9 [book-tabs.png]  1024 x 1024
+Five separate cloth ribbon bookmarks lying side by side on plain white, straight, each 120 px wide and
+700 px long, in dark red, ochre, blue, green and black, frayed at the bottom end. (I use them as the
+tappable section tabs.)
+
+
+=====================================================================
+PART 2 - ITEM ENGRAVINGS (one picture each)
+=====================================================================
+Every item: 1024 x 1024, the object alone, centred, filling about 70% of the picture, three-quarter view
+from slightly above, on plain flat cream paper with nothing else. Same STYLE LINE as above.
+Paste: "Draw ONE item for the catalogue: <description>." + the STYLE LINE.
+
+ANTIQUE DEALER (these are the stall props; the price is what the player pays)
+A1  [cat-radio.png]        1920s wooden valve radio, curved top, round cloth speaker grille, two knobs.   £12
+A2  [cat-coffee.png]       Brass dallah coffee pot with two small cups and a dish of dates.                £1.50
+A3  [cat-clock.png]        Ottoman brass bracket clock with Arabic-numeral dial.                             £4
+A4  [cat-vase.png]         Tall Iznik vase with tulip and carnation pattern.                                  £6
+A5  [cat-astrolabe.png]    Brass astrolabe on a small wooden stand.                                           £8
+A6  [cat-gramophone.png]   Table gramophone with a brass flower horn.                                         £9
+A7  [cat-camera.png]       Wooden bellows camera with brass lens.                                             £7
+A8  [cat-books.png]        Row of old leather-bound books with a brass bookend.                               £2
+A9  [cat-hookah.png]       Ornate brass hookah with glass base and coiled hose.                               £3
+A10 [cat-swords.png]       Two crossed antique curved swords on a wooden plaque.                              £10
+A11 [cat-lanterns.png]     Pair of pierced-brass lanterns on chains.                                          £2.50
+A12 [cat-rolls.png]        Four rolled rugs standing together.                                                £5
+A13 [cat-scale.png]        Small brass hanging balance scale with two pans.                                   £1.50
+A14 [cat-lamp.png]         Brass kerosene lamp with glass chimney.                                            £1
+A15 [cat-photo.png]        Framed photograph on a small easel (leave the photo blank grey).                   £1
+A16 [cat-incense.png]      Pierced brass incense burner on three legs.                                        £1.50
+A17 [cat-telephone.png]    1920s candlestick telephone.                                                       £11
+A18 [cat-tawla.png]        Inlaid backgammon board, open, with the pieces.                                    £2.50
+A19 [cat-cashbox.png]      Mother-of-pearl inlaid cash box with brass lock.                                   £3
+A20 [cat-copper.png]       Three copper coffee pots of different sizes.                                       £1.20
+A21 [cat-calligraphy.png]  Framed ornamental panel (ornament only, no words).                                 £4
+A22 [cat-prayerrug.png]    Small silk prayer rug hanging on a rod.                                            £6
+A23 [cat-birdcage.png]     Domed brass birdcage with a canary.                                                £2
+A24 [cat-herbs.png]        Bunches of dried herbs and a string of garlic.                                     £0.30
+A25 [cat-saddlebags.png]   Pair of woven camel saddlebags with tassels.                                       £2
+A26 [cat-zir.png]          Clay water jar on a wooden stand with a brass cup.                                 £0.60
+A27 [cat-samovar.png]      Large copper samovar.                                                              £5
+A28 [cat-teatray.png]      Brass tray with two glasses of mint tea.                                           £0.80
+A29 [cat-abacus.png]       Wooden abacus with a small cash box.                                               £1
+A30 [cat-ledger.png]       Leather account book with brass inkwell and reed pen.                              £0.80
+A31 [cat-newspaper.png]    Folded newspaper (a year's subscription).                                          £1
+
+CHEMIST (new shop: these change cleanliness, charisma and health in the game)
+C1  [cat-soap.png]         Bar of Nablus olive-oil soap in paper wrapping.        £0.10   (+clean)
+C2  [cat-rosewater.png]    Glass bottle of rosewater with a sprinkler top.        £0.25   (+charisma for a day)
+C3  [cat-cologne.png]      Bottle of eau de cologne with a paper label (blank).   £0.60   (+charisma)
+C4  [cat-brilliantine.png] Small round tin of hair brilliantine.                  £0.20   (+charisma)
+C5  [cat-shaving.png]      Shaving set: razor, brush and soap bowl.               £0.80   (keeps the beard neat)
+C6  [cat-quinine.png]      Small glass bottle of quinine tablets.                 £0.40   (protects on river journeys)
+C7  [cat-bandage.png]      Roll of bandage and a small tin of ointment.           £0.30   (heals after a fight)
+C8  [cat-kohl.png]         Silver kohl pot with a stick.                          £0.20   (gift for a buyer)
+C9  [cat-attar.png]        Tiny cut-glass bottle of attar perfume oil.            £1.50   (gift for a princess)
+C10 [cat-toothpowder.png]  Tin of tooth powder and a miswak stick.                £0.10   (+clean)
+
+GENERAL STORE (travel supplies for the caravan)
+G1  [cat-waterskin.png]    Goatskin water bag.                                     £0.30
+G2  [cat-rope.png]         Coil of rope.                                           £0.20
+G3  [cat-lampoil.png]      Tin can of lamp oil.                                    £0.15
+G4  [cat-tea.png]          Paper packet of tea and a cone of sugar.                £0.25
+G5  [cat-coffeebeans.png]  Sack of coffee beans.                                   £0.40
+G6  [cat-tobacco.png]      Pouch of tobacco and a pipe.                            £0.30
+G7  [cat-candles.png]      Bundle of candles.                                      £0.10
+G8  [cat-tent.png]         Folded canvas tent with poles.                          £2
+G9  [cat-blanket.png]      Folded wool camel blanket.                              £0.80
+G10 [cat-compass.png]      Brass pocket compass.                                   £1.20
+
+(TAILOR and GUNSMITH: no new art needed. Their items are the wardrobe pieces we already have.)
+
+
+=====================================================================
+ORDER TO DO IT IN
+1. B2 first (the open empty book). Send it to me: I measure the boxes and check the grid is even.
+2. Then B1, B3, B4-B8, B9.
+3. Then the item engravings, one section at a time, starting with the antique dealer.
+Download each at full size and send them back in one zip per section.

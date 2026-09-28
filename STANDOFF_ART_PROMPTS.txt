@@ -1,0 +1,459 @@
+THREADS OF FORTUNE - STANDOFF SCREEN ART (30 prompts)
+The screen when your caravan meets bandits, like Bannerlord: their leader in front with his men behind him on the right; you in front with your men behind you on the left.
+
+HOW THE SCREEN IS BUILT (so it always matches your real party)
+- A backdrop of the place where you are (10, one per battlefield type).
+- YOU: the game uses your wardrobe figure, dressed exactly as you are dressed. No new art needed.
+- Behind you: one figure per troop type you have hired, repeated in rows (up to 6 shown, then "x12").
+  If you have no men, you stand alone.
+- The bandits: their leader in front, his men repeated behind him, as many as the band really has.
+- Back rows are drawn smaller and darker, so it reads as a crowd with depth.
+
+RULES FOR CHATGPT
+- Backdrops: attach stall-seller.jpg for the painting style. Empty ground, no people.
+- Figures: make #11 (guard) FIRST. When you like it, attach it to every other figure prompt and add at the top:
+  "Match the attached figure exactly: same painting style, same light from the upper left, same scale."
+- YOUR men face RIGHT (towards the bandits). BANDITS face LEFT (towards you). Do not mix this up.
+- Transparent background, or plain flat black. I cut them out here.
+- One image per message. Save each with the file name shown.
+- Figures go in public/art/standoff/units/, backdrops in public/art/standoff/.
+
+============================================================
+1. standoff-road.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: a flat gravel desert with a dusty caravan road running away to the horizon, a ruined mud-brick wall far off on the left, thorn bushes.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+2. standoff-dunes.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: rolling golden sand dunes under a hazy sky, a faint caravan track between them.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+3. standoff-oasis.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: a desert oasis: date palms and a low mud-brick garden wall in the middle distance, a stone well, sand around.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+4. standoff-pass.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: a granite wadi in the Sinai: steep red-brown rock walls rising on both sides, boulders on the valley floor.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+5. standoff-nile.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: green Egyptian farmland by the Nile: an irrigation canal, tall sugar cane, date palms, a mud-brick village and a minaret far off.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+6. standoff-ford.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: a muddy river crossing with reeds and tamarisk on both banks, the water in the middle distance, low hills beyond.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+7. standoff-hills.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: rocky Judean hills with dry-stone terraces and old olive trees, a white stone road climbing into the distance.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+8. standoff-basalt.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: the black basalt plateau of the Hawran: dark volcanic boulders in dry yellow grass, the black-stone ruins of a village far off.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+9. standoff-ruins.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: the ruined colonnade of an ancient desert city like Palmyra: broken Roman columns against the sky, fallen stones in the sand.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+10. standoff-mountain.jpg   (Backdrop)
+============================================================
+A wide painted backdrop for the moment two armed parties meet on the road in a game set in 1925.
+
+Scene: a high Taurus mountain pass: grey cliffs, dark pines, patches of old snow, a narrow road winding up.
+View: from standing eye height, looking across the ground, like a stage set. The horizon sits at about 40% from the top.
+The whole lower half is open, flat, walkable ground running from the left edge to the right edge: figures will be placed standing on it later (my party on the left, the other party on the right).
+
+Empty scene: NO people, NO animals, NO camels, NO horses, NO carts, NO text.
+Lighting: late afternoon sun from the upper left, long shadows, a little dust in the air.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+11. guard.png   (Your man)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: an Egyptian caravan guard in a khaki tunic, red tarboosh and bandolier, holding an old Martini rifle.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the RIGHT edge (looking to the right). Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+12. fellah.png   (Your man)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a young Egyptian village lad in a patched brown galabiya and a white skullcap, holding a long wooden staff, a little nervous.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the RIGHT edge (looking to the right). Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+13. veteran.png   (Your man)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a hardened Egyptian veteran of the Great War in a faded khaki army tunic, puttees and a peaked cap, Lee-Enfield rifle held ready.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the RIGHT edge (looking to the right). Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+14. watchman.png   (Your man)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a Giza village watchman in a dark blue galabiya and white turban, holding a staff and a small brass lamp.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the RIGHT edge (looking to the right). Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+15. sentinel.png   (Your man)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a Cairo city sentinel in a dark uniform coat and red tarboosh, a rifle on his shoulder.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the RIGHT edge (looking to the right). Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+16. harbour.png   (Your man)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: an Alexandria harbour watchman in a navy pea coat and flat cap, rifle in hand, a coil of rope at his belt.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the RIGHT edge (looking to the right). Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+17. bedouin.png   (Your rider)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a Bedouin rider in a white keffiyeh and brown cloak on a grey Arabian horse, rifle upright on his thigh.
+Pose: the whole horse and rider seen from the side, three-quarter view, the animal's head pointing to the RIGHT edge. Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+18. desertcaptain.png   (Your rider)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a Bedouin caravan captain in a black cloak edged with gold and a white keffiyeh on a dark bay Arabian horse, sword at his side.
+Pose: the whole horse and rider seen from the side, three-quarter view, the animal's head pointing to the RIGHT edge. Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+19. arnaut.png   (Your rider)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a fierce Albanian Arnaut captain in a white fustanella kilt, red embroidered vest and white felt cap on a black horse, long rifle across the saddle.
+Pose: the whole horse and rider seen from the side, three-quarter view, the animal's head pointing to the RIGHT edge. Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+20. reformed.png   (Your rider)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a former desert raider in a dusty indigo robe and dark head-cloth on a sandy horse, rifle slung, watchful.
+Pose: the whole horse and rider seen from the side, three-quarter view, the animal's head pointing to the RIGHT edge. Standing firm behind his merchant, weapon ready but not raised.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+21. robber-leader.png   (Enemy leader)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: the robber chief: a big bearded man in a black galabiya and brown turban, a curved knife and an old revolver in his sash, one hand raised to demand payment.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the LEFT edge (looking to the left). He is the leader: he stands a step forward, confident and threatening, the one who does the talking.
+Lit from the upper left like the rest of the set.
+He fills about 90% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+22. robber.png   (Enemy)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: an Egyptian highway robber in a dark galabiya with the hem tucked up, face half-wrapped in a cloth, gripping a heavy club.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the LEFT edge (looking to the left). Ready to fight, eyes on his leader.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+23. raider-leader.png   (Enemy leader)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: the raider sheikh on a white camel, black robes with a red sash, rifle held high.
+Pose: the whole camel and rider seen from the side, three-quarter view, the animal's head pointing to the LEFT edge. He is the leader: he stands a step forward, confident and threatening, the one who does the talking.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+24. raider.png   (Enemy)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a desert raider on a camel, dark robes and a black head-cloth, long rifle.
+Pose: the whole camel and rider seen from the side, three-quarter view, the animal's head pointing to the LEFT edge. Ready to fight, eyes on his leader.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+25. thief-leader.png   (Enemy leader)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: the thieves' leader in a dark coat and a red-and-white keffiyeh, revolver pointed at the ground, smiling coldly.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the LEFT edge (looking to the left). He is the leader: he stands a step forward, confident and threatening, the one who does the talking.
+Lit from the upper left like the rest of the set.
+He fills about 90% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+26. thief.png   (Enemy)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a road thief in a striped short coat, baggy trousers and a white head-cloth, holding a knife low.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the LEFT edge (looking to the left). Ready to fight, eyes on his leader.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+27. rebel-leader.png   (Enemy leader)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: the rebel commander in a dark jacket, keffiyeh and agal, binoculars on his chest, one arm raised to halt the caravan.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the LEFT edge (looking to the left). He is the leader: he stands a step forward, confident and threatening, the one who does the talking.
+Lit from the upper left like the rest of the set.
+He fills about 90% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+28. rebel.png   (Enemy)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a Syrian rebel fighter of 1925 in a keffiyeh and a jacket with crossed bandoliers, holding an Ottoman Mauser rifle.
+Pose: one man standing, full length from head to feet, turned three-quarters towards the LEFT edge (looking to the left). Ready to fight, eyes on his leader.
+Lit from the upper left like the rest of the set.
+He fills about 85% of the canvas height, feet near the bottom edge. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: portrait 1024x1536.
+
+============================================================
+29. smuggler-leader.png   (Enemy leader)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: the smuggler boss on a grey horse, heavy sheepskin coat, rifle across the saddle and a pistol belt.
+Pose: the whole horse and rider seen from the side, three-quarter view, the animal's head pointing to the LEFT edge. He is the leader: he stands a step forward, confident and threatening, the one who does the talking.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.
+
+============================================================
+30. smuggler.png   (Enemy)
+============================================================
+One figure for a game's standoff screen, painted to stand on a separate backdrop.
+
+Who: a smuggler on a horse, dark cloak, face wrapped against the sand, rifle across his back and bulging saddlebags.
+Pose: the whole horse and rider seen from the side, three-quarter view, the animal's head pointing to the LEFT edge. Ready to fight, eyes on his leader.
+Lit from the upper left like the rest of the set.
+The animal and rider fill about 90% of the canvas width, feet/hooves at the bottom edge area. Centred.
+
+Only this one figure. No ground, no shadow on the ground, no background, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting in the manner of Jean-Léon Gérôme, warm golden late-afternoon light from the upper left, rich but muted colours, visible brushwork, the same painting style as the attached image.
+Canvas: landscape 1536x1024.

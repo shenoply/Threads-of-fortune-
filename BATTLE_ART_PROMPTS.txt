@@ -1,0 +1,517 @@
+THREADS OF FORTUNE - BATTLE ART PROMPTS (35)
+One prompt per ChatGPT message. Save each image with the file name shown.
+Tokens: make #5 (guard) first, then attach it to every other token prompt and add at the top:
+"Match the attached token exactly: same view, same scale, same painting style."
+Battlefields: attach stall-seller.jpg for the painting style.
+
+============================================================
+1. battle-road.jpg
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a dusty caravan road running from the bottom edge to the top edge through flat gravel desert, with a shallow dry ditch along one side, a few low thorn bushes, scattered stones, and one ruined mud-brick wall section near the left edge that could give cover.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half open and flat: that is where the caravan stops. Leave clear open ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, dune crests, palms) clearly different from open ground.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+2. battle-dunes.jpg
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: rolling sand dunes crossed by a faint caravan track; two large dunes with sharp crests (one on the left, one upper right) that soldiers could hide behind, low hollows between them, wind ripples in the sand.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half open and flat: that is where the caravan stops. Leave clear open ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, dune crests, palms) clearly different from open ground.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+3. battle-oasis.jpg
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a small desert oasis: a round well with a stone rim near the centre, a cluster of date palms and their shadows on one side, a low mud-brick wall around a patch of green, the caravan track passing beside it, open sand around.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half open and flat: that is where the caravan stops. Leave clear open ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, dune crests, palms) clearly different from open ground.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+4. battle-pass.jpg
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a narrow rocky pass: steep boulder-strewn rock on the left and right edges, a stony track winding up the middle, a few large boulders in the open that give cover, a dry stream bed crossing the track.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half open and flat: that is where the caravan stops. Leave clear open ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, dune crests, palms) clearly different from open ground.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+5. guard.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: an Egyptian caravan guard in a khaki tunic, red tarboosh and bandolier, holding an old Martini rifle across his chest. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+6. fellah.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: a young Egyptian village lad in a patched brown galabiya and a white skullcap, holding a long wooden staff. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+7. veteran.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: a hardened Egyptian veteran of the Great War in a faded khaki army tunic and puttees, peaked cap, Lee-Enfield rifle held ready. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+8. watchman.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: a Giza village watchman in a dark blue galabiya and white turban, holding a staff and a small brass lamp. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+9. sentinel.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: a Cairo city sentinel in a dark uniform coat and red tarboosh, carrying a rifle on his shoulder. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+10. harbour.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: an Alexandria harbour watchman in a navy pea coat and flat cap, carrying a rifle and a coil of rope at his belt. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+11. hero.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: the merchant hero: a bald man with a thick dark greying beard, cream linen shirt, brown embroidered vest, loose off-white trousers, a pistol in his hand. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+12. bedouin.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: a Bedouin rider in a white keffiyeh and brown cloak on a grey Arabian horse, rifle held upright. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+13. desertcaptain.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: a Bedouin caravan captain in a black cloak with gold edging and white keffiyeh on a dark bay Arabian horse, sword at his side. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+14. arnaut.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: a fierce Albanian Arnaut captain in a white fustanella kilt, red vest and white felt cap on a black horse, a long rifle across the saddle. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+15. reformed.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: a former desert raider in a dusty indigo robe and dark head-cloth on a sandy-coloured horse, rifle slung. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+16. robber.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: an Egyptian highway robber in a dark galabiya with the hem tucked up, face half-wrapped in a cloth, holding a heavy club. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+17. robber-leader.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: the robber chief: a big man in a black galabiya and brown turban, a curved knife and an old revolver in his sash. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 32% of the canvas width across his shoulders (a little bigger than his men). Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+18. raider.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: a desert raider on a camel, dark robes and a black head-cloth, long rifle. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+19. raider-leader.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: the raider sheikh on a white camel, black robes with a red sash, rifle raised. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+20. thief.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: a road thief in a striped short coat, baggy trousers and a white head-cloth, holding a knife. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+21. thief-leader.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: the thieves' leader in a dark coat and a red-and-white keffiyeh, holding a revolver. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 32% of the canvas width across his shoulders (a little bigger than his men). Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+22. rebel.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: a Syrian rebel fighter in a keffiyeh, a jacket with crossed bandoliers, holding an Ottoman Mauser rifle. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 28% of the canvas width across his shoulders. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+23. rebel-leader.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show one standing man seen from directly above, head at the centre, shoulders left and right, facing the top edge.
+Who: the rebel commander in a dark jacket, keffiyeh and agal, binoculars on his chest, rifle slung. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+Scale: the man fills about 32% of the canvas width across his shoulders (a little bigger than his men). Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+24. smuggler.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: a smuggler on a horse, dark cloak, face wrapped against the sand, rifle across his back and saddlebags. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+25. smuggler-leader.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (a bird's-eye view, not isometric, not from the side). Show a rider on horseback seen from directly above: the horse's head points to the top edge, the rider's head and shoulders in the middle of the horse's back.
+Who: the smuggler boss on a grey horse, heavy sheepskin coat, rifle and a pistol belt. What he wears and carries must be readable from above: the head-covering, the shoulders of the coat, the weapon lying along the arm.
+The horse, from nose to tail, fills about 80% of the canvas height. Centred on the canvas.
+
+Only this one figure. No ground, no shadow on the ground, no base, no ring, no border, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+26. camel.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (bird's-eye view, not isometric). One loaded caravan camel standing, its head pointing to the top edge: the hump in the middle with bundles of rolled rugs and sacks tied on both sides, a woven saddle blanket.
+Scale: the camel from nose to tail fills about 85% of the canvas height. Centred.
+
+Only this one camel. No ground, no shadow, no rider, no ring, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+27. horse.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead (bird's-eye view, not isometric). One saddled horse with no rider, head pointing to the top edge, reins hanging loose.
+Scale: the horse from nose to tail fills about 80% of the canvas height. Centred.
+
+Only this one horse. No ground, no shadow, no rider, no ring, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image. Clear, bold shapes so it reads at a small size on a phone.
+Canvas: square 1024x1024.
+
+============================================================
+28. fallen-light.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead. A man in a pale galabiya lying face down on the ground, one arm stretched out, his cap fallen beside him, a dropped rifle next to him. Not bloody, not gruesome: a painting of a fallen man, as in a 19th-century battle painting.
+Scale: the man fills about 70% of the canvas height. Centred.
+
+Only this one figure and the things he dropped. No ground, no shadow on the ground, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image.
+Canvas: square 1024x1024.
+
+============================================================
+29. fallen-dark.png
+============================================================
+A single game token for a top-down battle map.
+
+View: straight down from directly overhead. A man in dark robes and a dark head-cloth lying on his side on the ground, one knee bent, a dropped curved knife beside him. Not bloody, not gruesome: a painting of a fallen man, as in a 19th-century battle painting.
+Scale: the man fills about 70% of the canvas height. Centred.
+
+Only this one figure and the things he dropped. No ground, no shadow on the ground, no text.
+Background: fully transparent (PNG with alpha). If that is not possible, plain flat black.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted desert colours, painted texture visible, the same painting style as the attached image.
+Canvas: square 1024x1024.
+
+
+############################################################
+MORE BATTLEFIELDS (30-35): the rest of the map
+############################################################
+
+============================================================
+30. battle-nile.jpg   (Nile farmland and canal)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: flat green Egyptian farmland beside the Nile: a straight irrigation canal crossing from left to right with a narrow mud-brick footbridge, fields of sugar cane (tall, gives cover) and low cotton, a raised earth dyke track, a grove of date palms in one corner, the edge of a mud-brick village with two houses at the top edge.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+31. battle-ford.jpg   (River ford)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a slow, muddy river (like the Jordan or the Euphrates) crossing the map from left to right, about a fifth of the map wide, with a shallow sandy ford in the middle where the track crosses, thick reeds and tamarisk bushes along both banks (good cover), a few flat rocks in the water, open ground on both sides.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+32. battle-hills.jpg   (Olive hills)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: rocky Judean hills: a road climbing through a narrow valley from the bottom edge to the top edge, dry-stone terrace walls stepping up the slopes on both sides with old olive trees on them (walls and trees give cover), a stone shepherd's hut, white limestone outcrops.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+33. battle-basalt.jpg   (Basalt plateau)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: the black basalt plateau of the Hawran: dark volcanic boulders scattered across dry yellow grass, the tumbled black-stone walls of a ruined village (good cover), a low rise on one side, a track of pale dust running through the middle.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+34. battle-ruins.jpg   (Desert ruins)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: an ancient ruined city in the Syrian desert like Palmyra: a line of broken Roman columns along an old colonnaded street, fallen column drums and blocks lying in the sand (good cover), the foundations of a small temple, open desert around, a caravan track passing the ruins.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+
+============================================================
+35. battle-mountain.jpg   (Mountain pass)
+============================================================
+A top-down battlefield map for a strategy game, seen straight down from directly overhead (bird's-eye view, like a map, not isometric, no horizon, no sky).
+
+The ground: a high mountain pass in the Taurus: a narrow road winding between steep grey cliffs on both sides, dark pine trees on the slopes, patches of old snow in the shadows, a fast stream beside the road with a small stone bridge, boulders fallen onto the track.
+
+Scale: a man standing would be about 30 pixels across on this canvas and a camel about 70 pixels long, so the whole map covers roughly 250 by 370 metres of ground.
+Keep the middle of the lower half passable and fairly open: that is where the caravan stops. Leave clear ground at the top where the enemy arrives.
+Features must be easy to read from above: cover (walls, rocks, trees, reeds, dune crests) clearly different from open ground; water clearly water.
+
+Empty scene: NO people, NO animals, NO camels, NO carts, NO tents, NO boats, NO text, NO grid, NO borders, NO compass.
+Lighting: late afternoon sun from the upper left, soft long shadows falling to the lower right.
+Style: Orientalist oil painting, warm golden light from the upper left, rich but muted colours, painted texture visible, the same painting style as the attached image, painted like an old campaign map brought to life.
+Canvas: portrait 1024x1536.
+

@@ -1,0 +1,159 @@
+THREADS OF FORTUNE - THE NEW STALL (prompts for ChatGPT)
+=========================================================
+
+HOW THIS WORKS (read once)
+- Everything is built on ONE empty stall picture (#1). No people, no cat, empty shelves.
+- Weather and time of day (#2-#10) are EDITS of #1: same stall, only the light and the sky change.
+- Every prop (radio, coffee table, antiques) and every cat spot is an EDIT of #1 that adds that one
+  thing and changes nothing else. I cut each one out by comparing with #1, so it lines up exactly
+  and can be switched on or off in the game (buy an antique -> it appears on its shelf).
+- The hero stands on the LEFT, buyers stand on the RIGHT, the rug is unrolled on the counter in the
+  CENTRE-BOTTOM. Those three areas are kept clear, so nothing ever clashes with the seller or buyer art.
+- Always use the SAME chat, attach #1 for every edit, and download at full size.
+
+FILE NAMES: save as public/art/stall2/<name> using the name in [brackets].
+
+LAYOUT OF #1 (1536 x 1024, landscape). Percentages are across / down the picture.
+  +--------------------------------------------------------------+
+  | awning beam + lantern hooks (top 12%)                        |
+  |          back wall with 3 EMPTY shelves   | open front:      |
+  | HERO     (30-68% across, 12-55% down)     | street, sky,     |
+  | ZONE                                      | pyramids         |
+  | left     low brass coffee table + cushion |  (weather shows  |
+  | 0-30%    (34-48% across, 48-62% down)     |   here)  BUYER   |
+  | (keep                                     |          ZONE    |
+  | plain)   +-----------------------------+  |        right     |
+  |          | COUNTER (32-68%, 62-100%)   |  |       70-100%    |
+  |          | top surface EMPTY for rugs  |  |   (keep open)    |
+  +--------------------------------------------------------------+
+  Keep the top 8% and bottom 8% free of anything important (the game crops them on wide screens).
+
+
+----------------------------------------------------------------------
+#1  THE EMPTY STALL   [stall-base.jpg]
+----------------------------------------------------------------------
+Painterly realistic illustration, 1920s Giza bazaar, the same warm painted style as the attached
+reference (attach stall-seller.jpg). Landscape 1536x1024. Eye-level view from the lane, looking
+straight into a small rug merchant's stall under a striped canvas awning on wooden poles.
+No people and no animals anywhere in the stall.
+Left third: the stall's side wall with hanging rugs high up, plain rug-covered floor below; keep
+this area uncluttered from knee to head height because a standing man will be placed there.
+Centre back: a whitewashed mud-brick back wall with THREE EMPTY wooden shelves, one above the other,
+between 30% and 68% across and 12% to 55% down. The shelves must be completely empty.
+Centre, in front of the shelves: a low round brass tray table on a folding wooden stand, with one
+red floor cushion beside it; the tray is EMPTY. Place it between 34% and 48% across, 48% to 62% down.
+Centre-bottom foreground: a wide low wooden counter covered in a plain dark cloth, from 32% to 68%
+across and 62% to the bottom; its top surface is EMPTY (rugs will be unrolled on it).
+Right third: the stall opens onto the dusty lane; behind it the busy bazaar in soft focus, palm
+trees and the two pyramids against the sky. Keep the lane in the right third open and empty of
+nearby people (distant blurred crowd only), because a customer will be placed there.
+Top: the awning's front beam with two empty iron lantern hooks. Soft clear midday light,
+gentle shadows under the awning. No text, no signs with letters, no border.
+
+
+----------------------------------------------------------------------
+WEATHER AND TIME OF DAY  (attach #1 each time)
+Start every one with:
+"Edit the attached image. Keep the stall, every object, the camera and the composition exactly the
+same. Change only the light, the sky and the air as follows:"
+----------------------------------------------------------------------
+#2  [stall-morning.jpg]   Early morning: low cool sun from the left, long soft shadows, a light haze
+    over the pyramids, pale blue-gold sky, the lane still quiet.
+#3  [stall-afternoon.jpg] Late afternoon golden hour: warm orange light low from the right, long
+    shadows across the floor, glowing dust in the air.
+#4  [stall-dusk.jpg]      Dusk: sun just set, purple-orange sky, pyramids in silhouette, the stall in
+    blue shade, first lamps glowing in distant stalls.
+#5  [stall-night.jpg]     Night: deep blue sky with stars and a thin moon, the bazaar lit by warm oil
+    lamps in the distance, the stall lit only by a warm glow from the lantern hooks (add two lit
+    brass lanterns on the empty hooks). Strong warm/cool contrast.
+#6  [stall-overcast.jpg]  Overcast winter day: flat grey-white sky, soft even light, no hard shadows,
+    muted colours, the pyramids faded.
+#7  [stall-khamsin.jpg]   Khamsin sandstorm: thick orange-brown dust fills the air, the pyramids almost
+    hidden, the sky a dim ochre, sand drifting across the lane and a thin layer of sand on the
+    counter cloth edges, the awning straining in the wind.
+#8  [stall-rain.jpg]      Rare winter rain: dark grey sky, rain falling in the lane, puddles reflecting
+    the stalls, the awning darkened and dripping at its edge, the stall itself dry.
+#9  [stall-heat.jpg]      Summer noon heatwave: white-hot bleached sky, harsh short shadows, heat shimmer
+    over the lane, colours washed out by the glare.
+#10 [stall-ramadan.jpg]   Ramadan evening: like #4 dusk, but with strings of small coloured paper lanterns
+    (fanous) across the lane and a crescent moon.
+
+
+----------------------------------------------------------------------
+PROPS  (attach #1 each time)
+Start every one with:
+"Edit the attached image. Add ONLY the object described below, exactly where described, at a
+believable size for the stall. Change nothing else: same light, same camera, every other pixel
+the same. No people, no animals."
+----------------------------------------------------------------------
+Always there (the ones you tap in the game):
+#11 [prop-radio.png]      A 1920s wooden valve radio set with a curved top, a round cloth speaker
+    grille and two brass knobs, standing on the MIDDLE shelf, right end (about 55-65% across).
+#12 [prop-coffee.png]     On the empty brass tray table: a brass dallah coffee pot, two small
+    handleless cups and a little dish of dates.
+#13 [prop-newspaper.png]  A folded Arabic-style newspaper (no readable letters, just grey columns)
+    lying on the red cushion beside the tray table, one corner hanging over the edge.
+#14 [prop-ledger.png]     A worn leather account ledger and a brass inkwell with a reed pen lying on
+    the counter top, in the middle of the counter (about 45-55% across).
+
+Antiques you buy (each has its own spot, so any mix fits):
+TOP SHELF (left to right):
+#15 [prop-clock.png]      An Ottoman brass bracket clock with Arabic-numeral dial, top shelf, left end.
+#16 [prop-vase.png]       A tall blue-and-white Iznik vase, top shelf, centre.
+#17 [prop-astrolabe.png]  An antique brass astrolabe on a small stand, top shelf, right end.
+MIDDLE SHELF (left and centre - the radio has the right end):
+#18 [prop-gramophone.png] A small table gramophone with a brass horn, middle shelf, left end.
+#19 [prop-camera.png]     A wooden bellows camera of the 1920s, middle shelf, centre.
+BOTTOM SHELF:
+#20 [prop-books.png]      A row of old leather-bound books with a brass bookend, bottom shelf, left.
+#21 [prop-hookah.png]     An ornate brass-and-glass hookah (nargile), bottom shelf, right.
+BACK WALL, above the shelves:
+#22 [prop-swords.png]     Two crossed antique curved swords (shamshir) mounted on the wall above
+    the top shelf, centre.
+#23 [prop-map.png]        A framed old hand-coloured map of the Levant (no readable writing) hanging
+    on the wall to the right of the shelves.
+HANGING FROM THE AWNING BEAM:
+#24 [prop-birdcage.png]   A domed brass birdcage with a yellow canary, hanging from the beam at about
+    40% across.
+#25 [prop-lanterns.png]   Two ornate pierced-brass lanterns, UNLIT, hanging on the two empty hooks.
+FLOOR, behind the counter (these must stay in the centre, never in the left or right third):
+#26 [prop-samovar.png]    A large copper samovar on the floor under the shelves, just left of the tray table.
+#27 [prop-chest.png]      A small mother-of-pearl inlaid Damascus chest on the floor just right of
+    the red cushion, under the shelves.
+#28 [prop-rolls.png]      A neat pile of four rolled rugs standing upright against the wooden post
+    between the shelves and the open view of the pyramids.
+STALL UPGRADES (bigger changes, same method):
+#29 [prop-mashrabiya.png] A carved wooden mashrabiya screen panel fixed to the upper-left side wall,
+    above head height only.
+#30 [prop-sign.png]       A painted wooden shop board hanging from the awning beam centre, with a
+    rug motif and NO letters (the game writes the stall name on it).
+
+
+----------------------------------------------------------------------
+SAFFRON THE CAT  (attach #1 AND saffron.jpg each time)
+Start every one with:
+"Edit the first attached image. Add ONLY this cat - the ginger tabby with white chest from the second
+attached image, same markings and size of a real house cat - in the pose and place described.
+Change nothing else."
+----------------------------------------------------------------------
+The game picks one of these at random each time you play.
+#31 [cat-shelf.png]    Curled up asleep on the bottom shelf, centre.
+#32 [cat-rolls.png]    Sitting on top of the rolled rugs standing against the post beside the open
+    view, one paw hanging down (the rolls from #28 must be visible in this one).
+#33 [cat-cushion.png]  Sitting upright on the red cushion beside the coffee table, looking at the viewer.
+#34 [cat-counter.png]  Lying on the counter top in the middle (about 45-55% across), tail hanging
+    over the front edge, watching the lane.
+#35 [cat-beam.png]     Lying along the awning beam at the top, one paw dangling, looking down.
+#36 [cat-floor.png]    Asleep in a patch of sun on the floor in the open doorway, just behind the
+    counter, in front of the view of the pyramids.
+#37 [cat-radio.png]    Sitting on the middle shelf next to the radio (the radio from #11 must be
+    visible in this one), ears up as if listening.
+#38 [cat-wash.png]     Sitting on the top shelf, centre, licking a front paw.
+
+
+----------------------------------------------------------------------
+IF CHATGPT MOVES THINGS
+If an edit changes the stall (moves a shelf, changes the light), reply:
+"You changed the rest of the picture. Start again from the attached image and add only the <object>;
+every other part must stay pixel-for-pixel the same."
+Send me the results in any order; I'll cut them out, line them up and test every one before it goes in.
