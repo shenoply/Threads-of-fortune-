@@ -199,7 +199,7 @@ interface Actions {
   ferryToCairo: () => string;
   /** the Nile ferry between Giza and Cairo, an hour and a half either way */
   ferry: (to: 'giza' | 'cairo') => string;
-  sail: (to: string, mode?: 'sea' | 'motor') => string;
+  sail: (to: string, mode?: 'sea' | 'motor', from?: string) => string;
   talk: (npcId: string, effects: string[]) => string;
   /** walk into a cabaret or music hall; notes the visit */
   visitVenue: (id: string) => void;
@@ -1052,9 +1052,12 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('coins');
         },
 
-        sail: (to, mode = 'sea') => {
+        sail: (to, mode = 'sea', fromOverride) => {
           const s = get();
-          const from = s.world.at;
+          // the settlement panel already knows which place's harbour it's showing, so it passes that
+          // place explicitly; other callers (the map's own travel flow) trigger this right at arrival,
+          // when world.at already matches, so the fallback is equivalent for them
+          const from = fromOverride ?? s.world.at;
           const r = from ? (mode === 'motor' ? motorRoutesFrom(from) : seaRoutesFrom(from)).find((x) => x.to === to) : undefined;
           if (!r) return mode === 'motor' ? 'No motor service runs there from here.' : 'No ship sails there from here.';
           if (s.cash < r.fare) return 'You cannot afford the fare.';

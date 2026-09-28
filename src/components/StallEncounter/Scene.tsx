@@ -27,8 +27,7 @@ const PROP_SPOTS: Record<string, string[]> = {
   'top-left': ['prop-clock', 'prop-lamp'],
   'top-mid': ['prop-vase', 'prop-photo'],
   'top-right': ['prop-astrolabe', 'prop-incense'],
-  'mid-left': ['prop-gramophone', 'prop-telephone'],
-  'mid-mid': ['prop-camera', 'prop-tawla'],
+  'mid-mid': ['prop-camera', 'prop-tawla', 'prop-telephone'],
   'bottom-left': ['prop-books', 'prop-cashbox'],
   'bottom-right': ['prop-hookah', 'prop-copper'],
   'above-shelves': ['prop-swords', 'prop-calligraphy', 'prop-prayerrug', 'prop-birdcage', 'prop-herbs'],
@@ -169,6 +168,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         <StallProps />
+        <StallGramophone />
         {heroReady ? (
           <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfit={outfit} /></div>
         ) : (
@@ -371,6 +371,19 @@ function StallCat({ onCat, rugOnCounter }: { onCat: () => void; rugOnCounter: bo
     <button className="stall-prop stall-cat" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
       <img src={`art/stall2/props/${variant}.webp`} alt="" onError={() => setOk(false)} />
     </button>
+  );
+}
+
+/** The gramophone on the shelf, always there. Tap it to pick a record from what you have collected.
+ *  The picture is a full-canvas cut-out like the other props (so it layers in the right place and
+ *  stays out of the way of clicks elsewhere on the stage); a small invisible button sized to the
+ *  actual horn-and-cabinet, at its measured position in that canvas, is the tap target. */
+function StallGramophone() {
+  return (
+    <>
+      <img className="stall-prop stall-gramophone-art" src="art/stall2/props/prop-gramophone.webp" alt="" draggable={false} />
+      <button className="stall-gramophone-hit" aria-label="Play the gramophone" data-testid="stall-gramophone" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new Event('tof:gramophone')); }} />
+    </>
   );
 }
 

@@ -280,7 +280,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               {ships.map((r) => (
                 <div className="mkt-row" key={r.to}>
                   <span><b>{settlementById(r.to).name}</b><small>{r.days} day{r.days > 1 ? 's' : ''} at sea, deck class</small></span>
-                  <button className="btn" disabled={g.cash < r.fare} onClick={() => { const m = g.sail(r.to); setNote(m); onClose(); }} data-testid={`sail-${r.to}`}>Sail · {fmt(r.fare)}</button>
+                  <button className="btn" disabled={g.cash < r.fare} onClick={() => { const m = g.sail(r.to, 'sea', id); setNote(m); if (m.startsWith('You sailed')) onClose(); }} data-testid={`sail-${r.to}`}>Sail · {fmt(r.fare)}</button>
                 </div>
               ))}
             </div>

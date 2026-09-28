@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Newspaper } from './components/Newspaper/Newspaper';
 import { Radio } from './components/Radio/Radio';
+import { Gramophone } from './components/Radio/Gramophone';
 import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
@@ -52,9 +53,10 @@ export default function App() {
   const setPaper = (d: number | null) => { setPaperRaw(d); if (d !== null && !useGame.getState().onboard?.news) useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), news: true } }); };
   const openPaper = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) { useGame.setState({ paperSeen: st.day }); st.passTime(15); } };
   const [radioOpen, setRadioOpen] = useState(false);
+  const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
   // the map clock stops while you read, listen, or look at a menu
-  const frozen = radioOpen || paper !== null || settings || cal || guide || g.dayOver;
+  const frozen = radioOpen || gramophoneOpen || paper !== null || settings || cal || guide || g.dayOver;
   const mapGo = (m: Omit<MapIntent, 'n'>) => { setMapIntent({ ...m, n: Date.now() }); setTab('map'); };
   /** Take the player straight to what a chapter step, or a stall button, asks for. */
   const chapterGo = (t: Target) => {
@@ -96,8 +98,9 @@ export default function App() {
   useEffect(() => {
     const p = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) useGame.setState({ paperSeen: st.day }); };
     const r = () => setRadioOpen(true);
-    window.addEventListener('tof:paper', p); window.addEventListener('tof:radio', r);
-    return () => { window.removeEventListener('tof:paper', p); window.removeEventListener('tof:radio', r); };
+    const gr = () => setGramophoneOpen(true);
+    window.addEventListener('tof:paper', p); window.addEventListener('tof:radio', r); window.addEventListener('tof:gramophone', gr);
+    return () => { window.removeEventListener('tof:paper', p); window.removeEventListener('tof:radio', r); window.removeEventListener('tof:gramophone', gr); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // map jobs speak up when you arrive
   useEffect(() => {
@@ -379,6 +382,7 @@ export default function App() {
 
       {paper !== null && <Newspaper day={paper} onClose={() => setPaper(null)} />}
       {radioOpen && <Radio onClose={() => setRadioOpen(false)} />}
+      {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
       {toastMsg && <div className="toast">{toastMsg}</div>}
     </div>
   );

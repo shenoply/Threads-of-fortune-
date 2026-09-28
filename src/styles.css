@@ -1779,6 +1779,9 @@ body.travelling .mission-strip{display:none}
 .radio-pic img { display: block; width: 100%; height: auto; filter: drop-shadow(0 8px 14px rgba(0,0,0,.55)); transition: filter .6s ease; }
 .radio-pic.on img { filter: drop-shadow(0 8px 14px rgba(0,0,0,.55)) drop-shadow(0 0 14px rgba(255,180,90,.45)); }
 .radio-set .radio-face { margin-top: 6px; background: none; border: 0; padding: 0; }
+/* The gramophone: a scrollable list of records instead of the radio's two stations */
+.gramo-track{display:flex;align-items:center;gap:8px;width:100%;text-align:left;margin-bottom:6px;padding:8px 12px;background:#241608;border:1px solid #4a2f16;color:#e8d3ae;font-size:14.5px}
+.gramo-track.on{border-color:#f0b35a;color:#ffe1a6;box-shadow:0 0 10px rgba(240,179,90,.35)}
 /* the fight from above: a painted field, tokens for the men, the fallen left where they fell */
 .bf{position:relative;width:min(100%,46vh);aspect-ratio:1/1;flex-shrink:0;margin:0 auto;border-radius:12px;overflow:hidden;background-size:cover;background-position:center;border:1px solid #5a3b20;box-shadow:inset 0 0 60px #0008}
 .bf-tok{position:absolute;height:auto;pointer-events:none;transition:top 1.6s ease-in-out;filter:drop-shadow(3px 5px 3px #0007)}
@@ -1839,6 +1842,8 @@ body.travelling .mission-strip{display:none}
 .scene.stall .stall-prop{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:1;padding:0;border:0;background:none}
 .scene.stall .stall-prop img{display:block;width:100%;height:100%}
 .scene.stall .stall-prop.stall-cat{z-index:4;pointer-events:auto;cursor:pointer}
+.scene.stall .stall-gramophone-art{z-index:1;pointer-events:none}
+.scene.stall .stall-gramophone-hit{position:absolute;left:25.5%;top:22%;width:11%;height:13%;z-index:6;padding:0;border:0;background:none;cursor:pointer}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
 /* cabarets and music halls: the card in the town, and the evening itself */
 .venue-pic{position:relative}
