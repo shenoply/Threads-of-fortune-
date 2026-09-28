@@ -896,7 +896,10 @@ export const useGame = create<GameState & Actions>()(
           const journal = leaving ? [...s.journal, { day: startDay, text: `Left ${settlementById(leaving).name} for the road.`, kind: 'depart' }] : s.journal;
           const mounted = Object.values(s.world.party.animals ?? {}).some((n) => (n ?? 0) > 0);
           const g1 = growth(s, { survival: Math.max(1, Math.round(days * 4)), ...(mounted ? { riding: Math.max(1, Math.round(days * 4)) } : {}) });
-          const attire = { ...(s.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 }), clean: Math.max(0, (s.attire?.clean ?? 100) - days * 12) };
+          // rounded to a whole point: this is called every ~140ms while travelling, and leaving it as
+          // a raw float lets tiny fractions of a day pile up into something like 68.5780000000002 by
+          // the time it reaches the screen
+          const attire = { ...(s.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 }), clean: Math.max(0, Math.round((s.attire?.clean ?? 100) - days * 12)) };
           set({ ...patch, ...g1, attire, journal, whereabouts: where, encounter: null, dayOver: false, world: { ...s.world, x: pos.x, y: pos.y, at: null, hour, fog, known, parties } });
           return notes;
         },

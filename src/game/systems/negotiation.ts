@@ -855,12 +855,14 @@ function closeSale(enc: Encounter, ctx: Ctx, price: number) {
   buyerSay(enc, pick(bad ? b.lines.badSale : b.lines.success, ctx.rng), bad ? 'neutral' : 'pleased');
 }
 
+// Short enough that all six fit in one row on a phone without CSS ellipsis chopping them into
+// unreadable fragments ("Disc...", "Obje..."); the stage id, not this label, drives game logic.
 export const STAGES: { id: Stage; label: string }[] = [
-  { id: 'discovery', label: 'Discovery' },
-  { id: 'qualification', label: 'Qualify' },
-  { id: 'presentation', label: 'Present' },
-  { id: 'objection', label: 'Objection' },
-  { id: 'bargaining', label: 'Bargain' },
+  { id: 'discovery', label: 'Meet' },
+  { id: 'qualification', label: 'Ask' },
+  { id: 'presentation', label: 'Show' },
+  { id: 'objection', label: 'Doubt' },
+  { id: 'bargaining', label: 'Haggle' },
   { id: 'close', label: 'Close' },
 ];
 

@@ -33,7 +33,7 @@ export function HeroHub() {
             <div><dt>Cash</dt><dd data-testid="hh-cash">{fmt(g.cash)}</dd></div>
             <div><dt>Reputation</dt><dd>{g.reputation}{next ? <small> / {next.rep}</small> : null}</dd></div>
             <div><dt>Charisma</dt><dd>{ch}</dd></div>
-            <div><dt>Clothes</dt><dd>{clean >= 70 ? 'Clean' : clean >= 35 ? 'Dusty' : 'Filthy'} <small>{clean}%</small></dd></div>
+            <div><dt>Clothes</dt><dd>{clean >= 70 ? 'Clean' : clean >= 35 ? 'Dusty' : 'Filthy'} <small>{Math.round(clean)}%</small></dd></div>
             <div><dt>Day</dt><dd>{g.day}</dd></div>
             <div><dt>Wardrobe</dt><dd>{w.owned.length} pieces <small>{fmt(worth)}</small></dd></div>
           </dl>
