@@ -1,5 +1,6 @@
 node_modules/
 dist/
+test-results/
 tools/.*.mjs
 tests/sim/.sim.mjs
 *.log
