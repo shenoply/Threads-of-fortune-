@@ -277,6 +277,9 @@ export default function App() {
           />
         );
       })()}
+      {phase === 'game' && tutorialActive && !(tab === 'stall' && g.encounter) && (
+        <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
+      )}
       <main style={{ minHeight: 0, display: 'grid' }}>
         {tab === 'stall' && (g.world.at === 'giza' ? (
           !g.encounter && !g.dayOver ? <StallIdle onGo={chapterGo} /> :
@@ -322,9 +325,6 @@ export default function App() {
             Next day
           </button>
         </div>
-      )}
-      {phase === 'game' && tutorialActive && !(tab === 'stall' && g.encounter) && (
-        <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
       )}
       <nav className="nav" aria-label="Screens">
         {(

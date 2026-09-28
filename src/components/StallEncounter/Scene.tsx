@@ -75,9 +75,9 @@ export function Dust() {
 export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: SceneProps) {
   // the hero as the player dressed him, once every piece he wears is painted for the stall
   const outfit = (useGame((st) => st.wardrobe) ?? START_WARDROBE).outfit;
-  // no clothes are painted for the leaning 'stall' pose, so he stands at the counter in the wardrobe
-  // pose, dressed as the player dressed him, with the counter hiding him from the waist down
-  const heroReady = usePoseReady('wardrobe', outfit);
+  // the leaning pose: elbows on the counter, hands open toward the buyer (no clothes are painted for
+  // it yet, so his outfit shows only in the wardrobe and on the character page)
+  const heroReady = usePoseReady('stall', outfit);
   const box = useRef<HTMLDivElement>(null);
   const { w: W, h: H } = useSize(box);
   const buyer = enc ? BUYERS[enc.buyerId] : null;
@@ -131,17 +131,18 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   // figures stand on the counter (a fixed share of the stage) and must keep their heads inside the
   // visible frame, whose height is what a phone or a wide desktop panel actually shows
   const figH = Math.min(sh * 0.55, H * 0.93 - sh * 0.21);
-  // the wardrobe figure: head top at 10% and waist at 51% of its height; the waist goes just under the counter
-  const heroH = Math.min(sh * 1.1, (H * 0.93 - sh * 0.284) / 0.41);
-  const heroStyle = { height: heroH, bottom: sh * 0.27 - heroH * 0.51 };
+  // the leaning figure: hands at 94% of its height rest on the counter top (25% up the stage);
+  // the head (11% down) must stay inside the visible frame
+  const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.25 + 0) / 0.83);
+  const heroStyle = { height: heroH, bottom: sh * 0.25 - heroH * 0.06 };
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         {heroReady ? (
-          <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="wardrobe" outfit={outfit} /></div>
+          <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfit={outfit} /></div>
         ) : (
-          <img className="hero-at-stall hero-still" src="art/hero/hero-base-wardrobe.webp" alt="" draggable={false} style={heroStyle} />
+          <img className="hero-at-stall hero-still" src="art/hero/hero-base-stall.webp" alt="" draggable={false} style={heroStyle} />
         )}
         {buyer && (
           <div className={`buyer-figure has-photo${enc?.outcome ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>

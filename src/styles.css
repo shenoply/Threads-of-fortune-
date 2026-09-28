@@ -1723,7 +1723,7 @@ body.travelling .mission-strip{display:none}
 .atmo-tint { mix-blend-mode: multiply; transition: background-color 4s ease; }
 .atmo-glow { mix-blend-mode: screen; }
 .title-screen .atmo { inset: -4%; }
-.skip-lesson{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:40;padding:7px 14px;border-radius:14px;border:1px solid var(--line-strong);background:#1b110aee;color:var(--parchment);font-family:var(--label);font-size:14px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.skip-lesson{flex:none;align-self:center;margin:2px auto 4px;z-index:40;padding:6px 14px;border-radius:14px;border:1px solid var(--line-strong);background:#1b110aee;color:var(--parchment);font-family:var(--label);font-size:13.5px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .atmo-lamps { mix-blend-mode: screen; transition: opacity 4s ease; }
 .atmo-lamps span { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255,200,125,.75) 0, rgba(255,165,75,.36) 22%, rgba(255,130,40,.12) 45%, transparent 68%); animation: lampFlicker 2.5s ease-in-out infinite; }
 @keyframes lampFlicker { 0%, 100% { opacity: 1; transform: scale(1); } 14% { opacity: .86; transform: scale(.97); } 27% { opacity: .96; } 41% { opacity: .82; transform: scale(.95); } 55% { opacity: 1; transform: scale(1.01); } 70% { opacity: .9; } 84% { opacity: .97; transform: scale(.98); } }
@@ -1821,7 +1821,7 @@ body.travelling .mission-strip{display:none}
 .scene.stall{background:#120c07;aspect-ratio:780/380}
 .scene.stall .stage{position:absolute;bottom:0}
 .scene.stall .stage-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.scene.stall .hero-at-stall{position:absolute;left:2%;aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
+.scene.stall .hero-at-stall{position:absolute;left:0;aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
 .scene.stall .hero-at-stall .hero-fig{height:100%;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
 .scene.stall img.hero-still{width:auto;object-fit:contain;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
 .scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:22%;top:auto;left:auto;height:var(--fig-h,52%);width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}
@@ -1835,7 +1835,7 @@ body.travelling .mission-strip{display:none}
 .scene.stall .split-rug img{display:block;width:100%}
 .scene.stall .stall-radio{left:3%;bottom:8%;width:min(11%,105px);z-index:5}
 .scene.stall .stall-paper{left:16%;bottom:9%;width:min(10%,95px);z-index:5}
-.scene.stall .cat-badge{left:29%;bottom:4%;width:min(11%,105px);z-index:5}
+.scene.stall .cat-badge{left:64%;bottom:2%;width:min(12%,120px);z-index:5}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
 /* cabarets and music halls: the card in the town, and the evening itself */
 .venue-pic{position:relative}
