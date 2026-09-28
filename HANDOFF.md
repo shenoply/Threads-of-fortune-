@@ -32,6 +32,14 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   art/counter-stall.webp: the counter cloth plus the folded rug stack, cut from the painting
   (masters in art-src/: stall-empty.png, counter-overlay.png, samira-stall.png). Figure height is
   set from the visible frame (--fig-h) so heads stay in shot on a phone and a wide desktop panel.
+- Cabarets and music halls: src/data/entertainment.ts (venues, the five fictional contacts, their
+  carpet contracts, the Qamar share), src/components/World/Cabaret.tsx (the evening), cards on the
+  town panel and street POIs (action venue:<id>). A venue with `opens` is locked until that day,
+  read from the saved `day`; nothing about locks is saved. Money is piastres: the Qamar share is
+  2,500 PT (£E25), reputation 25, after its first contract; it pays 60 PT a week in rollover.
+  Art masters in art-src/venues/masters (numbered PNGs from the art pack, with its manifest and
+  notes); `python3 tools/venues.py` writes public/art/venues/<id>/{exterior,interior,show}.webp,
+  the contact portraits and Nadia's stall cut-out. tests/cabaret.mjs plays an evening through.
 - Voices are one MP3 per character (32 kbps CBR, 22.05 kHz). src/game/audio/voice.ts keeps the
   compressed file and decodes each line on its own, cut at an MP3 frame boundary. Never decode a
   whole file with decodeAudioData: half an hour of speech is ~400 MB of samples, and that is what

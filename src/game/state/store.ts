@@ -34,6 +34,7 @@ import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS } from '../../data/animals';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
+import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 
 export const SAVE_VERSION = 13;
@@ -108,6 +109,10 @@ export interface GameState {
   titleNews: string[];
   merchantSeen?: number;
   tipsSeen: string[];
+  /** evenings out: per venue, the last visit, the night a table was paid for, and who was on the bill */
+  venues?: Record<string, { lastVisitDay?: number; showDay?: number; onBill?: string }>;
+  /** buyers met at a table who promised to call at the stall on a given day */
+  appointments?: { buyerId: string; day: number; venue: string }[];
   missionStart?: Record<string, number>;
   lotsSold?: string[];
   /** the hour each of today's customers turns up at the stall */
@@ -196,6 +201,10 @@ interface Actions {
   ferry: (to: 'giza' | 'cairo') => string;
   sail: (to: string, mode?: 'sea' | 'motor') => string;
   talk: (npcId: string, effects: string[]) => string;
+  /** walk into a cabaret or music hall; notes the visit */
+  visitVenue: (id: string) => void;
+  /** pay for a table on a performance night, once a night; returns a line for the player */
+  takeTable: (id: string) => string;
   sellLocal: (uid: string, sid: string) => number;
   buyLocal: (sid: string, key: string) => string;
   partyChoice: (partyId: string, choice: string) => string;
@@ -705,6 +714,11 @@ export const useGame = create<GameState & Actions>()(
             notes.push('You missed a payment to Uncle Rashid. He has told half the Wikala.');
             sup.lastLine = RASHID.debtDue[0].replace('{amount}', String(sup.debt));
           }
+          if (s.upgrades.includes('qamar') && day % 7 === 0) {
+            cash += QAMAR_SHARE.dividend;
+            ledger.push({ day, kind: 'bonus', label: 'Your share of the Qamar\'s door', amount: QAMAR_SHARE.dividend });
+            notes.push(`Nadia sends ${fmt(QAMAR_SHARE.dividend)}: your share of the Qamar's week.`);
+          }
           if (cash < 0) notes.push('You ended the day owing the landlord. Sell something tomorrow.');
           journal.push({ day: s.day, text: `Closed the stall. ${s.dayStats.sales} sale(s), gross profit ${fmt(s.dayStats.gross)}.`, kind: 'stall' });
           // Not everyone comes every day. Someone who bought yesterday is usually busy with it.
@@ -724,6 +738,10 @@ export const useGame = create<GameState & Actions>()(
           const grand = BUYER_ORDER.filter((id) => (BUYER_UNLOCK[id] ?? 0) > s.reputation && (BUYER_UNLOCK[id] ?? 0) >= 15 && !queue.includes(id));
           if (grand.length && rng() < 0.18) queue.push(grand[Math.floor(rng() * grand.length)]);
           queue.sort(() => rng() - 0.5);
+          // someone met at a table last night comes first, as promised
+          const due = (s.appointments ?? []).filter((a) => a.day <= day);
+          for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
+          const appointments = (s.appointments ?? []).filter((a) => a.day > day);
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
           const lane = laneDay(day);
@@ -779,6 +797,7 @@ export const useGame = create<GameState & Actions>()(
             supplier: sup,
             reputation: Math.max(0, reputation + repBill),
             queue,
+            appointments,
             visitIdx: 0,
             dayStats: { sales: 0, revenue: 0, gross: 0, expenses: 0 },
             goals: goalsFor(day, { commission: activeComm?.label, debt: sup.debt, visitors: queue.length }),
@@ -1055,6 +1074,7 @@ export const useGame = create<GameState & Actions>()(
           const ledger = [...s.ledger];
           const journal = [...s.journal];
           let supplier = s.supplier;
+          let upgradesOut = s.upgrades;
           const out: string[] = [];
           for (const e of effects) {
             const [kind, a, b] = e.split(':');
@@ -1097,6 +1117,29 @@ export const useGame = create<GameState & Actions>()(
               rep += q.rep;
               out.push(`${q.title}: +${fmt(q.reward)}, reputation +${q.rep}.`);
               journal.push({ day: s.day, text: `Completed: ${q.title} (+${fmt(q.reward)}).` });
+            } else if (kind === 'deliver' && w.quests[a] === 'active') {
+              // a contracted rug: the cheapest carried piece of the tier asked, paid over its value
+              const tier = Number(b) || 2;
+              const it = inventory.filter((i) => (RUGS[i.typeId]?.tier ?? 1) >= tier && !i.restoringUntil && (!i.stored || s.world.at === 'giza')).sort((x, y) => x.paid - y.paid)[0];
+              if (!it) { out.push('You do not have a rug of that quality with you.'); continue; }
+              const q = QUESTS[a];
+              const pay = Math.max(q.reward, Math.round(it.paid * (tier >= 3 ? 2 : 1.5)));
+              inventory = inventory.filter((i) => i.uid !== it.uid);
+              ledger.push({ day: s.day, kind: 'sale', label: `${RUGS[it.typeId].name}: ${q.title}`, amount: pay, cost: it.paid });
+              w.quests[a] = 'done';
+              cash += pay;
+              rep += q.rep;
+              out.push(`${q.title}: ${fmt(pay)}, reputation +${q.rep}.`);
+              journal.push({ day: s.day, text: `Delivered ${RUGS[it.typeId].name} for ${q.title} (+${fmt(pay)}).`, kind: 'road' });
+            } else if (kind === 'invest' && a === 'qamar') {
+              if (s.upgrades.includes('qamar')) { out.push('You already hold your share.'); continue; }
+              if (rep < QAMAR_SHARE.rep) { out.push(`Nadia wants a partner of standing: reputation ${QAMAR_SHARE.rep} (you have ${rep}).`); continue; }
+              if (cash < QAMAR_SHARE.cost) { out.push(`A quarter share is ${fmt(QAMAR_SHARE.cost)}. You have ${fmt(cash)}.`); continue; }
+              cash -= QAMAR_SHARE.cost;
+              ledger.push({ day: s.day, kind: 'purchase', label: 'A quarter share of the Qamar', amount: -QAMAR_SHARE.cost });
+              journal.push({ day: s.day, text: `Bought a quarter share of the Qamar from Nadia Wahba for ${fmt(QAMAR_SHARE.cost)}.`, kind: 'stall' });
+              upgradesOut = [...s.upgrades, 'qamar'];
+              out.push(`You own a quarter of the Qamar. Nadia pays ${fmt(QAMAR_SHARE.dividend)} a week from the door.`);
             } else if (kind === 'appraise') {
               const it = inventory.find((i) => i.typeId === 'fayoum-hearth' && !w.appraised.includes(i.uid) && !i.stored);
               if (!it) { out.push('Farid has already seen that rug.'); continue; }
@@ -1107,8 +1150,43 @@ export const useGame = create<GameState & Actions>()(
               journal.push({ day: s.day, text: good ? 'Farid documented your father\'s Fayoum Hearth.' : 'Farid judged the Fayoum Hearth a Beni Suef market piece.' });
             }
           }
-          set({ world: w, cash, reputation: Math.max(0, rep), inventory, ledger, journal, supplier });
+          set({ world: w, cash, reputation: Math.max(0, rep), inventory, ledger, journal, supplier, upgrades: upgradesOut });
           return out.join(' ');
+        },
+
+        visitVenue: (id) => {
+          const s = get();
+          const cur = s.venues?.[id] ?? {};
+          if (cur.lastVisitDay === s.day) return;
+          set({ venues: { ...(s.venues ?? {}), [id]: { ...cur, lastVisitDay: s.day } }, journal: cur.lastVisitDay ? s.journal : [...s.journal, { day: s.day, text: `Went to ${VENUES_1925[id].name} for the first time.`, kind: 'road' }] });
+        },
+
+        takeTable: (id) => {
+          const s = get();
+          const v = VENUES_1925[id];
+          if (!v || s.world.at !== v.city) return 'You are not there.';
+          if (!venueOpen(v, s.day)) return `${v.name} has not opened yet.`;
+          const cur = s.venues?.[id] ?? {};
+          if (cur.showDay === s.day) return 'Your table is taken for tonight.';
+          if (s.cash < v.ticket) return `A table is ${fmt(v.ticket)}. You have ${fmt(s.cash)}.`;
+          // who is on: a name from the bill you have earned, otherwise the house company
+          const names = v.performers.filter((p) => BUYERS[p] && (BUYER_UNLOCK[p] ?? 0) <= s.reputation + 10);
+          const onBill = names.length && rng() < 0.5 ? BUYERS[names[Math.floor(rng() * names.length)]].name : v.company;
+          // the next table: now and then someone with money who will call at the stall tomorrow
+          const pool = v.guests.filter((b) => BUYERS[b] && (BUYER_UNLOCK[b] ?? 0) <= s.reputation + 8 && !(s.appointments ?? []).some((a) => a.buyerId === b));
+          const meet = pool.length && rng() < (s.upgrades.includes('qamar') && id === 'qamar' ? 0.6 : 0.4) ? pool[Math.floor(rng() * pool.length)] : null;
+          const journal = [...s.journal, { day: s.day, text: `An evening at ${v.name}: ${onBill}.`, kind: 'road' }];
+          if (meet) journal.push({ day: s.day, text: `Met ${BUYERS[meet].name} at the next table at ${v.name}. They will call at the stall tomorrow.`, kind: 'road' });
+          set({
+            cash: s.cash - v.ticket,
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `A table at ${v.name}`, amount: -v.ticket }],
+            venues: { ...(s.venues ?? {}), [id]: { ...cur, lastVisitDay: s.day, showDay: s.day, onBill } },
+            appointments: meet ? [...(s.appointments ?? []), { buyerId: meet, day: s.day + 1, venue: id }] : s.appointments,
+            world: { ...s.world, hour: Math.min(23.9, Math.max(s.world.hour, 20) + 2) },
+            journal,
+          });
+          const bill = onBill.charAt(0).toUpperCase() + onBill.slice(1);
+          return `You take a table. ${bill} tonight.${meet ? ` At the next table sits ${BUYERS[meet].name}, who takes your card and promises to call at the stall tomorrow.` : ''}`;
         },
 
         sellLocal: (uid, sid) => {

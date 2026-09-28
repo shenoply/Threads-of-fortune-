@@ -1,0 +1,698 @@
+{
+  "schemaVersion": 1,
+  "status": "all_22_original_png_masters_generated",
+  "game": "Threads of Fortune",
+  "codeReference": "d865123",
+  "datePrepared": "2026-09-28",
+  "sourceBasis": "User-supplied Claude handoff plus targeted read-only code/reference-image inspection.",
+  "imageCount": 22,
+  "calendar": {
+    "startDate": "1925-03-10",
+    "startDay": 1,
+    "salaBadiaUnlockDay": 298,
+    "salaBadiaUnlockDate": "1926-01-01",
+    "unlockDateMeaning": "Year-based game convention, not a verified exact historical opening date.",
+    "calendarHas1926HardStop": false
+  },
+  "generation": {
+    "oneImagePerAction": true,
+    "masterFormat": "PNG",
+    "interiorAspect": "3:2",
+    "exteriorAspect": "2:1",
+    "portraitAspect": "1:1",
+    "standingAspect": "2:3",
+    "interiorCriticalXPercent": [
+      35,
+      65
+    ],
+    "historicalExactLayoutsVerified": false,
+    "generator": "ChatGPT image generation",
+    "deployedExportsCreated": false,
+    "finalPngCount": 22,
+    "referencePack": "cabaret-refpack.zip supplied by the user"
+  },
+  "venues": [
+    {
+      "id": "alhambra-cairo",
+      "name": "Alhambra Casino",
+      "city": "cairo",
+      "street": "Bab al-Bahri Street, Ezbekiyya",
+      "kind": "cabaret",
+      "contact": "farid-nassar",
+      "contactName": "Farid Nassar",
+      "role": "bookings manager",
+      "history": "Naima al-Masriyya performed at this Cairo venue during the 1920s. Its founding year is not established here.",
+      "since": null,
+      "openingYear": null,
+      "unlockYear": 1925,
+      "startAvailable": true,
+      "source": "https://apollo-magazine.com/roaring-twenties-cairo/"
+    },
+    {
+      "id": "qamar",
+      "name": "The Qamar",
+      "city": "cairo",
+      "street": "A fictional address on Emad al-Din Street",
+      "kind": "music hall",
+      "contact": "nadia-wahba",
+      "contactName": "Nadia Wahba",
+      "role": "proprietor and former singer",
+      "history": "An original fictional music hall created for the game. Its 1925 availability and investment storyline are design choices.",
+      "since": null,
+      "openingYear": null,
+      "unlockYear": 1925,
+      "startAvailable": true,
+      "source": null
+    },
+    {
+      "id": "sala-badia",
+      "name": "Sala Badia",
+      "city": "cairo",
+      "street": "Emad al-Din Street",
+      "kind": "cabaret",
+      "contact": "salma-farid",
+      "contactName": "Salma Farid",
+      "role": "front-of-house and programme coordinator",
+      "history": "Badia Masabni opened her first sala in 1926. The initial programme emphasised singing and acting; additional dancers followed in 1927.",
+      "since": null,
+      "openingYear": 1926,
+      "unlockYear": 1926,
+      "startAvailable": false,
+      "source": "https://www.gildedserpent.com/cms/2013/01/10/from-cafe-chantant-to-casino-opera/"
+    },
+    {
+      "id": "sala-santi",
+      "name": "Sala Santi",
+      "city": "cairo",
+      "street": "Ezbekiyya Gardens",
+      "kind": "music hall",
+      "contact": "youssef-hanna",
+      "contactName": "Youssef Hanna",
+      "role": "hall administrator",
+      "history": "A performance hall in Ezbekiyya Gardens. A July 1925 newspaper advertisement announced an upcoming appearance by Umm Kulthum; this does not establish a permanent residency.",
+      "since": null,
+      "openingYear": null,
+      "unlockYear": 1925,
+      "startAvailable": true,
+      "source": "https://www.gildedserpent.com/cms/2013/01/10/from-cafe-chantant-to-casino-opera/"
+    },
+    {
+      "id": "maxim-istanbul",
+      "name": "Maxim",
+      "city": "istanbul",
+      "street": "Taksim, beginning of Sıraselviler Caddesi, beneath the Majik Cinema",
+      "kind": "cabaret",
+      "contact": "kemal-arslan",
+      "contactName": "Kemal Arslan",
+      "role": "bandleader and booking contact",
+      "history": "Frederick Bruce Thomas founded Maxim in 1921. The venue offered jazz, dancing and variety entertainment, including documented 1925 acts.",
+      "since": "Since 1921",
+      "openingYear": 1921,
+      "unlockYear": 1925,
+      "startAvailable": true,
+      "source": "https://gokhanakcura.blogspot.com/2014/03/istanbulda-bir-siyah-rus-yllar-once.html"
+    }
+  ],
+  "assets": [
+    {
+      "number": 1,
+      "venueId": "alhambra-cairo",
+      "role": "interior",
+      "downloadName": "01-alhambra-cairo-interior.png",
+      "masterPath": "art-src/venues/alhambra-cairo/interior.png",
+      "deployedPath": "public/art/venues/alhambra-cairo/interior.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "references/ref-style-stall-samira-v2.jpg",
+        "references/ref-interior-alexandria-grand.webp"
+      ],
+      "generatedMaster": {
+        "path": "masters/01-alhambra-cairo-interior.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2871334,
+        "sha256": "ce2337bb13d7f27e311d3070a2d0f8317698c628f94c9cf5fdb8cce1b4de834a"
+      }
+    },
+    {
+      "number": 2,
+      "venueId": "alhambra-cairo",
+      "role": "show",
+      "downloadName": "02-alhambra-cairo-show.png",
+      "masterPath": "art-src/venues/alhambra-cairo/show.png",
+      "deployedPath": "public/art/venues/alhambra-cairo/show.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "01-alhambra-cairo-interior.png"
+      ],
+      "generatedMaster": {
+        "path": "masters/02-alhambra-cairo-show.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2470335,
+        "sha256": "fb78a6b2f27f0ba53bcf152d520ee0e456fad815743eb3aae14ddae42831ad91"
+      }
+    },
+    {
+      "number": 3,
+      "venueId": "alhambra-cairo",
+      "role": "exterior",
+      "downloadName": "03-alhambra-cairo-exterior.png",
+      "masterPath": "art-src/venues/alhambra-cairo/exterior.png",
+      "deployedPath": "public/art/venues/alhambra-cairo/exterior.webp",
+      "targetWidth": 1600,
+      "targetHeight": 800,
+      "alpha": false,
+      "references": [
+        "01-alhambra-cairo-interior.png",
+        "references/ref-exterior-abdeen.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/03-alhambra-cairo-exterior.png",
+        "width": 1774,
+        "height": 887,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2673357,
+        "sha256": "336ac42fb8f5ab7333c61ea7b77ce0349d94b1729bf030f128d241105c4f875f"
+      }
+    },
+    {
+      "number": 4,
+      "venueId": "alhambra-cairo",
+      "role": "contact",
+      "downloadName": "04-farid-nassar-portrait.png",
+      "masterPath": "art-src/venues/alhambra-cairo/farid-nassar-portrait.png",
+      "deployedPath": "public/art/portraits/farid-nassar.jpg",
+      "targetWidth": 512,
+      "targetHeight": 512,
+      "alpha": false,
+      "references": [
+        "references/ref-portrait-rashid.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/04-farid-nassar-portrait.png",
+        "width": 1254,
+        "height": 1254,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2050860,
+        "sha256": "8e6f8dbd98f4e8265aea2d14202e002273beb9e8225f299590fd93ba94178900"
+      }
+    },
+    {
+      "number": 5,
+      "venueId": "qamar",
+      "role": "interior",
+      "downloadName": "05-qamar-interior.png",
+      "masterPath": "art-src/venues/qamar/interior.png",
+      "deployedPath": "public/art/venues/qamar/interior.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "references/ref-style-stall-samira-v2.jpg",
+        "references/ref-interior-alexandria-grand.webp"
+      ],
+      "generatedMaster": {
+        "path": "masters/05-qamar-interior.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2785966,
+        "sha256": "642a8af6fda91605c56d337f3431699a9fa9698b4eccf0b96c57d36214a0acd8"
+      }
+    },
+    {
+      "number": 6,
+      "venueId": "qamar",
+      "role": "show",
+      "downloadName": "06-qamar-show.png",
+      "masterPath": "art-src/venues/qamar/show.png",
+      "deployedPath": "public/art/venues/qamar/show.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "05-qamar-interior.png"
+      ],
+      "generatedMaster": {
+        "path": "masters/06-qamar-show.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2574786,
+        "sha256": "f3a4a654804ebd869a383601d426e622376518faba4685ffca4e6b9b44a8e291"
+      }
+    },
+    {
+      "number": 7,
+      "venueId": "qamar",
+      "role": "exterior",
+      "downloadName": "07-qamar-exterior.png",
+      "masterPath": "art-src/venues/qamar/exterior.png",
+      "deployedPath": "public/art/venues/qamar/exterior.webp",
+      "targetWidth": 1600,
+      "targetHeight": 800,
+      "alpha": false,
+      "references": [
+        "05-qamar-interior.png",
+        "references/ref-exterior-abdeen.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/07-qamar-exterior.png",
+        "width": 1774,
+        "height": 887,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2825461,
+        "sha256": "ba67c5dc95605835f934769b5c7bcf09d304136db11c911ea900b4bcc68fabe1"
+      }
+    },
+    {
+      "number": 8,
+      "venueId": "qamar",
+      "role": "contact",
+      "downloadName": "08-nadia-wahba-portrait.png",
+      "masterPath": "art-src/venues/qamar/nadia-wahba-portrait.png",
+      "deployedPath": "public/art/portraits/nadia-wahba.jpg",
+      "targetWidth": 512,
+      "targetHeight": 512,
+      "alpha": false,
+      "references": [
+        "references/ref-portrait-samira.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/08-nadia-wahba-portrait.png",
+        "width": 1254,
+        "height": 1254,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2071207,
+        "sha256": "9fe4fd1553388090f3b2c9caab9b12251db0c293b670e6d38096b4e1cfaae38e"
+      }
+    },
+    {
+      "number": 9,
+      "venueId": "qamar",
+      "role": "stall-figure",
+      "downloadName": "09-nadia-wahba-stall.png",
+      "masterPath": "art-src/venues/qamar/nadia-wahba-stall.png",
+      "deployedPath": "public/art/portraits/nadia-wahba-stall.webp",
+      "targetWidth": 655,
+      "targetHeight": 983,
+      "alpha": true,
+      "references": [
+        "08-nadia-wahba-portrait.png",
+        "references/ref-cutout-antonios.webp"
+      ],
+      "generatedMaster": {
+        "path": "masters/09-nadia-wahba-stall.png",
+        "width": 1024,
+        "height": 1536,
+        "format": "PNG",
+        "mode": "RGBA",
+        "bytes": 1988352,
+        "sha256": "68e0b2c3db41f155d7ee30c1089dabd5555425fc4bfb08a4bfbbc61e03fd68e2",
+        "alphaExtrema": [
+          0,
+          254
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "venueId": "sala-badia",
+      "role": "interior",
+      "downloadName": "10-sala-badia-interior.png",
+      "masterPath": "art-src/venues/sala-badia/interior.png",
+      "deployedPath": "public/art/venues/sala-badia/interior.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "references/ref-style-stall-samira-v2.jpg",
+        "references/ref-interior-alexandria-grand.webp"
+      ],
+      "generatedMaster": {
+        "path": "masters/10-sala-badia-interior.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2547605,
+        "sha256": "85e30932463421374010804d52dd5c1811374c95f4da61b572f551408303f490"
+      }
+    },
+    {
+      "number": 11,
+      "venueId": "sala-badia",
+      "role": "show",
+      "downloadName": "11-sala-badia-show.png",
+      "masterPath": "art-src/venues/sala-badia/show.png",
+      "deployedPath": "public/art/venues/sala-badia/show.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "10-sala-badia-interior.png"
+      ],
+      "generatedMaster": {
+        "path": "masters/11-sala-badia-show.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2388155,
+        "sha256": "64c2656d38a13e7e87e52f2100a5a18cb3bb532d03cc504e703067a0084a498e"
+      }
+    },
+    {
+      "number": 12,
+      "venueId": "sala-badia",
+      "role": "exterior",
+      "downloadName": "12-sala-badia-exterior.png",
+      "masterPath": "art-src/venues/sala-badia/exterior.png",
+      "deployedPath": "public/art/venues/sala-badia/exterior.webp",
+      "targetWidth": 1600,
+      "targetHeight": 800,
+      "alpha": false,
+      "references": [
+        "10-sala-badia-interior.png",
+        "references/ref-exterior-abdeen.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/12-sala-badia-exterior.png",
+        "width": 1774,
+        "height": 887,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2702860,
+        "sha256": "dfb7cac3316b08d1b90f91d1f3c4a348c73c1008e8b52a7c2b62bd134405ce3d"
+      }
+    },
+    {
+      "number": 13,
+      "venueId": "sala-badia",
+      "role": "contact",
+      "downloadName": "13-salma-farid-portrait.png",
+      "masterPath": "art-src/venues/sala-badia/salma-farid-portrait.png",
+      "deployedPath": "public/art/portraits/salma-farid.jpg",
+      "targetWidth": 512,
+      "targetHeight": 512,
+      "alpha": false,
+      "references": [
+        "references/ref-portrait-samira.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/13-salma-farid-portrait.png",
+        "width": 1254,
+        "height": 1254,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 1971158,
+        "sha256": "70b75f057e4f66fae2695343e8759ce940175935114a47209234a7a20b7fe117"
+      }
+    },
+    {
+      "number": 14,
+      "venueId": "sala-santi",
+      "role": "interior",
+      "downloadName": "14-sala-santi-interior.png",
+      "masterPath": "art-src/venues/sala-santi/interior.png",
+      "deployedPath": "public/art/venues/sala-santi/interior.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "references/ref-style-stall-samira-v2.jpg",
+        "references/ref-interior-alexandria-grand.webp"
+      ],
+      "generatedMaster": {
+        "path": "masters/14-sala-santi-interior.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2723444,
+        "sha256": "b9b4504cedd47431bcd46f6459a31740471ddfa4f0a031ef1a4fc2fa92a66583"
+      }
+    },
+    {
+      "number": 15,
+      "venueId": "sala-santi",
+      "role": "show",
+      "downloadName": "15-sala-santi-show.png",
+      "masterPath": "art-src/venues/sala-santi/show.png",
+      "deployedPath": "public/art/venues/sala-santi/show.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "14-sala-santi-interior.png"
+      ],
+      "generatedMaster": {
+        "path": "masters/15-sala-santi-show.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2525707,
+        "sha256": "bf84477813dbc6e635ccd6a3487f36274edee21f388a8fec5205849570822f9c"
+      }
+    },
+    {
+      "number": 16,
+      "venueId": "sala-santi",
+      "role": "exterior",
+      "downloadName": "16-sala-santi-exterior.png",
+      "masterPath": "art-src/venues/sala-santi/exterior.png",
+      "deployedPath": "public/art/venues/sala-santi/exterior.webp",
+      "targetWidth": 1600,
+      "targetHeight": 800,
+      "alpha": false,
+      "references": [
+        "14-sala-santi-interior.png",
+        "references/ref-exterior-abdeen.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/16-sala-santi-exterior.png",
+        "width": 1774,
+        "height": 887,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 3062026,
+        "sha256": "7e6ba36c05991c14b1e465e3b780f5686904e29edcb1d30b3a63afbd3d4acd3f"
+      }
+    },
+    {
+      "number": 17,
+      "venueId": "sala-santi",
+      "role": "contact",
+      "downloadName": "17-youssef-hanna-portrait.png",
+      "masterPath": "art-src/venues/sala-santi/youssef-hanna-portrait.png",
+      "deployedPath": "public/art/portraits/youssef-hanna.jpg",
+      "targetWidth": 512,
+      "targetHeight": 512,
+      "alpha": false,
+      "references": [
+        "references/ref-portrait-rashid.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/17-youssef-hanna-portrait.png",
+        "width": 1254,
+        "height": 1254,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2128556,
+        "sha256": "19e4fe2bd2001dddc690f2d084882231942c520cf9b0377cfcb97a8027afa798"
+      }
+    },
+    {
+      "number": 18,
+      "venueId": "maxim-istanbul",
+      "role": "interior",
+      "downloadName": "18-maxim-istanbul-interior.png",
+      "masterPath": "art-src/venues/maxim-istanbul/interior.png",
+      "deployedPath": "public/art/venues/maxim-istanbul/interior.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "references/ref-style-stall-samira-v2.jpg",
+        "references/ref-interior-alexandria-grand.webp"
+      ],
+      "generatedMaster": {
+        "path": "masters/18-maxim-istanbul-interior.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2395348,
+        "sha256": "15f1b8b125dd9939afd6ef04e7e3cde6189bd298ac763aff02fa371dd9368eae"
+      }
+    },
+    {
+      "number": 19,
+      "venueId": "maxim-istanbul",
+      "role": "show",
+      "downloadName": "19-maxim-istanbul-show.png",
+      "masterPath": "art-src/venues/maxim-istanbul/show.png",
+      "deployedPath": "public/art/venues/maxim-istanbul/show.webp",
+      "targetWidth": 1536,
+      "targetHeight": 1024,
+      "alpha": false,
+      "references": [
+        "18-maxim-istanbul-interior.png"
+      ],
+      "generatedMaster": {
+        "path": "masters/19-maxim-istanbul-show.png",
+        "width": 1536,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2323236,
+        "sha256": "a5e5f7d2b46a7b9f162ced95201720a6f0f7e23ea4d33300b2d60b5123f7d043"
+      }
+    },
+    {
+      "number": 20,
+      "venueId": "maxim-istanbul",
+      "role": "exterior",
+      "downloadName": "20-maxim-istanbul-exterior.png",
+      "masterPath": "art-src/venues/maxim-istanbul/exterior.png",
+      "deployedPath": "public/art/venues/maxim-istanbul/exterior.webp",
+      "targetWidth": 1600,
+      "targetHeight": 800,
+      "alpha": false,
+      "references": [
+        "18-maxim-istanbul-interior.png",
+        "references/ref-exterior-abdeen.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/20-maxim-istanbul-exterior.png",
+        "width": 1774,
+        "height": 887,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2523821,
+        "sha256": "baf2f13872469f988c661fe405b7c4142901e22677f854804897a16d49d4e6a9"
+      }
+    },
+    {
+      "number": 21,
+      "venueId": "maxim-istanbul",
+      "role": "contact",
+      "downloadName": "21-kemal-arslan-portrait.png",
+      "masterPath": "art-src/venues/maxim-istanbul/kemal-arslan-portrait.png",
+      "deployedPath": "public/art/portraits/kemal-arslan.jpg",
+      "targetWidth": 512,
+      "targetHeight": 512,
+      "alpha": false,
+      "references": [
+        "references/ref-portrait-rashid.jpg"
+      ],
+      "generatedMaster": {
+        "path": "masters/21-kemal-arslan-portrait.png",
+        "width": 1254,
+        "height": 1254,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 1909052,
+        "sha256": "11109bb6a1cba894824334eb207fbd088c553b2aba7f070b17d2b275b85cc127"
+      }
+    },
+    {
+      "number": 22,
+      "venueId": null,
+      "role": "closed-door",
+      "downloadName": "22-closed-door.png",
+      "masterPath": "art-src/venues/closed-door.png",
+      "deployedPath": "public/art/venues/closed-door.webp",
+      "targetWidth": 1600,
+      "targetHeight": 800,
+      "alpha": false,
+      "references": [
+        "12-sala-badia-exterior.png"
+      ],
+      "generatedMaster": {
+        "path": "masters/22-closed-door.png",
+        "width": 1774,
+        "height": 887,
+        "format": "PNG",
+        "mode": "RGB",
+        "bytes": 2481707,
+        "sha256": "f299facbbe6a69e2ec2e2f5c3c35d7771e43f459be119bcb685eba858847aac7"
+      }
+    }
+  ],
+  "deferred": [
+    {
+      "id": "printania",
+      "status": "historical_note_only",
+      "reason": "Continued operation under this name in 1925 remains unresolved."
+    },
+    {
+      "id": "casino-opera",
+      "status": "later_chapter_research",
+      "reason": "Exact venue identity, location and opening chronology remain unresolved; 1940 is provisional."
+    }
+  ],
+  "implementation": {
+    "contactPortraitsAreOpaque": true,
+    "qamarStallFigureHasTrueAlpha": true,
+    "lockedDoorEditSource": "12-sala-badia-exterior.png",
+    "visitFeeRule": "Free arrival/contact; one ticket payment for a show.",
+    "currencyUnit": "piastres",
+    "qamarInvestmentProvisionalPiastres": 2500,
+    "qamarDividendProvisionalPiastresPerWeek": 8,
+    "questMapForTimestamps": false,
+    "newVenueStateRequired": true,
+    "repoModified": false
+  },
+  "generationCompleted": "2026-09-28",
+  "packageParts": [
+    {
+      "file": "Threads-of-Fortune-Cabaret-Artwork-Part-1.zip",
+      "imageNumbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    {
+      "file": "Threads-of-Fortune-Cabaret-Artwork-Part-2.zip",
+      "imageNumbers": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { NPCS, type DialogueOption } from '../../data/world';
+import { RUGS } from '../../data/rugs';
 import { Portrait } from './Portrait';
 import { voice } from '../../game/audio/voice';
 
@@ -32,6 +33,13 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
     if (k === 'questactive') return q === 'active';
     if (k === 'questready') return q === 'ready';
     if (k === 'has') return g.inventory.some((i) => i.typeId === a && !i.restoringUntil && (!i.stored || g.world.at === 'giza'));
+    if (k === 'questdone') return q === 'done';
+    if (k === 'upgrade') return g.upgrades.includes(a);
+    if (k === 'notupgrade') return !g.upgrades.includes(a);
+    if (k === 'rep') return g.reputation >= Number(a);
+    if (k === 'cash') return g.cash >= Number(a);
+    // a rug of at least this tier, carried with you (at Giza the stock is to hand)
+    if (k === 'hastier') return g.inventory.some((i) => (RUGS[i.typeId]?.tier ?? 1) >= Number(a) && !i.restoringUntil && (!i.stored || g.world.at === 'giza'));
     return true;
   };
 

@@ -1837,3 +1837,27 @@ body.travelling .mission-strip{display:none}
 .scene.stall .stall-paper{left:15%;bottom:4%;width:min(11%,110px);z-index:5}
 .scene.stall .cat-badge{left:27%;bottom:0;width:min(12%,120px);z-index:5}
 .scene.stall .bubble.top{position:absolute;bottom:auto;z-index:7;overflow:hidden}
+/* cabarets and music halls: the card in the town, and the evening itself */
+.venue-pic{position:relative}
+.venue-badge{position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;background:#1b110ae6;border:1px solid #b07a3f;color:#ffe2a8;font-family:var(--label);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}
+.venue-badge.since{border-color:#7a5028;color:#e8d3ae}
+.venue-card.locked .court-img{filter:brightness(.75) saturate(.8)}
+.venue-shut{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#2a1a0e;border:2px solid #7a5028;color:#d8b25a}
+.cabaret{position:fixed;inset:0;z-index:71;display:flex;flex-direction:column;background:#0d0805;animation:fade .3s ease}
+.cab-room{position:relative;flex:1 1 auto;min-height:44vh;overflow:hidden}
+.cab-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%}
+.cab-show{opacity:0;transition:opacity 1.5s ease}
+.cab-show.on{opacity:1}
+.cab-head{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;border-radius:10px;background:#140c06cc;border:1px solid #7a5028;display:flex;flex-direction:column;gap:2px;max-width:70%}
+.cab-head small{font-family:var(--label);letter-spacing:.14em;font-size:11.5px;color:#ff9d7a}
+.cab-head b{font-family:Cinzel,serif;font-size:22px;color:#ffe2a8;line-height:1.1}
+.cab-head em{font-style:normal;font-size:13px;color:#e8d3ae}
+.cab-caption{position:absolute;left:12px;right:12px;bottom:12px;margin:0;padding:10px 14px;border-radius:10px;background:#140c06d9;border:1px solid #7a5028;color:#f3e2c4;font-size:16px;line-height:1.4;animation:fade 1.5s ease}
+.cab-body{flex:0 0 auto;display:grid;gap:10px;padding:12px 14px calc(14px + env(safe-area-inset-bottom,0px));background:#1b110a;border-top:2px solid #8a5a2b;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
+.cab-who{display:flex;align-items:center;gap:10px}
+.cab-who b{display:block;color:#fff3dc;font-size:16px}.cab-who small{color:#e8d3ae;font-size:13.5px}
+.cab-history{margin:0;font-size:15px;line-height:1.45;color:#e8d3ae}
+.cab-note{margin:0;font-size:15px;color:#ffd9a8}
+.cab-doors{display:grid;gap:8px}
+.cab-doors .btn{min-height:48px;font-size:16px}
+@media (min-width:720px){.cab-room{min-height:52vh}}

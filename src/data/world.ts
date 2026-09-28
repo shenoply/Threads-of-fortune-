@@ -1,3 +1,4 @@
+import { VENUE_NPCS, VENUE_QUESTS } from './entertainment';
 // The overworld: settlements, people to talk to, delivery work, sea passages and railways.
 // Coordinates are pixels on art/map-levant.jpg (885 x 567).
 import type { Trait } from '../game/types';
@@ -175,6 +176,7 @@ export interface Npc {
 const bye = (label = 'Go in peace.'): DialogueOption => ({ label });
 
 export const NPCS: Record<string, Npc> = {
+  ...VENUE_NPCS,
   kassab: {
     id: 'kassab', name: 'Selim Kassab', role: 'The dealer with the stall next to yours', look: 'fez', accent: '#8a6a1a',
     voice: 'Smooth Cairene dealer, late thirties, oily charm, a little mocking, quick',
@@ -624,6 +626,7 @@ export interface QuestDef {
 }
 
 export const QUESTS: Record<string, QuestDef> = {
+  ...VENUE_QUESTS,
   'salah-son': { id: 'salah-son', title: 'A rug for Salah', giver: 'ummsalah', desc: 'Carry Umm Salah\'s rug to her son at the Cairo telegraph office (ask Hagop in the Khan), then return to Fayoum.', reward: 100, rep: 2 },
   'hagop-kashan': { id: 'hagop-kashan', title: 'A Kashan for Paris', giver: 'hagop', desc: 'Bring Hagop in Cairo the documented Persian rug, Sapphire Night, for his Paris client. He pays £90.', reward: 9000, rep: 1 },
 };

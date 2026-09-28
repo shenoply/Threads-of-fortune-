@@ -15,6 +15,8 @@ import { TownSupplies, CaravanRoster } from './CaravanPanels';
 import { StallOverhead } from './StallOverhead';
 import { Venue, AudienceOverlay } from './Venue';
 import { venueFor } from '../../data/venues';
+import { Cabaret } from './Cabaret';
+import { VENUES_1925, venuesIn, venueOpen, venueArt, CLOSED_DOOR } from '../../data/entertainment';
 import { CITY_WALKS } from '../../data/cityWalks';
 import { Tip } from '../Tips/Tip';
 import { Auction } from '../Auction/Auction';
@@ -41,6 +43,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [inCity, setInCity] = useState(false);
   const [inAuction, setInAuction] = useState<string | null>(null);
   const [houseWalk, setHouseWalk] = useState<string | null>(null);
+  const [cabaret, setCabaret] = useState<string | null>(null);
   const houses = housesIn(id);
   const [look, setLook] = useState<RugPreview | null>(null);
   // what the player hears: the town, or the palace or sale-house grounds they are walking
@@ -157,6 +160,35 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 </div>
               ))}
             </div>
+          </>
+        )}
+
+        {venuesIn(id).length > 0 && (
+          <>
+            <div className="section-label">CABARETS AND THEATRES</div>
+            {venuesIn(id).map((v) => {
+              const open = venueOpen(v, g.day);
+              const c = NPCS[v.contact];
+              return (
+                <div key={v.id} className={`court-card venue-card${open ? '' : ' locked'}`} data-testid={`venue-${v.id}`}>
+                  <div className="venue-pic">
+                    <img className="court-img" src={open ? venueArt(v, 'exterior') : CLOSED_DOOR} alt={v.name} />
+                    {v.opens && !open && <span className="venue-badge"><Icon name="lock" /> {v.opens.label}</span>}
+                    {v.since && open && <span className="venue-badge since">{v.since}</span>}
+                  </div>
+                  <div className="court-body">
+                    <div className="court-who">
+                      {open ? <Portrait id={c.id} look={c.look} accent={c.accent} size={54} /> : <span className="venue-shut"><Icon name="lock" /></span>}
+                      <span><b>{v.name}</b><small>{open ? `${c.name} · ${c.role.split(',')[0]}` : `${v.kind} · ${v.street}`}</small></span>
+                    </div>
+                    <p>{v.history}</p>
+                    {open
+                      ? <button className="btn primary" onClick={() => setCabaret(v.id)} data-testid={`enter-${v.id}`}>Go in · a table is {fmt(v.ticket)}</button>
+                      : <button className="btn" disabled data-testid={`enter-${v.id}`}>Shuttered · {v.opens?.label}</button>}
+                  </div>
+                </div>
+              );
+            })}
           </>
         )}
 
@@ -283,7 +315,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </>)}
       </div>
       {/* the way out, always in reach: the panel scrolls, so the button in the header goes off the top */}
-      {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && (
+      {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && !cabaret && (
         <div className="set-exit">
           <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">⟵ Leave {st.name} · back to the map</button>
         </div>
@@ -301,6 +333,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           <Venue def={walk} onLeave={() => setInCity(false)} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
             setInCity(false);
             if (a === 'palace') { if (venue?.map) setInVenue(true); else setTab('town'); }
+            else if (a.startsWith('venue:')) { const v = VENUES_1925[a.slice(6)]; setTab('town'); if (v && venueOpen(v, g.day)) setCabaret(v.id); else setNote(`${v?.name ?? 'The hall'} is shuttered. A sign on the door says it opens in 1926.`); }
             else if (a.startsWith('house:')) setHouseWalk(a.slice(6));
             else if (a.startsWith('npc:')) { setTab('town'); setTalkTo(a.slice(4)); }
             else setTab(a as SetTab);
@@ -308,6 +341,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </div>
       )}
       {inVenue && venue && <div className="venue-overlay"><Venue id={venue.id} onLeave={() => setInVenue(false)} /></div>}
+      {cabaret && <div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div>}
       {audience && <AudienceOverlay onDone={() => setAudience(false)} />}
       {talkTo && <Dialogue npcId={talkTo} onClose={(m) => { setTalkTo(null); if (m) setNote(m); }} />}
     </div>

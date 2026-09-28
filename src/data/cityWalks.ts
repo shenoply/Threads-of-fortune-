@@ -19,6 +19,10 @@ export const CITY_WALKS: Record<string, Venue> = {
       { id: 'gardencity', name: 'Garden City Pasha Estate Sale', sub: 'Grand estate auction', x: 955, y: 700, glyph: '⚖', kind: 'goto', action: 'house:cairo-garden-city' },
       { id: 'citadel', name: 'The Citadel', sub: 'Guards and gendarmes', x: 1224, y: 803, glyph: 'G', kind: 'goto', action: 'guards' },
       { id: 'horses', name: 'Horse market', sub: 'Horses and donkeys', x: 1110, y: 930, glyph: '♞', kind: 'goto', action: 'animals' },
+      { id: 'alhambra', name: 'Alhambra Casino', sub: 'Music hall, Bab al-Bahri Street', x: 870, y: 215, glyph: '♪', kind: 'goto', action: 'venue:alhambra-cairo' },
+      { id: 'salasanti', name: 'Sala Santi', sub: 'Concert hall on the gardens', x: 760, y: 300, glyph: '♪', kind: 'goto', action: 'venue:sala-santi' },
+      { id: 'qamar', name: 'The Qamar', sub: 'Music hall, Emad al-Din Street', x: 690, y: 215, glyph: '☾', kind: 'goto', action: 'venue:qamar' },
+      { id: 'salabadia', name: 'Sala Badia', sub: 'Emad al-Din Street', x: 640, y: 260, glyph: '♪', kind: 'goto', action: 'venue:sala-badia' },
       { id: 'shepheards', name: 'Shepheard\'s Hotel', sub: 'On the Ezbekiya garden', x: 816, y: 263, glyph: 'S', kind: 'note', text: ['Americans on the terrace compare what they paid for carpets in the Khan. Every one of them was robbed, and every one of them is proud of the rug.'] },
       { id: 'gezira', name: 'Gezira island', sub: 'The Sporting Club', x: 698, y: 690, glyph: 'C', kind: 'note', text: ['Polo, cricket and English nannies. The club secretary wants a new carpet for the reading room and has asked three dealers already.'] },
       { id: 'bridge', name: 'Qasr el-Nil bridge', sub: 'Stone lions and trams', x: 560, y: 553, glyph: '≡', kind: 'note', text: ['The bridge opens at noon to let the feluccas through. Carts and motorcars wait in the sun, and the drivers shout at the boatmen.'] },
@@ -80,6 +84,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'station', name: 'Sirkeci Station', sub: 'Back to the town square', ...P(80, 150), glyph: '⇣', kind: 'exit' },
       { id: 'bazaar', name: 'The Grand Bazaar', sub: 'Local rug market', ...P(300, 500), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'maxim', name: 'Maxim', sub: 'Jazz and dancing, Taksim', ...P(520, 120), glyph: '♪', kind: 'goto', action: 'venue:maxim-istanbul' },
       { id: 'topkapi', name: 'Topkapı Palace', sub: 'Selim Bey, former steward', ...P(880, 470), glyph: 'S', kind: 'goto', action: 'npc:selim' },
       { id: 'docks', name: 'Harbour hiring hall', sub: 'Veterans looking for work', ...P(230, 280), glyph: 'G', kind: 'goto', action: 'guards' },
       { id: 'horses', name: 'Horse market', sub: 'Mounts for the road east', ...P(100, 560), glyph: '♞', kind: 'goto', action: 'animals' },
