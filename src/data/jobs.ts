@@ -33,8 +33,8 @@ export const JOBS: Job[] = [
     done: 'The farmer hires your animals for the harvest week and pays in coin.',
   },
   {
-    id: 'cecil-hotel', title: 'A Fine rug for the Cecil Hotel', giver: 'The Cecil Hotel steward', target: 'alexandria',
-    text: 'The new Cecil Hotel in Alexandria wants a Fine rug for its lobby. Pack a Fine rug or better and deliver it.',
+    id: 'cecil-hotel', title: 'A Fine rug for the Hotel Ptolemy', giver: 'The Hotel Ptolemy steward', target: 'alexandria',
+    text: 'The new Hotel Ptolemy in Alexandria wants a Fine rug for its lobby. Pack a Fine rug or better and deliver it.',
     need: { packedTier: 2 }, reward: { sellPacked: 1.5, rep: 3 },
     done: 'The steward lays your rug in the lobby. The manager nods, pays well, and remembers your name.',
   },

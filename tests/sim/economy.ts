@@ -379,7 +379,7 @@ function planTrip(s: S, st: Style): string[] | null {
     const lost = Math.ceil(l.days * 2 + 0.2) * 70; // a stall day is worth about this much profit
     if (gain > l.fare * 2 + lost) { rug.stored = false; pack(1); const extra = v.city !== 'portsaid' && jobOpen('portsaid-officer') && v.city === 'cairo' ? [] : []; return [v.city, ...extra]; }
   }
-  // 5. Port Said officer / Cecil hotel when there is a spare rug and nothing else to do
+  // 5. Port Said officer / Hotel Ptolemy when there is a spare rug and nothing else to do
   if (jobOpen('cecil-hotel') && s.inventory.some((i) => i.stored && tierOfRug(i) >= 2) && spare > 150) { pack(1, 2); pack(1); return ['alexandria']; }
   if (jobOpen('portsaid-officer') && spare > 150 && st.name === 'aggressive') { pack(2); return ['portsaid']; }
   return null;

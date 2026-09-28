@@ -51,14 +51,14 @@ not print one.
 |---|---|---|---|---|---|
 | `alhambra-cairo` | Alhambra Casino | Cairo (Ezbekiyya, Bab al-Bahri St) | none (founding year unverified) | from start | confirmed for 1925 |
 | `sala-santi` | Sala Santi | Cairo (Ezbekiyya Gardens) | none | from start | confirmed for 1925; music hall, no dance-cabaret programme claimed |
-| `maxim-istanbul` | Maxim | Istanbul (Taksim, Sıraselviler Caddesi) | "Since 1921" | from start, once Istanbul is unlocked (Istanbul needs 50 sales, reputation and travel: `src/data/cities.ts:18`) | confirmed |
-| `sala-badia` | Sala Badia | Cairo (Emad al-Din St) | "Opens 1926" | locked until 1 Jan 1926, `dayOf(1, 1, 1926)` = day 298 | confirmed; early sala, singing and acting |
-| `sala-badia` seed | The Sala Badia doorway can exist from day 1 as a locked POI reading "Opens 1926" | | | | design choice, recommended |
+| `maxim-istanbul` | The Nightingale | Istanbul (Taksim, Sıraselviler Caddesi) | "Since 1921" | from start, once Istanbul is unlocked (Istanbul needs 50 sales, reputation and travel: `src/data/cities.ts:18`) | confirmed |
+| `sala-badia` | Sala Nour | Cairo (Emad al-Din St) | "Opens 1926" | locked until 1 Jan 1926, `dayOf(1, 1, 1926)` = day 298 | confirmed; early sala, singing and acting |
+| `sala-badia` seed | The Sala Nour doorway can exist from day 1 as a locked POI reading "Opens 1926" | | | | design choice, recommended |
 | `printania` | Printania Theatre | Cairo (Alfi Bey St) | none | **not in the first batch** | unresolved: active theatre, former theatre or landmark. Recommend a walk-map `note` POI ("the old Printania") until settled; no art needed for a note. |
 | `casino-opera` | Casino Opera | Cairo/Giza | provisional 1940 | **out of the playable calendar** (game is written to March 1926) | unresolved; do not generate art now |
 | `qamar` | The Qamar (fictional; working title) | Cairo (Emad al-Din St, near the others) | none | from start | original; the one the player can invest in |
 
-Recommendation for the first art batch: **Alhambra, Sala Santi, Maxim, Sala Badia, the Qamar**
+Recommendation for the first art batch: **Alhambra, Sala Santi, The Nightingale, Sala Nour, the Qamar**
 (five venues). Printania and Casino Opera wait on the research.
 
 ---
@@ -107,10 +107,10 @@ One shared image, not per venue:
 
 | # | Filename | Purpose | Size | Notes |
 |---|---|---|---|---|
-| 7 | `public/art/venues/closed-door.webp` | Locked venue before its opening year (Sala Badia in 1925): the card and the door | 1600 × 800 | A shuttered Emad al-Din St frontage at dusk, workmen's ladders, no sign lettering. One image serves any locked venue. |
+| 7 | `public/art/venues/closed-door.webp` | Locked venue before its opening year (Sala Nour in 1925): the card and the door | 1600 × 800 | A shuttered Emad al-Din St frontage at dusk, workmen's ladders, no sign lettering. One image serves any locked venue. |
 
-Generation order: Alhambra (#2, #3, #1, #4), then the Qamar (#2, #3, #1, #4, #5), then Sala Badia,
-Sala Santi, Maxim, then #7.
+Generation order: Alhambra (#2, #3, #1, #4), then the Qamar (#2, #3, #1, #4, #5), then Sala Nour,
+Sala Santi, The Nightingale, then #7.
 
 ---
 
@@ -160,8 +160,8 @@ export interface Venue1925 {
 }
 ```
 
-Sala Badia: `opens: { day: dayOf(1, 1, 1926), label: 'Opens 1926' }`. Alhambra and Sala Santi: no
-`opens`, no `since`. Maxim: `since: 'Since 1921'`.
+Sala Nour: `opens: { day: dayOf(1, 1, 1926), label: 'Opens 1926' }`. Alhambra and Sala Santi: no
+`opens`, no `since`. The Nightingale: `since: 'Since 1921'`.
 
 ### Calendar locks
 
@@ -177,7 +177,7 @@ Sala Badia: `opens: { day: dayOf(1, 1, 1926), label: 'Opens 1926' }`. Alhambra a
   a POI whose venue is not yet open and turns the tap into a note ("Shuttered. A sign says it opens in
   1926.") instead of an action.
 - **City before year**: a venue is only reachable through its city, so the city's own unlock
-  (`cities.ts`, sales/reputation/travel) applies first; the year applies second. Maxim needs Istanbul
+  (`cities.ts`, sales/reputation/travel) applies first; the year applies second. The Nightingale needs Istanbul
   unlocked (a mid-game milestone) but no year.
 - **Tickets and ownership** are separate from the year: the ticket price is on the Enter button and
   is checked against `cash` on entry; investing is an upgrade-style purchase gated by `cash`,
@@ -214,7 +214,7 @@ already persisted. So `SAVE_VERSION` stays at 13.
 |---|---|---|
 | Visit and watch a performance | town panel card, `venue-overlay`, time advance in the store | `Cabaret.tsx`, the fade, captions; ticket deducted through the existing `cash` |
 | Speak with the contact | `Dialogue.tsx`, `NPCS`, `Portrait` | one `Npc` per venue (5 dialogue trees), portraits |
-| Carpet or furnishing contracts | `Job` in `jobs.ts` (giver, target, need, reward) and `quest:`/`questdone:` dialogue effects | jobs with `target` = the venue's city and `need.packedTier`, e.g. *runner for the Alhambra's stairs* (tier 2, pays 1.5×), *foyer carpet for Sala Badia's opening* (tier 3, appears in Dec 1925, pays 2× and +rep, only completable from 1926) |
+| Carpet or furnishing contracts | `Job` in `jobs.ts` (giver, target, need, reward) and `quest:`/`questdone:` dialogue effects | jobs with `target` = the venue's city and `need.packedTier`, e.g. *runner for the Alhambra's stairs* (tier 2, pays 1.5×), *foyer carpet for Sala Nour's opening* (tier 3, appears in Dec 1925, pays 2× and +rep, only completable from 1926) |
 | Meet customers | the buyer queue (`queue`, `visitIdx`) and `celebs*.ts` | after a performance, 40% chance the store pushes a buyer to the front of tomorrow's queue with a journal line ("You met X at the Alhambra; they will call at the stall"); performers who are already buyers (Umm Kulthum at Sala Santi, Munira al-Mahdiyya) reuse their existing portraits and lines |
 | Return later | `world.quests`, `journal`, `day` | a per-venue `lastVisit` in `world.quests` keyed `venue-<id>` so the contact's greeting changes and a new contract appears every ~10 days |
 | Invest in the Qamar | `UPGRADES` pattern (`cost`, `rep`, `after`), `upgrades[]` persisted | a "Buy a share of the Qamar" option in the proprietor's dialogue at £2,500 and reputation 25 (between the bazaar stall at £1,200/20 and the Khan shop at £60,000/60); pays a weekly dividend into `cash` through the existing day-end hook, raises the budget of buyers met there by 10%, and unlocks a *Furnish the Qamar* contract chain (three rugs of rising tier) |
@@ -232,11 +232,11 @@ buyers it brings, not the cash).
    music hall on Emad al-Din Street run by **Nadia Wahba**, a Syrian-Egyptian former singer, with a
    Greek bar manager and a doorman who is a retired gendarme. Please confirm or replace the names so
    the portrait prompts can be written.
-2. **One contact per venue, names needed** for Alhambra, Sala Santi, Maxim and Sala Badia (fictional
-   staff: a manager, a stage doorkeeper, a bandleader, Badia's front-of-house manager). Real
+2. **One contact per venue, names needed** for Alhambra, Sala Santi, The Nightingale and Sala Nour (fictional
+   staff: a manager, a stage doorkeeper, a bandleader, Madame Nour's front-of-house manager). Real
    performers stay on the bill, never as dialogue contacts, except those already in the game as
    buyers.
-3. **Sala Badia before 1926**: seed a locked door from day 1 (recommended, needs `closed-door.webp`)
+3. **Sala Nour before 1926**: seed a locked door from day 1 (recommended, needs `closed-door.webp`)
    or keep it invisible until the year turns (no extra art).
 4. **Printania**: note-only until the 1925 newspaper lead is read; confirm.
 5. **Casino Opera**: no art now; confirm that 1940 is outside the calendar and it waits for a later

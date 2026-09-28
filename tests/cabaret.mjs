@@ -1,4 +1,4 @@
-// An evening out: Cairo's cabaret cards, the Sala Badia shutters, a table at the Alhambra, the
+// An evening out: Cairo's cabaret cards, the Sala Nour shutters, a table at the Alhambra, the
 // contact's contract, and the appointment that follows.   node tests/cabaret.mjs  (dev server on 4173)
 import { chromium } from 'playwright';
 const PORT = process.env.PORT ?? '4173';

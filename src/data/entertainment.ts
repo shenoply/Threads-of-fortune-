@@ -58,17 +58,17 @@ export const VENUES_1925: Record<string, Venue1925> = {
     guests: ['whitcombe', 'hollister', 'benakis', 'wasif', 'levy'],
   },
   'sala-badia': {
-    id: 'sala-badia', city: 'cairo', name: 'Sala Badia', kind: 'cabaret', street: 'Emad al-Din Street',
+    id: 'sala-badia', city: 'cairo', name: 'Sala Nour', kind: 'cabaret', street: 'Emad al-Din Street',
     opens: { day: dayOf(1, 1, 1926), label: 'Opens 1926' },
-    history: 'Badia Masabni\'s first sala: singing and short comic plays on a small stage, in a hall she has fitted out herself. The dancers came later; this is the first year.',
+    history: 'Madame Nour Haddad\'s first sala: singing and short comic plays on a small stage, in a hall she has fitted out herself. The dancers came later; this is the first year.',
     contact: 'salma-farid', ticket: 40, performers: ['munira-al-mahdiyya'], company: 'the sala\'s singer and two actors',
     evening: 'A song, then a sketch about a pasha and his cook, then the song again with the room joining in.',
     guests: ['samira', 'yusuf', 'kassab', 'martel', 'rustam'],
   },
   'maxim-istanbul': {
-    id: 'maxim-istanbul', city: 'istanbul', name: 'Maxim', kind: 'nightclub', street: 'Sıraselviler Caddesi, Taksim',
+    id: 'maxim-istanbul', city: 'istanbul', name: 'The Nightingale', kind: 'nightclub', street: 'Sıraselviler Caddesi, Taksim',
     since: 'Since 1921',
-    history: 'Frederick Bruce Thomas\'s club beneath the Majik cinema: jazz, dancing and variety for the Pera crowd, run by an American who came by way of Moscow.',
+    history: 'Nikolai Orlov\'s club beneath a picture house: jazz, dancing and variety for the Pera crowd, run by a Russian who came by way of Odessa.',
     contact: 'kemal-arslan', ticket: 80, performers: [], company: 'Kemal Arslan\'s band: piano, clarinet, bass and drums',
     evening: 'The band goes into a foxtrot and two couples are up before the first bar is finished.',
     guests: ['hollister', 'whitcombe', 'martel', 'rustam', 'shivakiar'],
@@ -91,8 +91,8 @@ export const VENUE_QUESTS: Record<string, QuestDef> = {
   'qamar-first-rug': { id: 'qamar-first-rug', title: 'A rug for the Qamar\'s stage', giver: 'nadia-wahba', desc: 'Nadia Wahba wants something with colour for the front of the Qamar\'s stage. Bring her a Fine rug or better and she pays well over its value.', reward: 320, rep: 2 },
   'qamar-floor': { id: 'qamar-floor', title: 'The Qamar\'s floor', giver: 'nadia-wahba', desc: 'Now that you own a share, Nadia wants the bare boards covered: an Exceptional rug for the centre of the room, paid for from the house.', reward: 900, rep: 3 },
   'santi-foyer': { id: 'santi-foyer', title: 'Quiet for the Sala Santi foyer', giver: 'youssef-hanna', desc: 'Youssef Hanna wants a restrained, well-made rug for the foyer where the audience waits. Fine or better; the hall pays a premium for something that does not shout.', reward: 350, rep: 2 },
-  'badia-opening': { id: 'badia-opening', title: 'A carpet for Sala Badia\'s opening', giver: 'salma-farid', desc: 'Salma Farid is fitting out the sala for the opening. She wants an Exceptional rug for the foyer, and she will pay double for it.', reward: 1200, rep: 4 },
-  'maxim-bar': { id: 'maxim-bar', title: 'A carpet for Maxim\'s bar', giver: 'kemal-arslan', desc: 'Kemal Arslan wants a fine geometric rug for the bar end of the club, paid in the club\'s good money. Fine or better.', reward: 500, rep: 3 },
+  'badia-opening': { id: 'badia-opening', title: 'A carpet for Sala Nour\'s opening', giver: 'salma-farid', desc: 'Salma Farid is fitting out the sala for the opening. She wants an Exceptional rug for the foyer, and she will pay double for it.', reward: 1200, rep: 4 },
+  'maxim-bar': { id: 'maxim-bar', title: 'A carpet for the Nightingale\'s bar', giver: 'kemal-arslan', desc: 'Kemal Arslan wants a fine geometric rug for the bar end of the club, paid in the club\'s good money. Fine or better.', reward: 500, rep: 3 },
 };
 
 /** The five contacts. Each greets, talks about the house, offers a contract and takes the rug when you bring it. */
@@ -206,11 +206,11 @@ export const VENUE_NPCS: Record<string, Npc> = {
     },
   },
   'salma-farid': {
-    id: 'salma-farid', name: 'Salma Farid', role: 'Front of house, Sala Badia', look: 'bare', accent: '#6a2a4a',
+    id: 'salma-farid', name: 'Salma Farid', role: 'Front of house, Sala Nour', look: 'bare', accent: '#6a2a4a',
     voice: 'Egyptian woman, early thirties, quick, practical, cheerful, always halfway to the next task',
     nodes: {
       start: {
-        text: 'Mind the paint. Madame Badia wants the sala open and perfect and I have three days and two hands. You are the carpet man from Giza? Good. Walk with me and talk fast.',
+        text: 'Mind the paint. Madame Nour wants the sala open and perfect and I have three days and two hands. You are the carpet man from Giza? Good. Walk with me and talk fast.',
         options: [
           { label: 'What is the programme?', next: 'bill' },
           { label: 'What does the sala need?', next: 'contract', requires: 'notquest:badia-opening' },
@@ -232,17 +232,17 @@ export const VENUE_NPCS: Record<string, Npc> = {
         options: [{ label: 'It is yours.', effects: ['deliver:badia-opening:3'], requires: 'hastier:3' }, { label: 'It is not with me.', next: 'start' }],
       },
       after: {
-        text: 'Full house, two encores, and a critic from Al-Ahram who stood on your carpet and wrote that the sala had taste. Madame cut it out and pinned it in the office.',
+        text: 'Full house, two encores, and a critic from the morning paper who stood on your carpet and wrote that the sala had taste. Madame cut it out and pinned it in the office.',
         options: [bye()],
       },
     },
   },
   'kemal-arslan': {
-    id: 'kemal-arslan', name: 'Kemal Arslan', role: 'Bandleader and bookings, Maxim', look: 'bare', accent: '#2a3a6a',
+    id: 'kemal-arslan', name: 'Kemal Arslan', role: 'Bandleader and bookings, the Nightingale', look: 'bare', accent: '#2a3a6a',
     voice: 'Turkish man, forty, poised, amused, speaks like a man counting a bar of music',
     nodes: {
       start: {
-        text: 'A carpet merchant, in Maxim, before the band has tuned. Thomas would like you; he likes anyone who sells something at night. I am Kemal; the band is mine, the bookings are half mine. What are you selling?',
+        text: 'A carpet merchant, in the Nightingale, before the band has tuned. Orlov would like you; he likes anyone who sells something at night. I am Kemal; the band is mine, the bookings are half mine. What are you selling?',
         options: [
           { label: 'What does the band play?', next: 'bill' },
           { label: 'Does the club need a carpet?', next: 'contract', requires: 'notquest:maxim-bar' },
@@ -260,11 +260,11 @@ export const VENUE_NPCS: Record<string, Npc> = {
         options: [{ label: 'I will find it.', effects: ['quest:maxim-bar'] }, bye('Perhaps later.')],
       },
       deliver: {
-        text: 'Roll it out by the rail. Yes. Thomas will say it is too good for the bar and then stand on it all night. Your money, merchant.',
+        text: 'Roll it out by the rail. Yes. Orlov will say it is too good for the bar and then stand on it all night. Your money, merchant.',
         options: [{ label: 'It is yours.', effects: ['deliver:maxim-bar:2'], requires: 'hastier:2' }, { label: 'Not with me.', next: 'start' }],
       },
       after: {
-        text: 'A Romanian countess spilled champagne on it the first night and Thomas nearly threw her out. It has survived worse since. Come and hear the band.',
+        text: 'A Romanian countess spilled champagne on it the first night and Orlov nearly threw her out. It has survived worse since. Come and hear the band.',
         options: [bye()],
       },
     },

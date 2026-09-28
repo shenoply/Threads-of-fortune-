@@ -425,7 +425,7 @@ export const NPCS: Record<string, Npc> = {
         options: [bye()],
       },
       hotels: {
-        text: 'The Cecil and the Windsor buy hard-wearing rugs by the dozen. They pay well for dark colours that hide sand. The local market here reflects that.',
+        text: 'The Ptolemy and the Corniche Palace buy hard-wearing rugs by the dozen. They pay well for dark colours that hide sand. The local market here reflects that.',
         options: [bye()],
       },
     },
