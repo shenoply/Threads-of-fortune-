@@ -53,23 +53,32 @@ fit(SRC / '03-rug-bale.png', (512, 512), PUB / 'battle/bale.webp')
 (PUB / 'travel-threats').mkdir(exist_ok=True)
 Image.open(SRC / '04-robber-leader.png').convert('RGB').resize((640, 640), Image.LANCZOS).save(PUB / 'travel-threats/egypt-rural-highway-robbers-leader.jpg', quality=86)
 
-# the party on the map: two walking frames, split at the empty column between them, trimmed, 128 px tall
-m = Image.open(SRC / '05-map-marker.png').convert('RGBA'); a = np.array(m)[..., 3] > 10
-cols = a.any(axis=0); mid = m.width // 2
-gap = min(range(mid - 300, mid + 300), key=lambda x: (cols[x], abs(x - mid)))
-for i, (l, r) in enumerate([(0, gap), (gap, m.width)], 1):
-    f = m.crop((l, 0, r, m.height)); f = f.crop(bbox(f))
-    h = 128; f = f.resize((round(f.width * h / f.height), h), Image.LANCZOS)
+# the party on the map: two walking frames side by side. Both are cut with ONE crop box (the union of
+# the two outlines, in each half's own coordinates) so the figure stays put between steps instead of
+# jittering by the difference between two separately trimmed frames. 128 px tall = 2x the map size.
+m = Image.open(SRC / '05-map-marker.png').convert('RGBA')
+halves = [m.crop((0, 0, m.width // 2, m.height)), m.crop((m.width // 2, 0, m.width // 2 * 2, m.height))]
+boxes = [bbox(hf) for hf in halves]
+union = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+h = 128
+for i, hf in enumerate(halves, 1):
+    f = hf.crop(union); f = f.resize((round(f.width * h / f.height), h), Image.LANCZOS)
     f.save(PUB / f'world/party-walk-{i}.webp', 'WEBP', quality=90, method=6)
-    # the merchant alone, for a party with no camel yet: cut just past the camel's nose (the
-    # rightmost opaque column at nose height, left of the man's fez), keeping him and the rope's end
-    half = m.crop((l, 0, r, m.height)); ha = np.array(half)[..., 3] > 10
-    band = ha[int(half.height * 0.26):int(half.height * 0.30), :int(half.width * 0.76)]
-    nose = np.nonzero(band.any(axis=0))[0].max()
-    solo = half.crop((nose + 12, 0, half.width, half.height)); solo = solo.crop(bbox(solo))
-    solo = solo.resize((round(solo.width * h / solo.height), h), Image.LANCZOS)
-    solo.save(PUB / f'world/party-solo-{i}.webp', 'WEBP', quality=90, method=6)
-    print('marker frame', i, f.size, 'solo', solo.size)
+# the merchant alone, for a party with no camel yet: cut just past the camel's nose (the rightmost
+# opaque column at nose height, left of the man's fez), the same column in both frames
+def nose(hf):
+    ha = np.array(hf)[..., 3] > 10
+    band = ha[int(hf.height * 0.26):int(hf.height * 0.30), :int(hf.width * 0.76)]
+    return np.nonzero(band.any(axis=0))[0].max()
+cut = max(nose(hf) for hf in halves) + 12
+solos = [hf.crop((cut, 0, hf.width, hf.height)) for hf in halves]
+sb = [bbox(x) for x in solos]
+su = (min(b[0] for b in sb), min(b[1] for b in sb), max(b[2] for b in sb), max(b[3] for b in sb))
+for i, x in enumerate(solos, 1):
+    x = x.crop(su); x = x.resize((round(x.width * h / x.height), h), Image.LANCZOS)
+    x.save(PUB / f'world/party-solo-{i}.webp', 'WEBP', quality=90, method=6)
+print('marker frames', Image.open(PUB / 'world/party-walk-1.webp').size, Image.open(PUB / 'world/party-walk-2.webp').size,
+      'solo', Image.open(PUB / 'world/party-solo-1.webp').size, Image.open(PUB / 'world/party-solo-2.webp').size)
 
 # the camp, lit and cold, for the night-halt card
 (PUB / 'events').mkdir(exist_ok=True)

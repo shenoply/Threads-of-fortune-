@@ -597,10 +597,11 @@ table.ledger .neg { color: var(--bad); }
 .me-walk img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .me-walk img + img { opacity: 0; }
 .me[data-facing="left"] .me-walk { transform: scaleX(-1); }
-.me.moving .me-walk img { animation: walk-a 0.5s steps(1) infinite; }
+/* two painted steps, 0.36 s each; the second rides a pixel higher so the pair reads as a stride, not a flicker */
+.me.moving .me-walk img { animation: walk-a 0.72s steps(1) infinite; }
 .me.moving .me-walk img + img { animation-name: walk-b; }
 @keyframes walk-a { 0% { opacity: 1; } 50% { opacity: 0; } }
-@keyframes walk-b { 0% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes walk-b { 0% { opacity: 0; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-1px); } }
 @media (prefers-reduced-motion: reduce) { .me.moving .me-walk img { animation: none; } }
 @keyframes bob { 50% { transform: translateY(-3px); } }
 .me-flag { position: absolute; bottom: -7px; left: 50%; width: 2px; height: 7px; background: #fff1d6; }
