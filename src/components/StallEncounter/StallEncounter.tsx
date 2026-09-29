@@ -238,11 +238,19 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <div className="act-note">{enc.presented ? 'Choose what to say.' : 'Tap a rug to lay it on the table.'}</div>
         ) : (
           <>
-            {canQuickSell(enc, presented) && presented && (
-              <button className="quick-sale" onClick={() => onAction('quick_sale')} data-testid="quick-sale">
-                <Icon name="coin" /> Quick sale · {fmt(quickPrice(enc, presented))}<small>a Common rug, no haggling</small>
-              </button>
-            )}
+            {canQuickSell(enc, presented) && presented && (() => {
+              const qp = quickPrice(enc, presented);
+              const cmp = enc.buyerOffer
+                ? qp > enc.buyerOffer
+                  ? `more than their ${fmt(enc.buyerOffer)} offer, no haggling`
+                  : `matches their offer, no haggling`
+                : 'a Common rug, no haggling';
+              return (
+                <button className="quick-sale" onClick={() => onAction('quick_sale')} data-testid="quick-sale">
+                  <Icon name="coin" /> Quick sale · {fmt(qp)}<small>{cmp}</small>
+                </button>
+              );
+            })()}
             {actions.map((a) => {
               const allowed = tutorialAllows(g, a.id);
               const glow = tut && allowed;

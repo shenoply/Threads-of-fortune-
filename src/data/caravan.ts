@@ -61,6 +61,7 @@ export const MARKETS: Record<string, Market> = {
   beirut: { food: 1.5, horse: 100, recruits: [{ troop: 'guard', min: 0, max: 2 }] },
   damascus: { food: 1, camel: 55, horse: 80, recruits: [{ troop: 'guard', min: 1, max: 3 }, { troop: 'bedouin', min: 0, max: 2 }, { troop: 'arnaut', min: 0, max: 1 }] },
   aleppo: { food: 1, camel: 50, horse: 85, recruits: [{ troop: 'guard', min: 1, max: 2 }, { troop: 'veteran', min: 0, max: 2 }] },
+  amman: { food: 1.2, camel: 55, horse: 90, recruits: [{ troop: 'guard', min: 1, max: 2 }, { troop: 'bedouin', min: 0, max: 2 }] },
   konya: { food: 1, horse: 75, recruits: [{ troop: 'fellah', min: 1, max: 3 }, { troop: 'veteran', min: 0, max: 2 }] },
   istanbul: { food: 2, horse: 110, recruits: [{ troop: 'veteran', min: 1, max: 3 }] },
   baghdad: { food: 1, camel: 45, horse: 90, recruits: [{ troop: 'bedouin', min: 1, max: 3 }, { troop: 'guard', min: 0, max: 2 }] },
@@ -68,7 +69,7 @@ export const MARKETS: Record<string, Market> = {
 
 // Old caravan roads, drawn on the map.
 /** The guard yard picture shown in each town's Guards tab. */
-export const YARD_ART: Record<string, string> = { giza: 'yard-giza', saqqara: 'yard-giza', fayoum: 'yard-giza', cairo: 'yard-cairo', tanta: 'yard-cairo', alexandria: 'yard-alexandria', portsaid: 'yard-alexandria', suez: 'yard-caravanserai', bedouin: 'yard-caravanserai', damascus: 'yard-caravanserai', baghdad: 'yard-caravanserai', jerusalem: 'yard-caravanserai', aleppo: 'yard-caravanserai' };
+export const YARD_ART: Record<string, string> = { giza: 'yard-giza', saqqara: 'yard-giza', fayoum: 'yard-giza', cairo: 'yard-cairo', tanta: 'yard-cairo', alexandria: 'yard-alexandria', portsaid: 'yard-alexandria', suez: 'yard-caravanserai', bedouin: 'yard-caravanserai', damascus: 'yard-caravanserai', baghdad: 'yard-caravanserai', jerusalem: 'yard-caravanserai', aleppo: 'yard-caravanserai', amman: 'yard-caravanserai' };
 
 export const ROADS: [string, string][] = [
   ['giza', 'cairo'], ['giza', 'saqqara'], ['saqqara', 'fayoum'], ['cairo', 'tanta'], ['tanta', 'alexandria'],

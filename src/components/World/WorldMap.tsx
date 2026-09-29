@@ -489,7 +489,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             const threat = raid ? ((p.strength ?? 0) > mine ? 'strong' : 'weak') : '';
             const gd = partyGoods(p);
             return (
-              <span key={p.id} className={`party party-${p.kind} ${threat ? `threat-${threat}` : ''} ${hunting ? 'hunting' : ''}`} style={{ left: p.x * s, top: p.y * s }} data-testid={`party-${p.kind}`} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => { e.stopPropagation(); if (dist(p, w) < 18) { setMoving(null); setEncounter(p); } else goTo({ x: p.x, y: p.y }); }}>
+              <span key={p.id} className={`party party-${p.kind} ${threat ? `threat-${threat}` : ''} ${hunting ? 'hunting' : ''}`} style={{ left: p.x * s, top: p.y * s }} data-testid={`party-${p.kind}`} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => {
+                e.stopPropagation();
+                // Train, ship and motor journeys are meant to be the safe way through — the road's own
+                // ambush/thief rolls already skip themselves for these (see travelStep's `safe` flag).
+                // A tap on a party marker glimpsed out the window used to reach past that and pull the
+                // player into the same standard road encounter anyway; keep it inert while under way.
+                if (moving?.train) { if (raid) setReport(`${p.name} watch the train pass, out of reach from the tracks.`); return; }
+                if (dist(p, w) < 18) { setMoving(null); setEncounter(p); } else goTo({ x: p.x, y: p.y });
+              }}>
                 {raid && <i className="pring" style={{ width: 44 * s, height: 44 * s }} aria-hidden="true" />}
                 <span className="pbadge"><Icon name={p.kind === 'raiders' ? 'sword' : p.kind === 'pilgrims' ? 'people' : p.kind === 'mercenaries' ? 'shield' : 'camel'} /></span>
                 {raid ? (
