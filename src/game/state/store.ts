@@ -1074,7 +1074,7 @@ export const useGame = create<GameState & Actions>()(
           const tierOf = (i: RugItem) => RUGS[i.typeId]?.tier ?? 1;
           const packed = job.need?.packedTier ? s.inventory.filter((i) => !i.stored && tierOf(i) >= job.need!.packedTier!).sort((a, b) => tierOf(a) - tierOf(b))[0] : undefined;
           const missing =
-            job.need?.packedTier && !packed ? `pack a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][job.need.packedTier]} for the road (Stock tab)` :
+            job.need?.packedTier && !packed ? `bring a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][job.need.packedTier]} packed for the road. Rugs are packed at your Giza stall (Stock tab), so this one means a trip home first` :
             job.need?.animals && animalCount(s.world.party) < job.need.animals ? `bring at least ${job.need.animals} animals` :
             job.need?.guards && !Object.values(s.world.party.troops ?? {}).some((n) => (n ?? 0) > 0) ? 'hire at least one guard' :
             job.reward.fee && s.cash < job.reward.fee ? `bring ${fmt(job.reward.fee)}` : '';

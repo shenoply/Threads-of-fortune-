@@ -39,5 +39,8 @@ export function firstHourStep(g: S): { id: string; text: string; btn: string; go
   if (!g.started || (g.tipsSeen ?? []).includes(FIRST_HOUR_TIP)) return null;
   const st = STEPS.find((x) => !x.done(g));
   if (!st) return null;
-  return { id: st.id, text: st.text(g), btn: st.btn, go: st.go };
+  // Rashid's errand has no button until he has actually given it: before that, Alexandria holds
+  // nothing for a new merchant but a hotel job he cannot do yet
+  const canGo = st.id !== 'alexandria' || g.missions?.alexandria === 'active';
+  return { id: st.id, text: st.text(g), btn: canGo ? st.btn : '', go: st.go };
 }

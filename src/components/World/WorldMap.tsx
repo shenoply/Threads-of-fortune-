@@ -16,6 +16,7 @@ import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { openJobs } from '../../data/jobs';
+import { RUGS } from '../../data/rugs';
 import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
 import { dateLine } from '../../game/economy/newspaper';
@@ -529,7 +530,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         )}
         {moving && (
           <div className="map-speed" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} role="group" aria-label="Travel speed" data-testid="map-speed">
-            <span className="ms-pace" data-testid="pace">{moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : `Pace ${milesPerDay(sp.pxPerDay)} mi/day`}</span>
+            <span className="ms-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : `Pace ${milesPerDay(sp.pxPerDay)} mi/day`}</span>
             {[0, 1, 2, 4].map((k) => (
               <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => setTimeScale(k)} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
             ))}
@@ -587,6 +588,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
                 <span>
                   {plan.days < 0.1 ? 'A short walk' : `On foot: ${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
                 </span>
+                {(() => {
+                  // what the walk leaves for the way home, and a job there that needs a rug packed here
+                  const need = Math.ceil(Math.max(1, plan.days) * dailyFood(w.party)), left = w.party.food - need;
+                  const job = w.at === 'giza' && plan.settlement ? openJobs(g.jobsDone, g.reputation).find((j) => j.target === plan.settlement!.id && j.need?.packedTier) : undefined;
+                  const tier = job?.need?.packedTier ?? 0;
+                  const unpacked = job && !g.inventory.some((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 1) >= tier);
+                  const lines = [
+                    plan.days >= 1 && left >= 0 && left < need ? (left === 0 ? 'You would arrive with no food for the way back.' : `You would arrive with only ${left} ration${left === 1 ? '' : 's'} for the way back.`) : '',
+                    unpacked ? `${job!.title} needs a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][tier]} packed for the road. Pack it in Stock before you leave: rugs can only be packed at your Giza stall.` : '',
+                  ].filter(Boolean);
+                  return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
+                })()}
               </div>
               <div className="wc-btns">
                 {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) ? (

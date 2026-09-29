@@ -305,7 +305,7 @@ export default function App() {
             <div className="screen-head"><div>
               <div className="eyebrow">YOUR CORNER IS CLOSED</div>
               <h2>{g.world.at ? `You are in ${settlementById(g.world.at).name}` : 'You are on the road'}</h2>
-              <p>Samira, Yusuf and Mariam can only find you in Giza. Rent is still due every day you are away.</p>
+              <p>Samira, Yusuf and Mariam can only find you in Giza. Rent, dues and household are still due on the 1st of the month.</p>
             </div></div>
             <button className="btn primary" onClick={() => setTab('map')} data-testid="goto-world">Open the world map</button>
           </div>

@@ -129,7 +129,7 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
       <div className="objective-bar" data-testid="first-hour">
         <div className="ob-row">
           <span className="ob-text"><small>Objective</small><b>{firstHour.text}</b></span>
-          <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>
+          {firstHour.btn && <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>}
         </div>
       </div>
     );
