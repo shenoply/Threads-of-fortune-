@@ -351,15 +351,18 @@ export function localOffers(sid: string, day: number, bought: string[], friends:
  *  matching only today's exact rolled condition let a dealer's own specialty rug be sold back for a
  *  windfall the moment the day's roll happened not to match what you were holding. */
 export function localAskPrice(sid: string, day: number, typeId: string, condition: RugItem['condition'], friends: string[], rep = 0): number | undefined {
-  if (cityClosed(day, sid)) return undefined;
   const st = settlementById(sid);
   const i = st.sells.findIndex((o) => o.typeId === typeId);
   if (i < 0) return undefined;
   const o = st.sells[i];
-  if ((o.minRep ?? 0) > rep) return undefined;
-  if (o.chance !== undefined && !(Math.abs(Math.sin((day * 17 + i * 101 + sid.length * 7) * 78.233)) % 1 < o.chance)) return undefined;
   const t = RUGS[typeId];
   const disc = friends.includes(sid) ? 0.85 : 1;
+  // Deliberately ignores cityClosed, chance and minRep: those gate what is freshly buyable today,
+  // not what this dealer would recognise as the going rate for a type they trade in. The buy-back
+  // cap in sellLocal() needs a price that always holds, or a shut market day / an unlucky chance
+  // roll / a reputation dip would knock the cap out (askToday undefined) and let the uncapped,
+  // much higher localBid() through — reopening the exact buy-low-sell-high loop this cap exists
+  // to close, town by town, every time one of those day-to-day gates happens not to line up.
   return snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
 }
 
