@@ -35,7 +35,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                 <h3>{t.name}</h3>
                 <div className="meta">
                   {i.restoringUntil ? (
-                    <span className="cond restoring" data-testid="restoring">At the restorer until day {i.restoringUntil}</span>
+                    <span className="cond restoring" data-testid="restoring">{i.condition === 'Dirty' ? `Drying in the courtyard until day ${i.restoringUntil}` : `At the restorer until day ${i.restoringUntil}`}</span>
                   ) : (
                     <span className={`cond ${i.condition}`} data-testid="condition">{i.condition}{i.restored ? ' · restored' : ''}</span>
                   )}{' '}

@@ -1705,7 +1705,7 @@ export const useGame = create<GameState & Actions>()(
             enc.log.push({ speaker: 'buyer', text: b.lines.commission[0], mood: 'warm' });
             commissions = [...s.commissions, { buyerId, label: b.commission.label, bonus: b.commission.bonus, done: false, until: s.day + 10 }];
             relationships = { ...relationships, [buyerId]: { ...rel, commissionOffered: true } };
-            goals = [...goals.filter((g) => g.id !== 'commission'), { id: 'commission', kind: 'commission', label: `${b.commission.label} (by day ${s.day + 10})`, target: 1 }];
+            goals = [...goals.filter((g) => g.id !== 'commission'), { id: 'commission', kind: 'commission', label: `${b.commission.label} (by day ${s.day + 10})`, key: b.commission.label, target: 1 }];
           } else if (!tutorial && rel.purchases >= 1 && !rel.referred && b.lines.referral.length && rel.visits >= 1) {
             enc.log.push({ speaker: 'buyer', text: b.lines.referral[0], mood: 'warm' });
             relationships = { ...relationships, [buyerId]: { ...rel, referred: true } };

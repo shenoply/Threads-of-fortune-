@@ -372,7 +372,15 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
     case 'bargaining': {
       // once they have named their last price, every other road leads out of the stall
       const last = !!enc.finalOffered;
-      if (enc.buyerOffer) out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
+      if (enc.buyerOffer) {
+        // Quick sale (a separate, always-on button for a Common rug) is a guaranteed floor price
+        // that can sit above what the buyer has offered so far in the haggling — without saying so,
+        // Accept Offer just looks like the worse of two numbers for no reason.
+        const item = presentedItem(enc, ctx);
+        const qp = item && canQuickSell(enc, item) ? quickPrice(enc, item) : undefined;
+        const quickIsMore = qp !== undefined && qp > enc.buyerOffer;
+        out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: quickIsMore ? `Quick sale pays more: ${fmt(qp!)}` : last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
+      }
       if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10 && !last)
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference', icon: 'scale' });
       if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm', icon: 'shield' });

@@ -84,7 +84,7 @@ export function goalsFor(day: number, opts: { commission?: string; debt: number;
   const gross = snap(Math.min(150 + (day - 1) * 40, 1500) * (v / 3 + 0.34));
   g.push({ id: 'sales', kind: 'sales', label: day === 1 ? 'Make your first sales: sell 2 rugs' : sales === 1 ? 'Make a sale' : `Sell ${sales} rugs`, target: sales });
   g.push({ id: 'gross', kind: 'gross', label: `Earn ${fmt(gross)} gross profit`, target: gross });
-  if (opts.commission) g.push({ id: 'commission', kind: 'commission', label: opts.commission, target: 1 });
+  if (opts.commission) g.push({ id: 'commission', kind: 'commission', label: opts.commission, key: opts.commission, target: 1 });
   if (opts.debt > 0) g.push({ id: 'pay', kind: 'payRashid', label: `Pay Uncle Rashid ${fmt(opts.debt)}`, target: opts.debt });
   return g;
 }

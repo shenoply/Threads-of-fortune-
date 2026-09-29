@@ -204,4 +204,7 @@ export interface Goal {
   label: string;
   target: number;
   kind: 'sales' | 'gross' | 'commission' | 'payRashid';
+  /** stable value to match progress against, for a goal whose display label carries extra text (a
+   *  deadline, say) that the thing being matched does not have. Falls back to label when absent. */
+  key?: string;
 }

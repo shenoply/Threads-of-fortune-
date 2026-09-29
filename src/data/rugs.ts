@@ -40,7 +40,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     history: 'Kilims came down to the Canal towns with the Bedouin and the pilgrims, and the ship chandlers sold them on to sailors.',
     storyLine: 'A sailor\'s rug. They buy these at Ismailia and carry them round the world rolled in a sea chest.',
     craftLine: 'The hooks and lozenges are old village patterns. Look at the little gaps where the colours meet: woven by hand.',
-    durabilityLine: 'Light, flat and strong. You can fold it into a saddlebag and it will not mind.',
+    durabilityLine: 'Flat and tightly packed, no pile to wear through. Feet, chair legs, years of traffic: it takes all of it and shows nothing.',
     weave: knots.flat, fringe: 'Braided ends', backNote: 'Loose weft ends tucked in on the back; no repairs.',
   }),
   rug('delta-house', {

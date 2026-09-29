@@ -92,7 +92,11 @@ export function goalProgress(g: ReturnType<typeof useGame.getState>, goal: Goal)
     return [gross, gross >= goal.target];
   }
   if (goal.kind === 'commission') {
-    const done = g.commissions.some((c) => c.label === goal.label && c.done);
+    // a commission offered mid-day (not the one the morning's goal list was built from) carries a
+    // "(by day N)" deadline in its display label that the commission record itself never has, so
+    // matching on the label verbatim never found it done — key is the plain label both agree on.
+    const key = goal.key ?? goal.label;
+    const done = g.commissions.some((c) => c.label === key && c.done);
     return [done ? 1 : 0, done];
   }
   return [g.supplier.debt, g.supplier.debt === 0];
