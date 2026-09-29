@@ -7,6 +7,27 @@ import { StallEncounter } from '../StallEncounter/StallEncounter';
 import { Tip } from '../Tips/Tip';
 
 // Walk the grounds of a palace. The fog lifts as you go; the chamberlain gives advice; the audience hall starts the negotiation.
+// Illustrated markers for the stops that have one (art/drafts/icons); the rest keep their letter glyph.
+const ICON_FOR = (p: VenuePoi): string | undefined => {
+  const a = p.action ?? '';
+  if (p.id === 'port') return 'port';
+  if (p.kind === 'exit' && /station/i.test(p.name)) return 'station';
+  if (p.kind === 'audience' || a === 'palace') return 'palace';
+  if (a === 'market') return 'carpet-market';
+  if (a === 'floor' || a.startsWith('house:')) return 'auction';
+  if (a === 'guards') return 'guards';
+  if (a === 'animals') return 'caravanserai';
+  if (a.startsWith('venue:')) return 'cabaret';
+  return undefined;
+};
+const iconSrc = (n: string) => `${import.meta.env.BASE_URL}art/drafts/icons/${n}-96.png`;
+const ICON_IMG: Record<string, HTMLImageElement> = {};
+const iconImg = (n: string) => {
+  if (typeof Image === 'undefined') return undefined;
+  const im = (ICON_IMG[n] ??= Object.assign(new Image(), { src: iconSrc(n) }));
+  return im.complete && im.naturalWidth ? im : undefined;
+};
+
 const FG = 8, FW = Math.ceil(DW / FG), FH = Math.ceil(DH / FG), REVEAL = 190;
 
 /** A royal audience in progress, full screen over whatever opened it. */
@@ -175,18 +196,30 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
         const X = ox + p.x * sc, Y = oy + p.y * sc;
         if (X < -80 || Y < -40 || X > W + 80 || Y > H + 40) continue;
         const key = p.kind === 'audience' || p.kind === 'goto';
-        ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(X + 1.5, Y + 2, 13, 0, 7); ctx.fill();
-        ctx.fillStyle = key ? '#9a3326' : '#efe0bf';
-        ctx.beginPath(); ctx.arc(X, Y, 13, 0, 7); ctx.fill();
-        ctx.strokeStyle = key ? '#e7bd6e' : '#5a3d20'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.fillStyle = key ? '#efe0bf' : '#5a3d20';
-        ctx.font = '700 13px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(p.glyph, X, Y + 1);
+        const ic = ICON_FOR(p), im = ic ? iconImg(ic) : undefined;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        let lab = 16;
+        if (im) {
+          // a parchment disc under the illustrated icon; a red ring still marks the places you can enter
+          ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(X + 1.5, Y + 2.5, 20, 0, 7); ctx.fill();
+          ctx.fillStyle = '#efe0bf'; ctx.beginPath(); ctx.arc(X, Y, 20, 0, 7); ctx.fill();
+          ctx.strokeStyle = key ? '#9a3326' : '#5a3d20'; ctx.lineWidth = key ? 2.5 : 1.5; ctx.stroke();
+          ctx.drawImage(im, X - 16, Y - 16, 32, 32);
+          lab = 23;
+        } else {
+          ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(X + 1.5, Y + 2, 13, 0, 7); ctx.fill();
+          ctx.fillStyle = key ? '#9a3326' : '#efe0bf';
+          ctx.beginPath(); ctx.arc(X, Y, 13, 0, 7); ctx.fill();
+          ctx.strokeStyle = key ? '#e7bd6e' : '#5a3d20'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = key ? '#efe0bf' : '#5a3d20';
+          ctx.font = '700 13px Cinzel, Georgia, serif';
+          ctx.fillText(p.glyph, X, Y + 1);
+        }
         ctx.font = '600 12.5px Alegreya, Georgia, serif';
         const tw = ctx.measureText(p.name).width + 12;
-        ctx.fillStyle = 'rgba(239,224,191,0.94)'; ctx.fillRect(X - tw / 2, Y + 16, tw, 18);
-        ctx.strokeStyle = 'rgba(90,61,32,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(X - tw / 2 + 0.5, Y + 16.5, tw - 1, 17);
-        ctx.fillStyle = '#2b1b0d'; ctx.fillText(p.name, X, Y + 25.5);
+        ctx.fillStyle = 'rgba(239,224,191,0.94)'; ctx.fillRect(X - tw / 2, Y + lab, tw, 18);
+        ctx.strokeStyle = 'rgba(90,61,32,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(X - tw / 2 + 0.5, Y + lab + 0.5, tw - 1, 17);
+        ctx.fillStyle = '#2b1b0d'; ctx.fillText(p.name, X, Y + lab + 9.5);
         // a small "i" badge marks a stop that only offers information, tapped straight into a sheet
         if (p.kind === 'note') {
           ctx.fillStyle = '#402616'; ctx.beginPath(); ctx.arc(X + 10, Y - 10, 7, 0, 7); ctx.fill();
@@ -300,7 +333,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
         <div className="district-places">
           {v.pois.filter((p) => seen.includes(p.id)).map((p) => (
             <button key={p.id} className={`dplace ${p.kind === 'audience' || p.kind === 'goto' ? 'royal' : ''}`} onClick={(e) => (p.kind === 'note' ? peek(p, e.currentTarget) : walkTo(p.x, p.y, p.id))} data-testid={`vpoi-${p.id}`}>
-              <i>{p.glyph}</i>
+              <i>{ICON_FOR(p) ? <img src={iconSrc(ICON_FOR(p)!)} alt="" draggable={false} /> : p.glyph}</i>
               <span><b>{p.name}</b><small>{p.sub}</small></span>
             </button>
           ))}

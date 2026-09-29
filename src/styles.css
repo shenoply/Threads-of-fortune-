@@ -507,7 +507,8 @@ table.ledger .neg { color: var(--bad); }
 
 /* ---------- Wide / landscape ---------- */
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) {
-  .stall { grid-template-rows: minmax(260px, 1fr) auto auto; grid-template-columns: 1.35fr 1fr; }
+  .stall { grid-template-rows: auto minmax(260px, 1fr) auto auto; grid-template-columns: 1.35fr 1fr; }
+  .stall-toolbar { grid-column: 1 / -1; }
   .scene { grid-column: 1 / -1; aspect-ratio: auto; max-height: none; height: 100%; }
   .band { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; }
   .band > :first-child, .band > :last-child { margin-top: 0; margin-bottom: 0; }
@@ -804,6 +805,8 @@ table.ledger .neg { color: var(--bad); }
 .venue { position: relative; height: 100%; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; }
 .dplace.royal { border-color: var(--brass-hi); background: #2a130c; }
 .dplace.royal i { background: #9a3326; color: #efe0bf; }
+.dplace i img { width: 24px; height: 24px; object-fit: contain; }
+.dplace.royal i:has(img) { background: var(--parchment); box-shadow: 0 0 0 2px #9a3326; }
 .audience-overlay .stall { grid-template-rows: minmax(0, 1fr) auto auto auto; }
 .audience-overlay .scene.audience { aspect-ratio: auto; max-height: none; height: 100%; min-height: 300px; }
 .audience .plate-row .name, .plate-row .name { white-space: nowrap; }
@@ -1919,13 +1922,15 @@ body.travelling .mission-strip{display:none}
 .port-sail .section-label { margin-bottom: 6px; }
 .port-sail .mkt-row small { display: block; }
 
-.sailing-transition { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: linear-gradient(#d8b77d 0 53%, #416b73 54%); }
-.sailing-transition__sea { position: absolute; inset: 53% 0 0; background: repeating-linear-gradient(-3deg, #3d6770 0 12px, #56858a 13px 18px); animation: sea-drift 1.3s linear infinite; }
-.sailing-transition__ship { position: absolute; left: 8%; top: 43%; font-size: clamp(58px, 15vw, 110px); filter: drop-shadow(0 8px 5px #142b3590); animation: sail-across 2.2s ease-in-out forwards; }
-.sailing-transition__caption { position: absolute; top: 15%; width: 100%; padding: 0 18px; text-align: center; color: #2d1b11; font-size: 1.25rem; font-weight: 700; font-family: var(--display); }
-.sailing-transition__skip { position: absolute; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); min-height: 44px; border: 1px solid var(--line-strong); background: #2a1c10; color: var(--parchment); border-radius: 4px; padding: 9px 14px; font-family: var(--label); font-size: 14.5px; }
-@keyframes sail-across { from { transform: translateX(0) translateY(0); } to { transform: translateX(82vw) translateY(-12px); } }
-@keyframes sea-drift { to { background-position: 45px 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .sailing-transition__ship, .sailing-transition__sea { animation: none; }
-}
+.sailing-transition { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #1a120b; }
+.sailing-transition__caption { position: absolute; z-index: 5; top: calc(9% + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: auto; max-width: calc(100% - 32px); padding: 8px 16px; border-radius: 10px; background: #1b110ad9; border: 1px solid #b07a3f; text-align: center; color: #ffe7c2; font-size: 1.25rem; font-weight: 700; font-family: var(--display); }
+.sailing-transition__skip { position: absolute; z-index: 5; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); min-height: 44px; border: 1px solid var(--line-strong); background: #2a1c10; color: var(--parchment); border-radius: 4px; padding: 9px 14px; font-family: var(--label); font-size: 14.5px; }
+/* a wide, short stall frame: the painting sits in the middle, a blurred copy of it fills the sides */
+.scene.stall .stage-fill{position:absolute;inset:-8%;width:116%;height:116%;object-fit:cover;object-position:50% 100%;filter:blur(18px) brightness(.55) saturate(.9);pointer-events:none}
+
+/* the crossing: three paintings, each fading in over the last and drifting slightly */
+.sailing-transition__frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; opacity: 0; animation: voyage-frame 1.3s ease-out both; }
+.sailing-transition__frame:first-of-type { animation-name: voyage-first; }
+@keyframes voyage-frame { from { opacity: 0; transform: scale(1.06); } 45% { opacity: 1; } to { opacity: 1; transform: scale(1.02); } }
+@keyframes voyage-first { from { opacity: 1; transform: scale(1.06); } to { opacity: 1; transform: scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { .sailing-transition__frame { animation: none; opacity: 0; } .sailing-transition__frame:last-of-type { opacity: 1; } }

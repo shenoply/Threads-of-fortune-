@@ -155,7 +155,10 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   const who: 'seller' | 'buyer' = view.speaking ?? (view.lastSpeaker === 'seller' ? 'seller' : 'buyer');
   const text = who === 'seller' ? view.seller : view.buyer;
   const bw = Math.min(W * 0.62, 440);
-  const sw = Math.max(W, H * 1.5), sh = sw / 1.5;
+  // the painting is 3:2 and bottom-anchored; on a wide, short frame (a desktop window) it may not
+  // grow so tall that everything above the counter is cropped away: at most a frame and two thirds
+  // tall, centred, with a blurred copy of the painting filling the sides
+  const sh = Math.min(Math.max(W, H * 1.5) / 1.5, H / 0.6), sw = sh * 1.5;
   // figures stand on the counter (a fixed share of the stage) and must keep their heads inside the
   // visible frame, whose height is what a phone or a wide desktop panel actually shows
   const figH = Math.min(sh * 0.55, H * 0.93 - sh * 0.21);
@@ -165,6 +168,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   const heroStyle = { height: heroH, bottom: sh * 0.25 - heroH * 0.06 };
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
+      {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         <StallProps />

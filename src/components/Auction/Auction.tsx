@@ -64,7 +64,7 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
   if (!seated) {
     return (
       <div className="auction-overlay" data-testid="auction">
-        <img className="auction-bg" src={art(h.floorPov)} alt="" />
+        <img className="auction-bg" src={art(h.introPov ?? h.floorPov)} alt="" />
         <div className="auction-shade" />
         <div className="auction-body">
           <div className="auction-head">

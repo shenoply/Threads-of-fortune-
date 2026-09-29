@@ -27,7 +27,7 @@ export const AUCTION_HOUSES: AuctionHouse[] = [
     ],
     "historicalNote": "Fictional auction venue grounded in the real Khan el-Khalili trading environment.",
     "venueMap": "/art/auction/venues/cairo-small-map.webp",
-    "floorPov": "/art/auction/pov/cairo-small-pov.webp",
+    "floorPov": "/art/drafts/auction-cairo-small-room.webp",
     "floorPovTemporaryReuse": false,
     "attendance": "ALWAYS_ALLOWED"
   },
@@ -59,6 +59,7 @@ export const AUCTION_HOUSES: AuctionHouse[] = [
     "historicalNote": "Fictional estate-auction venue using a period-appropriate Garden City mansion setting.",
     "venueMap": "/art/auction/venues/cairo-grand-map.webp",
     "floorPov": "/art/auction/pov/cairo-grand-pov.webp",
+    "introPov": "/art/drafts/auction-cairo-grand-intro.webp",
     "floorPovTemporaryReuse": false,
     "attendance": "ALWAYS_ALLOWED"
   },

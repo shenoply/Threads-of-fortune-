@@ -18,6 +18,8 @@ export interface AuctionHouse {
   historicalNote: string;
   venueMap: string;
   floorPov: string;
+  /** an establishing picture of the room in full session, shown with the catalogue before you take a seat */
+  introPov?: string;
   floorPovTemporaryReuse: boolean;
   attendance: 'ALWAYS_ALLOWED';
 }
