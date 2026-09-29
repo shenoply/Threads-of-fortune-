@@ -6,6 +6,7 @@ import { SELLER, NARRATOR, STAGE } from '../../data/dialogue';
 import { levelOf, hasPerk, type SkillId, type Manner } from '../../data/character';
 import { BUYER_MANNER, SELLER_MANNER, type MannerKind } from '../../data/manners';
 import { GROOMING } from '../../data/grooming';
+import { newUid } from '../economy/economy';
 
 export type ActionId =
   | 'ask_room' | 'ask_drawn' | 'ask_budget' | 'ask_decider' | 'small_talk' | 'tea'
@@ -24,6 +25,12 @@ export interface ActionView {
 }
 
 export interface Encounter {
+  // Stamped once at creation and never touched again: the only thing the dialogue playback UI can
+  // key a "is this the same conversation as before" reset on. visitIdx moves the moment a sale
+  // closes (before the player has even seen the result screen or clicked "Next customer"), so
+  // keying the reset on it replayed the whole log — including the buyer's opening line — right
+  // under the "Sold" banner.
+  id: string;
   buyerId: string;
   stage: Stage;
   interest: number;
@@ -178,6 +185,7 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   const b = BUYERS[buyerId];
   const tier = tierOf(ctx.rel);
   const enc: Encounter = {
+    id: newUid('enc'),
     buyerId,
     stage: 'discovery',
     interest: clamp(b.interest + Math.min(10, Math.floor(ctx.reputation / 2)), 0, 100),

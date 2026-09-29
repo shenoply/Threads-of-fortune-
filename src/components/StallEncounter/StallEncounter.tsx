@@ -26,7 +26,11 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const avail = atCourt ? availableRugs(g).filter((i) => !i.stored) : availableRugs(g);
   const shown = avail.length <= 3 ? avail : [...avail, ...avail].slice(offset % avail.length, (offset % avail.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
-  const resetKey = `${g.day}-${g.visitIdx}-${enc?.buyerId ?? 'none'}`;
+  // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
+  // closes (settle() runs inside act(), before the player has seen the result screen or clicked
+  // "Next customer"), so keying the dialogue-playback reset on it replayed the whole conversation
+  // — including the buyer's opening line — while the "Sold" banner was still on screen.
+  const resetKey = `${g.day}-${enc?.id ?? 'none'}`;
   const log = useMemo(() => enc?.log ?? [], [enc?.log]);
   const { view, skip } = usePlayback(log, resetKey, enc?.buyerId ?? '');
   const rel = enc ? g.relationships[enc.buyerId] : undefined;
