@@ -1929,7 +1929,7 @@ body.travelling .mission-strip{display:none}
 .scene.stall .stage-fill{position:absolute;inset:-8%;width:116%;height:116%;object-fit:cover;object-position:50% 100%;filter:blur(18px) brightness(.55) saturate(.9);pointer-events:none}
 
 /* the crossing: three paintings, each fading in over the last and drifting slightly */
-.sailing-transition__frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; opacity: 0; animation: voyage-frame 1.3s ease-out both; }
+.sailing-transition__frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; opacity: 0; animation: voyage-frame 1s ease-out both; }
 .sailing-transition__frame:first-of-type { animation-name: voyage-first; }
 @keyframes voyage-frame { from { opacity: 0; transform: scale(1.06); } 45% { opacity: 1; } to { opacity: 1; transform: scale(1.02); } }
 @keyframes voyage-first { from { opacity: 1; transform: scale(1.06); } to { opacity: 1; transform: scale(1.02); } }

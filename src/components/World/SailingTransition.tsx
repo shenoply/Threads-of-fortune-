@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 // the ship sits right of centre on the quay, centred at sea, left of the town on arrival: each frame
 // keeps its ship in view when a phone crops the sides
 const FRAMES = [['depart', '64%'], ['sea', '50%'], ['arrive', '46%']].map(([f, x]) => ({ src: `art/drafts/voyage-${f}.webp`, x }));
-const FRAME_MS = 1300;
+const FRAME_MS = 1000;
 
 /** A brief, skippable crossing while a booked passage commits: the ship leaves the quay, crosses the
  *  water, and the destination coastline appears. Purely a presentation layer over one moment in time —
