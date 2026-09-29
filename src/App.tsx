@@ -72,7 +72,11 @@ export default function App() {
       case 'cairo': mapGo(at === 'cairo' ? { view: 'world', panel: 'cairo' } : { view: 'world', plan: 'cairo' }); break;
       case 'auction': mapGo(at === 'cairo' ? { view: 'world', panel: 'cairo' } : { view: 'world', plan: 'cairo' }); break;
       case 'alexandria': mapGo(at === 'alexandria' ? { view: 'world', panel: 'alexandria' } : { view: 'world', plan: 'alexandria' }); break;
-      case 'animals': case 'guards': mapGo(at === 'giza' ? { view: 'district', tab: t } : at ? { view: 'world', panel: at, tab: t } : { view: 'world' }); break;
+      case 'animals': case 'guards': { const tab = t as 'animals' | 'guards'; mapGo(at === 'giza' ? { view: 'district', tab } : at ? { view: 'world', panel: at, tab } : { view: 'world' }); break; }
+      // any other target is a settlement id (a mission's, job's or visitor's town, e.g. 'suez',
+      // 'damascus', 'tanta') that has no special screen of its own: open the world map and plan a
+      // route there, the same way the Objectives panel's own "Show" button does.
+      default: mapGo(at === t ? { view: 'world', panel: t } : { view: 'world', plan: t }); break;
     }
   };
   const [confirmReset, setConfirmReset] = useState(false);

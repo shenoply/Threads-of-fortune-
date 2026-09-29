@@ -41,7 +41,12 @@ export function rankOf(s: S) {
   // can say which of the three is actually the one still missing
   const blockedByStory = next ? natural > mDone : false;
   const blockingMission = blockedByStory ? MISSIONS[MAIN_ORDER[mDone]] : undefined;
-  return { idx, rank: RANKS[idx], next, worth: w, blockedByStory, blockingMission };
+  // the other direction: every main mission up to here is finished, but net worth or reputation has
+  // not caught up yet. Without calling this out by name, "Stall keeper" after finishing a mission
+  // just reads as broken — the general reputation note says the numbers, but not that money is the
+  // one thing actually holding the title back right now.
+  const blockedByWorth = next ? mDone > natural : false;
+  return { idx, rank: RANKS[idx], next, worth: w, blockedByStory, blockingMission, blockedByWorth };
 }
 
 /** The four conditions of the ultimate goal. */

@@ -314,8 +314,9 @@ function initialWorld(): WorldState {
   return { x: g.x, y: g.y, at: 'giza', fog, known: ['giza', 'cairo', 'alexandria', 'portsaid', 'jaffa', 'jerusalem', 'beirut', 'damascus', 'aleppo', 'istanbul', 'baghdad', 'konya', 'amman', 'ankara'], hour: 8, parties: spawnParties(rng), quests: {}, rumours: [], boughtLocal: [], appraised: [], friends: [], party: startingParty(), hired: {} };
 }
 
-/** What a settlement's own market has today. Deterministic per day, so it cannot be rerolled. */
-export function localOffers(sid: string, day: number, bought: string[], friends: string[], rep = 0): LocalOffer[] {
+/** What a settlement's own market has today, before stock is filtered out. Used both to show what is
+ *  still buyable and — with stock ignored — to cap what the same dealer will pay back the same day. */
+export function localOffersRaw(sid: string, day: number, bought: string[], friends: string[], rep = 0): LocalOffer[] {
   const st = settlementById(sid);
   if (cityClosed(day, sid)) return [];
   return st.sells
@@ -335,8 +336,12 @@ export function localOffers(sid: string, day: number, bought: string[], friends:
       // village rugs come in stacks; the finer the rug, the fewer the copies
       const qty = (t.tier ?? 1) === 1 ? 3 : (t.tier ?? 1) === 2 ? 2 : 1;
       return { key, typeId: o.typeId, condition, price, left: qty - bought.filter((b) => b === key).length };
-    })
-    .filter((o) => o.left > 0);
+    });
+}
+
+/** What a settlement's own market has left to buy today. Deterministic per day, so it cannot be rerolled. */
+export function localOffers(sid: string, day: number, bought: string[], friends: string[], rep = 0): LocalOffer[] {
+  return localOffersRaw(sid, day, bought, friends, rep).filter((o) => o.left > 0);
 }
 
 /** What the local dealer pays for one of your rugs here. */
@@ -864,6 +869,10 @@ export const useGame = create<GameState & Actions>()(
         travelStep: (pos, days, safe) => {
           let s: GameState = get();
           const notes: string[] = [];
+          // rollover notes (hunger, a starving animal left behind, a man walking off in the night) are
+          // shown as an on-map toast that the next tick overwrites, so a multi-day trip could lose the
+          // reason its food ran out; keep a permanent record in the journal too.
+          const roadJournal: { day: number; text: string; kind?: string }[] = [];
           const startDay = s.day, leaving = s.world.at;
           let hour = s.world.hour + days * 24;
           let patch: Partial<GameState> = {};
@@ -871,7 +880,9 @@ export const useGame = create<GameState & Actions>()(
             hour -= 24;
             const r = rollover({ ...s, ...patch } as GameState);
             patch = { ...patch, ...r.patch, lastSummary: r.summary };
-            notes.push(`Day ${r.summary.day + 1} on the road.`, ...r.summary.notes.filter((n) => !/buyers are likely|Only one of your/.test(n)));
+            const roadNotes = r.summary.notes.filter((n) => !/buyers are likely|Only one of your/.test(n));
+            notes.push(`Day ${r.summary.day + 1} on the road.`, ...roadNotes);
+            roadNotes.forEach((text) => roadJournal.push({ day: r.summary.day, text, kind: 'road' }));
           }
           s = { ...s, ...patch } as GameState;
           const thief = safe ? null : nightThieves(s, s.day, hour);
@@ -893,7 +904,7 @@ export const useGame = create<GameState & Actions>()(
           const where = { ...(s.whereabouts ?? {}) };
           if (leaving && !where[startDay]) where[startDay] = leaving;
           for (let d = startDay + (leaving ? 1 : 0); d <= s.day; d++) if (!where[d] || d > startDay) where[d] = 'road';
-          const journal = leaving ? [...s.journal, { day: startDay, text: `Left ${settlementById(leaving).name} for the road.`, kind: 'depart' }] : s.journal;
+          const journal = [...s.journal, ...(leaving ? [{ day: startDay, text: `Left ${settlementById(leaving).name} for the road.`, kind: 'depart' }] : []), ...roadJournal];
           const mounted = Object.values(s.world.party.animals ?? {}).some((n) => (n ?? 0) > 0);
           const g1 = growth(s, { survival: Math.max(1, Math.round(days * 4)), ...(mounted ? { riding: Math.max(1, Math.round(days * 4)) } : {}) });
           // rounded to a whole point: this is called every ~140ms while travelling, and leaving it as
@@ -1220,8 +1231,10 @@ export const useGame = create<GameState & Actions>()(
           let bid = localBid(sid, it, s.day);
           // a dealer never pays more for a rug than they are asking for the same rug today: without
           // this, a type this town both sells and has high local demand for (its own specialty, most
-          // often) could be bought and sold straight back for a same-day, no-travel profit
-          const sameToday = localOffers(sid, s.day, s.world.boughtLocal, s.world.friends, s.reputation)
+          // often) could be bought and sold straight back for a same-day, no-travel profit. This has to
+          // check today's asking price even for a rug that is now sold out (you may have just bought the
+          // last one), so it uses the unfiltered list rather than localOffers.
+          const sameToday = localOffersRaw(sid, s.day, s.world.boughtLocal, s.world.friends, s.reputation)
             .find((o) => o.typeId === it.typeId && o.condition === it.condition);
           if (sameToday) bid = Math.min(bid, Math.max(0, sameToday.price - 1));
           set({
@@ -1392,7 +1405,7 @@ export const useGame = create<GameState & Actions>()(
           if (s.cash < price) return 'Not enough cash.';
           set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, food: s.world.party.food + n } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `${n} rations in ${settlementById(sid).name}`, amount: -price }] });
           audio.sfx('coin');
-          return `Bought ${n} days of bread and dates for ${fmt(price)}.`;
+          return `Bought ${n} ration${n === 1 ? '' : 's'} of bread and dates for ${fmt(price)}.`;
         },
 
         /** A last resort on the road with the sacks empty: butcher a pack animal for rations. You lose the animal for good. */
@@ -2059,6 +2072,7 @@ useGame.subscribe((s) => {
     reputation: s.reputation + m.reward.rep,
     supplier: { ...s.supplier, trust: Math.min(100, s.supplier.trust + m.reward.trust) },
     journal: [...s.journal, { day: s.day, text: `Mission complete: ${m.title}.`, kind: 'mission' }],
+    ledger: m.reward.cash ? [...s.ledger, { day: s.day, kind: 'bonus', label: `Mission: ${m.title}`, amount: m.reward.cash }] : s.ledger,
   });
   audio.sfx('chest');
 });

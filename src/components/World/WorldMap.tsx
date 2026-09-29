@@ -201,14 +201,21 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     // that choice is in view, rather than pricing a walking-food shortfall for a trip the player is
     // about to take by train (which has its own, usually much smaller, food needs)
     if (p.ships.length || p.motor.length || p.train) return;
-    // leaving a town short of food: offer to buy what the road needs, in one tap, before setting off
+    if (offerFoodShort(p)) return;
+    setOff(p);
+  };
+  // leaving a town short of food: offer to buy what the road needs, in one tap, before setting off.
+  // Shared by the tap-and-go path above and the plan card's own "Travel" button below (opened from
+  // the Objectives panel or the objective banner's Map button) — without this in both places, only
+  // one of the two ways to start walking actually caught a caravan that could not make the distance.
+  const offerFoodShort = (p: Plan) => {
     const need = Math.ceil(Math.max(1, p.days) * dailyFood(w.party)) - w.party.food;
     if (need > 0 && w.at && MARKETS[w.at] && !moving) {
       setShort({ plan: p, need, price: Math.ceil(need * MARKETS[w.at].food) });
       setPlan(null);
-      return;
+      return true;
     }
-    setOff(p);
+    return false;
   };
   const setOff = (p: Plan) => {
     setShort(null);
@@ -255,6 +262,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
       return;
     }
     if (!plan.path) return;
+    if (!train && offerFoodShort(plan)) return;
     follow.current = true;
     setMoving({ path: plan.path, done: 0, train, dest: plan.settlement?.id });
     setPlan(null);

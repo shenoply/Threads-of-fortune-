@@ -10,7 +10,7 @@ import type { SetTab } from './Settlement';
 import { audio } from '../../game/audio/engine';
 
 /** Places a button can send you to: a screen, a town, or a yard in the district. */
-export type Target = 'buyers' | 'paper' | 'radio' | 'supplier' | 'map' | 'district' | 'cairo' | 'auction' | 'animals' | 'guards' | 'alexandria';
+export type Target = 'buyers' | 'paper' | 'radio' | 'supplier' | 'map' | 'district' | 'cairo' | 'auction' | 'animals' | 'guards' | 'alexandria' | (string & {});
 export type MapIntent = { view?: 'district' | 'world'; panel?: string; tab?: SetTab; plan?: string; stall?: boolean; n: number };
 
 // remembered between visits to other screens, so coming back finds you where you were

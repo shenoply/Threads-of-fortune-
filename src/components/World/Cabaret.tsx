@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../Icon';
-import { useGame } from '../../game/state/store';
+import { clock, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { NPCS } from '../../data/world';
 import { VENUES_1925, venueArt, venueOpen, type Venue1925 } from '../../data/entertainment';
@@ -60,6 +60,11 @@ export function Cabaret({ id, onLeave }: { id: string; onLeave: () => void }) {
           <button className="btn primary" onClick={table} disabled={!open || showing} data-testid="cab-table">
             <Icon name="coin" /> {showing ? 'Your table is taken' : `Take a table · ${fmt(v.ticket)}`}
           </button>
+          {!showing && open && (
+            <small className="cab-table-hint" data-testid="cab-table-time">
+              The evening runs until {clock(Math.min(23.9, Math.max(g.world.hour, 20) + 2))} — the rest of today is gone once you sit down.
+            </small>
+          )}
           <button className="btn" onClick={() => setTalk(true)} data-testid="cab-talk"><Icon name="talk" /> Speak to {contact.name.split(' ')[0]}</button>
           <button className="btn door-btn leave" onClick={onLeave} data-testid="cab-leave">⟵ Back to the town</button>
         </div>

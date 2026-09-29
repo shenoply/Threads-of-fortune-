@@ -5,6 +5,7 @@ import { PIECES, START_WARDROBE, heroCharisma } from '../../data/wardrobe';
 import { HeroBadge } from '../Wardrobe/HeroFigure';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { rankOf, RANKS } from '../../game/economy/progress';
+import { fmt } from '../../game/economy/money';
 import { TITLES } from '../../data/titles';
 
 // The merchant's character sheet: reputation, how the bazaar sees you, charisma and skills.
@@ -16,7 +17,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
   const ch = heroCharisma(wr.outfit, att.clean);
   const [wardrobe, setWardrobe] = useState(false);
   const dress = [wr.outfit.head, wr.outfit.outer ?? wr.outfit.top].filter((x): x is string => !!x).map((id) => PIECES[id]?.name.toLowerCase()).join(', ');
-  const { rank, next, blockedByStory, blockingMission } = rankOf(g);
+  const { rank, next, blockedByStory, blockingMission, blockedByWorth, worth } = rankOf(g);
   const repNext = next?.rep ?? 100;
   return (
     <div className="charsheet inline" data-testid="character">
@@ -31,6 +32,9 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
         <p className="cs-note">Earned by good sales, honest dealing, commissions and royal warrants. Lost when you are caught lying or miss a debt. It opens better stock, the back rooms of city dealers and palace doors ({RANKS.length} ranks). Rank needs reputation and net worth together — {next?.note ?? 'you have reached the top rank.'}</p>
         {blockedByStory && blockingMission && (
           <p className="cs-note" data-testid="rank-story-lock">Reputation and net worth are there, but the rank will not move until an unfinished matter is settled: <b>{blockingMission.title}</b>. {blockingMission.locks}</p>
+        )}
+        {blockedByWorth && next && (
+          <p className="cs-note" data-testid="rank-worth-lock">The story is settled — it is net worth and reputation holding <b>{next.name}</b> back now: you need {fmt(next.worth)} net worth (you have {fmt(worth)}) and {next.rep} reputation (you have {g.reputation}).</p>
         )}
       </div>
       <div className="cs-section">
