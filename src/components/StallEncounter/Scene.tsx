@@ -179,7 +179,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
           <img className="hero-at-stall hero-still" src="art/hero/hero-base-stall.webp" alt="" draggable={false} style={heroStyle} />
         )}
         {buyer && (
-          <div className={`buyer-figure has-photo${enc?.outcome ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
+          <div className={`buyer-figure has-photo${enc?.outcome && !enc.mocked ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
             <ScenePerson id={buyer.id} />
           </div>
         )}

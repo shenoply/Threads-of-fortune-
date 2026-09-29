@@ -502,7 +502,7 @@ table.ledger .neg { color: var(--bad); }
 .switch[aria-checked='true'] { background: #6b4b1e; }
 .switch[aria-checked='true']::after { left: 22px; background: var(--brass-hi); }
 
-.toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); z-index: 90; background: rgba(20,12,6,0.96); border: 1px solid var(--line-strong); color: var(--parchment); padding: 8px 14px; border-radius: 4px; font-size: 15.5px; max-width: 90%; text-align: center; animation: rise2 0.3s ease; }
+.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 96px); pointer-events: none; transform: translateX(-50%); z-index: 90; background: rgba(20,12,6,0.96); border: 1px solid var(--line-strong); color: var(--parchment); padding: 8px 14px; border-radius: 4px; font-size: 15.5px; max-width: 90%; text-align: center; animation: rise2 0.3s ease; }
 @keyframes rise2 { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ---------- Wide / landscape ---------- */
