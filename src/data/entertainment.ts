@@ -87,12 +87,12 @@ const bye = (label = 'Good evening.'): DialogueOption => ({ label });
 
 /** Carpet contracts the contacts hand out; they ride the ordinary quest effects. */
 export const VENUE_QUESTS: Record<string, QuestDef> = {
-  'alhambra-stairs': { id: 'alhambra-stairs', title: 'A runner for the Alhambra stairs', giver: 'farid-nassar', desc: 'Farid Nassar wants a hard-wearing runner for the stairs to the Alhambra\'s gallery. Bring him a Fine rug or better; he pays half again over its value.', reward: 300, rep: 2 },
-  'qamar-first-rug': { id: 'qamar-first-rug', title: 'A rug for the Qamar\'s stage', giver: 'nadia-wahba', desc: 'Nadia Wahba wants something with colour for the front of the Qamar\'s stage. Bring her a Fine rug or better and she pays well over its value.', reward: 320, rep: 2 },
-  'qamar-floor': { id: 'qamar-floor', title: 'The Qamar\'s floor', giver: 'nadia-wahba', desc: 'Now that you own a share, Nadia wants the bare boards covered: an Exceptional rug for the centre of the room, paid for from the house.', reward: 900, rep: 3 },
-  'santi-foyer': { id: 'santi-foyer', title: 'Quiet for the Sala Santi foyer', giver: 'youssef-hanna', desc: 'Youssef Hanna wants a restrained, well-made rug for the foyer where the audience waits. Fine or better; the hall pays a premium for something that does not shout.', reward: 350, rep: 2 },
-  'badia-opening': { id: 'badia-opening', title: 'A carpet for Sala Nour\'s opening', giver: 'salma-farid', desc: 'Salma Farid is fitting out the sala for the opening. She wants an Exceptional rug for the foyer, and she will pay double for it.', reward: 1200, rep: 4 },
-  'maxim-bar': { id: 'maxim-bar', title: 'A carpet for the Nightingale\'s bar', giver: 'kemal-arslan', desc: 'Kemal Arslan wants a fine geometric rug for the bar end of the club, paid in the club\'s good money. Fine or better.', reward: 500, rep: 3 },
+  'alhambra-stairs': { id: 'alhambra-stairs', title: 'A runner for the Alhambra stairs', giver: 'farid-nassar', desc: 'Farid Nassar wants a hard-wearing runner for the stairs to the Alhambra\'s gallery. Bring him a Fine rug or better; he pays half again over its value.', reward: 300, rep: 2, target: 'cairo' },
+  'qamar-first-rug': { id: 'qamar-first-rug', title: 'A rug for the Qamar\'s stage', giver: 'nadia-wahba', desc: 'Nadia Wahba wants something with colour for the front of the Qamar\'s stage. Bring her a Fine rug or better and she pays well over its value.', reward: 320, rep: 2, target: 'cairo' },
+  'qamar-floor': { id: 'qamar-floor', title: 'The Qamar\'s floor', giver: 'nadia-wahba', desc: 'Now that you own a share, Nadia wants the bare boards covered: an Exceptional rug for the centre of the room, paid for from the house.', reward: 900, rep: 3, target: 'cairo' },
+  'santi-foyer': { id: 'santi-foyer', title: 'Quiet for the Sala Santi foyer', giver: 'youssef-hanna', desc: 'Youssef Hanna wants a restrained, well-made rug for the foyer where the audience waits. Fine or better; the hall pays a premium for something that does not shout.', reward: 350, rep: 2, target: 'cairo' },
+  'badia-opening': { id: 'badia-opening', title: 'A carpet for Sala Nour\'s opening', giver: 'salma-farid', desc: 'Salma Farid is fitting out the sala for the opening. She wants an Exceptional rug for the foyer, and she will pay double for it.', reward: 1200, rep: 4, target: 'cairo' },
+  'maxim-bar': { id: 'maxim-bar', title: 'A carpet for the Nightingale\'s bar', giver: 'kemal-arslan', desc: 'Kemal Arslan wants a fine geometric rug for the bar end of the club, paid in the club\'s good money. Fine or better.', reward: 500, rep: 3, target: 'istanbul' },
 };
 
 /** The five contacts. Each greets, talks about the house, offers a contract and takes the rug when you bring it. */

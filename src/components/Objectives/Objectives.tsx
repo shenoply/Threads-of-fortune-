@@ -3,6 +3,7 @@ import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
 import { MISSIONS, MAIN_ORDER, type MissionState } from '../../data/missions';
 import { openJobs } from '../../data/jobs';
+import { QUESTS, NPCS } from '../../data/world';
 import { settlementById } from '../../game/systems/world';
 
 type ObjTab = 'story' | 'jobs' | 'visitors';
@@ -18,11 +19,23 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
   const nextId = activeId ?? MAIN_ORDER.find((id) => g.missions?.[id] !== 'done');
   const m = nextId ? MISSIONS[nextId] : undefined;
   const jobs = openJobs(g.jobsDone, g.reputation);
+  // NPC-given tasks (accepted in dialogue — "Your Tasks" on a settlement panel) are a separate system
+  // from the map jobs above, but from here they read the same: something open, waiting on a town. A
+  // task like this used to be invisible outside whichever settlement panel you happened to open, easy
+  // to lose track of, so it belongs in this one list too.
+  const quests: { id: string; title: string; giver: string; target?: string; text: string }[] = [];
+  for (const [qid, v] of Object.entries(g.world.quests ?? {})) {
+    if (v === 'done') continue;
+    const q = QUESTS[qid];
+    if (!q) continue;
+    const target = v === 'ready' ? q.readyTarget ?? q.target : q.target;
+    quests.push({ id: qid, title: q.title, giver: NPCS[q.giver]?.name ?? q.giver, target, text: v === 'ready' ? 'Delivered — go back for your reward.' : q.desc });
+  }
   const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
   const here = g.world.at;
   const focus = (town?: string) => { if (town && onFocus) onFocus(town); };
 
-  const tabs: [ObjTab, string, number][] = [['story', 'Story', m ? 1 : 0], ['jobs', 'Jobs', jobs.length], ['visitors', 'Visitors', visits.length]];
+  const tabs: [ObjTab, string, number][] = [['story', 'Story', m ? 1 : 0], ['jobs', 'Jobs', jobs.length + quests.length], ['visitors', 'Visitors', visits.length]];
 
   return (
     <div className="objectives" role="region" aria-label="Objectives" data-testid="objectives" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
@@ -54,12 +67,19 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
 
         {tab === 'jobs' && (
           <>
-            {jobs.length === 0 && <p className="obj-empty">No jobs open just now. More come as your name grows.</p>}
+            {jobs.length === 0 && quests.length === 0 && <p className="obj-empty">No jobs open just now. More come as your name grows.</p>}
             {jobs.map((j) => (
               <button key={j.id} className="obj-row" onClick={() => focus(j.target)} disabled={!onFocus} data-testid={`job-go-${j.id}`}>
                 <Icon name="scroll" />
                 <span><b>{j.title}</b><small>{townName(j.target)}{here === j.target ? ' · you are here' : ''} · from {j.giver}</small><small className="obj-text">{j.text}</small></span>
                 {onFocus && <em>{here === j.target ? 'Hand over' : 'Show'}</em>}
+              </button>
+            ))}
+            {quests.map((q) => (
+              <button key={q.id} className="obj-row" onClick={() => focus(q.target)} disabled={!onFocus || !q.target} data-testid={`job-go-${q.id}`}>
+                <Icon name="scroll" />
+                <span><b>{q.title}</b><small>{q.target ? `${townName(q.target)}${here === q.target ? ' · you are here' : ''} · ` : ''}from {q.giver}</small><small className="obj-text">{q.text}</small></span>
+                {onFocus && q.target && <em>{here === q.target ? 'Hand over' : 'Show'}</em>}
               </button>
             ))}
           </>

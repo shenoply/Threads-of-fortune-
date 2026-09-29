@@ -623,12 +623,17 @@ export interface QuestDef {
   desc: string;
   reward: number;
   rep: number;
+  /** settlement to point a player at while the quest is 'active' (where the next step happens) */
+  target?: string;
+  /** settlement to point at once it turns 'ready' (a delivery leg done, back to the giver to claim),
+   *  when that differs from target — most quests are a single leg and never need this */
+  readyTarget?: string;
 }
 
 export const QUESTS: Record<string, QuestDef> = {
   ...VENUE_QUESTS,
-  'salah-son': { id: 'salah-son', title: 'A rug for Salah', giver: 'ummsalah', desc: 'Carry Umm Salah\'s rug to her son at the Cairo telegraph office (ask Hagop in the Khan), then return to Fayoum.', reward: 100, rep: 2 },
-  'hagop-kashan': { id: 'hagop-kashan', title: 'A Kashan for Paris', giver: 'hagop', desc: 'Bring Hagop in Cairo the documented Persian rug, Sapphire Night, for his Paris client. He pays £90.', reward: 9000, rep: 1 },
+  'salah-son': { id: 'salah-son', title: 'A rug for Salah', giver: 'ummsalah', desc: 'Carry Umm Salah\'s rug to her son at the Cairo telegraph office (ask Hagop in the Khan), then return to Fayoum.', reward: 100, rep: 2, target: 'cairo', readyTarget: 'fayoum' },
+  'hagop-kashan': { id: 'hagop-kashan', title: 'A Kashan for Paris', giver: 'hagop', desc: 'Bring Hagop in Cairo the documented Persian rug, Sapphire Night, for his Paris client. He pays £90.', reward: 9000, rep: 1, target: 'cairo' },
 };
 
 export interface RoamingKind {

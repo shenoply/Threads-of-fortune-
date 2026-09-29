@@ -81,8 +81,16 @@ export function Fortune() {
 }
 
 export function goalProgress(g: ReturnType<typeof useGame.getState>, goal: Goal): [number, boolean] {
-  if (goal.kind === 'sales') return [g.dayStats.sales, g.dayStats.sales >= goal.target];
-  if (goal.kind === 'gross') return [g.dayStats.gross, g.dayStats.gross >= goal.target];
+  // Today's sales/gross-profit goals are read straight from the ledger rather than from dayStats,
+  // which only a stall negotiation ever updated: a rug a visitor bought off your packed stock, or one
+  // a job or a dialogue quest sold for you, posts a ledger 'sale' line exactly like a stall sale does,
+  // so the goal it is meant to track should count it too, not just quietly fail to move.
+  if (goal.kind === 'sales' || goal.kind === 'gross') {
+    const todaysSales = g.ledger.filter((l) => l.kind === 'sale' && l.day === g.day);
+    if (goal.kind === 'sales') return [todaysSales.length, todaysSales.length >= goal.target];
+    const gross = todaysSales.reduce((s, l) => s + l.amount - (l.cost ?? 0), 0);
+    return [gross, gross >= goal.target];
+  }
   if (goal.kind === 'commission') {
     const done = g.commissions.some((c) => c.label === goal.label && c.done);
     return [done ? 1 : 0, done];

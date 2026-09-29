@@ -344,6 +344,25 @@ export function localOffers(sid: string, day: number, bought: string[], friends:
   return localOffersRaw(sid, day, bought, friends, rep).filter((o) => o.left > 0);
 }
 
+/** What this settlement would charge TODAY for a rug of this type in a given condition, whether or
+ *  not that happens to be the one condition today's single random roll put on the shelf. The buy-back
+ *  cap needs this rather than localOffersRaw's one rolled condition: a rug bought here on an earlier
+ *  visit (or even earlier the same day, before the stock ran out) keeps its own condition forever, so
+ *  matching only today's exact rolled condition let a dealer's own specialty rug be sold back for a
+ *  windfall the moment the day's roll happened not to match what you were holding. */
+export function localAskPrice(sid: string, day: number, typeId: string, condition: RugItem['condition'], friends: string[], rep = 0): number | undefined {
+  if (cityClosed(day, sid)) return undefined;
+  const st = settlementById(sid);
+  const i = st.sells.findIndex((o) => o.typeId === typeId);
+  if (i < 0) return undefined;
+  const o = st.sells[i];
+  if ((o.minRep ?? 0) > rep) return undefined;
+  if (o.chance !== undefined && !(Math.abs(Math.sin((day * 17 + i * 101 + sid.length * 7) * 78.233)) % 1 < o.chance)) return undefined;
+  const t = RUGS[typeId];
+  const disc = friends.includes(sid) ? 0.85 : 1;
+  return snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
+}
+
 /** What the local dealer pays for one of your rugs here. */
 /** Price of a breed in a market today, or undefined if it is not sold there. */
 export function animalPrice(sid: string | null, breed: string): number | undefined {
@@ -1229,14 +1248,14 @@ export const useGame = create<GameState & Actions>()(
           const it = s.inventory.find((i) => i.uid === uid);
           if (!it || it.restoringUntil) return 0;
           let bid = localBid(sid, it, s.day);
-          // a dealer never pays more for a rug than they are asking for the same rug today: without
-          // this, a type this town both sells and has high local demand for (its own specialty, most
-          // often) could be bought and sold straight back for a same-day, no-travel profit. This has to
-          // check today's asking price even for a rug that is now sold out (you may have just bought the
-          // last one), so it uses the unfiltered list rather than localOffers.
-          const sameToday = localOffersRaw(sid, s.day, s.world.boughtLocal, s.world.friends, s.reputation)
-            .find((o) => o.typeId === it.typeId && o.condition === it.condition);
-          if (sameToday) bid = Math.min(bid, Math.max(0, sameToday.price - 1));
+          // a dealer never pays more for a rug than they are asking for that same type today, in the
+          // condition you actually hold it: without this, a type this town both sells and has high
+          // local demand for (its own specialty, most often) could be bought and sold straight back for
+          // a profit — not only same-day (which also needs the sold-out stock ignored, so this asks
+          // for the price directly rather than matching today's one rolled-condition listing) but even
+          // across visits, since the rug keeps its condition long after the day it was bought.
+          const askToday = localAskPrice(sid, s.day, it.typeId, it.condition, s.world.friends, s.reputation);
+          if (askToday !== undefined) bid = Math.min(bid, Math.max(0, askToday - 1));
           set({
             cash: s.cash + bid,
             inventory: s.inventory.filter((i) => i.uid !== uid),

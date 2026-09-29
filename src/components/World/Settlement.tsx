@@ -4,7 +4,7 @@ import { Rumours } from '../Rumours/Rumours';
 import { cityClosed, closedNote, dangerAt } from '../../game/economy/life';
 import { fmt } from '../../game/economy/money';
 import { drawWorld, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
-import { localBid, localOffers, localOffersRaw, useGame } from '../../game/state/store';
+import { localAskPrice, localBid, localOffers, useGame } from '../../game/state/store';
 import { NPCS, QUESTS } from '../../data/world';
 import { RUGS } from '../../data/rugs';
 import { settlementById, seaRoutesFrom } from '../../game/systems/world';
@@ -55,8 +55,6 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const royal = venue?.royal ? BUYERS[venue.royal] : undefined;
   const [note, setNote] = useState('');
   const offers = localOffers(id, g.day, g.world.boughtLocal, g.world.friends, g.reputation);
-  // includes today's sold-out asks too, so a just-emptied stack still caps what you'd be paid for it
-  const offersToday = localOffersRaw(id, g.day, g.world.boughtLocal, g.world.friends, g.reputation);
   const hasMarket = st.sells.length > 0 || Object.keys(st.demand).length > 0;
   const ships = seaRoutesFrom(id);
   const quests = Object.entries(g.world.quests).filter(([, v]) => v !== 'done');
@@ -276,8 +274,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                     const t = RUGS[i.typeId];
                     // matches the same-day-same-town cap sellLocal() applies, so the price on the
                     // button is the price you actually get, not the higher uncapped number
-                    const sameToday = offersToday.find((o) => o.typeId === i.typeId && o.condition === i.condition);
-                    const bid = sameToday ? Math.min(localBid(id, i, g.day), Math.max(0, sameToday.price - 1)) : localBid(id, i, g.day);
+                    const askToday = localAskPrice(id, g.day, i.typeId, i.condition, g.world.friends, g.reputation);
+                    const bid = askToday !== undefined ? Math.min(localBid(id, i, g.day), Math.max(0, askToday - 1)) : localBid(id, i, g.day);
                     return (
                       <div className="mkt-row" key={i.uid} data-testid={`sell-${t.id}`}>
                         <img src={rugSrc(t)} alt="" />
