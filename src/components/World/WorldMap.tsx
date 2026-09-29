@@ -17,6 +17,7 @@ import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { openJobs } from '../../data/jobs';
 import { RUGS } from '../../data/rugs';
+import { BREEDS } from '../../data/animals';
 import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
 import { dateLine } from '../../game/economy/newspaper';
@@ -91,6 +92,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const sizeRef = useRef(size);
   sizeRef.current = size;
   const sp = speedInfo(w.party, g.inventory);
+  // the map figure leads a camel only once you own one
+  const hasCamel = Object.entries(w.party.animals ?? {}).some(([id, n]) => n > 0 && BREEDS[id]?.kind === 'camel');
   const jobs = openJobs(g.jobsDone, g.reputation);
   const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
   const [jobsOpen, setJobsOpen] = useState(false);
@@ -332,7 +335,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         if (innerRef.current) innerRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px)`;
         paintRef.current();
       }
-      if (meRef.current) { meRef.current.style.left = `${pos.x * sc}px`; meRef.current.style.top = `${pos.y * sc}px`; }
+      if (meRef.current) {
+        // the figure faces the way you are walking
+        const dx = pos.x - parseFloat(meRef.current.dataset.px ?? String(pos.x));
+        if (Math.abs(dx) > 0.02) meRef.current.dataset.facing = dx < 0 ? 'left' : 'right';
+        meRef.current.dataset.px = String(pos.x);
+        meRef.current.style.left = `${pos.x * sc}px`; meRef.current.style.top = `${pos.y * sc}px`;
+      }
       if (now - lastView > 140) { lastView = now; syncView(); }
       stepAudio += dt * scaleRef.current;
       if (stepAudio > 0.6 && !moving.train && scaleRef.current > 0) {
@@ -510,7 +519,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             );
           })}
           <span ref={meRef} className={`me ${moving && timeScale ? 'moving' : ''}`} style={{ left: (moving && live ? live.x : w.x) * s, top: (moving && live ? live.y : w.y) * s }} data-testid="me" data-x={Math.round(w.x)} data-y={Math.round(w.y)}>
-            <span className="pbadge me-badge"><Icon name="camel" /></span>
+            {moving && (moving.train || moving.mode) ? (
+              <span className="pbadge me-badge"><Icon name="camel" /></span>
+            ) : (
+              // you and the camel on foot: two painted steps that alternate while you walk
+              <span className={`me-walk ${hasCamel ? '' : 'solo'}`} aria-hidden="true">
+                {[1, 2].map((k) => <img key={k} src={`art/world/party-${hasCamel ? 'walk' : 'solo'}-${k}.webp`} alt="" draggable={false} />)}
+              </span>
+            )}
             {z >= 3 && <span className="pname me-name">You · {partySize(w.party)}</span>}
           </span>
         </div>
@@ -562,10 +578,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           <div className="wc-col" data-testid="food-short">
             <div className="wc-main">
               <b>Short of food for {short.plan.settlement ? short.plan.settlement.name : 'the road'}</b>
-              <span>The journey needs {short.need} more rations than you carry.</span>
+              <span>The journey needs {short.need} more ration{short.need === 1 ? '' : 's'} than you carry.</span>
             </div>
             <div className="wc-btns">
-              <button className="btn primary" disabled={g.cash < short.price} onClick={() => { setReport(g.buyFood(short.need)); setOff(short.plan); }} data-testid="food-buy-go">Buy {short.need} rations · {fmt(short.price)} and go</button>
+              <button className="btn primary" disabled={g.cash < short.price} onClick={() => { setReport(g.buyFood(short.need)); setOff(short.plan); }} data-testid="food-buy-go">Buy {short.need} ration{short.need === 1 ? '' : 's'} · {fmt(short.price)} and go</button>
               <button className="btn" onClick={() => setOff(short.plan)} data-testid="food-go">Go anyway</button>
             </div>
           </div>
@@ -643,6 +659,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           </div>
         ) : (
           <div className="wc-row">
+            {(w.hour >= 19 || w.hour < 5.5) && (
+              // after dark, the camp itself: a fire while there is food to cook, a cold camp when there is none
+              <img className="wc-camp" src={`art/events/camp-${foodDaysLeft(w.party) < 1 ? 'cold' : 'night'}.webp`} alt={foodDaysLeft(w.party) < 1 ? 'A cold camp with no fire' : 'Your camp: the camel couched by a small fire'} data-testid="camp-picture" />
+            )}
             <div className="wc-main">
               <b>Camped in the open</b>
               <span className={foodDaysLeft(w.party) < 1 ? 'warn' : ''}>{caravanLine}</span>

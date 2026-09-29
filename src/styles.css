@@ -592,6 +592,16 @@ table.ledger .neg { color: var(--bad); }
 .me-badge svg { width: 17px; height: 17px; color: #fff1d6; }
 .me-name { background: #9a3326; color: #fff1d6; }
 .me.moving .me-badge { animation: bob 0.5s ease-in-out infinite; }
+.me-walk { position: relative; display: block; width: 72px; height: 43px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)); }
+.me-walk.solo { width: 26px; }
+.me-walk img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.me-walk img + img { opacity: 0; }
+.me[data-facing="left"] .me-walk { transform: scaleX(-1); }
+.me.moving .me-walk img { animation: walk-a 0.5s steps(1) infinite; }
+.me.moving .me-walk img + img { animation-name: walk-b; }
+@keyframes walk-a { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes walk-b { 0% { opacity: 0; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .me.moving .me-walk img { animation: none; } }
 @keyframes bob { 50% { transform: translateY(-3px); } }
 .me-flag { position: absolute; bottom: -7px; left: 50%; width: 2px; height: 7px; background: #fff1d6; }
 .world-hud { position: absolute; left: 8px; top: 8px; right: 56px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; z-index: 5; pointer-events: none; }
@@ -600,6 +610,7 @@ table.ledger .neg { color: var(--bad); }
 .world-card { background: linear-gradient(180deg, #1c130b, #150e08); border-top: 1px solid var(--line-strong); padding: 9px 12px 10px; display: flex; flex-direction: column; gap: 6px; }
 .world-report { margin: 0; font-size: 14.5px; color: var(--parchment-2); font-style: italic; }
 .wc-row { display: flex; align-items: center; gap: 10px; }
+.wc-camp { flex: none; width: 108px; height: 72px; object-fit: cover; object-position: 40% 70%; border-radius: 4px; border: 1px solid var(--line-strong); }
 .wc-col { display: flex; flex-direction: column; gap: 7px; }
 .wc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .wc-main b { font-family: var(--display); font-size: 16px; color: var(--brass-hi); font-weight: 500; }
