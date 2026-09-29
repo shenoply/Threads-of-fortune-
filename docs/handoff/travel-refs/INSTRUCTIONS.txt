@@ -1,0 +1,57 @@
+THREADS OF FORTUNE: TRAVEL ART BATCH (7 images)
+
+How to use:
+1. Open ChatGPT (image generation).
+2. For each prompt below, start the message by attaching the reference images it names
+   (links at the bottom of this file), then paste the prompt text.
+3. One image per message. Do #7 last, in the SAME chat as #6, attaching #6's result.
+4. Save each result named as shown (01-camel-cut.png and so on). If the background comes out
+   white or checkered instead of transparent, keep it anyway; it will be cut out later.
+5. Zip the 7 results and send them back (under about 14 MB, or split into Part 1 and Part 2).
+
+Shared style (already included in the prompts): hand-painted, semi-realistic, warm ochre,
+umber and faded madder red, soft light from the upper left, no text, no border.
+
+----------------------------------------------------------------------
+01-camel-cut.png   (attach: ref-A-camel-token.png)
+----------------------------------------------------------------------
+Edit the attached top-down camel token. Keep the exact same camel, pose, size, position and lighting. Change only the cargo: on the camel's left side the ropes of one rolled carpet bale have been slashed, and that bale hangs loosely off the flank, half unrolled, with cut rope ends visible. The other bales stay tied. Viewed directly from above, head toward the top edge. Fully transparent background, no ground, no shadow. Square 1024x1024 PNG. Hand-painted, semi-realistic, warm ochre, umber and faded madder red, fine brush texture, soft light from the upper left, no text, no border.
+
+----------------------------------------------------------------------
+02-camel-bare.png   (attach: ref-A-camel-token.png)
+----------------------------------------------------------------------
+Edit the attached top-down camel token. Keep the exact same camel, pose, size, position and lighting. Remove all carpets and bundles: show only the wooden pack saddle, a folded striped blanket and loose hanging ropes. Viewed directly from above, head toward the top edge. Fully transparent background, no ground, no shadow. Square 1024x1024 PNG. Hand-painted, semi-realistic, warm ochre, umber and faded madder red, soft light from the upper left, no text, no border.
+
+----------------------------------------------------------------------
+03-rug-bale.png   (attach: ref-A-camel-token.png, ref-B-thief-token.png)
+----------------------------------------------------------------------
+A single rolled Anatolian carpet bale tied with two hemp ropes, red and indigo pattern visible on the roll ends, lying on its side, viewed directly from above, placed diagonally from lower left to upper right and filling about 60% of the frame. Same painting style and scale as the bales strapped to the attached camel token. Fully transparent background, no ground, no shadow. Square 1024x1024 PNG. Hand-painted, semi-realistic, warm ochre and madder red, soft light from the upper left, no text, no border.
+
+----------------------------------------------------------------------
+04-robber-leader.png   (attach: ref-C-portrait-watchman.png, ref-D-portrait-reformed.png)
+----------------------------------------------------------------------
+Chest-up portrait, three-quarter view, of an Egyptian rural highway robber chief in 1925: a lean man in his forties, weathered face, thick moustache, short grey stubble, a brown wool scarf wrapped as a turban, a dark galabiya with a sheepskin vest, cartridge belt across the chest, an old Martini rifle held upright. Calm, appraising expression, a man who prefers a toll to a fight. Behind him, softly painted: Nile Delta sugar cane and an irrigation canal at dusk. Match the framing, lighting and painting style of the attached portraits exactly. Square 1024x1024. No text, no border.
+
+----------------------------------------------------------------------
+05-map-marker.png   (attach: ref-E-map-camel-train.png, ref-A-camel-token.png)
+----------------------------------------------------------------------
+A tiny map figure in the same painterly style as the camel train drawn on the attached map crop: a rug merchant in a dark suit and red fez on foot, leading one camel by a rope, the camel loaded with rolled red carpets. Side view, walking to the right, the figures filling the frame's height, crisp dark outline so it stays readable when shown very small (about 50 pixels). Fully transparent background, no ground, no shadow. Make TWO frames side by side on one wide transparent image: left frame with the man's left leg and the camel's near legs forward, right frame mid-stride with the other legs forward; everything else identical and aligned. 1536x512. No text.
+
+----------------------------------------------------------------------
+06-camp-night.png   (attach: ref-F-yard-style.png, ref-G-camel-bishari.png)
+----------------------------------------------------------------------
+A small night camp beside a desert track on the edge of the Nile Delta in 1925: one camel couched on the sand, its load of rolled carpets set down beside it, a small fire of tamarisk twigs, a brass coffee pot in the embers, a bedroll, a hurricane lamp hanging from a staff, one stunted acacia. Deep blue night sky with stars, warm firelight on the camel and the rugs, distant dark palms on the horizon. No faces visible (one figure seen from behind at most). Keep the camp in the centre of the picture, with open dark sand across the bottom quarter. Painted in the same style as the attached caravanserai scene. Landscape 1536x1024. No text, no border.
+
+----------------------------------------------------------------------
+07-camp-cold.png   (same chat as #6; attach the image from #6)
+----------------------------------------------------------------------
+Edit the attached camp scene. Keep every object, position and the framing exactly the same. The fire is out: only grey ash and one faint ember remain, the lamp is unlit, and the scene is lit only by cold blue moonlight, with the camel a dark silhouette. Landscape 1536x1024. No text, no border.
+
+REFERENCE IMAGES (public links)
+ref-A-camel-token: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-A-camel-token.png
+ref-B-thief-token: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-B-thief-token.png
+ref-C-portrait-watchman: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-C-portrait-watchman.png
+ref-D-portrait-reformed: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-D-portrait-reformed.png
+ref-E-map-camel-train: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-E-map-camel-train.png
+ref-F-yard-style: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-F-yard-style.png
+ref-G-camel-bishari: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/travel-refs/ref-G-camel-bishari.png
