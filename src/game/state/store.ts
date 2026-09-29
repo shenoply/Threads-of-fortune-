@@ -1637,7 +1637,13 @@ export const useGame = create<GameState & Actions>()(
           enc.venue = b.royal.venue;
           enc.saffronOn = undefined;
           audio.sfx('arrive');
-          set({ journal: [...s.journal, { day: s.day, text: `Received in audience by ${b.name}.`, kind: 'royal' }], audienceStash: s.audienceStash ?? { encounter: s.encounter, visitIdx: s.visitIdx }, encounter: enc, relationships: s.relationships[buyerId] ? s.relationships : { ...s.relationships, [buyerId]: emptyRel() } });
+          let patch: Partial<GameState> = { journal: [...s.journal, { day: s.day, text: `Received in audience by ${b.name}.`, kind: 'royal' }], audienceStash: s.audienceStash ?? { encounter: s.encounter, visitIdx: s.visitIdx }, encounter: enc, relationships: s.relationships[buyerId] ? s.relationships : { ...s.relationships, [buyerId]: emptyRel() } };
+          // startEncounter can reject the audience on the spot (nothing at the required tier) before
+          // any action is ever dispatched through act() — the only place that normally calls settle()
+          // when an encounter's outcome is set. Without this, the journal records the audience but the
+          // buyer's own record (visits, and anything else settle applies) never learns it happened.
+          if (enc.outcome) patch = { ...patch, ...settle({ ...s, ...patch } as GameState, enc) };
+          set(patch);
           return '';
         },
 

@@ -142,6 +142,10 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
   const gen = useRef(0);
   const alive = useRef(true);
   const chain = useRef<Promise<void>>(Promise.resolve());
+  // Inspecting a lot is meant to be a free look, not a turn spent — while it's open, hold the room's
+  // own bidding clock at the door instead of letting it advance unseen in the background.
+  const inspectRef = useRef(false);
+  inspectRef.current = inspect;
   const pickLine = (k: AuctionCall, p?: number) => {
     const arr = AUCTIONEER[k];
     const tpl = arr[Math.floor(Math.random() * arr.length)];
@@ -166,7 +170,13 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
     const my = gen.current;
     chain.current.then(() => {
       if (my !== gen.current || !alive.current) return;
-      timer.current = window.setTimeout(() => { if (my === gen.current && alive.current) fn(); }, pause);
+      const fire = () => {
+        if (my !== gen.current || !alive.current) return;
+        // hold the room here, rechecking, for as long as the player is inspecting the lot
+        if (inspectRef.current) { timer.current = window.setTimeout(fire, 200); return; }
+        fn();
+      };
+      timer.current = window.setTimeout(fire, pause);
     });
   };
   useEffect(() => {
@@ -291,7 +301,7 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
         <b>{lotTitle(lot)}</b>
         <small>{lot.bundle ? 'Mixed village rugs, sold as one lot' : `${t.origin.split(',')[0]} · ${lot.conditions[0]} · ${lot.provenance[0]} provenance`}</small>
         <small>Estimate {fmt(lot.estimate[0])}–{fmt(lot.estimate[1])}{intel ? ` · seen selling for about ${fmt(intel.movingAveragePt ?? 0)} (${intel.observations}×)` : ''}</small>
-        {inspect && <small className="floor-eye" data-testid="floor-eye">{appraise(lot, appr)}{!lot.bundle && appr >= 6 ? ` Look for: ${t.traits.slice(0, 3).join(', ')}.` : ''}</small>}
+        {inspect && <small className="floor-eye" data-testid="floor-eye">{appraise(lot, appr)}{!lot.bundle && appr >= 6 ? ` Look for: ${t.traits.slice(0, 3).join(', ')}.` : ''} The room waits.</small>}
       </div>
       <div className="floor-price">
         <span><small>{leader === 'you' ? 'YOUR BID' : leader ? nameOf(leader).toUpperCase() : 'OPENING'}</small><b data-testid="bid-price">{fmt(price)}</b></span>
