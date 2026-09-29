@@ -185,7 +185,6 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
             <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
           </div>
         )}
-        <div className="stall-ledge" aria-hidden="true" />
         <StallRadio />
         <StallPaper />
         <StallCat onCat={onCat} rugOnCounter={!!(rugT && presented)} />

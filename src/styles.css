@@ -106,7 +106,7 @@ img { max-width: 100%; }
 /* ---------- Stall ---------- */
 .stall {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   grid-template-columns: 100%;
   min-height: 0;
   height: 100%;
@@ -733,16 +733,32 @@ table.ledger .neg { color: var(--bad); }
 /* Giza district */
 .district { position: relative; height: 100%; min-height: 0; overflow: hidden; background: #120c07; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
 .district-canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: pointer; }
-.district-top { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+/* the canvas, its top bar, hint and info sheet all live inside one relatively-positioned stage that is
+   exactly the flexible grid row above the bottom toolbars (district-sheet, venue-doors): an info sheet
+   anchored to the bottom of THIS box can never cover those toolbars, whatever their own height is. */
+.venue-stage, .district-stage { position: relative; min-height: 0; overflow: hidden; }
+.district-top { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; z-index: 2; }
 .district-top > * { pointer-events: auto; }
 .district-tools { position: static !important; }
 .district-title { background: rgba(18,11,6,.82); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; display: flex; flex-direction: column; }
 .district-title b { font-family: var(--display); color: var(--parchment); font-size: 17px; }
 .district-title span { font-size: 13.5px; color: var(--text-dim); }
-.district-toast { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); background: var(--parchment); color: var(--ink); padding: 8px 14px; border-radius: 20px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.45); animation: fadein .3s; white-space: nowrap; }
-.district-note { position: absolute; left: 12px; right: 12px; top: 64px; background: rgba(239,224,191,.97); color: var(--ink); border-radius: 8px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.5); display: flex; gap: 10px; align-items: flex-end; }
-.district-note p { margin: 0; flex: 1; font-size: 16.5px; line-height: 1.4; }
+.district-toast { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); background: var(--parchment); color: var(--ink); padding: 8px 14px; border-radius: 20px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.45); animation: fadein .3s; white-space: nowrap; z-index: 2; }
+.poi-hint { position: absolute; left: 12px; right: 12px; top: 64px; z-index: 2; background: rgba(18,11,6,.88); color: var(--parchment); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; animation: fadein .3s; }
+.poi-hint button { flex: none; background: none; border: 0; color: var(--parchment); font-size: 18px; line-height: 1; padding: 0 4px; cursor: pointer; }
+.poi-backdrop { position: absolute; inset: 0; z-index: 3; background: transparent; }
+/* the info sheet sits at the BOTTOM of the stage, well clear of whatever marker sits up in the scene,
+   and never above the district/venue toolbars, which are a separate grid row below this whole stage */
+.district-note { position: absolute; left: 12px; right: 12px; bottom: 10px; top: auto; z-index: 4; background: rgba(239,224,191,.97); color: var(--ink); border-radius: 10px; padding: 14px 16px; box-shadow: 0 8px 24px rgba(0,0,0,.5); max-height: min(38svh, 300px); overflow: auto; animation: fadein .2s; }
+.district-note p { margin: 0; font-size: 16px; line-height: 1.4; }
+/* base .btn is dark-on-dark by default; a plain (non-primary) button on this parchment card needs its
+   background stripped so the ink-coloured label stays readable instead of a meaningless dark square */
 .district-note .btn { color: var(--ink); border-color: rgba(90,61,32,.5); }
+.district-note .btn:not(.primary) { background: transparent; }
+.poi-sheet h3 { margin: 0 0 6px; font-family: var(--display); font-size: 18px; color: var(--ink); }
+.poi-sheet__actions { display: flex; gap: 8px; margin-top: 12px; }
+.poi-sheet__actions .btn { flex: 1; min-height: 44px; }
+.poi-sheet__close { position: absolute; top: 8px; right: 8px; min-width: 32px; min-height: 32px; border-radius: 50%; border: 1px solid rgba(90,61,32,.4); background: rgba(90,61,32,.12); color: var(--ink); font-size: 17px; line-height: 1; }
 .district-sheet { background: var(--umber); border-top: 1px solid var(--line); padding: 8px 10px 10px; display: grid; gap: 8px; }
 .district-places { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .dplace { flex: none; display: flex; gap: 8px; align-items: center; text-align: left; border: 1px solid var(--line); background: #150e08; border-radius: 6px; padding: 6px 10px 6px 6px; max-width: 230px; }
@@ -1472,7 +1488,10 @@ table.ledger .neg { color: var(--bad); }
 .waiting-pill span{display:flex;flex-direction:column}
 .waiting-pill b{font-size:15px}.waiting-pill small{font-size:12.5px;color:#e8d3ae}
 .stall{position:relative}
-.step-away{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;padding:6px 12px;border-radius:12px;border:2px solid #b07a3f;background:#1b110ae6;color:#ffe7c2;font-weight:700;font-size:15px}
+/* a slim toolbar above the painted scene, in normal document flow: it can never overlap the shelves,
+   the people or the rugs, because it isn't laid over the picture at all, it sits above it */
+.stall-toolbar{display:flex;justify-content:flex-start;align-items:center;padding:6px 10px;background:#20140e;border-bottom:1px solid var(--line)}
+.step-away{position:static;transform:none;display:flex;flex-direction:row;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:8px;border:2px solid #b07a3f;background:#2a1c10;color:#ffe7c2;font-weight:700;font-size:14.5px}
 .step-away small{font-weight:400;font-size:11.5px;color:#d8c09a}
 .waiting-pill img{width:36px;height:36px}.waiting-pill b{font-size:14px}.waiting-pill small{font-size:12px}
 .pjob{position:absolute;left:50%;top:-24px;transform:translateX(-50%);white-space:nowrap;padding:2px 8px;border-radius:10px;background:#3a2410;border:1px solid #e0a24a;color:#ffe2a8;font-size:12px;pointer-events:none;max-width:170px;overflow:hidden;text-overflow:ellipsis}
@@ -1844,13 +1863,19 @@ body.travelling .mission-strip{display:none}
 .scene.stall .counter{position:absolute;left:0;bottom:0;width:100%;height:auto;z-index:3;pointer-events:none}
 .scene.stall .split-rug{position:absolute;left:50%;bottom:7%;width:24%;max-width:260px;transform:translateX(-50%) perspective(600px) rotateX(48deg);transform-origin:50% 100%;z-index:4;box-shadow:0 10px 26px rgba(0,0,0,.6);animation:unfold2 .6s ease-out}
 .scene.stall .split-rug img{display:block;width:100%}
-/* a small wood ledge fixed to the front rail of the counter, so the radio and paper read as resting
-   on a shelf rather than floating over the hanging cloth below the tabletop */
-.scene.stall .stall-ledge{position:absolute;left:1.5%;bottom:6.5%;width:28%;height:3%;min-height:7px;z-index:4;pointer-events:none;
-  background:linear-gradient(180deg,#8a6a3e 0%,#6b4e2a 55%,#4a3218 100%);border-radius:2px;
-  box-shadow:0 3px 6px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,220,160,.35)}
-.scene.stall .stall-radio{left:3%;bottom:9.3%;width:min(11%,105px);z-index:5}
-.scene.stall .stall-paper{left:16%;bottom:9.3%;width:min(10%,95px);z-index:5}
+/* Calibrated against the painted base art (stall-empty-patched.webp, 1536x1024), whose 3-tier shelf
+   runs roughly x=370-810px (24%-53%). The stage is anchored to the BOTTOM of the frame and is taller
+   than what a narrow phone actually shows (see the layout note above Scene's stage sizing), so a prop
+   near the top or middle shelf gets cropped off on a tall, narrow viewport; the bottom shelf plank
+   (top surface y=477px, bottom: (1024-477)/1024 = 53.4%) is the highest one that stays fully in frame
+   at 390px width, so the radio sits there, toward the shelf's right end, on its own little mat already
+   painted into its cutout. The red floor cushion sits at x=615-810px, y=610-695px
+   (bottom: (1024-610)/1024 = 40.4%), beside the brass tray table — the newspaper (with its own coffee
+   cup already in the cutout) rests on its near corner, in reach of whoever is standing at the counter.
+   Neither prop is near the counter front any more, so the fake wooden ledge that used to be painted in
+   just to justify that placement has been removed along with it. */
+.scene.stall .stall-radio{left:41%;bottom:52%;width:min(11%,100px);z-index:2}
+.scene.stall .stall-paper{left:44%;bottom:38%;width:min(10%,90px);z-index:2}
 /* the daily shelf/wall dressing: each is a full-canvas cut-out already positioned in the painting */
 .scene.stall .stall-prop{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:1;padding:0;border:0;background:none}
 .scene.stall .stall-prop img{display:block;width:100%;height:100%}
@@ -1887,3 +1912,20 @@ body.travelling .mission-strip{display:none}
 .cab-doors .btn{min-height:48px;font-size:16px}
 .cab-table-hint{margin:-4px 0 0;font-size:12.5px;color:#c9b28a;text-align:center}
 @media (min-width:720px){.cab-room{min-height:52vh}}
+
+/* Harbour: a prominent sail card right under the port heading, above the Town/Market/Animals/Guards
+   tabs, so a player visiting a port cannot miss it while scrolling the rest of the town panel. */
+.port-sail { padding: 10px 12px 4px; background: #1b110a; border-bottom: 1px solid var(--line); }
+.port-sail .section-label { margin-bottom: 6px; }
+.port-sail .mkt-row small { display: block; }
+
+.sailing-transition { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: linear-gradient(#d8b77d 0 53%, #416b73 54%); }
+.sailing-transition__sea { position: absolute; inset: 53% 0 0; background: repeating-linear-gradient(-3deg, #3d6770 0 12px, #56858a 13px 18px); animation: sea-drift 1.3s linear infinite; }
+.sailing-transition__ship { position: absolute; left: 8%; top: 43%; font-size: clamp(58px, 15vw, 110px); filter: drop-shadow(0 8px 5px #142b3590); animation: sail-across 2.2s ease-in-out forwards; }
+.sailing-transition__caption { position: absolute; top: 15%; width: 100%; padding: 0 18px; text-align: center; color: #2d1b11; font-size: 1.25rem; font-weight: 700; font-family: var(--display); }
+.sailing-transition__skip { position: absolute; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); min-height: 44px; border: 1px solid var(--line-strong); background: #2a1c10; color: var(--parchment); border-radius: 4px; padding: 9px 14px; font-family: var(--label); font-size: 14.5px; }
+@keyframes sail-across { from { transform: translateX(0) translateY(0); } to { transform: translateX(82vw) translateY(-12px); } }
+@keyframes sea-drift { to { background-position: 45px 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .sailing-transition__ship, .sailing-transition__sea { animation: none; }
+}

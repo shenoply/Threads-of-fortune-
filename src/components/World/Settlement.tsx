@@ -14,6 +14,7 @@ import { Dialogue } from './Dialogue';
 import { TownSupplies, CaravanRoster } from './CaravanPanels';
 import { StallOverhead } from './StallOverhead';
 import { Venue, AudienceOverlay } from './Venue';
+import { SailingTransition } from './SailingTransition';
 import { venueFor } from '../../data/venues';
 import { Cabaret } from './Cabaret';
 import { VENUES_1925, venuesIn, venueOpen, venueArt, CLOSED_DOOR } from '../../data/entertainment';
@@ -54,6 +55,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const venue = venueFor(id);
   const royal = venue?.royal ? BUYERS[venue.royal] : undefined;
   const [note, setNote] = useState('');
+  const [sailing, setSailing] = useState<{ to: string } | null>(null);
   const offers = localOffers(id, g.day, g.world.boughtLocal, g.world.friends, g.reputation);
   const hasMarket = st.sells.length > 0 || Object.keys(st.demand).length > 0;
   const ships = seaRoutesFrom(id);
@@ -88,6 +90,19 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </div>
         <button className="btn set-close door-btn leave slim" onClick={onClose} data-testid="leave-settlement">⟵ Leave</button>
       </div>
+      {ships.length > 0 && (
+        <div className="port-sail" data-testid="port-sail">
+          <div className="section-label">SAIL FROM {st.name.toUpperCase()}</div>
+          <div className="mkt">
+            {ships.map((r) => (
+              <div className="mkt-row" key={r.to}>
+                <span><b>{settlementById(r.to).name}</b><small>{r.days} day{r.days > 1 ? 's' : ''} at sea, deck class</small></span>
+                <button className="btn primary" disabled={g.cash < r.fare || !!sailing} onClick={() => setSailing({ to: r.to })} data-testid={`sail-${r.to}`}>Sail · {fmt(r.fare)}</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="set-body">
         <div className="set-tabs" role="tablist">
           {([['town', 'Town'], ['market', 'Market'], ['animals', 'Animals'], ['guards', 'Guards']] as [SetTab, string][]).map(([k, label]) => (
@@ -291,20 +306,6 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         )}
 
         {tab === 'town' && (<>
-        {ships.length > 0 && (
-          <>
-            <div className="section-label">HARBOUR</div>
-            <div className="mkt">
-              {ships.map((r) => (
-                <div className="mkt-row" key={r.to}>
-                  <span><b>{settlementById(r.to).name}</b><small>{r.days} day{r.days > 1 ? 's' : ''} at sea, deck class</small></span>
-                  <button className="btn" disabled={g.cash < r.fare} onClick={() => { const m = g.sail(r.to, 'sea', id); setNote(m); if (m.startsWith('You sailed')) onClose(); }} data-testid={`sail-${r.to}`}>Sail · {fmt(r.fare)}</button>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
         {id !== 'giza' && (
           <button
             className="btn"
@@ -367,6 +368,19 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {cabaret && <div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div>}
       {audience && <AudienceOverlay onDone={() => setAudience(false)} />}
       {talkTo && <Dialogue npcId={talkTo} onClose={(m) => { setTalkTo(null); if (m) setNote(m); }} />}
+      {sailing && (
+        <SailingTransition
+          from={st.name}
+          to={settlementById(sailing.to).name}
+          onArrive={() => {
+            const dest = sailing.to;
+            setSailing(null);
+            const m = g.sail(dest, 'sea', id);
+            setNote(m);
+            if (m.startsWith('You sailed')) onClose();
+          }}
+        />
+      )}
     </div>
   );
 }

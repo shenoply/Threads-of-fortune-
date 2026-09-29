@@ -34,8 +34,27 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
   camRef.current = cam;
   const [seen, setSeen] = useState<string[]>([...st.current.seen]);
   const [toast, setToast] = useState('');
-  const [note, setNote] = useState<{ title: string; text: string } | null>(null);
+  const [note, setNote] = useState<{ title: string; text: string; poi?: VenuePoi } | null>(null);
   const [audience, setAudience] = useState(false);
+  const [hintSeen, setHintSeen] = useState(() => { try { return localStorage.getItem('tof-poi-hint-seen') === '1'; } catch { return true; } });
+  const lastFocus = useRef<HTMLElement | null>(null);
+  const dismissHint = () => { setHintSeen(true); try { localStorage.setItem('tof-poi-hint-seen', '1'); } catch { /* ignore */ } };
+  const closeNote = () => { setNote(null); lastFocus.current?.focus(); };
+  /** Tapping an information-only stop shows what it has to say right away, without walking there first,
+   *  so the sheet never has to interrupt a walk in progress or hide the marker you just tapped. */
+  const peek = (p: VenuePoi, from?: HTMLElement) => {
+    lastFocus.current = from ?? null;
+    const lines = p.text ?? [];
+    setNote({ title: p.name, text: lines[Math.floor(Math.random() * lines.length)] ?? '', poi: p });
+    if (!hintSeen) dismissHint();
+  };
+  useEffect(() => {
+    if (!note) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeNote(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note]);
 
   const reveal = (x: number, y: number) => {
     const s = st.current;
@@ -168,6 +187,13 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
         ctx.fillStyle = 'rgba(239,224,191,0.94)'; ctx.fillRect(X - tw / 2, Y + 16, tw, 18);
         ctx.strokeStyle = 'rgba(90,61,32,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(X - tw / 2 + 0.5, Y + 16.5, tw - 1, 17);
         ctx.fillStyle = '#2b1b0d'; ctx.fillText(p.name, X, Y + 25.5);
+        // a small "i" badge marks a stop that only offers information, tapped straight into a sheet
+        if (p.kind === 'note') {
+          ctx.fillStyle = '#402616'; ctx.beginPath(); ctx.arc(X + 10, Y - 10, 7, 0, 7); ctx.fill();
+          ctx.strokeStyle = '#f5ddb0'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = '#fff2d2'; ctx.font = '700 10px Georgia, serif';
+          ctx.fillText('i', X + 10, Y - 9.5);
+        }
       }
       raf = requestAnimationFrame(loop);
     };
@@ -228,7 +254,8 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
     const { sc, ox, oy } = view();
     const wx = (p.x - ox) / sc, wy = (p.y - oy) / sc;
     const hit = v.pois.find((q) => st.current.seen.has(q.id) && Math.hypot(q.x - wx, q.y - wy) < 24 / sc + 6);
-    if (hit) walkTo(hit.x, hit.y, hit.id);
+    if (hit && hit.kind === 'note') peek(hit);
+    else if (hit) walkTo(hit.x, hit.y, hit.id);
     else walkTo(wx, wy, null);
   };
   const zoom = (f: number) => setCam(clampCam({ ...camRef.current, s: camRef.current.s * f }));
@@ -238,25 +265,41 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
 
   return (
     <div className="venue" data-testid="venue" data-venue={v.id}>
-      <canvas ref={cvs} className="district-canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={(e) => zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15)} aria-label={`${v.name}, seen from above. Tap to walk.`} />
-      <div className="district-top">
-        <div className="district-title"><b>{v.name}</b><span>{isCity ? `${v.where} · tap to walk, tap a place to go in` : `${v.where} · ${canSee ? 'you may request an audience' : `audience needs reputation ${royal?.royal?.minRep}`}`}</span></div>
-        <div className="map-tools district-tools">
-          <button onClick={() => zoom(1.25)} aria-label="Zoom in">+</button>
-          <button onClick={() => zoom(0.8)} aria-label="Zoom out">−</button>
+      <div className="venue-stage">
+        <canvas ref={cvs} className="district-canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={(e) => zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15)} aria-label={`${v.name}, seen from above. Tap a marker's "i" badge for information, or tap the ground to walk.`} />
+        <div className="district-top">
+          <div className="district-title"><b>{v.name}</b><span>{isCity ? `${v.where} · tap to walk, tap a place to go in` : `${v.where} · ${canSee ? 'you may request an audience' : `audience needs reputation ${royal?.royal?.minRep}`}`}</span></div>
+          <div className="map-tools district-tools">
+            <button onClick={() => zoom(1.25)} aria-label="Zoom in">+</button>
+            <button onClick={() => zoom(0.8)} aria-label="Zoom out">−</button>
+          </div>
         </div>
+        {toast && <div className="district-toast">{toast}</div>}
+        {!hintSeen && !note && (
+          <div className="poi-hint" data-testid="poi-hint">
+            <span>Tap a place to learn about it or visit.</span>
+            <button onClick={dismissHint} aria-label="Dismiss hint">×</button>
+          </div>
+        )}
+        {note && <div className="poi-backdrop" data-testid="poi-backdrop" onClick={closeNote} />}
+        {note && (
+          <div className="district-note poi-sheet" data-testid="venue-note" role="dialog" aria-modal="false" aria-labelledby="poi-sheet-title">
+            <button className="poi-sheet__close" aria-label="Close place information" onClick={closeNote}>×</button>
+            <h3 id="poi-sheet-title">{note.title}</h3>
+            <p>{note.text}</p>
+            <div className="poi-sheet__actions">
+              {note.poi && (
+                <button className="btn primary" data-testid="poi-visit" onClick={() => { const p = note.poi!; setNote(null); walkTo(p.x, p.y, p.id); }}>Visit this place</button>
+              )}
+              <button className="btn" data-testid="poi-close" onClick={closeNote}>Close</button>
+            </div>
+          </div>
+        )}
       </div>
-      {toast && <div className="district-toast">{toast}</div>}
-      {note && (
-        <div className="district-note" data-testid="venue-note">
-          <p><b>{note.title}.</b> {note.text}</p>
-          <button className="btn" onClick={() => setNote(null)}>OK</button>
-        </div>
-      )}
       <div className="district-sheet">
         <div className="district-places">
           {v.pois.filter((p) => seen.includes(p.id)).map((p) => (
-            <button key={p.id} className={`dplace ${p.kind === 'audience' || p.kind === 'goto' ? 'royal' : ''}`} onClick={() => walkTo(p.x, p.y, p.id)} data-testid={`vpoi-${p.id}`}>
+            <button key={p.id} className={`dplace ${p.kind === 'audience' || p.kind === 'goto' ? 'royal' : ''}`} onClick={(e) => (p.kind === 'note' ? peek(p, e.currentTarget) : walkTo(p.x, p.y, p.id))} data-testid={`vpoi-${p.id}`}>
               <i>{p.glyph}</i>
               <span><b>{p.name}</b><small>{p.sub}</small></span>
             </button>

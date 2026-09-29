@@ -446,6 +446,12 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
   const [note, setNote] = useState('');
+  useEffect(() => {
+    if (!note) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNote(''); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [note]);
 
   const reveal = (x: number, y: number) => {
     const s = st.current;
@@ -728,30 +734,36 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const unknown = POIS.length - seen.length;
   return (
     <div className="district" ref={box} data-testid="district">
-      <canvas
-        ref={cvs}
-        className="district-canvas"
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerCancel={onUp}
-        onWheel={(e) => zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15)}
-        aria-label="Giza seen from above. Tap to walk, drag to look around."
-      />
-      <div className="district-top">
-        <div className="district-title"><b>Giza</b><span>your district · tap to walk</span></div>
-        <div className="map-tools district-tools">
-          <button onClick={() => zoom(1.25)} aria-label="Zoom in" data-testid="district-zoom-in">+</button>
-          <button onClick={() => zoom(0.8)} aria-label="Zoom out">−</button>
+      <div className="district-stage">
+        <canvas
+          ref={cvs}
+          className="district-canvas"
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
+          onWheel={(e) => zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15)}
+          aria-label="Giza seen from above. Tap to walk, drag to look around."
+        />
+        <div className="district-top">
+          <div className="district-title"><b>Giza</b><span>your district · tap to walk</span></div>
+          <div className="map-tools district-tools">
+            <button onClick={() => zoom(1.25)} aria-label="Zoom in" data-testid="district-zoom-in">+</button>
+            <button onClick={() => zoom(0.8)} aria-label="Zoom out">−</button>
+          </div>
         </div>
+        {toast && <div className="district-toast" data-testid="district-toast">{toast}</div>}
+        {note && <div className="poi-backdrop" onClick={() => setNote('')} />}
+        {note && (
+          <div className="district-note" data-testid="district-note" role="dialog" aria-modal="false">
+            <button className="poi-sheet__close" aria-label="Close" onClick={() => setNote('')}>×</button>
+            <p>{note}</p>
+            <div className="poi-sheet__actions">
+              <button className="btn" onClick={() => setNote('')}>Close</button>
+            </div>
+          </div>
+        )}
       </div>
-      {toast && <div className="district-toast" data-testid="district-toast">{toast}</div>}
-      {note && (
-        <div className="district-note" data-testid="district-note">
-          <p>{note}</p>
-          <button className="btn" onClick={() => setNote('')}>OK</button>
-        </div>
-      )}
       <div className="district-sheet">
         <div className="district-places">
           {POIS.filter((p) => seen.includes(p.id)).map((p) => (
