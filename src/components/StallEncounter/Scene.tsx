@@ -14,7 +14,7 @@ import { radio } from '../../game/radio/player';
 import { bulletin, type Lang } from '../../game/radio/bulletin';
 import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
-import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
+import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { stallFigure } from './stallArt';
 
 const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
@@ -104,9 +104,6 @@ export function Dust() {
 export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: SceneProps) {
   // the hero as the player dressed him, once every piece he wears is painted for the stall
   const outfit = (useGame((st) => st.wardrobe) ?? START_WARDROBE).outfit;
-  // the leaning pose: elbows on the counter, hands open toward the buyer (no clothes are painted for
-  // it yet, so his outfit shows only in the wardrobe and on the character page)
-  const heroReady = usePoseReady('stall', outfit);
   const box = useRef<HTMLDivElement>(null);
   const { w: W, h: H } = useSize(box);
   const buyer = enc ? BUYERS[enc.buyerId] : null;
@@ -181,11 +178,10 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         <StallProps />
         <StallGramophone />
-        {heroReady ? (
-          <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfit={outfit} /></div>
-        ) : (
-          <img className="hero-at-stall hero-still" src="art/hero/hero-base-stall.webp" alt="" draggable={false} style={heroStyle} />
-        )}
+        {/* The base stall body is always painted, so he always shows dressed in whatever pieces
+            already have a stall-pose layer; a piece without one yet just doesn't draw (see
+            HeroFigure), rather than reverting the whole figure to a fixed picture. */}
+        <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfit={outfit} /></div>
         {buyer && (
           <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
             <ScenePerson id={buyer.id} />

@@ -46,6 +46,9 @@ export function Wardrobe({ onClose, startSlot }: { onClose: () => void; startSlo
   const [fit, setFit] = useState<FitTable>(() => ({ ...FIT }));
   const [fitId, setFitId] = useState<string | null>(null);
   const [unpainted, setUnpainted] = useState<string[]>([]);
+  const [naming, setNaming] = useState(false);
+  const [outfitName, setOutfitName] = useState('');
+  const saved = w.saved ?? [];
 
   const pose: Pose = fitting ? fitPose : 'wardrobe';
   const worn = new Set(wornIds(trial));
@@ -93,6 +96,17 @@ export function Wardrobe({ onClose, startSlot }: { onClose: () => void; startSlo
     const msg = g.buyPieces(toBuy);
     setNote(msg);
     if (!msg.startsWith('Not enough')) g.dressIn(trial);
+  };
+
+  const confirmSave = () => {
+    g.saveOutfit(outfitName, trial);
+    setNaming(false);
+    setOutfitName('');
+    setNote('Outfit saved.');
+  };
+  const loadSaved = (o: Outfit) => {
+    setNote('');
+    setTrial({ ...o, extras: [...o.extras] });
   };
 
   const nudge = (dx: number, dy: number, ds: number) => {
@@ -177,6 +191,31 @@ export function Wardrobe({ onClose, startSlot }: { onClose: () => void; startSlo
             </div>
           ) : (
             <>
+              <div className="wr-saved" data-testid="wr-saved">
+                {saved.map((o) => (
+                  <span key={o.id} className={`wr-saved-chip ${sameOutfit(o.outfit, trial) ? 'on' : ''}`}>
+                    <button className="chip" onClick={() => loadSaved(o.outfit)} data-testid={`wr-saved-${o.id}`}>{o.name}</button>
+                    <button className="wr-saved-del" aria-label={`Forget ${o.name}`} onClick={() => g.deleteSavedOutfit(o.id)}>×</button>
+                  </span>
+                ))}
+                {naming ? (
+                  <span className="wr-saved-new">
+                    <input
+                      autoFocus
+                      value={outfitName}
+                      maxLength={30}
+                      placeholder="Name this outfit"
+                      onChange={(e) => setOutfitName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') confirmSave(); if (e.key === 'Escape') { setNaming(false); setOutfitName(''); } }}
+                      data-testid="wr-outfit-name"
+                    />
+                    <button className="btn" onClick={confirmSave} disabled={!outfitName.trim()} data-testid="wr-save-confirm">Save</button>
+                    <button className="btn" onClick={() => { setNaming(false); setOutfitName(''); }}>Cancel</button>
+                  </span>
+                ) : (
+                  <button className="chip wr-save-btn" disabled={toBuy.length > 0} onClick={() => setNaming(true)} data-testid="wr-save-outfit">+ Save this outfit</button>
+                )}
+              </div>
               <div className="wr-slots" role="tablist">
                 {SLOTS.map((s) => {
                   const n = PIECE_ORDER.filter((id) => PIECES[id].slot === s.id && worn.has(id)).length;
@@ -211,12 +250,18 @@ export function Wardrobe({ onClose, startSlot }: { onClose: () => void; startSlo
               <>
                 <p className="wr-sum">
                   {toBuy.length} new {toBuy.length === 1 ? 'piece' : 'pieces'}: <b>{fmt(total)}</b>
-                  {notHere.length > 0 && <span className="wr-warn"> · {notHere.map((id) => PIECES[id].name).join(', ')} {notHere.length === 1 ? 'is' : 'are'} not sold {here ? `in ${here}` : 'on the road'}</span>}
                   {notHere.length === 0 && g.cash < total && <span className="wr-warn"> · you have {fmt(g.cash)}</span>}
                 </p>
+                {notHere.length > 0 && (
+                  <p className="wr-blocked" data-testid="wr-blocked">
+                    Can't buy here: {notHere.map((id) => PIECES[id].name).join(', ')} {notHere.length === 1 ? 'isn\'t' : 'aren\'t'} sold {here ? `in ${here}` : 'on the road'}. Put those back, or buy them where they're sold.
+                  </p>
+                )}
                 <div className="wr-actions">
                   <button className="btn" onClick={() => { setTrial({ ...w.outfit, extras: [...w.outfit.extras] }); setNote(''); }}>Put back</button>
-                  <button className="btn primary" disabled={notHere.length > 0 || g.cash < total} onClick={buy} data-testid="wr-buy">Buy and wear · {fmt(total)}</button>
+                  <button className="btn primary" disabled={notHere.length > 0 || g.cash < total} onClick={buy} data-testid="wr-buy">
+                    {notHere.length > 0 ? 'Not sold here' : `Buy and wear · ${fmt(total)}`}
+                  </button>
                 </div>
               </>
             ) : (

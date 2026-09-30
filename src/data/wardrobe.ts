@@ -140,8 +140,10 @@ export interface Outfit {
 export const START_OUTFIT: Outfit = { head: null, top: 'linen-shirt', outer: 'vest-embroidered', legs: 'sirwal', feet: 'babouche', extras: [], weapon: null, carry: null };
 export const START_OWNED = ['linen-shirt', 'vest-embroidered', 'sirwal', 'babouche', 'galabiya-work', 'taqiyah'];
 
-export interface WardrobeState { owned: string[]; outfit: Outfit }
-export const START_WARDROBE: WardrobeState = { owned: [...START_OWNED], outfit: { ...START_OUTFIT, extras: [] } };
+/** An outfit the player named and kept, to put back on in one tap later. */
+export interface SavedOutfit { id: string; name: string; outfit: Outfit }
+export interface WardrobeState { owned: string[]; outfit: Outfit; saved?: SavedOutfit[] }
+export const START_WARDROBE: WardrobeState = { owned: [...START_OWNED], outfit: { ...START_OUTFIT, extras: [] }, saved: [] };
 
 export const wornIds = (o: Outfit): string[] =>
   [o.head, o.top, o.outer, o.legs, o.feet, ...o.extras, o.weapon, o.carry].filter((x): x is string => !!x && !!PIECES[x]);

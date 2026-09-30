@@ -16,7 +16,7 @@ import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
 import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
-import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type WardrobeState } from '../../data/wardrobe';
+import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type SavedOutfit, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
@@ -249,6 +249,10 @@ interface Actions {
   buyPieces: (ids: string[]) => string;
   /** change into an outfit made of pieces you own */
   dressIn: (o: Outfit) => void;
+  /** keep the current combination of worn pieces under a name, to put back on later */
+  saveOutfit: (name: string, o: Outfit) => void;
+  /** forget a saved outfit (the pieces themselves stay owned) */
+  deleteSavedOutfit: (id: string) => void;
   /** leave the first-sale lesson: everything unlocks, the current customer stays as an ordinary sale */
   skipTutorial: () => void;
   bathe: (sid: string) => string;
@@ -1603,6 +1607,20 @@ export const useGame = create<GameState & Actions>()(
           const w0 = s.wardrobe ?? START_WARDROBE;
           if (!wornIds(o).every((id) => w0.owned.includes(id))) return;
           set({ wardrobe: { ...w0, outfit: { ...o, extras: [...o.extras] } }, attire: { ...s.attire, worn: legacyWorn(o) } });
+        },
+        saveOutfit: (name, o) => {
+          const s = get();
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          // only pieces already owned can go into a saved outfit — nothing to buy back later
+          if (!wornIds(o).every((id) => w0.owned.includes(id))) return;
+          const clean = name.trim().slice(0, 30) || 'Untitled outfit';
+          const entry: SavedOutfit = { id: newUid('outfit'), name: clean, outfit: { ...o, extras: [...o.extras] } };
+          set({ wardrobe: { ...w0, saved: [...(w0.saved ?? []), entry] } });
+        },
+        deleteSavedOutfit: (id) => {
+          const s = get();
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          set({ wardrobe: { ...w0, saved: (w0.saved ?? []).filter((x) => x.id !== id) } });
         },
         bathe: (sid) => {
           const s = get();
