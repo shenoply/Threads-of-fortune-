@@ -23,16 +23,25 @@ export const SHOP: ShopItem[] = [
   { id: 'dye', kind: 'service', section: 'exam', service: 'dye', name: 'Dye test', price: 18, img: 'swatches',
     blurb: 'A few fibres boiled and spotted on porcelain beside his dye cards. Madder, indigo, weld and the anilines each answer differently. Two hours.',
     effect: 'Natural or synthetic colours, measured against the age the rug is sold at. Never gives a year.' },
-  { id: 'fastness', kind: 'service', section: 'exam', service: 'fastness', name: 'Colour-fastness rub', price: 6, img: 'vat',
-    blurb: 'A damp white cloth pressed firmly to the back of the rug and examined in daylight. Nothing is cut. Thirty minutes.',
-    effect: 'Whether a colour will run in the wash. Worth knowing before you call a rug washable.' },
+  { id: 'fastness', kind: 'service', section: 'exam', service: 'fastness', name: 'Colour transfer rub', price: 6, img: 'vat',
+    blurb: 'A damp white cloth rubbed firmly on the back of the rug and examined in daylight. Nothing is cut. Thirty minutes.',
+    effect: 'Whether colour comes off on a cloth: a guide for floors where boots and brooms rub it. It says nothing about washing.' },
+  { id: 'wash', kind: 'service', section: 'exam', service: 'wash', name: 'Sample wash test', price: 14, img: 'swatches',
+    blurb: 'A few loose fibres washed in warm soapy water in a porcelain dish beside undyed white wool, then dried and compared. Three hours.',
+    effect: 'Whether the dyes run in a warm soap wash of a small sample. Worth knowing before you call a rug washable. Needs his Knecht.' },
+  { id: 'provisions', kind: 'service', section: 'exam', service: 'provisions', name: 'Provisions assessment', price: 10, img: 'weave',
+    blurb: 'He counts your stores against your party and the road, and asks how you have been sleeping. One hour. Needs his McCarrison.',
+    effect: 'How many days your food covers, which roads it will not cover, and how tired you are. Food works over days, not minutes.' },
+  { id: 'cargo', kind: 'service', section: 'exam', service: 'cargo', name: 'Cargo hazard check', price: 12, img: 'balance',
+    blurb: 'Labels, seals and packing of a crate someone wants carried, checked against the Sinai survey folio. He never opens a sealed case. One hour.',
+    effect: 'What the crate is, how it must travel, and which licensed handler and paper it needs. Never how to prepare or use it.' },
   { id: 'metal', kind: 'service', section: 'exam', service: 'metal', name: 'Density on the balance', price: 12, img: 'balance',
     blurb: 'An object weighed in air and again in water, and its density worked out in the notebook. Plated and hollow pieces are noted.',
     effect: 'For brass, silver and gold antiques. You have none at present.' },
 
   { id: 'report', kind: 'report', section: 'reports', name: 'Signed laboratory report', price: 15, img: 'weave',
     blurb: 'A clean copy of one result on his headed paper, signed "A. Embleton, textile chemist", folded to go with the rug. One report per result; only results that agree with the description can be written up.',
-    effect: 'At the stall, a fibre report makes buyers weigh your craft argument more; a colour-fastness report does the same for durability. Buyers trust you a little more.' },
+    effect: 'At the stall, a fibre report makes buyers weigh your craft argument more; a rub or wash report does the same for durability. Buyers trust you a little more.' },
 
   { id: 'loupe', kind: 'tool', section: 'goods', name: 'Pocket loupe, ten diameters', price: 120, img: 'loupe',
     blurb: 'A folding brass loupe of good German glass, in a leather slip case. Arran keeps two and will part with one.',
@@ -61,7 +70,7 @@ export function labArgBonus(kind: string, reports: LabService[] | undefined, too
   const has = (t: string) => !!tools?.includes(t);
   let r = 0;
   if (kind === 'craft' && reports?.includes('fibre')) r += 0.3;
-  if (kind === 'durability' && reports?.includes('fastness')) r += 0.3;
+  if (kind === 'durability' && (reports?.includes('fastness') || reports?.includes('wash'))) r += 0.3;
   if (kind === 'craft' && traits.includes('fineWeave') && has('loupe')) r += 0.15;
   if (kind === 'craft' && traits.includes('hardwearing') && has('gauge')) r += 0.1;
   if (kind === 'durability' && traits.includes('washable') && has('cloths')) r += 0.15;

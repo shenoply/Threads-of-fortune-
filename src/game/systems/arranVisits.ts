@@ -9,6 +9,8 @@ export interface ArranVisitState {
   lastActivityDay?: number;
   /** the conservator's letter arrives: from this day the mummy linen study is permitted */
   permitDay?: number;
+  /** the permission chain: Arran writes a letter, you carry it to Hamza Effendi at the museum store */
+  permitStage?: 'letter' | 'granted';
   mummyIntroductionSeen?: boolean;
 }
 export interface VisitContext { day: number; returnedBooks: readonly string[]; pendingBook: boolean }

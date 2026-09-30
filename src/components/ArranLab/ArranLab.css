@@ -160,3 +160,59 @@
 .arran-bookcard small { display: block; font-size: 13.5px; color: #4b3a26; line-height: 1.3; }
 .arran-bookcard i { font-style: normal; font-family: var(--label); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; color: #a3261c; white-space: nowrap; }
 @media (max-width: 420px) { .arran-lab__tab { font-size: 14px; } .arran-lab__tab--book img { display: none; } }
+
+/* Arran as a figure in the room, standing behind the bench: the painting's bench top hides him below the waist */
+.arran-figure { position: absolute; margin: 0; padding: 0; border: 0; background: none; aspect-ratio: 600 / 900; transform: translateX(-50%); cursor: pointer; transition: left 0.6s ease; }
+.arran-figure:hover img { filter: brightness(1.02) sepia(0.1) drop-shadow(0 0 8px rgba(247,210,134,0.5)); }
+.arran-figure img { display: block; width: 100%; height: 100%; clip-path: inset(0 0 38% 0); filter: brightness(0.93) sepia(0.12) drop-shadow(0 0 6px rgba(20,10,4,0.35)); user-select: none; -webkit-user-drag: none; }
+.arran-figure__cap { position: absolute; left: 50%; top: 55%; transform: translateX(-50%); white-space: nowrap; font-family: var(--label); font-size: max(11px, calc(var(--ww) * 0.0095)); color: #fff3dc; background: rgba(33,22,12,0.72); border-radius: 999px; padding: 0.1em 0.7em; }
+@media (prefers-reduced-motion: reduce) { .arran-figure { transition: none; } }
+
+.arran-lab__tabs { overflow-x: auto; scrollbar-width: none; }
+.arran-lab__tab { min-width: 0; padding: 0 6px; }
+@media (max-width: 420px) { .arran-lab__tab { font-size: 14px; } .arran-lab__tab--book img { display: none; } }
+
+/* confirm before paying: every cost stated up front */
+.arran-confirm h2 { margin: 0 0 4px; font-size: 18px; }
+.arran-confirm__q { font-style: italic; margin: 0 0 8px; }
+.arran-confirm dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 10px; margin: 0 0 10px; font-size: 14px; }
+.arran-confirm dt { color: var(--brass-hi); font-family: var(--label); letter-spacing: 0.03em; }
+.arran-confirm dd { margin: 0; }
+.arran-confirm .btn, .arran-road .btn, .arran-cargo .btn { min-height: 44px; }
+
+.arran-road .small, .arran-road small { display: block; }
+.arran-report ul { margin: 0 0 8px; padding-left: 18px; }
+.arran-routes li.ok { color: #9fcf8a; }
+.arran-routes li.short { color: #e39a7a; }
+.arran-cargo { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding: 8px; margin: 0 0 8px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,0.18); }
+.arran-cargo > div:first-child { flex: 1 1 220px; }
+.arran-cargo small { margin-top: 2px; }
+.arran-cargo.cls-restricted_material, .arran-cargo.cls-medical_controlled { border-color: rgba(227,154,122,0.55); }
+.arran-cargo__check { color: #f3dca6; }
+.arran-cargo__btns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.arran-law { padding-left: 18px; font-size: 13px; }
+.arran-law li { margin-bottom: 6px; }
+.arran-law em { font-style: normal; font-size: 11px; padding: 0 6px; border-radius: 999px; background: rgba(231,189,110,0.2); }
+.arran-law em.law-provisional { background: rgba(227,154,122,0.25); }
+
+/* the Sinai passes */
+.pass-card { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: #1b120b; color: var(--text, #f3e6cf); overflow-y: auto; }
+.pass-card__art { width: 100%; max-height: 38vh; object-fit: cover; display: block; }
+.pass-card__body { padding: 12px 16px 20px; max-width: 760px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.pass-card__body h2 { margin: 4px 0 6px; }
+.pass-choices { display: grid; gap: 8px; margin: 10px 0; }
+@media (min-width: 700px) { .pass-choices { grid-template-columns: 1fr 1fr; } }
+.pass-choice { min-height: 44px; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line, #6b5238); background: rgba(0,0,0,0.25); color: inherit; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.pass-choice:disabled { opacity: 0.5; cursor: not-allowed; }
+.pass-choice small { color: var(--text-dim, #c9b695); }
+.pass-choice__facts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin-top: 4px; }
+.pass-choice__facts i { font-style: normal; }
+.risk-high { color: #ff8f6b; } .risk-real { color: #f0b36b; } .risk-some { color: #e6d27a; } .risk-low { color: #9fcf8a; }
+.pass-outcome { font-size: 17px; line-height: 1.45; }
+.pass-card .btn { min-height: 44px; }
+
+/* Arran stands in the room now; the panel is all card */
+.arran-lab__panel { grid-template-columns: 1fr !important; }
+
+.arran-lab .side-tasks { margin: 4px 8px; }
+.arran-lab .side-task { min-height: 44px; font-size: 13px; }

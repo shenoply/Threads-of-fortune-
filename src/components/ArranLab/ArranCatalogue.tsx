@@ -51,7 +51,7 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
 
   // results that can be written up: agree with the description, rug still yours, no report yet
   const reportable = (g.arranFindings ?? []).filter((f) => {
-    if (f.verdict !== 'consistent' || !['fibre', 'fastness', 'dye'].includes(f.service)) return false;
+    if (f.verdict !== 'consistent' || !['fibre', 'fastness', 'dye', 'wash'].includes(f.service)) return false;
     const r = g.inventory.find((i) => i.uid === f.subjectId);
     return !!r && !(r.labReports ?? []).includes(f.service);
   });
@@ -133,7 +133,7 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
           {item.kind === 'service' && item.service && (() => {
             const sv = item.service;
             const locked = sv === 'metal' || (sv !== 'fastness' && !unlocked.includes(sv));
-            return <button type="button" className="cat__buy" disabled={locked} onClick={() => onService(sv)} data-testid="cat-use">{locked ? status(item) : `Choose a rug · ${fmt(LAB_SERVICES[sv].price)}`}</button>;
+            return <button type="button" className="cat__buy" disabled={locked} onClick={() => onService(sv)} data-testid="cat-use">{locked ? status(item) : sv === 'provisions' || sv === 'cargo' ? `Open the Road tab · ${fmt(LAB_SERVICES[sv].price)}` : `Choose a rug · ${fmt(LAB_SERVICES[sv].price)}`}</button>;
           })()}
           {item.kind === 'tool' && (
             <button type="button" className="cat__buy" disabled={tools.includes(item.id)} onClick={() => setNote(g.arranBuy(item.id))} data-testid="cat-buy">{tools.includes(item.id) ? 'Owned' : `Buy · ${fmt(item.price!)}`}</button>

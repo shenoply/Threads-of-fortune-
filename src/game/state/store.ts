@@ -21,7 +21,8 @@ import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../ec
 import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
 import { SHOP } from '../systems/arranShop';
 import { COHEN_START, cohenDue, type CohenState } from '../systems/cohen';
-import { rubTruth } from '../systems/arranLab';
+import { rubTruth, migrateRubFinding } from '../systems/arranLab';
+import { CARGO_JOBS, CHECKPOINTS, midSentence, CONDITION_START, PASS_DANGER, DIET, PASS_CHOICES, TONIC, classify, dayCondition, fatigueEffect, passWeather, resolvePass, resolvePatrol, rollFor, routeExposure, takeTonic as tonicEffect, type CargoItem, type Condition1925, type PassChoice, type PassOutcome, type PatrolOutcome } from '../systems/fieldwork';
 import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
@@ -47,7 +48,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -174,7 +175,7 @@ export interface GameState {
   /** Arran's book errands, the copies you carry, and the tests his returned books have unlocked */
   arranBooks?: Partial<Record<BookId, BookState>>;
   papers?: Paper[];
-  labUnlocked?: LabService[];
+  labUnlocked?: (LabService | 'records')[];
   /** instruments bought from Arran's price book */
   arranTools?: string[];
   /** what Arran was doing on your last visits, and the conservator's permission */
@@ -183,6 +184,21 @@ export interface GameState {
   nabil?: NabilMemory;
   /** Cohen's orders and his trust in you */
   cohen?: CohenState;
+  /** the merchant's tiredness, the road diet, a stimulant taken and its after-effects */
+  condition?: Condition1925;
+  /** coca wine bottles bought from the chemist */
+  tonics?: number;
+  /** cargo you have agreed to carry (collected at its town, delivered at its destination) */
+  cargo?: (CargoItem & { collected: boolean })[];
+  /** Arran's hazard checks done, by job id */
+  cargoChecks?: string[];
+  /** how closely the patrols watch you, 0..100 */
+  attention?: number;
+  /** resolved once and kept: Sinai crossings and patrol inspections, by trip key */
+  crossings?: Record<string, { choice: PassChoice; risk: number; outcome: PassOutcome }>;
+  patrols?: Record<string, PatrolOutcome>;
+  /** the day of Arran's last paid provisions assessment */
+  provisionsDay?: number;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -228,6 +244,8 @@ interface Actions {
   /** The map clock running while you stay put: time passes, parties move, days turn over away from home. */
   worldTick: (days: number) => string[];
   arriveAt: (id: string | null) => void;
+  /** collect, inspect and deliver cargo on arriving somewhere */
+  cargoAt: (id: string) => void;
   checkJobs: (id: string) => void;
   /** settle a stand-off or a battle on the road */
   ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; text: string }) => string;
@@ -310,6 +328,16 @@ interface Actions {
   /** the linen study introduction has been seen through */
   arranMummySeen: () => void;
   arranRequestBook: (id: BookId) => string;
+  /** carry Arran's letter to the museum conservator in Cairo */
+  deliverPermitLetter: () => string;
+  buyTonic: () => string;
+  takeTonic: () => string;
+  assessProvisions: () => string;
+  buyDiet: () => string;
+  checkCargo: (jobId: string) => string;
+  acceptCargo: (jobId: string, licensed: boolean) => string;
+  /** the Sinai crossing: resolved once for this trip */
+  crossPass: (tripKey: string, choice: PassChoice) => { outcome: PassOutcome; risk: number; repeated: boolean };
   librarySearch: (id: BookId) => string;
   libraryAcquire: (id: BookId, how: 'copy' | 'duplicate') => string;
   arranReturnBook: (id: BookId) => { ok: boolean; message: string };
@@ -674,7 +702,7 @@ export const useGame = create<GameState & Actions>()(
             rep += 1;
             // a rug passed on your own rub whose colour really runs: he will say so next time
             const handed = [enc.presented, enc.packageUid].map((u) => s.inventory.find((i) => i.uid === u)).filter(Boolean) as typeof s.inventory;
-            const ran = handed.find((i) => enc.cohenManual?.[i.uid] === 'fast' && rubTruth(i.typeId) === 'bleeds');
+            const ran = handed.find((i) => enc.cohenManual?.[i.uid] === 'fast' && rubTruth(i.typeId) === 'transfers');
             if (ran) complaint = RUGS[ran.typeId]?.name;
             journal.push({ day: s.day, text: `Delivered Cohen's order on time: ${fmt(enc.salePrice ?? 0)}.` });
           }
@@ -742,6 +770,8 @@ export const useGame = create<GameState & Actions>()(
             ledger.push({ day: s.day, kind: 'expense', label: `Bread and dates in ${settlementById(s.world.at).name}`, amount: -foodCost });
             cash -= foodCost;
           }
+          // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
+          const condition = dayCondition(s.condition, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
           let repBill = 0;
           if (party.food >= need) { party.food -= need; party.hungryDays = 0; }
           else {
@@ -1009,6 +1039,7 @@ export const useGame = create<GameState & Actions>()(
           }
           const patch: Partial<GameState> = {
             ...(cohen !== s.cohen ? { cohen } : {}),
+            condition,
             visits,
             missions,
             missionNews,
@@ -1202,6 +1233,50 @@ export const useGame = create<GameState & Actions>()(
           set({ world: { ...s.world, at: id, known, ...(st ? { x: st.x, y: st.y } : {}) } });
           if (id) audio.sfx('arrive');
           if (id) get().checkJobs(id);
+          if (id) get().cargoAt(id);
+        },
+
+        cargoAt: (id) => {
+          const s = get();
+          let cargo = (s.cargo ?? []).map((c) => (!c.collected && CARGO_JOBS.find((j) => j.id === c.jobId)?.from === id ? { ...c, collected: true } : c));
+          const notes: string[] = [];
+          if (cargo.some((c, i) => c.collected && !(s.cargo ?? [])[i]?.collected)) notes.push('You collect the cargo you agreed to carry.');
+          let cash = s.cash, rep = s.reputation, attention = s.attention ?? 0, hour = s.world.hour;
+          const ledger = [...s.ledger], journal = [...s.journal];
+          const patrols = { ...(s.patrols ?? {}) };
+          // a patrol at a port or checkpoint looks at what you carry: resolved once for this arrival
+          const carried = cargo.filter((c) => c.collected); // what you deliver here is inspected too
+          if (CHECKPOINTS.includes(id) && carried.some((c) => c.cls !== 'ordinary')) {
+            const key = `${s.day}:${id}:${carried.map((c) => c.id).join(',')}`;
+            let worst: PatrolOutcome | undefined = patrols[key];
+            if (!worst) {
+              const order = { clear: 0, question: 1, seize: 2, detain: 3 };
+              for (const c of carried) {
+                const o = resolvePatrol(classify(c, id, s.day), attention, rollFor(`${key}:${c.id}`, s.seed));
+                if (!worst || order[o.kind] > order[worst.kind]) worst = o;
+                if (o.kind === 'seize' || o.kind === 'detain') cargo = cargo.filter((x) => x.id !== c.id);
+              }
+              patrols[key] = worst!;
+              if (worst!.kind === 'seize') { rep -= 2; attention += 20; }
+              if (worst!.kind === 'detain') { rep -= 3; attention += 30; const fine = Math.min(cash, 200); cash -= fine; ledger.push({ day: s.day, kind: 'expense', label: `Fine at ${settlementById(id).name}`, amount: -fine }); hour = Math.min(23.9, hour + 10); }
+              if (worst!.kind === 'question' && carried.some((c) => c.paperwork === 'none' && c.cls !== 'ordinary')) attention += 10;
+              if (worst!.kind === 'question') hour = Math.min(23.9, hour + 1);
+              journal.push({ day: s.day, text: `Patrol at ${settlementById(id).name}: ${worst!.note}`, kind: 'road' });
+            }
+            notes.push(`Patrol at ${settlementById(id).name}: ${worst!.note}`);
+          }
+          // deliveries here
+          for (const c of cargo.filter((x) => x.collected && x.to === id)) {
+            cash += c.fee;
+            rep += c.paperwork === 'none' && c.cls !== 'ordinary' ? 0 : 1;
+            if (c.paperwork === 'none' && c.cls !== 'ordinary') attention += 8;
+            ledger.push({ day: s.day, kind: 'bonus', label: `Delivered: ${c.label}`, amount: c.fee });
+            journal.push({ day: s.day, text: `Delivered ${midSentence(c.label)} in ${settlementById(id).name}: ${fmt(c.fee)}.`, kind: 'arrive' });
+            notes.push(`Delivered ${midSentence(c.label)}: ${fmt(c.fee)}.`);
+            cargo = cargo.filter((x) => x.id !== c.id);
+          }
+          if (!notes.length) return;
+          set({ cargo, cash, reputation: Math.max(0, rep), attention: Math.max(0, Math.min(100, attention)), ledger, journal, patrols, world: { ...get().world, hour }, jobNote: notes.join(' ') });
         },
 
         setStallShut: (shut) => { set({ stallShut: shut }); audio.sfx('tap'); },
@@ -1918,6 +1993,13 @@ export const useGame = create<GameState & Actions>()(
           const tutorial = !s.tutorial.done && buyerId === 'samira' && s.day === 1;
           const displayed = availableRugs(s).slice(0, 3).map((i) => i.uid);
           const enc = startEncounter(buyerId, ctxFor(s, buyerId), displayed, tutorial);
+          // how you slept, ate and whether you took the tonic shows at the stall: tired sellers lose patience
+          const tired = fatigueEffect(s.condition, s.day);
+          if (!tutorial && (tired.patience || tired.trust)) {
+            enc.patience = Math.max(10, enc.patience + tired.patience);
+            enc.trust = Math.max(0, Math.min(100, enc.trust + tired.trust));
+            if (tired.label !== 'Rested') enc.log.push({ speaker: 'system', text: `You are ${tired.label.toLowerCase()}. ${tired.patience > 0 ? 'Everything seems easy this morning.' : 'The haggling wears on you sooner.'}` });
+          }
           const rel = s.relationships[buyerId] ?? emptyRel();
           const b = BUYERS[buyerId];
           let commissions = s.commissions;
@@ -2232,6 +2314,124 @@ export const useGame = create<GameState & Actions>()(
           });
         },
 
+        deliverPermitLetter: () => {
+          const s = get();
+          const v = s.arranVisit ?? { visitCount: 0 };
+          if (s.world.at !== 'cairo') return 'The museum store is in Cairo.';
+          if (v.permitStage !== 'letter') return v.permitStage === 'granted' ? 'Hamza Effendi has already given his permission.' : 'You have no letter to deliver.';
+          set({
+            arranVisit: { ...v, permitStage: 'granted', permitDay: s.day + 1 },
+            journal: [...s.journal, { day: s.day, text: 'Hamza Effendi, conservator at the museum store, read Arran\'s letter and gave permission: one detached linen thread may be examined, in his presence, at the laboratory. Nothing else is to be touched.', kind: 'mission' }],
+          });
+          get().passTime(45);
+          audio.sfx('pen');
+          return '"Arran Embleton. Yes, he wrote to me about a loose thread from the damaged wrapping in store 9. One thread, already detached, in my presence, and he writes up everything he sees. Tell him I will bring it to Giza."';
+        },
+
+        buyTonic: () => {
+          const s = get();
+          if (s.world.at !== 'cairo') return 'The chemist is in Cairo, in the Muski.';
+          if (s.cash < TONIC.price) return `A bottle is ${fmt(TONIC.price)}.`;
+          set({ cash: s.cash - TONIC.price, tonics: (s.tonics ?? 0) + 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Coca wine from a chemist', amount: -TONIC.price }] });
+          audio.sfx('coins');
+          return 'The chemist wraps a bottle in brown paper. "For fatigue. Not every day, effendi."';
+        },
+
+        takeTonic: () => {
+          const s = get();
+          if (!(s.tonics ?? 0)) return 'You have none.';
+          const before = s.condition ?? CONDITION_START;
+          if (before.alertDay === s.day) return 'You have had a glass today already.';
+          const after = tonicEffect(before, s.day);
+          set({ tonics: (s.tonics ?? 0) - 1, condition: after, journal: [...s.journal, { day: s.day, text: 'Drank a glass of coca wine. The tiredness lifted for the day.' }] });
+          return after.dependence >= 3
+            ? 'The tiredness lifts, but you notice you wanted it before you needed it. That is how it starts.'
+            : 'The tiredness lifts for the rest of today. Tomorrow will be worse.';
+        },
+
+        assessProvisions: () => {
+          const s = get();
+          if (s.world.at !== 'giza') return 'Arran is in Giza.';
+          if (!(s.labUnlocked ?? []).includes('provisions')) return `Arran needs his ${ARRAN_BOOKS.provisions.title}.`;
+          if (s.provisionsDay === s.day) return '';
+          const svc = LAB_SERVICES.provisions;
+          if (s.cash < svc.price) return `The assessment costs ${fmt(svc.price)}.`;
+          if (s.world.hour < LAB_HOURS[0] || s.world.hour + svc.minutes / 60 > LAB_HOURS[1]) return 'Arran is closed.';
+          set({ cash: s.cash - svc.price, provisionsDay: s.day, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Arran: provisions assessment', amount: -svc.price }] });
+          get().passTime(svc.minutes);
+          audio.sfx('pen');
+          return '';
+        },
+
+        buyDiet: () => {
+          const s = get();
+          if (s.world.at !== 'giza') return 'Arran is in Giza.';
+          if (s.cash < DIET.price) return `The road diet costs ${fmt(DIET.price)}.`;
+          const c = s.condition ?? CONDITION_START;
+          set({ cash: s.cash - DIET.price, condition: { ...c, dietUntil: s.day + DIET.days }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Lentils, onions and dried milk for the road', amount: -DIET.price }], journal: [...s.journal, { day: s.day, text: `Bought Arran's road diet for ${DIET.days} days. It works slowly.` }] });
+          audio.sfx('coins');
+          return 'Sacks of lentils and onions and a tin of dried milk go on the camel. "It will not show today," Arran says. "In a week it will."';
+        },
+
+        checkCargo: (jobId) => {
+          const s = get();
+          const job = CARGO_JOBS.find((j) => j.id === jobId);
+          if (!job) return '';
+          if (!(s.labUnlocked ?? []).includes('cargo')) return 'Arran needs the field-safety folio first.';
+          if ((s.cargoChecks ?? []).includes(jobId)) return '';
+          const svc = LAB_SERVICES.cargo;
+          if (s.cash < svc.price) return `The check costs ${fmt(svc.price)}.`;
+          set({ cash: s.cash - svc.price, cargoChecks: [...(s.cargoChecks ?? []), jobId], ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: cargo check, ${midSentence(job.label)}`, amount: -svc.price }] });
+          get().passTime(svc.minutes);
+          audio.sfx('pen');
+          return '';
+        },
+
+        acceptCargo: (jobId, licensed) => {
+          const s = get();
+          const job = CARGO_JOBS.find((j) => j.id === jobId);
+          if (!job) return '';
+          if ((s.cargo ?? []).some((c) => c.jobId === jobId)) return 'You have already taken this job.';
+          if (licensed && !(s.labUnlocked ?? []).includes('records') && job.cls !== 'ordinary') return 'You do not know which papers this needs yet. Arran needs the Port Said ledger.';
+          const fee = licensed ? job.licenceFee : 0;
+          if (s.cash < fee) return `The papers cost ${fmt(fee)}.`;
+          const item = { id: newUid('cg'), jobId, label: job.label, cls: job.cls, to: job.to, paperwork: job.cls === 'ordinary' ? 'receipt' as const : licensed ? 'licence' as const : 'none' as const, fee: job.fee, takenDay: s.day, collected: s.world.at === job.from };
+          set({
+            cash: s.cash - fee,
+            cargo: [...(s.cargo ?? []), item],
+            attention: Math.min(100, (s.attention ?? 0) + (item.paperwork === 'none' && job.cls !== 'ordinary' ? 8 : 0)),
+            ledger: fee ? [...s.ledger, { day: s.day, kind: 'expense', label: `Papers for ${midSentence(job.label)}`, amount: -fee }] : s.ledger,
+            journal: [...s.journal, { day: s.day, text: `Agreed to carry ${midSentence(job.label)} from ${settlementById(job.from).name} to ${settlementById(job.to).name}${item.paperwork === 'licence' ? ', with papers' : item.paperwork === 'none' ? ', without papers' : ''}.`, kind: 'road' }],
+          });
+          audio.sfx('pen');
+          return item.collected ? `The cargo is loaded. Deliver it to ${settlementById(job.to).name}.` : `Collect it in ${settlementById(job.from).name}, then deliver it to ${settlementById(job.to).name}.`;
+        },
+
+        crossPass: (tripKey, choice) => {
+          const s = get();
+          const had = s.crossings?.[tripKey];
+          if (had) return { outcome: had.outcome, risk: had.risk, repeated: true };
+          const opt = PASS_CHOICES[choice];
+          const month = new Date(Date.UTC(1925, 2, 9 + s.day)).getUTCMonth();
+          const carried = (s.cargo ?? []).filter((c) => c.collected);
+          const risk = routeExposure({ danger: PASS_DANGER, weather: passWeather(month).add, fatigue: (s.condition ?? CONDITION_START).fatigue, guards: Object.values(s.world.party.troops).reduce((a, n) => a + n, 0), cargo: carried.map((c) => c.cls) }, choice);
+          const outcome = resolvePass(risk, rollFor(tripKey, s.seed), strength(s.world.party), s.cash - opt.cost, s.world.party.food);
+          const cond = s.condition ?? CONDITION_START;
+          // the crossing is recorded before anything else changes, so no reload can reroll it
+          set({
+            crossings: { ...(s.crossings ?? {}), [tripKey]: { choice, risk, outcome } },
+            cash: s.cash - opt.cost - outcome.cashLost,
+            condition: { ...cond, fatigue: Math.min(100, cond.fatigue + outcome.fatigue) },
+            cargo: outcome.cargoLost ? (s.cargo ?? []).filter((c) => !c.collected) : s.cargo,
+            world: { ...s.world, party: { ...s.world.party, food: Math.max(0, s.world.party.food - outcome.foodLost) } },
+            ledger: [...s.ledger, ...(opt.cost ? [{ day: s.day, kind: 'expense' as const, label: 'A Bedouin guide through the Sinai passes', amount: -opt.cost }] : []), ...(outcome.cashLost ? [{ day: s.day, kind: 'expense' as const, label: 'Taken by raiders in the Sinai passes', amount: -outcome.cashLost }] : [])],
+            journal: [...s.journal, { day: s.day, text: `The Sinai passes (${opt.label.toLowerCase()}): ${outcome.text}`, kind: 'road' }],
+          });
+          const days = opt.extraDays + outcome.extraDays;
+          if (days > 0) get().worldTick(days);
+          return { outcome, risk, repeated: false };
+        },
+
         arranRequestBook: (id) => {
           const s = get();
           const b = ARRAN_BOOKS[id];
@@ -2240,6 +2440,8 @@ export const useGame = create<GameState & Actions>()(
           set({
             arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'requested', day: s.day } },
             journal: [...s.journal, { day: s.day, text: `Arran asked you to find ${b.author}'s ${b.title}. ${b.hint}` }],
+            // the library's town goes on your map, so the errand has somewhere to point
+            world: { ...s.world, known: [...new Set([...s.world.known, LIBRARIES[b.library].town])] },
           });
           audio.sfx('pen');
           return b.hint;
@@ -2295,9 +2497,9 @@ export const useGame = create<GameState & Actions>()(
           set({
             papers: (s.papers ?? []).filter((x) => x.id !== paper.id),
             arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'returned', copyId: paper.id, day: s.day } },
-            labUnlocked: [...new Set([...(s.labUnlocked ?? []), b.unlock])],
-            arranVisit: s.arranVisit?.permitDay != null ? s.arranVisit : { ...(s.arranVisit ?? { visitCount: 0 }), permitDay: s.day + 1 },
-            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${b.unlockLabel.toLowerCase()}.${s.arranVisit?.permitDay != null ? '' : ' He mentions he has written to a museum conservator about a thread of ancient linen.'}` }],
+            labUnlocked: [...new Set([...(s.labUnlocked ?? []), b.unlock, ...(b.unlock === 'dye' ? ['wash' as const] : [])])],
+            arranVisit: s.arranVisit?.permitStage ? s.arranVisit : { ...(s.arranVisit ?? { visitCount: 0 }), permitStage: 'letter' },
+            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${b.unlockLabel.toLowerCase()}.${s.arranVisit?.permitStage ? '' : ' He gives you a letter for Hamza Effendi, conservator at the museum store in Cairo, asking permission to examine one detached linen thread.'}` }],
             reputation: s.reputation + 1,
           });
           audio.sfx('pen');
@@ -2423,6 +2625,18 @@ export const useGame = create<GameState & Actions>()(
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        if (version < 18) {
+          // the old "colour fastness" result was a rub test: rename it and keep it, without a new charge
+          const typeOf = (uid: string) => (p.inventory ?? []).find((i) => i.uid === uid)?.typeId;
+          p.arranFindings = (p.arranFindings ?? []).map((f) => migrateRubFinding(f, typeOf(f.subjectId)));
+          if (p.arranVisit?.permitDay != null && !p.arranVisit.permitStage) p.arranVisit = { ...p.arranVisit, permitStage: 'granted' };
+          p.condition = p.condition ?? { ...CONDITION_START };
+          p.cargo = p.cargo ?? [];
+          p.cargoChecks = p.cargoChecks ?? [];
+          p.crossings = p.crossings ?? {};
+          p.patrols = p.patrols ?? {};
+          if (p.labUnlocked?.includes('dye') && !p.labUnlocked.includes('wash')) p.labUnlocked = [...p.labUnlocked, 'wash'];
+        }
         if (version < 17) {
           p.arranVisit = p.arranVisit ?? { visitCount: 0 };
           // anyone who already returned a book has the conservator's letter waiting

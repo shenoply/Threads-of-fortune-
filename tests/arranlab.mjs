@@ -49,7 +49,10 @@ try {
   console.log('fibre locked:', await has(`arran-locked-fibre-${worn}`), '| rub open:', await has(`arran-test-fastness-${worn}`));
   const direct = await p.evaluate(async (uid) => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranExamine(uid, 'fibre'); }, worn);
   console.log('store refuses locked fibre:', JSON.stringify(direct));
-  await p.click('[data-testid=arran-rug-kilim-t]'); await p.click('[data-testid=arran-test-fastness-kilim-t]'); await p.waitForSelector('[data-testid=arran-finding]');
+  await p.click('[data-testid=arran-rug-kilim-t]'); await p.click('[data-testid=arran-test-fastness-kilim-t]'); await p.waitForSelector('[data-testid=arran-confirm]');
+  console.log('confirm card before paying:', (await p.locator('[data-testid=arran-confirm]').innerText()).replace(/\n+/g, ' | ').slice(0, 260));
+  await p.screenshot({ path: `${S}/lab-${tag}-confirm.png` });
+  await p.click('[data-testid=arran-confirm-pay]'); await p.waitForSelector('[data-testid=arran-finding]');
   await p.screenshot({ path: `${S}/lab-${tag}-finding.png` });
   console.log('kilim rub:', await p.locator('[data-testid=arran-verdict]').textContent(), '| tag lit:', await p.locator('.arran-tag.is-on').textContent());
   await p.click('[data-testid=arran-back]');
@@ -89,13 +92,13 @@ try {
   const dup = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('fibres'); });
   console.log('duplicate return:', JSON.stringify(dup), '| unlocked still', JSON.stringify((await st()).labUnlocked));
   await p.click('[data-testid=arran-tab-test]'); await p.click(`[data-testid=arran-rug-${worn}]`);
-  await p.click(`[data-testid=arran-test-fibre-${worn}]`); await p.waitForSelector('[data-testid=arran-finding]');
+  await p.click(`[data-testid=arran-test-fibre-${worn}]`); await p.click('[data-testid=arran-confirm-pay]'); await p.waitForSelector('[data-testid=arran-finding]');
   const f1 = await st();
   console.log('fibre now works:', await p.locator('[data-testid=arran-verdict]').textContent(), '| cash', r1.cash, '->', f1.cash);
   await p.click('[data-testid=arran-back]');
-  await p.click(`[data-testid=arran-rug-${exc}]`); await p.click(`[data-testid=arran-test-fibre-${exc}]`); await p.waitForSelector('[data-testid=arran-ask]');
-  console.log('asks before cutting, nothing charged:', (await st()).cash === f1.cash);
-  await p.click('[data-testid=arran-cut-no]');
+  await p.click(`[data-testid=arran-rug-${exc}]`); await p.click(`[data-testid=arran-test-fibre-${exc}]`); await p.waitForSelector('[data-testid=arran-confirm]');
+  console.log('cut shown before paying:', await p.locator('[data-testid=arran-confirm-uses]').textContent(), '| button', await p.locator('[data-testid=arran-confirm-pay]').textContent(), '| nothing charged:', (await st()).cash === f1.cash);
+  await p.click('[data-testid=arran-confirm-cancel]');
   // the price book
   await p.click('[data-testid=arran-catalogue-open]'); await p.waitForSelector('[data-testid=arran-catalogue]'); await p.waitForTimeout(400);
   await p.screenshot({ path: `${S}/lab-${tag}-cat-exam.png` });

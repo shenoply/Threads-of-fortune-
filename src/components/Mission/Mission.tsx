@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { GIVER_VOICE } from '../../data/jobs';
 import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase } from '../../game/systems/arranBooks';
 import { dateFor } from '../../game/economy/economy';
+import { settlementById } from '../../game/systems/world';
+import { CARGO_JOBS, midSentence } from '../../game/systems/fieldwork';
 import { voice, quotes } from '../../game/audio/voice';
 
 /** The active main mission, pinned under the top bar. */
@@ -152,18 +154,26 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
  * Side tasks pinned under the objective, one compact line each: Arran's book errand and an open order
  * for Cohen. The main objective stays in charge; these only keep a promise in sight.
  */
-export function SideTasks({ onGo }: { onGo: (target: string) => void }) {
+export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only?: 'arran' }) {
   const g = useGame();
   const items: { id: string; text: string; target?: string }[] = [];
   for (const id of BOOK_ORDER) {
     const ph = bookPhase(g.arranBooks, id);
-    const b = BOOKS[id];
-    const town = LIBRARIES[b.library].town;
-    if (ph === 'requested' || ph === 'located') items.push({ id: `book-${id}`, text: `Arran's errand: find ${b.author.split(',')[0].split(' and ')[0]}'s manual in ${town === 'cairo' ? 'Cairo' : 'Alexandria'}`, target: town });
-    else if (ph === 'copy_acquired') items.push({ id: `book-${id}`, text: `Arran's errand: take the copy back to him in Giza`, target: 'giza' });
+    const lib = LIBRARIES[BOOKS[id].library];
+    const where = `${settlementById(lib.town).name} ${lib.name.replace(/^The /, '')}`;
+    if (ph === 'requested' || ph === 'located') items.push({ id: `book-${id}`, text: `Arran's book · ${where}`, target: lib.town });
+    else if (ph === 'copy_acquired') items.push({ id: `book-${id}`, text: id === 'fibres' || id === 'dyes' ? 'Take the manual to Arran' : 'Take the copy to Arran', target: 'giza' });
+  }
+  if (g.arranVisit?.permitStage === 'letter') items.push({ id: 'permit', text: 'Arran\'s letter · Hamza Effendi, museum store, Cairo', target: 'cairo' });
+  for (const c of only === 'arran' ? [] : g.cargo ?? []) {
+    const job = CARGO_JOBS.find((j) => j.id === c.jobId);
+    if (!job) continue;
+    items.push(c.collected
+      ? { id: `cargo-${c.id}`, text: `Cargo · ${c.label} to ${settlementById(c.to).name}${c.paperwork === 'none' && c.cls !== 'ordinary' ? ' (no papers)' : ''}`, target: c.to }
+      : { id: `cargo-${c.id}`, text: `Cargo · collect ${midSentence(c.label)} in ${settlementById(job.from).name}`, target: job.from });
   }
   const o = g.cohen?.order;
-  if (o?.status === 'accepted') items.push({ id: 'cohen', text: `Cohen's order: two corridor rugs by ${dateFor(o.dueDay).short}`, target: 'giza' });
+  if (only !== 'arran' && o?.status === 'accepted') items.push({ id: 'cohen', text: `Cohen's order: two corridor rugs by ${dateFor(o.dueDay).short}`, target: 'giza' });
   if (!items.length) return null;
   return (
     <div className="side-tasks" data-testid="side-tasks">

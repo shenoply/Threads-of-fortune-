@@ -11,6 +11,8 @@ import { ArranCatalogue } from './ArranCatalogue';
 import { ArranSubtitle, MummyStudy, labPortraitFor } from './ArranVoiceUI';
 import { playArranVoice, preloadArranVoice, stopArranVoice, useSubtitle } from '../../game/audio/arranVoice';
 import { ACTIVITY_SCENE, mummyPermitted, type ArranActivity } from '../../game/systems/arranVisits';
+import { RoadPanel } from './RoadPanel';
+import { SideTasks } from '../Mission/Mission';
 import './ArranLab.css';
 
 /**
@@ -20,7 +22,7 @@ import './ArranLab.css';
  * profile (src/game/systems/arranLab.ts); books he asks for unlock his tests (arranBooks.ts).
  */
 type Spot = 'microscope' | 'dye' | 'balance' | 'notebook' | 'board';
-type Tab = 'test' | 'notebook' | 'board';
+type Tab = 'test' | 'notebook' | 'road' | 'board';
 type Topic = 'fibre' | 'indigo' | 'mineral';
 
 // positions are percentages of the 1536×1024 room painting (13-lab-room)
@@ -31,14 +33,25 @@ const SPOTS: Record<Spot, { label: string; x: number; y: number; fx: number; fy:
   notebook: { label: 'Notebook', x: 27.5, y: 43, fx: 30, fy: 40 },
   board: { label: 'Board', x: 75.5, y: 36, fx: 75.5, fy: 20 },
 };
-const SERVICE_SPOT: Record<LabService, Spot> = { fibre: 'microscope', dye: 'dye', fastness: 'dye', metal: 'balance' };
-const TESTS: LabService[] = ['fibre', 'dye', 'fastness'];
+const SERVICE_SPOT: Record<LabService, Spot> = { fibre: 'microscope', dye: 'dye', fastness: 'dye', wash: 'dye', metal: 'balance', provisions: 'notebook', cargo: 'balance' };
+const TESTS: LabService[] = ['fibre', 'dye', 'fastness', 'wash'];
 const WHAT: Record<LabService, string> = {
   fibre: 'What it is made of: wool, cotton or silk',
   dye: 'Natural or synthetic dyes, against the stated age',
-  fastness: 'Will a colour run if the rug is washed?',
+  fastness: 'Does colour come off on a damp cloth? Nothing is cut.',
+  wash: 'Does the colour run when a sample is washed?',
   metal: '',
+  provisions: '',
+  cargo: '',
 };
+// where Arran stands in the room painting (percent of the 1536×1024 room): behind the bench, cut at its top edge
+const FIGURE: Record<'microscope' | 'dye' | 'desk', { x: number; caption: string }> = {
+  microscope: { x: 47, caption: 'At the microscope' },
+  dye: { x: 70, caption: 'At the dye bench' },
+  desk: { x: 30, caption: 'At his books' },
+};
+const BENCH_TOP = 45.5;
+const FIG_H = 36;
 
 const TOPICS: Record<Topic, { title: string; formula: string; explanation: string }> = {
   fibre: {
@@ -71,6 +84,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const [px, setPx] = useState({ x: 0, y: 0 });
   const [view, setView] = useState<LabFinding | null>(null);
   const [ask, setAsk] = useState<{ uid: string; service: LabService } | null>(null);
+  const [confirm, setConfirm] = useState<{ uid: string; service: LabService } | null>(null);
   const [msg, setMsg] = useState('');
   const [speech, setSpeech] = useState('');
   const [read, setRead] = useState<BookId | null>(null);
@@ -111,7 +125,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const oy = Math.min(0, Math.max(box.h - H, box.h * 0.45 - (focus.y / 100) * H));
   const world: CSSProperties = { width: W, height: H, transform: `translate(${ox + px.x * 8}px, ${oy + px.y * 5}px)`, ['--ww' as string]: `${W}px` };
 
-  const goTab = (t: Tab) => { setTab(t); setView(null); setAsk(null); setMsg(''); setSpot(t === 'board' ? 'board' : t === 'notebook' ? 'notebook' : null); audio.sfx('tap'); if (t === 'board' && tab !== 'board') playArranVoice('lab'); };
+  const goTab = (t: Tab) => { setTab(t); setView(null); setAsk(null); setConfirm(null); setMsg(''); setSpot(t === 'board' ? 'board' : t === 'notebook' ? 'notebook' : null); audio.sfx('tap'); if (t === 'board' && tab !== 'board') playArranVoice('lab'); };
   const rugs = g.inventory.filter((i) => RUGS[i.typeId]);
   const rug = rugs.find((i) => i.uid === rugId) ?? null;
   // step inside: find him at today's activity; he greets you (this tap is the user gesture browsers want)
@@ -134,6 +148,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const run = (uid: string, service: LabService, cut = false) => {
     setSpot(SERVICE_SPOT[service]);
     const r = useGame.getState().arranExamine(uid, service, cut);
+    setConfirm(null);
     if (r.ok) { setView(r.finding); setAsk(null); setMsg(''); playArranVoice(r.finding.verdict === 'inconsistent' ? 'discovery' : 'reaction'); return; }
     if (r.needsCut) { setAsk({ uid, service }); setMsg(''); playArranVoice('warning'); return; }
     setMsg(r.message);
@@ -166,8 +181,12 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
     );
   }
 
-  const portrait = said?.npcId === 'arran' ? labPortraitFor(said.mood) : tab === 'test' && (view || ask || rug) ? '11-lab-inspect' : activity === 'microscope' && tab === 'test' ? '11-lab-inspect' : '12-lab-explain';
   const askItem = ask && g.inventory.find((i) => i.uid === ask.uid);
+  // Arran in the room: where he stands follows the instrument in use, else today's activity
+  const place: keyof typeof FIGURE = spot === 'microscope' || spot === 'balance' ? 'microscope' : spot === 'dye' ? 'dye' : spot === 'notebook' ? 'desk'
+    : activity === 'dye_notes' ? 'dye' : activity === 'books' || activity === 'provisions' ? 'desk' : 'microscope';
+  const pose = said?.npcId === 'arran' ? labPortraitFor(said.mood) : (tab === 'test' && (view || ask || confirm || rug)) || place === 'microscope' ? '11-lab-inspect' : '12-lab-explain';
+  const figCaption = FIGURE[place].caption;
   const errands = BOOK_ORDER.filter((id) => bookPhase(g.arranBooks, id) !== 'unknown' && bookPhase(g.arranBooks, id) !== 'returned');
 
   // one test row: done → open the result; locked → the book he needs; otherwise run it
@@ -189,7 +208,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         ) : locked ? (
           <button type="button" className="btn" onClick={() => goTab('notebook')} data-testid={`arran-locked-${sv}-${i.uid}`}>The book</button>
         ) : (
-          <button type="button" className="btn primary" onClick={() => run(i.uid, sv)} data-testid={`arran-test-${sv}-${i.uid}`}>{fmt(svc.price)} · {hours(svc.minutes)}</button>
+          <button type="button" className="btn primary" onClick={() => { setConfirm({ uid: i.uid, service: sv }); setSpot(SERVICE_SPOT[sv]); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-test-${sv}-${i.uid}`}>{fmt(svc.price)} · {hours(svc.minutes)}</button>
         )}
       </div>
     );
@@ -219,6 +238,10 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
             <b>{TOPICS[topic].title}</b>
             <span>{TOPICS[topic].formula}</span>
           </div>
+          <button type="button" className="arran-figure" style={{ left: `${FIGURE[place].x}%`, top: `${BENCH_TOP - FIG_H * 0.6}%`, height: `${FIG_H}%` }} onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk" data-place={place} data-pose={pose}>
+            <img src={`${BASE}${pose}.webp`} alt="Arran Embleton in a laboratory coat, behind the bench" draggable={false} />
+            <span className="arran-figure__cap">{figCaption}</span>
+          </button>
           {(['microscope', 'dye', 'balance', 'notebook'] as Spot[]).map((id) => (
             <span key={id} className={`arran-tag ${spot === id ? 'is-on' : ''}`} style={{ left: `${SPOTS[id].x}%`, top: `${SPOTS[id].y}%` }} aria-hidden="true" data-testid={`arran-tag-${id}`}>{SPOTS[id].label}</span>
           ))}
@@ -233,8 +256,9 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
           {activity === 'mummy_linen' || (g.arranVisit?.mummyIntroductionSeen && mummyPermitted(g.arranVisit, g.day)) ? <button type="button" className="linklike" onClick={() => setMummy(true)} data-testid="arran-mummy-open">{g.arranVisit?.mummyIntroductionSeen ? 'The linen study' : 'Join them'}</button> : null}
         </p>
       )}
+      <SideTasks only="arran" onGo={() => goTab('notebook')} />
       <nav className="arran-lab__tabs" role="tablist" aria-label="In the laboratory">
-        {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['board', 'The board']] as [Tab, string][]).map(([id, label]) => (
+        {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['road', 'Road'], ['board', 'Board']] as [Tab, string][]).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
         ))}
         <button type="button" className="arran-lab__tab arran-lab__tab--book" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">
@@ -243,14 +267,11 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
       </nav>
 
       <div className="arran-lab__panel" aria-live="polite" data-testid="arran-panel">
-        <button type="button" className="arran-lab__talk" onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk">
-          <img className="arran-lab__portrait" src={`${BASE}${portrait}.webp`} alt="Arran Embleton in a plain laboratory coat" draggable={false} />
-        </button>
         <div className="arran-lab__card">
           {msg && <p className="arran-msg" data-testid="arran-msg">{msg}</p>}
 
           {/* ---- test a rug: pick a rug, then a test ---- */}
-          {tab === 'test' && !view && !ask && (
+          {tab === 'test' && !view && !ask && !confirm && (
             <>
               {!rugs.length && <p>"Bring me a rug and I will see what it will tell us." You have no rugs.</p>}
               {!rug && (
@@ -285,6 +306,33 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
               })()}
             </>
           )}
+
+          {confirm && (() => {
+            const it = g.inventory.find((i) => i.uid === confirm.uid);
+            if (!it) return null;
+            const svc = LAB_SERVICES[confirm.service];
+            const cut = svc.needsThread && !hasLooseThread(it);
+            const short = g.cash < svc.price;
+            const t = g.world.hour + svc.minutes / 60;
+            const lateOk = t <= LAB_HOURS[1];
+            return (
+              <div className="arran-confirm" data-testid="arran-confirm">
+                <h2>{svc.label}: {RUGS[it.typeId]!.name}</h2>
+                <p className="arran-confirm__q">{svc.question}</p>
+                <dl>
+                  <dt>Cost</dt><dd data-testid="arran-confirm-cost">{fmt(svc.price)} <small>(you have {fmt(g.cash)})</small></dd>
+                  <dt>Time</dt><dd>{hours(svc.minutes)}, done about {String(Math.floor(t)).padStart(2, '0')}:{String(Math.floor((t % 1) * 60)).padStart(2, '0')}</dd>
+                  <dt>Uses up</dt><dd data-testid="arran-confirm-uses">{cut ? `No loose thread: three knots cut from the back. The rug goes from ${it.condition} to ${conditionAfterCut(it.condition)}.` : svc.consumes}</dd>
+                  <dt>Can tell you</dt><dd>{svc.can}</dd>
+                  <dt>Cannot tell you</dt><dd>{svc.cannot}</dd>
+                </dl>
+                <div className="arran-btns">
+                  <button type="button" className="btn primary" disabled={short || !lateOk} onClick={() => run(confirm.uid, confirm.service, cut)} data-testid="arran-confirm-pay">{short ? 'Not enough money' : !lateOk ? 'Too late today' : cut ? `Cut and pay ${fmt(svc.price)}` : `Pay ${fmt(svc.price)}`}</button>
+                  <button type="button" className="btn" onClick={() => { setConfirm(null); setSpot(null); }} data-testid="arran-confirm-cancel">Not now</button>
+                </div>
+              </div>
+            );
+          })()}
 
           {ask && askItem && (
             <div data-testid="arran-ask">
@@ -341,6 +389,16 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
                   </div>
                 );
               })}
+              {g.arranVisit?.permitStage === 'letter' && <p className="arran-msg" data-testid="arran-letter-note">You carry Arran's letter to Hamza Effendi at the museum store in Cairo. Nothing is studied until he agrees.</p>}
+              {g.arranVisit?.mummyIntroductionSeen && (
+                <>
+                  <div className="section-label">STUDIES</div>
+                  <button type="button" className="arran-row" onClick={() => setMummy(true)} data-testid="arran-mummy-replay">
+                    <b>A linen thread from the museum store</b>
+                    <small>With Hamza Effendi's permission · one detached thread · replay</small>
+                  </button>
+                </>
+              )}
               <div className="section-label">RESULTS</div>
               {!findings.length && <p className="dim">No results yet.</p>}
               <ul className="arran-list">
@@ -358,6 +416,8 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
               </ul>
             </>
           )}
+
+          {tab === 'road' && !view && <RoadPanel onBook={() => goTab('notebook')} onSpot={(sp) => setSpot(sp)} />}
 
           {/* ---- the board ---- */}
           {tab === 'board' && (
@@ -377,7 +437,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
       {catalogue && (
         <ArranCatalogue
           onClose={() => setCatalogue(false)}
-          onService={(sv) => { setCatalogue(false); setTab('test'); setView(null); setAsk(null); setSpot(SERVICE_SPOT[sv]); setMsg(`${LAB_SERVICES[sv].label}: choose a rug below.`); }}
+          onService={(sv) => { setCatalogue(false); if (sv === 'provisions' || sv === 'cargo') { goTab('road'); return; } setTab('test'); setView(null); setAsk(null); setSpot(SERVICE_SPOT[sv]); setMsg(`${LAB_SERVICES[sv].label}: choose a rug below.`); }}
         />
       )}
     </section>

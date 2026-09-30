@@ -58,9 +58,9 @@ export function cohenChecks(item: RugItem, findings: LabFinding[] | undefined, m
   const rub = (findings ?? []).find((f) => f.id === `${item.uid}:fastness`);
   const truth = rubTruth(item.typeId);
   const colour: Check = rub
-    ? { id: 'colour', ok: truth !== 'bleeds', text: truth === 'bleeds' ? "Arran's rub test: the red runs." : "Arran's rub test: the colours held." }
+    ? { id: 'colour', ok: truth !== 'transfers', text: truth === 'transfers' ? "Arran's rub test: colour came off on the cloth." : "Arran's rub test: no colour came off on the cloth." }
     : manual
-      ? { id: 'colour', ok: manual === 'fast', text: manual === 'fast' ? 'Your own rub: the cloth looks clean. Not certain.' : 'Your own rub: the cloth came away pink.' }
+      ? { id: 'colour', ok: manual === 'fast', text: manual === 'fast' ? 'Your own rub: the cloth looks clean. Not certain.' : 'Your own rub: colour came off on the cloth.' }
       : { id: 'colour', ok: null, text: 'Colour not tested yet.' };
   return [
     { id: 'size', ok: size, text: size ? `${t.size}: fits a corridor.` : `${t.size}: ${long > 240 ? 'too long' : short < 100 ? 'too narrow' : 'too small'} for the corridor.` },
@@ -71,9 +71,9 @@ export function cohenChecks(item: RugItem, findings: LabFinding[] | undefined, m
 }
 export const passes = (c: Check[]) => c.length > 0 && c.every((x) => x.ok === true);
 
-/** A hand rub is less reliable than Arran's: a colour that runs is caught about six times in ten. Fixed per rug. */
+/** A hand rub is less reliable than Arran's: colour that comes off is noticed about six times in ten. Fixed per rug. */
 export function manualRub(item: RugItem): 'fast' | 'runs' {
-  if (rubTruth(item.typeId) !== 'bleeds') return 'fast';
+  if (rubTruth(item.typeId) !== 'transfers') return 'fast';
   let h = 0;
   for (const c of item.uid) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return h % 10 < 6 ? 'runs' : 'fast';

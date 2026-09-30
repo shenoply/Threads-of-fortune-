@@ -1,4 +1,5 @@
 import { venueFor } from '../../data/venues';
+import { PassCard, needsPass } from './PassCard';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
@@ -76,6 +77,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [alt, setAlt] = useState<Plan | null>(null);
   const [altFerry, setAltFerry] = useState(false);
   const [short, setShort] = useState<{ plan: Plan; need: number; price: number } | null>(null);
+  const [pass, setPass] = useState<{ plan: Plan; key: string } | null>(null);
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
   const [moving, setMoving] = useState<null | { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' }>(null);
@@ -243,9 +245,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     }
     return false;
   };
-  const setOff = (p: Plan) => {
+  const setOff = (p: Plan, crossed = false) => {
     setShort(null);
     if (!p.path) return;
+    // the Sinai passes: choose how to cross, with time, cost and risk in view, before the caravan moves
+    if (!crossed && needsPass(w.at ?? undefined, p.settlement?.id)) { setPlan(null); setPass({ plan: p, key: `${w.at ?? 'road'}>${p.settlement!.id}:${useGame.getState().day}` }); return; }
     { const h = useGame.getState().world.hour, d = useGame.getState().day; if (h >= 20) nightAsked.current = d; else if (h < 5) nightAsked.current = d - 1; }
     setNightfall(false);
     follow.current = true;
@@ -291,6 +295,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     }
     if (!plan.path) return;
     if (!train && offerFoodShort(plan)) return;
+    if (!train) { setOff(plan); return; } // walking goes through setOff, which asks about the Sinai passes
     follow.current = true;
     setMoving({ path: plan.path, done: 0, train, dest: plan.settlement?.id });
     setPlan(null);
@@ -642,6 +647,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
           </div>
         ) : null}
+        {pass && !moving && <PassCard tripKey={pass.key} onCancel={() => setPass(null)} onGo={() => { const p = pass.plan; setPass(null); setOff(p, true); }} />}
         {short && !moving && (
           <div className="wc-col" data-testid="food-short">
             <div className="wc-main">

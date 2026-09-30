@@ -1,11 +1,14 @@
-// Arran Embleton's textile laboratory in Giza: fibre under the microscope, dye tests, a colour-fastness
-// rub, and the balance for metal antiques. Every result comes from the rug's hidden lab profile below,
+// Arran Embleton's textile laboratory in Giza: fibre under the microscope, dye tests, a colour transfer
+// rub (does colour come off on a damp cloth?), a small-sample wash, and the balance for metal antiques.
+// A rub never speaks for a wash: they are separate tests with separate claims. Every result comes from the rug's hidden lab profile below,
 // never from a dice roll; a rug with no profile, or a test that cannot answer the question, is
 // "inconclusive". No test here dates a rug or proves where it was woven.
 import type { Condition, RugItem } from '../types';
 import { RUGS } from '../../data/rugs';
 
-export type LabService = 'fibre' | 'dye' | 'fastness' | 'metal';
+/** 'fastness' is the colour transfer rub (kept as the saved id so old results stay valid); 'wash' is the sample wash */
+export type LabService = 'fibre' | 'dye' | 'fastness' | 'wash' | 'metal' | 'provisions' | 'cargo';
+export type LabProcedure = 'microscopy' | 'dyeComparison' | 'dampRub' | 'sampleWash' | 'balance';
 export type LabVerdict = 'consistent' | 'inconsistent' | 'inconclusive';
 export interface LabFinding {
   /** `${subjectId}:${service}` */
@@ -21,16 +24,40 @@ export interface LabFinding {
   day: number;
   /** a sample was cut from the back with the player's consent */
   cut?: boolean;
+  procedure?: LabProcedure;
 }
 
 /** Arran keeps his door open from seven in the morning to eight at night */
 export const LAB_HOURS: [number, number] = [7, 20];
 
-export const LAB_SERVICES: Record<LabService, { label: string; price: number; minutes: number; station: 'microscope' | 'dye' | 'balance'; needsThread: boolean; blurb: string }> = {
-  fibre: { label: 'Fibre under the microscope', price: 8, minutes: 45, station: 'microscope', needsThread: true, blurb: 'One loose yarn, teased apart on a slide: wool scales, cotton twists, the smooth rod of silk.' },
-  dye: { label: 'Dye test', price: 18, minutes: 120, station: 'dye', needsThread: true, blurb: 'A few fibres boiled and spotted on porcelain, compared with his dye cards.' },
-  fastness: { label: 'Colour-fastness rub', price: 6, minutes: 30, station: 'dye', needsThread: false, blurb: 'A damp white cloth pressed to the back of the rug. Nothing is cut.' },
-  metal: { label: 'Density on the balance', price: 12, minutes: 40, station: 'balance', needsThread: false, blurb: 'Weigh an object in air and in water to estimate its density.' },
+export interface ServiceDef {
+  label: string; price: number; minutes: number; station: 'microscope' | 'dye' | 'balance' | 'notebook'; needsThread: boolean;
+  blurb: string; question: string;
+  /** material used up, shown before you pay */
+  consumes: string;
+  can: string; cannot: string;
+}
+export const LAB_SERVICES: Record<LabService, ServiceDef> = {
+  fibre: { label: 'Fibre under the microscope', price: 8, minutes: 45, station: 'microscope', needsThread: true, question: 'What is it made of: wool, cotton or silk?',
+    blurb: 'One loose yarn, teased apart on a slide: wool scales, cotton twists, the smooth rod of silk.', consumes: 'One loose yarn, about a thumb long.',
+    can: 'Which fibres the pile and foundation are made of, and whether that matches how the rug is sold.', cannot: 'When or where the rug was woven.' },
+  dye: { label: 'Dye test', price: 18, minutes: 120, station: 'dye', needsThread: true, question: 'Natural or synthetic dyes, against the stated age?',
+    blurb: 'A few fibres boiled and spotted on porcelain, compared with his dye cards.', consumes: 'A few loose fibres of each main colour.',
+    can: 'Whether the colours are natural or synthetic, and whether that fits the stated age.', cannot: 'A year, or where the rug came from.' },
+  fastness: { label: 'Colour transfer rub', price: 6, minutes: 30, station: 'dye', needsThread: false, question: 'Does colour transfer when rubbed with a clean cloth?',
+    blurb: 'A damp white cloth rubbed firmly on the back of the rug and examined in daylight. Nothing is cut.', consumes: 'Nothing. The rug is untouched.',
+    can: 'Whether colour comes off on a damp cloth: a guide for floors where it will be rubbed.', cannot: 'How the rug will behave in a wash, hot water or strong soap.' },
+  wash: { label: 'Sample wash test', price: 14, minutes: 180, station: 'dye', needsThread: true, question: 'Does the colour run when a sample is washed?',
+    blurb: 'A few loose fibres washed in warm soapy water in a porcelain dish beside undyed white wool, then dried and compared.', consumes: 'A few loose fibres of each main colour.',
+    can: 'Whether the dyes run in a warm soap wash of a small sample.', cannot: 'Exactly how the whole rug will behave in a laundry, or in hot water and harsh soda.' },
+  metal: { label: 'Density on the balance', price: 12, minutes: 40, station: 'balance', needsThread: false, question: 'Is it the metal it is sold as?',
+    blurb: 'Weigh an object in air and in water to estimate its density.', consumes: 'Nothing.', can: 'An estimate of density.', cannot: 'Plating, or what is inside a hollow piece.' },
+  provisions: { label: 'Provisions assessment', price: 10, minutes: 60, station: 'notebook', needsThread: false, question: 'Will the caravan\'s food last the road, and how tired are you?',
+    blurb: 'Arran goes through your stores, water skins and the state of your men with McCarrison open beside him.', consumes: 'Nothing.',
+    can: 'How many travel days your food covers, what to add, and how fatigue is building.', cannot: 'Cure anything today: food and rest work over days.' },
+  cargo: { label: 'Cargo hazard check', price: 12, minutes: 60, station: 'notebook', needsThread: false, question: 'Is this cargo safe to carry, and what paperwork does it need?',
+    blurb: 'Arran reads the labels, the manifest and the packing, and says what the crate is and who should handle it.', consumes: 'Nothing. He does not open sealed cases.',
+    can: 'What kind of cargo it is, whether the packing is sound, and which licence or specialist it needs.', cannot: 'Make it legal, or stand in for a licensed shot-firer or pharmacist.' },
 };
 
 // ---- hidden lab profiles: what the rug is really made of ----
@@ -38,11 +65,12 @@ type Pile = 'wool' | 'wool-silk' | 'wool-mercerised';
 type Foundation = 'wool' | 'cotton' | 'cotton-silk';
 type Dyes = 'natural' | 'mixed' | 'synthetic';
 type Fast = 'fast' | 'bleeds';
-interface Profile { pile: Pile; foundation: Foundation; dyes: Dyes; fast: Fast; dyeNote: string }
+/** fast: behaviour in a sample wash; rub: whether colour transfers on a damp cloth (defaults: follows fast only for the worst dyes) */
+interface Profile { pile: Pile; foundation: Foundation; dyes: Dyes; fast: Fast; dyeNote: string; rub?: 'clean' | 'transfers' }
 
 const PROFILES: Record<string, Profile> = {
   'nile-reed': { pile: 'wool', foundation: 'wool', dyes: 'mixed', fast: 'fast', dyeNote: 'madder red and indigo, with a sand colour from an aniline yellow' },
-  'village-kilim-canal': { pile: 'wool', foundation: 'wool', dyes: 'mixed', fast: 'bleeds', dyeNote: 'indigo and madder, but the bright red bands are an acid synthetic' },
+  'village-kilim-canal': { pile: 'wool', foundation: 'wool', dyes: 'mixed', fast: 'bleeds', rub: 'transfers', dyeNote: 'indigo and madder, but the bright red bands are an acid synthetic' },
   'delta-house': { pile: 'wool', foundation: 'wool', dyes: 'synthetic', fast: 'fast', dyeNote: 'synthetic alizarin red and a synthetic indigo, well fixed' },
   'fayoum-hearth': { pile: 'wool', foundation: 'wool', dyes: 'natural', fast: 'fast', dyeNote: 'madder root red and a walnut-husk brown' },
   'red-medina': { pile: 'wool', foundation: 'wool', dyes: 'mixed', fast: 'fast', dyeNote: 'madder red with a synthetic ivory-bleach in the border' },
@@ -111,7 +139,7 @@ export function resolveFinding(item: RugItem, service: LabService, day: number, 
     if (claimsSilk && p.pile !== 'wool-silk') verdict = 'inconsistent';
     if (saysCotton && p.foundation === 'wool') verdict = 'inconsistent';
     if (!saysCotton && p.foundation !== 'wool') evidence.push(`The description "${t.material}" speaks of the pile; the cotton foundation is normal for this weave.`);
-    return { ...base, verdict, confidence: 'strong', claim: `${t.material}${claimsSilk ? ' (sold with silk highlights)' : ''}`, evidence, limitations };
+    return { ...base, procedure: 'microscopy', verdict, confidence: 'strong', claim: `${t.material}${claimsSilk ? ' (sold with silk highlights)' : ''}`, evidence, limitations };
   }
   if (service === 'dye') {
     const claimsOld = OLD.test(t.age);
@@ -125,20 +153,33 @@ export function resolveFinding(item: RugItem, service: LabService, day: number, 
     let confidence: LabFinding['confidence'] = 'moderate';
     if (claimsOld && p.dyes !== 'natural') { verdict = 'inconsistent'; evidence.push(`Such a colour fits poorly with "${t.age}". It points to the early twentieth century.`); }
     else if (!claimsOld && p.dyes === 'natural') { confidence = 'tentative'; evidence.push('All natural dyes. That fits the stated age, but it does not prove it.'); }
-    return { ...base, verdict, confidence, claim: t.age, evidence, limitations };
+    return { ...base, procedure: 'dyeComparison', verdict, confidence, claim: t.age, evidence, limitations };
   }
-  // fastness: a damp cloth on the back
-  const claimsWashable = t.traits.includes('washable');
-  const bleeds = p.fast === 'bleeds';
+  if (service === 'wash') {
+    const claimsWashable = t.traits.includes('washable');
+    const runs = p.fast === 'bleeds';
+    return {
+      ...base, procedure: 'sampleWash',
+      verdict: runs ? (claimsWashable ? 'inconsistent' : 'consistent') : 'consistent',
+      confidence: 'moderate',
+      claim: claimsWashable ? 'Sold as washable' : 'No washing claim made',
+      evidence: [runs ? 'The wash water turned pink and the white wool beside the sample was stained. A colour ran.' : 'The wash water stayed clear and the white wool beside the sample was unstained.'],
+      limitations: ['A small sample in warm soapy water. It does not show exactly how the whole rug will behave in a laundry, hot water or harsh soda.'],
+    };
+  }
+  // the colour transfer rub: a damp white cloth on the back. It speaks only of rubbing, never of washing.
+  const transfers = rubResult(p) === 'transfers';
   return {
-    ...base,
-    verdict: bleeds ? (claimsWashable ? 'inconsistent' : 'consistent') : 'consistent',
+    ...base, procedure: 'dampRub',
+    verdict: transfers ? 'inconsistent' : 'consistent',
     confidence: 'strong',
-    claim: claimsWashable ? 'Sold as washable' : 'Colours hold in a cold wash',
-    evidence: [bleeds ? 'The cloth came away pink. The red will run if the rug is washed.' : 'The cloth stayed white. The colours held.'],
-    limitations: bleeds ? ['Dry cleaning only. Do not let a buyer wash it in the courtyard.'] : ['A cold rub only. Hot water or strong soap can still move a dye.'],
+    claim: 'Colour does not transfer when rubbed',
+    evidence: [transfers ? 'Colour transferred to the damp test cloth.' : 'No visible colour transferred to the damp test cloth.'],
+    limitations: ['This rubbing test does not establish how the rug will behave in a wash, hot water, or strong soap.'],
   };
 }
+
+const rubResult = (p: Profile) => p.rub ?? 'clean';
 
 /** Why a rug cannot be examined right now, or '' if it can. */
 export function examineBlock(i: RugItem, day: number) {
@@ -148,7 +189,26 @@ export function examineBlock(i: RugItem, day: number) {
 
 export const verdictWord: Record<LabVerdict, string> = { consistent: 'Consistent', inconsistent: 'Inconsistent', inconclusive: 'Inconclusive' };
 
-/** Whether a rug's colour runs in a cold wash, from its lab profile; null if Arran has no card for it. */
-export function rubTruth(typeId: string): 'fast' | 'bleeds' | null {
+/** Whether colour transfers on a damp rub, from the rug's lab profile; null if Arran has no card for it. */
+export function rubTruth(typeId: string): 'clean' | 'transfers' | null {
+  const p = PROFILES[typeId];
+  return p ? rubResult(p) : null;
+}
+/** Whether a sample's colour runs in a warm wash; null if Arran has no card for it. */
+export function washTruth(typeId: string): 'fast' | 'bleeds' | null {
   return PROFILES[typeId]?.fast ?? null;
+}
+/** Rewrite an old rub result in the rub's own terms, keeping its day and id (no charge, no new test). */
+export function migrateRubFinding(f: LabFinding, typeId?: string): LabFinding {
+  if (f.service !== 'fastness') return f;
+  const p = typeId ? PROFILES[typeId] : undefined;
+  const transfers = p ? rubResult(p) === 'transfers' : /pink|ran|run/i.test(f.evidence.join(' '));
+  return {
+    ...f, procedure: 'dampRub',
+    verdict: p || f.verdict !== 'inconclusive' ? (transfers ? 'inconsistent' : 'consistent') : f.verdict,
+    confidence: 'strong',
+    claim: 'Colour does not transfer when rubbed',
+    evidence: [transfers ? 'Colour transferred to the damp test cloth.' : 'No visible colour transferred to the damp test cloth.'],
+    limitations: ['This rubbing test does not establish how the rug will behave in a wash, hot water, or strong soap.'],
+  };
 }

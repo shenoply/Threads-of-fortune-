@@ -319,8 +319,8 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   } else if (displayed.length && ctx.rng() < 0.35) {
     enc.saffronOn = displayed[Math.floor(ctx.rng() * displayed.length)];
   }
-  // Cohen says so at once if a rug you rubbed yourself ran in the hotel's first wash
-  if (buyerId === 'cohen' && ctx.cohen?.complaint) enc.log.push({ speaker: 'buyer', text: `The ${ctx.cohen.complaint} ran in the hotel's first wash. You rubbed it yourself, I know. Next time, ask Arran.`, mood: 'skeptical' });
+  // Cohen says so at once if a rug you passed on your own rub lost colour under the corridor's boots
+  if (buyerId === 'cohen' && ctx.cohen?.complaint) enc.log.push({ speaker: 'buyer', text: `The ${ctx.cohen.complaint} came off red on the porters' boots within a week. You rubbed it yourself, I know. Next time, ask Arran.`, mood: 'skeptical' });
   return enc;
 }
 

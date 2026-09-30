@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
-import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase, type BookId } from '../../game/systems/arranBooks';
+import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase, hasDuplicate, type BookId } from '../../game/systems/arranBooks';
 import './ArranLab.css';
 
 const ART = 'art/arran/';
@@ -97,7 +97,7 @@ export function LibraryView({ town, onClose }: { town: string; onClose: () => vo
                   <div className="arran-btns">
                     <button type="button" className="btn" onClick={() => setNote('"Borrow it? No, effendi. It is a reference book; it stays in this room. The copyist can write out what you need."')} data-testid={`library-borrow-${id}`}>Borrow it</button>
                     <button type="button" className="btn primary" disabled={!open} onClick={() => setNote(g.libraryAcquire(id, 'copy'))} data-testid={`library-copy-${id}`}>{b.copy.label} · {fmt(b.copy.price)} · {b.copy.minutes / 60} h</button>
-                    <button type="button" className="btn primary" disabled={!open} onClick={() => setNote(g.libraryAcquire(id, 'duplicate'))} data-testid={`library-dup-${id}`}>{b.duplicate.label} · {fmt(b.duplicate.price)}</button>
+                    {hasDuplicate(id) && <button type="button" className="btn primary" disabled={!open} onClick={() => setNote(g.libraryAcquire(id, 'duplicate'))} data-testid={`library-dup-${id}`}>{b.duplicate.label} · {fmt(b.duplicate.price)}</button>}
                   </div>
                 </>
               )}
