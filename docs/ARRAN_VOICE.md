@@ -1,6 +1,13 @@
 # Arran's voice: how it works
 
-**Status:** the voice system is built, but no voice clips are recorded yet. Every line shows as a subtitle. Nothing is cloned or generated until the person in the reference recording has given permission.
+**Status:** the voice system is built, but no voice clips are recorded yet. Every line shows as a subtitle.
+
+**Consent:** on 30 Sep 2026 the project owner confirmed that Arran approved cloning his voice for this game only. The cloned voice and its clips may be used for Arran's lines in Threads of Fortune and nothing else.
+
+**Reference audio:** `voice-src/arran_reference_0-40s.wav` is kept locally and git-ignored.
+- 40 s, 24 kHz, mono.
+- Continuous speech over a steady background hum, with speech about 10 dB above it. The clone script turns on ElevenLabs noise removal.
+- A cleaner 1–3 minute recording made in a quiet room would give a steadier voice.
 
 ## Pieces
 - `src/data/arranVoice.ts` holds each line's id, exact subtitle text, file path, mood and contexts, plus optional weight, cooldown, once and preload flags. It is plain data, so Node scripts can import it directly.
