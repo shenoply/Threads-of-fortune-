@@ -2089,3 +2089,7 @@ button.hud-chip { cursor: pointer; }
 .arrival-card h2{margin:2px 0 6px;font-family:var(--display);font-weight:500;color:var(--brass-hi)}
 .arrival-card p{font-size:16px;line-height:1.45;margin:0 0 12px}
 @media (max-width:600px){.arrival-card{flex-direction:column;justify-content:flex-end;gap:8px}.arrival-card img{height:52vh}.arrival-card>div{max-width:none}}
+/* side tasks pinned under the objective: one quiet line each */
+.side-tasks { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 4px 8px 0; }
+.side-task { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(201,150,72,0.4); background: rgba(38,25,14,0.9); color: var(--text); font-family: var(--body); font-size: 14px; cursor: pointer; text-align: left; }
+.side-task span { color: var(--brass-hi); font-size: 10px; }

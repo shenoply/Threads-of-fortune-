@@ -9,7 +9,9 @@ import { SELLER, NARRATOR, STAGE } from '../../data/dialogue';
 import { levelOf, hasPerk, type SkillId, type Manner } from '../../data/character';
 import { BUYER_MANNER, SELLER_MANNER, type MannerKind } from '../../data/manners';
 import { GROOMING } from '../../data/grooming';
-import { newUid } from '../economy/economy';
+import { newUid, dateFor } from '../economy/economy';
+import { cohenChecks, dueFor, manualRub, matches, passes, ORDER_PRICE_PER, type CohenState } from './cohen';
+import type { LabFinding } from './arranLab';
 
 export type ActionId =
   | 'ask_room' | 'ask_drawn' | 'ask_budget' | 'ask_decider' | 'small_talk' | 'tea'
@@ -18,7 +20,8 @@ export type ActionId =
   | 'obj_honest' | 'obj_facts' | 'obj_concede' | 'obj_another'
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
   | 'm_charm' | 'm_kind' | 'm_firm'
-  | 'nabil_package';
+  | 'nabil_package'
+  | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
 
 export interface ActionView {
   id: ActionId;
@@ -50,6 +53,12 @@ export interface Encounter {
   nabilPitches?: number;
   nabilAngry?: boolean;
   packageUid?: string;
+  /** Cohen: what you asked, the order you promised in this visit, rugs set aside, your own rub results */
+  cohenAsked?: string[];
+  cohenAccepted?: { dueDay: number; pricePer: number };
+  cohenOk?: string[];
+  cohenManual?: Record<string, 'fast' | 'runs'>;
+  cohenDelivered?: boolean;
   presentedFit: number;
   rugsShown: string[];
   argsUsed: string[];
@@ -107,6 +116,10 @@ export interface Ctx {
   tools?: string[];
   /** what Nabil al-Khatib remembers of you */
   nabil?: NabilMemory;
+  /** Cohen's standing orders and trust; the lab results he can rely on; today */
+  cohen?: CohenState;
+  findings?: LabFinding[];
+  day?: number;
 }
 
 const lvl = (ctx: Ctx, s: SkillId) => levelOf(ctx.skills?.[s] ?? 0);
@@ -190,7 +203,8 @@ export function quickPrice(enc: Encounter, item: RugItem) {
 }
 /** Whether a quick sale is on offer now. */
 export function canQuickSell(enc: Encounter | null | undefined, item: RugItem | undefined) {
-  if (!enc || !item || enc.outcome || enc.tutorial || enc.prompt) return false;
+  // Cohen buys on his order's terms only, never at a quick-sale price
+  if (!enc || !item || enc.outcome || enc.tutorial || enc.prompt || enc.buyerId === 'cohen') return false;
   return RUGS[item.typeId]?.tier === 1 && ['presentation', 'objection', 'bargaining'].includes(enc.stage);
 }
 
@@ -209,7 +223,7 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     stage: 'discovery',
     interest: clamp(b.interest + Math.min(10, Math.floor(ctx.reputation / 2)), 0, 100),
     patience: b.patience + 8 + tier.idx * 6 + (ctx.upgrades.includes('bazaar') ? 10 : 0),
-    trust: buyerId === 'nabil' && ctx.nabil ? clamp(ctx.nabil.trust, 0, 100) : clamp(b.trust + tier.idx * 8 + Math.round(ctx.rel.affinity / 5) + (ctx.upgrades.includes('mat') ? 6 : 0), 0, 100),
+    trust: buyerId === 'cohen' && ctx.cohen ? clamp(ctx.cohen.trust - (ctx.cohen.complaint ? 15 : 0), 0, 100) : buyerId === 'nabil' && ctx.nabil ? clamp(ctx.nabil.trust, 0, 100) : clamp(b.trust + tier.idx * 8 + Math.round(ctx.rel.affinity / 5) + (ctx.upgrades.includes('mat') ? 6 : 0), 0, 100),
     revealed: [],
     asked: [],
     presentedFit: 0,
@@ -305,6 +319,8 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   } else if (displayed.length && ctx.rng() < 0.35) {
     enc.saffronOn = displayed[Math.floor(ctx.rng() * displayed.length)];
   }
+  // Cohen says so at once if a rug you rubbed yourself ran in the hotel's first wash
+  if (buyerId === 'cohen' && ctx.cohen?.complaint) enc.log.push({ speaker: 'buyer', text: `The ${ctx.cohen.complaint} ran in the hotel's first wash. You rubbed it yourself, I know. Next time, ask Arran.`, mood: 'skeptical' });
   return enc;
 }
 
@@ -364,6 +380,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       { id: 'saffron_stay', label: 'Let her stay', sub: 'She is part of the display', icon: 'cat' },
     ];
   }
+  if (enc.buyerId === 'cohen') return cohenActions(enc, ctx);
   const out: ActionView[] = [];
   const has = (a: string) => enc.asked.includes(a);
   switch (enc.stage) {
@@ -545,6 +562,15 @@ export function presentRug(enc: Encounter, ctx: Ctx, uid: string): Effects {
   }
   // A badly matched rug provokes the objection immediately.
   // Nabil finds a repair, a thin history or wear on first inspection, from the rug's real record
+  if (enc.buyerId === 'cohen') {
+    const c = cohenChecks(item, ctx.findings, enc.cohenManual?.[item.uid]);
+    say(enc, 'narrator', `Cohen checks: ${c.map((x) => `${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'} ${x.text}`).join(' ')}`);
+    const bad = c.find((x) => x.ok === false);
+    if (bad) buyerSay(enc, bad.id === 'edges' ? 'The edges have gone here. In a corridor that becomes a hole by winter.' : bad.id === 'size' ? 'The size is wrong for the corridor. Measure twice, as my mother said.' : bad.id === 'wool' ? 'It is not made for boots all day.' : 'The colour runs. The hotel washes its rugs every spring.', 'skeptical');
+    else if (c.some((x) => x.ok === null)) buyerSay(enc, 'Sound so far. Does the colour hold? I would want to know before it goes on a hotel floor.', 'neutral');
+    else buyerSay(enc, 'This one passes. Good.', 'pleased');
+    return { sfx: ['unfold'] };
+  }
   const nabilSees = enc.buyerId === 'nabil' && (item.restored || item.provenance === 'Uncertain' || item.provenance === 'Disputed' || ['Worn', 'Damaged', 'Dirty'].includes(item.condition));
   if (!enc.tutorial && !enc.objectionDone && (fit < 40 || nabilSees)) raiseObjection(enc, ctx, item, t);
   checkWalk(enc, ctx, true);
@@ -763,6 +789,9 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'system', 'Tap another rug to present it.');
       break;
 
+    case 'c_measure': case 'c_deadline': case 'c_accept': case 'c_decline': case 'c_rub': case 'c_keep': case 'c_deliver': case 'c_leave':
+      cohenAction(enc, ctx, id, fx);
+      break;
     case 'nabil_package': {
       const pkg = nabilPackage(enc, ctx);
       if (!pkg) break;
@@ -997,4 +1026,116 @@ export function nabilPackage(enc: Encounter, ctx: Ctx): { other: RugItem; price:
   const other = others[0];
   if (!other) return null;
   return { other, price: packageOffer(enc.buyerOffer, Math.round(wtp(enc, other) * 0.9)) };
+}
+
+// ---------- Cohen: an order, not a haggle ----------
+const openOrder = (ctx: Ctx) => ctx.cohen?.order?.status === 'accepted' ? ctx.cohen.order : undefined;
+
+function cohenActions(enc: Encounter, ctx: Ctx): ActionView[] {
+  const order = openOrder(ctx) ?? (enc.cohenAccepted ? { dueDay: enc.cohenAccepted.dueDay } : undefined);
+  const asked = enc.cohenAsked ?? [];
+  const day = ctx.day ?? 1;
+  if (!order) {
+    const due = dueFor(day, (d) => dateFor(d).weekday);
+    const out: ActionView[] = [];
+    if (!asked.includes('measure')) out.push({ id: 'c_measure', label: 'Ask the measurements', sub: 'What size the corridor needs', icon: 'room' });
+    if (!asked.includes('deadline')) out.push({ id: 'c_deadline', label: 'Ask about the deadline', sub: 'When he needs them', icon: 'calendar' });
+    out.push({ id: 'c_accept', label: `Promise two rugs by ${dateFor(due).short}`, sub: `${fmt(ORDER_PRICE_PER)} a rug, paid on delivery`, icon: 'check' });
+    out.push({ id: 'c_decline', label: 'Not this time', sub: 'No harm done', icon: 'hand' });
+    return out.slice(0, 4);
+  }
+  const item = presentedItem(enc, ctx);
+  const ok = enc.cohenOk ?? [];
+  if (!item) return [{ id: 'c_leave', label: 'Not ready yet', sub: `Due ${dateFor(order.dueDay).short}`, icon: 'hand' }];
+  const checks = cohenChecks(item, ctx.findings, enc.cohenManual?.[item.uid]);
+  const out: ActionView[] = [];
+  const colourUnknown = checks.find((c) => c.id === 'colour')?.ok === null;
+  if (colourUnknown) out.push({ id: 'c_rub', label: 'Rub-test the colour yourself', sub: 'A damp cloth; less sure than Arran', icon: 'hand' });
+  if (passes(checks)) {
+    const first = ok.find((u) => u !== item.uid);
+    const firstItem = first ? ctx.inventory.find((i) => i.uid === first) : undefined;
+    if (firstItem) {
+      const total = 2 * (openOrder(ctx)?.pricePer ?? enc.cohenAccepted?.pricePer ?? ORDER_PRICE_PER);
+      out.push({ id: 'c_deliver', label: `Hand over the pair · ${fmt(total)}`, sub: matches(firstItem, item) ? 'They match' : 'Check they match', icon: 'check' });
+    } else if (!ok.includes(item.uid)) out.push({ id: 'c_keep', label: 'Set this one aside for him', sub: 'Then show its brother', icon: 'check' });
+  }
+  out.push({ id: 'c_leave', label: ok.length ? 'Bring the second by the day' : 'Not ready yet', sub: `Due ${dateFor(order.dueDay).short}`, icon: 'hand' });
+  return out.slice(0, 4);
+}
+
+function cohenAction(enc: Encounter, ctx: Ctx, id: ActionId, fx: Effects) {
+  const day = ctx.day ?? 1;
+  enc.cohenAsked = enc.cohenAsked ?? [];
+  const item = presentedItem(enc, ctx);
+  switch (id) {
+    case 'c_measure':
+      enc.cohenAsked.push('measure');
+      say(enc, 'seller', 'What size does the corridor need?');
+      buyerSay(enc, 'Two point two metres by one point two. Each rug between one metre seventy and two metres forty long, at least a metre wide. Hard-wearing wool, sound edges, and a pair that match.', 'neutral');
+      break;
+    case 'c_deadline': {
+      enc.cohenAsked.push('deadline');
+      const due = dueFor(day, (d) => dateFor(d).weekday);
+      say(enc, 'seller', 'When do you need them?');
+      buyerSay(enc, `Seven days: ${dateFor(due).long}. ${fmt(ORDER_PRICE_PER)} a rug, paid when both are delivered. I do not trade on Saturday until evening, so if the day falls on a Saturday I come on the Sunday.`, 'neutral');
+      break;
+    }
+    case 'c_accept': {
+      const due = dueFor(day, (d) => dateFor(d).weekday);
+      enc.cohenAccepted = { dueDay: due, pricePer: ORDER_PRICE_PER };
+      say(enc, 'seller', `Two rugs by ${dateFor(due).short}. You have my word.`);
+      buyerSay(enc, 'Then we have an agreement. I will write it in my book. Show me what you have now, or bring them by the day.', 'pleased');
+      enc.stage = 'presentation';
+      gain(fx, 'haggling', 2);
+      break;
+    }
+    case 'c_decline':
+      say(enc, 'seller', 'Not this time. I do not have the stock.');
+      buyerSay(enc, 'Honest. Better than a promise you cannot keep. Another time.', 'neutral');
+      enc.outcome = 'walked';
+      enc.stage = 'close';
+      break;
+    case 'c_rub': {
+      if (!item) break;
+      const r = manualRub(item);
+      enc.cohenManual = { ...(enc.cohenManual ?? {}), [item.uid]: r };
+      say(enc, 'narrator', r === 'runs' ? 'You press a damp cloth to the back. It comes away pink.' : 'You press a damp cloth to the back. It looks clean, as far as you can tell.');
+      buyerSay(enc, r === 'runs' ? 'Then it is not for a hotel. Thank you for showing me.' : 'Your own rub, then. I will take your word; I will also remember it.', r === 'runs' ? 'skeptical' : 'neutral');
+      break;
+    }
+    case 'c_keep': {
+      if (!item) break;
+      enc.cohenOk = [...(enc.cohenOk ?? []), item.uid];
+      const report = (ctx.findings ?? []).some((f) => f.id === `${item.uid}:fastness`);
+      say(enc, 'seller', 'Set this one aside.');
+      buyerSay(enc, report ? "Arran's test is useful. Now tell me whether the second rug will match the first." : 'Good. That one I will take. Now its brother.', 'pleased');
+      enc.presented = undefined;
+      say(enc, 'system', 'Tap another rug to show him the second.');
+      break;
+    }
+    case 'c_deliver': {
+      if (!item) break;
+      const first = (enc.cohenOk ?? []).find((u) => u !== item.uid);
+      const a = first ? ctx.inventory.find((i) => i.uid === first) : undefined;
+      if (!a) break;
+      if (!matches(a, item)) {
+        say(enc, 'seller', 'These two.');
+        buyerSay(enc, `They will not look like brothers in one corridor: the ${RUGS[a.typeId].name} is ${RUGS[a.typeId].colourFamily}, this one ${RUGS[item.typeId].colourFamily}. Show me another.`, 'skeptical');
+        break;
+      }
+      // the contract price, as agreed when you promised: no haggle at the door
+      const total = 2 * (openOrder(ctx)?.pricePer ?? enc.cohenAccepted?.pricePer ?? ORDER_PRICE_PER);
+      say(enc, 'seller', `The ${RUGS[a.typeId].name} and the ${RUGS[item.typeId].name}, as promised.`);
+      enc.packageUid = a.uid;
+      enc.cohenDelivered = true;
+      closeSale(enc, ctx, total);
+      break;
+    }
+    case 'c_leave':
+      say(enc, 'seller', 'I will have them for you by the day.');
+      buyerSay(enc, 'Good. I will come back.', 'neutral');
+      enc.outcome = 'walked';
+      enc.stage = 'close';
+      break;
+  }
 }

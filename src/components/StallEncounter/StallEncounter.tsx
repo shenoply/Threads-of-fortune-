@@ -51,7 +51,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   }, [autoNext]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = g.tutorial.step;
 
-  const ctx = { inventory: g.inventory, upgrades: g.upgrades, reputation: g.reputation, rel: rel ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] }, rng: Math.random };
+  const ctx = { inventory: g.inventory, upgrades: g.upgrades, reputation: g.reputation, rel: rel ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] }, rng: Math.random, nabil: g.nabil, cohen: g.cohen, findings: g.arranFindings ?? [], day: g.day };
   const actions = enc ? getActions(enc, ctx) : [];
 
   const onAction = (id: ActionId) => {

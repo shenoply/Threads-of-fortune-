@@ -4,6 +4,8 @@ import { useGame } from '../../game/state/store';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { useEffect } from 'react';
 import { GIVER_VOICE } from '../../data/jobs';
+import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase } from '../../game/systems/arranBooks';
+import { dateFor } from '../../game/economy/economy';
 import { voice, quotes } from '../../game/audio/voice';
 
 /** The active main mission, pinned under the top bar. */
@@ -144,4 +146,32 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
     );
   }
   return null;
+}
+
+/**
+ * Side tasks pinned under the objective, one compact line each: Arran's book errand and an open order
+ * for Cohen. The main objective stays in charge; these only keep a promise in sight.
+ */
+export function SideTasks({ onGo }: { onGo: (target: string) => void }) {
+  const g = useGame();
+  const items: { id: string; text: string; target?: string }[] = [];
+  for (const id of BOOK_ORDER) {
+    const ph = bookPhase(g.arranBooks, id);
+    const b = BOOKS[id];
+    const town = LIBRARIES[b.library].town;
+    if (ph === 'requested' || ph === 'located') items.push({ id: `book-${id}`, text: `Arran's errand: find ${b.author.split(',')[0].split(' and ')[0]}'s manual in ${town === 'cairo' ? 'Cairo' : 'Alexandria'}`, target: town });
+    else if (ph === 'copy_acquired') items.push({ id: `book-${id}`, text: `Arran's errand: take the copy back to him in Giza`, target: 'giza' });
+  }
+  const o = g.cohen?.order;
+  if (o?.status === 'accepted') items.push({ id: 'cohen', text: `Cohen's order: two corridor rugs by ${dateFor(o.dueDay).short}`, target: 'giza' });
+  if (!items.length) return null;
+  return (
+    <div className="side-tasks" data-testid="side-tasks">
+      {items.map((t) => (
+        <button key={t.id} className="side-task" onClick={() => t.target && onGo(t.target)} data-testid={`side-task-${t.id}`}>
+          <span aria-hidden="true">◆</span>{t.text}
+        </button>
+      ))}
+    </div>
+  );
 }

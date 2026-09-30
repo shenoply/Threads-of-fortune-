@@ -19,7 +19,7 @@ import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/
 import { Supplier } from './components/Supplier/Supplier';
 import { Inventory } from './components/Inventory/Inventory';
 import { Guide } from './components/Guide/Guide';
-import { ObjectiveBar } from './components/Mission/Mission';
+import { ObjectiveBar, SideTasks } from './components/Mission/Mission';
 import { firstHourStep } from './components/Tips/FirstHour';
 import { CaravanScreen } from './components/World/CaravanScreen';
 import { Campaign, openStallNext, type MapIntent, type Target } from './components/World/Campaign';
@@ -324,6 +324,9 @@ export default function App() {
             firstHour={fh ? { text: fh.text, btn: fh.btn, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
           />
         );
+      })()}
+      {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
+        return <SideTasks onGo={(t) => (t === 'giza' ? mapGo({ view: 'district' }) : mapGo({ view: 'world', panel: t, tab: 'town' }))} />;
       })()}
       {phase === 'game' && tutorialActive && !(tab === 'stall' && g.encounter) && (
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>

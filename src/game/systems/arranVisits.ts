@@ -32,10 +32,11 @@ export function chooseArranActivity(v: ArranVisitState, c: VisitContext): ArranA
 
 /** the line under the header, and where the camera and portrait start */
 export const ACTIVITY_SCENE: Record<ArranActivity, { text: string; spot: 'microscope' | 'dye' | 'notebook' | 'balance' | null }> = {
-  microscope: { text: 'Arran is bent over the microscope, a slide of wool fibres under the lens.', spot: 'microscope' },
-  dye_notes: { text: 'Arran is laying dye swatches beside his notebook, comparing reds.', spot: 'dye' },
-  books: { text: 'Arran is at the shelf with his notebook open, running a finger down a list of titles.', spot: 'notebook' },
-  balance: { text: 'Arran is weighing something small on the balance.', spot: 'balance' },
-  provisions: { text: 'Arran is reading notes on caravan food.', spot: 'notebook' },
+  // written to match what is on screen: the room painting has no figure in it, and Arran is the portrait below
+  microscope: { text: 'The microscope is set up with a slide of wool fibres. Arran looks up from it as you come in.', spot: 'microscope' },
+  dye_notes: { text: 'Dye swatches lie beside his notebook on the bench. Arran is comparing reds.', spot: 'dye' },
+  books: { text: 'His notebook is open at a list of titles. Arran is checking which books he still needs.', spot: 'notebook' },
+  balance: { text: 'Something small sits on the balance pan. Arran is writing down its weight.', spot: 'balance' },
+  provisions: { text: 'Notes on caravan food are spread on the bench.', spot: 'notebook' },
   mummy_linen: { text: 'A letter from the conservator lies open on the bench.', spot: null },
 };

@@ -1,7 +1,7 @@
 // Which buyers have a cut-out standing at the stall counter, so the scene can ask for the right file
 // straight away instead of trying stall2, then stall, then the framed portrait one after another
 // (three round trips on a phone before anyone appears). Keep in step with public/art/portraits.
-const STALL2 = new Set(['nabil', 'antonios', 'benakis', 'hassan', 'hollister', 'kasparian', 'kassab', 'levy', 'mariam', 'martel', 'rustam', 'salem', 'shivakiar', 'wasif', 'whitcombe', 'yusuf']);
+const STALL2 = new Set(['nabil', 'cohen', 'antonios', 'benakis', 'hassan', 'hollister', 'kasparian', 'kassab', 'levy', 'mariam', 'martel', 'rustam', 'salem', 'shivakiar', 'wasif', 'whitcombe', 'yusuf']);
 const STALL = new Set(['samira', 'nadia-wahba']);
 
 /** The picture of this buyer at the counter: the redrawn cut-out, the older one, or the framed portrait. */

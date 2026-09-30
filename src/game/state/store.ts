@@ -20,6 +20,8 @@ import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobe
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
 import { SHOP } from '../systems/arranShop';
+import { COHEN_START, cohenDue, type CohenState } from '../systems/cohen';
+import { rubTruth } from '../systems/arranLab';
 import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
@@ -179,6 +181,8 @@ export interface GameState {
   arranVisit?: ArranVisitState;
   /** what Nabil al-Khatib remembers of you across visits */
   nabil?: NabilMemory;
+  /** Cohen's orders and his trust in you */
+  cohen?: CohenState;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -556,6 +560,9 @@ export const useGame = create<GameState & Actions>()(
         attire: s.attire?.worn ?? 'galabiya',
         tools: s.arranTools ?? [],
         nabil: s.nabil,
+        cohen: s.cohen,
+        findings: s.arranFindings ?? [],
+        day: s.day,
       });
 
       /** Skill XP and manner from an action, with level-ups queued for the player to see. */
@@ -650,6 +657,29 @@ export const useGame = create<GameState & Actions>()(
           rel.affinity -= 20;
         }
         rel.lastLines = enc.log.filter((l) => l.speaker === 'buyer').map((l) => l.text).slice(-6);
+        if (enc.buyerId === 'cohen') {
+          const c = s.cohen ?? COHEN_START;
+          let order = c.order;
+          let trust = c.trust - (c.complaint ? 15 : 0);
+          let complaint: string | undefined;
+          let { ordersDone } = c;
+          if (enc.cohenAccepted) {
+            order = { id: newUid('ord'), placedDay: s.day, dueDay: enc.cohenAccepted.dueDay, pricePer: enc.cohenAccepted.pricePer, status: 'accepted' };
+            journal.push({ day: s.day, text: `You promised Cohen two corridor rugs by ${dateFor(enc.cohenAccepted.dueDay).short}: medium size, hard-wearing wool, sound edges, colour that holds, a matching pair.`, kind: 'due' });
+          }
+          if (enc.cohenDelivered && enc.outcome === 'sold' && order) {
+            order = { ...order, status: 'done' };
+            ordersDone += 1;
+            trust += 10;
+            rep += 1;
+            // a rug passed on your own rub whose colour really runs: he will say so next time
+            const handed = [enc.presented, enc.packageUid].map((u) => s.inventory.find((i) => i.uid === u)).filter(Boolean) as typeof s.inventory;
+            const ran = handed.find((i) => enc.cohenManual?.[i.uid] === 'fast' && rubTruth(i.typeId) === 'bleeds');
+            if (ran) complaint = RUGS[ran.typeId]?.name;
+            journal.push({ day: s.day, text: `Delivered Cohen's order on time: ${fmt(enc.salePrice ?? 0)}.` });
+          }
+          patch.cohen = { ...c, visits: c.visits + 1, lastVisitDay: s.day, trust: Math.max(0, Math.min(100, Math.round(trust))), order, ordersDone, complaint };
+        }
         if (enc.buyerId === 'nabil') {
           // his memory: trust carried over, rugs he turned down, faults you told him, whether he left angry
           const m = s.nabil ?? NABIL_START;
@@ -932,6 +962,18 @@ export const useGame = create<GameState & Actions>()(
           queue = queue.slice(0, Math.max(1, 3 + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + lane.extra));
           if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
+          // Cohen: a promise missed closes that order and costs his trust; never on his Sabbath
+          let cohen = s.cohen;
+          if (cohen?.order?.status === 'accepted' && day > cohen.order.dueDay) {
+            cohen = { ...cohen, order: { ...cohen.order, status: 'missed' }, trust: Math.max(0, cohen.trust - 20), ordersMissed: cohen.ordersMissed + 1 };
+            notes.push('You missed the day you promised Cohen. That order is closed; he will not forget it, but he will come back.');
+            journal.push({ day, text: 'Missed the delivery date promised to Cohen. His order is closed and his trust is lower.', kind: 'due' });
+          }
+          if (cohen?.order?.status === 'accepted' && dateFor(day).weekday === 'Saturday') notes.push('Cohen does not trade on Saturday until evening. He will come on Sunday.');
+          if (!queue.includes('cohen') && cohenDue(cohen, day, dateFor(day).weekday, s.totalSales ?? 0, rng())) {
+            queue.push('cohen');
+            if (cohen?.order?.status === 'accepted' && day >= cohen.order.dueDay) notes.push('Cohen is coming today for his order.');
+          }
           // Nabil al-Khatib, now and then, once your name is worth his hour
           if (!queue.includes('nabil') && nabilDue(s.nabil, day, s.reputation, NABIL_MIN_REP, rng())) queue.push('nabil');
           const vips = rankIdx >= 2 ? CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !queue.includes(id)) : [];
@@ -966,6 +1008,7 @@ export const useGame = create<GameState & Actions>()(
             notes.push(`${v.who} is in ${settlementById(v.city).name} until ${dateFor(v.until).short}.`);
           }
           const patch: Partial<GameState> = {
+            ...(cohen !== s.cohen ? { cohen } : {}),
             visits,
             missions,
             missionNews,

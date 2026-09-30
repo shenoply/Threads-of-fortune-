@@ -147,3 +147,8 @@ export function examineBlock(i: RugItem, day: number) {
 }
 
 export const verdictWord: Record<LabVerdict, string> = { consistent: 'Consistent', inconsistent: 'Inconsistent', inconclusive: 'Inconclusive' };
+
+/** Whether a rug's colour runs in a cold wash, from its lab profile; null if Arran has no card for it. */
+export function rubTruth(typeId: string): 'fast' | 'bleeds' | null {
+  return PROFILES[typeId]?.fast ?? null;
+}
