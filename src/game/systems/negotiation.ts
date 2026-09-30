@@ -83,6 +83,8 @@ export interface Encounter {
   groomed?: 'smell' | 'ragged';
   /** the buyer found nothing at their level and left mocking */
   mocked?: boolean;
+  /** you thanked them and let them go: no sale, no offence taken */
+  letGo?: boolean;
   salePrice?: number;
   saleCost?: number;
   mood: 'neutral' | 'pleased' | 'skeptical' | 'leaving' | 'warm';
@@ -303,9 +305,11 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     }
     // a rich buyer who finds nothing at their level says so, and leaves
     const best = Math.max(0, ...ctx.inventory.filter((i) => !i.restoringUntil).map((i) => RUGS[i.typeId]?.tier ?? 1));
-    if (gr && minTier >= 2 && best < minTier) {
-      enc.log.push({ speaker: 'buyer', text: pick(gr.mockStock, ctx.rng), mood: 'skeptical' });
-      enc.log.push({ speaker: 'buyer', text: pick(gr.mockLeave, ctx.rng), mood: 'leaving' });
+    if (minTier >= 2 && best < minTier) {
+      // every buyer above the village trade leaves politely if nothing is at their level (a buyer
+      // without lines of their own says it plainly), so the stall is never stuck with them
+      enc.log.push({ speaker: 'buyer', text: gr ? pick(gr.mockStock, ctx.rng) : 'I have looked. There is nothing here of the quality I buy.', mood: 'skeptical' });
+      enc.log.push({ speaker: 'buyer', text: gr ? pick(gr.mockLeave, ctx.rng) : 'When you have something finer, I will come back.', mood: 'leaving' });
       enc.outcome = 'walked';
       enc.stage = 'close';
       enc.mood = 'leaving';

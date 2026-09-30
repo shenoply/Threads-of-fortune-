@@ -283,6 +283,8 @@ interface Actions {
   nextVisit: () => void;
   /** leave the stall mid-sale; the customer waits about an hour */
   stepAway: () => void;
+  /** thank the customer and let them go: no sale, no offence, on to the next */
+  letGo: () => void;
   /** wait at the stall until the next customer turns up */
   waitForCustomer: () => void;
   /** time passing on something other than a sale: reading, walking, bidding */
@@ -1985,6 +1987,16 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           if (!s.encounter || s.encounter.outcome || s.encounter.tutorial) return;
           set({ held: { encounter: s.encounter, until: s.world.hour + 1 }, encounter: null });
+        },
+
+        letGo: () => {
+          const s = get();
+          if (!s.encounter || s.encounter.outcome || s.encounter.tutorial || s.encounter.venue) return;
+          const enc = cloneEnc(s.encounter);
+          enc.log.push({ speaker: 'system', text: `You thank ${BUYERS[enc.buyerId]?.name ?? 'them'} for coming by. Another day, perhaps.` });
+          enc.outcome = 'walked'; enc.stage = 'close'; enc.mood = 'leaving'; enc.letGo = true;
+          const patch: Partial<GameState> = { encounter: enc };
+          set({ ...patch, ...settle({ ...s, ...patch } as GameState, enc), visitIdx: s.visitIdx + 1 });
         },
 
         nextVisit: () => {

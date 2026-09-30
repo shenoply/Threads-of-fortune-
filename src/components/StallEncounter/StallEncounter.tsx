@@ -106,6 +106,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           {enc && !enc.outcome && !enc.tutorial && !enc.venue && (
             <button className="step-away" onClick={() => g.stepAway()} data-testid="step-away">⟵ Step away<small>they wait an hour</small></button>
           )}
+          {enc && !enc.outcome && !enc.tutorial && !enc.venue && (
+            <button className="step-away" onClick={() => g.letGo()} data-testid="let-go">Let them go<small>next customer</small></button>
+          )}
           {tut && enc && !enc.outcome && (
             <button className="step-away" onClick={() => g.skipTutorial()} data-testid="skip-lesson">Skip the lesson<small>sell it your own way</small></button>
           )}
@@ -191,12 +194,14 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 </>
               ) : (
                 <>
-                  <b>{buyer?.name} walked away</b>
+                  <b>{buyer?.name} {enc.letGo ? 'left' : 'walked away'}</b>
                   <span>
                     {enc.mocked
                       ? `Nothing on your stall is at their level. They want ${['', 'Common', 'Fine', 'Exceptional', 'Legendary'][BUYER_TIERS[enc.buyerId]?.[0] ?? (buyer?.royal ? 3 : 2)]} rugs or better.`
                       : enc.groomed === 'smell' && enc.patience <= 0
                         ? 'You smelled of the road. A visit to the hammam would have helped.'
+                      : enc.letGo
+                        ? 'You let them go without a sale. No harm done.'
                       : enc.nabilAngry
                       ? 'He heard the same pitch, or a bluff, one time too many. Answer his question plainly next time; he will be back in a week or so.'
                       : enc.embellishCaught

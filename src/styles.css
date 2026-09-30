@@ -2117,3 +2117,10 @@ button.hud-chip { cursor: pointer; }
 .inv-papers { margin: 0 12px 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,0.18); }
 .inv-papers p { margin: 4px 0; }
 .inv-papers small { color: var(--text-dim); }
+
+/* stall upgrades from the stall itself: a button with a count when one is affordable, and a line saying which */
+.idle-improve { width: 100%; margin-top: 8px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.idle-improve.has-new { border-color: var(--brass-hi); color: var(--brass-hi); }
+.idle-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--brass-hi); color: #1b1006; font-size: 12px; }
+.idle-upgrade { color: var(--brass-hi); font-size: 14px; margin: 4px 0 0; }
+.upgrade.can-buy { border-color: var(--brass-hi); }

@@ -8,6 +8,7 @@ import { RESTORATION, UPGRADES } from '../../data/suppliers';
 import { rugSrc } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { CaravanRoster } from '../World/CaravanPanels';
+import { StallUpgrades } from './StallUpgrades';
 import { settlementById } from '../../game/systems/world';
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
@@ -78,34 +79,8 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
       <CaravanRoster />
 
       <BillCard />
-      <div className="section-label">STALL UPGRADES</div>
-      <div className="upgrades">
-        {UPGRADES.map((u) => {
-          const owned = g.upgrades.includes(u.id);
-          return (
-            <div className="upgrade" key={u.id}>
-              <div className="u-main">
-                <b>{u.name}</b>
-                <span>{u.effect}</span>
-              </div>
-              {owned ? (
-                <span className="owned">Owned</span>
-              ) : u.rep && g.reputation < u.rep ? (
-                <span className="owned" style={{ color: 'var(--text-dim)' }}>Reputation {u.rep}</span>
-              ) : u.after && !g.upgrades.includes(u.after) ? (
-                <span className="owned" style={{ color: 'var(--text-dim)' }}>Needs rug mat</span>
-              ) : (
-                <button className="btn" disabled={g.cash < u.cost} onClick={() => g.buyUpgrade(u.id)} data-testid={`upgrade-${u.id}`}>
-                  {fmt(u.cost)}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 10 }}>
-        Your stall: {stallName(g.upgrades)}. Growing it raises the rent.
-      </p>
+      <div className="section-label" id="sec-upgrades">STALL UPGRADES</div>
+      <StallUpgrades />
       {view && <RugViewer uid={view} onClose={() => setView(null)} />}
     </div>
   );
