@@ -2000,3 +2000,28 @@ body.travelling .mission-strip{display:none}
 .nf-remember { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: #c9cfee; margin-top: 2px; }
 .camp-screen.night-passes .camp-art { animation: night-pass 2.8s ease-in-out both; }
 @keyframes night-pass { 0% { filter: brightness(.85); } 70% { filter: brightness(.6); } 100% { filter: brightness(1.25) sepia(.35) hue-rotate(-12deg); } }
+
+/* ---- arriving in a town: the Bannerlord-style menu over the town's picture ---- */
+.town-menu { position: absolute; inset: 0; z-index: 30; overflow: hidden; background: #120b06; display: flex; flex-direction: column; animation: camp-in .45s ease both; }
+.tm-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
+.tm-map > * { width: 100% !important; height: 100% !important; }
+.tm-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #0c070488 0%, transparent 18%, transparent 30%, #120b06d9 48%, #120b06 72%); }
+.tm-body { position: relative; z-index: 1; margin-top: auto; width: 100%; max-width: 620px; align-self: center; padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; max-height: 100%; }
+.tm-title small { font-family: var(--label); font-size: 11.5px; letter-spacing: .12em; color: #d9a55a; }
+.tm-title { text-shadow: 0 1px 8px #000, 0 0 18px #000; }
+.tm-title h2 { font-family: var(--display); font-size: 34px; line-height: 1.05; margin: 2px 0 2px; color: #fff1d6; text-shadow: 0 2px 12px #000; }
+.tm-when { font-family: var(--label); font-size: 12px; color: #cbb68f; }
+.tm-blurb { font-size: 15px; line-height: 1.4; color: #eadcbc; margin: 6px 0 10px; text-shadow: 0 1px 6px #000; }
+.tm-note { font-size: 14.5px; color: #ffd48a; margin: 0 0 8px; }
+.tm-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tm-item { display: flex; align-items: center; gap: 8px; text-align: left; padding: 7px 9px; min-height: 50px; min-width: 0; border-radius: 6px; border: 1px solid #8c6232; background: linear-gradient(180deg, #2a1b0fee, #1a1009ee); color: #f3e6c8; box-shadow: 0 2px 8px #0008; }
+.tm-item:hover, .tm-item:focus-visible { border-color: #e7bd6e; background: linear-gradient(180deg, #3a2412, #22150b); }
+.tm-item svg { flex: none; width: 20px; height: 20px; color: #d9a55a; }
+.tm-item span { display: flex; flex-direction: column; min-width: 0; }
+.tm-item b { font-family: var(--display); font-weight: 500; font-size: 15.5px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-item small { font-size: 11.5px; color: #bda57a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-item.quiet { border-style: dashed; }
+.tm-item.leave { border-color: #9a3326; }
+.tm-item.leave svg { color: #e0826d; }
+.set-head .set-menu { position: absolute; right: 8px; top: 52px; z-index: 3; }
+.settlement.menu-open { overflow: hidden; }
