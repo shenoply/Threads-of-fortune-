@@ -1,0 +1,52 @@
+THREADS OF FORTUNE: STALL WEATHER AND TIME-OF-DAY BATCH (6 images)
+
+The stall at Giza is shown behind every customer. Today it is always the same sunny midday.
+These six versions let it change with the hour and the weather. The game swaps them by the clock
+and the day's weather, so every version MUST keep the exact same layout as the base picture:
+the shelves, the little brass table, the red pouf, the hanging rugs on the left, the posts, the
+awning and the red counter cloth must not move by a single pixel. Only light, sky and weather change.
+
+How to use:
+1. Open ChatGPT (image generation). Start a new chat for each image.
+2. Attach ref-S-stall-base.png (link at the bottom), paste the prompt, send.
+3. Save each result under the name shown (S1-dawn.png and so on).
+4. If the layout moves (shelves shifted, table redrawn elsewhere), ask ChatGPT:
+   "Keep everything in the exact same place as the attached image; only change the light."
+5. Send the six back as a zip or put them in the Drive folder.
+
+Shared rules (already in every prompt): same camera, same framing, same objects in the same place,
+no people inside the stall, no text, no border, landscape 1536x1024, painted in the same warm
+semi-realistic style as the attached picture.
+
+----------------------------------------------------------------------
+S1-dawn.png   (06:00-09:00)
+----------------------------------------------------------------------
+Edit the attached painting of a carpet stall at Giza. Keep the camera, framing and every object exactly where it is: shelves, brass table, red pouf, hanging rugs, posts, striped awning and red counter cloth. Change only the time of day to early dawn in March: a pale pink and gold sky, the sun just risen low on the left, long cool blue shadows stretching to the right across the floor, a thin morning mist around the pyramids, the market lane beyond still quiet with awnings half furled and only a few distant figures. Same painting style. Landscape 1536x1024. No text, no border, no people inside the stall.
+
+----------------------------------------------------------------------
+S3-afternoon.png   (15:00-17:30)
+----------------------------------------------------------------------
+Edit the attached painting of a carpet stall at Giza. Keep the camera, framing and every object exactly where it is: shelves, brass table, red pouf, hanging rugs, posts, striped awning and red counter cloth. Change only the light to late afternoon: a deep golden sun low on the right, warm amber light raking across the floor from the right with long shadows falling to the left, the pyramids glowing orange, the market lane busy and hazy with dust in the air. Same painting style. Landscape 1536x1024. No text, no border, no people inside the stall.
+
+----------------------------------------------------------------------
+S4-dusk.png   (17:30-20:00)
+----------------------------------------------------------------------
+Edit the attached painting of a carpet stall at Giza. Keep the camera, framing and every object exactly where it is: shelves, brass table, red pouf, hanging rugs, posts, striped awning and red counter cloth. Change only the time to dusk: the sun has just set, the sky is violet and orange behind the dark pyramids, the stall interior is in soft shadow, oil lamps and lanterns are being lit along the market lane and glow warm yellow, a brass oil lamp hangs lit from the left iron ring at the top of the stall and throws a warm pool of light on the shelves. Same painting style. Landscape 1536x1024. No text, no border, no people inside the stall.
+
+----------------------------------------------------------------------
+S5-night.png   (20:00-06:00)
+----------------------------------------------------------------------
+Edit the attached painting of a carpet stall at Giza. Keep the camera, framing and every object exactly where it is: shelves, brass table, red pouf, hanging rugs, posts, striped awning and red counter cloth. Change only the time to night: a deep blue sky full of stars with a half moon, the pyramids silvered by moonlight, the market lane dark with only a few lanterns still burning, the stall lit only by a brass oil lamp hanging from the left iron ring at the top, casting warm light on the shelves and the counter cloth and deep shadows elsewhere. Same painting style. Landscape 1536x1024. No text, no border, no people inside the stall.
+
+----------------------------------------------------------------------
+S6-khamsin.png   (dust-storm days, spring)
+----------------------------------------------------------------------
+Edit the attached painting of a carpet stall at Giza. Keep the camera, framing and every object exactly where it is: shelves, brass table, red pouf, hanging rugs, posts, striped awning and red counter cloth. Change only the weather to a khamsin dust storm: the air thick with ochre-brown dust, the pyramids barely visible as faint shapes, the sun a pale white disc behind the haze, the awning and hanging rugs pushed by a strong hot wind, sand drifting across the floor of the stall in thin streaks, the market lane beyond empty and blurred. Same painting style. Landscape 1536x1024. No text, no border, no people inside the stall.
+
+----------------------------------------------------------------------
+S7-rain.png   (winter rain, December to February)
+----------------------------------------------------------------------
+Edit the attached painting of a carpet stall at Giza. Keep the camera, framing and every object exactly where it is: shelves, brass table, red pouf, hanging rugs, posts, striped awning and red counter cloth. Change only the weather to a rare winter rain: a low grey overcast sky, soft cool light, light rain falling beyond the stall, the stone floor at the front of the stall wet and reflective, puddles in the market lane, water dripping from the edge of the striped awning, the pyramids grey and muted. Same painting style. Landscape 1536x1024. No text, no border, no people inside the stall.
+
+REFERENCE IMAGE
+ref-S-stall-base: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/stall-weather/ref-S-stall-base.png
