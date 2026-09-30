@@ -1,0 +1,36 @@
+ARRAN LAB: the smallest extra art batch (2 images)
+
+Reference for style and light: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/art-src/arran/13-lab-room.png
+Style for both: the same painted, warm, late-afternoon realism as 13-lab-room. Giza, 1925. No modern
+equipment, no plastic, no electronics, no people. Absolutely no text, letters, numbers, labels or watermarks.
+
+--------------------------------------------------------------------------------------------------
+L1  lab-fibres.png   (needed)
+Size: 1536 x 512 (3:1), opaque, dark background.
+Where it goes: the result card for a fibre test, full width of the lower panel, above the evidence.
+Prompt:
+"Three round microscope fields of view side by side on a near-black background, evenly spaced,
+each a perfect circle about 440 px across with a soft dark vignette at the edge, as seen through a
+1920s brass monocular microscope at about 200x, transmitted warm lamplight. LEFT circle: three or
+four sheep's wool fibres, cream and madder-red, each showing clear overlapping cuticle scales like
+roof tiles. MIDDLE circle: cotton fibres, pale, flat twisted ribbons with a visible lumen, like
+twisted flattened tubes. RIGHT circle: silk filaments, smooth glassy rods with no scales and no
+twist, a few dyed deep indigo, with a soft sheen. Scientific illustration painted in a realistic
+period style, sharp focus in the centre of each circle. No text, no labels, no numbers, no scale bar."
+No-text zones: the whole image (labels are added by the game in HTML under each circle).
+
+--------------------------------------------------------------------------------------------------
+L2  lab-door.png   (optional, replaces the blurred room behind the first-visit card)
+Size: 1536 x 1024 (3:2), opaque.
+Where it goes: full-screen behind the door card. The card covers the lower-left 60% on phones and
+the centre on desktop, so keep the door itself in the RIGHT third.
+Prompt:
+"Eye-level view of a narrow Giza side lane in 1925, late afternoon sun. On the right third, a plain
+wooden door at the top of a short stone stair, painted green long ago, with a small brass plate
+(blank, no writing) and a window above it showing shelves of glass bottles. Whitewashed and mud-brick
+walls, a palm frond shadow, a water jar by the step. The left two thirds are a quiet, softly lit
+wall and lane with little detail, suitable for a text panel over it. No people, no animals, no text,
+no letters on the plate or anywhere."
+No-text zones: everywhere; the left 60% must stay low-detail.
+
+Return as PNG at exactly these sizes, into the Drive "Arran" folder.
