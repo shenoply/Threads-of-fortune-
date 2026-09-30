@@ -20,7 +20,7 @@ import { RUGS } from '../../data/rugs';
 import { BREEDS } from '../../data/animals';
 import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
-import { CampScreen } from './Camp';
+import { CampScreen, NightPasses } from './Camp';
 import { dateLine } from '../../game/economy/newspaper';
 import { dateFor } from '../../game/economy/economy';
 import { CaravanStrip } from './CaravanPanels';
@@ -28,7 +28,7 @@ import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
 import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R } from '../../game/systems/mapNews';
 
-export const DAYS_PER_SECOND = 1 / 8; // one game hour per second at 1x, on the road or standing still; every new day stops for the news
+export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
 const MAJOR = ['home', 'city', 'port'];
 /** The season of a game day, for the date on the map bar (day 1 = 10 March 1925). */
 function seasonOf(day: number) {
@@ -87,6 +87,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [nightfall, setNightfall] = useState(false);
   const [camp, setCamp] = useState<{ dest?: string } | null>(null);
   const nightAsked = useRef(-1);
+  // what to do when night falls on a walk: ask each time, or the player's standing order
+  const [nightRule, setNightRuleRaw] = useState<'ask' | 'camp' | 'march'>(() => { try { return (localStorage.getItem('tof-night-rule') as 'ask' | 'camp' | 'march') || 'ask'; } catch { return 'ask'; } });
+  const setNightRule = (r: 'ask' | 'camp' | 'march') => { setNightRuleRaw(r); try { localStorage.setItem('tof-night-rule', r); } catch { /* private mode */ } };
+  const nightRuleRef = useRef(nightRule); nightRuleRef.current = nightRule;
+  const [sleeping, setSleeping] = useState(false); // the night passing in a short camp, then on at dawn
+  const [rememberNight, setRememberNight] = useState(false);
   useEffect(() => { if (timeScale > 0) setNightfall(false); }, [timeScale]);
   const [report, setReport] = useState<string>('');
   const [panel, setPanel] = useState<string | null>(openPanel ?? null);
@@ -97,6 +103,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const lastTap = useRef(0);
   const scaleRef = useRef(1);
   scaleRef.current = timeScale;
+  const lastScale = useRef(1);
+  if (timeScale > 0) lastScale.current = timeScale;
 
   const base = Math.max(size.w / MAP_W, size.h / MAP_H);
   const s = base * z;
@@ -376,8 +384,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         const nightOf = hr >= 20 ? today : hr < 5 ? today - 1 : -1;
         if (!moving.train && !moving.mode && !arrived && nightOf >= 0 && nightAsked.current !== nightOf) {
           nightAsked.current = nightOf;
-          setTimeScale(0);
-          setNightfall(true);
+          if (nightRuleRef.current === 'camp') { setTimeScale(0); setSleeping(true); }
+          else if (nightRuleRef.current === 'ask') { setTimeScale(0); setNightfall(true); }
         }
         if (!moving.train) {
           const st = useGame.getState();
@@ -583,6 +591,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
+            <button className={`bl-night ${nightRule}`} onClick={() => setNightRule(nightRule === 'ask' ? 'camp' : nightRule === 'camp' ? 'march' : 'ask')} title="What to do when night falls on the road" data-testid="night-rule"><Icon name="moon" />{nightRule === 'ask' ? 'Ask' : nightRule === 'camp' ? 'Camp' : 'March'}</button>
             {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
           </div>
           <div className="bl-party" data-testid="bl-party">
@@ -612,9 +621,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
               <span>Make camp and sleep, or march on through the dark: you gain time, but raiders favour the night.</span>
             </div>
             <div className="wc-btns">
-              <button className="btn primary" onClick={() => { const dest = moving.dest; setNightfall(false); setMoving(null); setTimeScale(1); setAlt(null); setCamp({ dest }); audio.sfx('tap'); }} data-testid="make-camp">Make camp</button>
-              <button className="btn" onClick={() => { setNightfall(false); setTimeScale(1); }} data-testid="march-on">March on</button>
+              <button className="btn primary" onClick={() => { if (rememberNight) setNightRule('camp'); const dest = moving.dest; setNightfall(false); setMoving(null); setTimeScale(1); setAlt(null); setCamp({ dest }); audio.sfx('tap'); }} data-testid="make-camp">Make camp</button>
+              <button className="btn" onClick={() => { if (rememberNight) setNightRule('march'); setNightfall(false); setTimeScale(lastScale.current || 1); }} data-testid="march-on">March on</button>
             </div>
+            <label className="nf-remember"><input type="checkbox" checked={rememberNight} onChange={(e) => setRememberNight(e.target.checked)} data-testid="night-remember" /> Do the same every night (change it with the moon button)</label>
           </div>
         )}
         {moving ? (
@@ -722,6 +732,21 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         )}
       </div>
 
+      {sleeping && (
+        <NightPasses
+          fed={foodDaysLeft(w.party) >= 1}
+          onDawn={() => {
+            const st = useGame.getState();
+            const h = st.world.hour;
+            const hours = h < 6 ? 6 - h : 30 - h;
+            const notes = st.travelStep({ x: live?.x ?? w.x, y: live?.y ?? w.y }, hours / 24, true);
+            setReport(['You camp for the night and set off again at dawn.', ...notes.filter((n) => !n.startsWith('Day ')).slice(-2)].join(' '));
+            setSleeping(false);
+            setTimeScale(lastScale.current || 1);
+          }}
+          onWake={() => { setSleeping(false); setNightRule('ask'); setNightfall(true); }}
+        />
+      )}
       {camp && (
         <CampScreen
           dest={camp.dest}

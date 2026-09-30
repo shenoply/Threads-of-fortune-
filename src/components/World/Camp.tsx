@@ -68,3 +68,27 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
     </div>
   );
 }
+
+/**
+ * The standing order "camp every night": the night passes on its own in a few seconds, the camp full
+ * screen with its fire and crickets, and the walk goes on at dawn. A tap offers to stop and ask again.
+ */
+export function NightPasses({ fed, onDawn, onWake }: { fed: boolean; onDawn: () => void; onWake: () => void }) {
+  useEffect(() => {
+    audio.pushEnv('camp-night', fed ? 'camp' : 'road');
+    const t = window.setTimeout(onDawn, 2800);
+    return () => { window.clearTimeout(t); audio.popEnv('camp-night'); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="camp-screen night-passes" role="status" aria-label="The night passes in camp" data-testid="night-passes">
+      <img className="camp-art" src={`art/events/camp-${fed ? 'night' : 'cold'}.webp`} alt="" draggable={false} />
+      <div className="camp-panel">
+        <h2>{fed ? 'You camp for the night' : 'A cold camp for the night'}</h2>
+        <p>{fed ? 'Supper by the fire, a few hours of sleep. You set off again at dawn.' : 'No food, no fire. You sleep badly and set off again at dawn.'}</p>
+        <div className="camp-btns">
+          <button className="btn" onClick={onWake} data-testid="night-wake">Stop camping every night: ask me</button>
+        </div>
+      </div>
+    </div>
+  );
+}
