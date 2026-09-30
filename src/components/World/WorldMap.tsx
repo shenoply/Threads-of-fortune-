@@ -459,6 +459,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
+  // where you are on screen: when the map has been dragged away from you, a labelled button points back
+  const mePt = moving && live ? live : { x: w.x, y: w.y };
+  const meScreen = { x: mePt.x * s + pan.x, y: mePt.y * s + pan.y };
+  const meOff = size.w > 0 && (meScreen.x < 24 || meScreen.x > size.w - 24 || meScreen.y < 24 || meScreen.y > size.h - 24);
+  const meAngle = Math.atan2(meScreen.y - size.h / 2, meScreen.x - size.w / 2) * 180 / Math.PI;
   const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
 
   return (
@@ -612,11 +617,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             <span className={sp.hungry || sp.over ? 'warn' : ''} title={`Travel speed on foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`} data-testid="bl-speed"><Icon name="run" />{milesPerDay(sp.pxPerDay)}<small>mi/d</small><em>Speed{sp.hungry ? ', hungry' : sp.over ? ', overloaded' : ''}</em></span>
           </button>
         </div>
+        {meOff && (
+          <button type="button" className="find-me-pill" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={() => { follow.current = true; centreOn(mePt); audio.sfx('tap'); }} data-testid="find-me-pill">
+            <i style={{ transform: `rotate(${meAngle}deg)` }} aria-hidden="true">➜</i> Back to your caravan
+          </button>
+        )}
         <div className="scalebar" aria-hidden="true"><i style={{ width: milesPx(s) }} /><span>100 miles</span></div>
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
           <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
-          <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /></button>
+          <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /><small className="tool-cap">You</small></button>
           <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives: story, jobs and visitors" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
         </div>
       </div>

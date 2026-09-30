@@ -1,18 +1,21 @@
-// Arran's price book: what he sells, what each thing does, and what it costs, laid out like a
+// The Embleton catalogue: everything Arran offers, what each thing does, and what it costs, laid out like a
 // mail-order catalogue. Services are paid in the lab; reports and tools are bought from the book.
 // Effects are real: a signed report or the loupe makes a buyer weigh your argument more.
 import type { LabService } from './arranLab';
+import type { BookId } from './arranBooks';
+import { CABINET, KIND_WORD, type CabinetId } from './arranCabinet';
 
-export type ShopKind = 'service' | 'report' | 'tool' | 'book';
+export type ShopKind = 'service' | 'report' | 'tool' | 'book' | 'cabinet';
 export interface ShopItem {
   id: string; kind: ShopKind; section: string; name: string; price: number | null;
-  img: string; blurb: string; effect: string; service?: LabService; book?: 'fibres' | 'dyes';
+  img: string; blurb: string; effect: string; service?: LabService; book?: BookId; cabinet?: CabinetId; law?: string;
 }
 
 export const SECTIONS = [
   { id: 'exam', title: 'Examinations', sub: 'Carried out on the premises while you wait' },
   { id: 'reports', title: 'Written reports', sub: 'Signed in ink, for showing to buyers' },
   { id: 'goods', title: 'Goods for the trade', sub: 'Instruments of the better class' },
+  { id: 'cabinet', title: 'Remedies, poisons & powder', sub: 'Made up here, or arranged through licensed men' },
   { id: 'library', title: 'Books of reference', sub: 'Not for sale. Wanted' },
 ] as const;
 
@@ -62,7 +65,19 @@ export const SHOP: ShopItem[] = [
     effect: 'Bring him a copy and the fibre test opens.' },
   { id: 'knecht', kind: 'book', section: 'library', book: 'dyes', name: 'Knecht, Rawson and Loewenthal, A Manual of Dyeing', price: null, img: 'cotton',
     blurb: 'London: Charles Griffin. Lent to a man in Manchester in 1919 and never returned. The cotton merchants\' archive in Alexandria keeps one.',
-    effect: 'Bring him a copy and the dye test opens.' },
+    effect: 'Bring him a copy and the dye test and the sample wash test open.' },
+  { id: 'mccarrison', kind: 'book', section: 'library', book: 'provisions', name: 'McCarrison, Studies in Deficiency Disease', price: null, img: 'bowl',
+    blurb: 'London, 1921. On the medical shelves of the Qasr el-Nil reading room in Cairo.',
+    effect: 'Bring him a copy and the provisions assessment opens.' },
+  { id: 'folio', kind: 'book', section: 'library', book: 'field_safety', name: 'The 1911 Sinai survey folio (fictional)', price: null, img: 'balance',
+    blurb: 'Left with the monks at St Catherine\'s. Copied slowly by Brother Anastasios; the road there runs through the passes.',
+    effect: 'Bring him a copy and the cargo hazard check and the blasting charge open.' },
+  { id: 'ledger', kind: 'book', section: 'library', book: 'restricted_records', name: 'Port Said customs ledger of controlled goods (fictional)', price: null, img: 'weave',
+    blurb: 'A certified extract from the customs house at Port Said, open mornings only.',
+    effect: 'Bring him the extract and you can carry restricted cargo with the proper papers.' },
+  // the cabinet, drawn from arranCabinet.ts so prices and effects are defined once
+  ...CABINET.map((c): ShopItem => ({ id: `cab-${c.id}`, kind: 'cabinet', section: 'cabinet', cabinet: c.id, name: c.name, price: c.price,
+    img: c.kind === 'remedy' ? 'vat' : c.kind === 'poison' ? 'bowl' : 'balance', blurb: `${KIND_WORD[c.kind]}. ${c.blurb}`, effect: c.effect, law: c.law })),
 ];
 
 /** how much more a buyer weighs an argument, from Arran's reports on the rug and his instruments you carry */

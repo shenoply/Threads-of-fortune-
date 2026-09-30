@@ -540,3 +540,7 @@ export const celebUnlock = (id: string) => ({ FINE: 8, EXCEPTIONAL: 18, LEGENDAR
 
 export const BUYER_ORDER = ['samira', 'yusuf', 'mariam', 'hassan', 'whitcombe', 'salem', 'kasparian', 'levy', 'antonios', 'benakis', 'wasif', 'martel', 'rustam', 'hollister', 'shivakiar'];
 export { BUYER_UNLOCK };
+/** buyers who arrive on their own schedule (Cohen's orders, Nabil's visits), not from the daily queue,
+ *  but belong in the customer lists all the same */
+export const SPECIAL_BUYERS = ['cohen', 'nabil'];
+export const LISTED_BUYERS = [...BUYER_ORDER, ...SPECIAL_BUYERS];

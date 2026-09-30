@@ -1,6 +1,6 @@
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
-import { BUYERS, BUYER_ORDER } from '../../data/buyers';
+import { BUYERS, LISTED_BUYERS as BUYER_ORDER } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { tierOf } from '../../game/systems/negotiation';
 import type { Goal } from '../../game/types';

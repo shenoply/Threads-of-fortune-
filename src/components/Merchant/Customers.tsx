@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useGame, rankNeeded } from '../../game/state/store';
 import { rankOf, RANKS } from '../../game/economy/progress';
-import { BUYERS, BUYER_ORDER, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, CELEB_INFO, celebUnlock } from '../../data/buyers';
+import { BUYERS, LISTED_BUYERS as BUYER_ORDER, SPECIAL_BUYERS, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, CELEB_INFO, celebUnlock } from '../../data/buyers';
+import { NABIL_MIN_REP } from '../../data/nabil';
 import { fmt } from '../../game/economy/money';
 
 const TIER = ['', 'Common', 'Fine', 'Exceptional', 'Legendary'];
@@ -24,7 +25,7 @@ export function Customers() {
     { title: 'The courts', note: 'Kings, a queen, an emir and a president. They receive you in their palaces once your reputation is high enough.', ids: ROYALS },
   ];
   const allIds = groups.flatMap((gr) => gr.ids.filter((id) => BUYERS[id]));
-  const unlockOf = (id: string) => (CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? BUYERS[id]?.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0);
+  const unlockOf = (id: string) => (id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? BUYERS[id]?.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0);
   return (
     <div className="customers" data-testid="customers">
       {(g.buyersSeen?.length ?? 0) < 3 ? <p className="cust-goal" data-testid="cust-goal">Tap a buyer to open their card · {g.buyersSeen?.length ?? 0} of 3 opened</p> : <p className="cust-intro">Tap anyone to see what they buy and spend.</p>}
@@ -36,7 +37,7 @@ export function Customers() {
             {gr.ids.filter((id) => BUYERS[id]).map((id) => {
               const b = BUYERS[id];
               const need = unlockOf(id);
-              const rankShort = !ROYALS.includes(id) && rankOf(g).idx < (CELEB_IDS.includes(id) ? 2 : rankNeeded(id));
+              const rankShort = !ROYALS.includes(id) && !SPECIAL_BUYERS.includes(id) && rankOf(g).idx < (CELEB_IDS.includes(id) ? 2 : rankNeeded(id));
               const locked = g.reputation < need || rankShort;
               const r = g.relationships[id];
               const t = BUYER_TIERS[id] ?? [3, 4];

@@ -262,7 +262,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
         ))}
         <button type="button" className="arran-lab__tab arran-lab__tab--book" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">
-          <img src="art/arran/cat/fibre.webp" alt="" aria-hidden="true" />Price book
+          <img src="art/arran/cat/fibre.webp" alt="" aria-hidden="true" />Catalogue
         </button>
       </nav>
 
@@ -277,7 +277,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
               {!rug && (
                 <button type="button" className="arran-bookcard" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-link">
                   <img src="art/arran/cat/microscope.webp" alt="" aria-hidden="true" />
-                  <span><b>A. Embleton's price book</b><small>What each test tells you, what it costs, signed reports and instruments</small></span>
+                  <span><b>The Embleton Catalogue</b><small>Every test and service, signed reports, instruments, remedies and supplies, and the books he wants, each with its price</small></span>
                   <i aria-hidden="true">Open ›</i>
                 </button>
               )}

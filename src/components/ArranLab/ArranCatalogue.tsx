@@ -9,7 +9,7 @@ import { SECTIONS, SHOP, type ShopItem } from '../../game/systems/arranShop';
 import './ArranCatalogue.css';
 
 /**
- * Arran's price book, laid out like a mail-order catalogue: index tabs, engraved plates, small print
+ * The Embleton catalogue (once the price book), laid out like a mail-order catalogue: index tabs, engraved plates, small print
  * and a price on every line. Pick an entry to read it on the facing page and buy it from the bar.
  */
 export function ArranCatalogue({ onClose, onService }: { onClose: () => void; onService: (sv: LabService) => void }) {
@@ -45,6 +45,15 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
       if (it.service !== 'fastness' && !unlocked.includes(it.service)) return 'Needs his book';
     }
     if (it.kind === 'tool' && tools.includes(it.id)) return 'Owned';
+    if (it.kind === 'cabinet' && it.cabinet) {
+      const c = it.cabinet, have = g.cabinet?.[c] ?? 0;
+      if (c === 'khamsin' && (g.khamsinUntil ?? 0) >= g.day) return 'Packed';
+      if (c === 'moth' && g.inventory.length > 0 && g.inventory.every((i) => i.mothproof)) return 'Done';
+      if (c === 'revolver' && have) return 'Owned';
+      if ((c === 'rockets' || c === 'cartridges' || c === 'charge' || c === 'restorative') && have) return `You have ${have}`;
+      if (c === 'cartridges' && !Object.values(g.world.party.troops).some((n) => n > 0)) return 'Hire guards first';
+      if (c === 'charge' && !unlocked.includes('cargo')) return 'Needs the folio';
+    }
     if (it.kind === 'book' && it.book) return bookPhase(g.arranBooks, it.book) === 'returned' ? 'On his shelf' : 'Wanted';
     return '';
   };
@@ -59,19 +68,19 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
   const price = (it: ShopItem) => (it.price == null ? '—' : fmt(it.price));
 
   return (
-    <div className="cat" role="dialog" aria-label="Arran's price book" data-testid="arran-catalogue">
+    <div className="cat" role="dialog" aria-label="The Embleton catalogue" data-testid="arran-catalogue">
       <div className="cat__book">
         <header className="cat__masthead">
           <small>Season of 1925 · Prices in Egyptian money</small>
-          <h1>A. Embleton</h1>
-          <p>Textile Chemist · Examinations, Reports &amp; Instruments · Giza</p>
+          <h1>The Embleton Catalogue</h1>
+          <p>A. Embleton, Textile Chemist, Giza · Examinations · Reports · Instruments · Remedies &amp; Supplies · Books Wanted</p>
           <div className="cat__rule" />
         </header>
 
         <nav className="cat__tabs" aria-label="Sections">
           {SECTIONS.map((s, i) => (
             <button key={s.id} type="button" className={`cat__tab ${sec === s.id ? 'is-on' : ''}`} onClick={() => { setSec(s.id); setSel(SHOP.find((x) => x.section === s.id)!.id); setNote(''); audio.sfx('pen'); }} data-testid={`cat-tab-${s.id}`}>
-              <span>{['I', 'II', 'III', 'IV'][i]}</span>{s.title}
+              <span>{['I', 'II', 'III', 'IV', 'V'][i]}</span>{s.title}
             </button>
           ))}
         </nav>
@@ -109,6 +118,7 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
             <div className="cat__pricebar"><span>Price</span><i /><b data-testid="cat-price">{price(item)}</b></div>
             <p className="cat__blurb">{item.blurb}</p>
             <p className="cat__effect"><span>In the game:</span> {item.effect}</p>
+            {item.law && <p className="cat__effect"><span>The law:</span> {item.law}</p>}
             {item.kind === 'report' && (
               <div className="cat__reports">
                 <p className="cat__small">Results he can write up for you:</p>
@@ -133,11 +143,16 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
           {item.kind === 'service' && item.service && (() => {
             const sv = item.service;
             const locked = sv === 'metal' || (sv !== 'fastness' && !unlocked.includes(sv));
-            return <button type="button" className="cat__buy" disabled={locked} onClick={() => onService(sv)} data-testid="cat-use">{locked ? status(item) : sv === 'provisions' || sv === 'cargo' ? `Open the Road tab · ${fmt(LAB_SERVICES[sv].price)}` : `Choose a rug · ${fmt(LAB_SERVICES[sv].price)}`}</button>;
+            return <button type="button" className="cat__buy" disabled={locked} onClick={() => onService(sv)} data-testid="cat-use">{locked ? status(item) : sv === 'provisions' || sv === 'cargo' ? `Open Supplies · ${fmt(LAB_SERVICES[sv].price)}` : `Choose a rug · ${fmt(LAB_SERVICES[sv].price)}`}</button>;
           })()}
           {item.kind === 'tool' && (
             <button type="button" className="cat__buy" disabled={tools.includes(item.id)} onClick={() => setNote(g.arranBuy(item.id))} data-testid="cat-buy">{tools.includes(item.id) ? 'Owned' : `Buy · ${fmt(item.price!)}`}</button>
           )}
+          {item.kind === 'cabinet' && item.cabinet && (() => {
+            const stt = status(item);
+            const blocked = ['Packed', 'Done', 'Owned', 'Hire guards first', 'Needs the folio'].includes(stt);
+            return <button type="button" className="cat__buy" disabled={blocked || g.cash < item.price!} onClick={() => setNote(g.cabinetBuy(item.cabinet!))} data-testid="cat-buy">{blocked ? stt : `Buy · ${fmt(item.price!)}`}</button>;
+          })()}
           {item.kind === 'book' && <span className="cat__hint">{status(item) === 'On his shelf' ? 'Returned. Read it in the notebook.' : 'Fetch it for him: see the notebook.'}</span>}
           <button type="button" className="cat__close" onClick={onClose} data-testid="cat-close">Close</button>
         </div>

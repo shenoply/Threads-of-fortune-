@@ -1523,7 +1523,9 @@ table.ledger .neg { color: var(--bad); }
 .map-speed{position:absolute;right:10px;bottom:34px;z-index:8;display:flex;gap:2px;padding:3px;border-radius:12px;background:#1b110ae8;border:1px solid #b07a3f;box-shadow:0 4px 14px #0009}
 .map-speed button{min-width:40px;height:34px;border:0;border-radius:9px;background:transparent;color:#e8d3ae;font-size:12px;font-weight:700;letter-spacing:-1px}
 .map-speed button.on{background:#d99a3c;color:#1b110a}
-.party{pointer-events:auto;cursor:pointer}
+/* only the badge takes taps: a trader's or raider's label no longer covers the town it stands beside */
+.party{pointer-events:none}
+.party .pbadge{pointer-events:auto;cursor:pointer}
 .world{grid-template-columns:minmax(0,1fr);width:100%;min-width:0}.world-map{width:100%;min-width:0}.wc-alt{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.wc-alt .btn{flex:0 1 auto}
 .world-map,.campaign-layer,.district{overflow:clip}
 .yard-hero{display:block;width:100%;aspect-ratio:4/3;max-height:260px;object-fit:cover;border-radius:12px;margin:4px 0 10px;border:1px solid #7a5028}
@@ -2093,3 +2095,14 @@ button.hud-chip { cursor: pointer; }
 .side-tasks { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 4px 8px 0; }
 .side-task { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(201,150,72,0.4); background: rgba(38,25,14,0.9); color: var(--text); font-family: var(--body); font-size: 14px; cursor: pointer; text-align: left; }
 .side-task span { color: var(--brass-hi); font-size: 10px; }
+
+/* towns win over everything else on the map: drawn above parties, with a 48px tap area around the dot */
+.place { z-index: 4; }
+.place::before { content: ''; position: absolute; left: 50%; top: 11px; width: 48px; height: 48px; transform: translate(-50%, -50%); border-radius: 50%; }
+.place .plbl { position: relative; }
+
+/* dragged away from your caravan: a plain button says how to get back, with an arrow pointing to it */
+.find-me-pill { position: absolute; left: 50%; top: 44px; transform: translateX(-50%); z-index: 20; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid #fff1d6; background: #9a3326; color: #fff1d6; font-family: var(--label); font-size: 15px; letter-spacing: 0.03em; box-shadow: 0 4px 14px rgba(0,0,0,0.45); cursor: pointer; white-space: nowrap; }
+.find-me-pill i { font-style: normal; display: inline-block; transition: transform 0.2s ease; }
+.map-tools button { position: relative; }
+.map-tools .tool-cap { position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%); font-size: 10px; line-height: 1; letter-spacing: 0.04em; font-family: var(--label); }
