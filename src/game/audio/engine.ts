@@ -8,7 +8,7 @@ export type Channel = 'dialogue' | 'music' | 'sfx' | 'ambience';
 type Toggles = Record<Channel, boolean>;
 
 /** Where the player is, as far as the ears are concerned. */
-export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road';
+export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
 /** Which set of music themes fits the moment. */
 export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | 'istanbul' | 'palace' | 'auction-small' | 'auction-grand';
 
@@ -37,6 +37,8 @@ const EVENTS: Record<Env, [string, number, number, number][]> = {
   'auction-small': [['coughing', 2.5, 0.3, 0.4], ['laughing', 1.2, 0.3, 0.5], ['footsteps', 1.5, 0.3, 0.5], ['door_wood_creaks', 1.2, 0.25, 0.5], ['drinking_sipping', 0.8, 0.22, 0.3]],
   'auction-grand': [['coughing', 2, 0.22, 0.6], ['footsteps', 1.5, 0.25, 0.6], ['laughing', 0.8, 0.18, 0.7], ['door_wood_creaks', 0.8, 0.18, 0.7]],
   road: [['sheep', 1.5, 0.25, 0.85], ['crow', 1.5, 0.28, 0.8], ['chirping_birds', 1.2, 0.22, 0.7], ['dog', 0.6, 0.2, 0.95], ['footsteps', 1, 0.3, 0.3]],
+  // a night halt in the open: the fire close by, a village dog a long way off
+  camp: [['crackling_fire', 5, 0.5, 0.12], ['dog', 0.6, 0.16, 0.95], ['coughing', 0.3, 0.14, 0.35]],
 };
 const INDOOR: Env[] = ['palace', 'auction-small', 'auction-grand'];
 
@@ -382,7 +384,9 @@ class AudioEngine {
     const env = this.currentEnv();
     this.state.env = env;
     const want = new Map<string, number>();
-    want.set(env, env === 'market' && (this.dayOver || this.night) ? 0.45 : 1);
+    // the camp has no bed of its own: the night (crickets) full, the open road faint beneath it
+    if (env === 'camp') { want.set('night', 1); want.set('road', 0.25); }
+    else want.set(env, env === 'market' && (this.dayOver || this.night) ? 0.45 : 1);
     if (this.night && !INDOOR.includes(env)) want.set('night', 1);
     for (const k of [...this.bedLayers.keys()]) if (!want.has(k)) this.stopBed(k);
     for (const [k, lvl] of want) {
@@ -399,14 +403,14 @@ class AudioEngine {
       const env = this.currentEnv();
       const busy = env === 'market' && !this.night && !this.dayOver;
       let list = EVENTS[env].filter(([set]) => !(set === 'rooster' && this.hour > 10) && !((set === 'hen' || set === 'crow' || set === 'chirping_birds') && this.night));
-      if (this.night && !INDOOR.includes(env)) list = list.filter(([set]) => ['dog', 'footsteps', 'door_wood_creaks', 'coughing'].includes(set));
+      if (this.night && !INDOOR.includes(env)) list = list.filter(([set]) => ['dog', 'footsteps', 'door_wood_creaks', 'coughing', 'crackling_fire'].includes(set));
       if (list.length) {
         const total = list.reduce((s, e) => s + e[1], 0);
         let r = Math.random() * total;
         const pick = list.find((e) => (r -= e[1]) <= 0) ?? list[0];
         this.clip(pick[0], { gain: pick[2], far: pick[3], indoor: INDOOR.includes(env), dur: 4 });
       }
-      const gap = (busy ? 3000 + Math.random() * 7000 : 6000 + Math.random() * 14000) / (env === 'market' ? this.laneBusy : 1);
+      const gap = env === 'camp' ? 2500 + Math.random() * 4000 : (busy ? 3000 + Math.random() * 7000 : 6000 + Math.random() * 14000) / (env === 'market' ? this.laneBusy : 1);
       this.eventTimer = window.setTimeout(tick, gap);
     };
     this.eventTimer = window.setTimeout(tick, 3500);

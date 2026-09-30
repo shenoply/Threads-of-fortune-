@@ -1946,3 +1946,49 @@ body.travelling .mission-strip{display:none}
 @keyframes voyage-frame { from { opacity: 0; transform: scale(1.06); } 45% { opacity: 1; } to { opacity: 1; transform: scale(1.02); } }
 @keyframes voyage-first { from { opacity: 1; transform: scale(1.06); } to { opacity: 1; transform: scale(1.02); } }
 @media (prefers-reduced-motion: reduce) { .sailing-transition__frame { animation: none; opacity: 0; } .sailing-transition__frame:last-of-type { opacity: 1; } }
+
+/* ---- Bannerlord-style bar along the foot of the world map ---- */
+.bl-bar { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 8; display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; gap: 6px; pointer-events: none; }
+.bl-bar > * { pointer-events: auto; }
+.bl-time, .bl-party { display: flex; align-items: center; gap: 6px; background: linear-gradient(180deg, #2a1b0f, #1a1009); border: 1px solid #b07a3f; border-radius: 22px; box-shadow: 0 4px 14px #0009, inset 0 1px 0 #ffffff14; padding: 3px 8px 3px 10px; color: #f0dfbd; }
+.bl-date { display: flex; flex-direction: column; line-height: 1.05; font-family: var(--display); font-size: 14px; white-space: nowrap; }
+.bl-date small { font-family: var(--label); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: #d9a55a; }
+.bl-dial { position: relative; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #c8924a; display: grid; place-items: center; overflow: hidden; margin: -2px 0; }
+.bl-dial.day { background: radial-gradient(circle at 50% 35%, #7fb3d6, #3c6f96 70%); }
+.bl-dial.night { background: radial-gradient(circle at 50% 35%, #2a3a64, #0c1226 75%); }
+.bl-dial i { position: absolute; inset: 0; display: grid; place-items: start center; padding-top: 3px; transform: rotate(var(--turn)); transition: transform .4s linear; }
+.bl-dial i svg { width: 15px; height: 15px; color: #ffd36b; transform: rotate(calc(-1 * var(--turn))); filter: drop-shadow(0 0 4px #ffcf5a); }
+.bl-dial.night i svg { color: #eef1ff; filter: drop-shadow(0 0 3px #cfd8ff); }
+.bl-dial b { position: relative; margin-top: 16px; font-family: var(--label); font-size: 10.5px; color: #fff4dc; text-shadow: 0 1px 2px #000; }
+.bl-speeds { display: flex; gap: 1px; }
+.bl-speeds button { min-width: 34px; height: 32px; border: 0; border-radius: 16px; background: transparent; color: #e8d3ae; font-size: 11.5px; font-weight: 700; letter-spacing: -1px; }
+.bl-speeds button.on { background: #d99a3c; color: #1b110a; }
+.bl-still { font-family: var(--label); font-size: 12.5px; color: #cbb68f; padding-right: 4px; white-space: nowrap; }
+.bl-pace { font-family: var(--label); font-size: 11px; color: #cbb68f; white-space: nowrap; }
+.bl-party { gap: 9px; padding: 5px 12px; flex-wrap: wrap; }
+.bl-party span { display: inline-flex; align-items: center; gap: 3px; font-family: var(--label); font-size: 13px; white-space: nowrap; }
+.bl-party svg { width: 14px; height: 14px; color: #d9a55a; }
+.bl-party .warn { color: #ff9d7a; }
+.bl-party .warn svg { color: #ff9d7a; }
+.world .scalebar { bottom: auto; top: 10px; left: 10px; }
+@media (max-width: 520px) {
+  .bl-bar { flex-direction: column; align-items: stretch; }
+  .bl-time { justify-content: space-between; }
+  .bl-party { justify-content: space-between; border-radius: 12px; }
+}
+
+/* ---- the nightfall question and the camp ---- */
+.wc-col.nightfall { border: 1px solid #5d6aa8; background: linear-gradient(180deg, #151a33, #0e1122); border-radius: 6px; padding: 8px 10px; }
+.wc-col.nightfall b { color: #dfe4ff; }
+.camp-screen { position: fixed; inset: 0; z-index: 400; background: #05070f; display: flex; flex-direction: column; justify-content: flex-end; animation: camp-in .8s ease both; }
+.camp-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 54% 62%; }
+.camp-screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 45%, #05070fe6 88%); transition: background 2.5s; }
+.camp-screen.dawn .camp-art { filter: brightness(1.15) saturate(1.1) sepia(.35) hue-rotate(-12deg); transition: filter 3s; }
+.camp-screen.dawn::after { background: linear-gradient(180deg, #ffb25a55 0%, transparent 40%, #1a0f07e6 88%); }
+.camp-panel { position: relative; z-index: 1; padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px)); max-width: 640px; margin: 0 auto; width: 100%; color: #f3e6c8; }
+.camp-panel h2 { font-family: var(--display); font-size: 26px; margin: 2px 0 6px; color: #ffe2a8; text-shadow: 0 2px 8px #000; }
+.camp-panel p { font-size: 16.5px; line-height: 1.45; margin: 0 0 14px; text-shadow: 0 1px 6px #000; }
+.camp-when { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #c8b27f; }
+.camp-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.camp-btns .btn { flex: 1 1 160px; }
+@keyframes camp-in { from { opacity: 0; } }

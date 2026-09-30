@@ -20,7 +20,9 @@ import { RUGS } from '../../data/rugs';
 import { BREEDS } from '../../data/animals';
 import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
+import { CampScreen } from './Camp';
 import { dateLine } from '../../game/economy/newspaper';
+import { dateFor } from '../../game/economy/economy';
 import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
@@ -28,6 +30,12 @@ import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KH
 
 export const DAYS_PER_SECOND = 1 / 8; // one game hour per second at 1x, on the road or standing still; every new day stops for the news
 const MAJOR = ['home', 'city', 'port'];
+/** The season of a game day, for the date on the map bar (day 1 = 10 March 1925). */
+function seasonOf(day: number) {
+  const m = new Date(Date.UTC(1925, 2, 9 + day)).getUTCMonth();
+  return m < 2 || m === 11 ? 'Winter' : m < 5 ? 'Spring' : m < 8 ? 'Summer' : 'Autumn';
+}
+
 const kindIcon: Record<string, string> = { home: 'store', city: 'star', town: 'room', village: 'room', oasis: 'sun', port: 'anchor', monastery: 'book', camp: 'camel' };
 
 interface Plan {
@@ -75,6 +83,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const timeScale = scale ?? ownScale;
   const setTimeScale = setScale ?? setOwnScale;
   const [encounter, setEncounter] = useState<Party | null>(null);
+  // camping is a choice: nightfall on the road pauses the walk and asks; a camp is full screen
+  const [nightfall, setNightfall] = useState(false);
+  const [camp, setCamp] = useState<{ dest?: string } | null>(null);
+  const nightAsked = useRef(-1);
+  useEffect(() => { if (timeScale > 0) setNightfall(false); }, [timeScale]);
   const [report, setReport] = useState<string>('');
   const [panel, setPanel] = useState<string | null>(openPanel ?? null);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
@@ -224,6 +237,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const setOff = (p: Plan) => {
     setShort(null);
     if (!p.path) return;
+    { const h = useGame.getState().world.hour, d = useGame.getState().day; if (h >= 20) nightAsked.current = d; else if (h < 5) nightAsked.current = d - 1; }
+    setNightfall(false);
     follow.current = true;
     setMoving({ path: p.path, done: 0, train: false, dest: p.settlement?.id });
     setPlan(null);
@@ -356,6 +371,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         if (notes.length) setReport(notes.slice(-3).join(' '));
         const today = useGame.getState().day;
         if (today > dawnSeen.current) { dawnSeen.current = today; setReport(`A new day on the road: ${dateLine(today)}.`); }
+        // night falls on a walk: stop and ask, once a night (the night of day d runs 20:00 to 05:00)
+        const hr = useGame.getState().world.hour;
+        const nightOf = hr >= 20 ? today : hr < 5 ? today - 1 : -1;
+        if (!moving.train && !moving.mode && !arrived && nightOf >= 0 && nightAsked.current !== nightOf) {
+          nightAsked.current = nightOf;
+          setTimeScale(0);
+          setNightfall(true);
+        }
         if (!moving.train) {
           const st = useGame.getState();
           // only raiders stop you; everyone else you can tap on the map if you want to talk
@@ -419,7 +442,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const routeSvg = plan?.path ?? (moving ? moving.path : null);
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
   const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food ${foodDaysLeft(w.party)} days`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
-  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Camped in the open';
+  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
   const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
@@ -544,14 +567,33 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             <CaravanStrip />
           </div>
         )}
-        {moving && (
-          <div className="map-speed" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} role="group" aria-label="Travel speed" data-testid="map-speed">
-            <span className="ms-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : `Pace ${milesPerDay(sp.pxPerDay)} mi/day`}</span>
-            {[0, 1, 2, 4].map((k) => (
-              <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => setTimeScale(k)} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
-            ))}
+        {/* Bannerlord-style bar along the foot of the map: the date and the hour on a sun-and-moon
+            dial with the travel speeds, and beside it what the caravan carries */}
+        <div className="bl-bar" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} data-testid="bl-bar">
+          <div className="bl-time" role="group" aria-label="Date and travel speed" data-testid="map-speed">
+            <span className="bl-date" data-testid="bl-date"><small>{seasonOf(g.day)}</small>{dateFor(g.day).short}</span>
+            <span className={`bl-dial ${w.hour >= 6 && w.hour < 19 ? 'day' : 'night'}`} style={{ ['--turn' as string]: `${(w.hour / 24) * 360}deg` }} title={`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`}>
+              <i aria-hidden="true"><Icon name={w.hour >= 6 && w.hour < 19 ? 'sun' : 'moon'} /></i>
+              <b>{String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</b>
+            </span>
+            {moving ? (
+              <span className="bl-speeds">
+                {[0, 1, 2, 4].map((k) => (
+                  <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => setTimeScale(k)} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
+                ))}
+              </span>
+            ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
+            {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
           </div>
-        )}
+          <div className="bl-party" data-testid="bl-party">
+            <span title="Money"><Icon name="coin" />{fmt(g.cash)}</span>
+            <span title="People: you and your men"><Icon name="people" />{partySize(w.party)}</span>
+            <span className={foodDaysLeft(w.party) < 2 ? 'warn' : ''} title="Days of food at today's rate"><Icon name="bag" />{foodDaysLeft(w.party)}d</span>
+            <span title="Animals"><Icon name="camel" />{animalCount(w.party)}</span>
+            <span className={sp.over ? 'warn' : ''} title="Load / what you can carry"><Icon name="scale" />{Math.round(sp.load)}/{Math.round(sp.cap)}</span>
+            <span title="Fighting strength"><Icon name="shield" />{strength(w.party)}</span>
+          </div>
+        </div>
         <div className="scalebar" aria-hidden="true"><i style={{ width: milesPx(s) }} /><span>100 miles</span></div>
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
@@ -563,6 +605,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
 
       <div className="world-card" data-testid="world-card">
         {report && <p className="world-report" data-testid="world-report">{report}</p>}
+        {moving && nightfall && (
+          <div className="wc-col nightfall" data-testid="nightfall">
+            <div className="wc-main">
+              <b>Night falls on the road</b>
+              <span>Make camp and sleep, or march on through the dark: you gain time, but raiders favour the night.</span>
+            </div>
+            <div className="wc-btns">
+              <button className="btn primary" onClick={() => { const dest = moving.dest; setNightfall(false); setMoving(null); setTimeScale(1); setAlt(null); setCamp({ dest }); audio.sfx('tap'); }} data-testid="make-camp">Make camp</button>
+              <button className="btn" onClick={() => { setNightfall(false); setTimeScale(1); }} data-testid="march-on">March on</button>
+            </div>
+          </div>
+        )}
         {moving ? (
           <div className="wc-row">
             <div className="wc-main">
@@ -571,7 +625,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
                 {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}
               </span>
             </div>
-            <button className="btn" onClick={() => { setAlt(null); stop('You stop and make camp.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
+            <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
           </div>
         ) : null}
         {short && !moving && (
@@ -659,18 +713,22 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           </div>
         ) : (
           <div className="wc-row">
-            {(w.hour >= 19 || w.hour < 5.5) && (
-              // after dark, the camp itself: a fire while there is food to cook, a cold camp when there is none
-              <img className="wc-camp" src={`art/events/camp-${foodDaysLeft(w.party) < 1 ? 'cold' : 'night'}.webp`} alt={foodDaysLeft(w.party) < 1 ? 'A cold camp with no fire' : 'Your camp: the camel couched by a small fire'} data-testid="camp-picture" />
-            )}
             <div className="wc-main">
-              <b>Camped in the open</b>
+              <b>Halted on the road</b>
               <span className={foodDaysLeft(w.party) < 1 ? 'warn' : ''}>{caravanLine}</span>
             </div>
+            {(w.hour >= 17 || w.hour < 6) && <button className="btn primary" onClick={() => { setCamp({}); audio.sfx('tap'); }} data-testid="make-camp">Make camp</button>}
           </div>
         )}
       </div>
 
+      {camp && (
+        <CampScreen
+          dest={camp.dest}
+          onClose={() => setCamp(null)}
+          onResume={(dest) => { setCamp(null); const st = settlementById(dest); planTo(st, st); }}
+        />
+      )}
       {encounter && encounter.kind === 'raiders' && (
         <Ambush
           party={encounter}
