@@ -10,7 +10,7 @@ import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/war
 import { preload, buyerArt, STALL_ART, CITY_ART } from './game/preload';
 import { useGame, dateFor, clock } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
-import { audio, type Channel } from './game/audio/engine';
+import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
 import { voice } from './game/audio/voice';
 import { JOBS, GIVER_VOICE } from './data/jobs';
 import { Icon } from './components/Icon';
@@ -160,6 +160,7 @@ export default function App() {
 
   useEffect(() => {
     audio.setToggles(g.settings);
+    audio.setVolumes({ ...DEFAULT_VOLUMES, ...(g.volumes ?? {}) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -404,6 +405,18 @@ export default function App() {
             <p className="dim">A save file keeps a copy you can bring back, or open on another phone or computer.</p>
             <h2>Sound</h2>
             <p>Voices play only where recorded lines exist. Everything else is captioned.</p>
+            <div className="vol-sliders" data-testid="volume-sliders">
+              {([['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects and ambience'], ['dialogue', 'Dialogue']] as [keyof Volumes, string][]).map(([k, l]) => {
+                const v = (g.volumes ?? DEFAULT_VOLUMES)[k];
+                return (
+                  <label className="vol-row" key={k}>
+                    <span>{l}</span>
+                    <input type="range" min={0} max={100} step={5} value={Math.round(v * 100)} onChange={(e) => g.setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`vol-${k}`} />
+                    <b>{Math.round(v * 100)}</b>
+                  </label>
+                );
+              })}
+            </div>
             {(
               [
                 ['dialogue', 'Dialogue', 'Recorded character voices'],

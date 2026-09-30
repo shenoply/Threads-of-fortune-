@@ -6,6 +6,9 @@ import { fetchMedia } from './cdn';
 
 export type Channel = 'dialogue' | 'music' | 'sfx' | 'ambience';
 type Toggles = Record<Channel, boolean>;
+/** the player's volume sliders, 0..1; ambience follows the effects slider */
+export interface Volumes { master: number; music: number; sfx: number; dialogue: number }
+export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 1, sfx: 1, dialogue: 1 };
 
 /** Where the player is, as far as the ears are concerned. */
 export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
@@ -47,6 +50,7 @@ class AudioEngine {
   master!: GainNode;
   gains = {} as Record<Channel, GainNode>;
   toggles: Toggles = { dialogue: true, music: true, sfx: true, ambience: true };
+  volumes: Volumes = { ...DEFAULT_VOLUMES };
   musicOn = false;
   ambienceOn = false;
   private voice: HTMLAudioElement | null = null;
@@ -69,7 +73,7 @@ class AudioEngine {
     if (!AC) return false;
     this.ctx = new AC();
     this.master = this.ctx.createGain();
-    this.master.gain.value = 0.9;
+    this.master.gain.value = 0.9 * this.volumes.master;
     this.master.connect(this.ctx.destination);
     (Object.keys(LEVELS) as Channel[]).forEach((c) => {
       const g = this.ctx!.createGain();
@@ -102,6 +106,15 @@ class AudioEngine {
     if (this.voice) this.voice.muted = !t.dialogue;
   }
 
+  /** The volume sliders: master scales everything, dialogue also sets the recorded voices. */
+  setVolumes(v: Volumes) {
+    this.volumes = { ...v };
+    voice.setVolume(v.master * v.dialogue);
+    if (!this.ctx) return;
+    this.master.gain.setTargetAtTime(0.9 * v.master, this.ctx.currentTime, 0.05);
+    (Object.keys(LEVELS) as Channel[]).forEach((c) => this.gains[c].gain.setTargetAtTime(this.toggles[c] ? this.level(c) : 0, this.ctx!.currentTime, 0.05));
+  }
+
   /** How full the lane is today (Friday quiet, feast days crowded): the market bed and its passing sounds follow. */
   laneBusy = 1;
   setLane(level: number) {
@@ -110,13 +123,14 @@ class AudioEngine {
     if (this.ctx) this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') : 0, this.ctx.currentTime, 1.5);
   }
   private level(c: Channel) {
-    return c === 'ambience' ? LEVELS.ambience * (0.75 + 0.25 * this.laneBusy) : LEVELS[c];
+    const slider = c === 'music' ? this.volumes.music : c === 'dialogue' ? this.volumes.dialogue : this.volumes.sfx;
+    return (c === 'ambience' ? LEVELS.ambience * (0.75 + 0.25 * this.laneBusy) : LEVELS[c]) * slider;
   }
 
   /** Lower the music while the radio announcer speaks. */
   duckMusic(on: boolean) {
     if (!this.ctx) return;
-    this.gains.music.gain.setTargetAtTime(this.toggles.music ? LEVELS.music * (on ? 0.18 : 1) : 0, this.ctx.currentTime, 0.4);
+    this.gains.music.gain.setTargetAtTime(this.toggles.music ? this.level('music') * (on ? 0.18 : 1) : 0, this.ctx.currentTime, 0.4);
     this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') * (on ? 0.5 : 1) : 0, this.ctx.currentTime, 0.4);
   }
 
@@ -553,6 +567,7 @@ class AudioEngine {
     this.stopVoice();
     if (!url || !this.toggles.dialogue) return;
     const a = new Audio(url);
+    a.volume = Math.max(0, Math.min(1, this.volumes.master * this.volumes.dialogue));
     this.voice = a;
     this.state.voicePlaying = true;
     a.onended = () => { this.state.voicePlaying = false; };

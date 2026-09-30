@@ -12,6 +12,7 @@ The asset owner supplied every file here in the Google Drive "Arran" folder (30 
 | 14-cairo-library.webp | 14-cairo-library.png (1536×1024) | Library scene (Cairo reading room; reused for the Alexandria archive) | Fictional room, not a specific institution |
 | 15-open-reference-book.webp | 15-open-reference-book.png (1536×1024) | Book reader; titles, formulae and text are HTML over the blank pages | |
 | 16-risky-pass.webp | 16-risky-pass.png (1024×1536) | Converted for the dangerous-route encounter (not yet shown) | Use only for a mountain pass |
+| 17-arran-mummy-study.webp | 17-arran-mummy-study.png (1536×1024) | The linen study scene, after the conservator's permission | Anonymous mummy, not Tutankhamun; detached linen only |
 | 01, 03–09 *.webp | matching .png | Converted for later scenes (stall visits, travel, the signet story) | Not yet shown in game |
 
 Not imported:
@@ -32,3 +33,5 @@ Books cited in the game (titles only, no pages or scans imported):
 - J. Merritt Matthews, *Laboratory Manual of Dyeing and Textile Chemistry* (New York, 1909).
 - E. Knecht, C. Rawson and R. Loewenthal, *A Manual of Dyeing* (London: Charles Griffin). Check the edition before quoting it.
 - The Qasr el-Nil reading room and the cotton merchants' archive are fictional places; the game does not claim that any real library held these copies.
+
+Voice: the Arran voice reference (arran_reference_0-40s.wav / .mp3) stays in the Drive folder and is not committed. No recording or generated clip of his voice is in the repo yet.

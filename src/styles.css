@@ -2074,3 +2074,9 @@ button.hud-chip { cursor: pointer; }
 .fin-lender p { margin: 6px 0; font-size: 14.5px; }
 .ending-card { max-width: 520px; text-align: center; }
 .ending-card small { font-family: var(--label); letter-spacing: .1em; color: #c8b27f; }
+
+/* volume sliders in settings */
+.vol-sliders { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 10px; }
+.vol-row { display: grid; grid-template-columns: minmax(110px, 38%) 1fr 34px; align-items: center; gap: 10px; font-size: 16px; }
+.vol-row input { width: 100%; accent-color: var(--brass-hi); min-height: 32px; }
+.vol-row b { text-align: right; font-family: var(--label); color: var(--text-dim); }

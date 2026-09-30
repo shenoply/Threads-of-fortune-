@@ -4,3 +4,8 @@ test-results/
 tools/.*.mjs
 tests/sim/.sim.mjs
 *.log
+
+# secrets for development scripts (voice generation); never VITE_*
+.env
+.env.local
+.env.*.local

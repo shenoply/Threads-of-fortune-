@@ -20,13 +20,15 @@ import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobe
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
 import { SHOP } from '../systems/arranShop';
+import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
   type ActionId, type Ctx, type Effects, type Encounter,
 } from '../systems/negotiation';
-import { audio, type Channel } from '../audio/engine';
+import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from '../audio/engine';
+import { stopArranVoice, syncArranVolume } from '../audio/arranVoice';
 import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
 import {
   blankFog, revealFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom,
@@ -41,7 +43,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -90,6 +92,8 @@ export interface GameState {
   totalSales: number;
   lastSummary?: DaySummary;
   settings: Record<Channel, boolean>;
+  /** volume sliders 0..1 (older saves: all full) */
+  volumes?: Volumes;
   guideSeen?: boolean;
   world: WorldState;
   court: { last: Record<string, number>; warrants: string[] };
@@ -169,6 +173,8 @@ export interface GameState {
   labUnlocked?: LabService[];
   /** instruments bought from Arran's price book */
   arranTools?: string[];
+  /** what Arran was doing on your last visits, and the conservator's permission */
+  arranVisit?: ArranVisitState;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -291,6 +297,10 @@ interface Actions {
   /** pay Arran for one test on a rug you own; `cut` is the player's consent to cut a sample from the back */
   /** buy from Arran's price book: a tool, or a signed report on one of your results */
   arranBuy: (itemId: string, findingId?: string) => string;
+  /** walk into the lab: returns what Arran is doing today */
+  arranEnterLab: () => ArranActivity;
+  /** the linen study introduction has been seen through */
+  arranMummySeen: () => void;
   arranRequestBook: (id: BookId) => string;
   librarySearch: (id: BookId) => string;
   libraryAcquire: (id: BookId, how: 'copy' | 'duplicate') => string;
@@ -299,6 +309,7 @@ interface Actions {
   restore: (uid: string) => void;
   buyUpgrade: (id: string) => void;
   setSetting: (c: Channel, on: boolean) => void;
+  setVolume: (c: keyof Volumes, v: number) => void;
   reset: () => void;
 }
 
@@ -2124,6 +2135,26 @@ export const useGame = create<GameState & Actions>()(
           return 'Buy that in the laboratory.';
         },
 
+        arranEnterLab: () => {
+          const s = get();
+          const v = s.arranVisit ?? { visitCount: 0 };
+          const returned = Object.entries(s.arranBooks ?? {}).filter(([, b]) => b?.phase === 'returned').map(([k]) => k);
+          const pending = Object.values(s.arranBooks ?? {}).some((b) => b && ['requested', 'located', 'copy_acquired'].includes(b.phase));
+          const act = chooseArranActivity(v, { day: s.day, returnedBooks: returned, pendingBook: pending });
+          const sameDay = v.lastActivityDay === s.day;
+          set({ arranVisit: { ...v, visitCount: v.visitCount + (sameDay ? 0 : 1), lastActivity: act, lastActivityDay: s.day } });
+          return act;
+        },
+
+        arranMummySeen: () => {
+          const s = get();
+          if (s.arranVisit?.mummyIntroductionSeen) return;
+          set({
+            arranVisit: { ...(s.arranVisit ?? { visitCount: 0 }), mummyIntroductionSeen: true },
+            journal: [...s.journal, { day: s.day, text: 'You watched Arran examine a detached linen thread from a museum mummy, with the conservator\'s permission. Nothing else was touched.' }],
+          });
+        },
+
         arranRequestBook: (id) => {
           const s = get();
           const b = ARRAN_BOOKS[id];
@@ -2188,7 +2219,8 @@ export const useGame = create<GameState & Actions>()(
             papers: (s.papers ?? []).filter((x) => x.id !== paper.id),
             arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'returned', copyId: paper.id, day: s.day } },
             labUnlocked: [...new Set([...(s.labUnlocked ?? []), b.unlock])],
-            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${b.unlockLabel.toLowerCase()}.` }],
+            arranVisit: s.arranVisit?.permitDay != null ? s.arranVisit : { ...(s.arranVisit ?? { visitCount: 0 }), permitDay: s.day + 1 },
+            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${b.unlockLabel.toLowerCase()}.${s.arranVisit?.permitDay != null ? '' : ' He mentions he has written to a museum conservator about a thread of ancient linen.'}` }],
             reputation: s.reputation + 1,
           });
           audio.sfx('pen');
@@ -2275,9 +2307,17 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('chest');
         },
 
+        setVolume: (c, v) => {
+          const volumes = { ...DEFAULT_VOLUMES, ...(get().volumes ?? {}), [c]: Math.max(0, Math.min(1, v)) };
+          audio.setVolumes(volumes);
+          syncArranVolume();
+          set({ volumes });
+        },
+
         setSetting: (c, on) => {
           const settings = { ...get().settings, [c]: on };
           audio.setToggles(settings);
+          if (c === 'dialogue') { if (!on) stopArranVoice(false); else syncArranVolume(); }
           if (c === 'ambience') on && get().started ? audio.startAmbience() : audio.stopAmbience();
           if (c === 'music') {
             if (!on) audio.stopMusic();
@@ -2306,6 +2346,12 @@ export const useGame = create<GameState & Actions>()(
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        if (version < 17) {
+          p.arranVisit = p.arranVisit ?? { visitCount: 0 };
+          // anyone who already returned a book has the conservator's letter waiting
+          if (p.arranVisit.permitDay == null && Object.values(p.arranBooks ?? {}).some((b) => b?.phase === 'returned')) p.arranVisit = { ...p.arranVisit, permitDay: p.day ?? 1 };
+          p.volumes = p.volumes ?? { ...DEFAULT_VOLUMES };
+        }
         if (version < 16) p.arranTools = p.arranTools ?? [];
         if (version < 15) {
           // books now unlock Arran's tests; anyone who already used one keeps it

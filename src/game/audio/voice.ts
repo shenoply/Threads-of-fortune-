@@ -231,6 +231,11 @@ class Voice {
     });
   }
 
+  setVolume(v: number) {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.gain && this.ctx) this.gain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.05);
+  }
+
   stop() {
     this.token++;
     if (this.current) {

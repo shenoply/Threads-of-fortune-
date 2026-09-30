@@ -131,3 +131,20 @@
 
 .arran-lab .linklike { background: none; border: 0; padding: 0; min-height: 0; color: var(--brass-hi); text-decoration: underline; font: inherit; cursor: pointer; }
 @media (max-width: 420px) { .arran-lab__header { gap: 6px; padding-left: 10px; padding-right: 10px; } .arran-lab__header .btn { padding: 6px 10px; } }
+
+/* Arran's subtitle: along the bottom of the scene, never over the board */
+.arran-sub { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(92%, 760px); z-index: 3; display: flex; gap: 10px; align-items: baseline; background: rgba(16,10,5,0.86); border: 1px solid rgba(231,189,110,0.4); border-radius: 8px; padding: 8px 12px; color: #f6ecd6; font-size: 17px; line-height: 1.35; pointer-events: none; animation: fade 0.2s ease; }
+.arran-sub b { font-family: var(--label); letter-spacing: 0.12em; font-size: 13px; color: var(--brass-hi); flex: 0 0 auto; }
+@media (max-width: 600px) { .arran-sub { font-size: 15.5px; bottom: 6px; } }
+.arran-lab__talk { padding: 0; border: 0; background: none; cursor: pointer; display: block; height: 100%; align-self: end; }
+.arran-lab__talk img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; display: block; }
+.arran-lab__talk:hover img { filter: brightness(1.08); }
+.arran-activity { margin: 0; padding: 6px 14px; font-style: italic; color: var(--text-dim); background: var(--umber); border-bottom: 1px solid var(--line); font-size: 15px; }
+.arran-activity button { margin-left: 8px; }
+
+.mummy-study { position: fixed; inset: 0; z-index: 72; background: #120b06; display: flex; flex-direction: column; color: var(--text); }
+.mummy-study__scene { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.mummy-study__scene img { width: 100%; height: 100%; object-fit: cover; object-position: 45% 40%; display: block; }
+.mummy-study__panel { flex: 0 0 auto; padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background: #231710; border-top: 1px solid #77532f; font-size: 16.5px; line-height: 1.45; }
+.mummy-study__panel small { color: var(--text-dim); font-family: var(--label); letter-spacing: 0.05em; }
+.mummy-study__panel p { margin: 6px 0 8px; min-height: 3em; }
