@@ -81,24 +81,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
         </div>
       </div>
 
-      {fam.left > 0 ? (
-        <div className="family-debt" data-testid="family-debt">
-          <div>
-            <b>Your father's debt</b>
-            <span className="fd-amt">{fmt(fam.left)} <small>of {fmt(FAMILY_START.left)}</small></span>
-            <i className="fd-bar"><span style={{ width: `${100 - (fam.left / FAMILY_START.left) * 100}%` }} /></i>
-            <small>{fam.due > 0 ? <em>{fmt(fam.due)} is overdue. It is taken from your cash each morning.</em> : <>{fmt(Math.min(FAMILY_INSTALMENT, fam.left))} is taken on the 1st of every month.</>}</small>
-          </div>
-          <div className="fd-btns">
-            <button className="btn" disabled={g.cash < Math.min(500, fam.left)} onClick={() => g.payFamily(500)} data-testid="pay-family">Pay {fmt(Math.min(500, fam.left))}</button>
-            <button className="btn" disabled={g.cash < Math.min(2000, fam.left)} onClick={() => g.payFamily(2000)}>Pay {fmt(Math.min(2000, fam.left))}</button>
-          </div>
-        </div>
-      ) : (
-        <div className="family-debt paid">Your father's hundred pounds is paid off.</div>
-      )}
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
-      <Rumours max={4} />
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
       <p className="set-demand">Whatever you buy from him goes straight into your stall's stock in Giza, wherever you happen to be standing — pack it for the road next time you're there.</p>
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}
@@ -137,6 +120,25 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           );
         })}
       </div>
+      {/* his rugs come first; the family debt and the bazaar news follow, so a newcomer sent here to restock
+          does not spend the stock money on the debt by mistake */}
+      {fam.left > 0 ? (
+        <div className="family-debt" data-testid="family-debt">
+          <div>
+            <b>Your father's debt</b>
+            <span className="fd-amt">{fmt(fam.left)} <small>of {fmt(FAMILY_START.left)}</small></span>
+            <i className="fd-bar"><span style={{ width: `${100 - (fam.left / FAMILY_START.left) * 100}%` }} /></i>
+            <small>{fam.due > 0 ? <em>{fmt(fam.due)} is overdue. It is taken from your cash each morning.</em> : <>{fmt(Math.min(FAMILY_INSTALMENT, fam.left))} is taken on the 1st of every month.</>}</small>
+          </div>
+          <div className="fd-btns">
+            <button className="btn" disabled={g.cash < Math.min(500, fam.left)} onClick={() => g.payFamily(500)} data-testid="pay-family">Pay {fmt(Math.min(500, fam.left))}</button>
+            <button className="btn" disabled={g.cash < Math.min(2000, fam.left)} onClick={() => g.payFamily(2000)}>Pay {fmt(Math.min(2000, fam.left))}</button>
+          </div>
+        </div>
+      ) : (
+        <div className="family-debt paid">Your father's hundred pounds is paid off.</div>
+      )}
+      <Rumours max={4} />
     </div>
   );
 }
