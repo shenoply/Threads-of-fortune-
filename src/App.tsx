@@ -160,11 +160,10 @@ export default function App() {
 
   // a customer reached the stall while you were on the map: the sale opens. This overrides
   // whatever the player just tapped (Map, another tab), which otherwise looks like the button
-  // silently did nothing — so say why, once, rather than just snapping the screen back.
+  // silently did nothing; the customer walking up in the stall scene says why, without a pop-up over it.
   useEffect(() => {
     if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.world.at === 'giza') {
       setTab('stall');
-      toast('A customer has reached your stall — see to them, or step away.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.encounter, tab, phase]);

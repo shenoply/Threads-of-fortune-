@@ -1970,7 +1970,13 @@ body.travelling .mission-strip{display:none}
 .bl-speeds button.on { background: #d99a3c; color: #1b110a; }
 .bl-still { font-family: var(--label); font-size: 12.5px; color: #cbb68f; padding-right: 4px; white-space: nowrap; }
 .bl-pace { font-family: var(--label); font-size: 11px; color: #cbb68f; white-space: nowrap; }
-.bl-party { gap: 9px; padding: 5px 12px; flex-wrap: wrap; }
+.bl-party { gap: 9px; padding: 5px 12px; flex-wrap: wrap; cursor: pointer; font: inherit; text-align: left; }
+.bl-party em { display: none; font-style: normal; font-family: var(--label); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: #bda57a; }
+.bl-party small { font-size: .78em; margin-left: 1px; color: #cbb68f; }
+.bl-party.open { display: grid; grid-template-columns: repeat(4, auto); gap: 8px 14px; padding: 10px 14px; }
+.bl-party.open span { flex-wrap: wrap; align-items: center; font-size: 17px; }
+.bl-party.open em { flex-basis: 100%; }
+.bl-party.open em { display: block; }
 .bl-party span { display: inline-flex; align-items: center; gap: 3px; font-family: var(--label); font-size: 13px; white-space: nowrap; }
 .bl-party svg { width: 14px; height: 14px; color: #d9a55a; }
 .bl-party .warn { color: #ff9d7a; }
@@ -1980,9 +1986,13 @@ body.travelling .mission-strip{display:none}
   .bl-bar { flex-direction: column; align-items: stretch; }
   .bl-time { justify-content: space-between; }
   .bl-pace { display: none; }
-  .bl-party { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; border-radius: 12px; row-gap: 4px; column-gap: 8px; padding: 6px 12px; }
-  .bl-party span { font-size: 15.5px; gap: 4px; }
-  .bl-party svg { width: 18px; height: 18px; }
+  .bl-party { justify-content: space-between; border-radius: 12px; gap: 6px; padding: 5px 10px; flex-wrap: nowrap; }
+  .bl-party span { font-size: 12.5px; gap: 2px; }
+  .bl-party svg { width: 13px; height: 13px; }
+  /* opened: a larger card, each number named */
+  .bl-party.open { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 6px; padding: 10px 12px; }
+  .bl-party.open span { flex-wrap: wrap; align-items: center; font-size: 17px; gap: 3px; }
+  .bl-party.open svg { width: 18px; height: 18px; }
 }
 
 /* ---- the nightfall question and the camp ---- */

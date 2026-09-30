@@ -86,6 +86,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   // camping is a choice: nightfall on the road pauses the walk and asks; a camp is full screen
   const [nightfall, setNightfall] = useState(false);
   const [camp, setCamp] = useState<{ dest?: string } | null>(null);
+  const [partyOpen, setPartyOpen] = useState(false);
   const nightAsked = useRef(-1);
   // what to do when night falls on a walk: ask each time, or the player's standing order
   const [nightRule, setNightRuleRaw] = useState<'ask' | 'camp' | 'march'>(() => { try { return (localStorage.getItem('tof-night-rule') as 'ask' | 'camp' | 'march') || 'ask'; } catch { return 'ask'; } });
@@ -595,15 +596,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             <button className={`bl-night ${nightRule}`} onClick={() => setNightRule(nightRule === 'ask' ? 'camp' : nightRule === 'camp' ? 'march' : 'ask')} title="What to do when night falls on the road" data-testid="night-rule"><Icon name="moon" />{nightRule === 'ask' ? 'Ask' : nightRule === 'camp' ? 'Camp' : 'March'}</button>
             {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
           </div>
-          <div className="bl-party" data-testid="bl-party">
-            <span title="Money"><Icon name="coin" />{fmt(g.cash)}</span>
-            <span title="People: you and your men"><Icon name="people" />{partySize(w.party)}</span>
-            <span className={foodDaysLeft(w.party) < 2 ? 'warn' : ''} title="Days of food at today's rate"><Icon name="bag" />{foodDaysLeft(w.party)}d</span>
-            <span title="Animals"><Icon name="camel" />{animalCount(w.party)}</span>
-            <span className={sp.over ? 'warn' : ''} title="Load / what you can carry"><Icon name="scale" />{Math.round(sp.load)}/{Math.round(sp.cap)}</span>
-            <span title="Fighting strength"><Icon name="shield" />{strength(w.party)}</span>
-            <span className={sp.hungry || sp.over ? 'warn' : ''} title={`Travel speed on foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`} data-testid="bl-speed"><Icon name="run" />{milesPerDay(sp.pxPerDay)} mi/d</span>
-          </div>
+          {/* small on the map; a tap opens it larger, with each number named */}
+          <button type="button" className={`bl-party ${partyOpen ? 'open' : ''}`} onClick={() => setPartyOpen((o) => !o)} aria-expanded={partyOpen} aria-label="Your caravan: tap for details" data-testid="bl-party">
+            <span title="Money"><Icon name="coin" />{fmt(g.cash)}<em>Money</em></span>
+            <span title="People: you and your men"><Icon name="people" />{partySize(w.party)}<em>People</em></span>
+            <span className={foodDaysLeft(w.party) < 2 ? 'warn' : ''} title="Days of food at today's rate"><Icon name="bag" />{foodDaysLeft(w.party)}d<em>Food</em></span>
+            <span title="Animals"><Icon name="camel" />{animalCount(w.party)}<em>Animals</em></span>
+            <span className={sp.over ? 'warn' : ''} title="Load / what you can carry"><Icon name="scale" />{Math.round(sp.load)}/{Math.round(sp.cap)}<em>Load</em></span>
+            <span title="Fighting strength"><Icon name="shield" />{strength(w.party)}<em>Strength</em></span>
+            <span className={sp.hungry || sp.over ? 'warn' : ''} title={`Travel speed on foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`} data-testid="bl-speed"><Icon name="run" />{milesPerDay(sp.pxPerDay)}<small>mi/d</small><em>Speed{sp.hungry ? ', hungry' : sp.over ? ', overloaded' : ''}</em></span>
+          </button>
         </div>
         <div className="scalebar" aria-hidden="true"><i style={{ width: milesPx(s) }} /><span>100 miles</span></div>
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
