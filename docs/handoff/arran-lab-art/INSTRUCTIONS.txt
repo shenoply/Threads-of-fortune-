@@ -34,3 +34,34 @@ no letters on the plate or anywhere."
 No-text zones: everywhere; the left 60% must stay low-detail.
 
 Return as PNG at exactly these sizes, into the Drive "Arran" folder.
+
+
+==================================================================================================
+BOOK ROUTES: the smallest extra batch (2 needed, 1 optional). Same style as 14-cairo-library.
+No text, letters, numbers or watermarks anywhere; the game writes all words in HTML.
+
+B1  librarian.png   (needed)
+Size: 1024 x 1536 (2:3), TRANSPARENT background (PNG with alpha), figure from mid-thigh up,
+standing, facing slightly to the viewer's right, feet cropped, 40 px clear margin above the head.
+Where it goes: bottom-left of the library panel, exactly like Arran's portrait in the lab.
+Prompt: "An Egyptian librarian in Cairo, 1925, about 55, grey moustache, wire spectacles, dark
+suit with a waistcoat and a red tarboosh, holding a small card-catalogue drawer in one hand and a
+pencil in the other, patient and a little amused. Painted realism, warm lamplight from the left.
+Plain transparent background, no furniture, no text."
+
+B2  alexandria-archive.png   (needed; the Alexandria archive now reuses the Cairo reading room)
+Size: 1536 x 1024 (3:2), opaque.
+Where it goes: top of the Alexandria archive screen, cropped to a band (phones show the middle
+60% of the width and 45% of the height), so keep the main subject centred.
+Prompt: "Interior of a cotton merchants' records room near the Alexandria warehouses, 1925: tall
+wooden pigeonholes of bundled papers and ledgers, sample bales of Egyptian cotton, a long counter,
+a glass-fronted case of dyeing manuals, ceiling fans, shuttered windows with Mediterranean light.
+No people. No legible writing on any ledger, label or sign."
+
+B3  catalogue-drawer.png   (optional, for the catalogue search)
+Size: 1536 x 1024 (3:2), opaque. A close-up, looking down into a pulled-out wooden card-catalogue
+drawer: blank cream index cards with a brass rod, one card lifted. The cards must be blank.
+
+Return as PNG at exactly these sizes, into the Drive "Arran" folder.
+The field specialist portrait and the patrol inspection scene come later, with the field-safety
+and records errands.
