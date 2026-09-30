@@ -592,8 +592,8 @@ table.ledger .neg { color: var(--bad); }
 .me-badge svg { width: 17px; height: 17px; color: #fff1d6; }
 .me-name { background: #9a3326; color: #fff1d6; }
 .me.moving .me-badge { animation: bob 0.5s ease-in-out infinite; }
-.me-walk { position: relative; display: block; width: 72px; height: 43px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)); }
-.me-walk.solo { width: 26px; }
+.me-walk { position: relative; display: block; width: 54px; height: 32px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)); }
+.me-walk.solo { width: 19px; }
 .me-walk img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .me-walk img + img { opacity: 0; }
 .me[data-facing="left"] .me-walk { transform: scaleX(-1); }
@@ -1719,7 +1719,10 @@ body.travelling .mission-strip{display:none}
 .ob-text b { flex: 1; min-width: 0; font-family: var(--display); font-weight: 500; font-size: 15px; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ob-text svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--text-dim); }
 .ob-btn { flex: 0 0 auto; padding: 5px 12px !important; font-size: 14px !important; }
-.ob-more { padding: 2px 12px 10px; font-size: 15px; line-height: 1.45; color: var(--text); max-height: 40vh; overflow: auto; }
+.objective-bar { position: relative; }
+.ob-more { position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); z-index: 70; padding: 10px 40px 12px 12px; font-size: 15px; line-height: 1.45; color: var(--text); max-height: 55vh; overflow: auto; background: linear-gradient(180deg, #2e1d0e, #1d1209); border: 1px solid #b8893a; border-radius: 6px; box-shadow: 0 10px 28px #000c; animation: ob-drop .18s ease; }
+@keyframes ob-drop { from { opacity: 0; transform: translateY(-6px); } }
+.ob-x { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #8c6232; background: #1a1009; color: var(--parchment); font-size: 20px; line-height: 1; }
 .ob-more p { margin: 4px 0; }
 .ob-more ol { margin: 4px 0 0 18px; padding: 0; }
 .evening-strip { position: static !important; transform: none !important; width: auto !important; margin: 0 8px 6px; box-shadow: none !important; }
@@ -1954,7 +1957,8 @@ body.travelling .mission-strip{display:none}
 .bl-time, .bl-party { display: flex; align-items: center; gap: 6px; background: linear-gradient(180deg, #2a1b0f, #1a1009); border: 1px solid #b07a3f; border-radius: 22px; box-shadow: 0 4px 14px #0009, inset 0 1px 0 #ffffff14; padding: 3px 8px 3px 10px; color: #f0dfbd; }
 .bl-date { display: flex; flex-direction: column; line-height: 1.05; font-family: var(--display); font-size: 14px; white-space: nowrap; }
 .bl-date small { font-family: var(--label); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: #d9a55a; }
-.bl-dial { position: relative; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #c8924a; display: grid; place-items: center; overflow: hidden; margin: -2px 0; }
+.bl-dial { position: relative; flex: none; width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 2px solid #c8924a; display: grid; place-items: center; overflow: hidden; margin: -2px 0; cursor: pointer; }
+.bl-dial:active { transform: scale(.94); }
 .bl-dial.day { background: radial-gradient(circle at 50% 35%, #7fb3d6, #3c6f96 70%); }
 .bl-dial.night { background: radial-gradient(circle at 50% 35%, #2a3a64, #0c1226 75%); }
 .bl-dial i { position: absolute; inset: 0; display: grid; place-items: start center; padding-top: 3px; transform: rotate(var(--turn)); transition: transform .4s linear; }
@@ -1975,6 +1979,7 @@ body.travelling .mission-strip{display:none}
 @media (max-width: 520px) {
   .bl-bar { flex-direction: column; align-items: stretch; }
   .bl-time { justify-content: space-between; }
+  .bl-pace { display: none; }
   .bl-party { justify-content: space-between; border-radius: 12px; }
 }
 

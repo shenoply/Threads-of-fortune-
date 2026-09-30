@@ -290,9 +290,12 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               const need = Math.min(...locked.map((o) => o.minRep ?? 0));
               return <p className="set-demand dim" data-testid="locked-stock">The dealers here keep {locked.length === 1 ? 'one better piece' : `${locked.length} better pieces`} in the back for merchants with a name. Come back with reputation {need}.</p>;
             })()}
+            {g.inventory.filter((i) => !i.restoringUntil && !i.stored).length === 0 && (
+              <p className="set-demand" id="sec-sell" data-testid="sell-none">You have no rugs with you to sell. Rugs are packed for the road at your Giza stall (Stock), and only packed rugs travel.</p>
+            )}
             {g.inventory.filter((i) => !i.restoringUntil && !i.stored).length > 0 && (
-              <details className="sell-box">
-                <summary>Sell to a local dealer</summary>
+              <div className="sell-box" id="sec-sell" data-testid="sell-box">
+                <div className="section-label">SELL YOUR RUGS HERE</div>
                 <div className="mkt">
                   {g.inventory.filter((i) => !i.restoringUntil && !i.stored).map((i) => {
                     const t = RUGS[i.typeId];
@@ -309,7 +312,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                     );
                   })}
                 </div>
-              </details>
+              </div>
             )}
           </>
         )}
@@ -356,7 +359,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         const items: [string, string, string, () => void, string][] = [
           ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s customers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
           ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
-          ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy and sell rugs, buy food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
+          ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
+          ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
           ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
           ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards'), 'menu-guards'],
           ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),

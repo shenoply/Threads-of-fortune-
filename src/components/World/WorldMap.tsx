@@ -580,10 +580,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         <div className="bl-bar" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} data-testid="bl-bar">
           <div className="bl-time" role="group" aria-label="Date and travel speed" data-testid="map-speed">
             <span className="bl-date" data-testid="bl-date"><small>{seasonOf(g.day)}</small>{dateFor(g.day).short}</span>
-            <span className={`bl-dial ${w.hour >= 6 && w.hour < 19 ? 'day' : 'night'}`} style={{ ['--turn' as string]: `${(w.hour / 24) * 360}deg` }} title={`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`}>
+            {/* the dial is also the way home: a tap brings the map back to your caravan */}
+            <button type="button" className={`bl-dial ${w.hour >= 6 && w.hour < 19 ? 'day' : 'night'}`} style={{ ['--turn' as string]: `${(w.hour / 24) * 360}deg` }} onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); audio.sfx('tap'); }} aria-label={`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}. Tap to find your caravan on the map`} data-testid="find-me">
               <i aria-hidden="true"><Icon name={w.hour >= 6 && w.hour < 19 ? 'sun' : 'moon'} /></i>
               <b>{String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</b>
-            </span>
+            </button>
             {moving ? (
               <span className="bl-speeds">
                 {[0, 1, 2, 4].map((k) => (
@@ -607,7 +608,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
           <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
-          <button onClick={() => { follow.current = true; centreOn({ x: w.x, y: w.y }); }} aria-label="Centre on your caravan"><Icon name="pin" /></button>
+          <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan"><Icon name="pin" /></button>
           <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives: story, jobs and visitors" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
         </div>
       </div>

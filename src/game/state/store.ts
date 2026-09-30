@@ -2105,6 +2105,17 @@ useGame.subscribe((s) => {
   audio.sfx('chest');
 });
 
+// "Your father's rug" cannot be done without the Fayoum Hearth. If it was sold or lost before
+// Rashid sent you to Damascus with it, he tracks it down and buys it back: it waits at the stall.
+useGame.subscribe((s) => {
+  if (!s.started || s.missions?.farid !== 'active' || s.world.appraised.length) return;
+  if (s.inventory.some((i) => i.typeId === 'fayoum-hearth')) return;
+  const t = RUGS['fayoum-hearth'];
+  const item: RugItem = { uid: newUid('r'), typeId: 'fayoum-hearth', condition: 'Worn', restored: false, provenance: t.provenance, paid: 0, notes: ['Your father\'s rug. Rashid bought it back for you.'], stored: true };
+  const text = 'Rashid found your father\'s Fayoum rug and bought it back. "Some things are not for sale." It is waiting at your stall: pack it before you go to Damascus.';
+  useGame.setState({ inventory: [...s.inventory, item], journal: [...s.journal, { day: s.day, text, kind: 'mission' }], jobNote: text });
+});
+
 // Titles are checked whenever the state changes, and announced once.
 useGame.subscribe((s) => {
   if (!s.started) return;

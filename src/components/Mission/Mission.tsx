@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
@@ -90,12 +90,20 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
     voice.whenReady(sp).then(async () => { for (const q of said) { if (!live) return; await voice.say(sp, q); } });
     return () => { live = false; voice.stop(); };
   }, [news]);
+  // the full objective drops down over the page (nothing below jumps); a tap anywhere else closes it
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: PointerEvent) => { if (!barRef.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', off);
+    return () => document.removeEventListener('pointerdown', off);
+  }, [open]);
   const activeId = MAIN_ORDER.find((m) => g.missions?.[m] === 'active');
   const nm = news ? MISSIONS[news.replace('-done', '')] : undefined;
   if (nm) {
     const done = news!.endsWith('-done');
     return (
-      <div className={`objective-bar news ${open ? 'open' : ''}`} data-testid="mission-banner">
+      <div ref={barRef} className={`objective-bar news ${open ? 'open' : ''}`} data-testid="mission-banner">
         <div className="ob-row" data-testid="mission-card">
           <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="mission-expand">
             <small>{done ? 'Mission done' : 'New mission'}</small>
@@ -104,7 +112,7 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
           </button>
           <button className="btn ob-btn" onClick={() => { setOpen(false); g.clearMissionNews(); }} data-testid="mission-ok">{done ? 'Good' : 'Noted'}</button>
         </div>
-        {open && <div className="ob-more">{done ? <><p>{nm.reward.text}</p><p className="mission-reward">+£{(nm.reward.cash / 100).toFixed(2)} · reputation +{nm.reward.rep}</p></> : <><p>{nm.brief}</p><p className="mission-lock">{nm.locks}</p></>}</div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>{done ? <><p>{nm.reward.text}</p><p className="mission-reward">+£{(nm.reward.cash / 100).toFixed(2)} · reputation +{nm.reward.rep}</p></> : <><p>{nm.brief}</p><p className="mission-lock">{nm.locks}</p></>}</div>}
       </div>
     );
   }
@@ -112,15 +120,16 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
     const m = MISSIONS[activeId];
     const hint = m.hint ? m.hint(g) : m.steps[0];
     return (
-      <div className={`objective-bar ${open ? 'open' : ''}`} data-testid="mission-banner">
+      <div ref={barRef} className={`objective-bar ${open ? 'open' : ''}`} data-testid="mission-banner">
         <div className="ob-row">
-          <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open}>
+          <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="mission-expand">
             <small>Objective</small>
             <b>{hint}</b>
+            <Icon name={open ? 'up' : 'down'} />
           </button>
           {m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
-        {open && <div className="ob-more"><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>}
       </div>
     );
   }
