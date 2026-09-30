@@ -611,7 +611,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
           <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
-          <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan"><Icon name="pin" /></button>
+          <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /></button>
           <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives: story, jobs and visitors" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
         </div>
       </div>
