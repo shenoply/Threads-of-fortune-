@@ -768,8 +768,11 @@ export const useGame = create<GameState & Actions>()(
           const rankIdx = rankOf(s).idx;
           let queue = [...BUYER_ORDER].filter((id) => (BUYER_UNLOCK[id] ?? 0) <= s.reputation && rankIdx >= rankNeeded(id)).filter((id) => {
             const r = s.relationships[id];
+            // a buyer insulted or caught in a lie enough times stops coming to this stall at all
+            if ((r?.bad ?? 0) >= 3) return false;
             if (r?.lastPurchaseDay === s.day) return rng() < 0.3;
-            return rng() < Math.min(0.97, 0.85 + Math.max(0, s.manner?.kindness ?? 0) / 500);
+            const badPenalty = Math.min(0.5, (r?.bad ?? 0) * 0.18);
+            return rng() < Math.min(0.97, 0.85 + Math.max(0, s.manner?.kindness ?? 0) / 500) - badPenalty;
           });
           if (!queue.length) queue = [BUYER_ORDER[Math.floor(rng() * BUYER_ORDER.length)]];
           if (s.missions?.rival === 'active' && queue.length > 1 && rng() < 0.35 + Math.max(0, -(s.manner?.kindness ?? 0)) / 200) {
@@ -1710,12 +1713,13 @@ export const useGame = create<GameState & Actions>()(
           let relationships = s.relationships;
           let reputation = s.reputation;
           let goals = s.goals;
-          if (!tutorial && rel.purchases >= 1 && b.commission && !rel.commissionOffered && b.lines.commission.length) {
+          // a buyer who has had a bad visit here does not vouch for you or hand you their business
+          if (!tutorial && rel.purchases >= 1 && b.commission && !rel.commissionOffered && b.lines.commission.length && rel.bad === 0) {
             enc.log.push({ speaker: 'buyer', text: b.lines.commission[0], mood: 'warm' });
             commissions = [...s.commissions, { buyerId, label: b.commission.label, bonus: b.commission.bonus, done: false, until: s.day + 10 }];
             relationships = { ...relationships, [buyerId]: { ...rel, commissionOffered: true } };
             goals = [...goals.filter((g) => g.id !== 'commission'), { id: 'commission', kind: 'commission', label: `${b.commission.label} (by day ${s.day + 10})`, key: b.commission.label, target: 1 }];
-          } else if (!tutorial && rel.purchases >= 1 && !rel.referred && b.lines.referral.length && rel.visits >= 1) {
+          } else if (!tutorial && rel.purchases >= 1 && !rel.referred && b.lines.referral.length && rel.visits >= 1 && rel.bad === 0) {
             enc.log.push({ speaker: 'buyer', text: b.lines.referral[0], mood: 'warm' });
             relationships = { ...relationships, [buyerId]: { ...rel, referred: true } };
             reputation += 1;

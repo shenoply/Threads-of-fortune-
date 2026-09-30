@@ -247,6 +247,12 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   } else {
     enc.log.push({ speaker: 'buyer', text: pick(L.greeting, ctx.rng) });
   }
+  // a returning buyer does not forget being insulted or lied to: they arrive colder and thinner-skinned
+  if (rel.visits > 0 && rel.bad > 0) {
+    enc.trust = clamp(enc.trust - Math.min(30, rel.bad * 10), 0, 100);
+    enc.patience = Math.max(10, enc.patience - Math.min(24, rel.bad * 8));
+    if (enc.mood === 'neutral') enc.mood = 'skeptical';
+  }
   if (!tutorial) {
     const gr = GROOMING[buyerId];
     const minTier = b.royal ? 3 : (BUYER_TIERS[buyerId]?.[0] ?? 1);
@@ -354,15 +360,31 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
     }
     case 'presentation': {
       const used = (a: string) => enc.argsUsed.includes(a);
-      const args: ActionView[] = [
-        { id: 'story', label: 'Tell its story', sub: used('story') ? 'Already told' : 'Share the rug\'s history', icon: 'scroll' },
-        { id: 'craft', label: 'Explain craftsmanship', sub: used('craft') ? 'Already explained' : 'Knots, dyes, weave', icon: 'needle' },
-        has('room')
-          ? { id: 'fit', label: 'Speak to their room', sub: used('fit') ? 'Already said' : 'Tie it to what they told you', icon: 'room' }
-          : { id: 'durability', label: 'Point out durability', sub: used('durability') ? 'Already said' : 'How long it lasts', icon: 'shield' },
-      ];
+      const base: Record<ArgKind, { label: string; sub: string; icon: ActionView['icon'] }> = {
+        story: { label: 'Tell its story', sub: used('story') ? 'Already told' : 'Share the rug\'s history', icon: 'scroll' },
+        craft: { label: 'Explain craftsmanship', sub: used('craft') ? 'Already explained' : 'Knots, dyes, weave', icon: 'needle' },
+        fit: { label: 'Speak to their room', sub: used('fit') ? 'Already said' : 'Tie it to what they told you', icon: 'room' },
+        durability: { label: 'Point out durability', sub: used('durability') ? 'Already said' : 'How long it lasts', icon: 'shield' },
+      };
+      // Every buyer weighs an angle differently (b.args). Read on them, don't print the number:
+      // their strongest angle leads the menu, and a flat one is flagged before you waste a turn on it.
+      const hint = (kind: ArgKind) => {
+        const w = b.args[kind];
+        if (w >= 1.4) return 'They light up for this';
+        if (w <= 0) return 'Leaves them cold';
+        if (w < 0.6) return 'Not what they came for';
+        return undefined;
+      };
+      const makeArg = (kind: ArgKind): ActionView => {
+        const d = base[kind];
+        const h = !used(kind) ? hint(kind) : undefined;
+        return { id: kind, label: d.label, sub: h ?? d.sub, icon: d.icon };
+      };
+      const available: ArgKind[] = ['story', 'craft', has('room') ? 'fit' : 'durability'];
+      available.sort((x, y) => b.args[y] - b.args[x]);
+      const args: ActionView[] = available.map(makeArg);
       if (enc.argsUsed.length === 0) {
-        args.push(has('room') ? { id: 'durability', label: 'Point out durability', sub: 'How long it lasts', icon: 'shield' } : { id: 'ask_room', label: 'Ask about the room', sub: 'You skipped this', icon: 'room' });
+        args.push(has('room') ? makeArg('durability') : { id: 'ask_room', label: 'Ask about the room', sub: 'You skipped this', icon: 'room' });
       } else {
         args.push({ id: 'name_price', label: 'Name your price', sub: 'Open the bargaining', icon: 'coin' });
       }
