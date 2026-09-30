@@ -18,6 +18,7 @@ import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
 import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type SavedOutfit, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
+import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
   type ActionId, type Ctx, type Effects, type Encounter,
@@ -147,6 +148,16 @@ export interface GameState {
   /** unsold lots that will come back cheaper at the same house */
   reoffers?: Reoffer[];
   bills?: { due: number; since: number; warned: number; last?: { label: string; amount: number }[] };
+  /** money borrowed from the Khan moneylender or the Banque Misr */
+  loans?: Loan[];
+  /** the creditors' road: 1 a lawyer's letter, 2 the bailiff has been; the court makes it bankruptcy */
+  ruin?: Ruin;
+  bankruptcies?: number;
+  /** a second bankruptcy ends the run */
+  ended?: { day: number; text: string };
+  /** cargo cover bought from a Lloyd's agent, and what the insurers owe you for rugs lost under it */
+  insurance?: { until: number };
+  claims?: number;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -261,6 +272,11 @@ interface Actions {
   haggle: (uid: string) => string;
   payDebt: () => void;
   payFamily: (amount: number) => void;
+  /** borrow from a lender in this town; returns a line for the player */
+  borrow: (lender: 'khan' | 'misr', amount: number) => string;
+  repay: (loanId: string) => string;
+  /** buy cargo cover from the Lloyd's agent in this town */
+  insure: () => string;
   restore: (uid: string) => void;
   buyUpgrade: (id: string) => void;
   setSetting: (c: Channel, on: boolean) => void;
@@ -297,8 +313,9 @@ function nightThieves(s: GameState, day: number, hour: number): { patch: Partial
   }
   if (what === 'rug') {
     const r = carried[Math.floor(rng() * carried.length)];
-    const text = `Thieves came in the night and made off with the ${RUGS[r.typeId].name}.`;
-    return { patch: { inventory: s.inventory.filter((i) => i.uid !== r.uid), journal: log(text) }, note: text, night };
+    const claim = (s.insurance?.until ?? 0) >= s.day ? claimFor([r]) : 0;
+    const text = `Thieves came in the night and made off with the ${RUGS[r.typeId].name}.${claim ? ` You are insured: the agent in the next town will pay ${fmt(claim)}.` : ''}`;
+    return { patch: { inventory: s.inventory.filter((i) => i.uid !== r.uid), journal: log(text), ...(claim ? { claims: (s.claims ?? 0) + claim } : {}) }, note: text, night };
   }
   const lost = Math.min(food, 2 + Math.floor(rng() * 3));
   const text = `Thieves came in the night and took ${lost} rations of food.`;
@@ -556,7 +573,9 @@ export const useGame = create<GameState & Actions>()(
           rel.lastRug = item.typeId;
           const good = enc.presentedFit >= 65;
           rel.affinity = Math.min(100, rel.affinity + (good ? 15 : enc.presentedFit < 40 ? -5 : 6) + (enc.honestCount ? 5 : 0));
-          rep += 1 + (enc.presentedFit >= 80 ? 1 : 0) - (enc.presentedFit < 40 ? 1 : 0) + ((t.tier ?? 1) === 4 ? 3 : (t.tier ?? 1) === 3 ? 1 : 0);
+          // a name is built slowly: one for a sale, a second only for a fine piece that truly fits the
+          // buyer, more for the rare ones; a poor fit costs you
+          rep += 1 + (enc.presentedFit >= 80 && (t.tier ?? 1) >= 2 ? 1 : 0) - (enc.presentedFit < 40 ? 1 : 0) + ((t.tier ?? 1) === 4 ? 2 : (t.tier ?? 1) === 3 ? 1 : 0);
           rel.lastPurchaseDay = s.day;
           if (enc.embellished && !enc.embellishCaught) rel.embellishedSale = true;
           journal.push({ day: s.day, text: `Sold ${t.name} to ${b.name} for ${fmt(enc.salePrice)} (paid ${fmt(item.paid)}).` });
@@ -725,7 +744,7 @@ export const useGame = create<GameState & Actions>()(
           commissionsLeft.forEach((c, i) => { if (c.expired && !s.commissions[i].expired) notes.push(`${BUYERS[c.buyerId]?.name ?? 'A buyer'} found another dealer for "${c.label}".`); });
           for (const e of eventsStarting(day)) notes.push(`${e.name}. ${e.text}`);
           // Restoration
-          const inventory = s.inventory.map((i) => {
+          let inventory = s.inventory.map((i) => {
             if (i.restoringUntil && day >= i.restoringUntil) {
               const t = RUGS[i.typeId];
               const n = { ...i, condition: i.restoreTo ?? 'Good', restored: i.restored || i.condition !== 'Dirty', restoringUntil: undefined, restoreTo: undefined, notes: [...i.notes] } as RugItem;
@@ -764,6 +783,59 @@ export const useGame = create<GameState & Actions>()(
             cash += QAMAR_SHARE.dividend;
             ledger.push({ day, kind: 'bonus', label: 'Your share of the Qamar\'s door', amount: QAMAR_SHARE.dividend });
             notes.push(`Nadia sends ${fmt(QAMAR_SHARE.dividend)}: your share of the Qamar's week.`);
+          }
+          // Loans fall due. Stavros adds a tenth for every week late; the bank only writes letters.
+          let loans = (s.loans ?? []).map((l) => ({ ...l }));
+          for (const l of loans) {
+            if (day === l.due + 1) notes.push(`${LENDERS[l.lender].name} expected ${fmt(l.owed)} yesterday.`);
+            if (l.lender === 'khan' && day > l.due && (day - l.due) % 7 === 0) {
+              l.owed = Math.round(l.owed * 1.1);
+              notes.push(`Stavros adds a tenth to what you owe him: ${fmt(l.owed)}.`);
+            }
+          }
+          // The creditors' road: overdue debts bring a lawyer's letter, then the bailiff, then the court.
+          let ruin: Ruin = { ...(s.ruin ?? { stage: 0, since: 0 }) };
+          let bankruptcies = s.bankruptcies ?? 0;
+          let ended = s.ended;
+          const owedNow = overdue(cash, bills.due, bills.due > 0 && day - bills.since >= 5, loans, day);
+          if (owedNow < RUIN_THRESHOLD || day < (ruin.graceUntil ?? 0)) {
+            if (ruin.stage > 0 && owedNow < RUIN_THRESHOLD) { notes.push('Your creditors are paid. The lane stops whispering.'); ruin = { stage: 0, since: 0, graceUntil: ruin.graceUntil }; }
+          } else {
+            if (ruin.stage === 0) {
+              ruin = { stage: 1, since: day };
+              const text = `A lawyer's letter: you owe ${fmt(owedNow)} that is overdue. Pay within ${RUIN_STEPS.bailiff} days, or the bailiff comes to the stall.`;
+              notes.push(text); journal.push({ day, text, kind: 'due' });
+            }
+            const late = day - ruin.since;
+            if (ruin.stage === 1 && late >= RUIN_STEPS.bailiff) {
+              ruin = { stage: 2, since: ruin.since };
+              reputation = Math.max(0, reputation - 3);
+              const best = [...inventory].sort((a, b) => rugValue(b) - rugValue(a))[0];
+              if (best) {
+                const got = Math.round(rugValue(best) / 2);
+                inventory = inventory.filter((i) => i.uid !== best.uid);
+                cash += got;
+                ledger.push({ day, kind: 'sale', label: `Seized by the bailiff: ${RUGS[best.typeId].name}`, amount: got, cost: best.paid });
+                const text = `The bailiff came to the stall and took the ${RUGS[best.typeId].name}. It fetched only ${fmt(got)} at the court's auction, set against what you owe. Pay the rest within ${RUIN_STEPS.court - RUIN_STEPS.bailiff} days or the court will declare you bankrupt.`;
+                notes.push(text); journal.push({ day, text, kind: 'due' });
+              }
+            } else if (ruin.stage === 2 && late >= RUIN_STEPS.court) {
+              bankruptcies += 1;
+              inventory = [...inventory].sort((a, b) => rugValue(a) - rugValue(b)).slice(0, 3);
+              upgrades = [];
+              cash = 0;
+              bills = { due: 0, since: 0, warned: 0, last: bills.last };
+              loans = [];
+              sup.debt = 0;
+              sup.trust = Math.max(0, sup.trust - 30);
+              reputation = Math.floor(reputation / 2);
+              ruin = { stage: 0, since: 0, graceUntil: day + RUIN_GRACE };
+              const text = bankruptcies >= 2
+                ? 'The Mixed Court declares you bankrupt for the second time. No merchant in Cairo will trust your word again. Your father\'s stall passes to strangers.'
+                : 'The Mixed Court declares you bankrupt. Your stock is sold except three poor rugs, your pitch is let to another, your debts are cancelled and your name is mud. Rashid shakes his head and gives you no more credit. You begin again.';
+              notes.push(text); journal.push({ day, text, kind: 'due' });
+              if (bankruptcies >= 2) ended = { day, text };
+            }
           }
           if (cash < 0) notes.push('You ended the day owing the landlord. Sell something tomorrow.');
           journal.push({ day: s.day, text: `Closed the stall. ${s.dayStats.sales} sale(s), gross profit ${fmt(s.dayStats.gross)}.`, kind: 'stall' });
@@ -837,6 +909,10 @@ export const useGame = create<GameState & Actions>()(
             bills,
             family,
             upgrades,
+            loans,
+            ruin,
+            bankruptcies,
+            ended,
             commissions: commissionsLeft,
             day,
             cash,
@@ -1009,6 +1085,10 @@ export const useGame = create<GameState & Actions>()(
               if (fee > 0) set({ cash: g2.cash - fee, ledger: [...g2.ledger, { day: g2.day, kind: 'expense', label: `Checkpoint at ${settlementById(id).name}`, amount: -fee }], journal: [...g2.journal, { day: g2.day, text: `${ev.name}: soldiers at the gate of ${settlementById(id).name} searched the bales. The "inspection fee" was ${fmt(fee)}.`, kind: 'arrive' }] });
             }
           }
+          if (id && (get().claims ?? 0) > 0) {
+            const g3 = get(); const c = g3.claims ?? 0;
+            set({ cash: g3.cash + c, claims: 0, ledger: [...g3.ledger, { day: g3.day, kind: 'bonus', label: 'Insurance claim paid', amount: c }], journal: [...g3.journal, { day: g3.day, text: `The insurance agent in ${settlementById(id).name} paid your claim: ${fmt(c)}.`, kind: 'arrive' }], jobNote: `The insurance agent paid your claim for the stolen rugs: ${fmt(c)}.` });
+          }
           const known = id && !s.world.known.includes(id) ? [...s.world.known, id] : s.world.known;
           const st = id ? settlementById(id) : null;
           set({ world: { ...s.world, at: id, known, ...(st ? { x: st.x, y: st.y } : {}) } });
@@ -1026,12 +1106,17 @@ export const useGame = create<GameState & Actions>()(
           if (o.cashGain) ledger.push({ day: s.day, kind: 'bonus', label: 'Spoils after a fight on the road', amount: o.cashGain });
           let inventory = s.inventory;
           const taken: string[] = [];
+          const lostItems: RugItem[] = [];
           for (let i = 0; i < (o.rugsLost ?? 0); i++) {
             const carried = inventory.filter((x) => !x.stored).sort((a, b) => (RUGS[b.typeId]?.tier ?? 1) - (RUGS[a.typeId]?.tier ?? 1));
             if (!carried.length) break;
             taken.push(RUGS[carried[0].typeId].name);
+            lostItems.push(carried[0]);
             inventory = inventory.filter((x) => x.uid !== carried[0].uid);
           }
+          // insured cargo: the claim is paid by the agent in the next town
+          const claim = lostItems.length && (s.insurance?.until ?? 0) >= s.day ? claimFor(lostItems) : 0;
+          if (claim) set({ claims: (s.claims ?? 0) + claim });
           const troops = { ...s.world.party.troops };
           for (const [id, n] of Object.entries(o.troopsLost ?? {})) troops[id] = Math.max(0, (troops[id] ?? 0) - n);
           if (o.joiners) troops.reformed = (troops.reformed ?? 0) + o.joiners;
@@ -1046,7 +1131,7 @@ export const useGame = create<GameState & Actions>()(
           } : x));
           const hour = s.world.hour + (o.delayHours ?? 0);
           set({ cash, ledger, inventory, reputation: Math.max(0, s.reputation + (o.rep ?? 0)), world: { ...s.world, hour: Math.min(hour, 23.9), party: { ...s.world.party, troops }, parties }, journal: [...s.journal, { day: s.day, text: o.text, kind: 'road' }] });
-          return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.` : o.text;
+          return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.${claim ? ` You are insured: the agent in the next town will pay ${fmt(claim)}.` : ''}` : o.text;
         },
 
         checkJobs: (id) => {
@@ -1925,6 +2010,59 @@ export const useGame = create<GameState & Actions>()(
             goals: debt === 0 ? s.goals.filter((g) => g.kind !== 'payRashid') : s.goals,
           });
           audio.sfx('coins');
+        },
+
+        borrow: (lid, amount) => {
+          const s = get();
+          const L = LENDERS[lid];
+          if (!s.world.at || !L.towns.includes(s.world.at)) return `${L.name} is not in this town.`;
+          if (s.reputation < L.minRep) return `${L.name} will not lend to a merchant without a name. Come back with reputation ${L.minRep}.`;
+          if ((s.loans ?? []).some((l) => l.lender === lid)) return `You already owe ${L.name}. Pay that first.`;
+          if ((s.bankruptcies ?? 0) > 0 && lid === 'misr') return 'The bank has your name on its list of bankrupts.';
+          const stock = s.inventory.reduce((a, i) => a + rugValue(i), 0);
+          if (lid === 'misr' && stock < amount) return `The bank wants stock worth at least what you borrow. Yours is worth ${fmt(stock)}.`;
+          const amt = Math.max(100, Math.min(amount, L.max(s.reputation)));
+          const loan: Loan = { id: newUid('l'), lender: lid, principal: amt, owed: Math.round((amt * L.owedPer100) / 100), taken: s.day, due: s.day + L.days };
+          set({
+            cash: s.cash + amt,
+            loans: [...(s.loans ?? []), loan],
+            ledger: [...s.ledger, { day: s.day, kind: 'debt', label: `Borrowed from ${L.name}`, amount: amt }],
+            journal: [...s.journal, { day: s.day, text: `Borrowed ${fmt(amt)} from ${L.name}. ${fmt(loan.owed)} to repay by ${dateFor(loan.due).short}.`, kind: 'due' }],
+          });
+          audio.sfx('coins');
+          return `${L.name} counts out ${fmt(amt)}. You owe ${fmt(loan.owed)} by ${dateFor(loan.due).short}.`;
+        },
+
+        repay: (loanId) => {
+          const s = get();
+          const l = (s.loans ?? []).find((x) => x.id === loanId);
+          if (!l) return '';
+          if (s.cash < l.owed) return `You need ${fmt(l.owed)} to clear this loan. You have ${fmt(s.cash)}.`;
+          set({
+            cash: s.cash - l.owed,
+            loans: (s.loans ?? []).filter((x) => x.id !== loanId),
+            ledger: [...s.ledger, { day: s.day, kind: 'debt', label: `Repaid ${LENDERS[l.lender].name}`, amount: -l.owed }],
+            journal: [...s.journal, { day: s.day, text: `Repaid ${LENDERS[l.lender].name} in full (${fmt(l.owed)}).`, kind: 'due' }],
+          });
+          audio.sfx('coins');
+          return `${LENDERS[l.lender].name} tears up your note.`;
+        },
+
+        insure: () => {
+          const s = get();
+          if (!s.world.at || !INSURERS.includes(s.world.at)) return 'There is no insurance agent here.';
+          const carried = s.inventory.filter((i) => !i.stored);
+          if (!carried.length) return 'You carry nothing worth insuring. Rugs packed for the road are what the policy covers.';
+          const premium = premiumFor(s.inventory);
+          if (s.cash < premium) return `The premium is ${fmt(premium)}. You have ${fmt(s.cash)}.`;
+          set({
+            cash: s.cash - premium,
+            insurance: { until: s.day + COVER_DAYS },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Cargo insurance premium', amount: -premium }],
+            journal: [...s.journal, { day: s.day, text: `Insured your packed rugs for ${COVER_DAYS} days (${fmt(premium)}).`, kind: 'road' }],
+          });
+          audio.sfx('pen');
+          return `The agent writes out a policy: your packed rugs are covered for ${COVER_DAYS} days. Seven parts in ten of their worth if they are taken on the road.`;
         },
 
         payFamily: (amount) => {

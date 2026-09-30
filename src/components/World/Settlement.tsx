@@ -33,6 +33,8 @@ import { BUYERS } from '../../data/buyers';
 import { PortraitOrCameo } from '../People/Person';
 import { personFor } from '../../data/people';
 import { dateLine } from '../../game/economy/newspaper';
+import { FinancePanel } from './Finance';
+import { LENDERS, INSURERS } from '../../game/systems/finance';
 
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town' }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab }) {
@@ -41,6 +43,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // arriving in a town opens its menu first, Bannerlord-style: the town's picture and what there is
   // to do, each a big button into the part of the panel below that does it
   const [menu, setMenu] = useState(initialTab === 'town');
+  const [finance, setFinance] = useState(false);
   const goTo = (t: SetTab, anchor?: string) => {
     setMenu(false); setTab(t);
     if (anchor) window.setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
@@ -369,6 +372,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
           ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
           ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
+          ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
           ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),
         ];
         return (
@@ -396,6 +400,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </div>
         );
       })()}
+      {finance && <FinancePanel onClose={() => setFinance(false)} />}
       <Tip id="town" when={!menu && !inCity && !inVenue && !talkTo && !inAuction} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
       {/* Walking the streets stays open underneath whatever shop or hall it leads to, so stepping back

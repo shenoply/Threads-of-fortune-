@@ -36,6 +36,8 @@ import { rentFor } from './data/suppliers';
 import { paintedMap } from './game/systems/mapRender';
 import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
+import { FinancePanel } from './components/World/Finance';
+import { overdue } from './game/systems/finance';
 
 type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan' | 'hero';
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
@@ -45,6 +47,9 @@ export default function App() {
   // the save: zustand writes it to localStorage on every change; this is only so the player can see
   // that, keep a copy as a file, and bring a copy back
   const [savedAt, setSavedAt] = useState('');
+  const [finance, setFinance] = useState(false);
+  // money trouble shows in the top bar: an empty purse, a late bill, a loan past due, the creditors
+  const inDebt = g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day) > 0);
   useEffect(() => useGame.subscribe(() => setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))), []);
   const downloadSave = () => {
     const raw = localStorage.getItem('threads-of-fortune-save');
@@ -297,6 +302,7 @@ export default function App() {
           <button className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
             <Icon name="coin" />{fmt(g.cash)}
           </button>
+          {inDebt && <button className="hud-chip hud-debt" onClick={() => setFinance(true)} title="You owe money that is overdue" data-testid="hud-debt">Debts</button>}
           <button className="hud-chip hud-rep" title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep">
             <Icon name="star" />{g.reputation}
           </button>
@@ -426,6 +432,18 @@ export default function App() {
 
 
 
+      {finance && <FinancePanel onClose={() => setFinance(false)} />}
+      {g.ended && phase === 'game' && (
+        <div className="overlay ending" data-testid="ending">
+          <div className="modal-card ending-card">
+            <small>THE EGYPTIAN GAZETTE · {dateFor(g.ended.day).long.toUpperCase()}</small>
+            <h2>A Giza carpet stall closes</h2>
+            <p>{g.ended.text}</p>
+            <p className="dim">You traded for {g.ended.day} days, sold {g.ledger.filter((l) => l.kind === 'sale').length} rugs and reached reputation {g.reputation}.</p>
+            <button className="btn primary" onClick={() => { audio.stopAll(); g.reset(); setPhase('title'); }} data-testid="ending-restart">Begin again</button>
+          </div>
+        </div>
+      )}
       {paper !== null && <Newspaper day={paper} onClose={() => setPaper(null)} />}
       {radioOpen && <Radio onClose={() => setRadioOpen(false)} />}
       {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}

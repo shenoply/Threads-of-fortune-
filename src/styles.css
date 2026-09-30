@@ -2058,3 +2058,19 @@ button.hud-chip { cursor: pointer; }
 .set-cash svg, .set-purse svg { width: 16px; height: 16px; color: #d9a55a; }
 .set-purse { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 6px; margin: 0 -2px 6px; padding: 7px 10px; background: #1a1009f2; border: 1px solid #8c6232; border-radius: 6px; font-family: var(--label); font-size: 14.5px; color: #e6dcc0; }
 .set-purse b { font-family: var(--display); font-size: 18px; color: #fff1d6; }
+
+/* money trouble */
+.hud-chip.hud-debt { background: #6a1d12; border-color: #e0704a; color: #ffd9c4; font-family: var(--label); animation: debt-pulse 2.4s ease-in-out infinite; }
+@keyframes debt-pulse { 50% { box-shadow: 0 0 0 3px #e0704a55; } }
+.modal-card.finance { max-height: 88vh; overflow-y: auto; }
+.fin-line { margin: 4px 0; padding: 6px 9px; border-radius: 5px; background: #1c1209; border: 1px solid #5b4128; font-size: 15px; }
+.fin-line.warn { border-color: #e0704a; color: #ffd0bb; }
+.fin-line.ruin { border-color: #e0704a; background: #3a140c; color: #ffd9c4; }
+.fin-line.ok { border-color: #8fae5b; color: #d9efbd; }
+.fin-line.loan { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.fin-lender { margin: 6px 0 10px; padding: 8px 10px; border-radius: 6px; border: 1px solid #8c6232; background: #21160c; }
+.fin-lender b { font-family: var(--display); font-size: 17px; display: block; }
+.fin-lender small { color: #bda57a; }
+.fin-lender p { margin: 6px 0; font-size: 14.5px; }
+.ending-card { max-width: 520px; text-align: center; }
+.ending-card small { font-family: var(--label); letter-spacing: .1em; color: #c8b27f; }
