@@ -200,7 +200,6 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
       <header className="arran-lab__header">
         <div><strong>Arran's textile laboratory</strong><small>Giza · 1925 · {clock}</small></div>
         <span className="arran-lab__cash" data-testid="arran-cash">{fmt(g.cash)}</span>
-        <button type="button" className="btn" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">Price book</button>
         <button type="button" className="btn" onClick={onLeave} data-testid="arran-leave">Leave</button>
       </header>
 
@@ -238,6 +237,9 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['board', 'The board']] as [Tab, string][]).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
         ))}
+        <button type="button" className="arran-lab__tab arran-lab__tab--book" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">
+          <img src="art/arran/cat/fibre.webp" alt="" aria-hidden="true" />Price book
+        </button>
       </nav>
 
       <div className="arran-lab__panel" aria-live="polite" data-testid="arran-panel">
@@ -251,7 +253,13 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
           {tab === 'test' && !view && !ask && (
             <>
               {!rugs.length && <p>"Bring me a rug and I will see what it will tell us." You have no rugs.</p>}
-              {!rug && <p className="dim small">What each test does and costs is in his <button type="button" className="linklike" onClick={() => setCatalogue(true)} data-testid="arran-catalogue-link">price book</button>.</p>}
+              {!rug && (
+                <button type="button" className="arran-bookcard" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-link">
+                  <img src="art/arran/cat/microscope.webp" alt="" aria-hidden="true" />
+                  <span><b>A. Embleton's price book</b><small>What each test tells you, what it costs, signed reports and instruments</small></span>
+                  <i aria-hidden="true">Open ›</i>
+                </button>
+              )}
               {rugs.length > 0 && <p className="arran-step">{rug ? `${RUGS[rug.typeId]!.name}: choose a test` : 'Choose a rug'}</p>}
               <div className="arran-rugs" role="listbox" aria-label="Your rugs">
                 {rugs.map((i) => {
