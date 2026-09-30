@@ -18,8 +18,8 @@ export function Customers() {
     if (!seen.includes(id)) useGame.setState({ buyersSeen: [...seen, id] });
   };
   const groups: { title: string; note: string; ids: string[] }[] = [
-    { title: 'Everyday customers', note: 'Common rugs. They keep the stall alive.', ids: BUYER_ORDER.filter((id) => (BUYER_TIERS[id]?.[0] ?? 1) === 1) },
-    { title: 'Fine households', note: 'Fine rugs, £6 to £18. They start coming once you are a Bazaar merchant.', ids: BUYER_ORDER.filter((id) => BUYER_TIERS[id]?.[0] === 2) },
+    { title: 'Everyday customers', note: 'Common rugs. They keep the stall alive.', ids: BUYER_ORDER.filter((id) => SPECIAL_BUYERS.includes(id) || (BUYER_TIERS[id]?.[0] ?? 1) === 1) },
+    { title: 'Fine households', note: 'Fine rugs, £6 to £18. They start coming once you are a Bazaar merchant.', ids: BUYER_ORDER.filter((id) => !SPECIAL_BUYERS.includes(id) && BUYER_TIERS[id]?.[0] === 2) },
     { title: 'Rich collectors', note: 'Exceptional and Legendary rugs. They come to a Khan dealer, and laugh at a stall of village mats.', ids: BUYER_ORDER.filter((id) => (BUYER_TIERS[id]?.[0] ?? 1) >= 3) },
     { title: 'Famous names of 1925', note: 'Real people of the time. Once you are a Khan dealer they drop in, or stay in a town for a few days.', ids: CELEB_IDS },
     { title: 'The courts', note: 'Kings, a queen, an emir and a president. They receive you in their palaces once your reputation is high enough.', ids: ROYALS },
