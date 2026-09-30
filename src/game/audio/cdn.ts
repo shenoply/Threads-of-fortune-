@@ -2,11 +2,11 @@
 // fall back to the GitHub repo through jsDelivr.
 const CDN = 'https://cdn.jsdelivr.net/gh/shenoply/Threads-of-fortune-@main/public/';
 
-export async function fetchMedia(path: string): Promise<Response> {
+export async function fetchMedia(path: string, init?: RequestInit): Promise<Response> {
   try {
-    const r = await fetch(path);
+    const r = await fetch(path, init);
     if (r.ok) return r;
   } catch { /* fall through */ }
-  if (!import.meta.env.PROD) return fetch(path);
-  return fetch(CDN + path);
+  if (!import.meta.env.PROD) return fetch(path, init);
+  return fetch(CDN + path, init);
 }

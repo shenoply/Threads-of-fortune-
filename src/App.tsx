@@ -8,7 +8,7 @@ import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/wardrobe';
-import { preload, buyerArt, STALL_ART, CITY_ART } from './game/preload';
+import { preload, buyerArt, STALL_ART } from './game/preload';
 import { useGame, dateFor, clock } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
@@ -213,10 +213,9 @@ export default function App() {
 
   const enterGame = () => {
     audio.ensure();
-    // warm the cache for the paintings shown first, so nothing pops in; the cities follow in idle moments
+    // warm the cache for the paintings shown first, so nothing pops in; a city's painting loads when you go there
     preload([...STALL_ART, ...g.queue.slice(g.visitIdx).flatMap(buyerArt)], true);
-    preload(CITY_ART);
-    voice.load().then(() => voice.preload(['seller', 'narrator', 'samira', 'yusuf', 'mariam', 'rashid']));
+    voice.load().then(() => voice.preload(['seller', 'samira'])); // a 4 KB read each: lines are fetched one by one
     paintedMap(); // start loading the travel map so the World tab opens on it
     if (g.settings.ambience) audio.startAmbience();
     if (g.settings.music) setTimeout(() => audio.startMusic('stall'), 4000);

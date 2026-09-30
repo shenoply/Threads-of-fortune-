@@ -3,8 +3,10 @@
 //   { "sprites": { "samira": { "file": "voices/samira.mp3", "clips": { "1a2b3c4d": [start, dur], "9f8e7d6c.a": [...], "num-120": [...] } } } }
 // Missing clips fall back to captions. Lines never overlap.
 //
-// A character's file is kept as the compressed MP3 it came as (a few MB) and each line is decoded
-// on its own just before it is spoken. Decoding a whole file up front is what it replaced: half an
+// Each line is fetched on its own with an HTTP Range request (a few KB: the bytes for its stretch of
+// the file) and decoded just before it is spoken. Nobody downloads a character's whole file (2 to 8
+// MB) any more just to hear their first line; a server that ignores Range sends the whole file once,
+// and it is kept and sliced as before. Each line is decoded on its own just before it is spoken. Decoding a whole file up front is what it replaced: half an
 // hour of speech comes to some 400 MB of raw samples, and six such files at once had iPhones
 // reloading the page for want of memory.
 import { fetchMedia } from './cdn';
@@ -68,6 +70,8 @@ interface Sprite { file: string; clips: Record<string, [number, number]> }
 class Voice {
   private sprites: Record<string, Sprite> = {};
   private files: Record<string, Uint8Array | 'loading' | 'failed'> = {};
+  /** bytes per second of each character's file, read from its first frame */
+  private rates: Record<string, Promise<number>> = {};
   private clips = new Map<string, Promise<{ buf: AudioBuffer; lead: number } | null>>();
   private loading: Promise<void> | null = null;
   private ctx: AudioContext | null = null;
@@ -104,23 +108,39 @@ class Voice {
     return this.ctx;
   }
 
-  /** Start fetching a character's voice file ahead of time. */
-  preload(speakers: string[]) {
-    for (const sp of speakers) {
-      const s = this.sprites[sp];
-      if (!s || this.files[sp]) continue;
-      this.files[sp] = 'loading';
-      fetchMedia(`${s.file}?v=${Object.keys(s.clips).length}`)
-        .then((r) => r.arrayBuffer())
-        .then((b) => { this.files[sp] = new Uint8Array(b); })
-        .catch(() => { this.files[sp] = 'failed'; });
+  private url(sp: string) { const s = this.sprites[sp]; return `${s.file}?v=${Object.keys(s.clips).length}`; }
+
+  /** Bytes [from, to) of a character's file. A 206 is just those bytes; a 200 is the whole file, kept. */
+  private async range(sp: string, from: number, to: number): Promise<{ bytes: Uint8Array; offset: number } | null> {
+    const whole = this.files[sp];
+    if (whole instanceof Uint8Array) return { bytes: whole.slice(from, to), offset: from };
+    try {
+      const r = await fetchMedia(this.url(sp), { headers: { Range: `bytes=${from}-${Math.max(from, to - 1)}` } });
+      const b = new Uint8Array(await r.arrayBuffer());
+      if (r.status === 206) return { bytes: b, offset: from };
+      this.files[sp] = b; // the server sent everything: keep it
+      return { bytes: b.slice(from, to), offset: from };
+    } catch {
+      return null;
     }
   }
 
-  isLoading(speaker: string) {
+  /** The file's byte rate, from a small read of its first frames. */
+  private rateOf(sp: string) {
+    if (!this.rates[sp]) {
+      this.rates[sp] = this.range(sp, 0, 4096).then((r) => (r ? frameAt(r.bytes, syncFrom(r.bytes, 0))?.bytesPerSec ?? 4000 : 4000));
+    }
+    return this.rates[sp];
+  }
+
+  /** Warm a character's voice: a 4 KB read, not the whole file. */
+  preload(speakers: string[]) {
+    for (const sp of speakers) if (this.sprites[sp]) void this.rateOf(sp);
+  }
+
+  isLoading(_speaker: string) {
     if (!this.enabled) return false;
-    if (this.loading && !Object.keys(this.sprites).length && this.count === 0 && !this.loadedOnce) return true;
-    return this.files[speaker] === 'loading';
+    return !!this.loading && !Object.keys(this.sprites).length && this.count === 0 && !this.loadedOnce;
   }
   loadedOnce = false;
 
@@ -128,9 +148,7 @@ class Voice {
   async whenReady(speaker: string, timeoutMs = 4000) {
     await this.load();
     if (!this.sprites[speaker]) return;
-    this.preload([speaker]);
-    const t0 = performance.now();
-    while (this.files[speaker] === 'loading' && performance.now() - t0 < timeoutMs) await new Promise((r) => setTimeout(r, 80));
+    await Promise.race([this.rateOf(speaker), new Promise((r) => setTimeout(r, timeoutMs))]);
   }
 
   private segments(speaker: string, text: string): [number, number][] | null {
@@ -150,12 +168,9 @@ class Voice {
 
   has(speaker: string, text: string) {
     if (!this.enabled) return false;
-    const f = this.files[speaker];
-    if (!f || f === 'loading' || f === 'failed') {
-      if (!f) this.preload([speaker]);
-      return false;
-    }
-    return !!this.segments(speaker, text);
+    const ok = !!this.segments(speaker, text);
+    if (ok) this.preload([speaker]);
+    return ok;
   }
 
   /**
@@ -167,15 +182,17 @@ class Voice {
     const key = `${speaker}:${seg[0]}`;
     const hit = this.clips.get(key);
     if (hit) return hit;
-    const f = this.files[speaker];
     const p = (async () => {
-      if (!f || f === 'loading' || f === 'failed') return null;
-      const rate = frameAt(f, syncFrom(f, 0))?.bytesPerSec ?? 4000;
+      const rate = await this.rateOf(speaker);
       const margin = 0.3;
-      const from = syncFrom(f, Math.floor((seg[0] - margin) * rate));
-      const to = Math.min(f.length, Math.ceil((seg[0] + seg[1] + margin) * rate));
+      const want = Math.max(0, Math.floor((seg[0] - margin) * rate));
+      const got = await this.range(speaker, want, Math.ceil((seg[0] + seg[1] + margin) * rate));
+      if (!got || !got.bytes.length) return null;
+      // cut at a frame boundary so the decoder starts cleanly
+      const cut = syncFrom(got.bytes, 0);
+      const from = got.offset + cut;
       try {
-        const buf = await this.audioCtx().decodeAudioData(f.slice(from, to).buffer);
+        const buf = await this.audioCtx().decodeAudioData(got.bytes.slice(cut).buffer);
         // the decoder's own priming delay puts the sound a few ms later than the bytes say
         return { buf, lead: Math.max(0, seg[0] - from / rate - 0.02) };
       } catch {
@@ -196,9 +213,6 @@ class Voice {
   say(speaker: string, text: string): Promise<void> {
     this.stop();
     if (!this.enabled) return Promise.resolve();
-    const f = this.files[speaker];
-    if (!f) this.preload([speaker]);
-    if (!f || f === 'loading' || f === 'failed') return Promise.resolve();
     const segs = this.segments(speaker, text);
     if (!segs) return Promise.resolve();
     const ctx = this.audioCtx();
