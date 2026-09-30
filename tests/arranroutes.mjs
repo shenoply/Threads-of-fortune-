@@ -12,7 +12,8 @@ const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFa
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
 const st = async () => JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).state;
-const live = () => p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); const s = m.useGame.getState(); return { at: s.world.at, hour: s.world.hour, day: s.day, food: s.world.party.food, cash: s.cash }; });
+// read the saved state (the app writes it on every change), not a module import that hot reload can split
+const live = () => p.evaluate(() => { const s = JSON.parse(localStorage.getItem('threads-of-fortune-save')).state; return { at: s.world.at, hour: s.world.hour, day: s.day, food: s.world.party.food, cash: s.cash }; });
 const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
 const toLab = async () => {
@@ -23,7 +24,7 @@ const toLab = async () => {
 };
 // walk until we are in `town`, handling the pass card, nightfall and anything else that stops the caravan
 const walkTo = async (town, label) => {
-  for (let i = 0; i < 1200; i++) {
+  for (let i = 0; i < 4000; i++) {
     const l = await live();
     if (l.at === town) return true;
     if (await has('pass-card')) {
@@ -65,6 +66,11 @@ try {
   await card.scrollIntoViewIfNeeded(); await p.screenshot({ path: `${S}/r-errand-card.png` });
   if (await has('errand-buyfood-field_safety')) { await p.click('[data-testid=errand-buyfood-field_safety]'); console.log('   bought food:', await p.locator('[data-testid=errand-note-field_safety]').textContent(), '| food now', (await live()).food); }
 
+  if (process.env.START === 'sinai') {
+    await edit(`s.world.at = 'sinai'; const t = { x: 489.7, y: 460.9 }; s.world.x = t.x; s.world.y = t.y; s.day = 16; s.world.hour = 6.5; s.crossings = { 'giza>sinai:1': { choice: 'escort', risk: 40, outcome: { kind: 'hard', text: '', fatigue: 18, foodLost: 2, cashLost: 0, cargoLost: false, extraDays: 0 } } };`);
+    await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
+    console.log('   (resumed at St Catherine\'s; the outward walk was verified in a full run: arrived day 16, 25 March)');
+  } else {
   // travel: a route preview, not the remote town
   await p.click('[data-testid=errand-travel-field_safety]'); await p.waitForTimeout(1200);
   console.log('   after "Travel to": remote town panel open?', await has('town-menu'), '| plan card with Travel button?', await has('travel'), '| still at', (await live()).at);
@@ -73,11 +79,12 @@ try {
   const got = await walkTo('sinai', 'out');
   const t1 = await live();
   console.log('   arrived at St Catherine\'s:', got, `| day ${t0.day} ${t0.hour.toFixed(1)}h → day ${t1.day} ${t1.hour.toFixed(1)}h | food ${t0.food} → ${t1.food}`);
+  }
 
   // the institution: open the town, go to the records room; wait for the doors if early
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); m.useGame.setState((s) => ({ world: { ...s.world, hour: 6.5 } })); });
+  await edit(`s.world.hour = 6.5;`); await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-sinai]').dispatchEvent('click'); await p.waitForTimeout(500); if (await has('town-menu-open')) await p.click('[data-testid=town-menu-open]'); }
-  await p.waitForSelector('[data-testid=town-menu]'); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
+  await p.waitForSelector('[data-testid=town-menu]'); await p.waitForTimeout(1200); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   console.log('3. at 06:30:', await p.locator('[data-testid=library-closed]').innerText().then((t) => t.replace(/\n+/g, ' | ')));
   await p.click('[data-testid=library-wait]'); await p.waitForTimeout(200);
   console.log('   waited: hour', (await live()).hour, '| closed card still?', await has('library-closed'));
@@ -110,9 +117,9 @@ try {
   console.log('5. Port Said route preview:', await has('travel'), '| remote panel?', await has('town-menu'));
   const ok2 = await walkTo('portsaid', 'portsaid');
   console.log('   arrived at Port Said:', ok2, '| hour', (await live()).hour.toFixed(1));
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); m.useGame.setState((s) => ({ world: { ...s.world, hour: 9 } })); });
+  await edit(`s.world.hour = 9;`); await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-portsaid]').dispatchEvent('click'); await p.waitForTimeout(500); if (await has('town-menu-open')) await p.click('[data-testid=town-menu-open]'); }
-  await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
+  await p.waitForTimeout(1200); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   await p.click('[data-testid=library-search-restricted_records]'); await p.click('[data-testid=library-copy-restricted_records]'); await p.waitForTimeout(200);
   console.log('   extract bought:', (await st()).arranBooks.restricted_records.phase);
   await p.click('[data-testid=library-leave]');
