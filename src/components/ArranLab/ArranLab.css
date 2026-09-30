@@ -245,3 +245,10 @@
 .arran-casefile b { color: var(--brass-hi); font-size: 15px; }
 .arran-casefile small { color: var(--text-dim); font-size: 13px; }
 .pass-folio { color: #bfe3a8; }
+
+/* this visit's scene: the painting fills the view, his line sits in the conversation panel */
+.arran-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; z-index: 3; }
+.arran-scene-talk { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; background: rgba(0,0,0,0.22); }
+.arran-scene-talk p { margin: 0 0 8px !important; line-height: 1.45; }
+.arran-scene-talk__who { display: block; font-family: var(--label); letter-spacing: 0.1em; color: var(--brass-hi); font-size: 13px; text-transform: uppercase; }
+.arran-scene-talk .btn { min-height: 44px; }

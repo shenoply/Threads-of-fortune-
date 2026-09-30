@@ -12,6 +12,7 @@ import { ArranSubtitle, MummyStudy, labPortraitFor } from './ArranVoiceUI';
 import { playArranVoice, preloadArranVoice, stopArranVoice, useSubtitle } from '../../game/audio/arranVoice';
 import { ACTIVITY_SCENE, mummyPermitted, type ArranActivity } from '../../game/systems/arranVisits';
 import { RoadPanel } from './RoadPanel';
+import { pickArranScene, type ScenePick } from '../../game/systems/arranScenes';
 import { ErrandCard } from './ErrandCard';
 import './ArranLab.css';
 
@@ -93,6 +94,9 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const [catalogue, setCatalogue] = useState(false);
   const [activity, setActivity] = useState<ArranActivity | null>(null);
   const [mummy, setMummy] = useState(false);
+  // this visit's scene: a picture and Arran's opening line, until you look around the lab
+  const [scene, setScene] = useState<ScenePick | null>(null);
+  const [sceneAsk, setSceneAsk] = useState(false);
   const said = useSubtitle((s) => s.active);
   // leaving the lab silences him
   useEffect(() => () => stopArranVoice(), []);
@@ -127,7 +131,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const oy = Math.min(0, Math.max(box.h - H, box.h * 0.45 - (focus.y / 100) * H));
   const world: CSSProperties = { width: W, height: H, transform: `translate(${ox + px.x * 8}px, ${oy + px.y * 5}px)`, ['--ww' as string]: `${W}px` };
 
-  const goTab = (t: Tab) => { setTab(t); setView(null); setAsk(null); setConfirm(null); setMsg(''); setSpot(t === 'board' ? 'board' : t === 'notebook' ? 'notebook' : null); audio.sfx('tap'); if (t === 'board' && tab !== 'board') playArranVoice('lab'); };
+  const goTab = (t: Tab) => { setScene(null); setTab(t); setView(null); setAsk(null); setConfirm(null); setMsg(''); setSpot(t === 'board' ? 'board' : t === 'notebook' ? 'notebook' : null); audio.sfx('tap'); if (t === 'board' && tab !== 'board') playArranVoice('lab'); };
   const rugs = g.inventory.filter((i) => RUGS[i.typeId]);
   const rug = rugs.find((i) => i.uid === rugId) ?? null;
   // step inside: find him at today's activity; he greets you (this tap is the user gesture browsers want)
@@ -140,8 +144,12 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
     // the linen study announces itself on the desk; it never opens over the lab by itself
     const sp = ACTIVITY_SCENE[act].spot;
     if (sp) setSpot(sp);
-    playArranVoice('greeting');
+    // one scene per visit, chosen from what is really going on; its line is his greeting
+    const st = useGame.getState();
+    const pick = pickArranScene({ ...st, hour: st.world.hour });
+    setScene(pick); setSceneAsk(false);
   };
+  const leaveScene = () => { setScene(null); setSceneAsk(false); };
   // tapping Arran: something that fits what is on screen
   const talk = () => {
     const wantsMatthews = ['requested', 'located', 'copy_acquired'].includes(bookPhase(g.arranBooks, 'fibres'));
@@ -244,6 +252,9 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         }}
         onPointerLeave={() => setPx({ x: 0, y: 0 })}
       >
+        {scene && (
+          <img className="arran-scene" src={scene.scene.img ?? `${BASE}13-lab-room.webp`} alt={`Arran: ${scene.scene.title}`} draggable={false} data-testid="arran-scene" data-scene={scene.scene.n} />
+        )}
         <div className="arran-lab__world" style={world} data-testid="arran-world">
           <img className="arran-lab__room" src={`${BASE}13-lab-room.webp`} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a slate board" draggable={false} />
           <div className="arran-lab__board" aria-label="Chemistry board" data-testid="arran-board">
@@ -262,12 +273,12 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         <ArranSubtitle />
       </div>
 
-      {sceneLine && (
+      {sceneLine && !scene && (
         <p className="arran-activity" data-testid="arran-activity" data-activity={activity ?? ''}>
           {sceneLine}
         </p>
       )}
-      {mummyPermitted(g.arranVisit, g.day) && (
+      {mummyPermitted(g.arranVisit, g.day) && scene?.scene.n !== 7 && (
         <button type="button" className="arran-casefile" onClick={() => setMummy(true)} data-testid="arran-mummy-open">
           <b>{g.arranVisit?.mummyIntroductionSeen ? 'Case file: the museum linen thread' : 'New case file: the museum linen thread'}</b>
           <small>{g.arranVisit?.mummyIntroductionSeen ? 'Read the study again' : 'Hamza Effendi has brought one detached thread. Open when you are ready.'}</small>
@@ -284,6 +295,21 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
 
       <div className="arran-lab__panel" aria-live="polite" data-testid="arran-panel">
         <div className="arran-lab__card">
+          {scene && (
+            <div className="arran-scene-talk" data-testid="arran-scene-talk" data-reason={scene.reason}>
+              <p><b className="arran-scene-talk__who">Arran</b> {sceneAsk ? scene.scene.ask : `"${scene.scene.line}"`}</p>
+              <div className="arran-btns">
+                {scene.book && g.arranBooks?.[scene.book]?.phase === 'copy_acquired' && (
+                  <button type="button" className="btn primary" onClick={() => { const r = g.arranReturnBook(scene.book!); leaveScene(); setTab('notebook'); setSpeech(r.message); if (r.ok) playArranVoice({ id: 'arran-books-02' }); }} data-testid="arran-scene-give">Give him the copy</button>
+                )}
+                {scene.scene.n === 7 && <button type="button" className="btn primary" onClick={() => { leaveScene(); setMummy(true); }} data-testid="arran-scene-case">Open the case file</button>}
+                {(scene.scene.n === 5 || scene.scene.n === 8) && <button type="button" className="btn primary" onClick={() => goTab('notebook')} data-testid="arran-scene-route">The route and your food</button>}
+                {scene.scene.n === 9 && <button type="button" className="btn primary" onClick={() => goTab('road')} data-testid="arran-scene-papers">Papers and patrols</button>}
+                {!sceneAsk && <button type="button" className="btn" onClick={() => { setSceneAsk(true); audio.sfx('tap'); }} data-testid="arran-scene-ask">Ask Arran about it</button>}
+                <button type="button" className="btn" onClick={() => { leaveScene(); audio.sfx('tap'); }} data-testid="arran-scene-leave">Look around the lab</button>
+              </div>
+            </div>
+          )}
           {msg && <p className="arran-msg" data-testid="arran-msg">{msg}</p>}
 
           {/* ---- test a rug: pick a rug, then a test ---- */}

@@ -188,8 +188,9 @@ try {
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
   await p.locator('[data-testid=poi-lab]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-lab]');
   await p.waitForSelector('[data-testid=arran-door]'); await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(800);
-  console.log('   entry is the plain lab (no modal):', !(await has('mummy-study')), '| case file offered:', await has('arran-mummy-open'));
-  await p.click('[data-testid=arran-mummy-open]'); await p.waitForSelector('[data-testid=mummy-study]');
+  console.log('   entry is the plain lab (no modal):', !(await has('mummy-study')), '| case file offered:', (await has('arran-mummy-open')) + (await has('arran-scene-case')));
+  console.log('   offered in his greeting:', await has('arran-scene-case'));
+  await p.click((await has('arran-scene-case')) ? '[data-testid=arran-scene-case]' : '[data-testid=arran-mummy-open]'); await p.waitForSelector('[data-testid=mummy-study]');
   await p.screenshot({ path: `${S}/x-${tag}-mummy.png` });
   for (let i = 0; i < 12 && (await has('mummy-next')); i++) { await p.click('[data-testid=mummy-next]'); await p.waitForTimeout(250); }
   console.log('   study seen:', (await st()).arranVisit.mummyIntroductionSeen);
