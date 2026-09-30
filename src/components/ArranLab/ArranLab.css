@@ -128,3 +128,6 @@
   .arran-errand .btn { width: 100%; }
   .library__scene { height: 30vh; }
 }
+
+.arran-lab .linklike { background: none; border: 0; padding: 0; min-height: 0; color: var(--brass-hi); text-decoration: underline; font: inherit; cursor: pointer; }
+@media (max-width: 420px) { .arran-lab__header { gap: 6px; padding-left: 10px; padding-right: 10px; } .arran-lab__header .btn { padding: 6px 10px; } }

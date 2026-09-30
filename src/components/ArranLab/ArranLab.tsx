@@ -7,6 +7,7 @@ import { LAB_SERVICES, LAB_HOURS, conditionAfterCut, examineBlock, hasLooseThrea
 import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase, serviceBook, type BookId } from '../../game/systems/arranBooks';
 import { settlementById } from '../../game/systems/world';
 import { BookReader } from './Library';
+import { ArranCatalogue } from './ArranCatalogue';
 import './ArranLab.css';
 
 /**
@@ -70,6 +71,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const [msg, setMsg] = useState('');
   const [speech, setSpeech] = useState('');
   const [read, setRead] = useState<BookId | null>(null);
+  const [catalogue, setCatalogue] = useState(false);
   const vp = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const findings = g.arranFindings ?? [];
@@ -173,6 +175,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
       <header className="arran-lab__header">
         <div><strong>Arran's textile laboratory</strong><small>Giza · 1925 · {clock}</small></div>
         <span className="arran-lab__cash" data-testid="arran-cash">{fmt(g.cash)}</span>
+        <button type="button" className="btn" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">Price book</button>
         <button type="button" className="btn" onClick={onLeave} data-testid="arran-leave">Leave</button>
       </header>
 
@@ -214,6 +217,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
           {tab === 'test' && !view && !ask && (
             <>
               {!rugs.length && <p>"Bring me a rug and I will see what it will tell us." You have no rugs.</p>}
+              {!rug && <p className="dim small">What each test does and costs is in his <button type="button" className="linklike" onClick={() => setCatalogue(true)} data-testid="arran-catalogue-link">price book</button>.</p>}
               {rugs.length > 0 && <p className="arran-step">{rug ? `${RUGS[rug.typeId]!.name}: choose a test` : 'Choose a rug'}</p>}
               <div className="arran-rugs" role="listbox" aria-label="Your rugs">
                 {rugs.map((i) => {
@@ -327,6 +331,12 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         </div>
       </div>
       {read && <BookReader id={read} onClose={() => setRead(null)} />}
+      {catalogue && (
+        <ArranCatalogue
+          onClose={() => setCatalogue(false)}
+          onService={(sv) => { setCatalogue(false); setTab('test'); setView(null); setAsk(null); setSpot(SERVICE_SPOT[sv]); setMsg(`${LAB_SERVICES[sv].label}: choose a rug below.`); }}
+        />
+      )}
     </section>
   );
 }

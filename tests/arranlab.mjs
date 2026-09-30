@@ -96,6 +96,26 @@ try {
   await p.click(`[data-testid=arran-rug-${exc}]`); await p.click(`[data-testid=arran-test-fibre-${exc}]`); await p.waitForSelector('[data-testid=arran-ask]');
   console.log('asks before cutting, nothing charged:', (await st()).cash === f1.cash);
   await p.click('[data-testid=arran-cut-no]');
+  // the price book
+  await p.click('[data-testid=arran-catalogue-open]'); await p.waitForSelector('[data-testid=arran-catalogue]'); await p.waitForTimeout(400);
+  await p.screenshot({ path: `${S}/lab-${tag}-cat-exam.png` });
+  console.log('price book, examinations:', await p.locator('.cat__entry').count(), 'entries | fibre price', await p.locator('[data-testid=cat-price]').textContent());
+  await p.click('[data-testid=cat-tab-goods]'); await p.click('[data-testid=cat-item-loupe]');
+  const k0 = (await st()).cash;
+  await p.click('[data-testid=cat-buy]'); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${S}/lab-${tag}-cat-goods.png` });
+  console.log('loupe:', (await st()).arranTools, '| cash', k0, '->', (await st()).cash, '| button now', await p.locator('[data-testid=cat-buy]').textContent());
+  await p.click('[data-testid=cat-tab-reports]'); await p.waitForTimeout(200);
+  await p.click(`[data-testid="cat-report-${worn}:fibre"]`); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${S}/lab-${tag}-cat-report.png` });
+  const rr = (await st()).inventory.find((i) => i.uid === worn);
+  console.log('report on rug:', JSON.stringify(rr.labReports), '| offered again?', await has(`cat-report-${worn}:fibre`));
+  const again2 = await p.evaluate(async (id) => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranBuy('report', id); }, `${worn}:fibre`);
+  console.log('second report refused:', again2);
+  const bonus = await p.evaluate(async () => { const m = await import('/src/game/systems/arranShop.ts'); return [m.labArgBonus('craft', ['fibre'], ['loupe'], ['fineWeave']), m.labArgBonus('durability', ['fibre'], [], []), m.labArgBonus('durability', ['fastness'], ['cloths'], ['washable'])]; });
+  console.log('argument bonus craft(report+loupe), durability(no rub report), durability(rub report):', bonus.join(', '));
+  await p.click('[data-testid=cat-tab-exam]'); await p.click('[data-testid=cat-item-fastness]'); await p.click('[data-testid=cat-use]'); await p.waitForTimeout(300);
+  console.log('service -> test tab:', await has('arran-catalogue'), '(0 = closed) |', await p.locator('[data-testid=arran-msg]').textContent());
   // lost copy: dyes errand, copy vanishes, return fails, the archive can make another
   await edit(`s.arranBooks.dyes = { phase: 'copy_acquired', copyId: 'gone', day: s.day }; s.papers = [];`); await reload();
   const lost = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('dyes'); });

@@ -1,0 +1,84 @@
+/* Arran's price book: a 1920s mail-order catalogue page. Cream stock, black ink, a red selection box. */
+.cat { position: fixed; inset: 0; z-index: 75; background: radial-gradient(circle at 50% 30%, #2c1d10, #0b0704 80%); display: flex; justify-content: center; align-items: stretch; padding: max(10px, env(safe-area-inset-top, 0px)) 10px max(10px, env(safe-area-inset-bottom, 0px)); animation: fade 0.25s ease; }
+.cat__book {
+  --ink: #1f160d; --ink-2: #4b3a26; --paper: #efe6cf; --red: #a3261c;
+  width: min(1180px, 100%); display: flex; flex-direction: column; min-height: 0;
+  color: var(--ink); font-family: 'Alegreya', Georgia, serif;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255,255,255,0.35), transparent 60%),
+    radial-gradient(ellipse at 90% 90%, rgba(120,90,40,0.18), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(90,70,40,0.025) 0 2px, transparent 2px 4px),
+    var(--paper);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7), inset 0 0 60px rgba(120,90,40,0.25);
+  border-radius: 3px;
+}
+.cat__masthead, .cat__tabs, .cat__bar { flex-shrink: 0; }
+.cat__masthead { text-align: center; padding: 12px 16px 0; }
+.cat__masthead small { font-family: var(--label); letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px; color: var(--ink-2); }
+.cat__masthead h1 { margin: 2px 0 0; font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: clamp(26px, 4.6vw, 44px); letter-spacing: 0.08em; line-height: 1; }
+.cat__masthead p { margin: 4px 0 6px; font-style: italic; font-size: clamp(13px, 1.6vw, 16px); color: var(--ink-2); }
+.cat__rule { height: 7px; border-top: 3px double var(--ink); border-bottom: 1px solid var(--ink); margin: 0 4px; }
+
+.cat__tabs { display: flex; gap: 0; border-bottom: 1px solid var(--ink); overflow-x: auto; }
+.cat__tab { flex: 1 0 auto; background: none; border: 0; border-right: 1px solid rgba(31,22,13,0.3); padding: 8px 10px; min-height: 44px; font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); cursor: pointer; }
+.cat__tab span { font-family: 'Cinzel', Georgia, serif; margin-right: 6px; }
+.cat__tab.is-on { color: var(--paper); background: var(--ink); }
+
+.cat__spread { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1.15fr 1fr; }
+.cat__page { min-height: 0; overflow-y: auto; padding: 12px 18px; }
+.cat__page--list { border-right: 1px solid rgba(31,22,13,0.35); display: flex; flex-direction: column; }
+.cat__page h2 { margin: 0; text-align: center; font-family: 'Cinzel', Georgia, serif; font-size: 22px; letter-spacing: 0.06em; }
+.cat__sub { margin: 0 0 10px; text-align: center; font-style: italic; color: var(--ink-2); font-size: 14px; }
+
+.cat__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.cat__entry { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 8px 10px; background: transparent; border: 1px solid rgba(31,22,13,0.35); color: inherit; font: inherit; cursor: pointer; text-align: center; }
+.cat__entry img { width: 100%; height: 96px; object-fit: contain; mix-blend-mode: multiply; }
+.cat__entry b { font-family: var(--label); font-size: 14px; letter-spacing: 0.02em; line-height: 1.15; }
+.cat__no { align-self: flex-start; font-size: 11px; color: var(--ink-2); font-family: var(--label); letter-spacing: 0.08em; }
+.cat__price { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 16px; }
+.cat__entry.is-sel { outline: 3px solid var(--red); outline-offset: -1px; border-color: transparent; }
+.cat__entry.is-owned { opacity: 0.8; }
+.cat__stamp { position: absolute; top: 34px; right: 6px; transform: rotate(-8deg); font-style: normal; font-family: var(--label); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--red); border: 2px solid var(--red); padding: 1px 5px; background: rgba(239,230,207,0.85); }
+.cat__folio { margin-top: auto; padding-top: 10px; display: flex; justify-content: center; align-items: center; gap: 18px; font-family: var(--label); letter-spacing: 0.1em; font-size: 13px; color: var(--ink-2); }
+.cat__folio button { background: none; border: 1px solid rgba(31,22,13,0.4); border-radius: 50%; width: 36px; height: 36px; font-size: 20px; color: var(--ink); cursor: pointer; }
+
+.cat__page--detail { display: flex; flex-direction: column; }
+.cat__plate { width: 100%; max-height: 200px; object-fit: contain; mix-blend-mode: multiply; }
+.cat__page--detail h3 { margin: 8px 0 4px; font-family: 'Cinzel', Georgia, serif; font-size: 20px; line-height: 1.2; text-align: center; }
+.cat__pricebar { display: flex; align-items: baseline; gap: 6px; font-family: var(--label); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; margin: 2px 0 8px; }
+.cat__pricebar i { flex: 1; border-bottom: 2px dotted var(--ink-2); }
+.cat__pricebar b { font-family: 'Cinzel', Georgia, serif; font-size: 20px; letter-spacing: 0; }
+.cat__blurb { margin: 0 0 8px; font-size: 16px; line-height: 1.45; text-align: justify; hyphens: auto; }
+.cat__effect { margin: 0 0 8px; font-size: 15px; line-height: 1.4; font-style: italic; border-top: 1px solid rgba(31,22,13,0.3); padding-top: 6px; }
+.cat__effect span { font-style: normal; font-family: var(--label); text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--red); }
+.cat__small { font-size: 14px; color: var(--ink-2); margin: 4px 0; }
+.cat__reportrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted rgba(31,22,13,0.4); padding: 6px 0; font-size: 14.5px; }
+.cat__note { margin: 8px 0 0; padding: 8px 10px; border-left: 3px solid var(--red); font-style: italic; background: rgba(163,38,28,0.06); }
+
+.cat__bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px; border-top: 3px double var(--ink); }
+.cat__purse { font-family: var(--label); letter-spacing: 0.06em; font-size: 14px; margin-right: auto; }
+.cat__purse b { font-family: 'Cinzel', Georgia, serif; font-size: 17px; }
+.cat__buy { min-height: 44px; padding: 8px 16px; background: var(--ink); color: var(--paper); border: 0; font-family: var(--label); font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.cat__buy.small { min-height: 38px; padding: 6px 10px; font-size: 13px; }
+.cat__buy:disabled { background: rgba(31,22,13,0.35); cursor: default; }
+.cat__hint { font-style: italic; color: var(--ink-2); }
+.cat__close { min-height: 44px; padding: 8px 14px; background: none; border: 1px solid var(--ink); color: var(--ink); font-family: var(--label); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.cat button:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+@media (max-width: 700px) {
+  .cat { padding: 6px; }
+  .cat__book { overflow-y: auto; }
+  .cat__spread { display: block; flex: 0 0 auto; }
+  .cat__page { overflow: visible; }
+  .cat__page--list { border-right: 0; border-bottom: 1px solid rgba(31,22,13,0.35); }
+  .cat__grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .cat__entry img { height: 72px; }
+  .cat__tab { font-size: 13px; padding: 8px; }
+  .cat__plate { max-height: 150px; }
+  .cat__bar { position: sticky; bottom: 0; background: var(--paper); flex-wrap: nowrap; gap: 8px; padding: 8px 10px; }
+  .cat__purse { font-size: 12px; }
+  .cat__buy, .cat__close { padding: 8px 10px; font-size: 13px; }
+  .cat__tabs { position: sticky; top: 0; z-index: 2; background: var(--paper); }
+  .cat__tab span { display: none; }
+  .cat__masthead p { display: none; }
+}

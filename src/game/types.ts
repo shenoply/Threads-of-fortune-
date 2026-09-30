@@ -48,6 +48,8 @@ export interface RugItem {
   restoringUntil?: number;
   restoreTo?: Condition;
   stored?: boolean; // left at the Giza stall instead of travelling with the caravan
+  /** Arran's signed reports that travel with the rug ('fibre', 'fastness', ...) */
+  labReports?: string[];
   notes: string[];
 }
 

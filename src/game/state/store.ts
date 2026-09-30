@@ -19,6 +19,7 @@ import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type Sk
 import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type SavedOutfit, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
+import { SHOP } from '../systems/arranShop';
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
@@ -40,7 +41,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -166,6 +167,8 @@ export interface GameState {
   arranBooks?: Partial<Record<BookId, BookState>>;
   papers?: Paper[];
   labUnlocked?: LabService[];
+  /** instruments bought from Arran's price book */
+  arranTools?: string[];
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -286,6 +289,8 @@ interface Actions {
   /** buy cargo cover from the Lloyd's agent in this town */
   insure: () => string;
   /** pay Arran for one test on a rug you own; `cut` is the player's consent to cut a sample from the back */
+  /** buy from Arran's price book: a tool, or a signed report on one of your results */
+  arranBuy: (itemId: string, findingId?: string) => string;
   arranRequestBook: (id: BookId) => string;
   librarySearch: (id: BookId) => string;
   libraryAcquire: (id: BookId, how: 'copy' | 'duplicate') => string;
@@ -534,6 +539,7 @@ export const useGame = create<GameState & Actions>()(
         eventBudget: s.world.at === 'giza' ? budgetMod(s.day) : 1,
         clean: s.attire?.clean ?? 100,
         attire: s.attire?.worn ?? 'galabiya',
+        tools: s.arranTools ?? [],
       });
 
       /** Skill XP and manner from an action, with level-ups queued for the player to see. */
@@ -2079,6 +2085,45 @@ export const useGame = create<GameState & Actions>()(
           return `The agent writes out a policy: your packed rugs are covered for ${COVER_DAYS} days. Seven parts in ten of their worth if they are taken on the road.`;
         },
 
+        arranBuy: (itemId, findingId) => {
+          const s = get();
+          const it = SHOP.find((x) => x.id === itemId);
+          if (!it || it.price == null) return 'That is not for sale.';
+          if (s.world.at !== 'giza') return 'Arran\'s shop is in Giza.';
+          if (s.world.hour < LAB_HOURS[0] || s.world.hour >= LAB_HOURS[1]) return 'Arran has closed for the night.';
+          if (it.kind === 'tool') {
+            if ((s.arranTools ?? []).includes(it.id)) return 'You already have one.';
+            if (s.cash < it.price) return `It costs ${fmt(it.price)}. You have ${fmt(s.cash)}.`;
+            set({
+              cash: s.cash - it.price,
+              arranTools: [...(s.arranTools ?? []), it.id],
+              ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: ${it.name.toLowerCase()}`, amount: -it.price }],
+              journal: [...s.journal, { day: s.day, text: `Bought ${it.name.toLowerCase()} from Arran.` }],
+            });
+            audio.sfx('coins');
+            return it.id === 'loupe' ? 'Arran wraps the loupe in a square of chamois. "Hold it close to the eye, and the rug close to the loupe."' : `Arran wraps the ${it.name.split(',')[0].split(':')[0].toLowerCase()} in brown paper and string. "Use it in front of the buyer, not behind the curtain."`;
+          }
+          if (it.kind === 'report') {
+            const f = (s.arranFindings ?? []).find((x) => x.id === findingId);
+            if (!f) return 'Choose a result to write up.';
+            if (f.verdict !== 'consistent') return 'He will only sign a report that agrees with the description.';
+            if (f.service !== 'fibre' && f.service !== 'fastness' && f.service !== 'dye') return 'There is nothing to write up.';
+            const rug = s.inventory.find((i) => i.uid === f.subjectId);
+            if (!rug) return 'You no longer have that rug.';
+            if ((rug.labReports ?? []).includes(f.service)) return 'That rug already has this report.';
+            if (s.cash < it.price) return `A report costs ${fmt(it.price)}. You have ${fmt(s.cash)}.`;
+            set({
+              cash: s.cash - it.price,
+              inventory: s.inventory.map((i) => (i.uid === rug.uid ? { ...i, labReports: [...(i.labReports ?? []), f.service], notes: [...i.notes, `Signed report from Arran: ${LAB_SERVICES[f.service].label.toLowerCase()}.`] } : i)),
+              ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Arran: signed report', amount: -it.price }],
+            });
+            get().passTime(10);
+            audio.sfx('pen');
+            return `He writes it out fair, blots it and signs: "A. Embleton, textile chemist." It goes with the ${RUGS[rug.typeId]?.name ?? 'rug'}.`;
+          }
+          return 'Buy that in the laboratory.';
+        },
+
         arranRequestBook: (id) => {
           const s = get();
           const b = ARRAN_BOOKS[id];
@@ -2261,6 +2306,7 @@ export const useGame = create<GameState & Actions>()(
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        if (version < 16) p.arranTools = p.arranTools ?? [];
         if (version < 15) {
           // books now unlock Arran's tests; anyone who already used one keeps it
           p.arranBooks = p.arranBooks ?? {};

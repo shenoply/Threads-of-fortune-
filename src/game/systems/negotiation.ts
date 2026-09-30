@@ -1,3 +1,5 @@
+import { labArgBonus } from './arranShop';
+import type { LabService } from './arranLab';
 import type { ArgKind, BuyerDef, Line, ObjectionDef, Relationship, RugItem, RugType, Stage } from '../types';
 import { snap, snapDown, fmt } from '../economy/money';
 import { BUYERS, BUYER_TIERS } from '../../data/buyers';
@@ -94,6 +96,8 @@ export interface Ctx {
   /** how the merchant looks and smells: attire cleanliness 0..100 and what he is wearing */
   clean?: number;
   attire?: string;
+  /** Arran's instruments you own (the loupe) */
+  tools?: string[];
 }
 
 const lvl = (ctx: Ctx, s: SkillId) => levelOf(ctx.skills?.[s] ?? 0);
@@ -808,6 +812,9 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
   if (kind === 'story' && item.provenance === 'Documented') relevance += 0.2;
   if (kind === 'craft') relevance = t.traits.includes('fineWeave') ? 1 : t.traits.includes('hardwearing') ? 0.6 : 0.4;
   if (kind === 'durability') relevance = t.traits.includes('fragile') ? -1 : t.traits.includes('hardwearing') || t.traits.includes('washable') ? 1 : 0.3;
+  // Arran's signed report on the rug, or his loupe in your hand, backs the argument with evidence
+  const labBonus = labArgBonus(kind, item.labReports as LabService[] | undefined, ctx.tools, t.traits);
+  if (labBonus && relevance >= 0) relevance += labBonus;
   if (kind === 'fit') relevance = enc.presentedFit >= 60 ? 1 : enc.presentedFit >= 40 ? 0.3 : -0.6;
   const weight = b.args[kind];
   const sp = lvl(ctx, 'speech');
@@ -816,7 +823,7 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
   const good = delta >= 6;
   const pool = L[kind];
   buyerSay(enc, pick(good ? pool.good : pool.flat, ctx.rng, recentBuyerTexts(enc)), good ? 'pleased' : delta < 0 ? 'skeptical' : 'neutral');
-  adjust(enc, { interest: delta, patience: weight < 0 ? -Q.arg - 6 : -Q.arg, trust: good ? 2 : 0 });
+  adjust(enc, { interest: delta, patience: weight < 0 ? -Q.arg - 6 : -Q.arg, trust: (good ? 2 : 0) + (labBonus && good ? 1 : 0) });
   if (enc.tutorial) {
     fx.tutorialAdvance = kind === 'story' || kind === 'fit' ? 'arg_right' : 'arg_wrong';
     if (fx.tutorialAdvance === 'arg_wrong') say(enc, 'narrator', NARRATOR.step4wrong);
