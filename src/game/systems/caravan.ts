@@ -6,6 +6,8 @@ export interface PartyState {
   animals: Record<string, number>; // breed id -> count
   food: number; // rations: one feeds one person for a day
   troops: Record<string, number>;
+  /** a personal weapon with a permit (Arran's cabinet): counts toward strength everywhere */
+  arms?: number;
   hungryDays?: number; // consecutive rollovers with no food left; resets the day rations cover the party again
 }
 
@@ -16,7 +18,7 @@ export const animalCount = (p: PartyState, kind?: string) => herd(p).reduce((s, 
 
 export const troopCount = (p: PartyState) => Object.values(p.troops).reduce((s, n) => s + n, 0);
 export const partySize = (p: PartyState) => 1 + troopCount(p);
-export const strength = (p: PartyState) => 2 + Object.entries(p.troops).reduce((s, [id, n]) => s + (TROOPS[id]?.strength ?? 1) * n, 0);
+export const strength = (p: PartyState) => 2 + (p.arms ?? 0) + Object.entries(p.troops).reduce((s, [id, n]) => s + (TROOPS[id]?.strength ?? 1) * n, 0);
 export const wages = (p: PartyState) => Object.entries(p.troops).reduce((s, [id, n]) => s + (TROOPS[id]?.wage ?? 1) * n, 0);
 /** Skill effects on the caravan, kept in step with the merchant's Riding and Survival by the store. */
 export const SKILL_MODS = { speed: 1, food: 1 };

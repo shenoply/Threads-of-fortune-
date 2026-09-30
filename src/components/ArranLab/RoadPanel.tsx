@@ -7,13 +7,14 @@ import { LAB_SERVICES } from '../../game/systems/arranLab';
 import { BOOKS } from '../../game/systems/arranBooks';
 import { CARGO_JOBS, DIET, LEGAL_NOTES, midSentence, LEGAL_SOURCES, TONIC, fatigueEffect, provisionReport, type CargoJob } from '../../game/systems/fieldwork';
 import { dateFor } from '../../game/economy/economy';
+import { CABINET, KIND_WORD, cabinetItem, type CabinetId } from '../../game/systems/arranCabinet';
 
 /**
  * The road side of Arran's laboratory: how tired you are, whether the caravan's food will last
  * (the McCarrison book), and crates people want carried (the Sinai field-safety folio). Cargo is
  * described by class and paperwork only; Arran discusses risk and permits, never preparation.
  */
-type Confirm = { kind: 'provisions' } | { kind: 'cargo'; job: CargoJob };
+type Confirm = { kind: 'provisions' } | { kind: 'cargo'; job: CargoJob } | { kind: 'cabinet'; id: CabinetId };
 
 // rough days on the road from Giza, for the provisions report
 const ROUTES = [{ to: 'Alexandria', days: 3 }, { to: 'St Catherine\'s, Sinai', days: 7 }, { to: 'Jaffa', days: 10 }];
@@ -31,6 +32,26 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
   const endsAt = (min: number) => { const t = hour + min / 60; return `${String(Math.floor(t)).padStart(2, '0')}:${String(Math.floor((t % 1) * 60)).padStart(2, '0')}`; };
   const report = g.provisionsDay === g.day ? provisionReport({ food: party.food, perDay: dailyFood(party), fatigue: cond?.fatigue ?? 0, hungryDays: party.hungryDays ?? 0, dietActive: (cond?.dietUntil ?? 0) >= g.day, routes: ROUTES }) : null;
   const say = (m: string) => { setMsg(m); setConfirm(null); onSpot(null); };
+
+  if (confirm?.kind === 'cabinet') {
+    const it = cabinetItem(confirm.id);
+    const short = g.cash < it.price;
+    return (
+      <div className="arran-confirm" data-testid="arran-confirm">
+        <h2>{it.name}</h2>
+        <p className="arran-confirm__q">{it.blurb}</p>
+        <dl>
+          <dt>Cost</dt><dd data-testid="arran-confirm-cost">{fmt(it.price)} <small>(you have {fmt(g.cash)})</small></dd>
+          <dt>What it does</dt><dd>{it.effect}</dd>
+          <dt>The law</dt><dd>{it.law}</dd>
+        </dl>
+        <div className="arran-btns">
+          <button type="button" className="btn primary" disabled={short} onClick={() => say(g.cabinetBuy(it.id))} data-testid="arran-confirm-pay">{short ? 'Not enough money' : `Pay ${fmt(it.price)}`}</button>
+          <button type="button" className="btn" onClick={() => { setConfirm(null); onSpot(null); }} data-testid="arran-confirm-cancel">Not now</button>
+        </div>
+      </div>
+    );
+  }
 
   if (confirm) {
     const sv = confirm.kind === 'provisions' ? LAB_SERVICES.provisions : LAB_SERVICES.cargo;
@@ -60,6 +81,29 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
   return (
     <div className="arran-road" data-testid="arran-road">
       {msg && <p className="arran-msg" data-testid="arran-road-msg">{msg}</p>}
+
+      <div className="section-label">ARRAN'S CABINET</div>
+      <p className="dim small">Remedies he makes up himself, a poison sold for what it is for, and powder goods he arranges only through licensed men. He will tell you what each is for and what paper it needs, never how it is made.</p>
+      {CABINET.map((it) => {
+        const have = g.cabinet?.[it.id] ?? 0;
+        const owned = !it.stack && (it.id === 'khamsin' ? (g.khamsinUntil ?? 0) >= g.day : it.id === 'moth' ? g.inventory.length > 0 && g.inventory.every((i) => i.mothproof) : have > 0);
+        const why = it.needs === 'guards' && !Object.values(party.troops).some((n) => n > 0) ? 'Hire guards first'
+          : it.needs === 'folio' && !unlocked.includes('cargo') ? 'Needs the Sinai survey folio' : '';
+        return (
+          <div className={`arran-cargo kind-${it.kind}`} key={it.id} data-testid={`cabinet-${it.id}`}>
+            <div>
+              <b>{it.name}</b>
+              <small><em className={`cab-kind cab-${it.kind}`}>{KIND_WORD[it.kind]}</em> · {fmt(it.price)}{it.stack && have ? ` · you have ${have}` : ''}{it.id === 'khamsin' && owned ? ` · packed until ${dateFor(g.khamsinUntil!).short}` : ''}</small>
+              <small>{it.effect}</small>
+            </div>
+            <div className="arran-cargo__btns">
+              {it.id === 'restorative' && have > 0 && <button type="button" className="btn" onClick={() => say(g.useRestorative())} data-testid="cabinet-use-restorative">Take a dose</button>}
+              {owned ? <span className="dim small">{it.id === 'moth' ? 'Done' : 'Owned'}</span>
+                : <button type="button" className="btn primary" disabled={!!why} onClick={() => setConfirm({ kind: 'cabinet', id: it.id })} data-testid={`cabinet-buy-${it.id}`}>{why || `Buy · ${fmt(it.price)}`}</button>}
+            </div>
+          </div>
+        );
+      })}
 
       <div className="section-label">HOW YOU ARE</div>
       <div className="arran-errand">

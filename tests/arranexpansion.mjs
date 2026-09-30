@@ -110,6 +110,25 @@ try {
   console.log('   permit:', s.arranVisit.permitStage, 'from day', s.arranVisit.permitDay, '(today', s.day, ')');
   await p.click('[data-testid=cairo-museum-leave]');
 
+  // 7. Arran's cabinet: remedies, a poison for moth, licensed powder goods
+  await edit(`s.world.at = 'giza'; s.world.hour = 10; s.world.party.troops = { bedouin: 2 };`); await reload();
+  await toLab(); await p.click('[data-testid=arran-tab-road]'); await p.waitForTimeout(200);
+  console.log('7. cabinet:', (await p.locator('[data-testid^=cabinet-] b').allTextContents()).join(' / '));
+  console.log('   charge before the folio:', await p.locator('[data-testid=cabinet-buy-charge]').textContent());
+  const s0 = (await st()).world.party;
+  for (const id of ['khamsin', 'rockets', 'cartridges', 'revolver', 'moth', 'restorative']) {
+    await p.click(`[data-testid=cabinet-buy-${id}]`); await p.waitForSelector('[data-testid=arran-confirm]');
+    if (id === 'moth') { console.log('   moth card:', (await p.locator('[data-testid=arran-confirm]').innerText()).replace(/\n+/g, ' | ').slice(0, 260)); await p.screenshot({ path: `${S}/x-${tag}-cabinet-confirm.png` }); }
+    await p.click('[data-testid=arran-confirm-pay]'); await p.waitForTimeout(200);
+  }
+  await p.click('[data-testid=cabinet-use-restorative]'); await p.waitForTimeout(150);
+  s = await st();
+  console.log('   held', JSON.stringify(s.cabinet), '| khamsin until', s.khamsinUntil, '| arms', s.world.party.arms, '| mothproof', s.inventory.every((i) => i.mothproof), '| fatigue', s.condition.fatigue);
+  await p.locator('[data-testid=cabinet-moth]').scrollIntoViewIfNeeded();
+  await p.screenshot({ path: `${S}/x-${tag}-cabinet.png` });
+  await phone('cabinet');
+  await p.click('[data-testid=arran-leave]');
+
   // 4. the Sinai pass (field-safety errand requested), walking from Suez
   await edit(`s.world.at = 'suez'; s.world.hour = 8; s.arranBooks.field_safety = { phase: 'requested', day: s.day }; s.world.party.food = 40; s.world.known = [...new Set([...(s.world.known ?? []), 'sinai', 'suez', 'bedouin'])];`); await reload();
   console.log('4. side tasks:', (await p.locator('[data-testid=side-tasks]').innerText()).replace(/\n+/g, ' | '));
@@ -120,10 +139,12 @@ try {
   await p.waitForSelector('[data-testid=pass-card]', { timeout: 5000 }).catch(() => {});
   if (await has('pass-card')) {
     await p.screenshot({ path: `${S}/x-${tag}-pass.png` });
+    console.log('   kit:', await p.locator('[data-testid=pass-kit]').textContent().catch(() => 'none'));
     console.log('   choices:', (await p.locator('.pass-choice').allInnerTexts()).map((t) => t.replace(/\n+/g, ' / ')).join(' || '));
     await phone('pass');
     await p.click('[data-testid=pass-guide]'); await p.waitForSelector('[data-testid=pass-outcome]');
     const k = Object.keys((await st()).crossings)[0];
+    console.log('   used up:', JSON.stringify((await st()).cabinet));
     const o1 = (await st()).crossings[k];
     console.log('   outcome:', o1.outcome.kind, '|', o1.outcome.text.slice(0, 70));
     const again = await store('return g.crossPass(a, "proceed")', k);

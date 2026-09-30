@@ -77,12 +77,13 @@ export function provisionReport(o: { food: number; perDay: number; fatigue: numb
 export const DIET = { price: 25, days: 30, label: 'The road diet for a month (lentils, onions, dried milk)' };
 
 // ---------------- the Sinai pass ----------------
-export type PassChoice = 'escort' | 'guide' | 'long_road' | 'proceed';
+export type PassChoice = 'escort' | 'guide' | 'long_road' | 'proceed' | 'blast';
 export const PASS_CHOICES: Record<PassChoice, { label: string; sub: string; extraDays: number; cost: number; mitigation: number }> = {
   escort: { label: 'Wait for an escort', sub: 'A Tarabin party is going through in two days', extraDays: 2, cost: 0, mitigation: 26 },
   guide: { label: 'Hire a Bedouin guide', sub: 'He knows the wells and the people', extraDays: 0, cost: 60, mitigation: 12 },
   long_road: { label: 'Take the longer road by the wadis', sub: 'Slower, lower, easier going', extraDays: 3, cost: 0, mitigation: 20 },
   proceed: { label: 'Press on through the pass', sub: 'Fastest; you take the risk', extraDays: 0, cost: 0, mitigation: 0 },
+  blast: { label: 'Clear the old short road', sub: 'Your licensed shot-firer clears the 1911 rockfall; nobody else goes near it', extraDays: 0, cost: 0, mitigation: 30 },
 };
 export type CargoClass = 'ordinary' | 'duty_goods' | 'medical_controlled' | 'restricted_material';
 export interface RouteContext { danger: number; weather: number; fatigue: number; guards: number; cargo: CargoClass[] }

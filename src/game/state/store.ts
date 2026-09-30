@@ -22,6 +22,7 @@ import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, t
 import { SHOP } from '../systems/arranShop';
 import { COHEN_START, cohenDue, type CohenState } from '../systems/cohen';
 import { rubTruth, migrateRubFinding } from '../systems/arranLab';
+import { KHAMSIN_DAYS, REVOLVER_STRENGTH, CARTRIDGE_STRENGTH, ROCKET_RISK, RESTORATIVE_FATIGUE, cabinetItem, type CabinetId } from '../systems/arranCabinet';
 import { CARGO_JOBS, CHECKPOINTS, midSentence, CONDITION_START, PASS_DANGER, DIET, PASS_CHOICES, TONIC, classify, dayCondition, fatigueEffect, passWeather, resolvePass, resolvePatrol, rollFor, routeExposure, takeTonic as tonicEffect, type CargoItem, type Condition1925, type PassChoice, type PassOutcome, type PatrolOutcome } from '../systems/fieldwork';
 import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
 import { NABIL_MIN_REP } from '../../data/nabil';
@@ -186,6 +187,10 @@ export interface GameState {
   cohen?: CohenState;
   /** the merchant's tiredness, the road diet, a stimulant taken and its after-effects */
   condition?: Condition1925;
+  /** Arran's cabinet: goods held, by id */
+  cabinet?: Partial<Record<CabinetId, number>>;
+  /** the khamsin kit protects until this day */
+  khamsinUntil?: number;
   /** coca wine bottles bought from the chemist */
   tonics?: number;
   /** cargo you have agreed to carry (collected at its town, delivered at its destination) */
@@ -332,6 +337,8 @@ interface Actions {
   deliverPermitLetter: () => string;
   buyTonic: () => string;
   takeTonic: () => string;
+  cabinetBuy: (id: CabinetId) => string;
+  useRestorative: () => string;
   assessProvisions: () => string;
   buyDiet: () => string;
   checkCargo: (jobId: string) => string;
@@ -437,6 +444,17 @@ export function localOffers(sid: string, day: number, bought: string[], friends:
  *  visit (or even earlier the same day, before the stock ran out) keeps its own condition forever, so
  *  matching only today's exact rolled condition let a dealer's own specialty rug be sold back for a
  *  windfall the moment the day's roll happened not to match what you were holding. */
+/** Relative risk of the Sinai passes for a given choice: season (unless the khamsin kit is packed),
+ *  fatigue, guards, cargo, and signal rockets if you carry them. Shared by the pass card and the store. */
+export function passRisk(s: Pick<GameState, 'day' | 'condition' | 'world' | 'cargo' | 'cabinet' | 'khamsinUntil'>, choice: PassChoice) {
+  const month = new Date(Date.UTC(1925, 2, 9 + s.day)).getUTCMonth();
+  const weather = (s.khamsinUntil ?? 0) >= s.day ? 0 : passWeather(month).add;
+  const guards = Object.values(s.world.party.troops).reduce((a, n) => a + n, 0);
+  const carried = (s.cargo ?? []).filter((c) => c.collected).map((c) => c.cls);
+  const base = routeExposure({ danger: PASS_DANGER, weather, fatigue: (s.condition ?? CONDITION_START).fatigue, guards, cargo: carried }, choice);
+  return Math.max(0, base - ((s.cabinet?.rockets ?? 0) > 0 ? ROCKET_RISK : 0));
+}
+
 export function localAskPrice(sid: string, day: number, typeId: string, condition: RugItem['condition'], friends: string[], rep = 0): number | undefined {
   const st = settlementById(sid);
   const i = st.sells.findIndex((o) => o.typeId === typeId);
@@ -2349,6 +2367,40 @@ export const useGame = create<GameState & Actions>()(
             : 'The tiredness lifts for the rest of today. Tomorrow will be worse.';
         },
 
+        cabinetBuy: (id) => {
+          const s = get();
+          const it = cabinetItem(id);
+          if (s.world.at !== 'giza') return 'Arran is in Giza.';
+          if (s.cash < it.price) return `${it.name} costs ${fmt(it.price)}.`;
+          const have = s.cabinet?.[id] ?? 0;
+          if (id === 'moth' ? !s.inventory.some((i) => !i.mothproof) : !it.stack && id !== 'khamsin' && have > 0) return id === 'moth' ? 'Every rug you hold is already treated.' : 'You already have it.';
+          if (it.needs === 'guards' && !Object.values(s.world.party.troops).some((n) => n > 0)) return '"Cartridges for whom? Hire guards first. The gunsmith will ask who carries the rifles."';
+          if (it.needs === 'folio' && !(s.labUnlocked ?? []).includes('cargo')) return '"Not without the survey folio: I need to know where the rockfall is, and the works needs to know who is asking."';
+          const patch: Partial<GameState> = {
+            cash: s.cash - it.price,
+            cabinet: { ...(s.cabinet ?? {}), [id]: have + 1 },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran's cabinet: ${midSentence(it.name)}`, amount: -it.price }],
+            journal: [...s.journal, { day: s.day, text: `Bought through Arran: ${midSentence(it.name)}.` }],
+          };
+          if (id === 'khamsin') patch.khamsinUntil = s.day + KHAMSIN_DAYS;
+          if (id === 'moth') patch.inventory = s.inventory.map((i) => ({ ...i, mothproof: true }));
+          if (id === 'revolver') patch.world = { ...s.world, party: { ...s.world.party, arms: (s.world.party.arms ?? 0) + REVOLVER_STRENGTH } };
+          set(patch);
+          audio.sfx('coins');
+          return id === 'moth' ? `Arran treats ${s.inventory.length} rug${s.inventory.length === 1 ? '' : 's'} in the yard, gloves on, and locks the tin away. "Keep them off the kitchen floor for a week."`
+            : id === 'revolver' ? '"The permit is in your name. Keep it with the revolver, and I hope you never need either."'
+            : id === 'charge' ? '"The shot-firer will meet you at the foot of the pass. He carries the charge; you carry him. Do not let anyone else near that case."'
+            : 'He wraps it in brown paper and writes the label himself.';
+        },
+
+        useRestorative: () => {
+          const s = get();
+          if (!(s.cabinet?.restorative ?? 0)) return 'You have none.';
+          const c = s.condition ?? CONDITION_START;
+          set({ cabinet: { ...s.cabinet, restorative: (s.cabinet?.restorative ?? 0) - 1 }, condition: { ...c, fatigue: Math.max(0, c.fatigue - RESTORATIVE_FATIGUE) } });
+          return 'Bitter, and it works slowly. You feel a little steadier.';
+        },
+
         assessProvisions: () => {
           const s = get();
           if (s.world.at !== 'giza') return 'Arran is in Giza.';
@@ -2414,12 +2466,16 @@ export const useGame = create<GameState & Actions>()(
           const opt = PASS_CHOICES[choice];
           const month = new Date(Date.UTC(1925, 2, 9 + s.day)).getUTCMonth();
           const carried = (s.cargo ?? []).filter((c) => c.collected);
-          const risk = routeExposure({ danger: PASS_DANGER, weather: passWeather(month).add, fatigue: (s.condition ?? CONDITION_START).fatigue, guards: Object.values(s.world.party.troops).reduce((a, n) => a + n, 0), cargo: carried.map((c) => c.cls) }, choice);
-          const outcome = resolvePass(risk, rollFor(tripKey, s.seed), strength(s.world.party), s.cash - opt.cost, s.world.party.food);
+          const gear = s.cabinet ?? {};
+          if (choice === 'blast' && !(gear.charge ?? 0)) return { outcome: { kind: 'quiet', text: '', fatigue: 0, foodLost: 0, cashLost: 0, cargoLost: false, extraDays: 0 }, risk: 0, repeated: true };
+          const risk = passRisk(s, choice);
+          const outcome = resolvePass(risk, rollFor(tripKey, s.seed), strength(s.world.party) + ((gear.cartridges ?? 0) > 0 ? CARTRIDGE_STRENGTH : 0), s.cash - opt.cost, s.world.party.food);
           const cond = s.condition ?? CONDITION_START;
           // the crossing is recorded before anything else changes, so no reload can reroll it
           set({
             crossings: { ...(s.crossings ?? {}), [tripKey]: { choice, risk, outcome } },
+            // rockets, cartridges and the shot-firer's charge are used up in the crossing
+            cabinet: { ...gear, rockets: Math.max(0, (gear.rockets ?? 0) - 1), cartridges: Math.max(0, (gear.cartridges ?? 0) - 1), charge: Math.max(0, (gear.charge ?? 0) - (choice === 'blast' ? 1 : 0)) },
             cash: s.cash - opt.cost - outcome.cashLost,
             condition: { ...cond, fatigue: Math.min(100, cond.fatigue + outcome.fatigue) },
             cargo: outcome.cargoLost ? (s.cargo ?? []).filter((c) => !c.collected) : s.cargo,

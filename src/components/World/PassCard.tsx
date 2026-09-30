@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useGame } from '../../game/state/store';
+import { passRisk, useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
-import { PASS_CHOICES, PASS_DANGER, CONDITION_START, passWeather, riskWord, routeExposure, type PassChoice } from '../../game/systems/fieldwork';
+import { PASS_CHOICES, CONDITION_START, passWeather, riskWord, type PassChoice } from '../../game/systems/fieldwork';
 import '../ArranLab/ArranLab.css';
 
 /**
@@ -20,7 +20,10 @@ export function PassCard({ tripKey, onGo, onCancel }: { tripKey: string; onGo: (
   const guards = Object.values(g.world.party.troops).reduce((a, n) => a + n, 0);
   const cargo = (g.cargo ?? []).filter((c) => c.collected).map((c) => c.cls);
   const fatigue = (g.condition ?? CONDITION_START).fatigue;
-  const risk = (c: PassChoice) => routeExposure({ danger: PASS_DANGER, weather: weather.add, fatigue, guards, cargo }, c);
+  const risk = (c: PassChoice) => passRisk(g, c);
+  const gear = g.cabinet ?? {};
+  const kit = [(g.khamsinUntil ?? 0) >= g.day && 'the khamsin kit', (gear.rockets ?? 0) > 0 && 'signal rockets', (gear.cartridges ?? 0) > 0 && 'cartridges for the guards', (g.world.party.arms ?? 0) > 0 && 'your revolver'].filter(Boolean) as string[];
+  const choices = (Object.keys(PASS_CHOICES) as PassChoice[]).filter((c) => c !== 'blast' || (gear.charge ?? 0) > 0);
 
   return (
     <div className="pass-card" role="dialog" aria-label="The Sinai passes" data-testid="pass-card">
@@ -29,9 +32,10 @@ export function PassCard({ tripKey, onGo, onCancel }: { tripKey: string; onGo: (
         <h2>The Sinai passes</h2>
         {!done ? (
           <>
-            <p>The track climbs into the granite. Raiders have been seen at the narrows. {weather.text} You have {guards} guard{guards === 1 ? '' : 's'}; you are {fatigue >= 45 ? 'tired' : 'rested enough'}.{cargo.some((c) => c !== 'ordinary') ? ' What you carry is worth stealing.' : ''}</p>
+            <p>The track climbs into the granite. Raiders have been seen at the narrows. {(g.khamsinUntil ?? 0) >= g.day ? 'The khamsin kit is packed.' : weather.text} You have {guards} guard{guards === 1 ? '' : 's'}; you are {fatigue >= 45 ? 'tired' : 'rested enough'}.{cargo.some((c) => c !== 'ordinary') ? ' What you carry is worth stealing.' : ''}</p>
+            {kit.length > 0 && <p className="dim small" data-testid="pass-kit">From Arran's cabinet: {kit.join(', ')}.</p>}
             <div className="pass-choices">
-              {(Object.keys(PASS_CHOICES) as PassChoice[]).map((c) => {
+              {choices.map((c) => {
                 const o = PASS_CHOICES[c];
                 const r = risk(c);
                 const cant = o.cost > g.cash;

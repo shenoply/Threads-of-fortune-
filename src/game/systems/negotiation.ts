@@ -877,7 +877,7 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
   if (kind === 'craft') relevance = t.traits.includes('fineWeave') ? 1 : t.traits.includes('hardwearing') ? 0.6 : 0.4;
   if (kind === 'durability') relevance = t.traits.includes('fragile') ? -1 : t.traits.includes('hardwearing') || t.traits.includes('washable') ? 1 : 0.3;
   // Arran's signed report on the rug, or his loupe in your hand, backs the argument with evidence
-  const labBonus = labArgBonus(kind, item.labReports as LabService[] | undefined, ctx.tools, t.traits);
+  const labBonus = labArgBonus(kind, item.labReports as LabService[] | undefined, ctx.tools, t.traits) + (kind === 'durability' && item.mothproof ? 0.15 : 0);
   if (labBonus && relevance >= 0) relevance += labBonus;
   if (kind === 'fit') relevance = enc.presentedFit >= 60 ? 1 : enc.presentedFit >= 40 ? 0.3 : -0.6;
   const weight = b.args[kind];

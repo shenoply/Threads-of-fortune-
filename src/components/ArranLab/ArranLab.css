@@ -216,3 +216,7 @@
 
 .arran-lab .side-tasks { margin: 4px 8px; }
 .arran-lab .side-task { min-height: 44px; font-size: 13px; }
+.cab-kind { font-style: normal; font-size: 11px; padding: 0 6px; border-radius: 999px; background: rgba(159,207,138,0.2); }
+.cab-kind.cab-poison { background: rgba(170,210,120,0.25); color: #d8f0a0; }
+.cab-kind.cab-powder { background: rgba(227,154,122,0.28); color: #ffd3bd; }
+.arran-cargo.kind-poison, .arran-cargo.kind-powder { border-color: rgba(227,154,122,0.45); }

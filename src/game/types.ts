@@ -50,6 +50,8 @@ export interface RugItem {
   stored?: boolean; // left at the Giza stall instead of travelling with the caravan
   /** Arran's signed reports that travel with the rug ('fibre', 'fastness', ...) */
   labReports?: string[];
+  /** treated with Arran's moth preservative */
+  mothproof?: boolean;
   notes: string[];
 }
 

@@ -258,7 +258,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
       )}
       <SideTasks only="arran" onGo={() => goTab('notebook')} />
       <nav className="arran-lab__tabs" role="tablist" aria-label="In the laboratory">
-        {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['road', 'Road'], ['board', 'Board']] as [Tab, string][]).map(([id, label]) => (
+        {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['road', 'Supplies'], ['board', 'Board']] as [Tab, string][]).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
         ))}
         <button type="button" className="arran-lab__tab arran-lab__tab--book" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">
@@ -279,6 +279,13 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
                   <img src="art/arran/cat/microscope.webp" alt="" aria-hidden="true" />
                   <span><b>A. Embleton's price book</b><small>What each test tells you, what it costs, signed reports and instruments</small></span>
                   <i aria-hidden="true">Open ›</i>
+                </button>
+              )}
+              {!rug && (
+                <button type="button" className="arran-bookcard" onClick={() => goTab('road')} data-testid="arran-cabinet-link">
+                  <img src="art/arran/cat/vat.webp" alt="" aria-hidden="true" />
+                  <span><b>Arran's cabinet</b><small>Tonics, a poison for moth, and powder goods through licensed men: rockets, cartridges, a revolver, a blasting charge</small></span>
+                  <i aria-hidden="true">Supplies ›</i>
                 </button>
               )}
               {rugs.length > 0 && <p className="arran-step">{rug ? `${RUGS[rug.typeId]!.name}: choose a test` : 'Choose a rug'}</p>}

@@ -23,6 +23,11 @@ Acceptance: `PORT=5173 W=360 H=780 TAG=p360 node tests/arranexpansion.mjs` (also
 | Mummy linen | Returning a book gives Arran's letter → deliver it to Hamza Effendi at the Cairo museum store → the study is permitted from the next day. It can be replayed in the notebook. |
 | Save | v18: rub findings rewritten, permit stage from old `permitDay`, condition, cargo, crossings and patrols defaults, wash unlocked for anyone with dyes. Requesting a book reveals its library town on the map. |
 
+## Arran's cabinet (Supplies tab; linked from the lab's first screen)
+Remedies: iron and quinine tonic (fatigue −15, no crash), khamsin kit (30 days, no season risk in the passes).
+Poison: arsenical moth preservative (rugs held are moth-proofed; durability argument counts more).
+Powder, licensed: signal rockets (pass risk −8, used once), cartridges through a licensed gunsmith (needs guards; strength +4 in the pass, used once), a Webley revolver with permit (strength +2 everywhere), a blasting charge with a licensed shot-firer (needs the folio; adds "clear the old short road" at the pass). Names, prices, permits and effects only; nothing on making or using them. Every purchase shows cost, effect and the law before paying.
+
 ## Not done
 - A dedicated museum-store or chemist painting: both reuse the library card layout with no art.
 - Primary sources for Egyptian explosives or poisons regulation in 1925: not checked, so the game states no offence or penalty for them.
