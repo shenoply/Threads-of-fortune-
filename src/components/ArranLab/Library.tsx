@@ -116,7 +116,8 @@ export function LibraryView({ town, onClose }: { town: string; onClose: () => vo
           const h = g.world.hour;
           const early = h < lib.open[0];
           const hours = early ? lib.open[0] - h : 24 - h + lib.open[0];
-          const hm = `${Math.floor(hours)} h${Math.round((hours % 1) * 60) ? ` ${Math.round((hours % 1) * 60)} min` : ''}`;
+          const hh = Math.floor(hours), mn = Math.round((hours % 1) * 60);
+          const hm = [hh ? `${hh} h` : '', mn ? `${mn} min` : ''].filter(Boolean).join(' ') || 'a moment';
           return (
             <div className="library-card library-wait" data-testid="library-closed">
               <p>Closed. {early ? `The doors open at ${lib.open[0]}:00.` : `Closed for the day at ${lib.open[1]}:00; open again tomorrow at ${lib.open[0]}:00.`}</p>

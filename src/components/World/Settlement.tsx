@@ -36,7 +36,7 @@ import { dateLine } from '../../game/economy/newspaper';
 import { FinancePanel } from './Finance';
 import { LibraryView } from '../ArranLab/Library';
 import { CairoPlace } from './CairoPlaces';
-import { LIBRARIES } from '../../game/systems/arranBooks';
+import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
@@ -378,7 +378,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
           ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
           ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
-          ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.values(g.arranBooks ?? {}).some((b) => b && ['requested', 'located'].includes(b.phase)); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
+          ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
           ...(id === 'cairo' ? [['bag', 'A chemist in the Muski', 'Tonics over the counter; drugs only on prescription', () => setCairoPlace('chemist'), 'menu-chemist'] as [string, string, string, () => void, string]] : []),
           ...(id === 'cairo' && g.arranVisit?.permitStage ? [['scale', 'The museum store', g.arranVisit.permitStage === 'letter' ? 'Deliver Arran\'s letter to Hamza Effendi' : 'Hamza Effendi has given his permission', () => setCairoPlace('museum'), 'menu-museum'] as [string, string, string, () => void, string]] : []),
           ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),

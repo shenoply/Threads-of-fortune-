@@ -93,7 +93,8 @@ try {
   await p.click('[data-testid=library-copy-field_safety]'); await p.waitForTimeout(300);
   console.log('   copy:', (await p.locator('[data-testid=library-note]').textContent()).slice(0, 80), '| paid', c0 - (await live()).cash, '| duplicate offered?', await has('library-dup-field_safety'));
   await p.screenshot({ path: `${S}/r-library.png` });
-  await p.click('[data-testid=library-leave]');
+  await p.click('[data-testid=library-leave]'); await p.waitForTimeout(400);
+  if (await has('menu-leave')) await p.click('[data-testid=menu-leave]'); await p.waitForTimeout(400);
   await p.click('[data-testid=nav-inventory]'); await p.waitForTimeout(300);
   console.log('   in Stock:', await p.locator('[data-testid=inv-papers]').innerText().then((t) => t.replace(/\n+/g, ' | ')));
 

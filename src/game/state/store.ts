@@ -2540,7 +2540,7 @@ export const useGame = create<GameState & Actions>()(
           });
           get().passTime(o.minutes);
           audio.sfx('coins');
-          return how === 'copy' ? `The copyist hands you ${Math.round(o.minutes / 60)} hours of neat copperplate, tied with tape. The library's own book stays on its shelf.` : 'The archivist stamps the duplicate "withdrawn" and writes you a receipt. It is yours.';
+          return how === 'copy' ? `${b.library === 'sinai' ? 'Brother Anastasios' : b.library === 'portsaid' ? 'The customs clerk' : 'The copyist'} hands you ${Math.round(o.minutes / 60)} hours of careful copying, tied with tape. The original stays where it is.` : 'The archivist stamps the duplicate "withdrawn" and writes you a receipt. It is yours.';
         },
 
         arranReturnBook: (id) => {
