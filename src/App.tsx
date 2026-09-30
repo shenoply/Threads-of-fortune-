@@ -35,12 +35,15 @@ import { RUGS } from './data/rugs';
 import { rentFor } from './data/suppliers';
 import { paintedMap } from './game/systems/mapRender';
 import { Atmosphere } from './components/Atmosphere/Atmosphere';
+import { preloadStall } from './components/StallEncounter/stallArt';
 
 type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan' | 'hero';
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
 
 export default function App() {
   const g = useGame();
+  // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
+  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');

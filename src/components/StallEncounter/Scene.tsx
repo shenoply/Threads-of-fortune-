@@ -15,6 +15,7 @@ import { bulletin, type Lang } from '../../game/radio/bulletin';
 import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure, usePoseReady } from '../Wardrobe/HeroFigure';
+import { stallFigure } from './stallArt';
 
 const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
 // lantern flames in each painting, as fractions of the image (see Atmosphere)
@@ -162,10 +163,12 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   // figures stand on the counter (a fixed share of the stage) and must keep their heads inside the
   // visible frame, whose height is what a phone or a wide desktop panel actually shows
   const figH = Math.min(sh * 0.55, H * 0.93 - sh * 0.21);
-  // the leaning figure: hands at 94% of its height rest on the counter top (25% up the stage);
-  // the head (11% down) must stay inside the visible frame
-  const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.25 + 0) / 0.83);
-  const heroStyle = { height: heroH, bottom: sh * 0.25 - heroH * 0.06 };
+  // the leaning figure: hands at 94% of its height rest on the counter top. The cloth's top edge
+  // (counter-stall.webp) sits 22.5% up the stage and the painted hands land 7.5% of the stage
+  // above where the 94% line puts them, so the figure is set that much lower to put hands on cloth.
+  // The head (11% down) must stay inside the visible frame.
+  const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.175 + 0) / 0.83);
+  const heroStyle = { height: heroH, bottom: sh * 0.175 - heroH * 0.06 };
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
@@ -179,7 +182,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
           <img className="hero-at-stall hero-still" src="art/hero/hero-base-stall.webp" alt="" draggable={false} style={heroStyle} />
         )}
         {buyer && (
-          <div className={`buyer-figure has-photo${enc?.outcome && !enc.mocked ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
+          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
             <ScenePerson id={buyer.id} />
           </div>
         )}
@@ -332,22 +335,14 @@ export function BuyerFace({ id, size = 36 }: { id: string; size?: number }) {
   );
 }
 
-/** The buyer across the table: the redrawn stall2 cut-out, the older cut-out, or the framed portrait, in that order. */
+/** The buyer across the table: the redrawn stall2 cut-out, the older cut-out, or the framed portrait (stallArt.ts knows which). */
 function ScenePerson({ id }: { id: string }) {
-  const [v2ok, setV2ok] = useState<boolean | null>(null);
-  const [ok, setOk] = useState<boolean | null>(null);
-  const [framed, setFramed] = useState<boolean | null>(null);
-  return (
-    <>
-      {v2ok === false && ok === false && framed === false && <PersonBack spec={personFor(id)} className="buyer-art" />}
-      {/* no cut-out yet: the painted portrait stands in, framed like a photograph on the counter */}
-      {v2ok === false && ok === false && framed !== false && <img src={`art/portraits/${id}.jpg`} alt="" className="buyer-framed" style={{ display: framed ? 'block' : 'none' }} onLoad={() => setFramed(true)} onError={() => setFramed(false)} />}
-      {v2ok === false && (
-        <img src={`art/portraits/${id}-stall.webp`} alt="" className="buyer-art" style={{ display: ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setOk(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={(e) => { setOk(false); e.currentTarget.parentElement?.classList.remove('has-photo'); }} />
-      )}
-      <img src={`art/portraits/${id}-stall2.webp`} alt="" className="buyer-art" style={{ display: v2ok ? 'block' : 'none', objectFit: 'contain', objectPosition: '100% 100%' }} onLoad={(e) => { setV2ok(true); e.currentTarget.parentElement?.classList.add('has-photo'); }} onError={() => setV2ok(false)} />
-    </>
-  );
+  const { src, framed } = stallFigure(id);
+  const [failed, setFailed] = useState(false);
+  if (failed) return <PersonBack spec={personFor(id)} className="buyer-art" />;
+  return framed
+    ? <img src={src} alt="" className="buyer-framed" onError={() => setFailed(true)} />
+    : <img src={src} alt="" className="buyer-art" style={{ objectFit: 'contain', objectPosition: '100% 100%' }} onError={() => setFailed(true)} />;
 }
 
 /** The daily shelf dressing: one prop per named spot, each a full-canvas cut-out already positioned, so it just layers over the empty stall. */

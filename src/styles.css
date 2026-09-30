@@ -502,7 +502,7 @@ table.ledger .neg { color: var(--bad); }
 .switch[aria-checked='true'] { background: #6b4b1e; }
 .switch[aria-checked='true']::after { left: 22px; background: var(--brass-hi); }
 
-.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 96px); pointer-events: none; transform: translateX(-50%); z-index: 90; background: rgba(20,12,6,0.96); border: 1px solid var(--line-strong); color: var(--parchment); padding: 8px 14px; border-radius: 4px; font-size: 15.5px; max-width: 90%; text-align: center; animation: rise2 0.3s ease; }
+.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 6px); pointer-events: none; transform: translateX(-50%); z-index: 90; background: rgba(20,12,6,0.96); border: 1px solid var(--line-strong); color: var(--parchment); padding: 8px 14px; border-radius: 4px; font-size: 15.5px; max-width: 90%; text-align: center; animation: rise2 0.3s ease; }
 @keyframes rise2 { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ---------- Wide / landscape ---------- */
@@ -1869,9 +1869,9 @@ body.travelling .mission-strip{display:none}
 .scene.stall .hero-at-stall{position:absolute;left:0;aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
 .scene.stall .hero-at-stall .hero-fig{height:100%;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
 .scene.stall img.hero-still{width:auto;object-fit:contain;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
-.scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:22%;top:auto;left:auto;height:var(--fig-h,52%);width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}
+.scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:14.5%;top:auto;left:auto;height:var(--fig-h,52%);width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}
 .scene.stall .buyer-figure.has-photo .buyer-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(-6px 0 12px rgba(0,0,0,.45)) sepia(.12)}
-.scene.stall .buyer-figure.has-photo[data-buyer="samira"]{right:0;bottom:27.5%;height:calc(var(--fig-h,50%) * .86);aspect-ratio:577/692}
+.scene.stall .buyer-figure.has-photo[data-buyer="samira"]{right:0;bottom:20%;height:calc(var(--fig-h,50%) * .86);aspect-ratio:577/692}
 .scene.stall .buyer-figure.has-photo[data-buyer="mariam"]{aspect-ratio:571/1050}
 .scene.stall .buyer-figure.has-photo[data-buyer="yusuf"]{aspect-ratio:655/1050}
 .scene.stall .buyer-figure.has-photo.leaving{animation:buyer-leave 1.8s ease-in 3.2s forwards}
