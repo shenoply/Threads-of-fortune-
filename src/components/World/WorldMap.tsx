@@ -82,7 +82,36 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const passTrip = useRef<{ key: string; atPx: number } | null>(null);
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
-  const [moving, setMoving] = useState<null | { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' }>(null);
+  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' };
+  // resume a journey already under way, from where the caravan actually is along its path
+  const [moving, setMovingRaw] = useState<null | Moving>(() => {
+    const j = useGame.getState().journey;
+    if (!j) return null;
+    const here = { x: useGame.getState().world.x, y: useGame.getState().world.y };
+    let best = j.done, bestD = Infinity, run = 0;
+    for (let i = 1; i < j.path.length; i++) {
+      const a = j.path[i - 1], b = j.path[i], len = dist(a, b) || 1;
+      const t = Math.max(0, Math.min(1, ((here.x - a.x) * (b.x - a.x) + (here.y - a.y) * (b.y - a.y)) / (len * len)));
+      const d = dist(here, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+      if (d < bestD) { bestD = d; best = run + len * t; }
+      run += len;
+    }
+    return { ...j, done: Math.max(j.done, best) };
+  });
+  // every change is saved: a paid ticket is never lost to a new day or a rebuilt screen. Setting off
+  // also closes a finished stall day, so the journey is not frozen behind the day's ledger.
+  /** "about 35 h, arrives Fri 04:00": the same clock the journey will run on */
+  const arrivalLabel = (days: number) => {
+    const t = g.world.hour + days * 24;
+    const d = g.day + Math.floor(t / 24), h = t % 24;
+    const hours = Math.max(1, Math.round(days * 24));
+    return `about ${hours} h, arrives ${dateFor(d).weekday.slice(0, 3)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
+  };
+  const setMoving = (m: null | Moving) => {
+    setMovingRaw(m);
+    const st = useGame.getState();
+    useGame.setState({ journey: m ?? undefined, ...(m && st.dayOver ? { dayOver: false } : {}) });
+  };
   const [ownScale, setOwnScale] = useState(1);
   const timeScale = scale ?? ownScale;
   const setTimeScale = setScale ?? setOwnScale;
@@ -732,7 +761,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
                 {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) && (
                   <button className="btn" onClick={() => start(false)} data-testid="travel">Walk instead · {plan.days.toFixed(1)} d</button>
                 )}
-                {plan.train && <button className="btn" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {plan.train.days < 1 ? `${Math.max(1, Math.round(plan.train.days * 24))} h` : `${plan.train.days.toFixed(1)} d`}</button>}
+                {plan.train && <button className="btn" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}</button>}
                 {plan.ships.map((r) => (
                   <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
                 ))}

@@ -510,12 +510,14 @@ table.ledger .neg { color: var(--bad); }
   .stall { grid-template-rows: auto minmax(260px, 1fr) auto auto; grid-template-columns: 1.35fr 1fr; }
   .stall-toolbar { grid-column: 1 / -1; }
   .scene { grid-column: 1 / -1; aspect-ratio: auto; max-height: none; height: 100%; }
-  .band { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; }
+  .band { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
   .band > :first-child, .band > :last-child { margin-top: 0; margin-bottom: 0; }
-  .band .narrator, .band .caption { flex: 1.2; }
-  .band .plate-buyer { flex: 1.3; }
+  /* the narration keeps a readable measure: it never gives up its width to the buyer panel, whose
+     one-line role text would otherwise claim its full length and squeeze the narration to a column */
+  .band .narrator, .band .caption { flex: 1.2 1 300px; min-width: 280px; }
+  .band .plate-buyer { flex: 1.3 1 320px; min-width: 0; }
   .band .echo { display: none; }
-  .band .stages { flex: 1; flex-wrap: wrap; }
+  .band .stages { flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
   .band .stages span { flex: 0 0 auto; }
   .rugstrip { border-right: 1px solid var(--line); padding: 10px; }
   .actions { padding: 10px; border-top: 1px solid var(--line); align-content: center; }

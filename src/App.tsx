@@ -378,7 +378,7 @@ export default function App() {
             </span>
           </span>
           {tab !== 'supplier' && <button className="btn" onClick={() => setTab('supplier')} data-testid="visit-rashid-evening">Rashid</button>}
-          <button className="btn primary" onClick={() => { g.endDay(); setMapIntent({ view: 'district', n: Date.now() }); setTab('map'); }} data-testid="close-stall">
+          <button className="btn primary" onClick={() => { g.endDay(); setMapIntent(useGame.getState().journey ? { view: 'world', n: Date.now() } : { view: 'district', n: Date.now() }); setTab('map'); }} data-testid="close-stall">
             Next day
           </button>
         </div>

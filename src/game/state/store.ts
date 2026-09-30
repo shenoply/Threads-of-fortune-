@@ -189,6 +189,9 @@ export interface GameState {
   condition?: Condition1925;
   /** Arran's cabinet: goods held, by id */
   cabinet?: Partial<Record<CabinetId, number>>;
+  /** a journey under way (path, how far along, by what): kept so a paid train or ship survives the map
+   *  screen being rebuilt, a new day, or a reload */
+  journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' };
   /** the khamsin kit protects until this day */
   khamsinUntil?: number;
   /** coca wine bottles bought from the chemist */
