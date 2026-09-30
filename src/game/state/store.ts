@@ -18,7 +18,8 @@ import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
 import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type SavedOutfit, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
-import { LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
+import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
+import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
@@ -39,7 +40,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -161,6 +162,10 @@ export interface GameState {
   claims?: number;
   /** Arran's notebook: lab results keyed `${rug uid}:${service}`; reopening one is free */
   arranFindings?: LabFinding[];
+  /** Arran's book errands, the copies you carry, and the tests his returned books have unlocked */
+  arranBooks?: Partial<Record<BookId, BookState>>;
+  papers?: Paper[];
+  labUnlocked?: LabService[];
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -281,6 +286,10 @@ interface Actions {
   /** buy cargo cover from the Lloyd's agent in this town */
   insure: () => string;
   /** pay Arran for one test on a rug you own; `cut` is the player's consent to cut a sample from the back */
+  arranRequestBook: (id: BookId) => string;
+  librarySearch: (id: BookId) => string;
+  libraryAcquire: (id: BookId, how: 'copy' | 'duplicate') => string;
+  arranReturnBook: (id: BookId) => { ok: boolean; message: string };
   arranExamine: (uid: string, service: LabService, cut?: boolean) => { ok: true; finding: LabFinding } | { ok: false; message: string; needsCut?: boolean };
   restore: (uid: string) => void;
   buyUpgrade: (id: string) => void;
@@ -2070,6 +2079,77 @@ export const useGame = create<GameState & Actions>()(
           return `The agent writes out a policy: your packed rugs are covered for ${COVER_DAYS} days. Seven parts in ten of their worth if they are taken on the road.`;
         },
 
+        arranRequestBook: (id) => {
+          const s = get();
+          const b = ARRAN_BOOKS[id];
+          if (s.world.at !== 'giza') return 'Arran is in his laboratory in Giza.';
+          if (bookPhase(s.arranBooks, id) !== 'unknown') return b.hint;
+          set({
+            arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'requested', day: s.day } },
+            journal: [...s.journal, { day: s.day, text: `Arran asked you to find ${b.author}'s ${b.title}. ${b.hint}` }],
+          });
+          audio.sfx('pen');
+          return b.hint;
+        },
+
+        librarySearch: (id) => {
+          const s = get();
+          const b = ARRAN_BOOKS[id];
+          const lib = LIBRARIES[b.library];
+          if (s.world.at !== lib.town) return `${b.title} is not here.`;
+          if (bookPhase(s.arranBooks, id) !== 'requested') return 'You have already found it in the catalogue.';
+          if (s.world.hour < lib.open[0] || s.world.hour + 0.4 > lib.open[1]) return `The ${lib.name.replace(/^The /, '')} is closed. It opens at ${lib.open[0]}:00.`;
+          set({ arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'located', day: s.day } } });
+          get().passTime(20);
+          audio.sfx('pen');
+          return `The card is in the third drawer: ${b.author}, ${b.title}, ${b.imprint}. ${b.shelf}.`;
+        },
+
+        libraryAcquire: (id, how) => {
+          const s = get();
+          const b = ARRAN_BOOKS[id];
+          const lib = LIBRARIES[b.library];
+          const st = s.arranBooks?.[id];
+          const papers = s.papers ?? [];
+          const lost = st?.phase === 'copy_acquired' && !papers.some((x) => x.id === st.copyId);
+          if (s.world.at !== lib.town) return 'You are not at the library.';
+          if (st?.phase !== 'located' && !lost) return st?.phase === 'copy_acquired' ? 'You already carry a copy.' : 'Find it in the catalogue first.';
+          const o = b[how];
+          if (s.cash < o.price) return `That costs ${fmt(o.price)}. You have ${fmt(s.cash)}.`;
+          if (s.world.hour + o.minutes / 60 > lib.open[1] + 0.5) return 'There is not enough of the day left for that. Come back in the morning.';
+          const paper: Paper = { id: newUid('p'), bookId: id, kind: how, title: `${b.title} (${how === 'copy' ? 'copied chapters' : 'withdrawn duplicate'})`, from: lib.town, day: s.day };
+          set({
+            cash: s.cash - o.price,
+            papers: [...papers.filter((x) => x.bookId !== id), paper],
+            arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'copy_acquired', copyId: paper.id, day: s.day } },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: how === 'copy' ? `Copyist: ${b.title}` : `Bought: ${b.title}`, amount: -o.price }],
+            journal: [...s.journal, { day: s.day, text: `${how === 'copy' ? 'The copyist wrote out' : 'You bought'} ${b.title}${how === 'copy' ? '' : ', a withdrawn duplicate'}. Take it to Arran in Giza.` }],
+          });
+          get().passTime(o.minutes);
+          audio.sfx('coins');
+          return how === 'copy' ? `The copyist hands you ${Math.round(o.minutes / 60)} hours of neat copperplate, tied with tape. The library's own book stays on its shelf.` : 'The archivist stamps the duplicate "withdrawn" and writes you a receipt. It is yours.';
+        },
+
+        arranReturnBook: (id) => {
+          const s = get();
+          const b = ARRAN_BOOKS[id];
+          const st = s.arranBooks?.[id];
+          if (s.world.at !== 'giza') return { ok: false, message: 'Arran is in Giza.' };
+          if (st?.phase === 'returned') return { ok: false, message: 'He already has it on his shelf.' };
+          const paper = (s.papers ?? []).find((x) => x.id === st?.copyId);
+          if (st?.phase !== 'copy_acquired' || !paper) return { ok: false, message: st?.phase === 'copy_acquired' ? 'You no longer have the copy. The library can make another.' : 'You have nothing to give him yet.' };
+          // one transaction: the copy leaves your bags, the errand closes and the test opens together
+          set({
+            papers: (s.papers ?? []).filter((x) => x.id !== paper.id),
+            arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'returned', copyId: paper.id, day: s.day } },
+            labUnlocked: [...new Set([...(s.labUnlocked ?? []), b.unlock])],
+            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${b.unlockLabel.toLowerCase()}.` }],
+            reputation: s.reputation + 1,
+          });
+          audio.sfx('pen');
+          return { ok: true, message: b.thanks };
+        },
+
         arranExamine: (uid, service, cut = false) => {
           const s = get();
           const key = `${uid}:${service}`;
@@ -2081,8 +2161,11 @@ export const useGame = create<GameState & Actions>()(
           const blocked = examineBlock(item, s.day);
           if (blocked) return { ok: false, message: blocked };
           const svc = LAB_SERVICES[service];
+          const needs = serviceBook(service);
+          if (needs && !(s.labUnlocked ?? []).includes(service)) return { ok: false, message: `Arran needs his ${ARRAN_BOOKS[needs].title} for this.` };
           if (s.cash < svc.price) return { ok: false, message: `The test costs ${fmt(svc.price)}. You have ${fmt(s.cash)}.` };
-          if (s.world.hour + svc.minutes / 60 > 20) return { ok: false, message: 'Arran is washing his glassware for the night. Come back in the morning.' };
+          if (s.world.hour < LAB_HOURS[0]) return { ok: false, message: `Arran opens at ${LAB_HOURS[0]}:00.` };
+          if (s.world.hour + svc.minutes / 60 > LAB_HOURS[1]) return { ok: false, message: 'Arran is washing his glassware for the night. Come back in the morning.' };
           const loose = hasLooseThread(item);
           if (svc.needsThread && !loose && !cut) return { ok: false, needsCut: true, message: 'There is no loose thread on this rug. He would have to cut a few knots from the back.' };
           const finding = resolveFinding(item, service, s.day, svc.needsThread && !loose);
@@ -2178,6 +2261,12 @@ export const useGame = create<GameState & Actions>()(
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        if (version < 15) {
+          // books now unlock Arran's tests; anyone who already used one keeps it
+          p.arranBooks = p.arranBooks ?? {};
+          p.papers = p.papers ?? [];
+          p.labUnlocked = [...new Set((p.arranFindings ?? []).map((f) => f.service).filter((sv) => sv === 'fibre' || sv === 'dye'))];
+        }
         if (version < 13) {
           // clothes are sold piece by piece now; old whole outfits become their pieces
           const a = p.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 };

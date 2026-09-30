@@ -9,6 +9,9 @@ The asset owner supplied every file here in the Google Drive "Arran" folder (30 
 | 12-lab-explain.webp | 12-lab-explain.png | Lab panel portrait (board, notebook) | Lab coat |
 | 02-surprise.webp | 02-surprise.png | Door card, first visit | Waistcoat, no coat (outside the lab) |
 | 10-listening.webp | 10-listening.png | Door card, later visits | Waistcoat |
+| 14-cairo-library.webp | 14-cairo-library.png (1536×1024) | Library scene (Cairo reading room; reused for the Alexandria archive) | Fictional room, not a specific institution |
+| 15-open-reference-book.webp | 15-open-reference-book.png (1536×1024) | Book reader; titles, formulae and text are HTML over the blank pages | |
+| 16-risky-pass.webp | 16-risky-pass.png (1024×1536) | Converted for the dangerous-route encounter (not yet shown) | Use only for a mountain pass |
 | 01, 03–09 *.webp | matching .png | Converted for later scenes (stall visits, travel, the signet story) | Not yet shown in game |
 
 Not imported:
@@ -24,3 +27,8 @@ Period references, used for writing only (no material copied):
 - M. Faraday, *The Chemical History of a Candle*. LibriVox's public-domain reading is modern audio, not a 1925 recording, and is not used.
 
 Dialogue uses period names only: the Chemical Society of London and the Royal Institute of Chemistry. The name "Royal Society of Chemistry" dates from 1980. His Northumbrian royal ancestry is an unproven family tale. The tower-and-sword signet is a fictional personal device, not certified heraldry.
+
+Books cited in the game (titles only, no pages or scans imported):
+- J. Merritt Matthews, *Laboratory Manual of Dyeing and Textile Chemistry* (New York, 1909).
+- E. Knecht, C. Rawson and R. Loewenthal, *A Manual of Dyeing* (London: Charles Griffin). Check the edition before quoting it.
+- The Qasr el-Nil reading room and the cotton merchants' archive are fictional places; the game does not claim that any real library held these copies.

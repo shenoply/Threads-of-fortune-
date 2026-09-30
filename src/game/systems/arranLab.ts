@@ -23,6 +23,9 @@ export interface LabFinding {
   cut?: boolean;
 }
 
+/** Arran keeps his door open from seven in the morning to eight at night */
+export const LAB_HOURS: [number, number] = [7, 20];
+
 export const LAB_SERVICES: Record<LabService, { label: string; price: number; minutes: number; station: 'microscope' | 'dye' | 'balance'; needsThread: boolean; blurb: string }> = {
   fibre: { label: 'Fibre under the microscope', price: 8, minutes: 45, station: 'microscope', needsThread: true, blurb: 'One loose yarn, teased apart on a slide: wool scales, cotton twists, the smooth rod of silk.' },
   dye: { label: 'Dye test', price: 18, minutes: 120, station: 'dye', needsThread: true, blurb: 'A few fibres boiled and spotted on porcelain, compared with his dye cards.' },

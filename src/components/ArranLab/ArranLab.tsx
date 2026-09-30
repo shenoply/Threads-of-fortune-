@@ -3,28 +3,38 @@ import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { RUGS } from '../../data/rugs';
-import { LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, verdictWord, type LabFinding, type LabService } from '../../game/systems/arranLab';
+import { LAB_SERVICES, LAB_HOURS, conditionAfterCut, examineBlock, hasLooseThread, verdictWord, type LabFinding, type LabService } from '../../game/systems/arranLab';
+import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase, serviceBook, type BookId } from '../../game/systems/arranBooks';
+import { settlementById } from '../../game/systems/world';
+import { BookReader } from './Library';
 import './ArranLab.css';
 
 /**
- * Arran Embleton's textile laboratory, Giza 1925. A 2.5D room: the painted background, an HTML chalk
- * board on its blank slate, hotspots on the instruments, pointer parallax and a foreground light.
- * Arran's portrait lives in the lower panel, never in the room. Tests are paid once and kept in his
- * notebook; results come from the rug's hidden lab profile (src/game/systems/arranLab.ts).
+ * Arran Embleton's textile laboratory, Giza 1925. The painted room is a picture, not a control
+ * panel: its labels light up on the instrument in use and the camera turns to it. Everything you do
+ * happens in the panel below: pick a rug, then a test. Results come from the rug's hidden lab
+ * profile (src/game/systems/arranLab.ts); books he asks for unlock his tests (arranBooks.ts).
  */
-type Station = 'microscope' | 'dye' | 'balance' | 'notebook' | 'board';
+type Spot = 'microscope' | 'dye' | 'balance' | 'notebook' | 'board';
+type Tab = 'test' | 'notebook' | 'board';
 type Topic = 'fibre' | 'indigo' | 'mineral';
 
-// positions are percentages of the 1536×1024 room painting (13-lab-room); fx/fy is where the camera
-// looks when the station is chosen (the board's dot sits on its frame so it never covers the chalk)
-const STATIONS: Record<Station, { label: string; x: number; y: number; fx?: number; fy?: number; detail: string }> = {
-  microscope: { label: 'Microscope', x: 57, y: 36.5, detail: 'One loose yarn under the lens. Wool, cotton and silk each look different; a mixture shows both.' },
-  dye: { label: 'Dye cards', x: 78.5, y: 43, detail: 'A few fibres against his dye cards, or a damp cloth on the back to see whether a colour runs.' },
-  balance: { label: 'Balance', x: 67.5, y: 36, detail: 'Weigh an antique in air and in water to estimate its density. Plating and hollow pieces can mislead it.' },
-  notebook: { label: 'Notebook', x: 27.5, y: 43, detail: 'Every result he has written down for you, and the books he works from. Reading them again is free.' },
-  board: { label: 'Board', x: 90.5, y: 31, fx: 75.5, fy: 20, detail: 'Arran explains the chemistry behind his tests.' },
+// positions are percentages of the 1536×1024 room painting (13-lab-room)
+const SPOTS: Record<Spot, { label: string; x: number; y: number; fx: number; fy: number }> = {
+  microscope: { label: 'Microscope', x: 57, y: 36.5, fx: 60, fy: 36 },
+  dye: { label: 'Dye cards', x: 78.5, y: 43, fx: 74, fy: 38 },
+  balance: { label: 'Balance', x: 67.5, y: 31, fx: 67.5, fy: 34 },
+  notebook: { label: 'Notebook', x: 27.5, y: 43, fx: 30, fy: 40 },
+  board: { label: 'Board', x: 75.5, y: 36, fx: 75.5, fy: 20 },
 };
-const ORDER: Station[] = ['microscope', 'dye', 'balance', 'notebook', 'board'];
+const SERVICE_SPOT: Record<LabService, Spot> = { fibre: 'microscope', dye: 'dye', fastness: 'dye', metal: 'balance' };
+const TESTS: LabService[] = ['fibre', 'dye', 'fastness'];
+const WHAT: Record<LabService, string> = {
+  fibre: 'What it is made of: wool, cotton or silk',
+  dye: 'Natural or synthetic dyes, against the stated age',
+  fastness: 'Will a colour run if the rug is washed?',
+  metal: '',
+};
 
 const TOPICS: Record<Topic, { title: string; formula: string; explanation: string }> = {
   fibre: {
@@ -44,29 +54,28 @@ const TOPICS: Record<Topic, { title: string; formula: string; explanation: strin
   },
 };
 
-const SOURCES = [
-  'J. Merritt Matthews, Laboratory Manual of Dyeing and Textile Chemistry (1909)',
-  'Watson Smith, The Chemistry of Hat Manufacturing',
-  'Michael Faraday, The Chemical History of a Candle (1861)',
-  'Journal of the Society of Dyers and Colourists',
-  'Proceedings of the Chemical Society of London',
-];
-
 const BASE = 'art/arran/';
+const hours = (m: number) => (m >= 60 ? `${m / 60} h` : `${m} min`);
 
 export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const g = useGame();
   const [door, setDoor] = useState(true);
-  const [sel, setSel] = useState<Station | null>(null);
+  const [tab, setTab] = useState<Tab>('test');
+  const [rugId, setRugId] = useState<string | null>(null);
   const [topic, setTopic] = useState<Topic>('fibre');
+  const [spot, setSpot] = useState<Spot | null>(null);
   const [px, setPx] = useState({ x: 0, y: 0 });
   const [view, setView] = useState<LabFinding | null>(null);
   const [ask, setAsk] = useState<{ uid: string; service: LabService } | null>(null);
   const [msg, setMsg] = useState('');
+  const [speech, setSpeech] = useState('');
+  const [read, setRead] = useState<BookId | null>(null);
   const vp = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const findings = g.arranFindings ?? [];
-  const first = !findings.length;
+  const unlocked = g.labUnlocked ?? [];
+  const first = !findings.length && !Object.keys(g.arranBooks ?? {}).length;
+  const open = g.world.hour >= LAB_HOURS[0] && g.world.hour < LAB_HOURS[1];
 
   useLayoutEffect(() => {
     const el = vp.current;
@@ -82,23 +91,21 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onLeave]);
 
-  // world transform: the room covers the viewport at 3:2; on a narrow screen it zooms in, and a
-  // selected station pans to the middle. Board and hotspots are placed in room percentages inside
-  // the same box, so they stay on the painting whatever the crop.
+  // camera: the room covers the viewport at 3:2 and turns to the instrument in use
   const narrow = box.w > 0 && box.w < 700;
   const cover = Math.max(box.w / 1.5, box.h) || 1;
-  const zoom = narrow ? (sel ? 1.55 : 1.2) : sel && sel !== 'notebook' ? 1.12 : 1;
+  const zoom = narrow ? (spot ? 1.45 : 1.15) : spot && spot !== 'notebook' ? 1.12 : 1;
   const H = cover * zoom, W = H * 1.5;
-  const focus = sel ? { x: STATIONS[sel].fx ?? STATIONS[sel].x, y: STATIONS[sel].fy ?? STATIONS[sel].y } : { x: narrow ? 73 : 50, y: 30 };
-  const clampX = (v: number) => Math.min(0, Math.max(box.w - W, v));
-  const clampY = (v: number) => Math.min(0, Math.max(box.h - H, v));
-  const ox = clampX(box.w / 2 - (focus.x / 100) * W);
-  const oy = clampY(box.h * 0.45 - (focus.y / 100) * H);
+  const focus = spot ? { x: SPOTS[spot].fx, y: SPOTS[spot].fy } : { x: narrow ? 64 : 50, y: 30 };
+  const ox = Math.min(0, Math.max(box.w - W, box.w / 2 - (focus.x / 100) * W));
+  const oy = Math.min(0, Math.max(box.h - H, box.h * 0.45 - (focus.y / 100) * H));
   const world: CSSProperties = { width: W, height: H, transform: `translate(${ox + px.x * 8}px, ${oy + px.y * 5}px)`, ['--ww' as string]: `${W}px` };
 
-  const pick = (s: Station) => { setSel(s); setView(null); setAsk(null); setMsg(''); audio.sfx('tap'); };
+  const goTab = (t: Tab) => { setTab(t); setView(null); setAsk(null); setMsg(''); setSpot(t === 'board' ? 'board' : t === 'notebook' ? 'notebook' : null); audio.sfx('tap'); };
   const rugs = g.inventory.filter((i) => RUGS[i.typeId]);
+  const rug = rugs.find((i) => i.uid === rugId) ?? null;
   const run = (uid: string, service: LabService, cut = false) => {
+    setSpot(SERVICE_SPOT[service]);
     const r = useGame.getState().arranExamine(uid, service, cut);
     if (r.ok) { setView(r.finding); setAsk(null); setMsg(''); return; }
     if (r.needsCut) { setAsk({ uid, service }); setMsg(''); return; }
@@ -115,14 +122,16 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         <div className="arran-door__card">
           <img src={`${BASE}${first ? '02-surprise' : '10-listening'}.webp`} alt="Arran Embleton in shirt sleeves and a waistcoat" draggable={false} />
           <div>
-            <small>Giza · a first-floor room above the lane</small>
+            <small>Giza · a first-floor room above the lane · open {LAB_HOURS[0]}:00–{LAB_HOURS[1]}:00</small>
             <h2>Arran's laboratory</h2>
-            <p>{first
-              ? 'A young Englishman opens the door, a loupe still in one hand. "Arran Embleton. Textile chemist, late of the Yorkshire mills, now in Giza for the dyes. Bring me a loose thread and I will tell you what your rug is made of. I will not tell you what I cannot prove."'
-              : '"Back again? Come in. I will put my coat on."'}</p>
+            <p>{!open
+              ? 'The shutters are closed and the lamp is out. A card on the door: "Back at seven. A. E."'
+              : first
+                ? 'A young Englishman opens the door, a loupe still in one hand. "Arran Embleton. Textile chemist, late of the Yorkshire mills, now in Giza for the dyes. Bring me a rug and I will tell you what I can prove about it, and nothing I cannot."'
+                : '"Back again? Come in. I will put my coat on."'}</p>
             <div className="arran-btns">
-              <button type="button" className="btn primary" onClick={() => { setDoor(false); audio.sfx('tap'); }} data-testid="arran-enter">Step inside</button>
-              <button type="button" className="btn" onClick={onLeave} data-testid="arran-door-leave">Not now</button>
+              {open && <button type="button" className="btn primary" onClick={() => { setDoor(false); audio.sfx('tap'); }} data-testid="arran-enter">Step inside</button>}
+              <button type="button" className={`btn ${open ? '' : 'primary'}`} onClick={onLeave} data-testid="arran-door-leave">{open ? 'Not now' : 'Come back later'}</button>
             </div>
           </div>
         </div>
@@ -130,10 +139,34 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
     );
   }
 
-  const active = sel ? STATIONS[sel] : null;
-  const portrait = sel === 'microscope' || sel === 'dye' || sel === 'balance' ? '11-lab-inspect' : '12-lab-explain';
-  const services: LabService[] = sel === 'microscope' ? ['fibre'] : sel === 'dye' ? ['dye', 'fastness'] : [];
+  const portrait = tab === 'test' && (view || ask || rug) ? '11-lab-inspect' : '12-lab-explain';
   const askItem = ask && g.inventory.find((i) => i.uid === ask.uid);
+  const errands = BOOK_ORDER.filter((id) => bookPhase(g.arranBooks, id) !== 'unknown' && bookPhase(g.arranBooks, id) !== 'returned');
+
+  // one test row: done → open the result; locked → the book he needs; otherwise run it
+  const testButton = (i: (typeof rugs)[number], sv: LabService) => {
+    const done = findings.find((f) => f.id === `${i.uid}:${sv}`);
+    const svc = LAB_SERVICES[sv];
+    const book = serviceBook(sv);
+    const locked = !!book && !unlocked.includes(sv);
+    return (
+      <div className={`arran-test ${done ? 'is-done' : ''} ${locked ? 'is-locked' : ''}`} key={sv}>
+        <div>
+          <b>{svc.label}</b>
+          <small>{locked ? `Needs his ${BOOKS[book!].title}` : WHAT[sv]}</small>
+        </div>
+        {done ? (
+          <button type="button" className="btn" onClick={() => { setSpot(SERVICE_SPOT[sv]); setView(done); }} data-testid={`arran-open-${sv}-${i.uid}`}>
+            <em className={`v-${done.verdict}`}>{verdictWord[done.verdict]}</em> · read
+          </button>
+        ) : locked ? (
+          <button type="button" className="btn" onClick={() => goTab('notebook')} data-testid={`arran-locked-${sv}-${i.uid}`}>The book</button>
+        ) : (
+          <button type="button" className="btn primary" onClick={() => run(i.uid, sv)} data-testid={`arran-test-${sv}-${i.uid}`}>{fmt(svc.price)} · {hours(svc.minutes)}</button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <section className="arran-lab" aria-label="Arran's textile laboratory" data-testid="arran-lab">
@@ -154,114 +187,56 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         onPointerLeave={() => setPx({ x: 0, y: 0 })}
       >
         <div className="arran-lab__world" style={world} data-testid="arran-world">
-          <img className="arran-lab__room" src={`${BASE}13-lab-room.webp`} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a blank slate board" draggable={false} />
+          <img className="arran-lab__room" src={`${BASE}13-lab-room.webp`} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a slate board" draggable={false} />
           <div className="arran-lab__board" aria-label="Chemistry board" data-testid="arran-board">
             <b>{TOPICS[topic].title}</b>
             <span>{TOPICS[topic].formula}</span>
           </div>
-          {ORDER.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className={`arran-lab__hotspot ${sel === id ? 'is-selected' : ''}`}
-              style={{ left: `${STATIONS[id].x}%`, top: `${STATIONS[id].y}%` }}
-              aria-label={`Examine ${STATIONS[id].label}`}
-              onClick={() => pick(id)}
-              data-testid={`arran-hot-${id}`}
-            >
-              <span aria-hidden="true" />
-            </button>
+          {(['microscope', 'dye', 'balance', 'notebook'] as Spot[]).map((id) => (
+            <span key={id} className={`arran-tag ${spot === id ? 'is-on' : ''}`} style={{ left: `${SPOTS[id].x}%`, top: `${SPOTS[id].y}%` }} aria-hidden="true" data-testid={`arran-tag-${id}`}>{SPOTS[id].label}</span>
           ))}
         </div>
         <div className="arran-lab__light" style={{ transform: `translate(${px.x * 22}px, ${px.y * 12}px)` }} aria-hidden="true" />
       </div>
 
-      <nav className="arran-lab__stations" aria-label="Laboratory stations">
-        {ORDER.map((id) => (
-          <button key={id} type="button" className="btn" aria-pressed={sel === id} onClick={() => pick(id)} data-testid={`arran-st-${id}`}>{STATIONS[id].label}</button>
+      <nav className="arran-lab__tabs" role="tablist" aria-label="In the laboratory">
+        {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['board', 'The board']] as [Tab, string][]).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
         ))}
       </nav>
 
-      <div className={`arran-lab__panel ${sel ? '' : 'is-empty'}`} aria-live="polite" data-testid="arran-panel">
-        {sel && <img className="arran-lab__portrait" src={`${BASE}${portrait}.webp`} alt="Arran Embleton in a plain laboratory coat" draggable={false} />}
+      <div className="arran-lab__panel" aria-live="polite" data-testid="arran-panel">
+        <img className="arran-lab__portrait" src={`${BASE}${portrait}.webp`} alt="Arran Embleton in a plain laboratory coat" draggable={false} />
         <div className="arran-lab__card">
-          {!sel && (
-            <>
-              <h2>{first ? 'Where to begin' : 'The laboratory'}</h2>
-              <p>Tap a station below, or a bright dot in the room. The microscope and the dye cards test your rugs; the board explains how the tests work.</p>
-            </>
-          )}
+          {msg && <p className="arran-msg" data-testid="arran-msg">{msg}</p>}
 
-          {sel && active && !view && !ask && (
+          {/* ---- test a rug: pick a rug, then a test ---- */}
+          {tab === 'test' && !view && !ask && (
             <>
-              <h2>{active.label}</h2>
-              <p>{active.detail}</p>
-              {msg && <p className="arran-msg" data-testid="arran-msg">{msg}</p>}
-
-              {sel === 'board' && (
-                <>
-                  <div className="arran-lab__topics">
-                    {(Object.keys(TOPICS) as Topic[]).map((id) => (
-                      <button key={id} type="button" className="btn" aria-pressed={topic === id} onClick={() => setTopic(id)} data-testid={`arran-topic-${id}`}>{TOPICS[id].title}</button>
-                    ))}
+              {!rugs.length && <p>"Bring me a rug and I will see what it will tell us." You have no rugs.</p>}
+              {rugs.length > 0 && <p className="arran-step">{rug ? `${RUGS[rug.typeId]!.name}: choose a test` : 'Choose a rug'}</p>}
+              <div className="arran-rugs" role="listbox" aria-label="Your rugs">
+                {rugs.map((i) => {
+                  const t = RUGS[i.typeId]!;
+                  const n = findings.filter((f) => f.subjectId === i.uid).length;
+                  return (
+                    <button key={i.uid} type="button" role="option" aria-selected={rugId === i.uid} className={`arran-rugcard ${rugId === i.uid ? 'is-on' : ''}`} onClick={() => { setRugId(i.uid); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-rug-${i.uid}`}>
+                      <img src={t.art.kind === 'photo' ? t.art.src : ''} alt="" draggable={false} loading="lazy" />
+                      <b>{t.name}</b>
+                      <small>{i.condition}{n ? ` · ${n} tested` : ''}</small>
+                    </button>
+                  );
+                })}
+              </div>
+              {rug && (() => {
+                const block = examineBlock(rug, g.day);
+                return (
+                  <div className="arran-tests" data-testid="arran-tests">
+                    <small className="dim">{RUGS[rug.typeId]!.material} · {RUGS[rug.typeId]!.age} · {hasLooseThread(rug) ? 'has a loose thread to sample' : 'no loose thread: a sample would need cutting'}</small>
+                    {block ? <p className="dim">{block}</p> : TESTS.map((sv) => testButton(rug, sv))}
                   </div>
-                  <p>{TOPICS[topic].explanation}</p>
-                </>
-              )}
-
-              {sel === 'balance' && <p className="dim">"You have no brass, silver or gold antiques for me. A rug is no use on the balance." Metal antiques are not in the game yet.</p>}
-
-              {sel === 'notebook' && (
-                <>
-                  {!findings.length && <p className="dim">No results yet.</p>}
-                  <ul className="arran-list">
-                    {[...findings].reverse().map((f) => {
-                      const it = g.inventory.find((i) => i.uid === f.subjectId);
-                      return (
-                        <li key={f.id}>
-                          <button type="button" className="arran-row" onClick={() => setView(f)} data-testid={`arran-note-${f.id}`}>
-                            <b>{it ? RUGS[it.typeId]?.name : 'A rug you no longer have'}</b>
-                            <small>{LAB_SERVICES[f.service].label} · <em className={`v-${f.verdict}`}>{verdictWord[f.verdict]}</em></small>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <div className="section-label">HIS BOOKS</div>
-                  <ul className="arran-sources">{SOURCES.map((s) => <li key={s}>{s}</li>)}</ul>
-                </>
-              )}
-
-              {services.length > 0 && (
-                <>
-                  {!rugs.length && <p className="dim">You have no rugs to test.</p>}
-                  <ul className="arran-list">
-                    {rugs.map((i) => {
-                      const t = RUGS[i.typeId]!;
-                      const block = examineBlock(i, g.day);
-                      return (
-                        <li key={i.uid} className="arran-rug" data-testid={`arran-rug-${i.uid}`}>
-                          <span>
-                            <b>{t.name}</b>
-                            <small>{i.condition}{i.stored ? ' · at the stall' : ' · packed'}{services.some((sv) => LAB_SERVICES[sv].needsThread) ? (hasLooseThread(i) ? ' · loose thread' : ' · no loose thread') : ''}</small>
-                          </span>
-                          <span className="arran-rug__btns">
-                            {block ? <small className="dim">{block}</small> : services.map((sv) => {
-                              const done = findings.find((f) => f.id === `${i.uid}:${sv}`);
-                              return done ? (
-                                <button key={sv} type="button" className="btn" onClick={() => setView(done)} data-testid={`arran-open-${sv}-${i.uid}`}>{sv === 'fastness' ? 'Rub' : sv === 'dye' ? 'Dyes' : 'Result'}: {verdictWord[done.verdict]}</button>
-                              ) : (
-                                <button key={sv} type="button" className="btn primary" onClick={() => run(i.uid, sv)} data-testid={`arran-test-${sv}-${i.uid}`}>{sv === 'fastness' ? 'Rub' : sv === 'dye' ? 'Dyes' : 'Fibre'} · {fmt(LAB_SERVICES[sv].price)}</button>
-                              );
-                            })}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <p className="dim small">{services.map((sv) => `${LAB_SERVICES[sv].label}: ${LAB_SERVICES[sv].blurb} About ${LAB_SERVICES[sv].minutes >= 60 ? `${LAB_SERVICES[sv].minutes / 60} hours` : `${LAB_SERVICES[sv].minutes} minutes`}.`).join(' ')}</p>
-                </>
-              )}
+                );
+              })()}
             </>
           )}
 
@@ -282,16 +257,76 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
               <h2>{LAB_SERVICES[view.service].label}</h2>
               <p className="arran-finding__head">
                 <em className={`v-${view.verdict}`} data-testid="arran-verdict">{verdictWord[view.verdict]}</em>
-                <small>with the description "{view.claim}" · {view.confidence} · written on {view.day === g.day ? 'today' : `day ${view.day}`}{view.cut ? ' · sample cut' : ''}</small>
+                <small>with "{view.claim}" · {view.confidence}{view.cut ? ' · sample cut' : ''}</small>
               </p>
               <ul>{view.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
               <div className="section-label">WHAT IT DOES NOT PROVE</div>
               <ul className="dim">{view.limitations.map((e) => <li key={e}>{e}</li>)}</ul>
-              <button type="button" className="btn" onClick={() => setView(null)} data-testid="arran-back">Back</button>
+              <button type="button" className="btn" onClick={() => { setView(null); setSpot(null); }} data-testid="arran-back">Back</button>
             </div>
+          )}
+
+          {/* ---- notebook: errands, results, books ---- */}
+          {tab === 'notebook' && !view && (
+            <>
+              {speech && <p className="arran-say" data-testid="arran-say">{speech}</p>}
+              <div className="section-label">BOOKS HE NEEDS</div>
+              {BOOK_ORDER.map((id) => {
+                const b = BOOKS[id];
+                const ph = bookPhase(g.arranBooks, id);
+                const st = g.arranBooks?.[id];
+                const carried = (g.papers ?? []).find((x) => x.id === st?.copyId);
+                const town = settlementById(LIBRARIES[b.library].town).name;
+                return (
+                  <div className={`arran-errand ph-${ph}`} key={id} data-testid={`arran-errand-${id}`}>
+                    <div>
+                      <b>{b.author}, <i>{b.title}</i></b>
+                      <small>
+                        {ph === 'unknown' && `For: ${b.unlockLabel.toLowerCase()}`}
+                        {ph === 'requested' && `Find it in ${town}. ${b.hint}`}
+                        {ph === 'located' && `Found in ${town}, ${b.shelf}. Get a copy you may keep.`}
+                        {ph === 'copy_acquired' && (carried ? 'You have a copy. Give it to him.' : `Your copy is lost. The library in ${town} can make another.`)}
+                        {ph === 'returned' && `On his shelf. Unlocked: ${b.unlockLabel.toLowerCase()}.`}
+                      </small>
+                    </div>
+                    {ph === 'unknown' && <button type="button" className="btn primary" onClick={() => { g.arranRequestBook(id); setSpeech(b.ask); }} data-testid={`arran-ask-${id}`}>Offer to fetch it</button>}
+                    {ph === 'copy_acquired' && carried && <button type="button" className="btn primary" onClick={() => { const r = g.arranReturnBook(id); setSpeech(r.message); }} data-testid={`arran-return-${id}`}>Give him the copy</button>}
+                    {ph === 'returned' && <button type="button" className="btn" onClick={() => setRead(id)} data-testid={`arran-read-${id}`}>Read</button>}
+                  </div>
+                );
+              })}
+              <div className="section-label">RESULTS</div>
+              {!findings.length && <p className="dim">No results yet.</p>}
+              <ul className="arran-list">
+                {[...findings].reverse().map((f) => {
+                  const it = g.inventory.find((i) => i.uid === f.subjectId);
+                  return (
+                    <li key={f.id}>
+                      <button type="button" className="arran-row" onClick={() => setView(f)} data-testid={`arran-note-${f.id}`}>
+                        <b>{it ? RUGS[it.typeId]?.name : 'A rug you no longer have'}</b>
+                        <small>{LAB_SERVICES[f.service].label} · <em className={`v-${f.verdict}`}>{verdictWord[f.verdict]}</em></small>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
+          {/* ---- the board ---- */}
+          {tab === 'board' && (
+            <>
+              <div className="arran-lab__topics">
+                {(Object.keys(TOPICS) as Topic[]).map((id) => (
+                  <button key={id} type="button" className="btn" aria-pressed={topic === id} onClick={() => setTopic(id)} data-testid={`arran-topic-${id}`}>{TOPICS[id].title}</button>
+                ))}
+              </div>
+              <p>{TOPICS[topic].explanation}</p>
+            </>
           )}
         </div>
       </div>
+      {read && <BookReader id={read} onClose={() => setRead(null)} />}
     </section>
   );
 }
