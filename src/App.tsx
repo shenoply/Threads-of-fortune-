@@ -42,6 +42,29 @@ type Phase = 'title' | 'documentary' | 'dayone' | 'game';
 
 export default function App() {
   const g = useGame();
+  // the save: zustand writes it to localStorage on every change; this is only so the player can see
+  // that, keep a copy as a file, and bring a copy back
+  const [savedAt, setSavedAt] = useState('');
+  useEffect(() => useGame.subscribe(() => setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))), []);
+  const downloadSave = () => {
+    const raw = localStorage.getItem('threads-of-fortune-save');
+    if (!raw) return;
+    const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `threads-of-fortune-day-${useGame.getState().day}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+  const loadSave = (f: File) => {
+    f.text().then((txt) => {
+      try {
+        const d = JSON.parse(txt);
+        if (!d?.state || typeof d.state.day !== 'number') throw new Error('not a save');
+        if (!window.confirm(`Load the save from day ${d.state.day}? Your current game will be replaced.`)) return;
+        localStorage.setItem('threads-of-fortune-save', txt);
+        window.location.reload();
+      } catch { window.alert('That file is not a Threads of Fortune save.'); }
+    });
+  };
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
   useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
@@ -272,16 +295,16 @@ export default function App() {
           <span data-testid="map-clock">{clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}</span>
         </button>
         <div className="hud-stats">
-          <span className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Cash: 100 piastres make one Egyptian pound" data-testid="hud-cash" data-pt={g.cash}>
+          <button className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
             <Icon name="coin" />{fmt(g.cash)}
-          </span>
+          </button>
           <button className="hud-chip hud-rep" title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep">
             <Icon name="star" />{g.reputation}
           </button>
           <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
           <button className={`icon-btn radio-btn ${(g.radioHeard ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'radio' ? 'tour-target' : ''}`} onClick={() => setRadioOpen(true)} aria-label="The radio" data-testid="radio-btn"><Icon name="radio" /></button>
           <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={() => { setPaper(g.day); if ((g.paperSeen ?? 0) < g.day) { useGame.setState({ paperSeen: g.day }); g.passTime(15); } }} aria-label="Today's newspaper" data-testid="paper-btn"><Icon name="news" /></button>
-          <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Sound and settings" data-testid="settings-btn">
+          <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />
           </button>
         </div>
@@ -366,6 +389,14 @@ export default function App() {
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="settings">
+            <h2>Your game</h2>
+            <p data-testid="save-status">Your game saves itself after everything you do, in this browser on this device. {savedAt ? `Last saved ${savedAt}.` : ''}</p>
+            <div className="save-row">
+              <button className="btn primary" onClick={() => { useGame.setState({}); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save now</button>
+              <button className="btn" onClick={downloadSave} data-testid="save-download">Download a save file</button>
+              <label className="btn" data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
+            </div>
+            <p className="dim">A save file keeps a copy you can bring back, or open on another phone or computer.</p>
             <h2>Sound</h2>
             <p>Voices play only where recorded lines exist. Everything else is captioned.</p>
             {(

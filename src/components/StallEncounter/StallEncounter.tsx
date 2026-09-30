@@ -158,6 +158,13 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       </div>
 
       <div className="actions" data-testid="actions">
+        {/* the money on the table, where the buttons are: what you asked, what they offer */}
+        {enc && !enc.outcome && (enc.buyerOffer || enc.askPrice) ? (
+          <div className={`offer-bar ${enc.finalOffered ? 'final' : ''}`} data-testid="offer-bar">
+            {enc.askPrice ? <span>You ask <b>{fmt(enc.askPrice)}</b></span> : <span />}
+            {enc.buyerOffer ? <span className="theirs">{enc.finalOffered ? 'Final offer' : `${buyer?.name.split(' ')[0] ?? 'They'} offers`} <b data-testid="offer-amount">{fmt(enc.buyerOffer)}</b></span> : <span className="theirs dim">No offer yet</span>}
+          </div>
+        ) : null}
         {enc?.outcome ? (
           <div className={`result ${enc.outcome}`} data-testid="result">
             <div className="r-main">

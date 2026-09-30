@@ -2030,3 +2030,14 @@ body.travelling .mission-strip{display:none}
 .tm-item.leave svg { color: #e0826d; }
 .set-head .set-menu { position: absolute; right: 8px; top: 52px; z-index: 3; }
 .settlement.menu-open { overflow: hidden; }
+
+/* the money on the table during a sale, right above the buttons */
+.offer-bar { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 6px; padding: 7px 12px; border-radius: 6px; border: 1px solid #8fae5b; background: linear-gradient(90deg, #22301a, #1c1409); font-family: var(--label); font-size: 14px; color: #e6dcc0; }
+.offer-bar b { font-family: var(--display); font-size: 19px; font-weight: 600; color: #fff1d6; margin-left: 4px; }
+.offer-bar .theirs b { color: #c8f09a; }
+.offer-bar .dim { color: #9c8c6c; }
+.offer-bar.final { border-color: #e0704a; background: linear-gradient(90deg, #3a1a10, #1c1409); }
+.offer-bar.final .theirs b { color: #ffc4a8; }
+.save-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.save-row label.btn { cursor: pointer; }
+button.hud-chip { cursor: pointer; }
