@@ -169,10 +169,15 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   // The head (11% down) must stay inside the visible frame.
   const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.175 + 0) / 0.83);
   const heroStyle = { height: heroH, bottom: sh * 0.175 - heroH * 0.06 };
+  // a standing buyer is drawn head to foot, the merchant only head to hands: their heads come out the
+  // same size as his at 1.3 times his height; the counter then cuts them at the waist (40% up the figure) rather than the
+  // shins, and their head (the top 5% of the picture is air) must stay inside the visible frame
+  const buyerH = Math.min(heroH * 1.3, (H * 0.97 - sh * 0.225) / 0.55);
+  const buyerB = sh * 0.225 - buyerH * 0.4;
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
-      <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px` }}>
+      <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         <StallProps />
         <StallGramophone />

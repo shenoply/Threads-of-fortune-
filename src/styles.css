@@ -1771,16 +1771,14 @@ body.travelling .mission-strip{display:none}
 @keyframes lampFlicker { 0%, 100% { opacity: 1; transform: scale(1); } 14% { opacity: .86; transform: scale(.97); } 27% { opacity: .96; } 41% { opacity: .82; transform: scale(.95); } 55% { opacity: 1; transform: scale(1.01); } 70% { opacity: .9; } 84% { opacity: .97; transform: scale(.98); } }
 @media (prefers-reduced-motion: reduce) { .atmo-lamps span { animation: none; } }
 
-/* Speech: in bubbles over the picture on wide screens; on phones as a subtitle under it, so the painting stays clear */
+/* Speech: a subtitle under the picture on every screen, so nothing is ever painted over a face or a button */
 .band .speech { display: none; font-size: 16px; line-height: 1.35; color: var(--parchment); border-left: 2px solid var(--brass); padding: 2px 0 2px 9px; }
 .band .speech b { display: block; font-family: var(--label); font-weight: 500; font-size: 13px; letter-spacing: 0.06em; color: var(--brass); }
 .band .speech.mood-good { border-left-color: #8fae5b; }
 .band .speech.mood-bad { border-left-color: #c0553f; }
-@media (max-width: 899px), (max-aspect-ratio: 5/4) {
-  .scene .bubble { display: none; }
-  .band .speech { display: block; }
-  .band .echo { display: none; }
-}
+.scene .bubble { display: none; }
+.band .speech { display: block; }
+.band .echo { display: none; }
 
 /* The evening: the day's page in the ledger, ink on ruled paper */
 .evening-strip { background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(90,60,30,.16) 21px 22px), linear-gradient(90deg, transparent 22px, rgba(150,40,30,.35) 22px 23px, transparent 23px), linear-gradient(180deg, #efe0bd, #e2cc9e); background-position: 0 7px, 0 0, 0 0; border-color: #8a6a3a; padding: 8px 8px 8px 32px; }
@@ -1869,10 +1867,13 @@ body.travelling .mission-strip{display:none}
 .scene.stall .hero-at-stall{position:absolute;left:0;aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
 .scene.stall .hero-at-stall .hero-fig{height:100%;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
 .scene.stall img.hero-still{width:auto;object-fit:contain;filter:drop-shadow(6px 0 12px rgba(0,0,0,.45))}
-.scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:14.5%;top:auto;left:auto;height:var(--fig-h,52%);width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}
+.scene.stall .buyer-figure.has-photo{position:absolute;right:0;bottom:var(--buyer-b,14.5%);top:auto;left:auto;height:var(--buyer-h,var(--fig-h,52%));width:auto;aspect-ratio:655/983;z-index:2;animation:sil 6s ease-in-out infinite;animation-delay:-3s}
 .scene.stall .buyer-figure.has-photo .buyer-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(-6px 0 12px rgba(0,0,0,.45)) sepia(.12)}
 .scene.stall .buyer-figure.has-photo[data-buyer="samira"]{right:0;bottom:20%;height:calc(var(--fig-h,50%) * .86);aspect-ratio:577/692}
 .scene.stall .buyer-figure.has-photo[data-buyer="mariam"]{aspect-ratio:571/1050}
+/* the cut-outs are framed a little differently: these two are evened out to the merchant's head size */
+.scene.stall .buyer-figure.has-photo[data-buyer="wasif"]{height:calc(var(--buyer-h) * .9)}
+.scene.stall .buyer-figure.has-photo[data-buyer="mariam"]{height:calc(var(--buyer-h) * 1.12)}
 .scene.stall .buyer-figure.has-photo[data-buyer="yusuf"]{aspect-ratio:655/1050}
 .scene.stall .buyer-figure.has-photo.leaving{animation:buyer-leave 1.8s ease-in 3.2s forwards}
 .scene.stall .counter{position:absolute;left:0;bottom:0;width:100%;height:auto;z-index:3;pointer-events:none}
