@@ -36,6 +36,11 @@ try {
   await p.waitForTimeout(1500);
   console.log('3. Nabil, nothing fine: next customer shown?', await has('next-visit'), '|', await p.locator('[data-testid=next-visit]').locator('xpath=../..').innerText().then((t) => t.replace(/\n+/g, ' | ').slice(0, 160)).catch(() => ''));
   await p.screenshot({ path: `${S}/stall-nabil.png` });
+  // a long gap before the next customer suggests something useful to do in the meantime
+  await edit(`s.encounter = null; s.held = null; s.dayOver = false; s.world.hour = 12; s.queue = ['samira', 'yusuf']; s.arrivals = [8, 15.5]; s.visitIdx = 1;`); await toStall();
+  console.log('4. while-you-wait:', await has('idle-wait'), '|', (await p.locator('[data-testid=idle-next]').textContent().catch(() => '')).slice(0, 140));
+  await p.screenshot({ path: `${S}/stall-wait.png` });
+  if (await has('idle-wait-supplier')) { await p.click('[data-testid=idle-wait-supplier]'); await p.waitForTimeout(600); console.log('   supplier opens:', await has('nav-stall'), await p.locator('h1, h2').first().textContent().catch(() => '')); }
 } catch (e) { console.log('FAILED', e.message.split('\n')[0]); }
 console.log('errors', JSON.stringify(errs));
 await b.close();

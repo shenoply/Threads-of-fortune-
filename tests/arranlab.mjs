@@ -123,7 +123,7 @@ try {
   await edit(`s.arranBooks.dyes = { phase: 'copy_acquired', copyId: 'gone', day: s.day }; s.papers = [];`); await reload();
   const lost = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('dyes'); });
   console.log('return with lost copy:', JSON.stringify(lost), '| still locked dye:', !(await st()).labUnlocked.includes('dye'));
-  await edit(`Object.assign(s.world, { at: 'alexandria', hour: 9 });`); await reload();
+  await edit(`Object.assign(s.world, { at: 'alexandria', hour: 9 }); s.cash = 2000;`); await reload();
   const re = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().libraryAcquire('dyes', 'copy'); });
   console.log('archive makes another:', re.slice(0, 50), '| papers', (await st()).papers.length);
   // v14 save with a fibre finding keeps the fibre test

@@ -57,8 +57,8 @@ const TEXTILE_BOOKS: Record<'fibres' | 'dyes', Book> = {
     unlock: 'fibre', unlockLabel: 'Fibre under the microscope',
     ask: '"My Matthews went to the bottom of the harbour at Port Said with a crate of glassware. Without it I would be guessing at fibres, and I do not guess for money. The reading room at Qasr el-Nil in Cairo has one. Bring me a copy of the fibre chapters and I can start testing."',
     thanks: '"Matthews! The fibre plates, the scale counts, all of it. Put your rugs on the bench whenever you like: I can tell wool from cotton from silk now, and say plainly when I cannot."',
-    copy: { price: 40, minutes: 180, label: 'A fair copy of the fibre chapters, by the copyist' },
-    duplicate: { price: 120, minutes: 15, label: 'The withdrawn duplicate, stamped "cancelled"' },
+    copy: { price: 200, minutes: 180, label: 'A fair copy of the fibre chapters, by the copyist' },
+    duplicate: { price: 600, minutes: 15, label: 'The withdrawn duplicate, stamped "cancelled"' },
     page: {
       heading: 'Wool and cotton', equation: 'Cotton cellulose: (C₆H₁₀O₅)ₙ',
       material: 'A loose yarn thread and an optical microscope',
@@ -73,8 +73,8 @@ const TEXTILE_BOOKS: Record<'fibres' | 'dyes', Book> = {
     unlock: 'dye', unlockLabel: 'Dye test',
     ask: '"For dyes I need my cards and my Knecht. The cards I have. The Knecht was lent to a man in Manchester in 1919 and I have not seen it since. The merchants\' archive in Alexandria keeps one for the cotton buyers. It is a long road; take care on it."',
     thanks: '"Knecht, Rawson and Loewenthal. Madder, indigo, the early anilines. I can test your dyes now. But remember: a synthetic colour tells you \'probably after this year\', never the year."',
-    copy: { price: 60, minutes: 240, label: 'A copied extract of the natural and aniline dye chapters' },
-    duplicate: { price: 160, minutes: 15, label: 'A spare copy from the archive\'s duplicates shelf' },
+    copy: { price: 300, minutes: 240, label: 'A copied extract of the natural and aniline dye chapters' },
+    duplicate: { price: 800, minutes: 15, label: 'A spare copy from the archive\'s duplicates shelf' },
     page: {
       heading: 'Indigo in the vat', equation: 'Leucoindigo + oxygen → blue indigo',
       material: 'A few loose fibres, his dye cards and a porcelain dish',
@@ -92,8 +92,8 @@ export const BOOKS: Record<BookId, Book> = {
     unlock: 'provisions', unlockLabel: 'Provisions assessment',
     ask: '"Your men eat bread and dates for a fortnight and wonder why they are tired. McCarrison fed rats on the diets of different peoples and watched what happened. The reading room has him. Bring me the chapters on diet, and I can tell you what your caravan should carry."',
     thanks: '"McCarrison. Now bring me your stores and I will tell you honestly how far they go and what is missing. No miracle cures: food works over days, not minutes."',
-    copy: { price: 40, minutes: 180, label: 'A fair copy of the chapters on diet' },
-    duplicate: { price: 110, minutes: 15, label: 'A withdrawn duplicate from the students\' shelf' },
+    copy: { price: 200, minutes: 180, label: 'A fair copy of the chapters on diet' },
+    duplicate: { price: 550, minutes: 15, label: 'A withdrawn duplicate from the students\' shelf' },
     page: {
       heading: 'Food for the road', equation: 'One ration a person a day; more for hard marching',
       material: 'Your stores, the number in your party, the days of the road',
@@ -108,7 +108,7 @@ export const BOOKS: Record<BookId, Book> = {
     unlock: 'cargo', unlockLabel: 'Cargo hazard checks, a safer crossing of the Sinai passes, and the blasting charge for the old road',
     ask: '"A survey party left a folio at St Catherine\'s in 1911: how their quarrying powder, lamp oil and sheep-dip were packed and carried, and who was licensed to handle each. I want it for the crates that turn up at my door asking to be identified. It is a hard road through the passes. Wait for company, or pay a guide."',
     thanks: '"The folio. Now when someone brings me a crate I can tell them what it is, whether it is packed so it will not kill the camel, and which licensed man should handle it. I still will not open a sealed case, and I will not tell anyone how to use what is in it."',
-    copy: { price: 50, minutes: 300, label: 'A copy by Brother Anastasios (slow, careful)' },
+    copy: { price: 250, minutes: 300, label: 'A copy by Brother Anastasios (slow, careful)' },
     duplicate: { price: 0, minutes: 0, label: '' },
     page: {
       heading: 'Carrying dangerous goods', equation: 'Operational pages withheld',
@@ -124,7 +124,7 @@ export const BOOKS: Record<BookId, Book> = {
     unlock: 'records', unlockLabel: 'Papers for restricted cargo: carry it lawfully instead of risking confiscation',
     ask: '"The customs house at Port Said keeps a ledger of what they seize and what they license: cocaine for the chemists, powder for the quarries, spirits for the hotels. If you are going to carry anything of the sort for anyone, know what the papers look like before a patrol asks you for them."',
     thanks: '"A certified extract. Good. Now you can tell a proper licence from a forged one, and I can tell you which cargo needs which paper. Carry nothing without it. The law on drugs changed in March; the customs men are keen."',
-    copy: { price: 60, minutes: 120, label: 'A certified extract by the customs clerk' },
+    copy: { price: 300, minutes: 120, label: 'A certified extract by the customs clerk' },
     duplicate: { price: 0, minutes: 0, label: '' },
     page: {
       heading: 'What needs a licence', equation: 'Paperwork, not preparation',

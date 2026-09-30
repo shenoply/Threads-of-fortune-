@@ -181,7 +181,7 @@ export function railJourney(from: string, to: string): { days: number; fare: num
   const stops = [to];
   while (stops[0] !== from) stops.unshift(prev.get(stops[0])!);
   const days = best.get(to)!;
-  return { days, fare: Math.max(5, Math.round((days * 40) / 5) * 5), stops };
+  return { days, fare: Math.max(15, Math.round((days * 120) / 5) * 5), stops };
 }
 
 // ---------- Fog of war ----------

@@ -329,6 +329,24 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
 }
 
 const Q = { cost: 6, arg: 8, present: 5, bargain: 10 };
+
+/** The two opening questions this buyer actually wants, from who they are: the room if fit weighs with
+ *  them, what draws them if story or craft does, the budget if they do not mind money talk, who else
+ *  decides if a household or client stands behind them. The same buyer wants the same two every visit,
+ *  so learning your customers pays; asking the other two costs patience. */
+export function keenQuestions(buyerId: string): ('room' | 'drawn' | 'budget' | 'decider')[] {
+  const b = BUYERS[buyerId];
+  if (!b) return ['room', 'drawn'];
+  // someone else holds the purse or the final word: the decider question matters to them
+  const shared = !/^(I decide|I choose|The choice is mine)/i.test(b.lines.decider[0] ?? '');
+  const score = {
+    room: b.args.fit ?? 0,
+    drawn: Math.max(b.args.story ?? 0, b.args.craft ?? 0),
+    budget: 1.2 + (b.directBudgetTrust ?? 0) * 0.25,
+    decider: shared ? 2.2 : 0,
+  };
+  return (Object.keys(score) as (keyof typeof score)[]).sort((x, y) => score[y] - score[x]).slice(0, 2);
+}
 /** What a buyer says when naming a last price, unless they have their own way of putting it. */
 const FINAL_OFFER = [
   'My last word: {price}. Take it, or I go.',
@@ -390,11 +408,14 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   switch (enc.stage) {
     case 'discovery':
     case 'qualification': {
-      if (!has('room')) out.push({ id: 'ask_room', label: `Ask about the ${b.roomWord ?? (enc.buyerId === 'yusuf' ? 'hotel' : 'room')}`, sub: 'Learn what matters to them', icon: 'room' });
-      if (!has('drawn')) out.push({ id: 'ask_drawn', label: 'Ask what draws them', sub: 'What they look for', icon: 'eye' });
-      if (!has('budget')) out.push({ id: 'ask_budget', label: 'Ask for the budget', sub: enc.stage === 'discovery' ? 'Be direct' : 'Now that you know them', icon: 'purse' });
+      // the tutorial keeps its own wording; elsewhere each question says whether this buyer wants it
+      const keen = enc.tutorial ? null : keenQuestions(enc.buyerId);
+      const hint = (q: 'room' | 'drawn' | 'budget' | 'decider', plain: string) => (!keen ? plain : keen.includes(q) ? 'They\'d like to talk about this' : 'They\'d rather get on with it');
+      if (!has('room')) out.push({ id: 'ask_room', label: `Ask about the ${b.roomWord ?? (enc.buyerId === 'yusuf' ? 'hotel' : 'room')}`, sub: hint('room', 'Learn what matters to them'), icon: 'room' });
+      if (!has('drawn')) out.push({ id: 'ask_drawn', label: 'Ask what draws them', sub: hint('drawn', 'What they look for'), icon: 'eye' });
+      if (!has('budget')) out.push({ id: 'ask_budget', label: 'Ask for the budget', sub: hint('budget', enc.stage === 'discovery' ? 'Be direct' : 'Now that you know them'), icon: 'purse' });
       if (ctx.upgrades.includes('tea') && !enc.teaUsed && !enc.venue) out.push({ id: 'tea', label: 'Offer tea', sub: '+ patience', icon: 'tea' });
-      if (!has('decider') && enc.stage === 'qualification') out.push({ id: 'ask_decider', label: 'Who else decides?', sub: 'Understand the household', icon: 'people' });
+      if (!has('decider') && enc.stage === 'qualification') out.push({ id: 'ask_decider', label: 'Who else decides?', sub: hint('decider', 'Understand the household'), icon: 'people' });
       if (!has('small')) out.push({ id: 'small_talk', label: 'Choose your manner', sub: 'Charm, kindness or plain business', icon: 'chat' });
       break;
     }
@@ -603,6 +624,13 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
   const t = item ? RUGS[item.typeId] : undefined;
   const avoid = recentBuyerTexts(enc);
 
+  // a question they wanted builds trust; one they did not wears on their patience
+  const qOf: Partial<Record<ActionId, 'room' | 'drawn' | 'budget' | 'decider'>> = { ask_room: 'room', ask_drawn: 'drawn', ask_budget: 'budget', ask_decider: 'decider' };
+  const q = qOf[id];
+  if (q && !enc.tutorial) {
+    if (keenQuestions(enc.buyerId).includes(q)) adjust(enc, { trust: 3, interest: 2 });
+    else adjust(enc, { patience: -5 });
+  }
   switch (id) {
     case 'ask_room':
       say(enc, 'seller', pick(SELLER.askRoom, ctx.rng));

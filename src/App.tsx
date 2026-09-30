@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { PLAN_EVENT, planTrip } from './game/nav';
 import { Newspaper } from './components/Newspaper/Newspaper';
 import { Radio } from './components/Radio/Radio';
@@ -89,6 +90,13 @@ export default function App() {
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
   // the map clock stops while you read, listen, or look at a menu
   const frozen = radioOpen || gramophoneOpen || paper !== null || settings || cal || guide || g.dayOver;
+  // the stall upgrades sheet: opened from the stall, Stock, or the reminder chip
+  const [upgradesOpen, setUpgradesOpen] = useState(false);
+  useEffect(() => {
+    const on = () => setUpgradesOpen(true);
+    window.addEventListener(OPEN_UPGRADES, on);
+    return () => window.removeEventListener(OPEN_UPGRADES, on);
+  }, []);
   const mapGo = (m: Omit<MapIntent, 'n'>) => { setMapIntent({ ...m, n: Date.now() }); setTab('map'); };
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
   useEffect(() => {
@@ -334,9 +342,11 @@ export default function App() {
       {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
         return <SideTasks onGo={(t) => planTrip(t)} />;
       })()}
-      {phase === 'game' && tutorialActive && !(tab === 'stall' && g.encounter) && (
+      {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && <UpgradeNudge />}
+      {phase === 'game' && tutorialActive && tab !== 'map' && !(tab === 'stall' && g.encounter) && (
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
       )}
+      {upgradesOpen && <UpgradesSheet onClose={() => setUpgradesOpen(false)} />}
       <main style={{ minHeight: 0, display: 'grid' }}>
         {tab === 'stall' && (g.world.at === 'giza' ? (
           !g.encounter && !g.dayOver ? <StallIdle onGo={chapterGo} /> :

@@ -1739,6 +1739,11 @@ body.travelling .mission-strip{display:none}
 .idle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .idle-row .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .idle-row .btn svg { width: 16px; height: 16px; }
+.idle-wait { margin-top: 8px; }
+.idle-wait p { margin: 0 0 6px; font-size: 13px; opacity: .85; }
+.idle-wait__row { display: flex; flex-wrap: wrap; gap: 6px; }
+.idle-wait__row .btn { display: inline-flex; align-items: center; gap: 5px; }
+.idle-wait__row .btn svg { width: 14px; height: 14px; }
 .cv-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 12px; }
 .cv-tile { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border: 1px solid var(--line-strong); border-radius: 8px; background: #1e140b; }
 .cv-tile svg { width: 20px; height: 20px; color: var(--brass-hi); }
@@ -2124,3 +2129,9 @@ button.hud-chip { cursor: pointer; }
 .idle-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--brass-hi); color: #1b1006; font-size: 12px; }
 .idle-upgrade { color: var(--brass-hi); font-size: 14px; margin: 4px 0 0; }
 .upgrade.can-buy { border-color: var(--brass-hi); }
+
+/* the upgrade reminder under the objective */
+.upgrade-nudge { display: flex; align-items: center; gap: 4px; margin: 4px 8px 0; }
+.upgrade-nudge__go { flex: 1 1 auto; border-color: var(--brass-hi); color: var(--brass-hi); min-height: 36px; }
+.upgrade-nudge__x { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: rgba(0,0,0,0.3); color: var(--text-dim); cursor: pointer; }
+.stock-head-btns { display: flex; flex-wrap: wrap; gap: 6px; }

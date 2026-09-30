@@ -51,7 +51,7 @@ export function dayCondition(c: Condition1925 | undefined, o: { day: number; onR
 // ---------------- a stimulant tonic, and why it is not free ----------------
 export const TONIC = {
   name: 'Coca wine',
-  price: 15,
+  price: 75,
   blurb: 'A French tonic wine with coca leaf, sold by chemists as a pick-me-up. The chemist sells it over the counter; nobody in the Muski is sure what the new drugs law of March makes of it.',
   effect: 'Takes the fatigue away for the rest of today. Tomorrow you crash, worse than before. Used often, it gets a hold on you.',
 };
@@ -74,13 +74,13 @@ export function provisionReport(o: { food: number; perDay: number; fatigue: numb
   ].filter(Boolean);
   return { days, perDay: o.perDay, fatigue: o.fatigue, lines, routes: o.routes.map((r) => ({ ...r, ok: days >= Math.ceil(r.days) })) };
 }
-export const DIET = { price: 25, days: 30, label: 'The road diet for a month (lentils, onions, dried milk)' };
+export const DIET = { price: 150, days: 30, label: 'The road diet for a month (lentils, onions, dried milk)' };
 
 // ---------------- the Sinai pass ----------------
 export type PassChoice = 'escort' | 'guide' | 'long_road' | 'proceed' | 'blast';
 export const PASS_CHOICES: Record<PassChoice, { label: string; sub: string; extraDays: number; cost: number; mitigation: number }> = {
   escort: { label: 'Wait for an escort', sub: 'A Tarabin party is going through in two days', extraDays: 2, cost: 0, mitigation: 26 },
-  guide: { label: 'Hire a Bedouin guide', sub: 'He knows the wells and the people', extraDays: 0, cost: 60, mitigation: 12 },
+  guide: { label: 'Hire a Bedouin guide', sub: 'He knows the wells and the people', extraDays: 0, cost: 300, mitigation: 12 },
   long_road: { label: 'Take the longer road by the wadis', sub: 'Slower, lower, easier going', extraDays: 3, cost: 0, mitigation: 20 },
   proceed: { label: 'Press on through the pass', sub: 'Fastest; you take the risk', extraDays: 0, cost: 0, mitigation: 0 },
   blast: { label: 'Clear the old short road', sub: 'Your licensed shot-firer clears the 1911 rockfall; nobody else goes near it', extraDays: 0, cost: 0, mitigation: 30 },
@@ -118,12 +118,12 @@ export interface CargoJob {
   who: string; blurb: string; hazard: string; specialist: string;
 }
 export const CARGO_JOBS: CargoJob[] = [
-  { id: 'lamp_oil', label: 'Lamp oil for the monastery', kind: 'lamp_oil', cls: 'ordinary', from: 'giza', to: 'sinai', fee: 120, licenceFee: 0, who: 'Brother Anastasios, by letter', blurb: 'Four tins of paraffin for the monastery lamps.', hazard: 'Flammable. Keep it away from the cooking fire and upright on the camel.', specialist: 'None needed.' },
-  { id: 'arak', label: 'Arak for a Jaffa hotel', kind: 'spirits', cls: 'duty_goods', from: 'cairo', to: 'jaffa', fee: 180, licenceFee: 30, who: 'A hotel steward in Jaffa', blurb: 'Two cases of arak. Legal to carry; the customs want their duty.', hazard: 'None beyond breakage. The duty stamp is what matters.', specialist: 'A customs agent stamps the duty.' },
-  { id: 'powder', label: 'Blasting powder for the Sinai road works', kind: 'powder', cls: 'restricted_material', from: 'suez', to: 'sinai', fee: 400, licenceFee: 60, who: 'A road engineer at Suez', blurb: 'Sealed cases of quarrying powder for the monastery road. The works has a permit; the carrier needs one too.', hazard: 'Explosive. Sealed cases, kept apart from fire and from the lamp oil, never opened on the road.', specialist: 'A licensed shot-firer receives it; nobody else handles it.' },
-  { id: 'sheep_dip', label: 'Sheep-dip for the Tarabin camp', kind: 'poison', cls: 'restricted_material', from: 'giza', to: 'bedouin', fee: 150, licenceFee: 20, who: 'The Tarabin sheikh\'s son', blurb: 'An arsenical sheep-dip from a registered dealer, for the flocks.', hazard: 'Poison. Sealed and labelled, never near food or water skins.', specialist: 'A registered dealer\'s label and signed poisons book go with it.' },
-  { id: 'cocaine', label: 'A chemist\'s order to Jaffa', kind: 'cocaine', cls: 'medical_controlled', from: 'portsaid', to: 'jaffa', fee: 700, licenceFee: 80, who: 'A Port Said wholesale chemist', blurb: 'A sealed box of cocaine hydrochloride for a pharmacy in Jaffa. With the chemist\'s authority it is medicine; without it, it is contraband.', hazard: 'A controlled drug. Sealed, counted, and never opened.', specialist: 'A pharmacist signs for it at each end.' },
-  { id: 'laudanum', label: 'Laudanum for a hotel physician', kind: 'opium', cls: 'medical_controlled', from: 'cairo', to: 'alexandria', fee: 300, licenceFee: 40, who: 'A physician at an Alexandria hotel', blurb: 'A case of tincture of opium for a doctor\'s surgery.', hazard: 'A controlled opiate preparation. It is not a pick-me-up; it is a sedative and a poison in the wrong hands.', specialist: 'The physician signs for it.' },
+  { id: 'lamp_oil', label: 'Lamp oil for the monastery', kind: 'lamp_oil', cls: 'ordinary', from: 'giza', to: 'sinai', fee: 360, licenceFee: 0, who: 'Brother Anastasios, by letter', blurb: 'Four tins of paraffin for the monastery lamps.', hazard: 'Flammable. Keep it away from the cooking fire and upright on the camel.', specialist: 'None needed.' },
+  { id: 'arak', label: 'Arak for a Jaffa hotel', kind: 'spirits', cls: 'duty_goods', from: 'cairo', to: 'jaffa', fee: 540, licenceFee: 90, who: 'A hotel steward in Jaffa', blurb: 'Two cases of arak. Legal to carry; the customs want their duty.', hazard: 'None beyond breakage. The duty stamp is what matters.', specialist: 'A customs agent stamps the duty.' },
+  { id: 'powder', label: 'Blasting powder for the Sinai road works', kind: 'powder', cls: 'restricted_material', from: 'suez', to: 'sinai', fee: 1200, licenceFee: 180, who: 'A road engineer at Suez', blurb: 'Sealed cases of quarrying powder for the monastery road. The works has a permit; the carrier needs one too.', hazard: 'Explosive. Sealed cases, kept apart from fire and from the lamp oil, never opened on the road.', specialist: 'A licensed shot-firer receives it; nobody else handles it.' },
+  { id: 'sheep_dip', label: 'Sheep-dip for the Tarabin camp', kind: 'poison', cls: 'restricted_material', from: 'giza', to: 'bedouin', fee: 450, licenceFee: 60, who: 'The Tarabin sheikh\'s son', blurb: 'An arsenical sheep-dip from a registered dealer, for the flocks.', hazard: 'Poison. Sealed and labelled, never near food or water skins.', specialist: 'A registered dealer\'s label and signed poisons book go with it.' },
+  { id: 'cocaine', label: 'A chemist\'s order to Jaffa', kind: 'cocaine', cls: 'medical_controlled', from: 'portsaid', to: 'jaffa', fee: 2100, licenceFee: 240, who: 'A Port Said wholesale chemist', blurb: 'A sealed box of cocaine hydrochloride for a pharmacy in Jaffa. With the chemist\'s authority it is medicine; without it, it is contraband.', hazard: 'A controlled drug. Sealed, counted, and never opened.', specialist: 'A pharmacist signs for it at each end.' },
+  { id: 'laudanum', label: 'Laudanum for a hotel physician', kind: 'opium', cls: 'medical_controlled', from: 'cairo', to: 'alexandria', fee: 900, licenceFee: 120, who: 'A physician at an Alexandria hotel', blurb: 'A case of tincture of opium for a doctor\'s surgery.', hazard: 'A controlled opiate preparation. It is not a pick-me-up; it is a sedative and a poison in the wrong hands.', specialist: 'The physician signs for it.' },
 ];
 export interface CargoItem { id: string; jobId: string; label: string; cls: CargoClass; to: string; paperwork: 'none' | 'receipt' | 'licence'; fee: number; takenDay: number }
 

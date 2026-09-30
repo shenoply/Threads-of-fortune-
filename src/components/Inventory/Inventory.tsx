@@ -8,7 +8,7 @@ import { RESTORATION, UPGRADES } from '../../data/suppliers';
 import { rugSrc } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { CaravanRoster } from '../World/CaravanPanels';
-import { StallUpgrades } from './StallUpgrades';
+import { StallUpgrades, affordableUpgrades, openUpgrades } from './StallUpgrades';
 import { settlementById } from '../../game/systems/world';
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
@@ -22,7 +22,10 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
           <h2>Inventory</h2>
           <p>{g.inventory.length} rug{g.inventory.length === 1 ? '' : 's'}, {g.inventory.filter((i) => !i.stored).length} packed for the road. Rugs left at the stall do not slow the caravan. Packing and unpacking can only be done at the Giza stall.</p>
         </div>
-        {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
+        <div className="stock-head-btns">
+          {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
+          <button className="btn" onClick={openUpgrades} data-testid="stock-upgrades">Improve your stall{affordableUpgrades(g).length ? ` · ${affordableUpgrades(g).length}` : ''}</button>
+        </div>
       </div>
       {(g.papers ?? []).length > 0 && (
         <div className="inv-papers" data-testid="inv-papers">

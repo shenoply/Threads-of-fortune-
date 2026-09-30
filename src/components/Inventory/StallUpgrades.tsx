@@ -46,3 +46,37 @@ export function StallUpgrades() {
     </>
   );
 }
+
+/** Open the upgrades sheet from anywhere (the stall, Stock, the reminder chip): the app owns the sheet. */
+export const OPEN_UPGRADES = 'tof:open-upgrades';
+export const openUpgrades = () => window.dispatchEvent(new Event(OPEN_UPGRADES));
+
+export function UpgradesSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal-card big-card" onClick={(e) => e.stopPropagation()} data-testid="improve-sheet">
+        <div className="big-card-head"><h2>Improve your stall</h2><button className="btn slim" onClick={onClose} data-testid="improve-close">Close</button></div>
+        <p className="dim">Each one helps every sale from now on. The bigger stalls raise your rent.</p>
+        <StallUpgrades />
+      </div>
+    </div>
+  );
+}
+
+const DISMISS_KEY = 'tof-upgrade-nudge-dismissed';
+/** A reminder under the objective when an upgrade you have not bought becomes affordable. */
+export function UpgradeNudge() {
+  const g = useGame();
+  let dismissed: string[] = [];
+  try { dismissed = JSON.parse(localStorage.getItem(DISMISS_KEY) ?? '[]'); } catch { /* private mode */ }
+  const u = affordableUpgrades(g).find((x) => !dismissed.includes(x.id));
+  if (!u) return null;
+  return (
+    <div className="upgrade-nudge" data-testid="upgrade-nudge">
+      <button className="side-task upgrade-nudge__go" onClick={openUpgrades} data-testid="upgrade-nudge-open">
+        <span aria-hidden="true">★</span>Stall upgrade ready: {u.name} · {fmt(u.cost)}
+      </button>
+      <button className="upgrade-nudge__x" aria-label="Not now" onClick={() => { try { localStorage.setItem(DISMISS_KEY, JSON.stringify([...dismissed, u.id])); } catch { /* private mode */ } useGame.setState({}); }} data-testid="upgrade-nudge-dismiss">×</button>
+    </div>
+  );
+}
