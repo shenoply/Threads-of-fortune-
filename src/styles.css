@@ -2043,3 +2043,8 @@ body.travelling .mission-strip{display:none}
 .save-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
 .save-row label.btn { cursor: pointer; }
 button.hud-chip { cursor: pointer; }
+/* your money, in reach while you shop in a town (the town panel covers the top bar) */
+.set-cash { position: absolute; left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 3; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 16px; background: #1a1009e6; border: 1px solid #b8893a; font-family: var(--label); font-size: 15px; color: #fff1d6; }
+.set-cash svg, .set-purse svg { width: 16px; height: 16px; color: #d9a55a; }
+.set-purse { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 6px; margin: 0 -2px 6px; padding: 7px 10px; background: #1a1009f2; border: 1px solid #8c6232; border-radius: 6px; font-family: var(--label); font-size: 14.5px; color: #e6dcc0; }
+.set-purse b { font-family: var(--display); font-size: 18px; color: #fff1d6; }

@@ -98,6 +98,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </div>
         <button className="btn set-close door-btn leave slim" onClick={onClose} data-testid="leave-settlement">⟵ Leave</button>
         <button className="btn set-menu slim" onClick={() => setMenu(true)} data-testid="town-menu-open">☰ Town</button>
+        <span className="set-cash" title="Your money" data-testid="set-cash"><Icon name="coin" />{fmt(g.cash)}</span>
       </div>
       {ships.length > 0 && (
         <div className="port-sail" id="sec-sail" data-testid="port-sail">
@@ -119,6 +120,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ))}
         </div>
         {note && <p className="set-note" data-testid="set-note">{note}</p>}
+        {tab !== 'town' && <div className="set-purse" data-testid="set-purse"><Icon name="coin" />You have <b>{fmt(g.cash)}</b></div>}
         {tab === 'town' && (<>
         <p className="set-blurb">{st.blurb}</p>
         {houses.length > 0 && (
