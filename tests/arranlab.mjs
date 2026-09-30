@@ -1,0 +1,77 @@
+// Arran's laboratory: walk there in the Giza district, the door card, the board topics, a paid fibre
+// test (charged once, time passes), the cut-a-sample consent, reload consistency, and the notebook.
+//   PORT=5173 node tests/arranlab.mjs   (W/H set the viewport)
+import { chromium } from 'playwright';
+const PORT = process.env.PORT ?? '4173';
+const S = process.env.SHOTS ?? '/tmp';
+const W = +(process.env.W ?? 390), H = +(process.env.H ?? 844), tag = process.env.TAG ?? 'phone';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+const has = (id) => p.locator(`[data-testid="${id}"]`).count();
+const save = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')));
+try {
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
+    Object.assign(s.world, { at: 'giza', hour: 9 }); s.cash = 500; s.queue = []; s.visitIdx = 0;
+    s.inventory = s.inventory.slice(0, 3); s.inventory[0].condition = 'Excellent'; s.inventory[1].condition = 'Worn';
+    s.inventory.push({ uid: 'kilim-t', typeId: 'village-kilim-canal', condition: 'Good', restored: false, provenance: 'Uncertain', paid: 100, notes: [], stored: true });
+    s.inventory.push({ uid: 'tulip-t', typeId: 'istanbul-tulip', condition: 'Worn', restored: false, provenance: 'Documented', paid: 100, notes: [], stored: true });
+    delete s.arranFindings; d.version = 13; localStorage.setItem(k, JSON.stringify(d)); localStorage.setItem('tof-skip-chapters', '1'); });
+  await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
+  console.log('migrated v13 -> ', (await save()).version, 'arranFindings', JSON.stringify((await save()).state.arranFindings));
+  await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(500); if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
+  await p.locator('[data-testid=poi-lab]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-lab]');
+  await p.waitForSelector('[data-testid=arran-door]', { timeout: 20000 }); await p.waitForTimeout(500);
+  await p.screenshot({ path: `${S}/lab-${tag}-door.png` });
+  await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(900);
+  await p.screenshot({ path: `${S}/lab-${tag}-room.png` });
+  console.log('layout:', await p.evaluate(() => ['.arran-lab', '.arran-lab__viewport', '.arran-lab__stations', '.arran-lab__panel'].map((q) => { const r = document.querySelector(q).getBoundingClientRect(); return `${q} ${Math.round(r.top)}-${Math.round(r.bottom)}`; }).join(' | ') + ` | win ${innerHeight}`));
+  await p.click('[data-testid=arran-st-board]'); await p.click('[data-testid=arran-topic-indigo]'); await p.waitForTimeout(800);
+  await p.screenshot({ path: `${S}/lab-${tag}-board.png` });
+  console.log('board text:', await p.locator('[data-testid=arran-board]').textContent());
+  await p.click('[data-testid=arran-hot-microscope]'); await p.waitForTimeout(800);
+  await p.screenshot({ path: `${S}/lab-${tag}-micro.png` });
+  const s0 = (await save()).state; const worn = s0.inventory[1].uid, exc = s0.inventory[0].uid;
+  await p.click(`[data-testid=arran-test-fibre-${worn}]`); await p.waitForSelector('[data-testid=arran-finding]');
+  await p.screenshot({ path: `${S}/lab-${tag}-finding.png` });
+  const s1 = (await save()).state;
+  console.log('fibre worn:', await p.locator('[data-testid=arran-verdict]').textContent(), '| cash', s0.cash, '->', s1.cash, '| hour', s0.world.hour.toFixed(2), '->', s1.world.hour.toFixed(2), '| findings', s1.arranFindings.length);
+  await p.click('[data-testid=arran-back]');
+  await p.click(`[data-testid=arran-open-fibre-${worn}]`); await p.waitForTimeout(200);
+  console.log('reopen charged?', (await save()).state.cash === s1.cash ? 'no' : 'YES');
+  await p.click('[data-testid=arran-back]');
+  await p.click(`[data-testid=arran-test-fibre-${exc}]`); await p.waitForSelector('[data-testid=arran-ask]');
+  await p.screenshot({ path: `${S}/lab-${tag}-ask.png` });
+  console.log('asked before cutting; cash unchanged?', (await save()).state.cash === s1.cash);
+  await p.click('[data-testid=arran-cut-yes]'); await p.waitForSelector('[data-testid=arran-finding]');
+  const s2 = (await save()).state;
+  console.log('after cut: condition', s2.inventory[0].condition, '| cash', s2.cash, '| cut flag', s2.arranFindings.at(-1).cut);
+  await p.click('[data-testid=arran-back]');
+  await p.click('[data-testid=arran-st-dye]'); await p.waitForTimeout(600);
+  await p.click('[data-testid=arran-test-fastness-kilim-t]'); await p.waitForSelector('[data-testid=arran-finding]');
+  console.log('kilim rub:', await p.locator('[data-testid=arran-verdict]').textContent(), (await p.locator('[data-testid=arran-finding] li').first().textContent()));
+  await p.click('[data-testid=arran-back]');
+  await p.click('[data-testid=arran-st-microscope]'); await p.click('[data-testid=arran-test-fibre-tulip-t]'); await p.waitForSelector('[data-testid=arran-finding]');
+  console.log('tulip fibre:', await p.locator('[data-testid=arran-verdict]').textContent());
+  const before = (await save()).state;
+  await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
+  const after = (await save()).state;
+  console.log('reload consistent:', before.cash === after.cash, before.world.hour === after.world.hour, before.arranFindings.length === after.arranFindings.length, '| journal', after.journal.filter((j) => j.text.startsWith('Arran')).length);
+  const same = await p.evaluate(async () => { const m = await import('/src/game/systems/arranLab.ts'); const st = JSON.parse(localStorage.getItem('threads-of-fortune-save')).state; const it = st.inventory.find((i) => i.uid === 'tulip-t'); return JSON.stringify(m.resolveFinding(it, 'fibre', 0).evidence) === JSON.stringify(st.arranFindings.find((f) => f.id === 'tulip-t:fibre').evidence); });
+  console.log('deterministic re-resolve matches saved:', same);
+  await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(400); if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
+  await p.locator('[data-testid=poi-lab]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-lab]');
+  await p.waitForSelector('[data-testid=arran-door]', { timeout: 20000 }); await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(400);
+  await p.click('[data-testid=arran-st-notebook]'); await p.waitForTimeout(700);
+  await p.screenshot({ path: `${S}/lab-${tag}-notebook.png` });
+  console.log('notebook rows', await p.locator('.arran-row').count());
+  // alignment: hotspot centres vs the room image box
+  const al = await p.evaluate(() => { const w = document.querySelector('[data-testid=arran-world]').getBoundingClientRect(); const v = document.querySelector('.arran-lab__viewport').getBoundingClientRect();
+    return [...document.querySelectorAll('.arran-lab__hotspot')].map((h) => { const r = h.getBoundingClientRect(); return `${h.getAttribute('aria-label').replace('Examine ', '')} ${(((r.x + r.width / 2) - w.x) / w.width * 100).toFixed(1)},${(((r.y + r.height / 2) - w.y) / w.height * 100).toFixed(1)} in-view:${r.x >= v.x && r.right <= v.right && r.y >= v.y && r.bottom <= v.bottom}`; }); });
+  console.log(al.join(' | '));
+  await p.click('[data-testid=arran-leave]'); console.log('left lab, district shown?', await has('district'));
+  console.log('errors', errs);
+} catch (e) { console.log('FAIL', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/lab-${tag}-fail.png` }); }
+await b.close();

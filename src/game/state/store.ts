@@ -18,6 +18,7 @@ import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
 import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type SavedOutfit, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
+import { LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
@@ -38,7 +39,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -158,6 +159,8 @@ export interface GameState {
   /** cargo cover bought from a Lloyd's agent, and what the insurers owe you for rugs lost under it */
   insurance?: { until: number };
   claims?: number;
+  /** Arran's notebook: lab results keyed `${rug uid}:${service}`; reopening one is free */
+  arranFindings?: LabFinding[];
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -277,6 +280,8 @@ interface Actions {
   repay: (loanId: string) => string;
   /** buy cargo cover from the Lloyd's agent in this town */
   insure: () => string;
+  /** pay Arran for one test on a rug you own; `cut` is the player's consent to cut a sample from the back */
+  arranExamine: (uid: string, service: LabService, cut?: boolean) => { ok: true; finding: LabFinding } | { ok: false; message: string; needsCut?: boolean };
   restore: (uid: string) => void;
   buyUpgrade: (id: string) => void;
   setSetting: (c: Channel, on: boolean) => void;
@@ -2065,6 +2070,37 @@ export const useGame = create<GameState & Actions>()(
           return `The agent writes out a policy: your packed rugs are covered for ${COVER_DAYS} days. Seven parts in ten of their worth if they are taken on the road.`;
         },
 
+        arranExamine: (uid, service, cut = false) => {
+          const s = get();
+          const key = `${uid}:${service}`;
+          const had = (s.arranFindings ?? []).find((f) => f.id === key);
+          if (had) return { ok: true, finding: had };
+          if (s.world.at !== 'giza') return { ok: false, message: 'Arran\'s laboratory is in Giza.' };
+          const item = s.inventory.find((i) => i.uid === uid);
+          if (!item) return { ok: false, message: 'Choose a rug you own.' };
+          const blocked = examineBlock(item, s.day);
+          if (blocked) return { ok: false, message: blocked };
+          const svc = LAB_SERVICES[service];
+          if (s.cash < svc.price) return { ok: false, message: `The test costs ${fmt(svc.price)}. You have ${fmt(s.cash)}.` };
+          if (s.world.hour + svc.minutes / 60 > 20) return { ok: false, message: 'Arran is washing his glassware for the night. Come back in the morning.' };
+          const loose = hasLooseThread(item);
+          if (svc.needsThread && !loose && !cut) return { ok: false, needsCut: true, message: 'There is no loose thread on this rug. He would have to cut a few knots from the back.' };
+          const finding = resolveFinding(item, service, s.day, svc.needsThread && !loose);
+          const rug = RUGS[item.typeId];
+          const after = finding.cut ? conditionAfterCut(item.condition) : item.condition;
+          const note = `Arran: ${svc.label.toLowerCase()}, ${finding.verdict}.`;
+          set({
+            cash: s.cash - svc.price,
+            arranFindings: [...(s.arranFindings ?? []), finding],
+            inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, condition: after, notes: [...i.notes, note] } : i)),
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: ${svc.label.toLowerCase()}`, amount: -svc.price }],
+            journal: [...s.journal, { day: s.day, text: `Arran tested your ${rug?.name ?? 'rug'} (${svc.label.toLowerCase()}): ${finding.verdict}.${finding.cut ? ` A sample was cut from the back; it is now ${after}.` : ''}` }],
+          });
+          get().passTime(svc.minutes);
+          audio.sfx('pen');
+          return { ok: true, finding };
+        },
+
         payFamily: (amount) => {
           const s = get();
           const f = s.family ?? FAMILY_START;
@@ -2141,6 +2177,7 @@ export const useGame = create<GameState & Actions>()(
       },
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
+        if (version < 14) p.arranFindings = p.arranFindings ?? [];
         if (version < 13) {
           // clothes are sold piece by piece now; old whole outfits become their pieces
           const a = p.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 };

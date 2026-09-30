@@ -3,6 +3,7 @@ import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
+import { ArranLab } from '../ArranLab/ArranLab';
 
 // Giza, seen from above: the lane with your stall, the coffee house, the souk, the animal market,
 // the guard yard, the station, the ferry, the pyramids and the desert road. Walk to discover it.
@@ -20,6 +21,7 @@ export const POIS: Poi[] = [
   { id: 'guards', name: 'Guard yard', sub: 'Hire men to guard your caravan', x: 930, y: 740, glyph: 'G' },
   { id: 'station', name: 'Giza station', sub: 'Trains north to Cairo and south up the valley', x: 1275, y: 330, glyph: 'R' },
   { id: 'ferry', name: 'Nile ferry', sub: 'Across the river to Cairo · £0.01', x: 1385, y: 680, glyph: 'N' },
+  { id: 'lab', name: "Arran's laboratory", sub: 'Textile tests: fibre, dyes, fastness', x: 553, y: 318, glyph: 'L' },
   { id: 'pyramids', name: 'The pyramids', sub: 'Tourists, guides and gossip', x: 225, y: 385, glyph: 'P' },
   { id: 'gate', name: 'Desert road', sub: 'Leave for the wider world', x: 90, y: 870, glyph: 'W' },
 ];
@@ -435,7 +437,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const st = useRef({
     x: d0?.x ?? 760, y: d0?.y ?? 468, tx: d0?.x ?? 760, ty: d0?.y ?? 468,
-    fog: initFog, seen: new Set<string>(d0?.seen?.length ? d0.seen : START_SEEN),
+    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab']),
     target: null as string | null, dirty: true,
   });
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
@@ -445,6 +447,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
+  const [lab, setLab] = useState(false);
   const [note, setNote] = useState('');
   useEffect(() => {
     if (!note) return;
@@ -486,6 +489,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     switch (id) {
       case 'stall': onStall(); break;
       case 'coffee': setTalk(true); break;
+      case 'lab': setLab(true); break;
       case 'souk': setPanel('market'); break;
       case 'animals': setPanel('animals'); break;
       case 'guards': setPanel('guards'); break;
@@ -777,6 +781,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         <button className="btn primary" onClick={() => { save(); if (onZoomOut) onZoomOut(); else onWorld(); }} data-testid="district-world">⤢ Zoom out to the world</button>
       </div>
       {panel && <SettlementPanel id="giza" tab={panel} onClose={() => { setPanel(null); onPanelClosed?.(); }} onStall={onStall} />}
+      {lab && <ArranLab onLeave={() => setLab(false)} />}
       {talk && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
     </div>
   );
