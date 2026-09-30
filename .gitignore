@@ -9,3 +9,6 @@ tests/sim/.sim.mjs
 .env
 .env.local
 .env.*.local
+
+# voice reference recordings stay out of the public repo
+voice-src/

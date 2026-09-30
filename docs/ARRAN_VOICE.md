@@ -33,6 +33,15 @@
 
 Until step 3, the line is a subtitle only.
 
+## Clone the voice (once the owner has agreed)
+1. In the environment settings, allow `api.elevenlabs.io` under Network access, and add `ELEVENLABS_API_KEY` as an environment variable. Instant cloning needs at least the Starter plan.
+2. Put the reference WAV in `voice-src/` (git ignores it).
+3. Run:
+   ```
+   ARRAN_VOICE_CONSENT=confirmed node scripts/clone-arran-voice.ts
+   ```
+   It prints the new voice ID. Save that as `ARRAN_ELEVENLABS_VOICE_ID`.
+
 ## Generate clips (development only, and only with the voice owner's permission)
 1. Create `.env.local` (git ignores it):
    ```
