@@ -136,7 +136,8 @@ try {
   await p.locator('[data-testid=place-sinai]').dispatchEvent('click'); await p.waitForTimeout(700);
   if (await has('food-go')) await p.click('[data-testid=food-go]');
   if (!(await has('pass-card')) && (await has('travel'))) await p.click('[data-testid=travel]');
-  await p.waitForSelector('[data-testid=pass-card]', { timeout: 5000 }).catch(() => {});
+  // the caravan walks to the narrows; the card comes up there, part way along
+  for (let i = 0; i < 120 && !(await has('pass-card')); i++) { if (await has('speed-4')) await p.click('[data-testid=speed-4]').catch(() => {}); for (const id of ['close-stall', 'march-on']) if (await has(id)) await p.click(`[data-testid=${id}]`).catch(() => {}); await p.waitForTimeout(500); }
   if (await has('pass-card')) {
     await p.screenshot({ path: `${S}/x-${tag}-pass.png` });
     console.log('   kit:', await p.locator('[data-testid=pass-kit]').textContent().catch(() => 'none'));
@@ -187,7 +188,8 @@ try {
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
   await p.locator('[data-testid=poi-lab]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-lab]');
   await p.waitForSelector('[data-testid=arran-door]'); await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(800);
-  console.log('   linen study opens on entry:', await has('mummy-study'));
+  console.log('   entry is the plain lab (no modal):', !(await has('mummy-study')), '| case file offered:', await has('arran-mummy-open'));
+  await p.click('[data-testid=arran-mummy-open]'); await p.waitForSelector('[data-testid=mummy-study]');
   await p.screenshot({ path: `${S}/x-${tag}-mummy.png` });
   for (let i = 0; i < 12 && (await has('mummy-next')); i++) { await p.click('[data-testid=mummy-next]'); await p.waitForTimeout(250); }
   console.log('   study seen:', (await st()).arranVisit.mummyIntroductionSeen);

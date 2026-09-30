@@ -34,11 +34,11 @@ export function chooseArranActivity(v: ArranVisitState, c: VisitContext): ArranA
 
 /** the line under the header, and where the camera and portrait start */
 export const ACTIVITY_SCENE: Record<ArranActivity, { text: string; spot: 'microscope' | 'dye' | 'notebook' | 'balance' | null }> = {
-  // written to match what is on screen: the room painting has no figure in it, and Arran is the portrait below
+  // what you see as you come in; once you choose a task, the lab shows that task instead (ArranLab TASK_SCENE)
   microscope: { text: 'The microscope is set up with a slide of wool fibres. Arran looks up from it as you come in.', spot: 'microscope' },
   dye_notes: { text: 'Dye swatches lie beside his notebook on the bench. Arran is comparing reds.', spot: 'dye' },
   books: { text: 'His notebook is open at a list of titles. Arran is checking which books he still needs.', spot: 'notebook' },
   balance: { text: 'Something small sits on the balance pan. Arran is writing down its weight.', spot: 'balance' },
   provisions: { text: 'Notes on caravan food are spread on the bench.', spot: 'notebook' },
-  mummy_linen: { text: 'A letter from the conservator lies open on the bench.', spot: null },
+  mummy_linen: { text: 'A note from Hamza Effendi lies on the desk: the linen thread from the museum store is ready for study, whenever you are.', spot: 'notebook' },
 };

@@ -156,6 +156,7 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
  */
 export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only?: 'arran' }) {
   const g = useGame();
+  const [sideOpen, setSideOpen] = useState(false);
   const items: { id: string; text: string; target?: string }[] = [];
   for (const id of BOOK_ORDER) {
     const ph = bookPhase(g.arranBooks, id);
@@ -175,9 +176,14 @@ export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only
   const o = g.cohen?.order;
   if (only !== 'arran' && o?.status === 'accepted') items.push({ id: 'cohen', text: `Cohen's order: two corridor rugs by ${dateFor(o.dueDay).short}`, target: 'giza' });
   if (!items.length) return null;
+  // one line at a time: the errand that matters most (one for the town you are in first), the rest behind "+N"
+  const at = g.world.at;
+  const ordered = [...items.filter((t) => t.target === at), ...items.filter((t) => t.target !== at)];
+  const shown = sideOpen ? ordered : ordered.slice(0, 1);
   return (
     <div className="side-tasks" data-testid="side-tasks">
-      {items.map((t) => (
+      {ordered.length > 1 && <button className="side-task more" onClick={() => setSideOpen((o) => !o)} aria-expanded={sideOpen} data-testid="side-tasks-more">{sideOpen ? 'Fewer' : `+${ordered.length - 1} more`}</button>}
+      {shown.map((t) => (
         <button key={t.id} className="side-task" onClick={() => t.target && onGo(t.target)} data-testid={`side-task-${t.id}`}>
           <span aria-hidden="true">◆</span>{t.text}
         </button>

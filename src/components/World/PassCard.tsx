@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { passRisk, useGame } from '../../game/state/store';
+import { FOLIO_RISK, passRisk, useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { PASS_CHOICES, CONDITION_START, passWeather, riskWord, type PassChoice } from '../../game/systems/fieldwork';
 import '../ArranLab/ArranLab.css';
@@ -10,7 +10,8 @@ import '../ArranLab/ArranLab.css';
  * recorded under the trip key, so reopening the card shows the same outcome.
  */
 export const PASS_TOWNS = ['sinai', 'bedouin'];
-export const needsPass = (from: string | undefined, to: string | undefined) => !!to && PASS_TOWNS.includes(to) && !PASS_TOWNS.includes(from ?? '');
+/** into the passes, or back out of them: either way the caravan crosses the narrows */
+export const needsPass = (from: string | undefined, to: string | undefined) => !!to && PASS_TOWNS.includes(to) !== PASS_TOWNS.includes(from ?? '');
 
 export function PassCard({ tripKey, onGo, onCancel }: { tripKey: string; onGo: () => void; onCancel: () => void }) {
   const g = useGame();
@@ -23,6 +24,7 @@ export function PassCard({ tripKey, onGo, onCancel }: { tripKey: string; onGo: (
   const risk = (c: PassChoice) => passRisk(g, c);
   const gear = g.cabinet ?? {};
   const kit = [(g.khamsinUntil ?? 0) >= g.day && 'the khamsin kit', (gear.rockets ?? 0) > 0 && 'signal rockets', (gear.cartridges ?? 0) > 0 && 'cartridges for the guards', (g.world.party.arms ?? 0) > 0 && 'your revolver'].filter(Boolean) as string[];
+  const folio = (g.labUnlocked ?? []).includes('cargo');
   const choices = (Object.keys(PASS_CHOICES) as PassChoice[]).filter((c) => c !== 'blast' || (gear.charge ?? 0) > 0);
 
   return (
@@ -33,6 +35,7 @@ export function PassCard({ tripKey, onGo, onCancel }: { tripKey: string; onGo: (
         {!done ? (
           <>
             <p>The track climbs into the granite. Raiders have been seen at the narrows. {(g.khamsinUntil ?? 0) >= g.day ? 'The khamsin kit is packed.' : weather.text} You have {guards} guard{guards === 1 ? '' : 's'}; you are {fatigue >= 45 ? 'tired' : 'rested enough'}.{cargo.some((c) => c !== 'ordinary') ? ' What you carry is worth stealing.' : ''}</p>
+            {folio && <p className="small pass-folio" data-testid="pass-folio">Arran's survey folio: you know which wells are sweet and which ridge the raiders watch from (risk −{FOLIO_RISK} on every choice).</p>}
             {kit.length > 0 && <p className="dim small" data-testid="pass-kit">From Arran's cabinet: {kit.join(', ')}.</p>}
             <div className="pass-choices">
               {choices.map((c) => {

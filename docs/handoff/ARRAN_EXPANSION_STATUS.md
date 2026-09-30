@@ -31,3 +31,16 @@ Powder, licensed: signal rockets (pass risk −8, used once), cartridges through
 ## Not done
 - A dedicated museum-store or chemist painting: both reuse the library card layout with no art.
 - Primary sources for Egyptian explosives or poisons regulation in 1925: not checked, so the game states no offence or penalty for them.
+
+## Playtest notes (book routes), round 2
+| Note | Change |
+|---|---|
+| 1. Shortcuts simulated arrival | Chips and "Travel to …" open the map with the route planned and a Travel button. A town's own screen opens only where you are (`WorldMap` refuses a remote `openPanel` and plans instead). |
+| 2. Route legibility | Notebook errand cards: progress steps, institution and town, opening hours, walking and rail time from where you are, food for the round trip with a buy button, copy price and time, what it unlocks, one "Next:" line. Copies you carry are listed in Stock under Papers. Only one chip shows at a time, with "+N more"; the lab has no chips. |
+| 3. Opening hours | A closed library shows "Wait until 08:00 · 1 h" (or "Rest until 08:00 tomorrow"), with the time it costs. |
+| 4. Travel readiness | The errand card compares food with the round trip using the map's own walking estimate, warns if that much food would overload you on foot, and sells the shortfall. The provisions assessment uses the same estimates. |
+| 5. Implementation language | The law section is now "Papers and patrols": what Arran can examine, what a patrol asks for, what happens with and without papers, and how closely you are watched. Provisional legal notes and sources are kept in code and docs, not shown. |
+| 6. Lab entrance | The linen study never opens by itself; a "New case file" button waits under the room. |
+| 7. Scene matches task | The line under the room and Arran's place and pose follow the tab: desk for the notebook, cabinet for supplies, board for the board, bench for tests. |
+| 8. New branches | `tests/arranroutes.mjs` walks the real map: Giza → the Sinai narrows → St Catherine's (wait for opening, copy, Stock) → back through the narrows → Arran; then Port Said and back. |
+| 9. Consequences | The crossing now happens at the narrows, part way along the road, in both directions. The folio lowers the risk of every choice and says so on the card. Patrols give a reason and name the paper that would have changed the outcome, and the lab lists the patrols you have met. |

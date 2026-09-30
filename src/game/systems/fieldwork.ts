@@ -52,7 +52,7 @@ export function dayCondition(c: Condition1925 | undefined, o: { day: number; onR
 export const TONIC = {
   name: 'Coca wine',
   price: 15,
-  blurb: 'A French tonic wine with coca leaf, sold by chemists as a pick-me-up. Its legal status under the new drugs law of March 1925 is unclear; the chemist sells it over the counter.',
+  blurb: 'A French tonic wine with coca leaf, sold by chemists as a pick-me-up. The chemist sells it over the counter; nobody in the Muski is sure what the new drugs law of March makes of it.',
   effect: 'Takes the fatigue away for the rest of today. Tomorrow you crash, worse than before. Used often, it gets a hold on you.',
 };
 export function takeTonic(c: Condition1925 | undefined, day: number): Condition1925 {
@@ -137,19 +137,41 @@ export function classify(item: CargoItem, place: string, day: number): LegalStat
   if (item.cls === 'duty_goods') return item.paperwork === 'licence' ? 'documented' : 'restricted';
   if (item.paperwork === 'licence') return 'documented';
   if (item.cls === 'medical_controlled' && JURISDICTION[place] === 'egypt' && day < EGYPT_NARCOTICS_FROM_DAY) return 'unverified';
-  // Palestine: the game asks for the same authority (provisional, see LEGAL_NOTES)
+  // Palestine: the same authority is asked for (provisional; see docs/handoff/ARRAN_EXPANSION_STATUS.md)
   return 'restricted';
 }
-export interface PatrolOutcome { kind: 'clear' | 'question' | 'seize' | 'detain'; note: string }
-/** A patrol at a port or checkpoint: roll supplied from the stored seed, in [0,1). */
-export function resolvePatrol(status: LegalStatus, attention: number, roll: number): PatrolOutcome {
-  if (status === 'ordinary') return { kind: 'clear', note: 'The patrol looks over your load and waves you on.' };
-  if (status === 'unverified') return { kind: 'question', note: 'The patrol checks the cargo and writes down where it came from. Nobody is sure what the rule is yet.' };
-  if (status === 'documented') return { kind: 'question', note: 'The papers are examined, stamped, and handed back. You lose an hour.' };
+export interface PatrolOutcome { kind: 'clear' | 'question' | 'seize' | 'detain'; note: string; reason?: string; fix?: string }
+/** What paper each class of cargo needs, in the patrol's own words. */
+export const PAPER_FOR: Record<CargoClass, string> = {
+  ordinary: 'a receipt',
+  duty_goods: 'the customs duty stamp',
+  restricted_material: 'the permit and the name of the licensed man who receives it',
+  medical_controlled: 'a chemist\'s or doctor\'s signed authority',
+};
+/** A patrol at a port or checkpoint: roll supplied from the stored seed, in [0,1). Says why, and what paper would have changed it. */
+export function resolvePatrol(status: LegalStatus, attention: number, roll: number, cls: CargoClass = 'restricted_material'): PatrolOutcome {
+  const paper = PAPER_FOR[cls];
+  if (status === 'ordinary') return { kind: 'clear', note: 'The patrol looks over your load and waves you on.', reason: 'Ordinary goods with a receipt.' };
+  if (status === 'unverified') return { kind: 'question', note: 'The patrol opens the ledger, writes down what you carry and where it came from, and lets you go.', reason: 'Controlled medicine, but the new drugs law is not yet in force here, so they only record it.', fix: `From 21 March, carry ${paper}.` };
+  if (status === 'documented') return { kind: 'question', note: 'The papers are examined, stamped and handed back. You lose an hour.', reason: `Your papers are in order: ${paper}.` };
   const threshold = Math.min(0.8, 0.18 + Math.max(0, Math.min(100, attention)) * 0.004);
-  if (roll >= threshold) return { kind: 'question', note: 'The patrol notes the unlabelled cases and your name, and lets you go. They will remember.' };
-  return roll < threshold * 0.25 ? { kind: 'detain', note: 'The patrol holds you for inquiry overnight. The cargo is seized and you are fined.' } : { kind: 'seize', note: 'The cargo is seized pending inquiry. You may appeal at the customs house, but it will not come back.' };
+  const reason = `No papers for ${cls === 'duty_goods' ? 'dutiable goods' : cls === 'medical_controlled' ? 'controlled medicine' : 'restricted goods'}${attention >= 30 ? ', and they already know your name' : ''}.`;
+  const fix = `${paper[0].toUpperCase()}${paper.slice(1)} would have cleared it.`;
+  if (roll >= threshold) return { kind: 'question', note: 'The patrol notes the cases and your name, and lets you go. They will remember.', reason, fix };
+  return roll < threshold * 0.25
+    ? { kind: 'detain', note: 'The patrol holds you overnight for inquiry. The cargo is confiscated and you are fined.', reason, fix }
+    : { kind: 'seize', note: 'The cargo is confiscated. It will not come back.', reason, fix };
 }
+/** How closely patrols watch you, in words */
+export const attentionWord = (a: number) => (a >= 60 ? 'They know your name at every post' : a >= 30 ? 'Your name is in their books' : a >= 10 ? 'You have been noticed' : 'Nobody is watching you');
+
+/** What a player needs to know about cargo and the law, in 1925's terms. */
+export const PATROL_GUIDE: { title: string; text: string }[] = [
+  { title: 'What Arran can examine', text: 'The labels, seals, packing and papers of a crate. He tells you what it is, how it must travel and who must receive it. He never opens a sealed case.' },
+  { title: 'What a patrol will ask for', text: 'Spirits: the duty stamp. Blasting powder and fireworks: the permit and the licensed man\'s name. Poisons such as sheep-dip: a registered dealer\'s label. Cocaine, opium and laudanum: a chemist\'s or doctor\'s authority. In Egypt the new drugs law of 21 March 1925 makes that last one strict.' },
+  { title: 'With papers', text: 'They are read, stamped and handed back. You lose an hour.' },
+  { title: 'Without papers', text: 'Sometimes they take your name and let you go, and watch you more closely afterwards. Sometimes they confiscate the cargo, and you lose standing. At worst they hold you overnight and fine you. The more they already know your name, the worse your odds.' },
+];
 /** towns where a patrol or customs post checks what comes in */
 /** a label in the middle of a sentence: lower-case the first letter only, keeping place names */
 export const midSentence = (label: string) => label.charAt(0).toLowerCase() + label.slice(1);

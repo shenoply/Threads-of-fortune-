@@ -220,3 +220,28 @@
 .cab-kind.cab-poison { background: rgba(170,210,120,0.25); color: #d8f0a0; }
 .cab-kind.cab-powder { background: rgba(227,154,122,0.28); color: #ffd3bd; }
 .arran-cargo.kind-poison, .arran-cargo.kind-powder { border-color: rgba(227,154,122,0.45); }
+
+/* a book errand, readable end to end */
+.errand-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: rgba(0,0,0,0.2); }
+.errand-card > b { display: block; margin-bottom: 4px; }
+.errand-steps { display: flex; gap: 4px; list-style: none; padding: 0; margin: 4px 0 8px; font-size: 12px; }
+.errand-steps li { flex: 1; text-align: center; padding: 3px 2px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-dim); }
+.errand-steps li.done { background: rgba(159,207,138,0.22); color: #d6f0c8; }
+.errand-steps li.next { outline: 1px solid var(--brass-hi); color: var(--brass-hi); }
+.errand-facts { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; margin: 0 0 8px; font-size: 14px; }
+.errand-facts dt { color: var(--brass-hi); font-family: var(--label); letter-spacing: 0.03em; }
+.errand-facts dd { margin: 0; }
+.errand-next { margin: 6px 0 !important; }
+.errand-next span { color: var(--brass-hi); font-family: var(--label); letter-spacing: 0.04em; }
+.errand-card .btn { min-height: 44px; }
+.errand-offer { border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; background: rgba(0,0,0,0.12); }
+.errand-offer > summary { min-height: 44px; display: flex; align-items: center; padding: 0 12px; cursor: pointer; font-size: 14px; }
+.errand-offer[open] > summary { border-bottom: 1px solid var(--line); }
+.errand-offer .errand-card { border: 0; margin: 0; background: none; }
+.library-wait { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* an event announces itself here and waits: nothing opens over the lab by itself */
+.arran-casefile { display: flex; flex-direction: column; gap: 2px; text-align: left; min-height: 44px; margin: 0 8px 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid #c9a15a; background: rgba(120,80,30,0.25); color: inherit; font: inherit; cursor: pointer; }
+.arran-casefile b { color: var(--brass-hi); font-size: 15px; }
+.arran-casefile small { color: var(--text-dim); font-size: 13px; }
+.pass-folio { color: #bfe3a8; }

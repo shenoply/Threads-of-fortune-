@@ -56,7 +56,7 @@ try {
   await p.screenshot({ path: `${S}/lab-${tag}-finding.png` });
   console.log('kilim rub:', await p.locator('[data-testid=arran-verdict]').textContent(), '| tag lit:', await p.locator('.arran-tag.is-on').textContent());
   await p.click('[data-testid=arran-back]');
-  await p.click('[data-testid=arran-tab-notebook]'); await p.click('[data-testid=arran-ask-fibres]'); await p.waitForTimeout(400);
+  await p.click('[data-testid=arran-tab-notebook]'); await p.click('[data-testid=errand-offer-fibres] summary'); await p.click('[data-testid=arran-ask-fibres]'); await p.waitForTimeout(400);
   await p.screenshot({ path: `${S}/lab-${tag}-ask.png` });
   console.log('asked:', (await st()).arranBooks.fibres.phase, '|', (await p.locator('[data-testid=arran-say]').textContent()).slice(0, 60));
   await p.click('[data-testid=arran-leave]');

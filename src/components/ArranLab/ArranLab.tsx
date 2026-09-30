@@ -12,7 +12,7 @@ import { ArranSubtitle, MummyStudy, labPortraitFor } from './ArranVoiceUI';
 import { playArranVoice, preloadArranVoice, stopArranVoice, useSubtitle } from '../../game/audio/arranVoice';
 import { ACTIVITY_SCENE, mummyPermitted, type ArranActivity } from '../../game/systems/arranVisits';
 import { RoadPanel } from './RoadPanel';
-import { SideTasks } from '../Mission/Mission';
+import { ErrandCard } from './ErrandCard';
 import './ArranLab.css';
 
 /**
@@ -45,10 +45,12 @@ const WHAT: Record<LabService, string> = {
   cargo: '',
 };
 // where Arran stands in the room painting (percent of the 1536×1024 room): behind the bench, cut at its top edge
-const FIGURE: Record<'microscope' | 'dye' | 'desk', { x: number; caption: string }> = {
+const FIGURE: Record<'microscope' | 'dye' | 'desk' | 'cabinet' | 'board', { x: number; caption: string }> = {
   microscope: { x: 47, caption: 'At the microscope' },
   dye: { x: 70, caption: 'At the dye bench' },
-  desk: { x: 30, caption: 'At his books' },
+  desk: { x: 30, caption: 'At his desk' },
+  cabinet: { x: 88, caption: 'At the cabinet' },
+  board: { x: 66, caption: 'At the board' },
 };
 const BENCH_TOP = 45.5;
 const FIG_H = 36;
@@ -135,7 +137,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
     preloadArranVoice();
     const act = g.arranEnterLab();
     setActivity(act);
-    if (act === 'mummy_linen') { setMummy(true); return; }
+    // the linen study announces itself on the desk; it never opens over the lab by itself
     const sp = ACTIVITY_SCENE[act].spot;
     if (sp) setSpot(sp);
     playArranVoice('greeting');
@@ -183,9 +185,19 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
 
   const askItem = ask && g.inventory.find((i) => i.uid === ask.uid);
   // Arran in the room: where he stands follows the instrument in use, else today's activity
-  const place: keyof typeof FIGURE = spot === 'microscope' || spot === 'balance' ? 'microscope' : spot === 'dye' ? 'dye' : spot === 'notebook' ? 'desk'
-    : activity === 'dye_notes' ? 'dye' : activity === 'books' || activity === 'provisions' ? 'desk' : 'microscope';
-  const pose = said?.npcId === 'arran' ? labPortraitFor(said.mood) : (tab === 'test' && (view || ask || confirm || rug)) || place === 'microscope' ? '11-lab-inspect' : '12-lab-explain';
+  // where he stands and what the line under the room says follow the task you chose; the entrance
+  // activity only describes the room until you pick something
+  const busy = tab === 'test' && !!(view || ask || confirm);
+  const place: keyof typeof FIGURE = tab === 'notebook' ? 'desk' : tab === 'road' ? 'cabinet' : tab === 'board' ? 'board'
+    : spot === 'microscope' || spot === 'balance' ? 'microscope' : spot === 'dye' ? 'dye' : spot === 'notebook' ? 'desk'
+    : activity === 'dye_notes' ? 'dye' : activity === 'books' || activity === 'provisions' || activity === 'mummy_linen' ? 'desk' : 'microscope';
+  const pose = said?.npcId === 'arran' ? labPortraitFor(said.mood) : busy || (tab === 'test' && rug) ? '11-lab-inspect' : '12-lab-explain';
+  const sceneLine = tab === 'notebook' ? 'Arran pulls his notebook across the desk to go through your errands with you.'
+    : tab === 'road' ? 'Arran unlocks the cabinet by the door and opens his order book.'
+    : tab === 'board' ? 'Arran picks up the chalk.'
+    : busy ? (confirm ? `Arran waits for your answer before he starts: ${LAB_SERVICES[confirm.service].label.toLowerCase()}.` : view ? 'Arran writes the result into his notebook.' : 'Arran turns the rug over and looks for a loose thread.')
+    : rug ? `Arran looks over your ${RUGS[rug.typeId]!.name}.`
+    : activity ? ACTIVITY_SCENE[activity].text : '';
   const figCaption = FIGURE[place].caption;
   const errands = BOOK_ORDER.filter((id) => bookPhase(g.arranBooks, id) !== 'unknown' && bookPhase(g.arranBooks, id) !== 'returned');
 
@@ -250,13 +262,17 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         <ArranSubtitle />
       </div>
 
-      {activity && (
-        <p className="arran-activity" data-testid="arran-activity" data-activity={activity}>
-          {ACTIVITY_SCENE[activity].text}
-          {activity === 'mummy_linen' || (g.arranVisit?.mummyIntroductionSeen && mummyPermitted(g.arranVisit, g.day)) ? <button type="button" className="linklike" onClick={() => setMummy(true)} data-testid="arran-mummy-open">{g.arranVisit?.mummyIntroductionSeen ? 'The linen study' : 'Join them'}</button> : null}
+      {sceneLine && (
+        <p className="arran-activity" data-testid="arran-activity" data-activity={activity ?? ''}>
+          {sceneLine}
         </p>
       )}
-      <SideTasks only="arran" onGo={() => goTab('notebook')} />
+      {mummyPermitted(g.arranVisit, g.day) && (
+        <button type="button" className="arran-casefile" onClick={() => setMummy(true)} data-testid="arran-mummy-open">
+          <b>{g.arranVisit?.mummyIntroductionSeen ? 'Case file: the museum linen thread' : 'New case file: the museum linen thread'}</b>
+          <small>{g.arranVisit?.mummyIntroductionSeen ? 'Read the study again' : 'Hamza Effendi has brought one detached thread. Open when you are ready.'}</small>
+        </button>
+      )}
       <nav className="arran-lab__tabs" role="tablist" aria-label="In the laboratory">
         {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['road', 'Supplies'], ['board', 'Board']] as [Tab, string][]).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
@@ -372,30 +388,29 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
             <>
               {speech && <p className="arran-say" data-testid="arran-say">{speech}</p>}
               <div className="section-label">BOOKS HE NEEDS</div>
-              {BOOK_ORDER.map((id) => {
-                const b = BOOKS[id];
-                const ph = bookPhase(g.arranBooks, id);
-                const st = g.arranBooks?.[id];
-                const carried = (g.papers ?? []).find((x) => x.id === st?.copyId);
-                const town = settlementById(LIBRARIES[b.library].town).name;
-                return (
-                  <div className={`arran-errand ph-${ph}`} key={id} data-testid={`arran-errand-${id}`}>
-                    <div>
-                      <b>{b.author}, <i>{b.title}</i></b>
-                      <small>
-                        {ph === 'unknown' && `For: ${b.unlockLabel.toLowerCase()}`}
-                        {ph === 'requested' && `Find it in ${town}. ${b.hint}`}
-                        {ph === 'located' && `Found in ${town}, ${b.shelf}. Get a copy you may keep.`}
-                        {ph === 'copy_acquired' && (carried ? 'You have a copy. Give it to him.' : `Your copy is lost. The library in ${town} can make another.`)}
-                        {ph === 'returned' && `On his shelf. Unlocked: ${b.unlockLabel.toLowerCase()}.`}
-                      </small>
-                    </div>
-                    {ph === 'unknown' && <button type="button" className="btn primary" onClick={() => { g.arranRequestBook(id); setSpeech(b.ask); if (id === 'fibres') playArranVoice({ id: 'arran-books-01' }); }} data-testid={`arran-ask-${id}`}>Offer to fetch it</button>}
-                    {ph === 'copy_acquired' && carried && <button type="button" className="btn primary" onClick={() => { const r = g.arranReturnBook(id); setSpeech(r.message); if (r.ok) playArranVoice({ id: 'arran-books-02' }); }} data-testid={`arran-return-${id}`}>Give him the copy</button>}
-                    {ph === 'returned' && <button type="button" className="btn" onClick={() => setRead(id)} data-testid={`arran-read-${id}`}>Read</button>}
-                  </div>
+              {(() => {
+                const card = (id: BookId) => (
+                  <ErrandCard key={id} id={id}
+                    onAsk={() => { g.arranRequestBook(id); setSpeech(BOOKS[id].ask); if (id === 'fibres') playArranVoice({ id: 'arran-books-01' }); }}
+                    onReturn={() => { const r = g.arranReturnBook(id); setSpeech(r.message); if (r.ok) playArranVoice({ id: 'arran-books-02' }); }}
+                    onRead={() => setRead(id)} />
                 );
-              })}
+                const active = BOOK_ORDER.filter((id) => !['unknown', 'returned'].includes(bookPhase(g.arranBooks, id)));
+                const fresh = BOOK_ORDER.filter((id) => bookPhase(g.arranBooks, id) === 'unknown');
+                const done = BOOK_ORDER.filter((id) => bookPhase(g.arranBooks, id) === 'returned');
+                return (
+                  <>
+                    {active.map(card)}
+                    {fresh.map((id) => (
+                      <details key={id} className="errand-offer" data-testid={`errand-offer-${id}`}>
+                        <summary><b>{BOOKS[id].author.split(',')[0]}</b>&nbsp;· {settlementById(LIBRARIES[BOOKS[id].library].town).name} · tap for the route</summary>
+                        {card(id)}
+                      </details>
+                    ))}
+                    {done.map(card)}
+                  </>
+                );
+              })()}
               {g.arranVisit?.permitStage === 'letter' && <p className="arran-msg" data-testid="arran-letter-note">You carry Arran's letter to Hamza Effendi at the museum store in Cairo. Nothing is studied until he agrees.</p>}
               {g.arranVisit?.mummyIntroductionSeen && (
                 <>

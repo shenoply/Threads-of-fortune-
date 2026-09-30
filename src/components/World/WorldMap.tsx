@@ -1,5 +1,5 @@
 import { venueFor } from '../../data/venues';
-import { PassCard, needsPass } from './PassCard';
+import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
@@ -77,7 +77,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [alt, setAlt] = useState<Plan | null>(null);
   const [altFerry, setAltFerry] = useState(false);
   const [short, setShort] = useState<{ plan: Plan; need: number; price: number } | null>(null);
-  const [pass, setPass] = useState<{ plan: Plan; key: string } | null>(null);
+  const [pass, setPass] = useState<{ key: string } | null>(null);
+  // a trip into or out of the Sinai: where along the path the narrows are, and the key the crossing is stored under
+  const passTrip = useRef<{ key: string; atPx: number } | null>(null);
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
   const [moving, setMoving] = useState<null | { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' }>(null);
@@ -98,7 +100,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [rememberNight, setRememberNight] = useState(false);
   useEffect(() => { if (timeScale > 0) setNightfall(false); }, [timeScale]);
   const [report, setReport] = useState<string>('');
-  const [panel, setPanel] = useState<string | null>(openPanel ?? null);
+  // a town's own screen opens only where you actually are; a shortcut to anywhere else plans the route instead
+  const [panel, setPanel] = useState<string | null>(openPanel && openPanel === w.at ? openPanel : null);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
   const pts = useRef(new Map<number, Pt>());
   const pinch = useRef<{ d: number; z: number } | null>(null);
@@ -248,8 +251,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const setOff = (p: Plan, crossed = false) => {
     setShort(null);
     if (!p.path) return;
-    // the Sinai passes: choose how to cross, with time, cost and risk in view, before the caravan moves
-    if (!crossed && needsPass(w.at ?? undefined, p.settlement?.id)) { setPlan(null); setPass({ plan: p, key: `${w.at ?? 'road'}>${p.settlement!.id}:${useGame.getState().day}` }); return; }
+    // the Sinai passes: the caravan stops at the narrows, part way along, and you choose how to cross there
+    void crossed;
+    // setting off again from the road after the narrows were already crossed on this trip: do not ask twice
+    const dest = p.settlement?.id ?? '';
+    const today = useGame.getState().day;
+    const crossedThisTrip = !w.at && Object.keys(useGame.getState().crossings ?? {}).some((k) => k.includes(`>${dest}:`) && today - Number(k.split(':').pop()) <= 30);
+    passTrip.current = !crossedThisTrip && needsPass(w.at ?? undefined, p.settlement?.id)
+      ? { key: `${w.at ?? 'road'}>${p.settlement!.id}:${useGame.getState().day}`, atPx: pathLength(p.path) * (PASS_TOWNS.includes(p.settlement!.id) ? 0.6 : 0.4) }
+      : null;
     { const h = useGame.getState().world.hour, d = useGame.getState().day; if (h >= 20) nightAsked.current = d; else if (h < 5) nightAsked.current = d - 1; }
     setNightfall(false);
     follow.current = true;
@@ -265,8 +275,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     audio.sfx('step');
   };  // a chapter can send you here with a journey already planned
   useEffect(() => {
-    if (!planFor || w.at === planFor) return;
-    const st = SETTLEMENTS.find((x) => x.id === planFor);
+    const target = planFor ?? (openPanel && openPanel !== w.at ? openPanel : undefined);
+    if (!target || w.at === target) return;
+    const st = SETTLEMENTS.find((x) => x.id === target);
     if (st) setTimeout(() => planTo(st, st), 50);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -354,6 +365,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
       acc += days;
       const { pos, done: arrived } = along(moving.path, done);
       livePos = pos;
+      // reaching the narrows: stop, and the crossing is chosen here, on the road
+      const pt = passTrip.current;
+      if (pt && !moving.train && !moving.mode && done >= pt.atPx && !useGame.getState().crossings?.[pt.key]) {
+        passTrip.current = null;
+        lastScale.current = scaleRef.current || lastScale.current;
+        setTimeScale(0);
+        setMoving({ ...moving, done });
+        setPass({ key: pt.key });
+        setReport('The narrows of the Sinai passes. Decide how to cross.');
+        return;
+      }
       // smooth every frame: the caravan glides and the camera eases after it
       const sc = sRef.current;
       if (follow.current) {
@@ -657,7 +679,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
           </div>
         ) : null}
-        {pass && !moving && <PassCard tripKey={pass.key} onCancel={() => setPass(null)} onGo={() => { const p = pass.plan; setPass(null); setOff(p, true); }} />}
+        {pass && <PassCard tripKey={pass.key} onCancel={() => { setPass(null); stop('You halt below the narrows. Turn back, or set off again when you are ready.'); }} onGo={() => { setPass(null); setTimeScale(lastScale.current || 1); }} />}
         {short && !moving && (
           <div className="wc-col" data-testid="food-short">
             <div className="wc-main">
@@ -808,7 +830,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           }}
         />
       )}
-      {panel && <SettlementPanel id={panel} tab={panel === openPanel ? openTab : undefined} onClose={() => setPanel(null)} onStall={onStall} />}
+      {panel && panel === w.at && <SettlementPanel id={panel} tab={panel === openPanel ? openTab : undefined} onClose={() => setPanel(null)} onStall={onStall} />}
     </div>
   );
 }

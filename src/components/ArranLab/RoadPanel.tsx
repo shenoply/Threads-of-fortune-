@@ -5,8 +5,9 @@ import { dailyFood } from '../../game/systems/caravan';
 import { settlementById } from '../../game/systems/world';
 import { LAB_SERVICES } from '../../game/systems/arranLab';
 import { BOOKS } from '../../game/systems/arranBooks';
-import { CARGO_JOBS, DIET, LEGAL_NOTES, midSentence, LEGAL_SOURCES, TONIC, fatigueEffect, provisionReport, type CargoJob } from '../../game/systems/fieldwork';
+import { CARGO_JOBS, DIET, PATROL_GUIDE, attentionWord, midSentence, TONIC, fatigueEffect, provisionReport, type CargoJob } from '../../game/systems/fieldwork';
 import { dateFor } from '../../game/economy/economy';
+import { journey } from '../../game/systems/errands';
 import { CABINET, KIND_WORD, cabinetItem, type CabinetId } from '../../game/systems/arranCabinet';
 
 /**
@@ -16,8 +17,8 @@ import { CABINET, KIND_WORD, cabinetItem, type CabinetId } from '../../game/syst
  */
 type Confirm = { kind: 'provisions' } | { kind: 'cargo'; job: CargoJob } | { kind: 'cabinet'; id: CabinetId };
 
-// rough days on the road from Giza, for the provisions report
-const ROUTES = [{ to: 'Alexandria', days: 3 }, { to: 'St Catherine\'s, Sinai', days: 7 }, { to: 'Jaffa', days: 10 }];
+// the journeys the provisions report measures against: the same walking estimate the map and the errand cards use
+const ROUTE_TOWNS = ['alexandria', 'sinai', 'jaffa'];
 const CLASS_WORD: Record<CargoJob['cls'], string> = { ordinary: 'Ordinary goods', duty_goods: 'Duty goods', medical_controlled: 'Controlled medicine', restricted_material: 'Restricted material' };
 
 export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 'notebook' | 'balance' | null) => void }) {
@@ -30,7 +31,7 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
   const party = g.world.party;
   const hour = g.world.hour;
   const endsAt = (min: number) => { const t = hour + min / 60; return `${String(Math.floor(t)).padStart(2, '0')}:${String(Math.floor((t % 1) * 60)).padStart(2, '0')}`; };
-  const report = g.provisionsDay === g.day ? provisionReport({ food: party.food, perDay: dailyFood(party), fatigue: cond?.fatigue ?? 0, hungryDays: party.hungryDays ?? 0, dietActive: (cond?.dietUntil ?? 0) >= g.day, routes: ROUTES }) : null;
+  const report = g.provisionsDay === g.day ? provisionReport({ food: party.food, perDay: dailyFood(party), fatigue: cond?.fatigue ?? 0, hungryDays: party.hungryDays ?? 0, dietActive: (cond?.dietUntil ?? 0) >= g.day, routes: ROUTE_TOWNS.map((t) => ({ to: settlementById(t).name, days: journey(g.world.at, t, party, g.inventory).walkDays ?? 0 })) }) : null;
   const say = (m: string) => { setMsg(m); setConfirm(null); onSpot(null); };
 
   if (confirm?.kind === 'cabinet') {
@@ -83,7 +84,7 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
       {msg && <p className="arran-msg" data-testid="arran-road-msg">{msg}</p>}
 
       <div className="section-label">ARRAN'S CABINET</div>
-      <p className="dim small">Remedies he makes up himself, a poison sold for what it is for, and powder goods he arranges only through licensed men. He will tell you what each is for and what paper it needs, never how it is made.</p>
+      <p className="dim small">Remedies he makes up himself, a poison for moth, and powder goods he arranges through licensed men.</p>
       {CABINET.map((it) => {
         const have = g.cabinet?.[it.id] ?? 0;
         const owned = !it.stack && (it.id === 'khamsin' ? (g.khamsinUntil ?? 0) >= g.day : it.id === 'moth' ? g.inventory.length > 0 && g.inventory.every((i) => i.mothproof) : have > 0);
@@ -153,7 +154,7 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
         </div>
       ) : (
         <>
-          <p className="dim small">People bring him sealed crates to identify before they are carried. He checks the labels and the packing and names the paper and the handler each needs. He never opens a sealed case.</p>
+          <p className="dim small">Crates people want carried. Pay Arran to check one and he tells you what it is, how it must travel and what paper it needs.</p>
           {CARGO_JOBS.map((job) => {
             const checked = (g.cargoChecks ?? []).includes(job.id);
             const taken = (g.cargo ?? []).find((c) => c.jobId === job.id);
@@ -182,11 +183,22 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
         </>
       )}
 
-      <div className="section-label">THE LAW IN 1925 (PROVISIONAL)</div>
+      <div className="section-label">PAPERS AND PATROLS</div>
       <ul className="arran-law" data-testid="arran-law">
-        {LEGAL_NOTES.map((n) => <li key={n.title}><b>{n.title}</b> <em className={`law-${n.status.replace(' ', '-')}`}>{n.status}</em><br />{n.text}</li>)}
+        {PATROL_GUIDE.map((n) => <li key={n.title}><b>{n.title}.</b> {n.text}</li>)}
       </ul>
-      <details className="dim small"><summary>Sources</summary><ul>{LEGAL_SOURCES.map((s) => <li key={s}>{s}</li>)}</ul></details>
+      <p className="small" data-testid="arran-attention"><b>How closely patrols watch you:</b> {attentionWord(g.attention ?? 0)}.</p>
+      {Object.keys(g.patrols ?? {}).length > 0 && (
+        <>
+          <div className="section-label">PATROLS YOU HAVE MET</div>
+          <ul className="arran-law" data-testid="arran-patrols">
+            {Object.entries(g.patrols ?? {}).slice(-4).reverse().map(([k, o]) => {
+              const [day, town] = k.split(':');
+              return <li key={k}><b>{settlementById(town).name}, {dateFor(+day).short}.</b> {o.note}{o.reason ? <><br /><i>Why:</i> {o.reason}</> : null}{o.fix ? <> {o.fix}</> : null}</li>;
+            })}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

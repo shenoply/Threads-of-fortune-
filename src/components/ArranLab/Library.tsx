@@ -3,6 +3,7 @@ import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase, hasDuplicate, type BookId } from '../../game/systems/arranBooks';
+import { settlementById } from '../../game/systems/world';
 import './ArranLab.css';
 
 const ART = 'art/arran/';
@@ -110,7 +111,23 @@ export function LibraryView({ town, onClose }: { town: string; onClose: () => vo
             </div>
           );
         })}
-        {!open && wanted.length > 0 && <p className="dim">The reading room is closed. Come back after {lib.open[0]}:00.</p>}
+        {!open && (() => {
+          // closed: wait here for the doors, with the time it costs, rather than hunting for a clock
+          const h = g.world.hour;
+          const early = h < lib.open[0];
+          const hours = early ? lib.open[0] - h : 24 - h + lib.open[0];
+          const hm = `${Math.floor(hours)} h${Math.round((hours % 1) * 60) ? ` ${Math.round((hours % 1) * 60)} min` : ''}`;
+          return (
+            <div className="library-card library-wait" data-testid="library-closed">
+              <p>Closed. {early ? `The doors open at ${lib.open[0]}:00.` : `Closed for the day at ${lib.open[1]}:00; open again tomorrow at ${lib.open[0]}:00.`}</p>
+              <button type="button" className="btn primary" onClick={() => {
+                if (early) g.passTime(hours * 60);
+                else { const t = settlementById(lib.town); g.travelStep({ x: t.x, y: t.y }, hours / 24, true); g.arriveAt(lib.town); }
+                setNote(early ? `You wait on the steps until ${lib.open[0]}:00.` : `You take a room nearby and come back at ${lib.open[0]}:00.`);
+              }} data-testid="library-wait">{early ? `Wait until ${lib.open[0]}:00 · ${hm}` : `Rest until ${lib.open[0]}:00 tomorrow · ${hm}`}</button>
+            </div>
+          );
+        })()}
       </div>
       {read && <BookReader id={read} onClose={() => setRead(null)} />}
     </section>

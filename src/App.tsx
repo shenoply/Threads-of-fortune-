@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PLAN_EVENT, planTrip } from './game/nav';
 import { Newspaper } from './components/Newspaper/Newspaper';
 import { Radio } from './components/Radio/Radio';
 import { Gramophone } from './components/Radio/Gramophone';
@@ -89,6 +90,12 @@ export default function App() {
   // the map clock stops while you read, listen, or look at a menu
   const frozen = radioOpen || gramophoneOpen || paper !== null || settings || cal || guide || g.dayOver;
   const mapGo = (m: Omit<MapIntent, 'n'>) => { setMapIntent({ ...m, n: Date.now() }); setTab('map'); };
+  // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t }); };
+    window.addEventListener(PLAN_EVENT, on);
+    return () => window.removeEventListener(PLAN_EVENT, on);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   /** Take the player straight to what a chapter step, or a stall button, asks for. */
   const chapterGo = (t: Target) => {
     const at = useGame.getState().world.at;
@@ -326,7 +333,7 @@ export default function App() {
         );
       })()}
       {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
-        return <SideTasks onGo={(t) => (t === 'giza' ? mapGo({ view: 'district' }) : mapGo({ view: 'world', panel: t, tab: 'town' }))} />;
+        return <SideTasks onGo={(t) => planTrip(t)} />;
       })()}
       {phase === 'game' && tutorialActive && !(tab === 'stall' && g.encounter) && (
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>

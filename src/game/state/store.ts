@@ -446,13 +446,14 @@ export function localOffers(sid: string, day: number, bought: string[], friends:
  *  windfall the moment the day's roll happened not to match what you were holding. */
 /** Relative risk of the Sinai passes for a given choice: season (unless the khamsin kit is packed),
  *  fatigue, guards, cargo, and signal rockets if you carry them. Shared by the pass card and the store. */
-export function passRisk(s: Pick<GameState, 'day' | 'condition' | 'world' | 'cargo' | 'cabinet' | 'khamsinUntil'>, choice: PassChoice) {
+export const FOLIO_RISK = 6;
+export function passRisk(s: Pick<GameState, 'day' | 'condition' | 'world' | 'cargo' | 'cabinet' | 'khamsinUntil' | 'labUnlocked'>, choice: PassChoice) {
   const month = new Date(Date.UTC(1925, 2, 9 + s.day)).getUTCMonth();
   const weather = (s.khamsinUntil ?? 0) >= s.day ? 0 : passWeather(month).add;
   const guards = Object.values(s.world.party.troops).reduce((a, n) => a + n, 0);
   const carried = (s.cargo ?? []).filter((c) => c.collected).map((c) => c.cls);
   const base = routeExposure({ danger: PASS_DANGER, weather, fatigue: (s.condition ?? CONDITION_START).fatigue, guards, cargo: carried }, choice);
-  return Math.max(0, base - ((s.cabinet?.rockets ?? 0) > 0 ? ROCKET_RISK : 0));
+  return Math.max(0, base - ((s.cabinet?.rockets ?? 0) > 0 ? ROCKET_RISK : 0) - ((s.labUnlocked ?? []).includes('cargo') ? FOLIO_RISK : 0));
 }
 
 export function localAskPrice(sid: string, day: number, typeId: string, condition: RugItem['condition'], friends: string[], rep = 0): number | undefined {
@@ -1270,7 +1271,8 @@ export const useGame = create<GameState & Actions>()(
             if (!worst) {
               const order = { clear: 0, question: 1, seize: 2, detain: 3 };
               for (const c of carried) {
-                const o = resolvePatrol(classify(c, id, s.day), attention, rollFor(`${key}:${c.id}`, s.seed));
+                const o = resolvePatrol(classify(c, id, s.day), attention, rollFor(`${key}:${c.id}`, s.seed), c.cls);
+                if (o.reason) o.reason = `${c.label}: ${o.reason}`;
                 if (!worst || order[o.kind] > order[worst.kind]) worst = o;
                 if (o.kind === 'seize' || o.kind === 'detain') cargo = cargo.filter((x) => x.id !== c.id);
               }
@@ -1279,9 +1281,9 @@ export const useGame = create<GameState & Actions>()(
               if (worst!.kind === 'detain') { rep -= 3; attention += 30; const fine = Math.min(cash, 200); cash -= fine; ledger.push({ day: s.day, kind: 'expense', label: `Fine at ${settlementById(id).name}`, amount: -fine }); hour = Math.min(23.9, hour + 10); }
               if (worst!.kind === 'question' && carried.some((c) => c.paperwork === 'none' && c.cls !== 'ordinary')) attention += 10;
               if (worst!.kind === 'question') hour = Math.min(23.9, hour + 1);
-              journal.push({ day: s.day, text: `Patrol at ${settlementById(id).name}: ${worst!.note}`, kind: 'road' });
+              journal.push({ day: s.day, text: `Patrol at ${settlementById(id).name}: ${worst!.note}${worst!.reason ? ` Why: ${worst!.reason}` : ''}${worst!.fix ? ` ${worst!.fix}` : ''}`, kind: 'road' });
             }
-            notes.push(`Patrol at ${settlementById(id).name}: ${worst!.note}`);
+            notes.push(`Patrol at ${settlementById(id).name}: ${worst!.note}${worst!.reason ? ` Why: ${worst!.reason}` : ''}${worst!.fix ? ` ${worst!.fix}` : ''}`);
           }
           // deliveries here
           for (const c of cargo.filter((x) => x.collected && x.to === id)) {

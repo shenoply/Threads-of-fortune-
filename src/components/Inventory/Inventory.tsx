@@ -8,6 +8,7 @@ import { RESTORATION, UPGRADES } from '../../data/suppliers';
 import { rugSrc } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { CaravanRoster } from '../World/CaravanPanels';
+import { settlementById } from '../../game/systems/world';
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
   const g = useGame();
@@ -22,6 +23,14 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         </div>
         {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
       </div>
+      {(g.papers ?? []).length > 0 && (
+        <div className="inv-papers" data-testid="inv-papers">
+          <div className="section-label">PAPERS YOU CARRY</div>
+          {(g.papers ?? []).map((pp) => (
+            <p key={pp.id} data-testid={`inv-paper-${pp.bookId}`}><b>{pp.kind === 'copy' ? 'Copy' : 'Duplicate'}:</b> {pp.title} <small>from {settlementById(pp.from).name}, for Arran in Giza</small></p>
+          ))}
+        </div>
+      )}
       <div className="inv-list">
         {g.inventory.map((i) => {
           const t = RUGS[i.typeId];
