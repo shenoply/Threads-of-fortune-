@@ -148,8 +148,9 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
     const st = useGame.getState();
     const pick = pickArranScene({ ...st, hour: st.world.hour });
     setScene(pick); setSceneAsk(false);
+    playArranVoice({ id: `arran-scene-${String(pick.scene.n).padStart(2, '0')}`, noSubtitle: true });
   };
-  const leaveScene = () => { setScene(null); setSceneAsk(false); };
+  const leaveScene = () => { setScene(null); setSceneAsk(false); stopArranVoice(); };
   // tapping Arran: something that fits what is on screen
   const talk = () => {
     const wantsMatthews = ['requested', 'located', 'copy_acquired'].includes(bookPhase(g.arranBooks, 'fibres'));
@@ -305,7 +306,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
                 {scene.scene.n === 7 && <button type="button" className="btn primary" onClick={() => { leaveScene(); setMummy(true); }} data-testid="arran-scene-case">Open the case file</button>}
                 {(scene.scene.n === 5 || scene.scene.n === 8) && <button type="button" className="btn primary" onClick={() => goTab('notebook')} data-testid="arran-scene-route">The route and your food</button>}
                 {scene.scene.n === 9 && <button type="button" className="btn primary" onClick={() => goTab('road')} data-testid="arran-scene-papers">Papers and patrols</button>}
-                {!sceneAsk && <button type="button" className="btn" onClick={() => { setSceneAsk(true); audio.sfx('tap'); }} data-testid="arran-scene-ask">Ask Arran about it</button>}
+                {!sceneAsk && <button type="button" className="btn" onClick={() => { setSceneAsk(true); audio.sfx('tap'); playArranVoice({ id: `arran-scene-${String(scene.scene.n).padStart(2, '0')}-ask`, noSubtitle: true }); }} data-testid="arran-scene-ask">Ask Arran about it</button>}
                 <button type="button" className="btn" onClick={() => { leaveScene(); audio.sfx('tap'); }} data-testid="arran-scene-leave">Look around the lab</button>
               </div>
             </div>

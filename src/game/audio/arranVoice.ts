@@ -78,7 +78,7 @@ export function syncArranVolume() {
  * Say a line: by context (a fresh line is picked) or by id. Interrupts any Arran line and any other
  * character's voice. Call from a user action (a tap), so browsers allow the sound.
  */
-export function playArranVoice(what: ArranVoiceContext | { id: string }): ArranVoiceLine | null {
+export function playArranVoice(what: ArranVoiceContext | { id: string; noSubtitle?: boolean }): ArranVoiceLine | null {
   const line = typeof what === 'string' ? pickArranLine(what) : ARRAN_LINE[what.id] ?? null;
   if (!line) return null;
   stopArranVoice(false);
@@ -89,7 +89,8 @@ export function playArranVoice(what: ArranVoiceContext | { id: string }): ArranV
   if (line.once) onceDone.add(line.id);
   recent.push(line.id);
   while (recent.length > RECENT) recent.shift();
-  useSubtitle.setState({ active: { npcId: 'arran', speaker: 'Arran', text: line.text, voiceLineId: line.id, mood: line.mood } });
+  // a line already written on screen (a scene's opening in the conversation panel) needs no second caption
+  if (typeof what === 'string' || !what.noSubtitle) useSubtitle.setState({ active: { npcId: 'arran', speaker: 'Arran', text: line.text, voiceLineId: line.id, mood: line.mood } });
 
   // the subtitle stays long enough to read even in silence, and at least as long as the clip
   const readMs = Math.max(2600, 900 + line.text.split(/\s+/).length * 330);

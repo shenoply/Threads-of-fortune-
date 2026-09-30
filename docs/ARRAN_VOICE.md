@@ -67,3 +67,14 @@ The script writes an MP3 (and an OGG if `ffmpeg` is installed), then rebuilds th
 The reference is in the Arran Drive folder: `arran_reference_0-40s.wav` is the master and the MP3 is a copy. It is not in the repo, on purpose.
 
 A professional clone needs much more clean speech than 40 seconds: at least 30 minutes, ideally 1–3 hours, recorded in a quiet room with one close microphone. It should be natural reading in his normal voice, including some calm explaining and some livelier moments. Instant cloning works from a minute or two but drifts more between lines.
+
+## Current recordings (stock voice)
+
+At the owner's request ("a typical English man"), Arran's 65 lines (25 lab lines, and the opening and
+"Ask about it" answer for each of the 20 lab scenes) are recorded with **Kokoro's stock British male
+voice `bm_george`**, generated offline. This is a generic synthetic voice. It is **not** a clone of
+the real person, and no reference audio was used. The cloning scripts remain available and
+consent-gated if a cloned voice is wanted later.
+
+Regenerate after editing lines: see `tools/generate-voices-kokoro.py` for the model files, then run the
+Arran step described there and `node tools/build-arran-voice-manifest.mjs`.

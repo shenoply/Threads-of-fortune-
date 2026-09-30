@@ -28,6 +28,7 @@ export type ArranVoiceContext =
   | 'books'
   | 'travel'
   | 'mummy'
+  | 'scene'
   | 'reaction'
   | 'ambient';
 
@@ -44,6 +45,8 @@ export interface ArranVoiceLine {
   /** play at the start of a visit and on common actions: fetch early */
   preload?: boolean;
 }
+
+import { SCENES } from '../game/systems/arranScenes';
 
 const f = (dir: string, id: string) => `audio/arran/${dir}/${id}`;
 
@@ -89,5 +92,14 @@ export const ARRAN_VOICE_LINES: ArranVoiceLine[] = [
   { id: 'arran-mummy-02', text: 'Linen. Flax, very fine, very old. That much the lens will tell us, and not a word more.', file: f('mummy', 'arran-mummy-02'), mood: 'analytical', contexts: ['mummy'] },
   { id: 'arran-mummy-03', text: 'Whoever this was, they deserve better than our curiosity. Gently, please.', file: f('mummy', 'arran-mummy-03'), mood: 'concerned', contexts: ['mummy'] },
 ];
+
+// The twenty lab scenes: his opening line for each, and his answer when you ask about it
+for (const sc of Object.values(SCENES)) {
+  const n = String(sc.n).padStart(2, '0');
+  ARRAN_VOICE_LINES.push(
+    { id: `arran-scene-${n}`, text: sc.line, file: f('scenes', `arran-scene-${n}`), mood: 'neutral', contexts: ['scene'] },
+    { id: `arran-scene-${n}-ask`, text: sc.ask, file: f('scenes', `arran-scene-${n}-ask`), mood: 'analytical', contexts: ['scene'] },
+  );
+}
 
 export const ARRAN_LINE: Record<string, ArranVoiceLine> = Object.fromEntries(ARRAN_VOICE_LINES.map((l) => [l.id, l]));
