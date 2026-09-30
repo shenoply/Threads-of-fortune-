@@ -2,6 +2,7 @@ import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
 import { useEffect, useMemo, useState } from 'react';
+import { stallFigure } from './stallArt';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
 import { availableRugs, tutorialAllows, useGame } from '../../game/state/store';
 import { getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, type ActionId } from '../../game/systems/negotiation';
@@ -20,6 +21,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const [offset, setOffset] = useState(0);
   const [inspect, setInspect] = useState<string | null>(null);
   const [dial, setDial] = useState<number | null>(null);
+  // a buyer whose stature the counter would hide is first seen whole, once
+  const [arrived, setArrived] = useState<string | null>(null);
   const atCourt = !!enc?.venue;
   useAudioEnv(atCourt ? 'palace' : null, atCourt ? 'palace' : undefined);
   // at court you can only show the rugs your caravan carried there
@@ -109,6 +112,17 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         </div>
       )}
       <Scene enc={enc} presented={presented} view={view} onSkip={skip} onCat={g.pet} upgrades={g.upgrades} />
+      {enc && enc.buyerId === 'nabil' && !enc.outcome && !enc.presented && (rel?.visits ?? 0) === 0 && arrived !== enc.id && (
+        <div className="arrival-card" role="dialog" aria-label={`${buyer?.name} arrives`} data-testid="arrival-card">
+          <img src={stallFigure('nabil').src} alt="Nabil al-Khatib, a short, bald, bearded merchant in a grey three-piece suit, a leather portfolio under his arm" draggable={false} />
+          <div>
+            <small>A new buyer</small>
+            <h2>{buyer?.name}</h2>
+            <p>{buyer?.role}. {buyer?.bio}</p>
+            <button className="btn primary" onClick={() => { setArrived(enc.id); audio.sfx('tap'); }} data-testid="arrival-ok">Greet him</button>
+          </div>
+        </div>
+      )}
       <InfoBand enc={enc} presented={presented} view={view} tierName={tier.name} priorities={priorities} />
 
       <div className="rugstrip" data-testid="rugstrip">
@@ -183,6 +197,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                       ? `Nothing on your stall is at their level. They want ${['', 'Common', 'Fine', 'Exceptional', 'Legendary'][BUYER_TIERS[enc.buyerId]?.[0] ?? (buyer?.royal ? 3 : 2)]} rugs or better.`
                       : enc.groomed === 'smell' && enc.patience <= 0
                         ? 'You smelled of the road. A visit to the hammam would have helped.'
+                      : enc.nabilAngry
+                      ? 'He heard the same pitch, or a bluff, one time too many. Answer his question plainly next time; he will be back in a week or so.'
                       : enc.embellishCaught
                       ? 'They caught the story. Claim only what you know.'
                       : enc.insulted

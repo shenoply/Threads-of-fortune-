@@ -20,6 +20,8 @@ import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobe
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
 import { SHOP } from '../systems/arranShop';
+import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
+import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
@@ -175,6 +177,8 @@ export interface GameState {
   arranTools?: string[];
   /** what Arran was doing on your last visits, and the conservator's permission */
   arranVisit?: ArranVisitState;
+  /** what Nabil al-Khatib remembers of you across visits */
+  nabil?: NabilMemory;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
@@ -551,6 +555,7 @@ export const useGame = create<GameState & Actions>()(
         clean: s.attire?.clean ?? 100,
         attire: s.attire?.worn ?? 'galabiya',
         tools: s.arranTools ?? [],
+        nabil: s.nabil,
       });
 
       /** Skill XP and manner from an action, with level-ups queued for the player to see. */
@@ -620,7 +625,17 @@ export const useGame = create<GameState & Actions>()(
             journal.push({ day: s.day, text: `Completed commission for ${b.name}: +${fmt(comm.bonus)}.` });
             enc.log.push({ speaker: 'buyer', text: pick(b.lines.commissionDone, rng) || 'Thank you.', mood: 'pleased' });
           }
-          patch.inventory = s.inventory.filter((i) => i.uid !== item.uid);
+          const second = enc.packageUid ? s.inventory.find((i) => i.uid === enc.packageUid) : undefined;
+          if (second) {
+            // a two-rug package: one price for both, both leave the stall
+            const t2 = RUGS[second.typeId];
+            ledger[ledger.length - 1] = { day: s.day, kind: 'sale', label: `${t.name} and ${t2.name} to ${b.name} (package)`, amount: enc.salePrice, cost: item.paid + second.paid };
+            stats.sales += 1;
+            stats.gross -= second.paid;
+            rep += 1;
+            journal.push({ day: s.day, text: `The ${t2.name} went with it, in one package.` });
+          }
+          patch.inventory = s.inventory.filter((i) => i.uid !== item.uid && i.uid !== second?.uid);
           patch.totalSales = s.totalSales + 1;
           if (s.missions?.rival === 'active' && !enc.venue) patch.stats = { ...(s.stats ?? {}), rivalSales: (s.stats?.rivalSales ?? 0) + 1 };
         } else {
@@ -635,6 +650,23 @@ export const useGame = create<GameState & Actions>()(
           rel.affinity -= 20;
         }
         rel.lastLines = enc.log.filter((l) => l.speaker === 'buyer').map((l) => l.text).slice(-6);
+        if (enc.buyerId === 'nabil') {
+          // his memory: trust carried over, rugs he turned down, faults you told him, whether he left angry
+          const m = s.nabil ?? NABIL_START;
+          const shown = s.inventory.filter((i) => enc.rugsShown.includes(i.uid) && !(enc.outcome === 'sold' && (i.uid === enc.presented || i.uid === enc.packageUid)));
+          const disclosed = enc.nabilDisclosed && enc.presented ? s.inventory.filter((i) => i.uid === enc.presented).map(rugKey) : [];
+          patch.nabil = {
+            ...m,
+            visits: m.visits + 1,
+            trust: Math.max(0, Math.min(100, Math.round(m.trust * 0.4 + enc.trust * 0.6) + (enc.nabilAngry ? -8 : 0))),
+            seenRugIds: [...new Set([...m.seenRugIds, ...shown.map(rugKey)])].slice(-40),
+            disclosedFaultIds: [...new Set([...m.disclosedFaultIds, ...disclosed])].slice(-40),
+            brokenPromiseIds: enc.embellishCaught && enc.presented ? [...m.brokenPromiseIds, enc.presented] : m.brokenPromiseIds,
+            leftAngry: !!enc.nabilAngry,
+            lastVisitDay: s.day,
+            lastOfferDay: enc.buyerOffer ? s.day : m.lastOfferDay,
+          };
+        }
         const goals = s.goals;
         if (b.royal) {
           const court = { last: { ...s.court.last, [enc.buyerId]: s.day }, warrants: s.court.warrants };
@@ -900,6 +932,8 @@ export const useGame = create<GameState & Actions>()(
           queue = queue.slice(0, Math.max(1, 3 + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + lane.extra));
           if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
+          // Nabil al-Khatib, now and then, once your name is worth his hour
+          if (!queue.includes('nabil') && nabilDue(s.nabil, day, s.reputation, NABIL_MIN_REP, rng())) queue.push('nabil');
           const vips = rankIdx >= 2 ? CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !queue.includes(id)) : [];
           if (vips.length && rng() < 0.22) {
             const vip = vips[Math.floor(rng() * vips.length)];

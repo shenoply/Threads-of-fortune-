@@ -2080,3 +2080,12 @@ button.hud-chip { cursor: pointer; }
 .vol-row { display: grid; grid-template-columns: minmax(110px, 38%) 1fr 34px; align-items: center; gap: 10px; font-size: 16px; }
 .vol-row input { width: 100%; accent-color: var(--brass-hi); min-height: 32px; }
 .vol-row b { text-align: right; font-family: var(--label); color: var(--text-dim); }
+/* Nabil al-Khatib: the whole cut-out scaled from the feet, on the same floor line as every buyer */
+.scene.stall .buyer-figure.has-photo[data-buyer="nabil"]{height:calc(var(--buyer-h) * .86);aspect-ratio:2/3}
+.arrival-card{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;gap:18px;padding:16px;background:rgba(10,6,3,.88);animation:fade .3s ease}
+.arrival-card img{height:min(74vh,640px);width:auto;filter:drop-shadow(0 12px 24px rgba(0,0,0,.6))}
+.arrival-card>div{max-width:340px;color:var(--text)}
+.arrival-card small{font-family:var(--label);letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);font-size:13px}
+.arrival-card h2{margin:2px 0 6px;font-family:var(--display);font-weight:500;color:var(--brass-hi)}
+.arrival-card p{font-size:16px;line-height:1.45;margin:0 0 12px}
+@media (max-width:600px){.arrival-card{flex-direction:column;justify-content:flex-end;gap:8px}.arrival-card img{height:52vh}.arrival-card>div{max-width:none}}

@@ -1,4 +1,5 @@
 import { labArgBonus } from './arranShop';
+import { nabilAssessment, isTokenChange, packageOffer, rugKey, type NabilMemory } from './nabil';
 import type { LabService } from './arranLab';
 import type { ArgKind, BuyerDef, Line, ObjectionDef, Relationship, RugItem, RugType, Stage } from '../types';
 import { snap, snapDown, fmt } from '../economy/money';
@@ -16,7 +17,8 @@ export type ActionId =
   | 'story_true' | 'story_embellish' | 'saffron_move' | 'saffron_stay'
   | 'obj_honest' | 'obj_facts' | 'obj_concede' | 'obj_another'
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
-  | 'm_charm' | 'm_kind' | 'm_firm';
+  | 'm_charm' | 'm_kind' | 'm_firm'
+  | 'nabil_package';
 
 export interface ActionView {
   id: ActionId;
@@ -43,6 +45,11 @@ export interface Encounter {
   budgetKnown?: [number, number];
   presented?: string; // rug uid
   finalOffered?: boolean; // the buyer has named a last price before leaving
+  /** Nabil: a fault told him before he found it; bluffs and token moves counted; a second rug in a package */
+  nabilDisclosed?: boolean;
+  nabilPitches?: number;
+  nabilAngry?: boolean;
+  packageUid?: string;
   presentedFit: number;
   rugsShown: string[];
   argsUsed: string[];
@@ -98,6 +105,8 @@ export interface Ctx {
   attire?: string;
   /** Arran's instruments you own (the loupe) */
   tools?: string[];
+  /** what Nabil al-Khatib remembers of you */
+  nabil?: NabilMemory;
 }
 
 const lvl = (ctx: Ctx, s: SkillId) => levelOf(ctx.skills?.[s] ?? 0);
@@ -161,6 +170,12 @@ export function wtp(enc: Encounter, item: RugItem): number {
   const b = BUYERS[enc.buyerId];
   const t = RUGS[item.typeId];
   const cap = prefsFor(enc).budget[1] * (1 + enc.tier * 0.06) * (enc.bazaar ? 1.08 : 1) * (enc.edge?.budget ?? 1) * (enc.edge?.pay ?? 1);
+  if (enc.buyerId === 'nabil') {
+    // his figure follows the rug's value, rarity, condition and evidence; never above his ceiling
+    const a = nabilAssessment(t, item, { repairDisclosed: !!enc.nabilDisclosed, repeatedPitchCount: enc.nabilPitches ?? 0, labReport: !!item.labReports?.length });
+    const f = 0.82 + 0.12 * (enc.interest / 100) + 0.1 * ((enc.trust - 50) / 50);
+    return Math.round(Math.min(cap, a.ceiling, a.ceiling * f));
+  }
   const factor = 0.72 + 0.45 * (enc.interest / 100) + 0.15 * ((enc.trust - 50) / 50);
   let v = perceivedValue(t, item) * factor;
   if (enc.embellished && !enc.embellishCaught) v *= 1.12;
@@ -194,7 +209,7 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     stage: 'discovery',
     interest: clamp(b.interest + Math.min(10, Math.floor(ctx.reputation / 2)), 0, 100),
     patience: b.patience + 8 + tier.idx * 6 + (ctx.upgrades.includes('bazaar') ? 10 : 0),
-    trust: clamp(b.trust + tier.idx * 8 + Math.round(ctx.rel.affinity / 5) + (ctx.upgrades.includes('mat') ? 6 : 0), 0, 100),
+    trust: buyerId === 'nabil' && ctx.nabil ? clamp(ctx.nabil.trust, 0, 100) : clamp(b.trust + tier.idx * 8 + Math.round(ctx.rel.affinity / 5) + (ctx.upgrades.includes('mat') ? 6 : 0), 0, 100),
     revealed: [],
     asked: [],
     presentedFit: 0,
@@ -419,6 +434,8 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference — they may take it on the spot', icon: 'scale' });
       if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm — they may still take it', icon: 'shield' });
       out.push({ id: 'name_price', label: 'Name a new price', sub: last ? 'They leave unless it is theirs' : 'Adjust your ask — a low one may close the sale', icon: 'coin' });
+      const pkg = nabilPackage(enc, ctx);
+      if (pkg) out.splice(1, 0, { id: 'nabil_package', label: `Sell both · ${fmt(pkg.price)}`, sub: `This and the ${RUGS[pkg.other.typeId]?.name}, cash today`, icon: 'swap' });
       if (!enc.sweetened && out.length < 4) out.push({ id: 'sweetener', label: 'Add delivery', sub: 'Costs you £0.05', icon: 'cart' });
       break;
     }
@@ -522,8 +539,14 @@ export function presentRug(enc: Encounter, ctx: Ctx, uid: string): Effects {
   buyerSay(enc, colour, mood);
   if (cond) buyerSay(enc, cond, mood);
   if ((t.rarity === 'Rare' || t.rarity === 'Treasure') && L.rare.length && ctx.rng() < 0.5) say(enc, 'buyer', pick(L.rare, ctx.rng));
+  if (enc.buyerId === 'nabil' && ctx.nabil?.seenRugIds.includes(rugKey(item))) {
+    buyerSay(enc, 'I have seen this piece before, in the same state. Has anything changed, or only the day?', 'skeptical');
+    adjust(enc, { interest: -6 });
+  }
   // A badly matched rug provokes the objection immediately.
-  if (!enc.tutorial && !enc.objectionDone && fit < 40) raiseObjection(enc, ctx, item, t);
+  // Nabil finds a repair, a thin history or wear on first inspection, from the rug's real record
+  const nabilSees = enc.buyerId === 'nabil' && (item.restored || item.provenance === 'Uncertain' || item.provenance === 'Disputed' || ['Worn', 'Damaged', 'Dirty'].includes(item.condition));
+  if (!enc.tutorial && !enc.objectionDone && (fit < 40 || nabilSees)) raiseObjection(enc, ctx, item, t);
   checkWalk(enc, ctx, true);
   return { sfx: ['unfold'], tutorialAdvance: enc.tutorial ? 'presented' : undefined };
 }
@@ -699,6 +722,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'seller', pick(SELLER.honest, ctx.rng));
       buyerSay(enc, o.honest, 'warm');
       enc.honestCount++;
+      if (enc.buyerId === 'nabil') { enc.nabilDisclosed = true; adjust(enc, { trust: 4 }); }
       adjust(enc, { trust: 10, interest: o.factsWorks ? 3 : -3, patience: -4 });
       lean(fx, { honesty: 3 });
       gain(fx, 'speech', 2);
@@ -716,6 +740,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       } else {
         buyerSay(enc, o.facts, 'skeptical');
         adjust(enc, { interest: -6, trust: -4, patience: -8 });
+        if (enc.buyerId === 'nabil') nabilBluff(enc, ctx);
       }
       resolveObjection(enc);
       break;
@@ -738,6 +763,15 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'system', 'Tap another rug to present it.');
       break;
 
+    case 'nabil_package': {
+      const pkg = nabilPackage(enc, ctx);
+      if (!pkg) break;
+      say(enc, 'seller', `Both, then: the ${t?.name} and the ${RUGS[pkg.other.typeId]?.name}.`);
+      buyerSay(enc, `Two pieces, one figure: ${fmt(pkg.price)}, paid today. Each a little under what I would pay alone, because I carry the risk of both.`, 'pleased');
+      enc.packageUid = pkg.other.uid;
+      closeSale(enc, ctx, pkg.price);
+      break;
+    }
     case 'name_price': {
       if (!item || !t || !price) break;
       bargainPrice(enc, ctx, item, price, 'name', fx);
@@ -804,6 +838,7 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
   if (enc.argsUsed.includes(kind)) {
     buyerSay(enc, pick(L.repeatArg, ctx.rng), 'skeptical');
     adjust(enc, { patience: -10, interest: -2 });
+    if (enc.buyerId === 'nabil') nabilBluff(enc, ctx);
     return;
   }
   enc.argsUsed.push(kind);
@@ -849,11 +884,18 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   enc.stage = 'bargaining';
   enc.rounds++;
   gain(fx, 'haggling', 2);
+  const prevAsk = enc.askPrice;
   const w = wtp(enc, item);
   const lineSet = mode === 'hold' ? SELLER.hold : mode === 'halfway' ? SELLER.halfway : SELLER.price;
   say(enc, 'seller', pick(lineSet, ctx.rng).replace('{price}', fmt(price)));
   enc.askPrice = price;
   if (mode === 'hold') adjust(enc, { trust: b.pushyTrust });
+  // Nabil allows one serious revision; a price nudged by a few piastres is not one
+  if (enc.buyerId === 'nabil' && mode === 'name' && enc.buyerOffer && isTokenChange(prevAsk, price)) {
+    buyerSay(enc, 'That is not a new price. It is the old one, wearing a different hat.', 'skeptical');
+    nabilBluff(enc, ctx);
+    if (enc.outcome) return;
+  }
 
   if (enc.buyerOffer && price <= enc.buyerOffer) {
     buyerSay(enc, pick(L.priceLow, ctx.rng), 'pleased');
@@ -888,6 +930,10 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
     if (enc.buyerOffer) say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(next)));
   }
   enc.buyerOffer = Math.max(next, enc.buyerOffer ?? 0);
+  if (enc.buyerId === 'nabil') {
+    const t = RUGS[item.typeId];
+    say(enc, 'narrator', `Nabil's reason: ${nabilAssessment(t, item, { repairDisclosed: !!enc.nabilDisclosed, repeatedPitchCount: enc.nabilPitches ?? 0, labReport: !!item.labReports?.length }).reason}`);
+  }
   if (enc.tutorial) fx.tutorialAdvance = 'countered';
 }
 
@@ -925,4 +971,30 @@ export function petCat(enc: Encounter, ctx: Ctx): Effects {
     adjust(enc, { patience: -4 });
   }
   return { sfx: ['meow'] };
+}
+
+/** A bluff, a repeated pitch or a token price move. The third one and he leaves, politely. */
+function nabilBluff(enc: Encounter, ctx: Ctx) {
+  enc.nabilPitches = (enc.nabilPitches ?? 0) + 1;
+  adjust(enc, { patience: -10, trust: -3 });
+  if (enc.nabilPitches >= 3 && !enc.outcome) {
+    enc.nabilAngry = true;
+    enc.outcome = 'walked';
+    enc.stage = 'close';
+    buyerSay(enc, pick(BUYERS.nabil.lines.walkAway, ctx.rng), 'leaving');
+  }
+}
+
+/**
+ * Nabil's two-rug package: offered once he has named a figure for this rug and trusts you enough,
+ * for another good rug on hand. A little under the two figures together.
+ */
+export function nabilPackage(enc: Encounter, ctx: Ctx): { other: RugItem; price: number } | null {
+  if (enc.buyerId !== 'nabil' || !enc.buyerOffer || enc.finalOffered || enc.trust < 45 || enc.outcome) return null;
+  const others = ctx.inventory
+    .filter((i) => i.uid !== enc.presented && !(i.restoringUntil && i.restoringUntil > 0) && (RUGS[i.typeId]?.tier ?? 1) >= 2)
+    .sort((x, y) => wtp(enc, y) - wtp(enc, x));
+  const other = others[0];
+  if (!other) return null;
+  return { other, price: packageOffer(enc.buyerOffer, Math.round(wtp(enc, other) * 0.9)) };
 }
