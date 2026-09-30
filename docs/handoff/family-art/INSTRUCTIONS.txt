@@ -1,0 +1,123 @@
+THREADS OF FORTUNE: FAMILY AND AGING BATCH (22 images)
+
+The hero ages as the years pass (he is 45 in March 1925). He can marry and have a son and a
+daughter who grow up and later help in the business. These pictures show them at each age.
+
+HOW TO USE
+1. Open ChatGPT (image generation). Use a NEW chat for each group (A, B, C, D) so the faces stay
+   consistent inside a group.
+2. Attach the reference images named for that group (links at the bottom), paste the prompt, send.
+   Do the images of a group one after another in the same chat.
+3. Save each result under the name shown (A1-hero-stall-50.png ...).
+4. Put all 22 in the Drive folder "Threads of Fortune – Family and aging batch" and tell Claude.
+
+VERY IMPORTANT FOR GROUP A (THE HERO)
+The hero's clothes are separate layers drawn on top of these pictures. So every aged version must
+keep EXACTLY the same pose, outline, size and position as the attached base picture, and the same
+plain cream sleeveless undershirt. Only his face, beard, skin and hands grow older. Transparent
+background, same canvas size.
+
+Shared style for every image: hand-painted, semi-realistic, warm light, the same painting style as
+the attached references, 1920s-1940s Egypt, no text, no border, no watermark.
+
+======================================================================
+GROUP A: THE HERO GROWS OLDER (8 images)
+Attach: ref-H1-hero-stall.png, ref-H2-hero-profile.png, ref-H3-hero-face.jpg
+======================================================================
+
+A1-hero-stall-50.png
+Edit the attached leaning-at-the-counter picture of the hero (ref-H1). Keep the exact same pose, outline, size, position, lighting and the plain cream undershirt; do not move the arms or hands. Make him 50 years old: more grey in the beard (about a third grey), deeper lines at the eyes and forehead, the same bald head with a few age spots, slightly heavier around the face. Same man, clearly recognisable. Transparent background, 1024x1536 PNG. No text.
+
+A2-hero-profile-50.png
+Edit the attached head-and-shoulders picture of the hero (ref-H2) the same way: 50 years old, about a third grey in the beard, deeper lines, a few age spots on the bald head. Keep the exact framing, pose, size and the cream undershirt. Transparent background, 1024x1024 PNG. No text.
+
+A3-hero-stall-55.png
+Same as A1, but 55 years old: the beard now half grey, heavier lines around the eyes and mouth, slightly looser skin at the neck, a little weathering on the hands. Keep the exact pose, outline and undershirt. Transparent background, 1024x1536 PNG.
+
+A4-hero-profile-55.png
+Same as A2, but 55 years old: beard half grey, heavier lines, looser skin at the neck. Exact framing kept. Transparent background, 1024x1024 PNG.
+
+A5-hero-stall-60.png
+Same as A1, but 60 years old: the beard mostly grey with some dark left, deep lines, bushy greying eyebrows, age spots on the head and hands, a slightly tired but shrewd look. Keep the exact pose, outline and undershirt. Transparent background, 1024x1536 PNG.
+
+A6-hero-profile-60.png
+Same as A2, but 60 years old: beard mostly grey, deep lines, greying eyebrows, age spots. Exact framing kept. Transparent background, 1024x1024 PNG.
+
+A7-hero-stall-65.png
+Same as A1, but 65 years old: a white beard, deeply lined face, white eyebrows, thinner arms, age spots, the dignified look of an old merchant. Keep the exact pose, outline and undershirt. Transparent background, 1024x1536 PNG.
+
+A8-hero-profile-65.png
+Same as A2, but 65 years old: white beard, deeply lined face, white eyebrows. Exact framing kept. Transparent background, 1024x1024 PNG.
+
+======================================================================
+GROUP B: NOUR, THE CAIRO BRIDE (3 images)
+Attach: ref-P1-portrait-style.jpg (style and framing only; NOT her face)
+======================================================================
+Nour is the daughter of a respected Cairo cloth merchant from the Khan el-Khalili, clever with
+numbers, calm and proud. Chest-up portrait, three-quarter view, the same framing and painting style
+as the attached portrait, warm interior light, a softly painted mashrabiya window behind her.
+
+B1-nour-28.png
+Nour at 28 (1925): an Egyptian woman with dark eyes, a strong straight nose and a composed half smile, wearing a black silk tarha head covering loosely over dark hair, a small gold crescent pendant, a dark green dress with a high neck. Square 1024x1024. No text.
+
+B2-nour-38.png
+The same woman ten years later, at 38 (1935): same face, a few fine lines, a more assured look, a dark blue dress in the 1930s Cairo style, the same tarha, a gold bangle. Same framing and background. Square 1024x1024.
+
+B3-nour-48.png
+The same woman at 48 (1945): same face, some grey at the temples under the tarha, lines at the eyes, the calm authority of the mistress of a prosperous house, a plum-coloured dress, reading glasses held in one hand. Same framing and background. Square 1024x1024.
+
+======================================================================
+GROUP C: HÉLÈNE, THE ALEXANDRIA BRIDE (3 images)
+Attach: ref-P1-portrait-style.jpg (style and framing only; NOT her face)
+======================================================================
+Hélène Kyriakou is the daughter of a Greek hotelier in Alexandria, lively, speaks four languages,
+has friends among the foreign buyers. Chest-up portrait, three-quarter view, the same framing and
+painting style as the attached portrait, bright seaside light, the softly painted Corniche behind her.
+
+C1-helene-26.png
+Hélène at 26 (1925): a Greek Alexandrian woman with wavy dark-auburn bobbed hair, lively brown eyes and a quick smile, wearing a cream silk 1920s dress with a dropped waist and a long string of pearls, a small cloche hat. Square 1024x1024. No text.
+
+C2-helene-36.png
+The same woman at 36 (1935): same face, a few fine lines, hair in a 1930s soft wave, a tailored navy dress with a white collar, pearl earrings. Same framing and background. Square 1024x1024.
+
+C3-helene-46.png
+The same woman at 46 (1945): same face, a little grey in the hair, lines at the eyes, still elegant, a 1940s dark red suit with padded shoulders and a brooch. Same framing and background. Square 1024x1024.
+
+======================================================================
+GROUP D: THE CHILDREN (8 images)
+Attach: ref-H3-hero-face.jpg (the father) and ref-P1-portrait-style.jpg (style and framing)
+======================================================================
+The hero's son Karim and daughter Yasmin, born in 1926 and 1928. They should share their father's
+dark eyes and strong brows. Chest-up portraits, three-quarter view, the same framing and painting
+style as the attached portrait, warm light, the family stall's hanging rugs softly behind them.
+Keep each child's face consistent from one age to the next.
+
+D1-karim-2.png
+Karim at 2: a chubby little Egyptian boy with dark curls and his father's dark eyes, in a small white cotton galabiya, laughing. Square 1024x1024. No text.
+
+D2-karim-9.png
+Karim at 9: the same boy, dark hair cut short, a serious curious look, a school uniform of the 1930s (grey shorts suit, white shirt) and a small red tarboosh. Square 1024x1024.
+
+D3-karim-16.png
+Karim at 16: the same boy as a lanky youth, a first shadow of moustache, a cream shirt and brown waistcoat, helping at the stall, a rolled rug under his arm. Square 1024x1024.
+
+D4-karim-22.png
+Karim at 22: the same young man, clean-shaven, confident, a 1940s dark suit and a red tarboosh, a merchant's ledger in his hand. Square 1024x1024.
+
+D5-yasmin-2.png
+Yasmin at 2: a little Egyptian girl with dark curls tied with a ribbon and her father's dark eyes, in a small embroidered dress, holding a scrap of carpet. Square 1024x1024. No text.
+
+D6-yasmin-9.png
+Yasmin at 9: the same girl, hair in two plaits, a bright clever look, a 1930s school pinafore dress, a pencil behind her ear. Square 1024x1024.
+
+D7-yasmin-16.png
+Yasmin at 16: the same girl as a young woman, hair tied back under a light scarf, a sharp look, a plain blue dress, examining the back of a rug for its knots. Square 1024x1024.
+
+D8-yasmin-22.png
+Yasmin at 22: the same young woman, composed and elegant, a 1940s dress with a small scarf, an account book under her arm. Square 1024x1024.
+
+REFERENCE IMAGES
+ref-H1-hero-stall: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/family-art/ref-H1-hero-stall.png
+ref-H2-hero-profile: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/family-art/ref-H2-hero-profile.png
+ref-H3-hero-face: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/family-art/ref-H3-hero-face.jpg
+ref-P1-portrait-style: https://raw.githubusercontent.com/shenoply/Threads-of-fortune-/main/docs/handoff/family-art/ref-P1-portrait-style.jpg
