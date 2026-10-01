@@ -15,8 +15,7 @@ Handoff sources (owner's Drive folder, copied to `art-src/malek/`): `MALEK_MENU_
 | `src/game/systems/malek.ts` | Pure rules: hours, stock, meals and parcels, night meters, visit picture, his lines, the story state machine |
 | `src/game/state/store.ts` | `malek` and `parcels` in the save (version 19), actions `malekEnter`, `malekBuy`, `eatParcel`, `malekSay`, `malekStoryDone`, the night rollover, and the "well fed" patience at the stall |
 | `src/components/Malek/MalekShop.tsx` (+ `.css`) | The shop screen: door picture, room, menu, confirm and result sheets, parcels. Lazy-loaded from the district |
-| `src/components/Malek/MalekRoom3D.tsx` | The 3D room (three.js + React Three Fiber). Lazy-loaded again, only when you step inside |
-| `src/components/Malek/orbit.ts` | Camera limits and the WebGL check, kept out of the 3D chunk |
+| `src/components/Malek/MalekRoom2D.tsx` | The painted room: drag to look, marks on the painting |
 | `src/data/malekBuyer.ts` | Malek as a stall customer (`SPECIAL_BUYERS`, tier Common) |
 | `src/components/Inventory/Inventory.tsx` | "Food for the road" in Stock: eat a parcel serving anywhere, including on the road |
 | `public/art/malek/` | Visit and story scenes (WebP, 1280 px), Malek's waist-up figure for the room |
@@ -48,7 +47,7 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - The morning notes say so on the days he might come.
   - He haggles as a Common-tier buyer who wants dark, hard-wearing, forgiving rugs, with his own lines.
 - **A sale:**
-  - The rug lies under his tables in the 3D room, and he greets you about it once (or about the stall visit going nowhere).
+  - The rug lies on his floor in the painted room, and he greets you about it once (or about the stall visit going nowhere).
   - The journal records it.
   - His tab gives you 3 plates on the house: any eat-in dish except the lamb kebab, never parcels.
 - **Ways in during the day:**
@@ -134,25 +133,14 @@ with captions and Skip; the Customers screen keeps a "Films" shelf of the ones y
 
 ## The room
 
-- **Geometry:** simple 7 m × 6 m geometry laid out like the references:
-  - charcoal grill and smoke hood on the left wall
-  - shelves, water jar and preparation bench at the back
-  - storeroom doorway with a curtain at the back right
-  - tables and stools on the right
-  - street door in the right wall
-- **Textures:** small generated ones (plaster, tiled floor, wood, cloth). The paintings are not wrapped onto walls.
-- **Malek:** one cut-out, kept upright facing the camera. He stands behind a counter so it hides the waist-high cut.
-- **Camera:**
-  - Drag to turn, with an 8 px dead zone so a tap never turns the room. Pinch or wheel to zoom.
-  - Limits on angle and distance; a wider lens on tall phone screens.
-  - "Reset view".
-- **Walls:** a wall fades whenever the camera is on its outer side.
-- **Clickable:** Malek (talk), the menu board, the tables (sit and order) and the door (leave). Each also has a screen label that follows the room.
-- **Fallback:** without WebGL, or if the context is lost, the visit picture and buttons replace the room. The menu and parcels work the same.
-- **Cost:**
-  - About 106 draw calls and 3,000 triangles, drawn only when something moves.
-  - The shop module is 15 KB. The 3D chunk (three.js) is 833 KB, or 225 KB gzipped, and is fetched only when you step inside.
-- **Touch:** the room has `touch-action: none` and is never part of a scrolling page. The menu scrolls in its own panel and never moves the camera.
+A painted 2.5D room, like Arran's laboratory (`src/components/Malek/MalekRoom2D.tsx`). It replaced
+an earlier three.js room, and three.js is no longer a dependency.
+
+- **The painting:** the visit's picture is the room, with Malek painted in (grilling, preparing, serving, or counting coins at closing).
+  - It covers the view with a little to spare, so you drag to look across it. It stops at its edges, and a tap never moves it.
+  - It opens centred on Malek.
+- **Marks on the painting:** Malek (talk), the grill, the menu, the tables (sit and order) and the way out. Tapping one pans to it.
+- **Living details:** smoke over a lit grill, lamp glow (stronger at closing), and the rug you sold him laid on the floor.
 
 ## The five-visit story (ON: all five scenes supplied)
 

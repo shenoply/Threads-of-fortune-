@@ -1,4 +1,4 @@
-// Malek's grill, played in the browser: the door picture, the 3D room (drag, wheel, pinch, reset,
+// Malek's grill, played in the browser: the door picture, the painted room (drag to look, marks on the painting,
 // walls fading, hotspots), ordering with the confirm step (one charge for a double tap), parcels
 // bought, carried, eaten from Stock, the save surviving a reload, closed hours, and the exit.
 //   PORT=5173 SHOTS=/tmp/malek W=390 H=844 node tests/malek.mjs
@@ -20,7 +20,6 @@ const toShop = async () => {
   await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
   await p.waitForSelector('[data-testid=malek-shop]', { timeout: 20000 }); await p.waitForTimeout(500);
 };
-const camPos = () => p.evaluate(() => { const c = document.querySelector('[data-testid=malek-stage] canvas'); return c ? c.toDataURL('image/png').length : 0; });
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
@@ -42,63 +41,40 @@ try {
   console.log('12:30 door scene:', scene1, '|', (await p.locator('.malek-say').textContent()).slice(0, 80));
   await p.screenshot({ path: `${S}/m-door.png` });
   await p.click('[data-testid=malek-enter]');
-  await p.waitForSelector('[data-testid=malek-stage] canvas', { timeout: 30000 }); await p.waitForTimeout(2500);
-  console.log('3D canvas:', await p.locator('[data-testid=malek-stage] canvas').count(), '| fallback:', await has('malek-fallback'));
+  await p.waitForSelector('[data-testid=malek-room]', { timeout: 20000 }); await p.waitForTimeout(1200);
+  console.log('painted room:', await has('malek-room'), '| scene', await p.locator('[data-testid=malek-room]').getAttribute('data-scene'));
   await p.screenshot({ path: `${S}/m-room.png` });
-  const hot = async (h) => { const bx = await p.locator(`[data-testid=malek-hot-${h}]`).boundingBox(); const o = await p.locator(`[data-testid=malek-hot-${h}]`).evaluate((e) => e.style.opacity); return bx ? `${Math.round(bx.x)},${Math.round(bx.y)} op${o}` : 'none'; };
-  console.log('hotspots:', 'malek', await hot('malek'), '| menu', await hot('menu'), '| tables', await hot('tables'), '| exit', await hot('exit'));
-
-  // drag to turn: a small wobble must not move the camera; a real drag does, within limits
-  const stage = await p.locator('[data-testid=malek-stage]').boundingBox();
+  const world = () => p.locator('[data-testid=malek-world]').evaluate((e) => e.style.transform);
+  const vis = (h) => p.locator(`[data-testid=malek-hot-${h}]`).evaluate((e) => { const r = e.getBoundingClientRect(); return r.right > 0 && r.left < innerWidth; });
+  console.log('marks:', (await Promise.all(['malek', 'grill', 'menu', 'tables', 'exit'].map(async (h) => `${h} ${await has('malek-hot-' + h)}${(await vis(h)) ? '' : '(off-screen)'}`))).join(' | '));
+  // drag across the painting: a small wobble does nothing, a real drag looks across, within its edges
+  const stage = await p.locator('[data-testid=malek-room]').boundingBox();
   const cx = stage.x + stage.width / 2, cy = stage.y + stage.height / 2;
-  console.log('orbit at start:', JSON.stringify(await p.evaluate(() => window.__malekOrbit?.current)));
-  const before = await hot('malek');
-  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx + 4, cy + 3, { steps: 3 }); await p.mouse.up(); await p.waitForTimeout(500);
-  console.log('4px wobble moves nothing:', before === (await hot('malek')));
-  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx + 2000, cy, { steps: 30 }); await p.mouse.up(); await p.waitForTimeout(900);
-  await p.screenshot({ path: `${S}/m-turned-max.png` });
-  const afterMax = await hot('malek');
-  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx + 2000, cy, { steps: 30 }); await p.mouse.up(); await p.waitForTimeout(900);
-  console.log('drag turns, then stops at the limit:', before !== afterMax, afterMax === (await hot('malek')));
-  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx - 4000, cy - 400, { steps: 40 }); await p.mouse.up(); await p.waitForTimeout(900);
-  await p.screenshot({ path: `${S}/m-turned-left.png` });
-  // wheel zoom
-  await p.mouse.move(cx, cy); await p.mouse.wheel(0, -1500); await p.waitForTimeout(900);
-  await p.screenshot({ path: `${S}/m-zoomed.png` });
-  const zoomed = await hot('malek');
-  await p.click('[data-testid=malek-reset]'); await p.waitForTimeout(1200);
-  console.log('orbit after reset:', JSON.stringify(await p.evaluate(() => window.__malekOrbit?.current)));
-  const near = (a, b) => { const [x1, y1] = a.split(' ')[0].split(',').map(Number), [x2, y2] = b.split(' ')[0].split(',').map(Number); return Math.abs(x1 - x2) < 6 && Math.abs(y1 - y2) < 6; };
-  console.log('reset returns the view:', near(await hot('malek'), before), `(before ${before}, zoomed ${zoomed}, after ${await hot('malek')})`);
-  // pinch with two fingers (pointer events, as a phone sends them) zooms in
-  const r0 = await p.evaluate(() => window.__malekOrbit.current.r);
-  await p.evaluate(({ cx, cy }) => {
-    const el = document.querySelector('[data-testid=malek-stage]');
-    const ev = (type, id, x) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: cy, bubbles: true, isPrimary: id === 1 }));
-    ev('pointerdown', 1, cx - 30); ev('pointerdown', 2, cx + 30);
-    for (let i = 1; i <= 10; i++) { ev('pointermove', 1, cx - 30 - i * 8); ev('pointermove', 2, cx + 30 + i * 8); }
-    ev('pointerup', 1, cx - 110); ev('pointerup', 2, cx + 110);
-  }, { cx, cy });
-  console.log('pinch out zooms in: r', r0.toFixed(1), '->', (await p.evaluate(() => window.__malekOrbit.current.r)).toFixed(1));
-  await p.click('[data-testid=malek-reset]'); await p.waitForTimeout(800);
-  // a scroll over the menu scrolls the menu, never the room
-  await p.click('[data-testid=malek-tab-menu]'); await p.waitForTimeout(200);
-  const o1 = JSON.stringify(await p.evaluate(() => window.__malekOrbit.current));
-  const mb = await p.locator('[data-testid=malek-menu]').boundingBox();
-  await p.mouse.move(mb.x + mb.width / 2, mb.y + 40); await p.mouse.wheel(0, 600); await p.waitForTimeout(300);
-  console.log('menu scroll leaves the room alone:', o1 === JSON.stringify(await p.evaluate(() => window.__malekOrbit.current)), '| menu scrolled', await p.locator('[data-testid=malek-menu]').evaluate((e) => e.scrollTop));
-  await p.click('[data-testid=malek-tab-menu]'); await p.waitForTimeout(200);
-  // what the room costs to draw
-  console.log('render cost:', JSON.stringify(await p.evaluate(() => { const i = window.__malekGl.info; return { calls: i.render.calls, triangles: i.render.triangles, textures: i.memory.textures, geometries: i.memory.geometries }; })));
-  // the page itself never scrolled
+  const before = await world();
+  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx + 3, cy + 2, { steps: 2 }); await p.mouse.up(); await p.waitForTimeout(300);
+  console.log('3px wobble moves nothing:', before === (await world()));
+  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx - 3000, cy, { steps: 20 }); await p.mouse.up(); await p.waitForTimeout(400);
+  const far = await world();
+  await p.screenshot({ path: `${S}/m-room-panned.png` });
+  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx - 3000, cy, { steps: 20 }); await p.mouse.up(); await p.waitForTimeout(400);
+  console.log('drag looks across, then stops at the edge:', before !== far, far === (await world()), far);
   console.log('page scrollY', await p.evaluate(() => scrollY));
+  // a tap on a mark that is off to the side brings it into view
+  await p.locator('[data-testid=malek-hot-malek]').evaluate((e) => e.click()); await p.waitForTimeout(1500);
+  console.log('tap Malek centres on him:', await vis('malek'), await world(), JSON.stringify(await p.locator('[data-testid=malek-hot-malek]').boundingBox()), await p.evaluate(() => innerWidth));
 
   // Malek hotspot talks; menu hotspot opens the menu
-  await p.click('[data-testid=malek-hot-malek]'); await p.waitForTimeout(300);
+  await p.locator('[data-testid=malek-hot-malek]').evaluate((e) => e.click()); await p.waitForTimeout(300);
   console.log('talk:', (await p.locator('[data-testid=malek-speech]').textContent()).slice(0, 90));
-  await p.click('[data-testid=malek-hot-menu]'); await p.waitForTimeout(300);
+  await p.locator('[data-testid=malek-hot-menu]').evaluate((e) => e.click()); await p.waitForTimeout(300);
   console.log('menu open:', await has('malek-menu'), '| ful (morning only) off at 12:30:', await has('malek-off-malek_ful'));
   await p.screenshot({ path: `${S}/m-menu.png` });
+  const w1 = await world();
+  const mb = await p.locator('[data-testid=malek-menu]').boundingBox();
+  await p.mouse.move(mb.x + mb.width / 2, mb.y + 40); await p.mouse.wheel(0, 600); await p.waitForTimeout(300);
+  console.log('menu scroll leaves the room alone:', w1 === (await world()), '| menu scrolled', await p.locator('[data-testid=malek-menu]').evaluate((e) => e.scrollTop));
+  await p.locator('[data-testid=malek-hot-grill]').evaluate((e) => e.click()); await p.waitForTimeout(300);
+  console.log('grill mark:', (await p.locator('[data-testid=malek-speech]').textContent()).slice(0, 70));
 
   // order kofta: confirm shows price, servings, weight; a double tap charges once
   const cash0 = (await st()).cash;
@@ -163,7 +139,7 @@ try {
   // story is off while art is missing
   console.log('story state after these visits:', JSON.stringify((await st()).malek.story));
   // exit through the door hotspot
-  await p.click('[data-testid=malek-hot-exit]'); await p.waitForTimeout(400);
+  await p.locator('[data-testid=malek-hot-exit]').evaluate((e) => e.click()); await p.waitForTimeout(400);
   console.log('exit hotspot leaves:', !(await has('malek-shop')), '| district:', await has('district'));
 } catch (e) { console.log('FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/m-fail.png` }); }
 console.log('errors', JSON.stringify(errs));

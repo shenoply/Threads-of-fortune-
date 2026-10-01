@@ -12,16 +12,26 @@ export interface Film {
   /** who it introduces, for the shelf of films you have seen */
   name: string;
   video?: { mp4: string; webm?: string; poster: string; last: string };
+  /** after the video ends: their main paintings, panned until the narration finishes (never a frozen frame) */
+  after?: Still[];
   stills?: Still[];
 }
 export const FILMS: Record<FilmId, Film> = {
   malek: {
     title: "Malek's grill · Giza, 1925", name: 'Malek',
     video: { mp4: 'video/malek-intro.mp4', webm: 'video/malek-intro.webm', poster: 'video/malek-intro-poster.webp', last: 'video/malek-intro-last.webp' },
+    after: [
+      { src: 'art/malek/scene-grilling.webp', fit: 'cover', from: [1.05, 30, 45], to: [1.25, 25, 40] },
+      { src: 'art/portraits/malek.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 35] },
+    ],
   },
   arran: {
     title: "Arran's textile laboratory · Giza, 1925", name: 'Arran Embleton',
     video: { mp4: 'video/arran-intro.mp4', webm: 'video/arran-intro.webm', poster: 'video/arran-intro-poster.webp', last: 'video/arran-intro-last.webp' },
+    after: [
+      { src: 'art/arran/13-lab-room.webp', fit: 'cover', from: [1, 50, 50], to: [1.18, 45, 45] },
+      { src: 'art/arran/11-lab-inspect.webp', fit: 'contain', from: [1, 50, 30], to: [1.12, 50, 25] },
+    ],
   },
   abuhamid: {
     title: "Abu Hamid's coffee house · Giza", name: 'Abu Hamid',

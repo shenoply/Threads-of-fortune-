@@ -1,11 +1,10 @@
-// Malek, the rest: the shop on a device without WebGL (picture and buttons instead of the room),
-// the room at desktop size, Malek coming to your stall as a rug customer, and Malek on the map.
+// Malek, the rest: the room at desktop size, Malek coming to your stall as a rug customer, and Malek on the map.
 //   PORT=5173 SHOTS=/tmp/malek node tests/malek2.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 const PORT = process.env.PORT ?? '4173', S = process.env.SHOTS ?? '/tmp/malek';
 mkdirSync(S, { recursive: true });
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const b = await chromium.launch();
 const run = async (name, viewport, noGl, body) => {
   const ctx = await b.newContext({ viewport, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
@@ -30,21 +29,11 @@ const toShop = async (p, has) => {
   await p.waitForSelector('[data-testid=malek-shop]', { timeout: 20000 }); await p.waitForTimeout(400);
 };
 
-await run('nogl', { width: 390, height: 844 }, true, async (p, { has }) => {
-  await toShop(p, has);
-  await p.click('[data-testid=malek-enter]'); await p.waitForTimeout(1200);
-  console.log('nogl: fallback', await has('malek-fallback'), '| canvas', await p.locator('canvas[data-engine]').count() + await p.locator('[data-testid=malek-stage] canvas').count(), '| reset button', await has('malek-reset'));
-  await p.click('[data-testid=malek-tab-menu]');
-  await p.click('[data-testid=malek-buy-malek_tea]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300);
-  console.log('nogl: tea bought', await has('malek-result'));
-  await p.screenshot({ path: `${S}/m-nogl.png` });
-});
-
 await run('desktop', { width: 1366, height: 800 }, false, async (p, { has }) => {
   await toShop(p, has);
   await p.screenshot({ path: `${S}/m-door-desktop.png` });
-  await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-stage] canvas', { timeout: 30000 }); await p.waitForTimeout(2500);
-  const hots = await p.evaluate(() => ['malek', 'menu', 'tables', 'exit'].map((h) => { const e = document.querySelector(`[data-testid=malek-hot-${h}]`); const r = e.getBoundingClientRect(); return `${h} ${Math.round(r.x)},${Math.round(r.y)} op${e.style.opacity}`; }).join(' | '));
+  await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-room]', { timeout: 20000 }); await p.waitForTimeout(1500);
+  const hots = await p.evaluate(() => ['malek', 'grill', 'menu', 'tables', 'exit'].map((h) => { const e = document.querySelector(`[data-testid=malek-hot-${h}]`); const r = e.getBoundingClientRect(); return `${h} ${Math.round(r.x)},${Math.round(r.y)}${r.right > 0 && r.left < innerWidth ? '' : ' off'}`; }).join(' | '));
   console.log('desktop hotspots:', hots);
   await p.screenshot({ path: `${S}/m-room-desktop.png` });
 });

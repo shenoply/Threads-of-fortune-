@@ -52,8 +52,8 @@ try {
   await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
   await p.waitForSelector('[data-testid=malek-door]', { timeout: 20000 });
   console.log('2. greeting:', (await p.locator('.malek-say').textContent()).slice(0, 110));
-  await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-stage] canvas', { timeout: 30000 }); await p.waitForTimeout(3000);
-  console.log('   rug on the floor:', await p.evaluate(() => !!window.__malekScene?.getObjectByName('malek-rug')));
+  await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-room]', { timeout: 20000 }); await p.waitForTimeout(1500);
+  console.log('   rug on the floor:', await has('malek-rug'));
   await p.screenshot({ path: `${S}/m3-rug-room.png` });
   await p.click('[data-testid=malek-tab-menu]');
   console.log('   tab note on kofta:', await p.locator('[data-testid=malek-item-malek_kofta] .malek-tabnote').count(), '| on kebab:', await p.locator('[data-testid=malek-item-malek_kebab] .malek-tabnote').count());

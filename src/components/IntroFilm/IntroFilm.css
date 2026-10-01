@@ -22,3 +22,4 @@
 .film__frame::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: linear-gradient(to top, rgba(8,5,2,0.85), rgba(8,5,2,0)); pointer-events: none; z-index: 1; }
 .film__frame::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 14%; background: linear-gradient(to bottom, rgba(8,5,2,0.7), rgba(8,5,2,0)); pointer-events: none; z-index: 1; }
 .film__title, .film__caption, .film__btns { z-index: 2; }
+.film__after { position: absolute; inset: 0; animation: fade 1.2s ease; }

@@ -8,7 +8,7 @@ import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
 import { ArranLab } from '../ArranLab/ArranLab';
-// Malek's grill (and the three.js room inside it) loads only when you walk in
+// Malek's grill loads only when you walk in
 const MalekShop = lazy(() => import('../Malek/MalekShop'));
 
 // Giza, seen from above: the lane with your stall, the coffee house, the souk, the animal market,

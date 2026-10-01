@@ -58,7 +58,8 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
             {film.video.webm && <source src={film.video.webm} type="video/webm" />}
             <source src={film.video.mp4} type="video/mp4" />
           </video>
-          {held && <img className="film__still" src={film.video.last} alt="" aria-hidden="true" />}
+          {held && !film.after?.length && <img className="film__still" src={film.video.last} alt="" aria-hidden="true" />}
+          {held && !!film.after?.length && <div className="film__after"><Stills stills={film.after} length={Math.max(4, script.length - (voice.current?.currentTime ?? 0))} playing /></div>}
         </div>
       ) : (
         <Stills stills={film.stills ?? []} length={script.length} playing={!needTap} />

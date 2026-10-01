@@ -1,8 +1,7 @@
-// Malek's grill shop: the visit picture at the door, then the room in 3D (lazy), the menu with a
-// confirm step that shows exactly what you pay and get, food parcels to carry, and his remarks.
-// The whole module is loaded with React.lazy from the Giza district, and the 3D room inside it is
-// loaded lazily again, only when you step inside and the device can draw WebGL.
-import { Component, Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+// Malek's grill shop: the visit picture at the door, then the painted room (2.5D, like Arran's lab),
+// the menu with a confirm step that shows exactly what you pay and get, food parcels to carry, and his
+// remarks. The whole module is loaded with React.lazy from the Giza district.
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame, clock } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { MALEK_MENU, malekItem, type MalekItem, type MalekItemId } from '../../data/malekMenu';
@@ -16,18 +15,9 @@ import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
-import { INVALIDATE_EVENT, clampOrbit, defaultOrbit, webglAvailable, type Hotspot, type Orbit } from './orbit';
+import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { IntroFilm, filmReady } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
-
-const Room3D = lazy(() => import('./MalekRoom3D'));
-
-/** a 3D failure (no context, lost context, a shader error) drops to the picture instead of a blank screen */
-class Guard extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() { return this.state.failed ? this.props.fallback : this.props.children; }
-}
 
 const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 /** the effects line for an item, in the game's own terms */
@@ -51,7 +41,6 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [panel, setPanel] = useState<Panel>(null);
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
   const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
-  const [gl, setGl] = useState<boolean>(() => webglAvailable());
   // the film plays the first time the shop is open to you; "Watch the film again" replays it
   const [film, setFilm] = useState(() => filmReady('malek') && !(useGame.getState().introSeen ?? []).includes('malek'));
   const open = shopOpen(g.world.hour);
@@ -76,74 +65,6 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const fedNow = wellFedNow(cond, now);
   const rugType = g.malek?.rug ? RUGS[g.malek.rug] : undefined;
   const rugImg = useMemo(() => (rugType ? rugSrc(rugType) : undefined), [rugType]);
-  const menuLines = useMemo(() => MALEK_MENU.map((m) => ({ en: m.name.replace('Three-serving caravan parcel', 'Caravan parcel (3)').replace('Road parcel: bastirma and dry bread', 'Road parcel'), ar: m.nameAr, price: `${m.price} PT` })), []);
-
-  // ---------------- camera input: drag to turn, pinch or wheel to zoom ----------------
-  const stage = useRef<HTMLDivElement>(null);
-  const orbit = useRef<Orbit>(defaultOrbit(1));
-  const dragging = useRef(false);
-  const labels = useRef<Partial<Record<Hotspot, HTMLElement | null>>>({});
-  const [, kick] = useState(0);
-  const nudge = () => kick((n) => n + 1);
-  const reset = () => {
-    const el = stage.current;
-    orbit.current = defaultOrbit(el ? el.clientWidth / Math.max(1, el.clientHeight) : 1);
-    nudge(); window.dispatchEvent(new Event(INVALIDATE_EVENT)); audio.sfx('tap');
-  };
-  useEffect(() => {
-    if (phase !== 'room' || !gl) return;
-    const el = stage.current; if (!el) return;
-    orbit.current = defaultOrbit(el.clientWidth / Math.max(1, el.clientHeight));
-    if (import.meta.env.DEV) (window as unknown as { __malekOrbit?: typeof orbit }).__malekOrbit = orbit;
-    const pts = new Map<number, { x: number; y: number }>();
-    let start: { x: number; y: number } | null = null;
-    let pinch0 = 0, r0 = 0;
-    const invalidate = () => window.dispatchEvent(new Event(INVALIDATE_EVENT));
-    const down = (e: PointerEvent) => {
-      if ((e.target as HTMLElement).closest('button')) return;
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      try { el.setPointerCapture?.(e.pointerId); } catch { /* not a live pointer: carry on without capture */ }
-      if (pts.size === 1) { start = { x: e.clientX, y: e.clientY }; dragging.current = false; }
-      if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); r0 = orbit.current.r; dragging.current = true; }
-    };
-    const move = (e: PointerEvent) => {
-      const prev = pts.get(e.pointerId); if (!prev) return;
-      const cur = { x: e.clientX, y: e.clientY };
-      pts.set(e.pointerId, cur);
-      if (pts.size === 2) {
-        const [a, b] = [...pts.values()];
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (pinch0 > 0) orbit.current = clampOrbit({ ...orbit.current, r: r0 * (pinch0 / Math.max(20, d)) });
-        invalidate(); return;
-      }
-      if (!start) return;
-      // a deliberate drag only: small wobbles of a tap never turn the room
-      if (!dragging.current && Math.hypot(cur.x - start.x, cur.y - start.y) < 8) return;
-      dragging.current = true;
-      const w = el.clientWidth || 1;
-      orbit.current = clampOrbit({ ...orbit.current, az: orbit.current.az - ((cur.x - prev.x) / w) * 2.6, pol: orbit.current.pol - ((cur.y - prev.y) / w) * 1.6 });
-      invalidate();
-    };
-    const up = (e: PointerEvent) => {
-      pts.delete(e.pointerId);
-      if (pts.size < 2) pinch0 = 0;
-      if (!pts.size) { start = null; window.setTimeout(() => { dragging.current = false; }, 0); }
-    };
-    const wheel = (e: WheelEvent) => {
-      e.preventDefault();
-      orbit.current = clampOrbit({ ...orbit.current, r: orbit.current.r * Math.exp(e.deltaY * 0.0012) });
-      invalidate();
-    };
-    el.addEventListener('pointerdown', down);
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerup', up);
-    el.addEventListener('pointercancel', up);
-    el.addEventListener('wheel', wheel, { passive: false });
-    return () => {
-      el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move);
-      el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel);
-    };
-  }, [phase, gl]);
 
   const talkTurn = useRef(Math.floor(Math.random() * 6));
   const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));
@@ -152,6 +73,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     if (h === 'exit') { onLeave(); return; }
     if (h === 'menu') { setPanel('menu'); say('menu'); return; }
     if (h === 'tables') { setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return; }
+    if (h === 'grill') { setPanel('menu'); say(g.world.hour >= 20 ? 'grillCold' : 'grill'); return; }
     // tapping him: a different topic each time, round the six
     const topics = topicsFor(useGame.getState().malek);
     talkTurn.current = (talkTurn.current + 1) % topics.length;
@@ -235,12 +157,6 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   }
 
   // ---------------- inside ----------------
-  const fallback = (
-    <div className="malek-flat" data-testid="malek-fallback">
-      <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} />
-      <p>This device cannot draw the room in 3D. Everything works from the buttons.</p>
-    </div>
-  );
   const parcels = g.parcels ?? [];
   const tab = g.malek?.tab ?? 0;
   return (
@@ -250,21 +166,9 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <span className="malek-cash" data-testid="malek-cash">{fmt(g.cash)}</span>
         <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
       </header>
-      <div className="malek-stage" ref={stage} data-testid="malek-stage">
-        {gl ? (
-          <Guard fallback={fallback}>
-            <Suspense fallback={<div className="malek-loading">Setting out the stools…</div>}>
-              <Room3D scene={visit.scene} orbit={orbit} labels={labels} dragging={dragging} onPick={pickHotspot} menuLines={menuLines} rug={rugImg} onLost={() => setGl(false)} />
-            </Suspense>
-          </Guard>
-        ) : fallback}
-        {gl && (['malek', 'menu', 'tables', 'exit'] as Hotspot[]).map((h) => (
-          <button key={h} ref={(el) => { labels.current[h] = el; }} className={`malek-hot malek-hot--${h}`} onClick={() => pickHotspot(h)} data-testid={`malek-hot-${h}`}>
-            {h === 'malek' ? 'Malek' : h === 'menu' ? 'Menu board' : h === 'tables' ? 'Sit at a table' : 'Way out'}
-          </button>
-        ))}
-        {gl && <button className="malek-reset" onClick={reset} data-testid="malek-reset" aria-label="Reset the view">⟲ Reset view</button>}
-        {gl && <p className="malek-hint" aria-hidden="true">Drag to look around · pinch or scroll to zoom</p>}
+      <div className="malek-stage" data-testid="malek-stage">
+        <MalekRoom2D scene={visit.scene} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} />
+        <p className="malek-hint" aria-hidden="true">Drag to look around · tap a mark</p>
         {speech && <div className="malek-speech" role="status" data-testid="malek-speech"><b>MALEK</b> {speech}</div>}
       </div>
 

@@ -3,7 +3,7 @@
 export interface IntroCue { start: number; end: number; text: string }
 export const INTRO_FILMS: Record<string, { length: number; cues: IntroCue[] }> = {
   "malek": {
-    "length": 32.61,
+    "length": 24.95,
     "cues": [
       {
         "start": 0.8,
@@ -12,58 +12,43 @@ export const INTRO_FILMS: Record<string, { length: number; cues: IntroCue[] }> =
       },
       {
         "start": 7.57,
-        "end": 13.94,
-        "text": "His name is Malek. His son made him Boo Rayan. The lane calls him Al-Mallem: the boss."
+        "end": 15.18,
+        "text": "Malek. Boo Rayan to his son, Al-Mallem to the lane: the boss. No partners, no patience, and four tables."
       },
       {
-        "start": 14.49,
-        "end": 18.04,
-        "text": "He has no partners, no patience, and four tables."
+        "start": 15.73,
+        "end": 20.67,
+        "text": "He expects the worst of everyone. And yet the kofta is the best in the lane."
       },
       {
-        "start": 18.59,
-        "end": 23.07,
-        "text": "He expects the worst of every customer, every sheep, and every day."
-      },
-      {
-        "start": 23.62,
-        "end": 28.32,
-        "text": "And yet the kofta is the best in the lane, and the regulars always come back."
-      },
-      {
-        "start": 28.87,
-        "end": 32.06,
+        "start": 21.22,
+        "end": 24.4,
         "text": "Whatever lives in his storeroom, he has never said."
       }
     ]
   },
   "arran": {
-    "length": 37.87,
+    "length": 25.88,
     "cues": [
       {
         "start": 0.8,
-        "end": 10.14,
-        "text": "Arran Embleton. A British textile chemist, who came to Giza with a microscope, a balance, and a great many opinions about wool."
+        "end": 9.08,
+        "text": "Arran Embleton. A British textile chemist in Giza, with a microscope, a balance, and strong opinions about wool."
       },
       {
-        "start": 10.69,
-        "end": 18.09,
-        "text": "In his laboratory he tells you what a rug is really made of: the fibre, the dye, and whether the colour runs."
+        "start": 9.63,
+        "end": 15.73,
+        "text": "He tells you what a rug is really made of: the fibre, the dye, and whether the colour runs."
       },
       {
-        "start": 18.64,
-        "end": 24.41,
-        "text": "His signed reports travel with the rug. A buyer who doubts your word will believe his."
+        "start": 16.28,
+        "end": 21.6,
+        "text": "His signed reports travel with the rug. A buyer who doubts you will believe him."
       },
       {
-        "start": 24.96,
-        "end": 31.58,
-        "text": "Bring him the books he needs, and he can test more. Ask him about the road, and he will tell you what to carry."
-      },
-      {
-        "start": 32.13,
-        "end": 37.32,
-        "text": "Careful, curious, and never in a hurry. In the bazaar, that makes him rare."
+        "start": 22.15,
+        "end": 25.33,
+        "text": "Bring him the books he needs, and he can test more."
       }
     ]
   },

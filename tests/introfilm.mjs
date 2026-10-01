@@ -33,7 +33,7 @@ try {
   console.log('   at 3.5 s: video playing', await p.evaluate(() => { const v = document.querySelector('[data-testid=film-video]'); return v && !v.paused && v.currentTime > 1; }), '| caption:', await p.locator('[data-testid=film-caption]').textContent());
   await p.screenshot({ path: `${S}/film-playing.png` });
   await p.waitForTimeout(8000);
-  console.log('   at 11.5 s: last frame held', await p.locator('.film__still').count(), '| caption:', await p.locator('[data-testid=film-caption]').textContent());
+  console.log('   at 11.5 s: after the video, paintings pan', await p.locator('.film__after [data-testid=film-stills]').count(), '| frozen frame', await p.locator('.film__still').count(), '| caption:', await p.locator('[data-testid=film-caption]').textContent());
   await p.screenshot({ path: `${S}/film-held.png` });
   await p.click('[data-testid=film-skip]'); await p.waitForTimeout(500);
   console.log('   skipped: door shown', await has('malek-door'), '| introSeen', JSON.stringify(await p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.introSeen)));

@@ -18,10 +18,8 @@ ROOT = os.path.join(os.path.dirname(__file__), '..')
 FILMS = {
     'malek': [
         ('Giza, nineteen twenty-five. Behind the bazaar, a charcoal grill, run by one man.', 'Giza, 1925. Behind the bazaar, a charcoal grill, run by one man.'),
-        ('His name is Malek. His son made him Boo Rayan. The lane calls him Al-Mallem: the boss.', None),
-        ('He has no partners, no patience, and four tables.', None),
-        ('He expects the worst of every customer, every sheep, and every day.', None),
-        ('And yet the kofta is the best in the lane, and the regulars always come back.', None),
+        ('Malek. Boo Rayan to his son, Al-Mallem to the lane: the boss. No partners, no patience, and four tables.', None),
+        ('He expects the worst of everyone. And yet the kofta is the best in the lane.', None),
         ('Whatever lives in his storeroom, he has never said.', None),
     ],
     'abuhamid': [
@@ -49,14 +47,16 @@ FILMS = {
         ('His wife Miriam keeps the books. Very little gets past either of them.', None),
     ],
     'arran': [
-        ('Arran Embleton. A British textile chemist, who came to Giza with a microscope, a balance, and a great many opinions about wool.', None),
-        ('In his laboratory he tells you what a rug is really made of: the fibre, the dye, and whether the colour runs.', None),
-        ('His signed reports travel with the rug. A buyer who doubts your word will believe his.', None),
-        ('Bring him the books he needs, and he can test more. Ask him about the road, and he will tell you what to carry.', None),
-        ('Careful, curious, and never in a hurry. In the bazaar, that makes him rare.', None),
+        ('Arran Embleton. A British textile chemist in Giza, with a microscope, a balance, and strong opinions about wool.', None),
+        ('He tells you what a rug is really made of: the fibre, the dye, and whether the colour runs.', None),
+        ('His signed reports travel with the rug. A buyer who doubts you will believe him.', None),
+        ('Bring him the books he needs, and he can test more.', None),
     ],
 }
 VOICE, SPEED, LANG = 'bm_lewis', 0.9, 'en-gb'
+# names the phonemizer gets wrong: what it produces -> how the name is said
+# (Arran, like the Scottish isle: ARR-un, stress on the first syllable, as in "Aaron")
+FIX_PHONEMES = {'ɐɹˈan': 'ˈaɹən'}
 SR = 24000
 LEAD, GAP = 0.8, 0.55
 
@@ -72,7 +72,10 @@ def trim(x, thr=0.004):
 def record(k, who):
     parts, cues, t = [np.zeros(int(LEAD * SR), dtype=np.float32)], [], LEAD
     for spoken, shown in FILMS[who]:
-        audio, sr = k.create(spoken, voice=VOICE, speed=SPEED, lang=LANG)
+        ph = k.tokenizer.phonemize(spoken, LANG)
+        for wrong, right in FIX_PHONEMES.items():
+            ph = ph.replace(wrong, right)
+        audio, sr = k.create(ph, voice=VOICE, speed=SPEED, lang=LANG, is_phonemes=True)
         assert sr == SR, sr
         audio = trim(audio.astype(np.float32))
         cues.append({'start': round(t, 2), 'end': round(t + len(audio) / SR, 2), 'text': shown or spoken})
