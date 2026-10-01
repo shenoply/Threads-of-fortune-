@@ -80,30 +80,40 @@ export interface SceneState {
 
 export interface ScenePick { scene: ArranScene; reason: string; book?: BookId }
 
-/** One scene per visit, from real game state, in the order of the design brief. */
+/** One scene per visit, from real game state, in the order of the design brief. A story scene that is
+ *  still true (a book in your bag, Sinai ahead) is not shown again on the next entry or the one after:
+ *  he is found at other work in between, and the story waits in the notebook. Ordinary visits go
+ *  round all his cases, one per entry, never the same twice running. */
 export function pickArranScene(s: SceneState): ScenePick {
   const S = (n: number, reason: string, book?: BookId): ScenePick => ({ scene: SCENES[n], reason, book });
+  const recent = s.arranVisit?.recentScenes ?? [];
+  const fresh = (p: ScenePick | null) => (p && !recent.slice(-2).includes(p.scene.n) ? p : null);
   // 1. a requested book you are actually carrying
   const carried = (Object.entries(s.arranBooks ?? {}) as [BookId, { phase: string; copyId?: string }][])
     .find(([, b]) => b?.phase === 'copy_acquired' && (s.papers ?? []).some((p) => p.id === b.copyId));
-  if (carried) return carried[0] === 'restricted_records' ? S(6, 'quest_book_ready_to_deliver', carried[0]) : S(4, 'quest_book_ready_to_deliver', carried[0]);
-  // 2. the museum linen, once its case is open and not yet studied
+  const book = carried ? (carried[0] === 'restricted_records' ? S(6, 'quest_book_ready_to_deliver', carried[0]) : S(4, 'quest_book_ready_to_deliver', carried[0])) : null;
+  // 2. the museum linen, once its case is open and not yet studied (this one waits for you: it is the event)
   if (mummyPermitted(s.arranVisit, s.day) && !s.arranVisit?.mummyIntroductionSeen) return S(7, 'mummy_case_active');
   // 3. heading for Sinai
   const sinai = s.arranBooks?.field_safety?.phase;
-  if (sinai === 'requested' || sinai === 'located') return (s.labUnlocked ?? []).includes('provisions') ? S(8, 'sinai_departure_active') : S(5, 'sinai_departure_active');
+  const trip = sinai === 'requested' || sinai === 'located' ? ((s.labUnlocked ?? []).includes('provisions') ? S(8, 'sinai_departure_active') : S(5, 'sinai_departure_active')) : null;
   // 4. carrying restricted goods with no papers
-  if ((s.cargo ?? []).some((c) => c.paperwork === 'none' && c.cls !== 'ordinary')) return S(9, 'undocumented_crate_active');
+  const crate = (s.cargo ?? []).some((c) => c.paperwork === 'none' && c.cls !== 'ordinary') ? S(9, 'undocumented_crate_active') : null;
   // 5. a result from today
   const today = (s.arranFindings ?? []).filter((f) => f.day === s.day).slice(-1)[0];
-  if (today) {
-    if (today.service === 'fastness' && today.verdict === 'inconsistent') return S(2, 'specific_test_result_ready');
-    if (today.service === 'fibre') return S(1, 'specific_test_result_ready');
-    if (today.service === 'dye' || today.service === 'wash') return S(3, 'specific_test_result_ready');
+  const result = !today ? null
+    : today.service === 'fastness' && today.verdict === 'inconsistent' ? S(2, 'specific_test_result_ready')
+      : today.service === 'fibre' ? S(1, 'specific_test_result_ready')
+        : today.service === 'dye' || today.service === 'wash' ? S(3, 'specific_test_result_ready') : null;
+  const story = fresh(book) ?? fresh(trip) ?? fresh(crate) ?? fresh(result);
+  if (story) return story;
+  // 6/7. an ordinary visit: late at night he is mostly reading; otherwise his own cases and the bench
+  const night = s.hour >= 19 || s.hour < 7;
+  const pool = night ? [10, 10, ...CASES] : [...AMBIENT, ...CASES];
+  const entries = s.arranVisit?.entries ?? s.arranVisit?.visitCount ?? 0;
+  for (let k = 0; k < pool.length; k++) {
+    const n = pool[(entries + k) % pool.length];
+    if (n !== recent[recent.length - 1]) return S(n, n === 10 || AMBIENT.includes(n) ? 'ambient_lab_visit' : 'selected_lab_activity');
   }
-  // 6/7. an ordinary visit: late at night he is reading; otherwise one of his own cases, then the bench
-  if (s.hour >= 19 || s.hour < 7) return S(10, 'ambient_lab_visit');
-  const visits = s.arranVisit?.visitCount ?? 0;
-  if (visits >= 2) return S(CASES[(visits - 2) % CASES.length], 'selected_lab_activity');
-  return S(AMBIENT[visits % AMBIENT.length], 'ambient_lab_visit');
+  return S(pool[0], 'ambient_lab_visit');
 }

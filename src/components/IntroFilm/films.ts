@@ -70,12 +70,12 @@ export const filmReady = (id: FilmId) => !!INTRO_FILMS[id] && (!!FILMS[id].video
 /** the buyers whose film plays when they first come to your stall */
 export const STALL_FILMS: FilmId[] = ['nabil', 'cohen'];
 export const FILM_ORDER: FilmId[] = ['rashid', 'abuhamid', 'arran', 'malek', 'nabil', 'cohen'];
-/** For now, while the game is being updated, the shop and house films play every time you go in
- *  (Skip ends one at once); set this false to go back to the first visit only. The stall buyers'
- *  films stay first-meeting only, so a customer does not wait behind a film every visit. */
-export const FILMS_EVERY_ENTRY = true;
+/** A film plays by itself the first time you go in; after that it is yours to replay ("Watch the
+ *  film again" at the place, and the Films shelf on the Customers screen). Setting this true makes
+ *  the place films play on every entry again (it was on while the game was being updated). */
+export const FILMS_EVERY_ENTRY = false;
 const PLACE_FILMS: FilmId[] = ['malek', 'arran', 'abuhamid', 'rashid'];
-/** should this film play now? (the tests set tof-films-once to see each film once) */
+/** should this film play by itself now? (the tests set tof-films-once to see each film once) */
 export function filmDue(id: FilmId, seen: string[] | undefined): boolean {
   if (!filmReady(id)) return false;
   let once = false;

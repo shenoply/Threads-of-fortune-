@@ -175,6 +175,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
     const st = useGame.getState();
     const pick = pickArranScene({ ...st, hour: st.world.hour });
     setScene(pick); setSceneAsk(false);
+    useGame.getState().arranSceneShown(pick.scene.n);
     playArranVoice({ id: `arran-scene-${String(pick.scene.n).padStart(2, '0')}`, noSubtitle: true });
   };
   const leaveScene = () => { setScene(null); setSceneAsk(false); stopArranVoice(); };

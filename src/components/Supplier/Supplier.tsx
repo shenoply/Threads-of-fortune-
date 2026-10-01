@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { IntroFilm, filmDue } from '../IntroFilm/IntroFilm';
+import { IntroFilm, filmDue, filmReady } from '../IntroFilm/IntroFilm';
 import { hasPerk } from '../../data/character';
 import { Icon } from '../Icon';
 import { Rumours } from '../Rumours/Rumours';
@@ -26,7 +26,7 @@ const pickOne = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 export function Supplier({ toast }: { toast: (s: string) => void }) {
   const g = useGame();
-  // his film when you come to him (every visit for now, see FILMS_EVERY_ENTRY)
+  // his film the first time you come to him; after that, "Watch the film again"
   const [film, setFilm] = useState(() => filmDue('rashid', useGame.getState().introSeen));
   const sup = g.supplier;
   const fam = g.family ?? FAMILY_START;
@@ -61,6 +61,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           <div className="eyebrow">WIKALAT EL-GHURI · CAIRO</div>
           <h2>Uncle Rashid</h2>
           <p>{RASHID_PROFILE.bio}</p>
+          {filmReady('rashid') && !film && <button className="btn small" onClick={() => setFilm(true)} data-testid="rashid-film-again">▶ Watch the film again</button>}
         </div>
       </div>
       <div className="rashid">

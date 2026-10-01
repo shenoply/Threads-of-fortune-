@@ -71,7 +71,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [panel, setPanel] = useState<Panel>(null);
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
   const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
-  // the film plays when the shop is open to you (every visit for now, see FILMS_EVERY_ENTRY); "Watch the film again" replays it
+  // the film plays by itself the first time the shop is open to you; "Watch the film again" replays it
   const [film, setFilm] = useState(() => filmDue('malek', useGame.getState().introSeen));
   const open = shopOpen(g.world.hour);
 

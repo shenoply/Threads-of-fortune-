@@ -124,8 +124,8 @@ export const MALEK_PURSE: Record<MalekPurse, { mult: number; value: number; odds
     'A wedding party ate at the grill last night, Malek says. Forty plates. He is smiling, which is alarming.',
   ] },
 };
-/** back to ask for the same rug again, after he bought one (his brother-in-law saw it under his tables) */
+/** back to ask for the same rug again, after he bought one (a customer saw it under his tables and wants one) */
 export const MALEK_AGAIN = {
-  have: ['The {rug}. Another one, the same. My wife\'s brother sat on mine and now he will not stop talking about it. Ha. Same price, or I go.', 'You have another {rug}? Good. Same as before. Do not look at me like that, it is for my cousin. Maybe.'],
+  have: ['The {rug}. Another one, the same. A customer sat on mine and now he will not stop talking about it. Ha. Same price, or I go.', 'You have another {rug}? Good. Same as before. Do not look at me like that, it is for my cousin. Maybe.'],
   none: ['I want the same {rug} again. You have none? Bah. Get one. I will come back.', 'Another {rug}, like the first. No? Then why do I walk all this way? For your face?'],
 };

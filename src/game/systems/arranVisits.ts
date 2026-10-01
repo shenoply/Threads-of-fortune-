@@ -12,6 +12,9 @@ export interface ArranVisitState {
   /** the permission chain: Arran writes a letter, you carry it to Hamza Effendi at the museum store */
   permitStage?: 'letter' | 'granted';
   mummyIntroductionSeen?: boolean;
+  /** every time you step in (visitCount counts days), and the last scenes he was found at */
+  entries?: number;
+  recentScenes?: number[];
 }
 export interface VisitContext { day: number; returnedBooks: readonly string[]; pendingBook: boolean }
 

@@ -456,7 +456,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [talk, setTalk] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
-  // the film over the lab or the coffee house (every visit for now, see FILMS_EVERY_ENTRY)
+  // the film over the lab or the coffee house: by itself the first time, then on request
   const [film, setFilm] = useState<FilmId | null>(null);
   // asked for from the stall or the evening strip ("Lunch at Malek's"): the app shows the map afresh
   // (a new district), and that district opens the shop as it mounts
@@ -800,6 +800,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
+      {talk && !film && filmReady('abuhamid') && createPortal(<button className="btn small film-again-float" onClick={() => setFilm('abuhamid')} data-testid="abuhamid-film-again">▶ Abu Hamid's film</button>, document.body)}
     </div>
   );
 }

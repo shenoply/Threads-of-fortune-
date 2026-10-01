@@ -341,7 +341,7 @@ export const MALEK_LINES: Record<LineCtx, string[]> = {
   name: [
     'Al-Mallem means the boss. Everyone calls me that. Even the sheep, I think.',
     'Boo Rayan, because of my son. He is at school learning to argue. He is already better at it than me.',
-    'Malek. My mother chose it. She also chose my wife. Both decisions I respect and fear.',
+    'Malek. It means "the owner". I own four tables, one grill and no patience. Sit.',
   ],
   storeroom: [
     'The storeroom? Charcoal, onions, sacks. Nothing else. Why do you ask? Do not ask.',

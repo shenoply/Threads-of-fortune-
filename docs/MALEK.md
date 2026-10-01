@@ -80,7 +80,7 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - It goes on the counter first, and he is easier to convince.
   - If you kept it for him he says so (+10 trust). If you sold it, he is annoyed (−10 trust).
   - He also comes back for a rug he walked away from without agreeing a price, if it suited him (fit 55+, interest 45+, 60%).
-  - After buying, 30% of the time he comes back wanting the same rug again ("for my wife's brother"): any rug of that kind goes on the counter first; if you have none, he says so and goes (`MALEK_AGAIN`).
+  - After buying, 30% of the time he comes back wanting the same rug again ("a customer sat on mine"): any rug of that kind goes on the counter first; if you have none, he says so and goes (`MALEK_AGAIN`).
 
 ## The story on film (stage 3)
 
@@ -124,9 +124,9 @@ times are game values. The menu says so; they are not presented as 1925 prices o
 ## First-meeting films
 
 Six special characters each get a short documentary, with captions and Skip; the Customers screen
-keeps a "Films" shelf of the ones you have seen. **For now** (`FILMS_EVERY_ENTRY` in films.ts, while the
-game is being updated) the place films (Malek, Arran, Abu Hamid, Rashid) play every time you go in;
-Nabil's and Cohen's stay first-meeting only. Tests set `localStorage['tof-films-once']` to see each once.
+keeps a "Films" shelf of the ones you have seen. Each plays by itself the first time; after that it is a "Watch the film again" button where you
+meet them (Malek's door, Arran's door and lab, Abu Hamid's table, Rashid's screen). `FILMS_EVERY_ENTRY`
+in films.ts can make the place films play on every entry again.
 
 | Who | Plays | Picture |
 |---|---|---|

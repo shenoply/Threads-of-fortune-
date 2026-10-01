@@ -345,6 +345,8 @@ interface Actions {
   arranBuy: (itemId: string, findingId?: string) => string;
   /** walk into the lab: returns what Arran is doing today */
   arranEnterLab: () => ArranActivity;
+  /** the scene he was found at this entry, so the next entries find him at something else */
+  arranSceneShown: (n: number) => void;
   /** the linen study introduction has been seen through */
   arranMummySeen: () => void;
   arranRequestBook: (id: BookId) => string;
@@ -2470,8 +2472,13 @@ export const useGame = create<GameState & Actions>()(
           const pending = Object.values(s.arranBooks ?? {}).some((b) => b && ['requested', 'located', 'copy_acquired'].includes(b.phase));
           const act = chooseArranActivity(v, { day: s.day, returnedBooks: returned, pendingBook: pending });
           const sameDay = v.lastActivityDay === s.day;
-          set({ arranVisit: { ...v, visitCount: v.visitCount + (sameDay ? 0 : 1), lastActivity: act, lastActivityDay: s.day } });
+          set({ arranVisit: { ...v, visitCount: v.visitCount + (sameDay ? 0 : 1), entries: (v.entries ?? v.visitCount) + 1, lastActivity: act, lastActivityDay: s.day } });
           return act;
+        },
+
+        arranSceneShown: (n) => {
+          const v = get().arranVisit ?? { visitCount: 0 };
+          set({ arranVisit: { ...v, recentScenes: [...(v.recentScenes ?? []), n].slice(-4) } });
         },
 
         arranMummySeen: () => {
