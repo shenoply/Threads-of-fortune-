@@ -8,7 +8,7 @@ mkdirSync(S, { recursive: true });
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-const heard = []; p.on('response', (r) => { if (/audio\/malek\//.test(r.url())) heard.push(`${r.status()} ${r.url().split('/').pop()}`); });
+const heard = []; p.on('response', (r) => { if (/audio\/malek\/|voices\/malek/.test(r.url())) heard.push(`${r.status()} ${r.url().split('/').pop()}`); });
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
 const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(900); };
@@ -34,6 +34,10 @@ try {
   await p.waitForSelector('[data-testid=malek-mutter]', { timeout: 30000 });
   const id2 = await p.locator('[data-testid=malek-mutter]').getAttribute('data-phrase');
   console.log('1. shop:', JSON.stringify(m1.replace(/\n/g, ' | ')), '| then', id2, '| different:', id1 !== id2, '| clips fetched:', heard.join(', '));
+  // he speaks English too: tap him and his line is fetched from his own recording
+  await p.locator('[data-testid=malek-hot-malek]').evaluate((e) => e.click()); await p.waitForTimeout(1500);
+  const said = await p.evaluate(async () => { const m = await import('/src/game/audio/voice.ts'); return { has: m.voice.has('malek', document.querySelector('[data-testid=malek-speech]')?.textContent?.replace(/^MALEK\s*/, '') ?? ''), playing: m.voice.playing }; });
+  console.log('   English voice: line recorded', said.has, '| sprite fetched', heard.some((h) => /malek\.mp3/.test(h)));
   await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
 
   // 2. at the stall

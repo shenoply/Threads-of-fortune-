@@ -21,6 +21,12 @@ PHRASES = {
     'ba': ('bˈaː!', 1.0),
     'ba-2': ('bˈaːh.', 1.2),
     'tamalli-maak': ('tamˈalli maʕˈaːk.', 1.1),
+    'meen-aal': ('mˈiːn ʔˈaːl?', 1.05),
+    'meen-aal-2': ('mˈiːn ʔˈaːl, mˈiːn?', 1.05),
+    'tozz': ('tˤˈozz!', 1.0),
+    'tozz-2': ('tˤˈozz, tˤˈozz.', 1.05),
+    'how': ('hˈaːw?', 1.0),
+    'how-2': ('hˈaːw? hˈaːw?', 1.0),
 }
 
 def main(model):

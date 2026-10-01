@@ -13,6 +13,8 @@ import { THREAT_LINES, THREAT_VOICE } from '../src/data/travelThreats1925';
 import { JOBS, GIVER_VOICE } from '../src/data/jobs';
 import { MISSIONS } from '../src/data/missions';
 import { ladder, spoken } from '../src/game/economy/money';
+import { MALEK_LINES } from '../src/game/systems/malek';
+import { MALEK_UNSURE } from '../src/data/malekBuyer';
 
 type Row = { speaker: string; file: string; text: string; note: string };
 const rows: Row[] = [];
@@ -103,6 +105,8 @@ const top = (id: string) => {
   const caps = [b.budget[1], ...b.needs.map((n) => n.budget[1])];
   return Math.max(...caps) * 1.35;
 };
+// Malek in his own shop (what he says when you walk in, tap him or the grill, talk) and when he will not buy
+for (const t of [...Object.values(MALEK_LINES).flat(), ...MALEK_UNSURE]) if (!t.includes('{')) add('malek', t, 'In his shop: blunt, warm underneath, dry.');
 const RANGES: Record<string, [number, number]> = { seller: [5, 60000], rashid: [5, 5000], auctioneer: [5, 100000] };
 // royals only consider Exceptional and Legendary rugs, so they never name small sums
 for (const id of Object.keys(BUYERS)) { const mt = BUYERS[id].royal ? 3 : (BUYER_TIERS[id]?.[0] ?? 1); RANGES[id] = [mt >= 3 ? 1000 : mt === 2 ? 200 : 5, top(id)]; }

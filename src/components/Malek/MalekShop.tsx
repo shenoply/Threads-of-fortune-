@@ -17,6 +17,8 @@ import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { MalekMutter } from './MalekMutter';
+import { voice } from '../../game/audio/voice';
+import { stopMalekArabic } from '../../game/audio/malekArabic';
 import { MalekMenuBook, piastres } from './MalekMenuBook';
 import { Cutscene } from './Cutscene';
 import { STORY_FILM } from './storyFilm';
@@ -141,6 +143,16 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
 
   // the book closes once an order goes through, so the plate arrives in the room
   useEffect(() => { if (result) setPanel((p) => (p === 'menu' ? null : p)); }, [result]);
+
+  // he says it aloud: his English lines are recorded in his own (Egyptian-accented) voice
+  const spoken = phase === 'door' ? visit?.line ?? '' : speech;
+  useEffect(() => {
+    if (!spoken) return;
+    let live = true;
+    voice.whenReady('malek').then(() => { if (live && voice.has('malek', spoken)) { stopMalekArabic(); voice.say('malek', spoken); } });
+    return () => { live = false; };
+  }, [spoken]);
+  useEffect(() => () => voice.stop(), []);
 
   const talkTurn = useRef(Math.floor(Math.random() * 6));
   const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));

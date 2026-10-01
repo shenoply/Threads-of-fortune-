@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { pickArabic, type ArabicPhrase } from '../../data/malekArabic';
 import { sayMalekArabic, stopMalekArabic } from '../../game/audio/malekArabic';
+import { voice } from '../../game/audio/voice';
 
 /** seconds before the first phrase, and between phrases */
 const FIRST: [number, number] = [4, 7];
@@ -18,7 +19,7 @@ export function MalekMutter({ quiet }: { quiet?: boolean }) {
     let next: number, hide: number;
     const speak = () => {
       // he keeps it to himself while you are reading something of his
-      if (!quietRef.current) {
+      if (!quietRef.current && !voice.playing) {
         const p = pickArabic('shop', last.current);
         last.current = p.id;
         setSaid(p);

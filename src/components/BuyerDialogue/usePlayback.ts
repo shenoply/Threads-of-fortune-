@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Line } from '../../game/types';
 import { voice } from '../../game/audio/voice';
 import { sayMalekArabic } from '../../game/audio/malekArabic';
+import { withoutArabic } from '../../data/malekArabic';
 
 export interface PlaybackView {
   seller: string;
@@ -68,13 +69,18 @@ export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
       timer.current = window.setTimeout(step, 150);
       return;
     }
-    // Malek's Arabic "Ha?" / "Bah!" at the start of a line
+    // Malek's Arabic opener ("Ha?", "Bah!", "Who said so?"...) first, then the rest of the line in his English
     if (next.ar) sayMalekArabic(next.ar);
-    let voiced = voice.has(speaker, next.text);
-    if (voiced) voice.say(speaker, next.text).then(() => { voiced = false; });
+    const words = next.ar ? withoutArabic(next.text, next.ar) : next.text;
+    let voiced = voice.has(speaker, words);
+    let waiting = false;
+    if (voiced && next.ar) {
+      waiting = true;
+      window.setTimeout(() => { waiting = false; voice.say(speaker, words).then(() => { voiced = false; }); }, 650);
+    } else if (voiced) voice.say(speaker, words).then(() => { voiced = false; });
     const waitVoice = (then: () => void) => {
       const poll = () => {
-        if (voiced && voice.playing) timer.current = window.setTimeout(poll, 150);
+        if (voiced && (waiting || voice.playing)) timer.current = window.setTimeout(poll, 150);
         else then();
       };
       poll();

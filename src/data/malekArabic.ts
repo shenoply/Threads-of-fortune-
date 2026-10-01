@@ -18,8 +18,19 @@ export const MALEK_ARABIC: ArabicPhrase[] = [
   { id: 'tamalli-maak', ar: 'تملّي معاك', latin: 'Tamalli ma‘ak.', en: 'Always with you.', clips: ['tamalli-maak'], where: ['shop'] },
   { id: 'ha', ar: 'ها؟', latin: 'Ha?', en: 'Well?', clips: ['ha', 'ha-2'], where: ['shop', 'haggle'] },
   { id: 'ba', ar: 'با!', latin: 'Ba!', en: 'Bah!', clips: ['ba', 'ba-2'], where: ['shop', 'haggle'] },
+  { id: 'meen-aal', ar: 'مين قال؟', latin: 'Meen ’aal?', en: 'Who said so?', clips: ['meen-aal', 'meen-aal-2'], where: ['shop', 'haggle'] },
+  { id: 'tozz', ar: 'طظ!', latin: 'Tozz!', en: 'Pfft, so what!', clips: ['tozz', 'tozz-2'], where: ['shop', 'haggle'] },
+  { id: 'how', ar: 'How?', latin: 'How?', en: 'How much? How so?', clips: ['how', 'how-2'], where: ['haggle'] },
 ];
 export const ARABIC_BY_ID: Record<string, ArabicPhrase> = Object.fromEntries(MALEK_ARABIC.map((p) => [p.id, p]));
+/** the English words of a line that opens with one of his Arabic phrases (for the English recording) */
+/** how a phrase opens a line on screen: the Arabic and its reading (an English word just once) */
+export const arabicLead = (p: ArabicPhrase) => (p.ar === p.latin ? p.latin : `${p.ar} ${p.latin}`);
+export function withoutArabic(text: string, phraseId: string): string {
+  const p = ARABIC_BY_ID[phraseId];
+  const lead = p ? `${arabicLead(p)} ` : '';
+  return lead && text.startsWith(lead) ? text.slice(lead.length) : text;
+}
 /** a phrase for this place, not the one he just said */
 export function pickArabic(where: ArabicWhere, last: string | null, rnd = Math.random): ArabicPhrase {
   const pool = MALEK_ARABIC.filter((p) => p.where.includes(where) && p.id !== last);

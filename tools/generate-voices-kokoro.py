@@ -18,6 +18,9 @@ from kokoro_onnx import Kokoro
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'public', 'voices')
 # who sounds like whom: Kokoro voice, speed, language
 CAST = {
+    # Malek speaks English with an Egyptian accent: English phonemes read by the stock Arabic Piper voice
+    # that speaks his Arabic phrases (tools/generate-malek-arabic.py), so both are one voice. Not a clone.
+    'malek': ('piper:/tmp/piper/vits-piper-ar_JO-kareem-medium/ar_JO-kareem-medium.onnx', 0.97, 'en-us'),
     'nabil': ('am_onyx', 0.92, 'en-us'),          # senior Cairo textile merchant: deep, unhurried
     'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler: measured, precise, nasal (FX below)
     'farid-nassar': ('am_eric', 1.0, 'en-us'),     # casino bookings manager
@@ -53,6 +56,28 @@ def nasal(x):
     return (y * (0.9 / max(1e-6, float(np.max(np.abs(y)))))).astype(np.float32)
 
 
+# an Arabic speaker's English: rolled r, pure vowels, no "th" (gently: no swapped consonants)
+ACCENT = [('ɚ', 'ɛr'), ('ɝ', 'ɛr'), ('ɹ', 'r'), ('oʊ', 'oː'), ('eɪ', 'eː'), ('ʌ', 'a'), ('æ', 'a'), ('ɑː', 'aː'), ('ɐ', 'a'), ('ð', 'z'), ('θ', 's'), ('ɪ', 'i')]
+_piper = {}
+
+
+def piper_say(model, k, text, speed, lang):
+    from piper import PiperVoice, SynthesisConfig
+    if model not in _piper:
+        _piper[model] = PiperVoice.load(model)
+    v = _piper[model]
+    ph = k.tokenizer.phonemize(text, lang)
+    for a, b in ACCENT:
+        ph = ph.replace(a, b)
+    ids = v.phonemes_to_ids([c for c in ph if c in v.config.phoneme_id_map])
+    audio = v.phoneme_ids_to_audio(ids, SynthesisConfig(length_scale=speed, noise_scale=0.6, noise_w_scale=0.7)).astype(np.float32)
+    sr = v.config.sample_rate
+    # a heavier man: read the samples a little slower, down about a tone (and a touch slower, which suits him)
+    n = int(len(audio) / 0.92)
+    audio = np.interp(np.linspace(0, len(audio) - 1, n), np.arange(len(audio)), audio).astype(np.float32)
+    return audio / max(1e-6, float(np.max(np.abs(audio)))) * 0.9, sr
+
+
 # a character's colour on top of the stock voice (same length, so the clip timings hold)
 FX = {'cohen': nasal}
 
@@ -84,7 +109,10 @@ def main():
             cid = os.path.basename(r['file'])[:-4]
             if cid in clips:
                 continue
-            audio, sr = k.create(r['text'], voice=voice, speed=speed, lang=lang)
+            if voice.startswith('piper:'):
+                audio, sr = piper_say(voice[6:], k, r['text'], speed, lang)
+            else:
+                audio, sr = k.create(r['text'], voice=voice, speed=speed, lang=lang)
             if sr != SR:  # Kokoro speaks at 24 kHz: resample to the sprite rate
                 n = int(len(audio) * SR / sr)
                 audio = np.interp(np.linspace(0, len(audio) - 1, n), np.arange(len(audio)), audio).astype(np.float32)

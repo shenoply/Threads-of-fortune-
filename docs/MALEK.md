@@ -105,11 +105,16 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - The book closes once an order goes through; the confirm and result cards sit above it.
 - Test: `tests/malek-menubook.mjs`.
 
+## His voice: English and Arabic
+
+- **English:** all his lines, at the stall and in his shop, are recorded in one voice with an Egyptian accent: the English is phonemised and read by the same stock Arabic Piper voice (ar_JO "kareem", not a clone) that speaks his Arabic, with a rolled r and pure vowels (`tools/generate-voices-kokoro.py malek`, after `npx tsx tools/export-voice-script.ts`). In the shop his greeting and every remark is spoken; he does not mutter in Arabic over himself.
+- **Arabic openers at the stall:** a line that opens with an Arabic phrase plays that phrase, then the rest of the line in his English.
+
 ## His Arabic
 
-- **Phrases** (`src/data/malekArabic.ts`): اه وبعدين (Aah, w-ba'dein? "Ah… and then what?"), اللي خلق علّق (Elli khalaq, 'allaq. "He who made us will provide."), تملّي معاك (Tamalli ma'ak. "Always with you."), ها؟ (Ha? "Well?"), با! (Ba! "Bah!").
+- **Phrases** (`src/data/malekArabic.ts`): مين قال؟ (Meen ’aal? "Who said so?"), طظ! (Tozz! "Pfft, so what!"), How? (in English), and اه وبعدين (Aah, w-ba'dein? "Ah… and then what?"), اللي خلق علّق (Elli khalaq, 'allaq. "He who made us will provide."), تملّي معاك (Tamalli ma'ak. "Always with you."), ها؟ (Ha? "Well?"), با! (Ba! "Bah!").
 - **In his shop** (`MalekMutter.tsx`): at the door and inside, he says one to himself every 14-24 s, first after 4-7 s, never the same twice running, with the Arabic, a reading and the meaning on screen. He keeps quiet while a confirm or result card is open.
-- **At the stall:** once the haggle is past the greeting, about one of his lines in four opens with ها؟ or با! (با when he is sceptical or leaving), never two running; the clip plays as the line appears.
+- **At the stall:** once the haggle is past the greeting, about one of his lines in four opens with ها؟ or How? when he is weighing it up, با!, مين قال؟ or طظ! when he is not having it, never two running; the clip plays as the line appears.
 - **Voice:** `tools/generate-malek-arabic.py` records `public/audio/malek/ar-*.mp3` offline with a stock Piper voice (ar_JO "kareem", from sherpa-onnx's GitHub release; not a clone of anyone), from hand-written Egyptian phonemes, lowered a tone. The model stays out of the repo.
 - Test: `tests/malek-arabic.ts` (rules) and `tests/malek-arabic.mjs` (in the browser).
 
