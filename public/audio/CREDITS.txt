@@ -35,3 +35,9 @@ using only clips whose original Freesound recordings are CC0 or CC BY. CC BY rec
 
 Ambience beds also layer CC0 and CC BY clips of wind, sea, water, crickets, insects, clocks and footsteps from the same dataset.
 Music rendered with the GeneralUser GS soundfont by S. Christian Collins (free for any use).
+
+Malek's story cutscene (public/audio/malek/cutscene-*.mp3, tools/build-malek-cutscene-audio.py):
+  footsteps, charcoal fire and market murmur reuse the library clips above (ESC-50 footsteps
+  3-94343-A-25, 3-249913-A-25, 3-94342-A-25, 5-51149-A-25, 4-198962-B-25, 5-244310-A-25; crackling fire
+  5-213802-A-12, 4-164661-A-12; the market bed). Coins, cloth, wood knocks and the orangutan's grunts
+  are synthesised for this game. Nabil's line is the game's stock synthetic Nabil voice (Kokoro am_onyx).

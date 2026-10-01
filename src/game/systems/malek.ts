@@ -447,7 +447,7 @@ export const STORY: StoryStage[] = [
     'The tallest of the three catches your eye and smiles, as if you might be next.',
   ] },
   { n: 3, title: 'The Back Room Opens', art: 'art/malek/story-3-backroom.webp', text: [
-    'The three men come in shoulders first, Nabil behind them. Malek does not leave the grill.',
+    'Nabil leads the three men in, shoulders first. Malek does not leave the grill.',
     'The storeroom curtain moves. An orangutan steps out, very large and in no hurry. A stool goes one way and a man goes the other. In a minute all four are back in the street, nobody hurt but their pride.',
     '"I said the storeroom was private."',
   ] },

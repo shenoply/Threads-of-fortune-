@@ -173,3 +173,12 @@
 .mbook__dots i.is-on { background: #e7bd6e; }
 @media (max-width: 380px) { .mbook__dish { grid-template-columns: 88px 1fr; } .mbook__pic { width: 88px; height: 66px; } }
 @media (prefers-reduced-motion: reduce) { .mbook__cover { animation-duration: 0.01s; animation-delay: 0s; } }
+
+/* a story stage on film: the clip on top (whole frame, dark surround), the story card below */
+.malek-film { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px calc(14px + env(safe-area-inset-bottom, 0px)); background: #120c07; }
+.malek-film > .cut { width: min(100%, 900px); }
+.malek-film__card { width: min(100%, 900px); background: rgba(36,24,16,0.96); border: 1px solid rgba(231,189,110,0.4); border-radius: 10px; padding: 12px 16px; }
+.malek-film__card h2 { margin: 0 0 6px; font-family: var(--display); color: var(--brass-hi); font-weight: 500; }
+.malek-film__card p { margin: 6px 0; line-height: 1.45; }
+.malek-still-line { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: min(92%, 560px); margin: 0; z-index: 2; text-align: center; color: #fff7e6; background: rgba(10,6,3,0.72); border-radius: 6px; padding: 6px 10px; font-size: 17px; }
+.malek-still-line b { font-family: var(--label); font-size: 12px; letter-spacing: 0.12em; color: #e7bd6e; margin-right: 6px; }

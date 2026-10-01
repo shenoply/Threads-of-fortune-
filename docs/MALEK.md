@@ -82,6 +82,20 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - He also comes back for a rug he walked away from without agreeing a price, if it suited him (fit 55+, interest 45+, 60%).
   - After buying, 30% of the time he comes back wanting the same rug again ("for my wife's brother"): any rug of that kind goes on the counter first; if you have none, he says so and goes (`MALEK_AGAIN`).
 
+## The story on film (stage 3)
+
+- Stage 3, "The Back Room Opens", plays two silent clips from Drive in the story card (`Cutscene.tsx`), one after the other with a hard cut and no blank frame:
+  1. `public/art/malek/videos/01-malek-goons-enter-5s` (Nabil pays the three men and leads them in);
+  2. `02-malek-orangutan-drives-goons-out` (the orangutan sees them out).
+- Stages 2 and 4 keep their paintings: stage 2 is the payment across the lane on an earlier day, and the reward has no video yet. Stage 4 plays the room's sound and shows Malek's line, "Good lad. You've earned a shawarma."
+- **Sound** (`tools/build-malek-cutscene-audio.py`, credits in `public/audio/CREDITS.txt`):
+  - one effects track per clip, timed to the frames: coins at the handover, the turn, footsteps going duller at the doorway; two grunts, stools knocked about, feet running out, the room settling;
+  - recorded library footsteps, fire and market, plus synthesised coins, cloth, wood and grunts;
+  - Nabil's "There he is. Follow me." in his game voice, subtitled.
+- **Playback:** sound and subtitles follow the video's clock (drift corrected). Play appears if the browser blocks autoplay. Pause, Skip, Sound on/off, Subtitles on/off and Watch again. A hidden tab pauses everything. Music is ducked during the film. A clip that cannot load shows its still and the story carries on.
+- The stage applies once, on Continue, as before: replaying, skipping, reloading or coming back the same day never applies it again.
+- Test: `tests/malek-cutscene.mjs`.
+
 ## The menu book
 
 - Menu (the tab or the menu mark in the room) opens `MalekMenuBook.tsx`: a leather cover swings open onto parchment pages.

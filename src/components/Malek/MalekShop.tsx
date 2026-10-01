@@ -18,8 +18,36 @@ import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { MalekMutter } from './MalekMutter';
 import { MalekMenuBook, piastres } from './MalekMenuBook';
+import { Cutscene, type CutsceneShot } from './Cutscene';
+
+// Story stage 3 on film: Nabil pays the three men and leads them in, then the orangutan sees them
+// out (two silent clips with their own sound, tools/build-malek-cutscene-audio.py). Stages 2 and 4
+// keep their paintings; stage 4 has its sound and Malek's line over the picture.
+const V = 'art/malek/videos/';
+const STORY_FILM: Record<number, CutsceneShot[]> = {
+  3: [
+    { mp4: `${V}01-malek-goons-enter-5s.mp4`, webm: `${V}01-malek-goons-enter-5s.webm`, first: `${V}01-malek-goons-enter-5s-first.webp`, last: `${V}01-malek-goons-enter-5s-last.webp`, fx: 'audio/malek/cutscene-01.mp3',
+      cues: [{ at: 1.1, until: 3.6, who: 'NABIL', text: 'There he is. Follow me.', voice: 'audio/malek/cutscene-nabil.mp3' }] },
+    { mp4: `${V}02-malek-orangutan-drives-goons-out.mp4`, webm: `${V}02-malek-orangutan-drives-goons-out.webm`, first: `${V}02-malek-orangutan-drives-goons-out-first.webp`, last: `${V}02-malek-orangutan-drives-goons-out-last.webp`, fx: 'audio/malek/cutscene-02.mp3' },
+  ],
+};
+const STORY_STILL_SOUND: Record<number, { bed: string; who: string; line: string }> = {
+  4: { bed: 'audio/malek/cutscene-reward.mp3', who: 'MALEK', line: "Good lad. You've earned a shawarma." },
+};
 import { IntroFilm, filmReady, filmDue } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
+
+/** a story picture's sound: the room, once, at the effects volume; stops when the card goes */
+function StillSound({ src }: { src: string }) {
+  useEffect(() => {
+    const vol = audio.toggles.sfx ? audio.volumes.master * audio.volumes.sfx : 0;
+    if (vol <= 0) return;
+    const a = new Audio(src); a.volume = Math.min(1, vol);
+    a.play().catch(() => {});
+    return () => a.pause();
+  }, [src]);
+  return null;
+}
 
 const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 /** the effects line for an item, in the game's own terms */
@@ -123,11 +151,31 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   if (!visit) return <div className="malek" data-testid="malek-shop" />;
 
   const storyStage = visit.stage != null ? STORY.find((s) => s.n === visit.stage) : undefined;
+  if (phase === 'story' && storyStage?.art && STORY_FILM[storyStage.n]) {
+    return (
+      <div className="malek" role="dialog" aria-label={storyStage.title} data-testid="malek-shop">
+        <div className="malek-film" data-testid="malek-story" data-stage={storyStage.n}>
+          <Cutscene shots={STORY_FILM[storyStage.n]} title={storyStage.title} />
+          <div className="malek-film__card">
+            <h2>{storyStage.title}</h2>
+            {storyStage.text.map((t, i) => <p key={i}>{t}</p>)}
+            <div className="malek-row">
+              <button className="btn primary" onClick={() => { useGame.getState().malekStoryDone(storyStage.n); setPhase('room'); }} data-testid="malek-story-done">Continue</button>
+              <button className="btn" onClick={() => setPhase('room')} data-testid="malek-story-later">Not now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (phase === 'story' && storyStage?.art) {
+    const still = STORY_STILL_SOUND[storyStage.n];
     return (
       <div className="malek" role="dialog" aria-label={storyStage.title} data-testid="malek-shop">
         <div className="malek-door" data-testid="malek-story" data-stage={storyStage.n}>
           <img src={storyStage.art} alt={storyStage.title} className="malek-door__bg" />
+          {still && <StillSound src={still.bed} />}
+          {still && <p className="malek-still-line" data-testid="malek-still-line"><b>{still.who}</b> {still.line}</p>}
           <div className="malek-door__card">
             <h2>{storyStage.title}</h2>
             {storyStage.text.map((t, i) => <p key={i}>{t}</p>)}
