@@ -128,3 +128,10 @@ expulsion can easily read as one, so the stage 1-3 art and text need care.
    Today one waist-up cut-out (from the reference, the grill removed) is used in every position.
 3. **Optional props:** a grill-front texture, shelf crockery and a menu board, as separate transparent PNGs or tileable textures, to replace the simple shapes.
 4. `05-arthur-bell-lore.png` has its caption painted into the image. That is fine as a lore card. A version without the caption band would let the game set the text.
+
+## Preview
+
+`./tools/build-malek-preview.sh` builds a standalone review copy of the shop into `dist-preview/`:
+- The source is `preview/` and `vite.preview.config.ts`.
+- It is the real shop, store and save, plus test controls: set the hour, next day (the game's own night rollover), add money, reset.
+- Published privately at https://claude.ai/artifact/Cei8DU1nGznEJPWwTQWYeS
