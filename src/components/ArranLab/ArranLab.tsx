@@ -46,13 +46,14 @@ const WHAT: Record<LabService, string> = {
   cargo: '',
 };
 // which station Arran is working at (x: percent across the 1536×1024 room, for station plates)
-const FIGURE: Record<'microscope' | 'dye' | 'balance' | 'desk' | 'cabinet' | 'board', { x: number; caption: string }> = {
-  microscope: { x: 47, caption: 'At the microscope' },
-  dye: { x: 70, caption: 'At the dye bench' },
-  balance: { x: 58, caption: 'At the balance' },
-  desk: { x: 30, caption: 'At his desk' },
-  cabinet: { x: 88, caption: 'At the cabinet' },
-  board: { x: 66, caption: 'At the board' },
+// plateX: where Arran stands in that station's scene (art/arran/stations/lab-<place>.webp)
+const FIGURE: Record<'microscope' | 'dye' | 'balance' | 'desk' | 'cabinet' | 'board', { x: number; caption: string; plateX: number }> = {
+  microscope: { x: 47, caption: 'At the microscope', plateX: 47 },
+  dye: { x: 70, caption: 'At the dye bench', plateX: 81 },
+  balance: { x: 58, caption: 'At the balance', plateX: 52 },
+  desk: { x: 30, caption: 'At his desk', plateX: 21 },
+  cabinet: { x: 88, caption: 'At the cabinet', plateX: 86 },
+  board: { x: 66, caption: 'At the board', plateX: 84 },
 };
 
 const TOPICS: Record<Topic, { title: string; formula: string; explanation: string }> = {
@@ -143,12 +144,19 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   // camera: the room covers the viewport at 3:2 and turns to the instrument in use
   const narrow = box.w > 0 && box.w < 700;
   const cover = Math.max(box.w / 1.5, box.h) || 1;
-  const zoom = narrow ? (spot ? 1.45 : 1.15) : spot && spot !== 'notebook' ? 1.12 : 1;
-  const H = cover * zoom, W = H * 1.5;
-  const focus = spot ? { x: SPOTS[spot].fx, y: SPOTS[spot].fy } : { x: narrow ? 64 : 50, y: 30 };
-  const ox = Math.min(0, Math.max(box.w - W, box.w / 2 - (focus.x / 100) * W));
-  const oy = Math.min(0, Math.max(box.h - H, box.h * 0.45 - (focus.y / 100) * H));
-  const world: CSSProperties = { width: W, height: H, transform: `translate(${ox + px.x * 8}px, ${oy + px.y * 5}px)`, ['--ww' as string]: `${W}px` };
+  // with a station scene showing, the camera keeps Arran whole and centred on him (he is painted in)
+  const worldStyle = (plateX?: number): CSSProperties => {
+    // a station scene is shown whole on a wide, short screen (Arran must not lose his head), over a
+    // blurred copy of itself; on a phone it fills the height and pans to him
+    const fit = plateX != null && box.w / Math.max(1, box.h) > 1.5;
+    const zoom = plateX != null ? 1 : narrow ? (spot ? 1.45 : 1.15) : spot && spot !== 'notebook' ? 1.12 : 1;
+    const H = fit ? box.h : cover * zoom, W = H * 1.5;
+    const focus = plateX != null ? { x: plateX, y: 50 } : spot ? { x: SPOTS[spot].fx, y: SPOTS[spot].fy } : { x: narrow ? 64 : 50, y: 30 };
+    if (fit) return { width: W, height: H, transform: `translate(${(box.w - W) / 2}px, 0px)`, ['--ww' as string]: `${W}px` };
+    const ox = Math.min(0, Math.max(box.w - W, box.w / 2 - (focus.x / 100) * W));
+    const oy = Math.min(0, Math.max(box.h - H, box.h * 0.45 - (focus.y / 100) * H));
+    return { width: W, height: H, transform: `translate(${ox + px.x * 8}px, ${oy + px.y * 5}px)`, ['--ww' as string]: `${W}px` };
+  };
 
   const goTab = (t: Tab) => { setScene(null); setTab(t); setView(null); setAsk(null); setConfirm(null); setMsg(''); setSpot(t === 'board' ? 'board' : t === 'notebook' ? 'notebook' : null); audio.sfx('tap'); if (t === 'board' && tab !== 'board') playArranVoice('lab'); };
   const rugs = g.inventory.filter((i) => RUGS[i.typeId]);
@@ -219,6 +227,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const place: keyof typeof FIGURE = tab === 'notebook' ? 'desk' : tab === 'road' ? 'cabinet' : tab === 'board' ? 'board'
     : spot === 'microscope' ? 'microscope' : spot === 'balance' ? 'balance' : spot === 'dye' ? 'dye' : spot === 'notebook' ? 'desk'
     : activity === 'dye_notes' ? 'dye' : activity === 'books' || activity === 'provisions' || activity === 'mummy_linen' ? 'desk' : 'microscope';
+  const world = worldStyle(plates[place] ? FIGURE[place].plateX : undefined);
   const pose = said?.npcId === 'arran' ? labPortraitFor(said.mood) : busy || (tab === 'test' && rug) ? '11-lab-inspect' : '12-lab-explain';
   const sceneLine = tab === 'notebook' ? 'Arran pulls his notebook across the desk to go through your errands with you.'
     : tab === 'road' ? 'Arran unlocks the cabinet by the door and opens his order book.'
@@ -275,19 +284,22 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         {scene && (
           <img className="arran-scene" src={scene.scene.img ?? `${BASE}13-lab-room.webp`} alt={`Arran: ${scene.scene.title}`} draggable={false} data-testid="arran-scene" data-scene={scene.scene.n} />
         )}
+        {plates[place] && <img key={`bg-${place}`} className="arran-lab__backdrop" src={plateSrc(place)} alt="" aria-hidden="true" draggable={false} />}
         <div className="arran-lab__world" style={world} data-testid="arran-world">
-          <img className="arran-lab__room" src={plates[place] ? plateSrc(place) : `${BASE}13-lab-room.webp`} data-testid="arran-room" data-plate={plates[place] ? place : ''} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a slate board" draggable={false} />
-          <div className="arran-lab__board" aria-label="Chemistry board" data-testid="arran-board">
+          <img className="arran-lab__room" src={`${BASE}13-lab-room.webp`} data-testid="arran-room" data-plate={plates[place] ? place : ''} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a slate board" draggable={false} />
+          {/* the station's scene, with Arran painted in, cross-fading over the empty room */}
+          {plates[place] && <img key={place} className="arran-lab__plate" src={plateSrc(place)} alt={`Arran ${FIGURE[place].caption.toLowerCase()}`} draggable={false} data-testid="arran-plate" />}
+          {/* chalk on the slate only while he teaches there (the station scenes paint a blank board) */}
+          {(!plates[place] || place === 'board') && <div className="arran-lab__board" aria-label="Chemistry board" data-testid="arran-board">
             <b>{TOPICS[topic].title}</b>
             <span>{TOPICS[topic].formula}</span>
-          </div>
+          </div>}
           {(['microscope', 'dye', 'balance', 'notebook'] as Spot[]).map((id) => (
             <span key={id} className={`arran-tag ${spot === id ? 'is-on' : ''}`} style={{ left: `${SPOTS[id].x}%`, top: `${SPOTS[id].y}%` }} aria-hidden="true" data-testid={`arran-tag-${id}`}>{SPOTS[id].label}</span>
           ))}
         </div>
-        {/* Arran as a framed portrait, not a cut-out in the room: the painted bench stands against the
-            wall, so there is nowhere in the painting a waist-up figure could stand. Replace with room
-            plates that have him painted in at each station when that art arrives. */}
+        {/* with a station scene, Arran is in the painting and a pill talks to him; without one (an
+            older save or a missing file), the framed portrait stands in */}
         {plates[place] && <button type="button" className="arran-talk-pill" onClick={talk} data-testid="arran-talk" data-place={place}>Talk to Arran · {figCaption.toLowerCase()}</button>}
         {!plates[place] && <button type="button" className="arran-figure" onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk" data-place={place} data-pose={pose}>
           <span className="arran-figure__frame"><img src={`${BASE}${pose}.webp`} alt="Arran Embleton in a laboratory coat" draggable={false} /></span>
