@@ -1,6 +1,6 @@
 // Malek's story on film: stage 3 plays clip 1 (Nabil pays the men and leads them in) then clip 2 (the
 // orangutan sees them out) with their sound tracks on the video clock, Nabil's line once with a
-// subtitle, a hard cut with no blank frame, Skip / sound / subtitles / Watch again; Continue applies
+// subtitle, a hard cut (it plays when you sit down at a table) with no blank frame, Skip / sound / subtitles / Watch again; Continue applies
 // the stage once (replay, reload and re-entry never apply it twice); nothing keeps sounding after
 // leaving. Stage 4 keeps its painting, with the room's sound and Malek's line. Phone and desktop.
 //   PORT=5173 SHOTS=/tmp/malek node tests/malek-cutscene.mjs
@@ -21,7 +21,10 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(300);
     if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
     await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
-    await p.waitForSelector('[data-testid=malek-shop]', { timeout: 20000 }); await p.waitForTimeout(400);
+    await p.waitForSelector('[data-testid=malek-door]', { timeout: 20000 });
+    await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-room]');
+    // the story happens when you sit down at a table
+    await p.locator('[data-testid=malek-hot-tables]').evaluate((e) => e.click()); await p.waitForTimeout(400);
     return (await has('malek-story')) ? +(await p.locator('[data-testid=malek-story]').getAttribute('data-stage')) : 0;
   };
   const playing = () => p.evaluate(() => [...document.querySelectorAll('audio, video')].filter((m) => !m.paused).length);
@@ -71,12 +74,10 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     let s = await st();
     console.log('   continue ->', JSON.stringify(s.malek.story), '| sounds after:', await playing());
     await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
-    await reload(); const again = await enter();
     s = await st();
-    console.log('   reload + re-enter same day: stage', again, '| completed', JSON.stringify(s.malek.story.completed));
-    await p.click('[data-testid=malek-leave]').catch(() => {}); await p.waitForTimeout(200);
-    // stage 4 the next day: the painting, its sound and Malek's line
-    await edit(`s.day = s.day + 1; s.world.hour = 13;`); await reload();
+    console.log('   completed', JSON.stringify(s.malek.story.completed), '(part 3 counted once)');
+    // part 4 on the next visit: the painting, its sound and Malek's line
+    await reload();
     const st4 = await enter();
     await p.waitForTimeout(700);
     console.log(`   next day: stage ${st4} | video ${await has('cutscene')} | line "${await p.locator('[data-testid=malek-still-line]').textContent().catch(() => '')}" | room sound ${got.some((g) => /reward/.test(g))}`);

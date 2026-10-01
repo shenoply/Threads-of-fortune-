@@ -9,7 +9,7 @@ import { CONDITION_START } from '../../game/systems/fieldwork';
 import {
   MALEK_HOURS, MEAL_MINUTES, MORALE_PATIENCE, SCENE_ART, SCENE_TEXT, STORY, UNAVAILABLE_WORD,
   availability, eatServing, fedOf, parcelDays, parcelWeight, shopOpen, stockLeft, waterOf, wellFedNow,
-  TOPIC_LABEL, tabCovers, topicsFor, type MalekScene, type MealReport, type TalkTopic,
+  TOPIC_LABEL, storyStageFor, tabCovers, topicsFor, type MalekScene, type MealReport, type TalkTopic,
 } from '../../game/systems/malek';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
@@ -95,7 +95,12 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     audio.sfx('tap');
     if (h === 'exit') { onLeave(); return; }
     if (h === 'menu') { setPanel('menu'); say('menu'); return; }
-    if (h === 'tables') { setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return; }
+    if (h === 'tables') {
+      // sitting down is when the story happens: one part of it each visit
+      const stage = useGame.getState().malekSit();
+      if (stage != null && visit) { setVisit({ ...visit, stage }); setPhase('story'); return; }
+      setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return;
+    }
     if (h === 'grill') { setPanel('menu'); say(g.world.hour >= 20 ? 'grillCold' : 'grill'); return; }
     // tapping him: a different topic each time, round the six
     const topics = topicsFor(useGame.getState().malek);
@@ -211,7 +216,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
       </header>
       <div className="malek-stage" data-testid="malek-stage">
-        <MalekRoom2D scene={visit.scene} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} />
+        <MalekRoom2D scene={visit.scene} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} storyDue={!!g.malek && storyStageFor(g.malek.story, g.malek.visits) != null} />
         <p className="malek-hint" aria-hidden="true">Drag to look around · tap a mark</p>
         {speech && <div className="malek-speech" role="status" data-testid="malek-speech"><b>MALEK</b> {speech}</div>}
         <MalekMutter quiet={!!confirm || !!result} />

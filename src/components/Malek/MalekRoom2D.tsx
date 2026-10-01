@@ -23,7 +23,7 @@ export const SCENE_IMG: Record<MalekScene, string> = {
 const LABEL: Record<Hotspot, string> = { malek: 'Malek', grill: 'The grill', menu: 'Menu', tables: 'Sit at a table', exit: 'Way out' };
 const RATIO = 1280 / 853;
 
-export function MalekRoom2D({ scene, onPick, rug, coldGrill }: { scene: MalekScene; onPick: (h: Hotspot) => void; rug?: string; coldGrill?: boolean }) {
+export function MalekRoom2D({ scene, onPick, rug, coldGrill, storyDue }: { scene: MalekScene; onPick: (h: Hotspot) => void; rug?: string; coldGrill?: boolean; storyDue?: boolean }) {
   const vp = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [off, setOff] = useState<{ x: number; y: number } | null>(null);
@@ -85,7 +85,7 @@ export function MalekRoom2D({ scene, onPick, rug, coldGrill }: { scene: MalekSce
         {spots.smoke && !coldGrill && <span className="mroom__smoke" style={at(spots.smoke)} aria-hidden="true"><i /><i /><i /></span>}
         {spots.lamps.map((p, i) => <span key={i} className={`mroom__glow ${night ? 'is-night' : ''}`} style={at(p)} aria-hidden="true" />)}
         {(Object.keys(LABEL) as Hotspot[]).map((h) => (
-          <button key={h} className={`mroom__spot mroom__spot--${h}`} style={at(spots[h])} onClick={() => { if (!moved.current) pick(h); }} data-testid={`malek-hot-${h}`}>
+          <button key={h} className={`mroom__spot mroom__spot--${h}${h === 'tables' && storyDue ? ' is-due' : ''}`} style={at(spots[h])} onClick={() => { if (!moved.current) pick(h); }} data-testid={`malek-hot-${h}`}>
             <span>{h === 'grill' && coldGrill ? 'The grill (cold)' : LABEL[h]}</span>
           </button>
         ))}

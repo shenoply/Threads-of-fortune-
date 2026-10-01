@@ -84,7 +84,7 @@ times are game values. The menu says so; they are not presented as 1925 prices o
 
 ## The story on film (stage 3)
 
-- Stage 3, "The Back Room Opens", plays two silent clips from Drive in the story card (`Cutscene.tsx`), one after the other with a hard cut and no blank frame:
+- Stage 3, "The Back Room Opens" (the third time you sit down at his tables), plays two silent clips from Drive in the story card (`Cutscene.tsx`), one after the other with a hard cut and no blank frame:
   1. `public/art/malek/videos/01-malek-goons-enter-5s` (Nabil pays the three men and leads them in);
   2. `02-malek-orangutan-drives-goons-out` (the orangutan sees them out).
 - Stages 2 and 4 keep their paintings: stage 2 is the payment across the lane on an earlier day, and the reward has no video yet. Stage 4 plays the room's sound and shows Malek's line, "Good lad. You've earned a shawarma."
@@ -183,20 +183,22 @@ an earlier three.js room, and three.js is no longer a dependency.
 - **Marks on the painting:** Malek (talk), the grill, the menu, the tables (sit and order) and the way out. Tapping one pans to it.
 - **Living details:** smoke over a lit grill, lamp glow (stronger at closing), and the rug you sold him laid on the floor.
 
-## The five-visit story (ON: all five scenes supplied)
+## The five-part story, told at his tables (ON: all five scenes supplied)
 
-The state machine is complete and tested in `tests/malek-rules.ts`:
-- one stage per visit, on a later game day than the last;
-- stages advance in order, one at a time after days away;
-- a stage that is opened but not finished stays pending and is offered again;
-- completion, day and next stage are committed together, once;
-- the story never loops after stage 5.
+It happens when you sit down: tap **Sit at a table** in the room (the mark glows while a part is
+waiting) and the next part plays, one part per visit, any day, the first visit included. The rules
+(`storyStageFor` / `storyComplete`, `malekSit` in the store, tested in `tests/malek-rules.ts` and
+`tests/malek-story.mjs`):
+- one part per shop visit; sitting again in the same visit just sits (and opens the menu);
+- parts go in order; "Not now" keeps that part for the next time you sit, and leaving or reloading
+  never skips or repeats one (it stays pending);
+- completion, visit and next part are committed together, once, on Continue;
+- part 3 is on film (see below); the story never loops after part 5.
 
 All five scenes are supplied (`story-1-expulsion` … `story-5-arthur`), so the story is on. If any
 stage loses its art, `storyReady` turns the whole sequence off rather than starting it part way.
-It starts on a game day later than your first visit to the shop.
 
-- **The customer** in stages 1-3 is Nabil al-Khatib (`STORY_CUSTOMER`, the owner's decision). Stage 1 waits until he has come to your stall.
+- **The customer** in stages 1-3 is Nabil al-Khatib (`STORY_CUSTOMER`, the owner's decision).
   - Afterwards, Nabil says nothing about it at your stall, and the narrator notes that.
   - The supplied scenes show a man in a red fez with a black moustache, not Nabil's look (bald, grey beard, grey suit). Redrawn scenes are requested.
 - **The quarrel** is over the bill (yesterday's bread, so half-price kebab), never about who he is.

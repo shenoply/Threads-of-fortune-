@@ -428,6 +428,8 @@ export interface MalekStory {
   completed: number[];
   /** a stage opened but not finished: offered again rather than skipped or advanced */
   pending?: number;
+  /** the shop visit (malek.visits) the last stage was played on: one part of the story per visit */
+  lastStoryVisit?: number;
 }
 export interface StoryStage { n: number; title: string; art: string | null; text: string[] }
 /**
@@ -470,19 +472,20 @@ export const storyReady = (stages: StoryStage[] = STORY) => stages.every((s) => 
 
 /** Which stage, if any, this visit should show. One a day at most, in order, one step at a time.
  *  `introduced`: you have been to the shop before, so the first visit is only ever the shop. */
-export function storyStageFor(story: MalekStory, day: number, o: { introduced: boolean; customerMet?: boolean; stages?: StoryStage[] }): number | null {
+export function storyStageFor(story: MalekStory, visit: number, o: { stages?: StoryStage[] } = {}): number | null {
   const stages = o.stages ?? STORY;
   if (!storyReady(stages)) return null;
+  // a part you put off ("Not now") is the one you sit down to next
   if (story.pending != null) return story.pending;
   if (story.nextStage > stages.length) return null;
-  if (story.lastStoryDay != null && day <= story.lastStoryDay) return null;
-  if (story.nextStage === 1 && (!o.introduced || o.customerMet === false)) return null;
+  // one part per visit: a part already played this visit waits for the next one
+  if (story.lastStoryVisit != null && visit <= story.lastStoryVisit) return null;
   return story.nextStage;
 }
-/** Finish (or knowingly skip) a stage: completion, day and next stage move together, exactly once. */
-export function storyComplete(story: MalekStory, stage: number, day: number): MalekStory {
+/** Finish (or knowingly skip) a stage: completion, day, visit and next stage move together, exactly once. */
+export function storyComplete(story: MalekStory, stage: number, day: number, visit?: number): MalekStory {
   if (stage !== story.nextStage || story.completed.includes(stage)) return { ...story, pending: undefined };
-  return { nextStage: stage + 1, lastStoryDay: day, completed: [...story.completed, stage] };
+  return { nextStage: stage + 1, lastStoryDay: day, lastStoryVisit: visit, completed: [...story.completed, stage] };
 }
 export const arthurIntroduced = (story: MalekStory | undefined) => !!story?.completed.includes(5);
 

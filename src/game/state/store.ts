@@ -50,7 +50,7 @@ import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
-import { STORY_CUSTOMER, TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
+import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 export const SAVE_VERSION = 19;
@@ -368,6 +368,8 @@ interface Actions {
   eatParcel: (uid: string) => { ok: boolean; msg: string; report?: MealReport };
   /** one line from Malek for a context (not one he has just said) */
   malekSay: (what: LineCtx | TalkTopic) => string;
+  /** sit down at one of his tables: the next part of the story, if one is due this visit */
+  malekSit: () => number | null;
   /** the story stage was played through (or knowingly skipped): commit it once */
   malekStoryDone: (stage: number) => void;
   useRestorative: () => string;
@@ -2534,14 +2536,19 @@ export const useGame = create<GameState & Actions>()(
           // closing time has its own line; otherwise he greets you by how you look, his rug, the hour
           const gr = scene === 'closing' && m0.visits ? { ctx: 'closing' as LineCtx } : malekGreeting(m0, { day, hour: s.world.hour, fed: fedOf(s.condition), fatigue: s.condition?.fatigue ?? 0, salt: day + m0.visits });
           const line = malekLine(gr.ctx, m0.said, day + m0.visits);
-          // the story starts on a later day than your first visit (older saves: the last visit counts)
           const firstDay = m0.firstDay ?? (m0.visits ? m0.lastVisitDay ?? day : day);
-          const customerMet = (s.relationships[STORY_CUSTOMER]?.visits ?? 0) > 0 || (s.nabil?.visits ?? 0) > 0;
-          const stage = storyStageFor(m0.story, day, { introduced: day > firstDay, customerMet });
-          // one counted visit per call: reopening the shop is a new visit, and the stage stays pending
-          // until it is finished, so reopening or reloading never skips or repeats one
-          set({ malek: { ...m0, ...restock, ...(gr.noted ? { stallNoted: true } : {}), firstDay, visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-12), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });
-          return { scene, line, stage };
+          // one counted visit per call: reopening the shop is a new visit. The story no longer starts at
+          // the door: it plays when you sit down at a table (malekSit), one part per visit.
+          set({ malek: { ...m0, ...restock, ...(gr.noted ? { stallNoted: true } : {}), firstDay, visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-12) } });
+          return { scene, line, stage: null };
+        },
+
+        malekSit: () => {
+          const m0 = get().malek ?? MALEK_START;
+          const stage = storyStageFor(m0.story, m0.visits);
+          // held as pending until it is finished, so leaving or reloading never skips or repeats it
+          if (stage != null && m0.story.pending !== stage) set({ malek: { ...m0, story: { ...m0.story, pending: stage } } });
+          return stage;
         },
 
         malekSay: (what) => {
@@ -2608,7 +2615,7 @@ export const useGame = create<GameState & Actions>()(
         malekStoryDone: (stage) => {
           const s = get();
           const m0 = s.malek ?? MALEK_START;
-          set({ malek: { ...m0, story: storyComplete(m0.story, stage, s.day) } });
+          set({ malek: { ...m0, story: storyComplete(m0.story, stage, s.day, m0.visits) } });
         },
 
         cabinetBuy: (id) => {

@@ -1,13 +1,14 @@
-// Malek's five-visit story in the browser: never on the first visit; one stage per later game day;
-// "Not now" keeps the stage for the next visit; leaving, re-entering and reloading the same day never
-// play a second stage or replay one; missed days advance one stage; after stage 5 Arthur is a topic and
-// the story does not loop.
+// Malek's five-part story, told at his tables: each visit, sitting down plays the next part (one part
+// per visit, any day, the first visit included). "Not now" keeps that part for the next time you sit;
+// sitting again in the same visit just sits; leaving or reloading never skips or repeats a part; part 3
+// is on film; after part 5 Arthur is a topic and the story does not loop. The tables mark glows while
+// a part is waiting.
 //   PORT=5173 SHOTS=/tmp/malek node tests/malek-story.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 const PORT = process.env.PORT ?? '4173', S = process.env.SHOTS ?? '/tmp/malek';
 mkdirSync(S, { recursive: true });
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
@@ -18,57 +19,44 @@ const enter = async () => {
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(300);
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
   await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
-  await p.waitForSelector('[data-testid=malek-shop]', { timeout: 20000 }); await p.waitForTimeout(400);
+  await p.waitForSelector('[data-testid=malek-door]', { timeout: 20000 });
+  const atDoor = await has('malek-story');
+  await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-room]');
+  return atDoor;
+};
+const glowing = () => p.locator('[data-testid=malek-hot-tables].is-due').count();
+const sit = async () => {
+  await p.locator('[data-testid=malek-hot-tables]').evaluate((e) => e.click()); await p.waitForTimeout(400);
   return (await has('malek-story')) ? +(await p.locator('[data-testid=malek-story]').getAttribute('data-stage')) : 0;
 };
-const leave = async () => { if (await has('malek-leave')) await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300); };
+const leave = async () => { if (await has('malek-menu-close')) await p.click('[data-testid=malek-menu-close]'); if (await has('malek-leave')) await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300); };
+const done = () => p.click('[data-testid=malek-story-done]').then(() => p.waitForTimeout(300));
 const story = async () => JSON.stringify((await st()).malek.story);
-const nextDay = async (n = 1) => { await edit(`s.day = s.day + ${n}; s.world.hour = 13;`); await reload(); };
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.relationships.nabil = { visits: 1, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 13 }); s.cash = 300; s.queue = []; localStorage.setItem('tof-skip-chapters', '1');`);
+  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 13 }); s.cash = 300; s.queue = []; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
 
-  console.log('day 1, first visit: stage', await enter()); await leave();
-  console.log('day 1, second visit: stage', await enter(), '| (none on the day you first came)'); await leave();
-  await nextDay();
-  let s1 = await enter();
-  console.log('day 2: stage', s1); await p.screenshot({ path: `${S}/story-1.png` });
-  console.log('   text:', (await p.locator('[data-testid=malek-story]').innerText()).replace(/\s+/g, ' ').slice(0, 220));
+  // visit 1 (the very first): nothing at the door; the tables glow; sitting plays part 1
+  console.log('visit 1: story at the door?', await enter(), '| tables glowing', await glowing());
+  let n = await sit(); console.log('   sit -> part', n); await p.screenshot({ path: `${S}/story-sit-1.png` });
+  console.log('   text:', (await p.locator('[data-testid=malek-story]').innerText()).replace(/\s+/g, ' ').slice(0, 120));
   await p.click('[data-testid=malek-story-later]'); await p.waitForTimeout(300);
-  console.log('   Not now ->', await story()); await leave();
-  console.log('day 2, re-enter: stage', await enter(), '(the same stage, still pending)');
-  await p.click('[data-testid=malek-story-done]'); await p.waitForTimeout(300);
-  console.log('   done ->', await story()); await leave();
-  console.log('day 2, re-enter after finishing: stage', await enter()); await leave();
-  await reload();
-  console.log('day 2, after reload: stage', await enter(), '|', await story()); await leave();
-  // reload in the middle of a stage: it is still there, not skipped
-  await nextDay();
-  console.log('day 3: stage', await enter()); await p.screenshot({ path: `${S}/story-2.png` });
-  await reload();
-  console.log('day 3, reloaded mid-stage: stage', await enter());
-  await p.click('[data-testid=malek-story-done]'); await p.waitForTimeout(300); await leave();
-  // a week away: one stage, not three
-  await nextDay(7);
-  console.log('day 10 (a week later): stage', await enter()); await p.screenshot({ path: `${S}/story-3.png` });
-  await p.click('[data-testid=malek-story-done]'); await p.waitForTimeout(300); await leave();
-  console.log('   ->', await story());
-  for (const d of [4, 5]) {
-    await nextDay();
-    const n = await enter(); await p.screenshot({ path: `${S}/story-${n}.png` });
-    console.log(`stage ${n} shown:`, n === d); await p.click('[data-testid=malek-story-done]'); await p.waitForTimeout(300);
-    if (n === 5) {
-      await p.click('[data-testid=malek-talk]');
-      console.log('   Arthur topic:', await has('malek-topic-arthur'));
-      await p.click('[data-testid=malek-topic-storeroom]'); await p.waitForTimeout(150);
-      console.log('   storeroom now:', (await p.locator('[data-testid=malek-speech]').textContent()).replace('MALEK ', '').slice(0, 80));
-    }
-    await leave();
-  }
-  await nextDay(3);
-  console.log('after stage 5, later visit: stage', await enter(), '|', await story());
+  console.log('   Not now ->', await story(), '| sit again -> part', n = await sit());
+  await done(); console.log('   Continue ->', await story(), '| glowing', await glowing(), '| sit again this visit -> part', await sit(), '|', (await p.locator('[data-testid=malek-speech]').textContent().catch(() => '')).slice(6, 60));
+  await leave();
+  // visit 2, same day: part 2; then reload with part 3 pending: it comes back, not skipped
+  await enter(); console.log('visit 2 (same day): sit -> part', await sit()); await done(); await leave();
+  await enter(); console.log('visit 3: sit -> part', n = await sit(), '| film', await has('cutscene'));
+  await p.waitForSelector('[data-testid=cutscene][data-state=playing]', { timeout: 10000 }).catch(() => {});
+  console.log('   playing:', await p.locator('[data-testid=cutscene]').getAttribute('data-state'));
+  await reload(); await enter(); console.log('   reloaded mid-part, next visit: sit -> part', await sit(), '|', await story());
+  await done(); await leave();
+  for (const want of [4, 5]) { await enter(); const got = await sit(); console.log(`visit: sit -> part ${got} (want ${want})`); await done(); await leave(); }
+  const s = await st();
+  console.log('all done:', JSON.stringify(s.malek.story.completed), '| arthur topic', await (async () => { await enter(); await p.click('[data-testid=malek-talk]'); return has('malek-topic-arthur'); })());
+  console.log('after the story: glowing', await glowing(), '| sit -> part', await sit());
 } catch (e) { console.log('FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/story-fail.png` }); }
 console.log('errors', JSON.stringify(errs));
 await b.close();
