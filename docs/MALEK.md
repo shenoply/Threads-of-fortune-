@@ -67,12 +67,28 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - Otherwise he leaves to think it over (`MALEK_UNSURE`).
 - **Measured** by `tests/malek-haggle.ts`, 300 haggles each:
   - a naive seller: 0% sold
-  - a careful one (asks, shows the best fit, argues durability and fit, fair price): about 26%
-  - the same rug on his return visit: about 89%
+  - a careful one (asks, shows the best fit, argues durability and fit, fair price): about 33%
+  - the same rug on his return visit: about 90%
+- **His purse** (`MALEK_PURSE` in malekBuyer.ts, fictional tuning), rolled each visit:
+  - tight (30%): half his usual ceiling, and a rug seems worth less to him;
+  - usual (40%);
+  - flush (30%): nearly double the ceiling, and he pays well over the odds.
+  - A hint shows 70% of the time (patting his pockets, a new watch chain); otherwise you find out by haggling.
+  - Measured: a careful sale fetches about 120-185pt on a tight day, 145-350pt usually, 200-575pt flush.
 - **Coming back:**
   - A rug he liked but would not buy is remembered (`malek.wantsBack`). He comes back for it two or more days later (80% a day), with a morning note.
   - It goes on the counter first, and he is easier to convince.
   - If you kept it for him he says so (+10 trust). If you sold it, he is annoyed (−10 trust).
+  - He also comes back for a rug he walked away from without agreeing a price, if it suited him (fit 55+, interest 45+, 60%).
+  - After buying, 30% of the time he comes back wanting the same rug again ("for my wife's brother"): any rug of that kind goes on the counter first; if you have none, he says so and goes (`MALEK_AGAIN`).
+
+## His Arabic
+
+- **Phrases** (`src/data/malekArabic.ts`): اه وبعدين (Aah, w-ba'dein? "Ah… and then what?"), اللي خلق علّق (Elli khalaq, 'allaq. "He who made us will provide."), تملّي معاك (Tamalli ma'ak. "Always with you."), ها؟ (Ha? "Well?"), با! (Ba! "Bah!").
+- **In his shop** (`MalekMutter.tsx`): at the door and inside, he says one to himself every 14-24 s, first after 4-7 s, never the same twice running, with the Arabic, a reading and the meaning on screen. He keeps quiet while a confirm or result card is open.
+- **At the stall:** once the haggle is past the greeting, about one of his lines in four opens with ها؟ or با! (با when he is sceptical or leaving), never two running; the clip plays as the line appears.
+- **Voice:** `tools/generate-malek-arabic.py` records `public/audio/malek/ar-*.mp3` offline with a stock Piper voice (ar_JO "kareem", from sherpa-onnx's GitHub release; not a clone of anyone), from hand-written Egyptian phonemes, lowered a tone. The model stays out of the repo.
+- Test: `tests/malek-arabic.ts` (rules) and `tests/malek-arabic.mjs` (in the browser).
 
 ## Putting a rug aside for a buyer (any buyer)
 
@@ -84,8 +100,10 @@ times are game values. The menu says so; they are not presented as 1925 prices o
 
 ## First-meeting films
 
-Six special characters each get a short documentary the first time you meet them. Each plays once,
-with captions and Skip; the Customers screen keeps a "Films" shelf of the ones you have seen.
+Six special characters each get a short documentary, with captions and Skip; the Customers screen
+keeps a "Films" shelf of the ones you have seen. **For now** (`FILMS_EVERY_ENTRY` in films.ts, while the
+game is being updated) the place films (Malek, Arran, Abu Hamid, Rashid) play every time you go in;
+Nabil's and Cohen's stay first-meeting only. Tests set `localStorage['tof-films-once']` to see each once.
 
 | Who | Plays | Picture |
 |---|---|---|

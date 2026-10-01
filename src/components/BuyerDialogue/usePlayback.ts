@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Line } from '../../game/types';
 import { voice } from '../../game/audio/voice';
+import { sayMalekArabic } from '../../game/audio/malekArabic';
 
 export interface PlaybackView {
   seller: string;
@@ -67,6 +68,8 @@ export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
       timer.current = window.setTimeout(step, 150);
       return;
     }
+    // Malek's Arabic "Ha?" / "Bah!" at the start of a line
+    if (next.ar) sayMalekArabic(next.ar);
     let voiced = voice.has(speaker, next.text);
     if (voiced) voice.say(speaker, next.text).then(() => { voiced = false; });
     const waitVoice = (then: () => void) => {

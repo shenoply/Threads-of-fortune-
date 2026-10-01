@@ -73,7 +73,11 @@
   .malek-panel { max-height: 40%; }
   .malek-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (prefers-reduced-motion: reduce) { .malek, .malek-sheet, .malek-speech { animation: none; } }
+.malek-mutter { position: absolute; left: 12px; top: 40px; z-index: 3; max-width: min(78%, 360px); display: flex; flex-direction: column; gap: 2px; background: rgba(16,10,5,0.84); border: 1px solid rgba(231,189,110,0.4); border-radius: 12px 12px 12px 3px; padding: 7px 12px 8px; color: #f6ecd6; pointer-events: none; animation: fade 0.25s ease; }
+.malek-mutter b { font-family: var(--label); letter-spacing: 0.12em; font-size: 11px; color: var(--brass-hi); }
+.malek-mutter__ar { font-size: 22px; line-height: 1.3; text-align: right; }
+.malek-mutter__en { font-size: 14px; line-height: 1.3; opacity: 0.9; }
+@media (prefers-reduced-motion: reduce) { .malek, .malek-sheet, .malek-speech, .malek-mutter { animation: none; } }
 .malek-topics { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px 12px; }
 .malek-topics .btn { min-height: 40px; }
 .malek-tabnote { font-family: var(--label); font-size: 13px !important; color: #b8e08a; }

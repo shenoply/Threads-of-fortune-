@@ -16,6 +16,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
+import { MalekMutter } from './MalekMutter';
 import { IntroFilm, filmReady, filmDue } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
 
@@ -141,6 +142,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
       <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
         <div className="malek-door" data-testid="malek-door" data-scene={visit.scene}>
           <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} className="malek-door__bg" />
+          <MalekMutter />
           <div className="malek-door__card">
             <p className="malek-door__scene">{SCENE_TEXT[visit.scene]}</p>
             <p className="malek-say"><b>MALEK</b> {visit.line}</p>
@@ -170,6 +172,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <MalekRoom2D scene={visit.scene} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} />
         <p className="malek-hint" aria-hidden="true">Drag to look around · tap a mark</p>
         {speech && <div className="malek-speech" role="status" data-testid="malek-speech"><b>MALEK</b> {speech}</div>}
+        <MalekMutter quiet={!!confirm || !!result} />
       </div>
 
       <div className="malek-panel">

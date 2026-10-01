@@ -9,6 +9,7 @@ import { SELLER, NARRATOR, STAGE } from '../../data/dialogue';
 import { levelOf, hasPerk, type SkillId, type Manner } from '../../data/character';
 import { BUYER_MANNER, SELLER_MANNER, type MannerKind } from '../../data/manners';
 import { MALEK_UNSURE, MALEK_PURSE, type MalekPurse } from '../../data/malekBuyer';
+import { ARABIC_BY_ID } from '../../data/malekArabic';
 import { GROOMING } from '../../data/grooming';
 import { newUid, dateFor } from '../economy/economy';
 import { cohenChecks, dueFor, manualRub, matches, passes, ORDER_PRICE_PER, type CohenState } from './cohen';
@@ -383,8 +384,22 @@ function say(enc: Encounter, speaker: Line['speaker'], text: string, mood?: Line
 }
 
 function buyerSay(enc: Encounter, text: string, mood?: Line['mood']) {
-  say(enc, 'buyer', text, mood);
+  // Malek, once the haggling is under way, now and then opens with "Ha?" or "Bah!" in Arabic
+  const ar = enc.buyerId === 'malek' ? malekInterjection(enc, text, mood) : undefined;
+  if (ar) {
+    const p = ARABIC_BY_ID[ar];
+    enc.log.push({ speaker: 'buyer', text: `${p.ar} ${p.latin} ${text}`, mood, ar });
+    if (enc.log.length > 40) enc.log.splice(0, enc.log.length - 40);
+  } else say(enc, 'buyer', text, mood);
   if (mood) enc.mood = mood;
+}
+/** "ها؟" when he is weighing it up, "با!" when he is not having it; about one line in four, never two running */
+function malekInterjection(enc: Encounter, text: string, mood?: Line['mood']): string | undefined {
+  if (enc.stage === 'discovery' || /^(ha|bah?)\b/i.test(text)) return undefined;
+  const prev = enc.log.filter((l) => l.speaker === 'buyer').pop();
+  if (prev?.ar) return undefined;
+  if ((enc.turn * 7 + enc.log.length) % 2 !== 0) return undefined;
+  return mood === 'skeptical' || mood === 'leaving' ? 'ba' : 'ha';
 }
 
 function recentBuyerTexts(enc: Encounter) {

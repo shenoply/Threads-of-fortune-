@@ -66,6 +66,8 @@ export interface Line {
   speaker: Speaker;
   text: string;
   mood?: 'pleased' | 'skeptical' | 'neutral' | 'leaving' | 'warm';
+  /** an Arabic interjection opening the line (src/data/malekArabic.ts): its clip plays as the line appears */
+  ar?: string;
 }
 
 export type ArgKind = 'story' | 'craft' | 'fit' | 'durability';
