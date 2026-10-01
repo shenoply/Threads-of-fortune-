@@ -4,6 +4,9 @@ import { rankOf, RANKS } from '../../game/economy/progress';
 import { BUYERS, LISTED_BUYERS as BUYER_ORDER, SPECIAL_BUYERS, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, CELEB_INFO, celebUnlock } from '../../data/buyers';
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { fmt } from '../../game/economy/money';
+import { createPortal } from 'react-dom';
+import { IntroFilm } from '../IntroFilm/IntroFilm';
+import { FILMS, FILM_ORDER, type FilmId } from '../IntroFilm/films';
 
 const TIER = ['', 'Common', 'Fine', 'Exceptional', 'Legendary'];
 const ROYALS = ['fuad', 'nazli', 'abdullah', 'faisal', 'ataturk'];
@@ -28,6 +31,7 @@ export function Customers() {
   const unlockOf = (id: string) => (id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? BUYERS[id]?.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0);
   return (
     <div className="customers" data-testid="customers">
+      <FilmShelf />
       {(g.buyersSeen?.length ?? 0) < 3 ? <p className="cust-goal" data-testid="cust-goal">Tap a buyer to open their card · {g.buyersSeen?.length ?? 0} of 3 opened</p> : <p className="cust-intro">Tap anyone to see what they buy and spend.</p>}
       {groups.map((gr) => (
         <section key={gr.title}>
@@ -79,6 +83,21 @@ export function Customers() {
           </div>
         );
       })()}
+    </div>
+  );
+}
+
+/** The first-meeting films you have seen, to watch again. */
+function FilmShelf() {
+  const seen = useGame((st) => st.introSeen ?? []);
+  const [play, setPlay] = useState<FilmId | null>(null);
+  const films = FILM_ORDER.filter((id) => seen.includes(id));
+  if (!films.length) return null;
+  return (
+    <div className="film-shelf" data-testid="film-shelf">
+      <span>Films</span>
+      {films.map((id) => <button key={id} className="btn small" onClick={() => setPlay(id)} data-testid={`film-again-${id}`}>▶ {FILMS[id].name}</button>)}
+      {play && createPortal(<IntroFilm id={play} onDone={() => setPlay(null)} />, document.body)}
     </div>
   );
 }

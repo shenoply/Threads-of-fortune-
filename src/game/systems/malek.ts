@@ -364,7 +364,7 @@ export const MALEK_LINES: Record<LineCtx, string[]> = {
   storeroomKnown: [
     'Yes, he lives in the back. No, he does not have a name. He has an appetite.',
     'He is not a pet. He is staff. Staff eat. Staff do not take orders, which makes him like every other staff.',
-    'The man in the fez has not come back. The kebab price has not come down. Both good.',
+    'Nabil al-Khatib has not come back. The kebab price has not come down. Both good.',
     'Do not feed him. I feed him. If two people feed him, he expects it of everyone.',
   ],
   arthur: [
@@ -437,17 +437,17 @@ export interface StoryStage { n: number; title: string; art: string | null; text
  */
 export const STORY: StoryStage[] = [
   { n: 1, title: 'The Expulsion', art: 'art/malek/story-1-expulsion.webp', text: [
-    'A man in a red fez and a pinstripe suit has eaten two kebab plates and now disputes the bill. The bread, he says, was yesterday\'s, so the bread is free, so the kebab is half price.',
-    'Malek hears the whole argument out. Then he takes the man by the collar and the seat of his trousers and walks him through the door, feet pedalling the air. The fez follows a moment later.',
+    "Nabil al-Khatib has eaten two kebab plates, and now disputes the bill. The bread, he says, is yesterday's: he can tell by the crust, as he can tell a repair by its knots. So the bread is free, so the kebab is half price.",
+    'Malek hears the whole argument out. Then he takes Nabil by the collar and the seat of his good trousers and walks him through the door. His hat follows a moment later.',
     '"Bread is never free. Come back when you have the money and a better argument."',
   ] },
   { n: 2, title: 'A Paid Grudge', art: 'art/malek/story-2-grudge.webp', text: [
-    'Across the lane, in the shade by the steps, the man in the fez counts coins into the hands of three large men and points at Malek\'s door.',
+    "Across the lane, in the shade by the steps, Nabil counts coins into the hands of three large men and points at Malek's door. A man who can defend every piastre he spends has decided this one is worth it.",
     'Inside, Malek goes on working mince at the bench. If he has noticed, he does not show it.',
     'The tallest of the three catches your eye and smiles, as if you might be next.',
   ] },
   { n: 3, title: 'The Back Room Opens', art: 'art/malek/story-3-backroom.webp', text: [
-    'The three men come in shoulders first, the man in the fez behind them. Malek does not leave the grill.',
+    'The three men come in shoulders first, Nabil behind them. Malek does not leave the grill.',
     'The storeroom curtain moves. An orangutan steps out, very large and in no hurry. A stool goes one way and a man goes the other. In a minute all four are back in the street, nobody hurt but their pride.',
     '"I said the storeroom was private."',
   ] },
@@ -462,21 +462,21 @@ export const STORY: StoryStage[] = [
     '"He brought one too many, once," Malek says. "Now what? Now he eats my kebab. Sit, Arthur. Bah. Both of you sit."',
   ] },
 ];
-/** The customer in stages 1-3 is his own character (red fez, glasses, pinstripe suit), not one of the
- *  stall's buyers: the story introduces him. Owner to confirm his name. */
-export const STORY_CUSTOMER = 'the man in the fez';
+/** The customer thrown out in stages 1-3: Nabil al-Khatib (owner's decision). The quarrel is about the
+ *  bill, never about who he is. Stage 1 waits until he has come to your stall. */
+export const STORY_CUSTOMER = 'nabil';
 /** The sequence plays only when every stage has its art: it cannot start at stage 4. */
 export const storyReady = (stages: StoryStage[] = STORY) => stages.every((s) => !!s.art);
 
 /** Which stage, if any, this visit should show. One a day at most, in order, one step at a time.
  *  `introduced`: you have been to the shop before, so the first visit is only ever the shop. */
-export function storyStageFor(story: MalekStory, day: number, o: { introduced: boolean; stages?: StoryStage[] }): number | null {
+export function storyStageFor(story: MalekStory, day: number, o: { introduced: boolean; customerMet?: boolean; stages?: StoryStage[] }): number | null {
   const stages = o.stages ?? STORY;
   if (!storyReady(stages)) return null;
   if (story.pending != null) return story.pending;
   if (story.nextStage > stages.length) return null;
   if (story.lastStoryDay != null && day <= story.lastStoryDay) return null;
-  if (story.nextStage === 1 && !o.introduced) return null;
+  if (story.nextStage === 1 && (!o.introduced || o.customerMet === false)) return null;
   return story.nextStage;
 }
 /** Finish (or knowingly skip) a stage: completion, day and next stage move together, exactly once. */

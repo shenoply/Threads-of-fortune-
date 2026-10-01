@@ -85,6 +85,7 @@ ok(tabCovers(kofta) && !tabCovers(kebab) && !tabCovers(malekItem('malek_road_pac
 ok(storyReady(), 'every stage has its art: the story is on');
 ok(storyStageFor(MALEK_START.story, 10, { introduced: false }) === null, 'never on the very first visit');
 ok(storyStageFor(MALEK_START.story, 10, { introduced: true }) === 1, 'stage 1 on a later visit');
+ok(storyStageFor(MALEK_START.story, 10, { introduced: true, customerMet: false }) === null, 'stage 1 waits until Nabil has come to your stall');
 ok(storyReady(STORY.map((st) => (st.n === 2 ? { ...st, art: null } : st))) === false, 'a stage without art switches the whole story off');
 // with art for every stage (as it will be), the machine runs one stage a day, in order
 const art: StoryStage[] = STORY.map((s) => ({ ...s, art: s.art ?? `test-${s.n}.webp` }));

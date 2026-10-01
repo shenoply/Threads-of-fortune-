@@ -1,0 +1,65 @@
+// The first-meeting films: who has one, what is on screen, and where it plays. Malek's is his own
+// video; the others are the game's paintings with a slow pan, under the same documentary narrator
+// (src/data/introFilms.ts). Arran's switches to video once its file is supplied.
+import { INTRO_FILMS } from '../../data/introFilms';
+
+export type FilmId = 'malek' | 'arran' | 'abuhamid' | 'rashid' | 'nabil' | 'cohen';
+/** one painting on screen: `cover` fills the frame, `contain` sits over a blurred copy of itself;
+ *  the pan goes from `from` to `to` ([scale, x%, y%] of the focus point) */
+export interface Still { src: string; fit: 'cover' | 'contain'; from: [number, number, number]; to: [number, number, number] }
+export interface Film {
+  title: string;
+  /** who it introduces, for the shelf of films you have seen */
+  name: string;
+  video?: { mp4: string; webm?: string; poster: string; last: string };
+  stills?: Still[];
+}
+export const FILMS: Record<FilmId, Film> = {
+  malek: {
+    title: "Malek's grill · Giza, 1925", name: 'Malek',
+    video: { mp4: 'video/malek-intro.mp4', webm: 'video/malek-intro.webm', poster: 'video/malek-intro-poster.webp', last: 'video/malek-intro-last.webp' },
+  },
+  arran: {
+    title: "Arran's textile laboratory · Giza, 1925", name: 'Arran Embleton',
+    stills: [
+      { src: 'art/arran/13-lab-room.webp', fit: 'cover', from: [1, 50, 50], to: [1.18, 40, 45] },
+      { src: 'art/arran/scenes/s02.webp', fit: 'cover', from: [1.05, 50, 40], to: [1.2, 55, 35] },
+      { src: 'art/arran/scenes/s05.webp', fit: 'cover', from: [1.15, 45, 45], to: [1, 50, 50] },
+      { src: 'art/arran/11-lab-inspect.webp', fit: 'contain', from: [1, 50, 30], to: [1.12, 50, 25] },
+    ],
+  },
+  abuhamid: {
+    title: "Abu Hamid's coffee house · Giza", name: 'Abu Hamid',
+    stills: [
+      { src: 'art/world/giza-district.jpg', fit: 'cover', from: [1, 50, 50], to: [2.2, 55, 30] },
+      { src: 'art/portraits/abuhamid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
+    ],
+  },
+  rashid: {
+    title: 'Uncle Rashid · the khan, Cairo', name: 'Uncle Rashid',
+    stills: [
+      { src: 'art/cities/cairo-1925-map.webp', fit: 'cover', from: [1, 50, 50], to: [1.6, 55, 45] },
+      { src: 'art/portraits/rashid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
+    ],
+  },
+  nabil: {
+    title: 'Nabil al-Khatib · Cairo', name: 'Nabil al-Khatib',
+    stills: [
+      { src: 'art/cities/cairo-1925-map.webp', fit: 'cover', from: [1.4, 45, 50], to: [1, 50, 50] },
+      { src: 'art/portraits/nabil-stall2.webp', fit: 'contain', from: [1, 50, 40], to: [1.1, 50, 30] },
+      { src: 'art/portraits/nabil.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 40] },
+    ],
+  },
+  cohen: {
+    title: 'Cohen · Alexandria and Cairo', name: 'Cohen',
+    stills: [
+      { src: 'art/world/city-alexandria.jpg', fit: 'cover', from: [1, 50, 50], to: [1.4, 40, 55] },
+      { src: 'art/portraits/cohen-stall2.webp', fit: 'contain', from: [1, 50, 40], to: [1.1, 50, 30] },
+      { src: 'art/portraits/cohen.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 40] },
+    ],
+  },
+};
+export const filmReady = (id: FilmId) => !!INTRO_FILMS[id] && (!!FILMS[id].video || !!FILMS[id].stills?.length);
+/** the buyers whose film plays when they first come to your stall */
+export const STALL_FILMS: FilmId[] = ['nabil', 'cohen'];
+export const FILM_ORDER: FilmId[] = ['rashid', 'abuhamid', 'arran', 'malek', 'nabil', 'cohen'];

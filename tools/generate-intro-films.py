@@ -1,4 +1,4 @@
-"""First-visit films (Malek's grill, Arran's laboratory): record the documentary narration offline
+"""First-meeting films (Malek, Arran, Abu Hamid, Rashid, Nabil, Cohen): record the documentary narration offline
 with Kokoro (a stock synthetic British voice, bm_lewis: not a clone of anyone, and not the voice the
 game uses for Arran himself), and write the caption timings.
 
@@ -23,6 +23,30 @@ FILMS = {
         ('He expects the worst of every customer, every sheep, and every day.', None),
         ('And yet the kofta is the best in the lane, and the regulars always come back.', None),
         ('Whatever lives in his storeroom, he has never said.', None),
+    ],
+    'abuhamid': [
+        ('At the end of your lane, under a vine, there is a coffee house. Its keeper is Abu Hamid.', None),
+        ('He has poured coffee for your father, for the drivers of pashas, and for every rumour in Giza.', None),
+        ('Ask him for the news, the roads north, or men who can hold a rifle. He will tell you slowly, and laugh at his own jokes.', None),
+        ('Half of what a merchant needs to know in this town is said first at his tables.', None),
+    ],
+    'rashid': [
+        ('Uncle Rashid. A wholesaler in the old khan of Cairo, who sold rugs to your father for thirty years.', None),
+        ('He is loud, he is old, and he will roast you every single day.', None),
+        ('He sells you your stock, and on credit when your purse is thin. Pay him on the day, or hear about it for a month.', None),
+        ('He would never admit that he is fond of you. He is.', None),
+    ],
+    'nabil': [
+        ('Nabil al-Khatib. One of the wealthiest textile merchants in Cairo, with a warehouse behind the Muski.', None),
+        ('He built his fortune on a list of importers and an exact eye for knots, dyes and repairs.', None),
+        ('He pays well for what he can defend, and walks away from what he cannot. Flattery and hurry only cost you.', None),
+        ('Tell him the truth about a rug. He will find it out anyway.', None),
+    ],
+    'cohen': [
+        ('Cohen. Born in Alexandria, a textile wholesaler with an office in Cairo.', None),
+        ('He furnishes hotel corridors and steamship cabins, and he cares about sound edges, colour that holds, and delivery on the day.', None),
+        ('He comes with orders. Keep your promise to him, and he keeps coming back.', None),
+        ('His wife Miriam keeps the books. Very little gets past either of them.', None),
     ],
     'arran': [
         ('Arran Embleton. A British textile chemist, who came to Giza with a microscope, a balance, and a great many opinions about wool.', None),

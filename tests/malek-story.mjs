@@ -27,7 +27,7 @@ const nextDay = async (n = 1) => { await edit(`s.day = s.day + ${n}; s.world.hou
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 13 }); s.cash = 300; s.queue = []; localStorage.setItem('tof-skip-chapters', '1');`);
+  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.relationships.nabil = { visits: 1, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 13 }); s.cash = 300; s.queue = []; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
 
   console.log('day 1, first visit: stage', await enter()); await leave();

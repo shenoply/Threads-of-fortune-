@@ -66,5 +66,105 @@ export const INTRO_FILMS: Record<string, { length: number; cues: IntroCue[] }> =
         "text": "Careful, curious, and never in a hurry. In the bazaar, that makes him rare."
       }
     ]
+  },
+  "abuhamid": {
+    "length": 28.04,
+    "cues": [
+      {
+        "start": 0.8,
+        "end": 6.62,
+        "text": "At the end of your lane, under a vine, there is a coffee house. Its keeper is Abu Hamid."
+      },
+      {
+        "start": 7.17,
+        "end": 13.03,
+        "text": "He has poured coffee for your father, for the drivers of pashas, and for every rumour in Giza."
+      },
+      {
+        "start": 13.58,
+        "end": 21.81,
+        "text": "Ask him for the news, the roads north, or men who can hold a rifle. He will tell you slowly, and laugh at his own jokes."
+      },
+      {
+        "start": 22.36,
+        "end": 27.49,
+        "text": "Half of what a merchant needs to know in this town is said first at his tables."
+      }
+    ]
+  },
+  "rashid": {
+    "length": 25.4,
+    "cues": [
+      {
+        "start": 0.8,
+        "end": 8.16,
+        "text": "Uncle Rashid. A wholesaler in the old khan of Cairo, who sold rugs to your father for thirty years."
+      },
+      {
+        "start": 8.71,
+        "end": 13.08,
+        "text": "He is loud, he is old, and he will roast you every single day."
+      },
+      {
+        "start": 13.63,
+        "end": 20.96,
+        "text": "He sells you your stock, and on credit when your purse is thin. Pay him on the day, or hear about it for a month."
+      },
+      {
+        "start": 21.51,
+        "end": 24.85,
+        "text": "He would never admit that he is fond of you. He is."
+      }
+    ]
+  },
+  "nabil": {
+    "length": 27.19,
+    "cues": [
+      {
+        "start": 0.8,
+        "end": 7.87,
+        "text": "Nabil al-Khatib. One of the wealthiest textile merchants in Cairo, with a warehouse behind the Muski."
+      },
+      {
+        "start": 8.42,
+        "end": 14.58,
+        "text": "He built his fortune on a list of importers and an exact eye for knots, dyes and repairs."
+      },
+      {
+        "start": 15.13,
+        "end": 22.09,
+        "text": "He pays well for what he can defend, and walks away from what he cannot. Flattery and hurry only cost you."
+      },
+      {
+        "start": 22.64,
+        "end": 26.64,
+        "text": "Tell him the truth about a rug. He will find it out anyway."
+      }
+    ]
+  },
+  "cohen": {
+    "length": 26.52,
+    "cues": [
+      {
+        "start": 0.8,
+        "end": 6.28,
+        "text": "Cohen. Born in Alexandria, a textile wholesaler with an office in Cairo."
+      },
+      {
+        "start": 6.83,
+        "end": 15.38,
+        "text": "He furnishes hotel corridors and steamship cabins, and he cares about sound edges, colour that holds, and delivery on the day."
+      },
+      {
+        "start": 15.93,
+        "end": 20.6,
+        "text": "He comes with orders. Keep your promise to him, and he keeps coming back."
+      },
+      {
+        "start": 21.15,
+        "end": 25.97,
+        "text": "His wife Miriam keeps the books. Very little gets past either of them."
+      }
+    ]
   }
 };

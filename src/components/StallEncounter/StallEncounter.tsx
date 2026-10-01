@@ -1,4 +1,7 @@
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
+import { createPortal } from 'react-dom';
+import { IntroFilm, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
+import { STALL_FILMS } from '../IntroFilm/films';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
 import { useEffect, useMemo, useState } from 'react';
@@ -24,6 +27,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // a buyer whose stature the counter would hide is first seen whole, once
   const [arrived, setArrived] = useState<string | null>(null);
   const atCourt = !!enc?.venue;
+  // a special buyer's film the first time they come to the stall (Nabil, Cohen)
+  const [filmDone, setFilmDone] = useState(false);
+  const filmFor = enc && !enc.outcome && STALL_FILMS.includes(enc.buyerId as FilmId) && filmReady(enc.buyerId as FilmId) && !(g.introSeen ?? []).includes(enc.buyerId) && !filmDone ? (enc.buyerId as FilmId) : null;
   useAudioEnv(atCourt ? 'palace' : null, atCourt ? 'palace' : undefined);
   // at court you can only show the rugs your caravan carried there
   const avail = atCourt ? availableRugs(g, enc?.buyerId).filter((i) => !i.stored) : availableRugs(g, enc?.buyerId);
@@ -33,8 +39,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // closes (settle() runs inside act(), before the player has seen the result screen or clicked
   // "Next customer"), so keying the dialogue-playback reset on it replayed the whole conversation
   // — including the buyer's opening line — while the "Sold" banner was still on screen.
-  const resetKey = `${g.day}-${enc?.id ?? 'none'}`;
-  const log = useMemo(() => enc?.log ?? [], [enc?.log]);
+  // while a first-meeting film plays, the conversation waits (no voice under the narrator), then starts
+  const resetKey = `${g.day}-${enc?.id ?? 'none'}${filmFor ? '-film' : ''}`;
+  const log = useMemo(() => (filmFor ? [] : enc?.log ?? []), [enc?.log, filmFor]);
   const { view, skip } = usePlayback(log, resetKey, enc?.buyerId ?? '');
   const rel = enc ? g.relationships[enc.buyerId] : undefined;
   const tier = rel ? tierOf(rel) : { idx: 0, name: 'New' as const };
@@ -101,6 +108,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
 
   return (
     <div className="stall" data-testid="stall">
+      {filmFor && createPortal(<IntroFilm id={filmFor} onDone={() => { useGame.getState().markIntroSeen(filmFor); setFilmDone(true); }} />, document.body)}
       {((enc && !enc.outcome && !enc.tutorial && !enc.venue) || (tut && enc && !enc.outcome)) && (
         <div className="stall-toolbar">
           {enc && !enc.outcome && !enc.tutorial && !enc.venue && (

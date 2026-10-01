@@ -83,13 +83,25 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - is laid out first for that buyer, who notices: +10 trust, +8 interest.
 - **When the hold ends,** a night note says it is back on the stall. "Free it" in Stock ends a hold early.
 
-## First-visit films
+## First-meeting films
 
-- **Malek:** the first time his shop is open to you, `public/video/malek-intro.mp4` plays (WebM fallback).
-  - The film's own sound is kept low under a documentary narrator, then its last frame holds with a slow push-in until the narration ends (about 33 s).
-  - Captions throughout. Skip at any time, and it does not play again on its own; "Watch the film again" is on his door card.
-- **Narration:** `tools/generate-intro-films.py` records it offline (Kokoro `bm_lewis`, a stock synthetic voice, not Arran's) into `public/audio/intro/<who>.mp3`, with the caption timings in `src/data/introFilms.ts`.
-- **Arran:** his film is wired the same way (first lab visit), and its narration is recorded (about 38 s). It waits for its video: the Gemini share link could not be downloaded from this environment. Put the file in the Drive folder or upload it here, then set `FILM_VIDEO.arran` in `src/components/IntroFilm/IntroFilm.tsx`.
+Six special characters each get a short documentary the first time you meet them. Each plays once,
+with captions and Skip; the Customers screen keeps a "Films" shelf of the ones you have seen.
+
+| Who | Plays | Picture |
+|---|---|---|
+| Malek | his shop, the first time it is open to you | his video (`public/video/malek-intro.mp4`, WebM fallback); the last frame holds under the narration |
+| Arran | his laboratory, first visit | lab and scene paintings, slow pans (his video replaces them when supplied) |
+| Abu Hamid | the coffee house, first visit | the Giza map closing in on his tables, then his portrait |
+| Uncle Rashid | his warehouse, first visit | the Cairo map, his portrait |
+| Nabil al-Khatib | the first time he comes to your stall (his greeting waits for the film) | Cairo, his figure, his portrait |
+| Cohen | the first time he comes to your stall | Alexandria, his figure, his portrait |
+
+- **Films:** defined in `src/components/IntroFilm/films.ts`.
+- **Narration:**
+  - `tools/generate-intro-films.py` records it offline (Kokoro `bm_lewis`: a stock synthetic narrator, not Arran's voice, not a clone) into `public/audio/intro/<who>.mp3`, with the caption timings in `src/data/introFilms.ts`.
+  - Each film says who the character is and what they do for you.
+- **Arran's video:** the Gemini share link was blocked here. Supply the file and set `FILMS.arran.video`.
 
 ## Rules
 
@@ -156,7 +168,9 @@ All five scenes are supplied (`story-1-expulsion` … `story-5-arthur`), so the 
 stage loses its art, `storyReady` turns the whole sequence off rather than starting it part way.
 It starts on a game day later than your first visit to the shop.
 
-- **The customer** in stages 1-3 is his own character (red fez, glasses, pinstripe suit), not one of the stall's buyers: none of the 35 cut-outs matches him. The story introduces him as "the man in the fez". He has no name yet (`STORY_CUSTOMER`).
+- **The customer** in stages 1-3 is Nabil al-Khatib (`STORY_CUSTOMER`, the owner's decision). Stage 1 waits until he has come to your stall.
+  - Afterwards, Nabil says nothing about it at your stall, and the narrator notes that.
+  - The supplied scenes show a man in a red fez with a black moustache, not Nabil's look (bald, grey beard, grey suit). Redrawn scenes are requested.
 - **The quarrel** is over the bill (yesterday's bread, so half-price kebab), never about who he is.
 - **After stage 3,** the storeroom talk topic changes to lines about its occupant.
 - **After stage 5,** Arthur Bell is a talk topic, and the story does not loop.

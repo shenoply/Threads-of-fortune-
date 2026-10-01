@@ -50,7 +50,7 @@ import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_RETURN } from '../../data/malekBuyer';
-import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
+import { STORY_CUSTOMER, TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 export const SAVE_VERSION = 19;
@@ -2124,6 +2124,11 @@ export const useGame = create<GameState & Actions>()(
             enc.trust = Math.max(0, Math.min(100, enc.trust + tired.trust));
             if (tired.label !== 'Rested') enc.log.push({ speaker: 'system', text: `You are ${tired.label.toLowerCase()}. ${tired.patience > 0 ? 'Everything seems easy this morning.' : 'The haggling wears on you sooner.'}` });
           }
+          // Nabil after what happened at Malek's: he does not mention it
+          const ms = s.malek?.story;
+          if (buyerId === 'nabil' && ms?.completed.includes(1) && ms.lastStoryDay != null && s.day - ms.lastStoryDay <= 10) {
+            enc.log.push({ speaker: 'narrator', text: ms.completed.includes(3) ? 'Nabil does not mention the grill round the corner, or what came out of its storeroom. Neither do you.' : "Nabil straightens a jacket that does not need straightening, and says nothing about Malek's grill. You decide not to ask." });
+          }
           const fed = wellFedNow(s.condition, s.day * 24 + s.world.hour);
           if (!tutorial && fed > 0) {
             enc.patience += fed * MORALE_PATIENCE;
@@ -2516,7 +2521,8 @@ export const useGame = create<GameState & Actions>()(
           const line = malekLine(gr.ctx, m0.said, day + m0.visits);
           // the story starts on a later day than your first visit (older saves: the last visit counts)
           const firstDay = m0.firstDay ?? (m0.visits ? m0.lastVisitDay ?? day : day);
-          const stage = storyStageFor(m0.story, day, { introduced: day > firstDay });
+          const customerMet = (s.relationships[STORY_CUSTOMER]?.visits ?? 0) > 0 || (s.nabil?.visits ?? 0) > 0;
+          const stage = storyStageFor(m0.story, day, { introduced: day > firstDay, customerMet });
           // one counted visit per call: reopening the shop is a new visit, and the stage stays pending
           // until it is finished, so reopening or reloading never skips or repeats one
           set({ malek: { ...m0, ...restock, ...(gr.noted ? { stallNoted: true } : {}), firstDay, visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-12), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });

@@ -1,3 +1,5 @@
+import { createPortal } from 'react-dom';
+import { IntroFilm, filmReady } from '../IntroFilm/IntroFilm';
 import { hasPerk } from '../../data/character';
 import { Icon } from '../Icon';
 import { Rumours } from '../Rumours/Rumours';
@@ -24,6 +26,8 @@ const pickOne = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 export function Supplier({ toast }: { toast: (s: string) => void }) {
   const g = useGame();
+  // the first time you come to him, his film
+  const [film, setFilm] = useState(() => filmReady('rashid') && !(useGame.getState().introSeen ?? []).includes('rashid'));
   const sup = g.supplier;
   const fam = g.family ?? FAMILY_START;
   // Rashid always has an opinion about how you look, how much you have, and the cat
@@ -51,6 +55,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
   const exact = g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
   return (
     <div className="screen" data-testid="supplier">
+      {film && createPortal(<IntroFilm id="rashid" onDone={() => { useGame.getState().markIntroSeen('rashid'); setFilm(false); }} />, document.body)}
       <div className="screen-head">
         <div>
           <div className="eyebrow">WIKALAT EL-GHURI · CAIRO</div>

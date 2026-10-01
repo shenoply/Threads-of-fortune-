@@ -12,6 +12,8 @@ import '../src/styles.css';
 import './malek-preview.css';
 
 const MalekShop = lazy(() => import('../src/components/Malek/MalekShop'));
+import { IntroFilm } from '../src/components/IntroFilm/IntroFilm';
+import { FILMS, FILM_ORDER, type FilmId } from '../src/components/IntroFilm/films';
 
 function setup() {
   const g = useGame.getState();
@@ -23,6 +25,7 @@ function setup() {
 function Preview() {
   const g = useGame();
   const [inside, setInside] = useState(false);
+  const [film, setFilm] = useState<FilmId | null>(null);
   const setHour = (h: number) => useGame.setState({ world: { ...useGame.getState().world, hour: h } });
   const now = g.day * 24 + g.world.hour;
   const c = g.condition;
@@ -60,6 +63,13 @@ function Preview() {
         </div>
         <p className="mp-note">The first time the shop is open to you, his film plays (narration and captions). Drag to turn the room, pinch or scroll to zoom. Order, take parcels, then use Next day to see them age and the shop restock. In the game Malek comes to your stall on his own once you have eaten at his place; the rug button stands in for that visit here. Try Talk to Malek for his six topics.</p>
       </section>
+      <section className="mp-controls">
+        <p>First-meeting films (each plays once in the game, when you first meet them):</p>
+        <div className="mp-row">
+          {FILM_ORDER.map((id) => <button key={id} className="btn" onClick={() => setFilm(id)} data-testid={`mp-film-${id}`}>▶ {FILMS[id].name}</button>)}
+        </div>
+      </section>
+      {film && <IntroFilm id={film} onDone={() => setFilm(null)} />}
       {inside && <Suspense fallback={<div className="malek-boot">Walking over to Malek's…</div>}><MalekShop onLeave={() => setInside(false)} /></Suspense>}
     </div>
   );
