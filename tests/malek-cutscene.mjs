@@ -35,7 +35,10 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     const stage = await enter();
     const frame = await p.locator('.cut__frame').boundingBox();
     console.log(`${tag}: stage ${stage} | frame ${Math.round(frame.width)}x${Math.round(frame.height)} (ratio ${(frame.width / frame.height).toFixed(3)}, video 1.486)`);
-    await p.waitForSelector('[data-testid=cutscene][data-state=playing]', { timeout: 10000 });
+    await p.waitForSelector('[data-testid=cutscene][data-state=playing]', { timeout: 10000 }).catch(async () => {
+      console.log('   DEBUG', JSON.stringify(await p.evaluate(() => [document.querySelector('[data-testid=cutscene]').dataset.state, ...[...document.querySelectorAll('.cut video')].map((v) => ({ src: v.currentSrc, rs: v.readyState, ns: v.networkState, err: v.error?.code, canMp4: v.canPlayType('video/mp4; codecs="avc1.64001F"'), canWebm: v.canPlayType('video/webm; codecs="vp9"') }))])));
+      throw new Error('did not play');
+    });
     await p.waitForTimeout(1800);
     const sub = await p.locator('[data-testid=cutscene-sub]').textContent().catch(() => '');
     await p.screenshot({ path: `${S}/cut-${tag}-1.png` });
@@ -80,6 +83,14 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     await p.screenshot({ path: `${S}/cut-${tag}-reward.png` });
     await p.click('[data-testid=malek-story-later]'); await p.waitForTimeout(400);
     console.log('   after the card: sounds playing', await playing());
+    // and on the Films shelf, to watch again
+    await p.click('[data-testid=malek-leave]').catch(() => {}); await p.waitForTimeout(300);
+    await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
+    await p.click('text=Customers').catch(() => {}); await p.waitForTimeout(500);
+    await p.click('[data-testid=film-again-backroom]'); await p.waitForSelector('[data-testid=cutscene][data-state=playing]', { timeout: 10000 });
+    console.log('   Films shelf: the back room plays', await p.locator('[data-testid=cutscene]').getAttribute('data-state'));
+    await p.click('[data-testid=film-cut-close]'); await p.waitForTimeout(300);
+    console.log('   closed, playing', await playing());
   } catch (e) { console.log(tag, 'FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/cut-${tag}-fail.png` }); }
   console.log('   errors', JSON.stringify(errs));
   await p.close();

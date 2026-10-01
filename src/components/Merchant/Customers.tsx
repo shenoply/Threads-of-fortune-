@@ -5,6 +5,8 @@ import { BUYERS, LISTED_BUYERS as BUYER_ORDER, SPECIAL_BUYERS, BUYER_UNLOCK, BUY
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { fmt } from '../../game/economy/money';
 import { createPortal } from 'react-dom';
+import { Cutscene } from '../Malek/Cutscene';
+import { STORY_FILM } from '../Malek/storyFilm';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { FILMS, FILM_ORDER, type FilmId } from '../IntroFilm/films';
 
@@ -92,12 +94,21 @@ function FilmShelf() {
   const seen = useGame((st) => st.introSeen ?? []);
   const [play, setPlay] = useState<FilmId | null>(null);
   const films = FILM_ORDER.filter((id) => seen.includes(id));
-  if (!films.length) return null;
+  // Malek's story on film, once you have seen it in his shop
+  const backRoom = useGame((st) => !!st.malek?.story?.completed?.includes(3));
+  const [cut, setCut] = useState(false);
+  if (!films.length && !backRoom) return null;
   return (
     <div className="film-shelf" data-testid="film-shelf">
       <span>Films</span>
       {films.map((id) => <button key={id} className="btn small" onClick={() => setPlay(id)} data-testid={`film-again-${id}`}>▶ {FILMS[id].name}</button>)}
+      {backRoom && <button className="btn small" onClick={() => setCut(true)} data-testid="film-again-backroom">▶ The Back Room (Malek)</button>}
       {play && createPortal(<IntroFilm id={play} onDone={() => setPlay(null)} />, document.body)}
+      {cut && createPortal(
+        <div className="film-cut" role="dialog" aria-label="The Back Room Opens" data-testid="film-cut">
+          <Cutscene shots={STORY_FILM[3]} title="The Back Room Opens" />
+          <button className="btn" onClick={() => setCut(false)} data-testid="film-cut-close">Close</button>
+        </div>, document.body)}
     </div>
   );
 }

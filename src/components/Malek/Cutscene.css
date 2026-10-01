@@ -8,3 +8,5 @@
 .cut__play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); min-height: 48px; padding: 0 22px; font-size: 18px; }
 .cut__bar { display: flex; flex-wrap: wrap; gap: 6px; }
 .cut__bar .btn { min-height: 40px; }
+.film-cut { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: rgba(8,5,2,0.94); }
+.film-cut > .cut { width: min(100%, 900px); }

@@ -13,6 +13,13 @@ import './Cutscene.css';
 export interface CutsceneCue { at: number; until: number; who?: string; text: string; voice?: string }
 export interface CutsceneShot { mp4: string; webm?: string; first: string; last: string; fx?: string; cues?: CutsceneCue[] }
 
+/** H.264 where the browser can decode it (every phone), the WebM where it cannot */
+let canH264: boolean | null = null;
+function srcFor(s: CutsceneShot) {
+  if (!s.webm) return s.mp4;
+  if (canH264 == null) canH264 = typeof document !== 'undefined' && !!document.createElement('video').canPlayType('video/mp4; codecs="avc1.64001F"');
+  return canH264 ? s.mp4 : s.webm;
+}
 const fxVolume = () => (audio.toggles.sfx ? Math.max(0, Math.min(1, audio.volumes.master * audio.volumes.sfx)) : 0);
 
 export function Cutscene({ shots, title, onEnd }: { shots: CutsceneShot[]; title: string; onEnd?: () => void }) {
@@ -136,11 +143,9 @@ export function Cutscene({ shots, title, onEnd }: { shots: CutsceneShot[]; title
                   data-testid={`cutscene-video-${i}`}
                   onPlaying={() => setShown(i)}
                   onEnded={() => { fx.current[i]?.pause(); if (i + 1 < shots.length) playShot(i + 1); else finish(); }}
+                  src={srcFor(s)}
                   onError={() => setFailed((f) => f.map((x, k) => (k === i ? true : x)))}
-                >
-                  {s.webm && <source src={s.webm} type="video/webm" />}
-                  <source src={s.mp4} type="video/mp4" onError={() => setFailed((f) => f.map((x, k) => (k === i ? true : x)))} />
-                </video>
+                />
               )}
             {s.fx && <audio ref={(el) => { fx.current[i] = el; }} src={s.fx} preload="auto" />}
           </div>
