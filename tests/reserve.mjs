@@ -28,9 +28,9 @@ try {
 
   // 1. Malek: the price is agreed, he is not convinced (a stubborn day), you keep the rug for him
   await serve('malek');
-  const uid = await game(`const e = g.encounter; if (!e || e.buyerId !== 'malek') return null; const u = g.inventory[0].uid; g.present(u); set({ encounter: { ...get().encounter, malekBar: 100 } }); return u;`);
+  const uid = await game(`const e = g.encounter; if (!e || e.buyerId !== 'malek') return null; const u = g.inventory[0].uid; set({ encounter: { ...e, saffronOn: undefined } }); get().present(u); set({ encounter: { ...get().encounter, malekBar: 100 } }); return u;`);
   for (let i = 0; i < 5; i++) { const r = await game(`const e = get().encounter; if (!e || e.outcome) return 'done'; if (e.buyerOffer) { get().act('accept_offer'); return 'acc'; } get().act('name_price', 120); return 'ask';`); if (r === 'done') break; }
-  console.log('1. outcome:', JSON.stringify(await game(`const e = get().encounter; return { outcome: e.outcome, unsure: e.malekUnsure, last: e.log.filter((l) => l.speaker === 'buyer').pop()?.text }`)));
+  console.log('1. outcome:', JSON.stringify(await game(`const e = get().encounter; return { outcome: e.outcome, unsure: e.malekUnsure, purse: e.malekPurse, stage: e.stage, presented: e.presented, last: e.log.slice(-4).map((l) => l.speaker + ': ' + l.text.slice(0, 60)) }`)));
   await p.waitForTimeout(400);
   console.log('   result text:', (await p.locator('[data-testid=result] .r-main span').textContent()).slice(0, 120));
   console.log('   reserve button:', (await p.locator('[data-testid=reserve-after]').textContent().catch(() => 'none')));
@@ -53,7 +53,7 @@ try {
   await serve('malek');
   const back = await game(`const e = get().encounter; return { first: (e.displayed || [])[0], ret: e.malekReturn, log: e.log.map((l) => l.text).filter((t) => /kept|aside|thought/i.test(t)) }`);
   console.log('3. Malek back:', JSON.stringify(back));
-  await game(`get().present('${uid}')`);
+  await game(`set({ encounter: { ...get().encounter, saffronOn: undefined } }); get().present('${uid}')`);
   for (const a of ['ask_room', 'durability']) await game(`if (!get().encounter.outcome) get().act('${a}')`);
   for (let i = 0; i < 5; i++) { const r = await game(`const e = get().encounter; if (!e || e.outcome) return 'done'; if (e.buyerOffer) { get().act('accept_offer'); return 'acc'; } get().act('name_price', 150); return 'ask';`); if (r === 'done') break; }
   console.log('   haggle:', JSON.stringify(await game(`const e = get().encounter; return { stage: e.stage, presented: e.presented, interest: e.interest, trust: e.trust, fit: e.presentedFit, offer: e.buyerOffer, ask: e.askPrice, patience: e.patience, tail: e.log.slice(-4).map((l) => l.speaker + ': ' + l.text.slice(0, 70)) }`)));
@@ -62,6 +62,12 @@ try {
   await p.screenshot({ path: `${S}/reserve-back.png` });
   await p.click('[data-testid=next-visit]').catch(() => {}); await p.waitForTimeout(300);
 
+  // 3b. he bought it and comes back for the same rug again: another of that kind goes on the counter first
+  await edit(`s.day = s.day + 3; s.world.hour = 10; s.inventory.push({ uid: 'ds-2', typeId: 'desert-star', condition: 'Good', restored: false, provenance: 'Likely', paid: 100, notes: [] }); s.malek.wantsBack = { uid: '${uid}', typeId: 'desert-star', day: s.day - 3, again: true };`);
+  await serve('malek');
+  console.log('3b. same again:', JSON.stringify(await game(`const e = get().encounter; return { first: (e.displayed || [])[0], ret: e.malekReturn, purse: e.malekPurse, said: e.log.filter((l) => l.speaker === 'buyer').map((l) => l.text.slice(0, 70)) }`)));
+  await game(`get().letGo()`); await p.waitForTimeout(300);
+  await p.click('[data-testid=next-visit]').catch(() => {}); await p.waitForTimeout(300);
   // 4. Stock: put a rug aside for Yusuf, see it, free it
   await p.click('[data-testid=nav-inventory]').catch(() => {}); await p.waitForTimeout(700);
   const first = p.locator('[data-testid=reserve-select]').first();

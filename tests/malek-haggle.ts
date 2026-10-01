@@ -2,6 +2,7 @@
 //   naive   - show the first rug, name a price, take his offer
 //   good    - ask about the shop and what draws him, show the best rug for him, argue durability and fit, a fair price
 //   return  - the good way, on a rug he came back for
+// His purse is rolled per visit (tight, usual, flush), so what he pays swings widely.
 // He should rarely buy from a naive seller, sometimes from a good one, and more easily on a return.
 //   npx tsx tests/malek-haggle.ts
 import * as N from '../src/game/systems/negotiation';
@@ -35,7 +36,7 @@ function play(style: 'naive' | 'good' | 'return') {
     if (e.buyerOffer) { N.doAction(e, c, 'accept_offer'); break; }
     N.doAction(e, c, 'name_price', Math.round(N.wtp(e, item) * (style === 'naive' ? 1.15 : 0.98) / 5) * 5);
   }
-  return { sold: e.outcome === 'sold', unsure: !!e.malekUnsure, interest: e.interest, trust: e.trust, fit: e.presentedFit };
+  return { sold: e.outcome === 'sold', unsure: !!e.malekUnsure, interest: e.interest, trust: e.trust, fit: e.presentedFit, purse: e.malekPurse, price: e.salePrice ?? 0 };
 }
 
 const want = { naive: [0, 5], good: [15, 45], return: [70, 100] } as const;
@@ -47,6 +48,13 @@ for (const style of ['naive', 'good', 'return'] as const) {
   if (pct < want[style][0] || pct > want[style][1]) { fails++; console.log(`FAIL ${style}: sold ${pct}%, wanted ${want[style][0]}-${want[style][1]}%`); }
   const avg = (k: 'interest' | 'trust' | 'fit') => Math.round(runs.reduce((s, r) => s + r[k], 0) / runs.length);
   console.log(`${style.padEnd(6)} sold ${Math.round((sold / runs.length) * 100)}% · agreed a price but not convinced ${Math.round((unsure / runs.length) * 100)}% · avg interest ${avg('interest')} trust ${avg('trust')} fit ${avg('fit')}`);
+  if (style === 'naive') continue;
+  // his purse: what he pays swings from very little to a lot
+  const by = (p: string) => runs.filter((r) => r.sold && r.purse === p).map((r) => r.price);
+  const spread = ['tight', 'usual', 'flush'].map((p) => { const v = by(p); return `${p} ${v.length ? `${Math.min(...v)}-${Math.max(...v)}pt (avg ${Math.round(v.reduce((a, b) => a + b, 0) / v.length)})` : 'none'}`; });
+  console.log(`       paid: ${spread.join(' · ')}`);
+  const lo = by('tight'), hi = by('flush');
+  if (lo.length && hi.length && Math.max(...lo) >= Math.min(...hi) * 1.5) { fails++; console.log(`FAIL ${style}: a tight purse paid as much as a flush one`); }
 }
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

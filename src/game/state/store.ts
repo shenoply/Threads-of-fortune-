@@ -49,7 +49,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
-import { MALEK_RETURN } from '../../data/malekBuyer';
+import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { STORY_CUSTOMER, TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
@@ -770,10 +770,14 @@ export const useGame = create<GameState & Actions>()(
           // your next plates on his account
           const m = s.malek ?? MALEK_START;
           const sold = enc.outcome === 'sold' && enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
-          // not convinced but he liked it: he may come back for that very rug
-          const liked = !sold && enc.malekUnsure && enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
-          patch.malek = { ...m, stallLastDay: s.day, stallOutcome: sold ? 'sold' : 'walked', stallNoted: false, wantsBack: liked ? { uid: liked.uid, typeId: liked.typeId, day: s.day } : sold ? undefined : m.wantsBack, ...(sold ? { rug: sold.typeId, rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } : {}) };
-          if (liked) journal.push({ day: s.day, text: `Malek agreed a price for the ${RUGS[liked.typeId].name} and then would not buy it. He may come back for it; put it aside for him in Stock.` });
+          // not convinced but he liked it (or he walked from a rug that suited him): he may come back for that very rug
+          const shown = !sold && enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
+          const liked = shown && (enc.malekUnsure || (enc.presentedFit >= 55 && enc.interest >= 45 && rng() < 0.6)) ? shown : undefined;
+          // and after buying one, now and then he comes back wanting the same rug again
+          const again = sold && rng() < 0.3;
+          const wantsBack: MalekState['wantsBack'] = liked ? { uid: liked.uid, typeId: liked.typeId, day: s.day } : again ? { uid: sold.uid, typeId: sold.typeId, day: s.day, again: true } : sold ? undefined : m.wantsBack;
+          patch.malek = { ...m, stallLastDay: s.day, stallOutcome: sold ? 'sold' : 'walked', stallNoted: false, wantsBack, ...(sold ? { rug: sold.typeId, rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } : {}) };
+          if (liked) journal.push({ day: s.day, text: enc.malekUnsure ? `Malek agreed a price for the ${RUGS[liked.typeId].name} and then would not buy it. He may come back for it; put it aside for him in Stock.` : `Malek walked away from the ${RUGS[liked.typeId].name}, but he looked back at it twice. He may come back for it.` });
           if (sold) journal.push({ day: s.day, text: `Malek bought the ${RUGS[sold.typeId].name} for the floor under his tables. "Your next ${TAB_PLATES} plates are on me. Do not tell anyone."` });
         }
         if (enc.buyerId === 'nabil') {
@@ -1090,7 +1094,7 @@ export const useGame = create<GameState & Actions>()(
           let malekPatch: MalekState | undefined;
           if (!queue.includes('malek') && malekDue(s.malek, day, rng())) {
             queue.push('malek'); malekPatch = { ...(s.malek ?? MALEK_START), stallLastDay: day };
-            notes.push(s.malek?.wantsBack ? `Malek is coming back to the stall today, about the ${RUGS[s.malek.wantsBack.typeId]?.name ?? 'rug'} he could not decide on.` : s.malek?.rug ? 'Malek said he might come by the stall today. He has not said why. He never says why.' : 'Malek said he might come by the stall today, about a rug for under his tables.');
+            notes.push(s.malek?.wantsBack ? (s.malek.wantsBack.again ? `Malek is coming back to the stall today. He wants another ${RUGS[s.malek.wantsBack.typeId]?.name ?? 'rug'}, the same as the one he bought.` : `Malek is coming back to the stall today, about the ${RUGS[s.malek.wantsBack.typeId]?.name ?? 'rug'} he could not decide on.`) : s.malek?.rug ? 'Malek said he might come by the stall today. He has not said why. He never says why.' : 'Malek said he might come by the stall today, about a rug for under his tables.');
           }
           // Nabil al-Khatib, now and then, once your name is worth his hour
           if (!queue.includes('nabil') && nabilDue(s.nabil, day, s.reputation, NABIL_MIN_REP, rng())) queue.push('nabil');
@@ -2094,7 +2098,8 @@ export const useGame = create<GameState & Actions>()(
           const tutorial = !s.tutorial.done && buyerId === 'samira' && s.day === 1;
           // a rug Malek came back for goes on the counter first (if you still have it)
           const back = buyerId === 'malek' ? s.malek?.wantsBack : undefined;
-          const backItem = back ? s.inventory.find((i) => i.uid === back.uid && !i.restoringUntil) : undefined;
+          // back for the same rug again: any rug of that kind will do
+          const backItem = back ? s.inventory.find((i) => (back.again ? i.typeId === back.typeId : i.uid === back.uid) && !i.restoringUntil && (!heldFor(i, s.day) || heldFor(i, s.day) === 'malek')) : undefined;
           const pool = availableRugs(s, buyerId);
           const displayed = (backItem ? [backItem, ...pool.filter((i) => i.uid !== backItem.uid)] : pool).slice(0, 3).map((i) => i.uid);
           const enc = startEncounter(buyerId, ctxFor(s, buyerId), displayed, tutorial);
@@ -2107,7 +2112,10 @@ export const useGame = create<GameState & Actions>()(
           let malekBackPatch: MalekState | undefined;
           if (back) {
             const name = RUGS[back.typeId]?.name ?? 'rug';
-            if (backItem) {
+            if (back.again) {
+              if (backItem) { enc.malekReturn = backItem.uid; enc.interest = Math.min(100, enc.interest + 25); }
+              enc.log.push({ speaker: 'buyer', text: (backItem ? MALEK_AGAIN.have : MALEK_AGAIN.none)[s.day % 2].replace('{rug}', name), mood: 'neutral' });
+            } else if (backItem) {
               enc.malekReturn = backItem.uid;
               enc.interest = Math.min(100, enc.interest + 25);
               enc.log.push({ speaker: 'buyer', text: (heldFor(backItem, s.day) === 'malek' ? MALEK_RETURN.kept : MALEK_RETURN.back)[s.day % 2].replace('{rug}', name), mood: 'neutral' });

@@ -38,8 +38,8 @@ export interface MalekState {
   rugDay?: number;
   /** plates on his account after the rug sale */
   tab?: number;
-  /** a rug he looked at, did not buy, and may come back for (uid, type, the day he left it) */
-  wantsBack?: { uid: string; typeId: string; day: number };
+  /** a rug he will come back to the stall for; `again`: he bought one and wants another of that kind */
+  wantsBack?: { uid: string; typeId: string; day: number; again?: boolean };
   /** the day you first came in: the story starts on a later day */
   firstDay?: number;
   story: MalekStory;

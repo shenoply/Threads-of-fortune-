@@ -8,7 +8,7 @@ import { RUGS, CONDITION_FACTOR } from '../../data/rugs';
 import { SELLER, NARRATOR, STAGE } from '../../data/dialogue';
 import { levelOf, hasPerk, type SkillId, type Manner } from '../../data/character';
 import { BUYER_MANNER, SELLER_MANNER, type MannerKind } from '../../data/manners';
-import { MALEK_UNSURE } from '../../data/malekBuyer';
+import { MALEK_UNSURE, MALEK_PURSE, type MalekPurse } from '../../data/malekBuyer';
 import { GROOMING } from '../../data/grooming';
 import { newUid, dateFor } from '../economy/economy';
 import { cohenChecks, dueFor, manualRub, matches, passes, ORDER_PRICE_PER, type CohenState } from './cohen';
@@ -39,6 +39,8 @@ export interface Encounter {
   malekReturn?: string;
   /** the trust Malek needs today before he will buy anything */
   malekBar?: number;
+  /** what Malek has in his pocket today: he can spend a lot, or very little */
+  malekPurse?: MalekPurse;
   // Stamped once at creation and never touched again: the only thing the dialogue playback UI can
   // key a "is this the same conversation as before" reset on. visitIdx moves the moment a sale
   // closes (before the player has even seen the result screen or clicked "Next customer"), so
@@ -202,6 +204,8 @@ export function wtp(enc: Encounter, item: RugItem): number {
   let v = perceivedValue(t, item) * factor;
   if (enc.embellished && !enc.embellishCaught) v *= 1.12;
   if (enc.sweetened) v *= 1.08;
+  // Malek on a good week will pay well over the odds; on a bad one, under them
+  if (enc.malekPurse) v *= MALEK_PURSE[enc.malekPurse].value;
   v *= enc.edge?.pay ?? 1;
   return Math.round(Math.min(cap, v));
 }
@@ -333,7 +337,16 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   // Cohen says so at once if a rug you passed on your own rub lost colour under the corridor's boots
   if (buyerId === 'cohen' && ctx.cohen?.complaint) enc.log.push({ speaker: 'buyer', text: `The ${ctx.cohen.complaint} came off red on the porters' boots within a week. You rubbed it yourself, I know. Next time, ask Arran.`, mood: 'skeptical' });
   // Malek's stubbornness today: how much trust it takes to convince him (48 on a good day, 61 on a bad one)
-  if (buyerId === 'malek') enc.malekBar = 48 + Math.floor(ctx.rng() * 14);
+  if (buyerId === 'malek') {
+    enc.malekBar = 48 + Math.floor(ctx.rng() * 14);
+    // and his purse: one day he counts every piastre, another he could buy the stall
+    const r = ctx.rng();
+    const purse: MalekPurse = r < MALEK_PURSE.tight.odds ? 'tight' : r < MALEK_PURSE.tight.odds + MALEK_PURSE.usual.odds ? 'usual' : 'flush';
+    enc.malekPurse = purse;
+    if (enc.edge) enc.edge.budget *= MALEK_PURSE[purse].mult;
+    // you do not always see it coming
+    if (MALEK_PURSE[purse].hint.length && ctx.rng() < 0.7) enc.log.push({ speaker: 'system', text: pick(MALEK_PURSE[purse].hint, ctx.rng) });
+  }
   return enc;
 }
 

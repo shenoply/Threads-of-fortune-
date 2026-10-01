@@ -107,3 +107,25 @@ export const MALEK_RETURN = {
   kept: ['You kept it aside. Hm. Nobody keeps anything for me. Good. Now let us argue properly.', 'You put it aside for me. I noticed. Do not make a speech about it.'],
   sold: ['You sold it. Of course you did. Everything good goes to someone else.', 'Gone? Bah. This is why I do not come back for things.'],
 };
+/** what is in his pocket today: nobody, Malek included, knows until he sits down. `mult` scales the
+ *  most he can pay, `value` what a rug seems worth to him (fictional game tuning); `hint` is what you
+ *  might notice, and sometimes there is nothing to notice */
+export type MalekPurse = 'tight' | 'usual' | 'flush';
+export const MALEK_PURSE: Record<MalekPurse, { mult: number; value: number; odds: number; hint: string[] }> = {
+  tight: { mult: 0.5, value: 0.85, odds: 0.3, hint: [
+    'Malek pats his pockets before he sits down, the way men do at the end of the month.',
+    'Malek mentions, twice, that the butcher has put his prices up.',
+    'Malek says the coal man came for his money this morning. He says it as if the coal man had stabbed him.',
+  ] },
+  usual: { mult: 1, value: 1, odds: 0.4, hint: [] },
+  flush: { mult: 1.9, value: 1.45, odds: 0.3, hint: [
+    'Malek has a new watch chain, and he makes sure you see it.',
+    'Malek orders tea for both of you before he has looked at a single rug. The grill must have had a good week.',
+    'A wedding party ate at the grill last night, Malek says. Forty plates. He is smiling, which is alarming.',
+  ] },
+};
+/** back to ask for the same rug again, after he bought one (his brother-in-law saw it under his tables) */
+export const MALEK_AGAIN = {
+  have: ['The {rug}. Another one, the same. My wife\'s brother sat on mine and now he will not stop talking about it. Ha. Same price, or I go.', 'You have another {rug}? Good. Same as before. Do not look at me like that, it is for my cousin. Maybe.'],
+  none: ['I want the same {rug} again. You have none? Bah. Get one. I will come back.', 'Another {rug}, like the first. No? Then why do I walk all this way? For your face?'],
+};
