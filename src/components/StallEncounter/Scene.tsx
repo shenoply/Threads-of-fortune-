@@ -11,7 +11,7 @@ import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
 import { Atmosphere } from '../Atmosphere/Atmosphere';
 import { radio } from '../../game/radio/player';
-import { bulletin, type Lang } from '../../game/radio/bulletin';
+import { bulletin, newsStart, type Lang } from '../../game/radio/bulletin';
 import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
@@ -414,22 +414,33 @@ function StallPaper() {
 function StallRadio() {
   const g = useGame();
   const [on, setOn] = useState(radio.playing);
+  const [line, setLine] = useState(-1);
+  const [lang, setLang] = useState<Lang>('en');
   useEffect(() => {
     const t = setInterval(() => setOn(radio.playing), 1000);
     return () => clearInterval(t);
   }, []);
-  const toggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (radio.playing) { radio.stop(); setOn(false); return; }
-    let lang: Lang = 'en';
-    try { lang = (localStorage.getItem('tof-radio-lang') as Lang) || 'en'; } catch { /* private mode */ }
-    if ((g.radioHeard ?? 0) < g.day) useGame.setState({ radioHeard: g.day });
-    radio.play(lang, bulletin(g.day, lang), () => {}, () => setOn(false), 0.4);
+  const play = (l: Lang, from = 0) => {
+    radio.play(l, bulletin(g.day, l), (i) => setLine(i), () => { setOn(false); setLine(-1); }, 0.4, from);
     setOn(true);
   };
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (radio.playing) { radio.stop(); setOn(false); setLine(-1); return; }
+    let l: Lang = 'en';
+    try { l = (localStorage.getItem('tof-radio-lang') as Lang) || 'en'; } catch { /* private mode */ }
+    setLang(l);
+    if ((g.radioHeard ?? 0) < g.day) useGame.setState({ radioHeard: g.day });
+    play(l);
+  };
+  const news = newsStart(bulletin(g.day, lang));
   return (
-    <button className={`stall-radio ${on ? 'on' : ''}`} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
-      <img src="art/radio-stall.webp" alt="" />
-    </button>
+    <>
+      <button className={`stall-radio ${on ? 'on' : ''}`} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
+        <img src="art/radio-stall.webp" alt="" />
+      </button>
+      {/* the greeting and the date first: straight to the news */}
+      {on && line < news && <button className="stall-radio-skip" onClick={(e) => { e.stopPropagation(); play(lang, news); }} data-testid="stall-radio-skip">News ⏭</button>}
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { bulletin, type Lang } from '../../game/radio/bulletin';
+import { bulletin, newsStart, type Lang } from '../../game/radio/bulletin';
 import { radio } from '../../game/radio/player';
 import { audio } from '../../game/audio/engine';
 
@@ -24,12 +24,13 @@ export function Radio({ onClose }: { onClose: () => void }) {
   const [on, setOn] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
-  const start = (l: Lang) => {
+  const news = newsStart(segs);
+  const start = (l: Lang, from = 0) => {
     audio.sfx('tap');
     setOn(true); setLine(-1);
     if ((g.radioHeard ?? 0) < g.day) { useGame.setState({ radioHeard: g.day }); g.passTime(20); }
     if (!g.onboard?.radio) useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), radio: true } });
-    radio.play(l, bulletin(g.day, l), (i) => setLine(i), () => { setOn(false); setLine(-1); });
+    radio.play(l, bulletin(g.day, l), (i) => setLine(i), () => { setOn(false); setLine(-1); }, 1, from);
   };
   const stop = () => { radio.stop(); setOn(false); setLine(-1); };
   const tune = (l: Lang) => {
@@ -53,9 +54,11 @@ export function Radio({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </div>
+        {line < news && <button className="btn small radio-skip" onClick={() => start(lang, news)} data-testid="radio-skip-news">{lang === 'ar' ? 'إلى الأخبار ⏭' : 'Skip to the news ⏭'}</button>}
         <div className={`radio-captions ${lang === 'ar' ? 'rtl' : ''}`} ref={box} dir={lang === 'ar' ? 'rtl' : 'ltr'} data-testid="radio-captions">
           {!on && line < 0 && <p className="hint">{lang === 'ar' ? 'اضغط زر التشغيل لسماع نشرة اليوم.' : 'Press play to hear this morning\'s bulletin.'}</p>}
-          {paras.map((p, i) => <p key={i} className={line >= p.from && line <= p.to ? 'on' : line > p.to ? 'past' : ''}>{p.text}</p>)}
+          {/* tap a line to hear it from there */}
+          {paras.map((p, i) => <p key={i} className={`${line >= p.from && line <= p.to ? 'on' : line > p.to ? 'past' : ''} seekable`} onClick={() => start(lang, p.from)} title={lang === 'ar' ? 'استمع من هنا' : 'Play from here'} data-testid={`radio-line-${i}`}>{p.text}</p>)}
         </div>
         <button className="btn radio-close" onClick={() => { stop(); onClose(); }} data-testid="radio-close">Turn it off</button>
       </div>

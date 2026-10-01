@@ -120,6 +120,9 @@ function eventPieces(e: GameEvent, lang: Lang, part: 'head' | 'adv' | 'cu'): Seg
   return [{ key: `ev-${e.id}-${part}`, group: 'events', text }];
 }
 
+/** Where the news itself starts: straight after "Here are the headlines" (the greeting and the date come first). */
+export const newsStart = (segs: Segment[]) => { const i = segs.findIndex((s) => s.key === 'headlines'); return i < 0 ? 0 : i + 1; };
+
 /** Today's bulletin, in order. */
 export function bulletin(day: number, lang: Lang): Segment[] {
   const F = fixed(lang);

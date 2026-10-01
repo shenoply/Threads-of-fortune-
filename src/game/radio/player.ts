@@ -25,8 +25,9 @@ class RadioPlayer {
     return this.bufs.get(url)!;
   }
 
-  /** Play the bulletin; onLine is called with the index of each piece as it starts. */
-  async play(lang: Lang, segs: Segment[], onLine: (i: number) => void, onEnd: () => void, volume = 1) {
+  /** Play the bulletin; onLine is called with the index of each piece as it starts. `from` starts
+   *  part-way through (skipping to the news, or a line you tapped). */
+  async play(lang: Lang, segs: Segment[], onLine: (i: number) => void, onEnd: () => void, volume = 1, from = 0) {
     this.stop();
     if (!audio.ensure()) return;
     const run = ++this.runId;
@@ -46,8 +47,8 @@ class RadioPlayer {
     audio.duckMusic(true);
     const groups = new Set<Group>(segs.map((s) => s.group));
     for (const g of groups) if (m[lang]?.[g]) this.buffer(m[lang][g].file);
-    await new Promise((r) => setTimeout(r, 700));
-    for (let i = 0; i < segs.length; i++) {
+    await new Promise((r) => setTimeout(r, from > 0 ? 150 : 700));
+    for (let i = Math.max(0, from); i < segs.length; i++) {
       if (run !== this.runId) return;
       const s = segs[i];
       const grp = m[lang]?.[s.group];
