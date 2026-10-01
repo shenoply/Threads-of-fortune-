@@ -46,9 +46,10 @@ const WHAT: Record<LabService, string> = {
   cargo: '',
 };
 // which station Arran is working at (x: percent across the 1536×1024 room, for station plates)
-const FIGURE: Record<'microscope' | 'dye' | 'desk' | 'cabinet' | 'board', { x: number; caption: string }> = {
+const FIGURE: Record<'microscope' | 'dye' | 'balance' | 'desk' | 'cabinet' | 'board', { x: number; caption: string }> = {
   microscope: { x: 47, caption: 'At the microscope' },
   dye: { x: 70, caption: 'At the dye bench' },
+  balance: { x: 58, caption: 'At the balance' },
   desk: { x: 30, caption: 'At his desk' },
   cabinet: { x: 88, caption: 'At the cabinet' },
   board: { x: 66, caption: 'At the board' },
@@ -73,6 +74,25 @@ const TOPICS: Record<Topic, { title: string; formula: string; explanation: strin
 };
 
 const BASE = 'art/arran/';
+// Station plates: the lab room repainted with Arran at work at each station (art/arran/stations/
+// lab-<place>.webp, same camera as 13-lab-room). Any plate that exists replaces the room and the
+// portrait card; any that doesn't leaves the empty room with the card. Checked once per session.
+type Place = keyof typeof FIGURE;
+const plateOk: Partial<Record<Place, boolean>> = {};
+const plateSrc = (p: Place) => `${BASE}stations/lab-${p}.webp`;
+function usePlates() {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    (Object.keys(FIGURE) as Place[]).forEach((p) => {
+      if (p in plateOk) return;
+      plateOk[p] = false;
+      const im = new Image();
+      im.onload = () => { plateOk[p] = true; bump((n) => n + 1); };
+      im.src = plateSrc(p);
+    });
+  }, []);
+  return plateOk;
+}
 const hours = (m: number) => (m >= 60 ? `${m / 60} h` : `${m} min`);
 
 export function ArranLab({ onLeave }: { onLeave: () => void }) {
@@ -96,6 +116,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   const [scene, setScene] = useState<ScenePick | null>(null);
   const [sceneAsk, setSceneAsk] = useState(false);
   const said = useSubtitle((s) => s.active);
+  const plates = usePlates();
   // leaving the lab silences him
   useEffect(() => () => stopArranVoice(), []);
   const vp = useRef<HTMLDivElement>(null);
@@ -196,7 +217,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
   // activity only describes the room until you pick something
   const busy = tab === 'test' && !!(view || ask || confirm);
   const place: keyof typeof FIGURE = tab === 'notebook' ? 'desk' : tab === 'road' ? 'cabinet' : tab === 'board' ? 'board'
-    : spot === 'microscope' || spot === 'balance' ? 'microscope' : spot === 'dye' ? 'dye' : spot === 'notebook' ? 'desk'
+    : spot === 'microscope' ? 'microscope' : spot === 'balance' ? 'balance' : spot === 'dye' ? 'dye' : spot === 'notebook' ? 'desk'
     : activity === 'dye_notes' ? 'dye' : activity === 'books' || activity === 'provisions' || activity === 'mummy_linen' ? 'desk' : 'microscope';
   const pose = said?.npcId === 'arran' ? labPortraitFor(said.mood) : busy || (tab === 'test' && rug) ? '11-lab-inspect' : '12-lab-explain';
   const sceneLine = tab === 'notebook' ? 'Arran pulls his notebook across the desk to go through your errands with you.'
@@ -255,7 +276,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
           <img className="arran-scene" src={scene.scene.img ?? `${BASE}13-lab-room.webp`} alt={`Arran: ${scene.scene.title}`} draggable={false} data-testid="arran-scene" data-scene={scene.scene.n} />
         )}
         <div className="arran-lab__world" style={world} data-testid="arran-world">
-          <img className="arran-lab__room" src={`${BASE}13-lab-room.webp`} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a slate board" draggable={false} />
+          <img className="arran-lab__room" src={plates[place] ? plateSrc(place) : `${BASE}13-lab-room.webp`} data-testid="arran-room" data-plate={plates[place] ? place : ''} alt="A 1925 textile laboratory: a long workbench with a microscope, a balance, bottles and dye samples, and a slate board" draggable={false} />
           <div className="arran-lab__board" aria-label="Chemistry board" data-testid="arran-board">
             <b>{TOPICS[topic].title}</b>
             <span>{TOPICS[topic].formula}</span>
@@ -267,10 +288,11 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
         {/* Arran as a framed portrait, not a cut-out in the room: the painted bench stands against the
             wall, so there is nowhere in the painting a waist-up figure could stand. Replace with room
             plates that have him painted in at each station when that art arrives. */}
-        <button type="button" className="arran-figure" onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk" data-place={place} data-pose={pose}>
+        {plates[place] && <button type="button" className="arran-talk-pill" onClick={talk} data-testid="arran-talk" data-place={place}>Talk to Arran · {figCaption.toLowerCase()}</button>}
+        {!plates[place] && <button type="button" className="arran-figure" onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk" data-place={place} data-pose={pose}>
           <span className="arran-figure__frame"><img src={`${BASE}${pose}.webp`} alt="Arran Embleton in a laboratory coat" draggable={false} /></span>
           <span className="arran-figure__cap">{figCaption}</span>
-        </button>
+        </button>}
         <div className="arran-lab__light" style={{ transform: `translate(${px.x * 22}px, ${px.y * 12}px)` }} aria-hidden="true" />
         <ArranSubtitle />
       </div>
