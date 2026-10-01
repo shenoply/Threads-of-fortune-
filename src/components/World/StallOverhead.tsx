@@ -424,10 +424,11 @@ export function StallOverhead({ onOpen, compact }: { onOpen?: () => void; compac
       ctx.strokeStyle = 'rgba(150,80,20,0.6)'; ctx.lineWidth = 1.2;
       for (let k = -6; k <= 6; k += 4) { ctx.beginPath(); ctx.moveTo(cx + k, cy - 7); ctx.lineTo(cx + k + 1, cy + 7); ctx.stroke(); }
       if (upgrades.includes('bazaar')) {
+        // the canopy's front edge only: a slim striped valance, so the stall under it stays visible
         const stripes = 14;
         for (let i = 0; i < stripes; i++) {
-          ctx.fillStyle = i % 2 ? 'rgba(154,51,38,0.88)' : 'rgba(236,220,184,0.88)';
-          ctx.fillRect((i * (S.w + 20)) / stripes - 10, S.h - 12, (S.w + 20) / stripes + 0.5, 34);
+          ctx.fillStyle = i % 2 ? 'rgba(122,36,22,0.75)' : 'rgba(226,204,160,0.7)';
+          ctx.fillRect((i * (S.w + 20)) / stripes - 10, S.h - 8, (S.w + 20) / stripes + 0.5, 10);
         }
       }
       ctx.restore();

@@ -96,7 +96,7 @@ function usePlates() {
 }
 const hours = (m: number) => (m >= 60 ? `${m / 60} h` : `${m} min`);
 
-export function ArranLab({ onLeave }: { onLeave: () => void }) {
+export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: () => void }) {
   const g = useGame();
   const [door, setDoor] = useState(true);
   const [tab, setTab] = useState<Tab>('test');
@@ -212,6 +212,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
             <div className="arran-btns">
               {open && <button type="button" className="btn primary" onClick={enter} data-testid="arran-enter">Step inside</button>}
               <button type="button" className={`btn ${open ? '' : 'primary'}`} onClick={onLeave} data-testid="arran-door-leave">{open ? 'Not now' : 'Come back later'}</button>
+              {onFilm && <button type="button" className="btn" onClick={onFilm} data-testid="arran-film-again">Watch the film again</button>}
             </div>
           </div>
         </div>
@@ -268,6 +269,7 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
       <header className="arran-lab__header">
         <div><strong>Arran's textile laboratory</strong><small>Giza · 1925 · {clock}</small></div>
         <span className="arran-lab__cash" data-testid="arran-cash">{fmt(g.cash)}</span>
+        {onFilm && <button type="button" className="btn" onClick={onFilm} data-testid="arran-film-again-in" title="Watch Arran's film again">▶ Film</button>}
         <button type="button" className="btn" onClick={onLeave} data-testid="arran-leave">Leave</button>
       </header>
 

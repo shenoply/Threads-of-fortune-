@@ -82,6 +82,15 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - He also comes back for a rug he walked away from without agreeing a price, if it suited him (fit 55+, interest 45+, 60%).
   - After buying, 30% of the time he comes back wanting the same rug again ("for my wife's brother"): any rug of that kind goes on the counter first; if you have none, he says so and goes (`MALEK_AGAIN`).
 
+## The menu book
+
+- Menu (the tab or the menu mark in the room) opens `MalekMenuBook.tsx`: a leather cover swings open onto parchment pages.
+  - Pages: Breakfast and the pot · From the charcoal · For the road · To drink, each with its Arabic heading.
+  - Each dish has a picture cropped from his own shop paintings (`public/art/malek/menu/<id>.webp`), its Arabic name, price in pounds, what it does, how many are left, the tab note, and Order / Buy (or a stamped reason it is off).
+  - One page at a time on a phone (swipe or the arrows), two pages side by side on a wide screen.
+  - The book closes once an order goes through; the confirm and result cards sit above it.
+- Test: `tests/malek-menubook.mjs`.
+
 ## His Arabic
 
 - **Phrases** (`src/data/malekArabic.ts`): اه وبعدين (Aah, w-ba'dein? "Ah… and then what?"), اللي خلق علّق (Elli khalaq, 'allaq. "He who made us will provide."), تملّي معاك (Tamalli ma'ak. "Always with you."), ها؟ (Ha? "Well?"), با! (Ba! "Bah!").
@@ -107,8 +116,8 @@ Nabil's and Cohen's stay first-meeting only. Tests set `localStorage['tof-films-
 
 | Who | Plays | Picture |
 |---|---|---|
-| Malek | his shop, the first time it is open to you | his video (`public/video/malek-intro.mp4`, WebM fallback); the last frame holds under the narration |
-| Arran | his laboratory, first visit | his video (`public/video/arran-intro.mp4`): examining linen with the conservator |
+| Malek | his shop, the first time it is open to you | his video (`public/video/malek-intro.mp4`, WebM fallback); after it, the camera closes in on him at his grill, then his portrait |
+| Arran | his laboratory, first visit; "Watch the film again" at his door and ▶ Film inside | his video (`public/video/arran-intro.mp4`); after it, the camera closes in on him at his microscope |
 | Abu Hamid | the coffee house, first visit | the Giza map closing in on his tables, then his portrait |
 | Uncle Rashid | his warehouse, first visit | the Cairo map, his portrait |
 | Nabil al-Khatib | the first time he comes to your stall (his greeting waits for the film) | Cairo, his figure, his portrait |
@@ -116,7 +125,7 @@ Nabil's and Cohen's stay first-meeting only. Tests set `localStorage['tof-films-
 
 - **Films:** defined in `src/components/IntroFilm/films.ts`.
 - **Narration:**
-  - `tools/generate-intro-films.py` records it offline (Kokoro `bm_lewis`: a stock synthetic narrator, not Arran's voice, not a clone) into `public/audio/intro/<who>.mp3`, with the caption timings in `src/data/introFilms.ts`.
+  - `tools/generate-intro-films.py` records it offline (Kokoro `bf_emma`: a stock synthetic woman's voice, so the narrator never sounds like Arran's `bm_george`; not a clone) into `public/audio/intro/<who>.mp3`, with the caption timings in `src/data/introFilms.ts`.
   - Each film says who the character is and what they do for you.
 
 ## Rules

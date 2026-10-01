@@ -1,17 +1,20 @@
 import type { BuyerDef } from '../game/types';
 
-// Cohen: a fictional Egyptian Jewish textile wholesaler, 43, born in Alexandria, with a modest Cairo
-// office (docs/handoff/COHEN_TRADER_CLAUDE_HANDOFF.md). Egyptian Arabic in the trade, French with some
-// suppliers. His mother taught him to judge colour in daylight; his wife Miriam keeps the office books
-// while he travels. He buys reliable rugs for hotel corridors and steamship cabins and cares about
-// edges, dimensions, colour that holds and delivery on the day, not origin stories. Patient and
-// precise. His identity is part of his life and calendar, never a bargaining modifier.
+// Cohen: a fictional Egyptian Jewish textile wholesaler, born in Alexandria, with a Cairo office
+// (docs/handoff/COHEN_TRADER_CLAUDE_HANDOFF.md, updated by docs/handoff/COHEN_CHARACTER_UPDATE_FOR_CLAUDE.md).
+// Egyptian Arabic in the trade, French with some suppliers. His mother taught him to judge colour in
+// daylight; his wife Miriam keeps the office books while he travels. Short and stocky, cream linen
+// three-piece suit, a leather notebook. Very wealthy, always after his margin: he will not overpay.
+// He does not like you: he believes you undercut him on the Nile Crescent Hotel corridor contract last
+// spring (his belief; the story has not settled what happened). Cool, curt, rarely complimentary, but a
+// contract kept earns his professional trust. His identity is part of his life and calendar, never a
+// bargaining modifier, and his dislike is a commercial grudge, nothing else.
 // His visits run on orders (src/game/systems/cohen.ts), not the ordinary haggle.
 
 export const COHEN: BuyerDef = {
   id: 'cohen', name: 'Cohen', role: 'Textile wholesaler with an office in Cairo; supplies hotels and steamship lines', roomWord: 'corridor',
-  bio: 'Born in Alexandria, forty-three. Keeps swatches and shipment notes in a pocket book; his wife Miriam runs the office accounts while he travels. Wants sound rugs, delivered on the day.',
-  budget: [300, 3000], patience: 90, trust: 50, interest: 50,
+  bio: 'Born in Alexandria. A very rich wholesaler who still counts every piastre of margin: purchase, transport, defects, resale. Thinks you undercut him on the Nile Crescent Hotel contract and has not forgiven it. His wife Miriam runs the office books while he travels.',
+  budget: [300, 3000], patience: 76, trust: 50, interest: 50,
   values: { hardwearing: 3, wool: 2, restrained: 1, darkField: 1, washable: 1, fragile: -3, silk: -2, antique: -1 },
   colourPref: { crimson: 1, indigo: 1, mixed: 0, gold: 0, ivory: -1 },
   args: { story: 0.2, craft: 1, fit: 1.2, durability: 2 },
@@ -35,16 +38,16 @@ export const COHEN: BuyerDef = {
   ],
   silhouette: 'scarf', accent: '#5b4a33',
   lines: {
-    arrival: ['A man in a pale linen suit, a pocket book in one hand, comes to the stall and nods to you.', 'Cohen arrives, pocket book in hand.'],
-    greeting: ['My client needs two rugs for a corridor where boots cross all day. Show me the edges first; the pattern can wait.'],
-    repeat: ['Good morning. I have another order, if you have the stock.', 'Cohen again. How are the rugs holding?'],
+    arrival: ['A short, stocky man in a cream linen suit, a leather notebook in one hand, stops at the stall and does not smile.', 'Cohen arrives, notebook already open.'],
+    greeting: ["I don't have to like you. The numbers have to work. You took the Nile Crescent corridor from me last spring at a price nobody honest could match. This time I have the order: two rugs, boots all day. Edges first."],
+    repeat: ["Another order. Don't read anything into it.", 'Cohen again. The numbers worked last time. Barely.'],
     room: ['A hotel corridor, two point two metres by one point two. Boots all day, porters with trunks at night.'],
     drawnTo: ['Colour that holds, edges that hold, and two rugs that look like brothers.'],
     budgetEarly: ['My client pays a fair wholesale price. I will name it when I see what you have.'],
     budgetLate: ['Three pounds a rug for sound stock, paid on delivery. That is the contract price.'],
     decider: ['I decide what I buy. My client decides whether I buy from them again.'],
     smallTalk: ['My mother taught me to look at colour in daylight, never under a lamp. She was right.', 'The steamship lines want everything by the next sailing. Everyone wants everything by the next sailing.'],
-    tea: ['Thank you. My wife says I drink too much of it on the road.'],
+    tea: ['I will drink it. It changes nothing.'],
     earlyPresent: ['Before the rug, the order. Let me tell you what I need.'],
     rugGood: ['This one I can use. Let me see the back.'],
     rugNeutral: ['Possibly. The edges first.'],
@@ -58,22 +61,22 @@ export const COHEN: BuyerDef = {
     repeatArg: ['You told me. Let us move on.'],
     embellishBelieved: ['Interesting. It does not change the edges.'],
     embellishCaught: ['That is not true, and I did not need it to be.'],
-    priceLow: ['Done.'], priceFair: ['Fair. Done.'], priceHigh: ['Too much for a corridor.'], priceInsult: ['No.'],
+    priceLow: ['Done.'], priceFair: ['Fair. Done.'], priceHigh: ['At that price, you earn twice and I earn nothing. Try again.'], priceInsult: ['No.'],
     counter: ['My figure is {price} a rug.'], holdGive: ['{price}, then.'], holdRefuse: ['No. My client has a budget.'],
     sweetener: ['Delivery to the office is useful. Thank you.'],
     impatience: ['I have a train at four.'],
-    success: ['Good. Miriam will enter it in the books tonight.', 'Thank you. My client will be pleased, and so will I.'],
+    success: ["We have an agreement. Don't mistake it for friendship.", 'Delivered. Miriam will enter it in the books tonight.'],
     badSale: ['It will do.'],
-    walkAway: ['Another time, when you have the stock.', 'We may do business on the next order.'],
-    saffron: ['Your cat approves of the wool. So do I.'],
-    commission: ['I will have another order after this one, if this one goes well.'],
-    commissionDone: ['Delivered as promised. That is rarer than good wool.'],
-    referral: ['I told a steamship agent about your stall. He is punctual; be punctual with him.'],
+    walkAway: ["The margin is too thin. I'll leave it.", 'Another time, when you have the stock.'],
+    saffron: ['Your cat is on my rug.'],
+    commission: ['A single sale is pleasant. A repeat order is a business.'],
+    commissionDone: ['The order arrived on time. That is why I am back.'],
+    referral: ['A steamship agent asked where my corridor rugs came from. I told him. Do not thank me; he asked.'],
     rare: ['This is too fine for a corridor. Keep it for someone who will not walk on it.'],
     embellishLater: ['What you told me about the {rug} was not true. It did not matter to the corridor, but it matters to me.'],
-    previousRug: ['The corridor rugs are wearing well. The hotel has asked for more.'],
+    previousRug: ['The order arrived on time. That is why I am back.'],
     concession: ['Thank you.'],
-    catPet: ['She has an eye for wool.'],
+    catPet: ['Keep her off the stock.'],
   },
 };
 export const COHEN_TIERS: [number, number] = [1, 2];

@@ -3,152 +3,152 @@
 export interface IntroCue { start: number; end: number; text: string }
 export const INTRO_FILMS: Record<string, { length: number; cues: IntroCue[] }> = {
   "malek": {
-    "length": 24.95,
+    "length": 21.56,
     "cues": [
       {
         "start": 0.8,
-        "end": 7.02,
+        "end": 5.74,
         "text": "Giza, 1925. Behind the bazaar, a charcoal grill, run by one man."
       },
       {
-        "start": 7.57,
-        "end": 15.18,
+        "start": 6.29,
+        "end": 12.84,
         "text": "Malek. Boo Rayan to his son, Al-Mallem to the lane: the boss. No partners, no patience, and four tables."
       },
       {
-        "start": 15.73,
-        "end": 20.67,
+        "start": 13.39,
+        "end": 17.77,
         "text": "He expects the worst of everyone. And yet the kofta is the best in the lane."
       },
       {
-        "start": 21.22,
-        "end": 24.4,
+        "start": 18.32,
+        "end": 21.01,
         "text": "Whatever lives in his storeroom, he has never said."
       }
     ]
   },
-  "arran": {
-    "length": 25.88,
-    "cues": [
-      {
-        "start": 0.8,
-        "end": 9.08,
-        "text": "Arran Embleton. A British textile chemist in Giza, with a microscope, a balance, and strong opinions about wool."
-      },
-      {
-        "start": 9.63,
-        "end": 15.73,
-        "text": "He tells you what a rug is really made of: the fibre, the dye, and whether the colour runs."
-      },
-      {
-        "start": 16.28,
-        "end": 21.6,
-        "text": "His signed reports travel with the rug. A buyer who doubts you will believe him."
-      },
-      {
-        "start": 22.15,
-        "end": 25.33,
-        "text": "Bring him the books he needs, and he can test more."
-      }
-    ]
-  },
   "abuhamid": {
-    "length": 28.04,
+    "length": 24.1,
     "cues": [
       {
         "start": 0.8,
-        "end": 6.62,
+        "end": 5.67,
         "text": "At the end of your lane, under a vine, there is a coffee house. Its keeper is Abu Hamid."
       },
       {
-        "start": 7.17,
-        "end": 13.03,
+        "start": 6.22,
+        "end": 11.38,
         "text": "He has poured coffee for your father, for the drivers of pashas, and for every rumour in Giza."
       },
       {
-        "start": 13.58,
-        "end": 21.81,
+        "start": 11.93,
+        "end": 18.84,
         "text": "Ask him for the news, the roads north, or men who can hold a rifle. He will tell you slowly, and laugh at his own jokes."
       },
       {
-        "start": 22.36,
-        "end": 27.49,
+        "start": 19.39,
+        "end": 23.55,
         "text": "Half of what a merchant needs to know in this town is said first at his tables."
       }
     ]
   },
   "rashid": {
-    "length": 25.4,
+    "length": 22.05,
     "cues": [
       {
         "start": 0.8,
-        "end": 8.16,
+        "end": 7.1,
         "text": "Uncle Rashid. A wholesaler in the old khan of Cairo, who sold rugs to your father for thirty years."
       },
       {
-        "start": 8.71,
-        "end": 13.08,
+        "start": 7.65,
+        "end": 11.17,
         "text": "He is loud, he is old, and he will roast you every single day."
       },
       {
-        "start": 13.63,
-        "end": 20.96,
+        "start": 11.72,
+        "end": 17.95,
         "text": "He sells you your stock, and on credit when your purse is thin. Pay him on the day, or hear about it for a month."
       },
       {
-        "start": 21.51,
-        "end": 24.85,
+        "start": 18.5,
+        "end": 21.5,
         "text": "He would never admit that he is fond of you. He is."
       }
     ]
   },
   "nabil": {
-    "length": 27.19,
+    "length": 24.31,
     "cues": [
       {
         "start": 0.8,
-        "end": 7.87,
+        "end": 6.82,
         "text": "Nabil al-Khatib. One of the wealthiest textile merchants in Cairo, with a warehouse behind the Muski."
       },
       {
-        "start": 8.42,
-        "end": 14.58,
+        "start": 7.37,
+        "end": 12.91,
         "text": "He built his fortune on a list of importers and an exact eye for knots, dyes and repairs."
       },
       {
-        "start": 15.13,
-        "end": 22.09,
+        "start": 13.46,
+        "end": 19.63,
         "text": "He pays well for what he can defend, and walks away from what he cannot. Flattery and hurry only cost you."
       },
       {
-        "start": 22.64,
-        "end": 26.64,
+        "start": 20.18,
+        "end": 23.76,
         "text": "Tell him the truth about a rug. He will find it out anyway."
       }
     ]
   },
   "cohen": {
-    "length": 26.52,
+    "length": 23.7,
     "cues": [
       {
         "start": 0.8,
-        "end": 6.28,
-        "text": "Cohen. Born in Alexandria, a textile wholesaler with an office in Cairo."
+        "end": 5.93,
+        "text": "Cohen. Born in Alexandria, a very rich textile wholesaler with an office in Cairo."
       },
       {
-        "start": 6.83,
-        "end": 15.38,
-        "text": "He furnishes hotel corridors and steamship cabins, and he cares about sound edges, colour that holds, and delivery on the day."
+        "start": 6.48,
+        "end": 12.06,
+        "text": "He furnishes hotel corridors and steamship cabins, and he counts every piastre of his margin."
       },
       {
-        "start": 15.93,
-        "end": 20.6,
-        "text": "He comes with orders. Keep your promise to him, and he keeps coming back."
+        "start": 12.61,
+        "end": 18.1,
+        "text": "He does not like you. He believes you undercut him on a hotel contract, and he has not forgotten it."
       },
       {
-        "start": 21.15,
-        "end": 25.97,
-        "text": "His wife Miriam keeps the books. Very little gets past either of them."
+        "start": 18.65,
+        "end": 23.15,
+        "text": "But he comes with orders. Keep your promise, and the numbers will keep bringing him back."
+      }
+    ]
+  },
+  "arran": {
+    "length": 21.95,
+    "cues": [
+      {
+        "start": 0.8,
+        "end": 7.64,
+        "text": "Arran Embleton. A British textile chemist in Giza, with a microscope, a balance, and strong opinions about wool."
+      },
+      {
+        "start": 8.19,
+        "end": 13.06,
+        "text": "He tells you what a rug is really made of: the fibre, the dye, and whether the colour runs."
+      },
+      {
+        "start": 13.61,
+        "end": 18.1,
+        "text": "His signed reports travel with the rug. A buyer who doubts you will believe him."
+      },
+      {
+        "start": 18.65,
+        "end": 21.4,
+        "text": "Bring him the books he needs, and he can test more."
       }
     ]
   }

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { takeMalekRequest } from '../../game/nav';
-import { IntroFilm, filmDue, type FilmId } from '../IntroFilm/IntroFilm';
+import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
 import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
@@ -795,7 +795,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         <button className="btn primary" onClick={() => { save(); if (onZoomOut) onZoomOut(); else onWorld(); }} data-testid="district-world">⤢ Zoom out to the world</button>
       </div>
       {panel && <SettlementPanel id="giza" tab={panel} onClose={() => { setPanel(null); onPanelClosed?.(); }} onStall={onStall} />}
-      {lab && <ArranLab onLeave={() => setLab(false)} />}
+      {lab && <ArranLab onLeave={() => setLab(false)} onFilm={filmReady('arran') ? () => setFilm('arran') : undefined} />}
       {film && createPortal(<IntroFilm id={film} onDone={() => { useGame.getState().markIntroSeen(film); setFilm(null); }} />, document.body)}
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}

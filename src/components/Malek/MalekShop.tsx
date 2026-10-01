@@ -17,6 +17,7 @@ import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { MalekMutter } from './MalekMutter';
+import { MalekMenuBook } from './MalekMenuBook';
 import { IntroFilm, filmReady, filmDue } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
 
@@ -66,6 +67,9 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const fedNow = wellFedNow(cond, now);
   const rugType = g.malek?.rug ? RUGS[g.malek.rug] : undefined;
   const rugImg = useMemo(() => (rugType ? rugSrc(rugType) : undefined), [rugType]);
+
+  // the book closes once an order goes through, so the plate arrives in the room
+  useEffect(() => { if (result) setPanel((p) => (p === 'menu' ? null : p)); }, [result]);
 
   const talkTurn = useRef(Math.floor(Math.random() * 6));
   const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));
@@ -187,33 +191,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
           <button role="tab" aria-selected={panel === 'food'} className={panel === 'food' ? 'is-on' : ''} onClick={() => setPanel(panel === 'food' ? null : 'food')} data-testid="malek-tab-food">Your parcels{parcels.length ? ` · ${parcels.reduce((n, p) => n + p.servings, 0)}` : ''}</button>
           <button role="tab" aria-selected={panel === 'talk'} className={panel === 'talk' ? 'is-on' : ''} onClick={() => setPanel(panel === 'talk' ? null : 'talk')} data-testid="malek-talk">Talk to Malek</button>
         </div>
-        {panel === 'menu' && (
-          <ul className="malek-menu" data-testid="malek-menu">
-            {MALEK_MENU.map((it) => {
-              const av = availability(it, g.world.hour, g.day, g.malek);
-              const left = stockLeft(it, g.malek, g.day);
-              return (
-                <li key={it.id} className={av.ok ? '' : 'is-off'} data-testid={`malek-item-${it.id}`}>
-                  <div className="malek-item__head">
-                    <b>{it.name}</b> <span className="malek-ar" lang="ar" dir="rtl">{it.nameAr}</span>
-                    <span className="malek-price">{it.price} PT</span>
-                  </div>
-                  <p>{it.description}</p>
-                  <p className="malek-chips">{effectChips(it).map((c) => <span key={c}>{c}</span>)}</p>
-                  <p className="malek-meta">
-                    {it.consumption === 'eat_in' ? `Eat here · ${MEAL_MINUTES} min` : `Take away · ${it.servings} serving${it.servings > 1 ? 's' : ''} · ${it.weightKg} kg · keeps ${parcelDays(it, g.day)} game days`}
-                    {Number.isFinite(left) && av.ok ? ` · ${left} left today` : ''}
-                  </p>
-                  {tab > 0 && tabCovers(it) && av.ok && <p className="malek-tabnote">On Malek's tab: {tab} plate{tab === 1 ? '' : 's'} left</p>}
-                  {av.ok
-                    ? <button className="btn primary small" onClick={() => ask(it.id)} data-testid={`malek-buy-${it.id}`}>{it.consumption === 'eat_in' ? 'Order' : 'Buy'}</button>
-                    : <span className="malek-off" data-testid={`malek-off-${it.id}`}>{UNAVAILABLE_WORD[av.why]}</span>}
-                </li>
-              );
-            })}
-            <li className="malek-note">Prices, effects and keeping times are game values, not 1925 prices or real food-safety advice. Water is free from the jar by the door; salted parcels do not count as water.</li>
-          </ul>
-        )}
+        {panel === 'menu' && <MalekMenuBook hour={g.world.hour} day={g.day} malek={g.malek} onOrder={ask} onClose={() => setPanel(null)} />}
         {panel === 'talk' && (
           <div className="malek-topics" data-testid="malek-topics">
             {topicsFor(g.malek).map((t) => <button key={t} className="btn small" onClick={() => { audio.sfx('tap'); say(t); }} data-testid={`malek-topic-${t}`}>{TOPIC_LABEL[t]}</button>)}
@@ -263,7 +241,7 @@ function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: (useTab
       <div className="malek-sheet__card">
         <h3>{it.name} <span className="malek-ar" lang="ar" dir="rtl">{it.nameAr}</span></h3>
         <dl className="malek-dl">
-          <dt>Price</dt><dd data-testid="malek-confirm-price">{it.price} PT ({fmt(it.price)}) · you have {fmt(g.cash)}</dd>
+          <dt>Price</dt><dd data-testid="malek-confirm-price">{fmt(it.price)} · you have {fmt(g.cash)}</dd>
           <dt>Servings</dt><dd>{it.servings}{it.consumption === 'inventory' ? ' (each eaten later, one at a time)' : ' (eaten now)'}</dd>
           <dt>Carry weight</dt><dd>{it.weightKg ? `${it.weightKg} kg` : 'none: eaten at the table'}</dd>
           {it.consumption === 'inventory' && <><dt>Keeps</dt><dd>{parcelDays(it, g.day)} game days (a game value, not food-safety advice)</dd></>}
@@ -273,7 +251,7 @@ function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: (useTab
         {it.consumption === 'inventory' && <p className="malek-meta">Nothing happens to you until you eat a serving. Salted food costs water.</p>}
         <div className="malek-row">
           {(g.malek?.tab ?? 0) > 0 && tabCovers(it) && <button className="btn primary" disabled={busy} onClick={() => { if (busy) return; setBusy(true); onPay(true); }} data-testid="malek-pay-tab">On Malek's tab ({g.malek?.tab} left)</button>}
-          <button className={`btn ${(g.malek?.tab ?? 0) > 0 && tabCovers(it) ? '' : 'primary'}`} disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${it.price} PT`}</button>
+          <button className={`btn ${(g.malek?.tab ?? 0) > 0 && tabCovers(it) ? '' : 'primary'}`} disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${fmt(it.price)}`}</button>
           <button className="btn" onClick={onCancel} data-testid="malek-cancel">Cancel</button>
         </div>
       </div>

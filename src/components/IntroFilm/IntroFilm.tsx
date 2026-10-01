@@ -99,6 +99,9 @@ function Stills({ stills, length, playing }: { stills: Still[]; length: number; 
               ['--s0' as string]: st.from[0], ['--s1' as string]: st.to[0],
               ['--o0' as string]: `${st.from[1]}% ${st.from[2]}%`, ['--o1' as string]: `${st.to[1]}% ${st.to[2]}%`,
               animationDuration: `${each + 1.5}s`, animationPlayState: playing ? 'running' : 'paused',
+              // a painting cropped to the screen keeps its focus in view (on a phone a wide painting
+              // loses its sides), so the push-in lands on the person, not beside them
+              ...(st.fit === 'cover' ? { objectPosition: `${st.to[1]}% ${st.to[2]}%` } : {}),
             }}
           />
         </div>

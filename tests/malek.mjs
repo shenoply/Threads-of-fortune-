@@ -11,6 +11,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftsha
 const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2, hasTouch: !!process.env.TOUCH });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error' && !/favicon|404|Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 160)); });
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
+const openMenu = async () => { if (!(await has('malek-menu'))) { await p.click('[data-testid=malek-tab-menu]'); await p.waitForTimeout(200); } };
 const st = async () => JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).state;
 const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
@@ -88,16 +89,16 @@ try {
   console.log('result:', (await p.locator('[data-testid=malek-result]').innerText()).replace(/\s+/g, ' ').slice(0, 260));
   await p.screenshot({ path: `${S}/m-result.png` });
   await p.click('[data-testid=malek-result-ok]');
-  // a second kofta: no extra energy within the window
-  await p.click('[data-testid=malek-buy-malek_kofta]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300);
+  // a second kofta: no extra energy within the window (the book closed with the order; open it again)
+  await openMenu(); await p.click('[data-testid=malek-buy-malek_kofta]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300);
   s = await st();
   console.log('second kofta: fatigue', s.condition.fatigue, 'fed', s.condition.fed, '| report:', (await p.locator('[data-testid=malek-report]').innerText()).replace(/\s+/g, ' ').slice(0, 200));
   await p.click('[data-testid=malek-result-ok]');
 
   // parcels: bought into the pack, nothing eaten yet
   const fedBefore = s.condition.fed;
-  await p.click('[data-testid=malek-buy-malek_caravan_pack]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300); await p.click('[data-testid=malek-result-ok]');
-  await p.click('[data-testid=malek-buy-malek_bastirma]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300); await p.click('[data-testid=malek-result-ok]');
+  await openMenu(); await p.click('[data-testid=malek-buy-malek_caravan_pack]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300); await p.click('[data-testid=malek-result-ok]');
+  await openMenu(); await p.click('[data-testid=malek-buy-malek_bastirma]'); await p.click('[data-testid=malek-pay]'); await p.waitForTimeout(300); await p.click('[data-testid=malek-result-ok]');
   s = await st();
   console.log('parcels:', JSON.stringify(s.parcels.map((x) => [x.item, x.servings, x.spoilsDay])), '| fed unchanged by buying:', s.condition.fed === fedBefore);
   await p.click('[data-testid=malek-tab-food]'); await p.waitForTimeout(200);

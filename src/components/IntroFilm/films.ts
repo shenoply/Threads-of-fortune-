@@ -21,7 +21,8 @@ export const FILMS: Record<FilmId, Film> = {
     title: "Malek's grill · Giza, 1925", name: 'Malek',
     video: { mp4: 'video/malek-intro.mp4', webm: 'video/malek-intro.webm', poster: 'video/malek-intro-poster.webp', last: 'video/malek-intro-last.webp' },
     after: [
-      { src: 'art/malek/scene-grilling.webp', fit: 'cover', from: [1.05, 30, 45], to: [1.25, 25, 40] },
+      // Malek at his grill (about 33% across, 44% down the painting): the camera closes in on him
+      { src: 'art/malek/scene-grilling.webp', fit: 'cover', from: [1.05, 34, 45], to: [2.1, 34, 43] },
       { src: 'art/portraits/malek.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 35] },
     ],
   },
@@ -29,7 +30,8 @@ export const FILMS: Record<FilmId, Film> = {
     title: "Arran's textile laboratory · Giza, 1925", name: 'Arran Embleton',
     video: { mp4: 'video/arran-intro.mp4', webm: 'video/arran-intro.webm', poster: 'video/arran-intro-poster.webp', last: 'video/arran-intro-last.webp' },
     after: [
-      { src: 'art/arran/13-lab-room.webp', fit: 'cover', from: [1, 50, 50], to: [1.18, 45, 45] },
+      // Arran at his microscope (painted in at 47% across): the camera closes in on him
+      { src: 'art/arran/stations/lab-microscope.webp', fit: 'cover', from: [1.05, 47, 50], to: [1.8, 47, 36] },
       { src: 'art/arran/11-lab-inspect.webp', fit: 'contain', from: [1, 50, 30], to: [1.12, 50, 25] },
     ],
   },

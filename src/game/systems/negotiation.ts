@@ -23,7 +23,7 @@ export type ActionId =
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
   | 'm_charm' | 'm_kind' | 'm_firm'
   | 'nabil_package'
-  | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
+  | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_more' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
 
 export interface ActionView {
   id: ActionId;
@@ -69,6 +69,9 @@ export interface Encounter {
   cohenOk?: string[];
   cohenManual?: Record<string, 'fast' | 'runs'>;
   cohenDelivered?: boolean;
+  /** Cohen: his price per rug on this order (raised once if you earned it), and how often you pushed for more */
+  cohenPrice?: number;
+  cohenPushed?: number;
   presentedFit: number;
   rugsShown: string[];
   argsUsed: string[];
@@ -858,7 +861,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'system', 'Tap another rug to present it.');
       break;
 
-    case 'c_measure': case 'c_deadline': case 'c_accept': case 'c_decline': case 'c_rub': case 'c_keep': case 'c_deliver': case 'c_leave':
+    case 'c_measure': case 'c_deadline': case 'c_accept': case 'c_decline': case 'c_more': case 'c_rub': case 'c_keep': case 'c_deliver': case 'c_leave':
       cohenAction(enc, ctx, id, fx);
       break;
     case 'nabil_package': {
@@ -1124,7 +1127,9 @@ function cohenActions(enc: Encounter, ctx: Ctx): ActionView[] {
     const out: ActionView[] = [];
     if (!asked.includes('measure')) out.push({ id: 'c_measure', label: 'Ask the measurements', sub: 'What size the corridor needs', icon: 'room' });
     if (!asked.includes('deadline')) out.push({ id: 'c_deadline', label: 'Ask about the deadline', sub: 'When he needs them', icon: 'calendar' });
-    out.push({ id: 'c_accept', label: `Promise two rugs by ${dateFor(due).short}`, sub: `${fmt(ORDER_PRICE_PER)} a rug, paid on delivery`, icon: 'check' });
+    const per = enc.cohenPrice ?? ORDER_PRICE_PER;
+    out.push({ id: 'c_accept', label: `Promise two rugs by ${dateFor(due).short}`, sub: `${fmt(per)} a rug, paid on delivery`, icon: 'check' });
+    if (asked.includes('measure') && (enc.cohenPushed ?? 0) < 2 && enc.cohenPrice == null) out.push({ id: 'c_more', label: 'Ask more a rug', sub: (enc.cohenPushed ?? 0) ? 'Push again: he may walk' : 'He watches his margin', icon: 'purse' });
     out.push({ id: 'c_decline', label: 'Not this time', sub: 'No harm done', icon: 'hand' });
     return out.slice(0, 4);
   }
@@ -1155,27 +1160,47 @@ function cohenAction(enc: Encounter, ctx: Ctx, id: ActionId, fx: Effects) {
     case 'c_measure':
       enc.cohenAsked.push('measure');
       say(enc, 'seller', 'What size does the corridor need?');
-      buyerSay(enc, 'Two point two metres by one point two. Each rug between one metre seventy and two metres forty long, at least a metre wide. Hard-wearing wool, sound edges, and a pair that match.', 'neutral');
+      buyerSay(enc, 'Two rugs. Same dimensions, same colour. Can you manage that? Each between one metre seventy and two metres forty long, at least a metre wide. Hard-wearing wool, sound edges.', 'neutral');
       break;
     case 'c_deadline': {
       enc.cohenAsked.push('deadline');
       const due = dueFor(day, (d) => dateFor(d).weekday);
       say(enc, 'seller', 'When do you need them?');
-      buyerSay(enc, `Seven days: ${dateFor(due).long}. ${fmt(ORDER_PRICE_PER)} a rug, paid when both are delivered. I do not trade on Saturday until evening, so if the day falls on a Saturday I come on the Sunday.`, 'neutral');
+      buyerSay(enc, `Seven days: ${dateFor(due).long}. ${fmt(enc.cohenPrice ?? ORDER_PRICE_PER)} a rug, paid when both are delivered. I do not trade on Saturday until evening, so if the day falls on a Saturday I come on the Sunday.`, 'neutral');
       break;
     }
     case 'c_accept': {
       const due = dueFor(day, (d) => dateFor(d).weekday);
-      enc.cohenAccepted = { dueDay: due, pricePer: ORDER_PRICE_PER };
+      enc.cohenAccepted = { dueDay: due, pricePer: enc.cohenPrice ?? ORDER_PRICE_PER };
       say(enc, 'seller', `Two rugs by ${dateFor(due).short}. You have my word.`);
-      buyerSay(enc, 'Then we have an agreement. I will write it in my book. Show me what you have now, or bring them by the day.', 'pleased');
+      buyerSay(enc, "We have an agreement. Don't mistake it for friendship. Show me what you have now, or bring them by the day.", 'neutral');
       enc.stage = 'presentation';
       gain(fx, 'haggling', 2);
       break;
     }
+    case 'c_more': {
+      // he is rich, and that changes what he can order, not what he will pay: only a seller who has
+      // already delivered to him, and whom he trusts in business, gets a little more a rug
+      const pushed = (enc.cohenPushed = (enc.cohenPushed ?? 0) + 1);
+      const c = ctx.cohen;
+      say(enc, 'seller', pushed === 1 ? `${fmt(ORDER_PRICE_PER)} is thin for two sound corridor rugs. Make it more.` : 'I still need more than that.');
+      if (pushed === 1 && c && c.ordersDone >= 1 && enc.trust >= 60) {
+        enc.cohenPrice = ORDER_PRICE_PER + 25;
+        buyerSay(enc, `A single sale is pleasant. A repeat order is a business. ${fmt(enc.cohenPrice)} a rug, because you delivered last time. Not because I like you.`, 'neutral');
+      } else if (pushed === 1) {
+        adjust(enc, { patience: -10 });
+        buyerSay(enc, 'At that price, you earn twice and I earn nothing. Try again.', 'skeptical');
+      } else {
+        adjust(enc, { trust: -5 });
+        buyerSay(enc, "The margin is too thin. I'll leave it.", 'leaving');
+        enc.outcome = 'walked';
+        enc.stage = 'close';
+      }
+      break;
+    }
     case 'c_decline':
       say(enc, 'seller', 'Not this time. I do not have the stock.');
-      buyerSay(enc, 'Honest. Better than a promise you cannot keep. Another time.', 'neutral');
+      buyerSay(enc, 'Then you have wasted neither of our afternoons. Another time.', 'neutral');
       enc.outcome = 'walked';
       enc.stage = 'close';
       break;
