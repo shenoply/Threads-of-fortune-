@@ -10,6 +10,8 @@ import { RugViewer } from '../RugViewer/RugViewer';
 import { CaravanRoster } from '../World/CaravanPanels';
 import { StallUpgrades, affordableUpgrades, openUpgrades } from './StallUpgrades';
 import { settlementById } from '../../game/systems/world';
+import { malekItem } from '../../data/malekMenu';
+import { fedOf, parcelWeight, parcelsWeight, waterOf } from '../../game/systems/malek';
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
   const g = useGame();
@@ -35,6 +37,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
           ))}
         </div>
       )}
+      <ParcelList />
       <div className="inv-list">
         {g.inventory.map((i) => {
           const t = RUGS[i.typeId];
@@ -85,6 +88,31 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
       <div className="section-label" id="sec-upgrades">STALL UPGRADES</div>
       <StallUpgrades />
       {view && <RugViewer uid={view} onClose={() => setView(null)} />}
+    </div>
+  );
+}
+
+/** Food parcels from Malek's: eaten one serving at a time, here or on the road (no time passes). */
+function ParcelList() {
+  const g = useGame();
+  const [note, setNote] = useState('');
+  const ps = g.parcels ?? [];
+  if (!ps.length) return null;
+  const c = g.condition;
+  return (
+    <div className="inv-papers" data-testid="inv-parcels">
+      <div className="section-label">FOOD FOR THE ROAD · {parcelsWeight(ps)} kg</div>
+      <p><small>Fed {fedOf(c)}/100 · Water {waterOf(c)}/100 · Fatigue {c?.fatigue ?? 0}. Fed at nightfall, your own ration stays in the sack. Salted food costs water.</small></p>
+      {ps.map((p) => {
+        const it = malekItem(p.item);
+        return (
+          <p key={p.uid} data-testid={`inv-parcel-${p.item}`}>
+            <b>{it.name}</b> · {p.servings} serving{p.servings === 1 ? '' : 's'} · {parcelWeight(p)} kg · good until day {p.spoilsDay}{' '}
+            <button className="btn small" onClick={() => { const r = useGame.getState().eatParcel(p.uid); setNote(r.report ? `${r.msg} Fed +${r.report.fed.gain}${r.report.fed.wasted ? ` (${r.report.fed.wasted} wasted)` : ''}, fatigue −${r.report.rest.gain}, water ${r.report.water.gain}.` : r.msg); }} data-testid={`inv-eat-${p.uid}`}>Eat a serving</button>
+          </p>
+        );
+      })}
+      {note && <p role="status" data-testid="inv-parcel-note"><small>{note}</small></p>}
     </div>
   );
 }

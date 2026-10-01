@@ -48,8 +48,10 @@ import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKI
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
+import { malekItem, type MalekItemId } from '../../data/malekMenu';
+import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, STORY_BUYER, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -189,6 +191,10 @@ export interface GameState {
   condition?: Condition1925;
   /** Arran's cabinet: goods held, by id */
   cabinet?: Partial<Record<CabinetId, number>>;
+  /** Malek's grill: today's sales, his last scene and lines, the five-visit story */
+  malek?: MalekState;
+  /** food parcels carried from Malek's (servings are eaten one at a time) */
+  parcels?: FoodParcel[];
   /** a journey under way (path, how far along, by what): kept so a paid train or ship survives the map
    *  screen being rebuilt, a new day, or a reload */
   journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' };
@@ -343,6 +349,17 @@ interface Actions {
   buyTonic: () => string;
   takeTonic: () => string;
   cabinetBuy: (id: CabinetId) => string;
+  /** walk into Malek's: the picture for this visit, his greeting, and a story stage if one is due */
+  malekEnter: () => { scene: MalekScene; line: string; stage: number | null };
+  /** buy from Malek: eat in now, or take a parcel. `order` is a one-off token so a double tap
+   *  cannot charge twice. */
+  malekBuy: (id: MalekItemId, order: string) => { ok: boolean; msg: string; report?: MealReport };
+  /** eat one serving from a parcel you carry */
+  eatParcel: (uid: string) => { ok: boolean; msg: string; report?: MealReport };
+  /** one line from Malek for a context (not one he has just said) */
+  malekSay: (ctx: LineCtx) => string;
+  /** the story stage was played through (or knowingly skipped): commit it once */
+  malekStoryDone: (stage: number) => void;
   useRestorative: () => string;
   assessProvisions: () => string;
   buyDiet: () => string;
@@ -785,7 +802,10 @@ export const useGame = create<GameState & Actions>()(
           let cash = s.cash;
           // Caravan upkeep: rations, then wages. In a town you can buy bread if the sacks are empty.
           const party: PartyState = { ...s.world.party, troops: { ...s.world.party.troops } };
-          const need = dailyFood(party);
+          // Malek's meters: fed tonight means your own ration stays in the sack; thirst tires you
+          const night = nightMeters({ ...(s.condition ?? CONDITION_START) }, { onRoad: !s.world.at, provisions: party.food > 0 });
+          if (night.thirsty) notes.push('You went to sleep thirsty. Salted food on the road wants water.');
+          const need = Math.max(0, dailyFood(party) - night.skipRation);
           let foodCost = 0;
           if (party.food < need && s.world.at) {
             const price = MARKETS[s.world.at]?.food ?? 2;
@@ -795,7 +815,13 @@ export const useGame = create<GameState & Actions>()(
             cash -= foodCost;
           }
           // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
-          const condition = dayCondition(s.condition, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
+          const condition = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
+          // parcels past their (game) freshness are thrown away
+          const parcels = (s.parcels ?? []).filter((pc) => {
+            if (parcelFresh(pc, s.day + 1)) return true;
+            notes.push(`Your ${malekItem(pc.item).name.toLowerCase()} has gone off. You throw it away.`);
+            return false;
+          });
           let repBill = 0;
           if (party.food >= need) { party.food -= need; party.hungryDays = 0; }
           else {
@@ -1028,6 +1054,9 @@ export const useGame = create<GameState & Actions>()(
             queue.push('cohen');
             if (cohen?.order?.status === 'accepted' && day >= cohen.order.dueDay) notes.push('Cohen is coming today for his order.');
           }
+          // Malek comes to look at rugs now and then, once you have eaten at his place
+          let malekPatch: MalekState | undefined;
+          if (!queue.includes('malek') && malekDue(s.malek, day, rng())) { queue.push('malek'); malekPatch = { ...(s.malek ?? MALEK_START), stallLastDay: day }; }
           // Nabil al-Khatib, now and then, once your name is worth his hour
           if (!queue.includes('nabil') && nabilDue(s.nabil, day, s.reputation, NABIL_MIN_REP, rng())) queue.push('nabil');
           const vips = rankIdx >= 2 ? CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !queue.includes(id)) : [];
@@ -1064,6 +1093,8 @@ export const useGame = create<GameState & Actions>()(
           const patch: Partial<GameState> = {
             ...(cohen !== s.cohen ? { cohen } : {}),
             condition,
+            parcels,
+            ...(malekPatch ? { malek: malekPatch } : {}),
             visits,
             missions,
             missionNews,
@@ -2035,6 +2066,11 @@ export const useGame = create<GameState & Actions>()(
             enc.trust = Math.max(0, Math.min(100, enc.trust + tired.trust));
             if (tired.label !== 'Rested') enc.log.push({ speaker: 'system', text: `You are ${tired.label.toLowerCase()}. ${tired.patience > 0 ? 'Everything seems easy this morning.' : 'The haggling wears on you sooner.'}` });
           }
+          const fed = wellFedNow(s.condition, s.day * 24 + s.world.hour);
+          if (!tutorial && fed > 0) {
+            enc.patience += fed * MORALE_PATIENCE;
+            enc.log.push({ speaker: 'system', text: 'You ate well at Malek\'s. The haggling sits easier on a full stomach.' });
+          }
           const rel = s.relationships[buyerId] ?? emptyRel();
           const b = BUYERS[buyerId];
           let commissions = s.commissions;
@@ -2384,6 +2420,83 @@ export const useGame = create<GameState & Actions>()(
             : 'The tiredness lifts for the rest of today. Tomorrow will be worse.';
         },
 
+        malekEnter: () => {
+          const s = get();
+          const m0 = s.malek ?? MALEK_START;
+          const day = s.day;
+          const restock = m0.stockDay === day ? {} : { stockDay: day, sold: {} };
+          const scene = pickScene(s.world.hour, m0.lastScene, day * 7 + m0.visits);
+          const ctx: LineCtx = scene === 'closing' ? 'closing' : m0.visits ? 'greet' : 'greetFirst';
+          const line = malekLine(ctx, m0.said, day + m0.visits);
+          const buyerMet = (s.relationships[STORY_BUYER]?.visits ?? 0) > 0 || s.nabil?.lastVisitDay != null;
+          const stage = storyStageFor(m0.story, day, { buyerMet });
+          // one counted visit per call: reopening the shop is a new visit, and the stage stays pending
+          // until it is finished, so reopening or reloading never skips or repeats one
+          set({ malek: { ...m0, ...restock, visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-8), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });
+          return { scene, line, stage };
+        },
+
+        malekSay: (ctx) => {
+          const s = get();
+          const m0 = s.malek ?? MALEK_START;
+          const line = malekLine(ctx, m0.said, s.day * 13 + m0.said.length + Math.floor(s.world.hour * 7));
+          set({ malek: { ...m0, said: [...m0.said, line].slice(-8) } });
+          return line;
+        },
+
+        malekBuy: (id, order) => {
+          const s = get();
+          const m0 = s.malek ?? MALEK_START;
+          const it = malekItem(id);
+          if (m0.orders.includes(order)) return { ok: false, msg: 'Already paid for.' };
+          if (s.world.at !== 'giza' || s.journey) return { ok: false, msg: 'Malek\'s shop is in Giza.' };
+          const day = s.day;
+          const m: MalekState = m0.stockDay === day ? m0 : { ...m0, stockDay: day, sold: {} };
+          const av = malekAvailability(it, s.world.hour, day, m);
+          if (!av.ok) {
+            const ctx: LineCtx = av.why === 'sold_out' ? 'soldOut' : av.why === 'grill_cold' ? 'grillCold' : 'menu';
+            return { ok: false, msg: malekLine(ctx, m.said, day + m.said.length) };
+          }
+          if (s.cash < it.price) return { ok: false, msg: malekLine('broke', m.said, day + m.said.length) };
+          const sold = { ...m.sold, [id]: (m.sold[id] ?? 0) + 1 };
+          const ledger = [...s.ledger, { day, kind: 'expense' as const, label: `Malek's: ${it.name.toLowerCase()}`, amount: -it.price }];
+          const orders = [...m.orders, order].slice(-30);
+          const ctx: LineCtx = id === 'malek_kofta' ? 'kofta' : id === 'malek_tea' ? 'tea' : it.consumption === 'inventory' ? 'parcel' : id === 'malek_ful' || id === 'malek_lentils' ? 'cheap' : 'grill';
+          const line = malekLine(ctx, m.said, day * 3 + m.said.length);
+          const said = [...m.said, line].slice(-8);
+          if (it.consumption === 'inventory') {
+            const parcel: FoodParcel = { uid: newUid('f'), item: id, servings: it.servings, boughtDay: day, spoilsDay: day + parcelDays(it, day) };
+            set({ cash: s.cash - it.price, ledger, parcels: [...(s.parcels ?? []), parcel], malek: { ...m, sold, orders, said } });
+            audio.sfx('coins');
+            return { ok: true, msg: line };
+          }
+          const now = day * 24 + s.world.hour;
+          const { c, report } = eatServing(s.condition, it, now);
+          set({ cash: s.cash - it.price, ledger, condition: c, malek: { ...m, sold, orders, said } });
+          audio.sfx('coins');
+          get().passTime(MEAL_MINUTES);
+          return { ok: true, msg: line, report };
+        },
+
+        eatParcel: (uid) => {
+          const s = get();
+          const pc = (s.parcels ?? []).find((x) => x.uid === uid);
+          if (!pc || pc.servings <= 0) return { ok: false, msg: 'Nothing left in that parcel.' };
+          if (!parcelFresh(pc, s.day)) return { ok: false, msg: 'It has gone off.' };
+          const it = malekItem(pc.item);
+          const { c, report } = eatServing(s.condition, it, s.day * 24 + s.world.hour);
+          const left = pc.servings - 1;
+          // eaten on the move: no time passes, so a journey is never interrupted
+          set({ condition: c, parcels: (s.parcels ?? []).flatMap((x) => (x.uid !== uid ? [x] : left > 0 ? [{ ...x, servings: left }] : [])) });
+          return { ok: true, msg: `You eat a serving of ${it.name.toLowerCase()}.${left ? ` ${left} left.` : ''}`, report };
+        },
+
+        malekStoryDone: (stage) => {
+          const s = get();
+          const m0 = s.malek ?? MALEK_START;
+          set({ malek: { ...m0, story: storyComplete(m0.story, stage, s.day) } });
+        },
+
         cabinetBuy: (id) => {
           const s = get();
           const it = cabinetItem(id);
@@ -2698,6 +2811,7 @@ export const useGame = create<GameState & Actions>()(
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
         if (version < 18) {
           // the old "colour fastness" result was a rub test: rename it and keep it, without a new charge
           const typeOf = (uid: string) => (p.inventory ?? []).find((i) => i.uid === uid)?.typeId;

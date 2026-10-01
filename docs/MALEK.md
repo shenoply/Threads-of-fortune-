@@ -1,0 +1,130 @@
+# Malek's grill (prototype)
+
+Malek "Boo Rayan", known as Al-Mallem (المعلم), runs a charcoal grill in Giza on his own. The shop is
+a place on the Giza district map (marker **M**, in the market row by your stall). He is also a
+recurring rug customer at your stall.
+
+Handoff sources (owner's Drive folder, copied to `art-src/malek/`): `MALEK_MENU_AND_ART_NOTES.md`,
+`malek-menu.json`, `MALEK_FIVE_VISIT_STORY.md` and the seven PNGs.
+
+## Files
+
+| File | What |
+|---|---|
+| `src/data/malekMenu.ts` | The ten menu items from `malek-menu.json`, with daily stock for fresh meat |
+| `src/game/systems/malek.ts` | Pure rules: hours, stock, meals and parcels, night meters, visit picture, his lines, the story state machine |
+| `src/game/state/store.ts` | `malek` and `parcels` in the save (version 19), actions `malekEnter`, `malekBuy`, `eatParcel`, `malekSay`, `malekStoryDone`, the night rollover, and the "well fed" patience at the stall |
+| `src/components/Malek/MalekShop.tsx` (+ `.css`) | The shop screen: door picture, room, menu, confirm and result sheets, parcels. Lazy-loaded from the district |
+| `src/components/Malek/MalekRoom3D.tsx` | The 3D room (three.js + React Three Fiber). Lazy-loaded again, only when you step inside |
+| `src/components/Malek/orbit.ts` | Camera limits and the WebGL check, kept out of the 3D chunk |
+| `src/data/malekBuyer.ts` | Malek as a stall customer (`SPECIAL_BUYERS`, tier Common) |
+| `src/components/Inventory/Inventory.tsx` | "Food for the road" in Stock: eat a parcel serving anywhere, including on the road |
+| `public/art/malek/` | Visit and story scenes (WebP, 1280 px), Malek's waist-up figure for the room |
+| `public/art/portraits/malek.jpg`, `malek-stall2.webp` | Portrait and stall cut-out |
+| `tests/malek-rules.ts`, `tests/malek.mjs`, `tests/malek2.mjs` | Rules unit test, browser tests |
+
+## How the menu's stats map onto the game
+
+The handoff's illustrative 0-100 meters become:
+
+| Handoff | In the game |
+|---|---|
+| satiety | **Fed** (new, 0-100). Fed 50 or more at nightfall: your own ration is not drawn from the caravan's food that night. Drops by 60 overnight. |
+| energy | Takes that much off **fatigue** (the existing 0-100 meter the stall already reads). Meals count once per four game hours (only the best meal's energy); tea once per four hours of its own. |
+| morale | **Well fed**: buyers get 2 patience per point, for four game hours. Never stacks: within the window only the best meal counts, and eating again never extends it. |
+| hydration | **Water** (new, 0-100). Towns refill it to 60 overnight. On the road the caravan's provisions keep it at 30 or more, so old journeys are unchanged; salted food can push it below 25, and thirsty at nightfall adds 6 fatigue. Empty sacks cost 25 a night. |
+
+Meters clamp to 0-100. Hunger and water gains always apply up to the cap, and the confirm sheet and
+the result show what would be wasted. No healing, cures, combat bonus or injury repair.
+
+Prices are in piastres, as in the handoff (2-24 PT). A day's bread for one person costs about 2 PT
+in the game's markets, so they sit with the existing economy. Prices, effects, hours and keeping
+times are game values. The menu says so; they are not presented as 1925 prices or food-safety advice.
+
+## Rules
+
+- **Hours:** open 07:00-21:00. Ful before 11:00. Grill 11:00-20:00, cold after 20:00 (parcels still sold).
+- **Daily stock:** kofta 8, kebab 4, liver 6. The stew pot runs two days in three (6 portions); on the third day the pot is beans.
+- **Eat-in:** pay, eat at once, 20 game minutes. Meals never rewind the clock, and the shop is not reachable mid-journey.
+- **Parcels:** pay, and the parcel goes in your pack. Nothing happens until you eat a serving, from the shop's "Your parcels" tab or from Stock.
+  - Eating one passes no time, so a journey is never interrupted.
+  - Each serving shows its weight.
+  - Parcels keep 7 game days (5 from May to September) and are thrown away with a note when they go off.
+  - Parcels cannot be sold back, so there is no resell loop.
+- **One charge per order:**
+  - Each confirm sheet carries an order token, and the store refuses a token it has already charged. Two taps in the same instant charge once.
+  - Cancel moves nothing.
+  - Cash, the ledger, stock and parcels change together in one store update.
+
+## Visit pictures and dialogue
+
+- **Pictures:**
+  - On entering, a picture is chosen to fit the hour:
+    - preparing: 07:00-17:00
+    - grilling: from 11:00
+    - serving: from 08:00
+    - closing: from 20:00, cold grill
+  - It is never the same as last visit when another one fits.
+- **Where he stands in the room:** behind the grill, behind the prep bench, or sat at a table when closing.
+- **Lines:**
+  - Dry English, by context (greeting, menu, kofta, parcel, sold out, closing, talk, rugs).
+  - Never the line he just said, and never two "Ha / Bah / Now what?" lines in a row.
+  - The handoff's four lines are used as written.
+
+## The room
+
+- **Geometry:** simple 7 m × 6 m geometry laid out like the references:
+  - charcoal grill and smoke hood on the left wall
+  - shelves, water jar and preparation bench at the back
+  - storeroom doorway with a curtain at the back right
+  - tables and stools on the right
+  - street door in the right wall
+- **Textures:** small generated ones (plaster, tiled floor, wood, cloth). The paintings are not wrapped onto walls.
+- **Malek:** one cut-out, kept upright facing the camera. He stands behind a counter so it hides the waist-high cut.
+- **Camera:**
+  - Drag to turn, with an 8 px dead zone so a tap never turns the room. Pinch or wheel to zoom.
+  - Limits on angle and distance; a wider lens on tall phone screens.
+  - "Reset view".
+- **Walls:** a wall fades whenever the camera is on its outer side.
+- **Clickable:** Malek (talk), the menu board, the tables (sit and order) and the door (leave). Each also has a screen label that follows the room.
+- **Fallback:** without WebGL, or if the context is lost, the visit picture and buttons replace the room. The menu and parcels work the same.
+- **Cost:**
+  - About 106 draw calls and 3,000 triangles, drawn only when something moves.
+  - The shop module is 15 KB. The 3D chunk (three.js) is 833 KB, or 225 KB gzipped, and is fetched only when you step inside.
+- **Touch:** the room has `touch-action: none` and is never part of a scrolling page. The menu scrolls in its own panel and never moves the camera.
+
+## The five-visit story: OFF until its art exists
+
+The state machine is complete and tested in `tests/malek-rules.ts`:
+- one stage per visit, on a later game day than the last;
+- stages advance in order, one at a time after days away;
+- a stage that is opened but not finished stays pending and is offered again;
+- completion, day and next stage are committed together, once;
+- the story never loops after stage 5.
+
+It plays only when **every** stage has art (`storyReady`). Stages 1-3 have none, so in the live
+build no stage is ever offered, and no missing image path is referenced. Stages 4 and 5 have their
+images (`story-4-reward.webp`, `story-5-arthur.webp`) and drafted text.
+
+Stage 1 needs the buyer involved to have visited your stall first. `STORY_BUYER` is set to `nabil`,
+the game's existing adult buyer of short stature. **Owner to confirm that he is the intended customer.**
+Nabil's handoff says his stature is never a joke and never the reason for difficulty. A slapstick
+expulsion can easily read as one, so the stage 1-3 art and text need care.
+
+## Art still needed
+
+1. **Story stages 1-3:** three scenes, 1536×1024, the same painted style and room as the visit pictures:
+   - **1. The Expulsion:** Malek bundles the customer out of the door over a bill. Slapstick, nothing graphic, his stature not the point.
+   - **2. A Paid Grudge:** in an alley nearby, the customer pays three men; Malek's shop beyond.
+   - **3. The Back Room Opens:** the orangutan from stage 4 comes out of the storeroom and the three men go sprawling. No blood or injuries. Malek unimpressed.
+
+   Needed for these: the customer's existing reference (`public/art/portraits/nabil.jpg` / `nabil-stall2.webp` if it is Nabil), and the orangutan reference from `04-orangutan-reward.png`.
+2. **Malek cut-outs,** transparent PNG, 1024×1536, the same face and clothes as `05-malek-owner-reference.png`:
+   - standing behind a counter turning skewers
+   - at the bench working mince
+   - carrying a plate
+   - seated at a table counting coins
+
+   Today one waist-up cut-out (from the reference, the grill removed) is used in every position.
+3. **Optional props:** a grill-front texture, shelf crockery and a menu board, as separate transparent PNGs or tileable textures, to replace the simple shapes.
+4. `05-arthur-bell-lore.png` has its caption painted into the image. That is fine as a lore card. A version without the caption band would let the game set the text.

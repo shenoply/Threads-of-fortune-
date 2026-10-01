@@ -1,0 +1,187 @@
+{
+  "status": "design handoff; not integrated",
+  "currency": "Egyptian pound; 100 piastres per pound",
+  "values": "Invented game balance. Storage timers are fictional, not real-world safe shelf-life claims.",
+  "items": [
+    {
+      "id": "malek_ful",
+      "name": "Ful and flatbread",
+      "nameAr": "فول وعيش",
+      "pricePiastres": 2,
+      "description": "Cheap filling breakfast; one simmering pot.",
+      "availability": "morning",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 40,
+        "energy": 2,
+        "morale": 1,
+        "hydration": 0
+      }
+    },
+    {
+      "id": "malek_lentils",
+      "name": "Lentil soup and bread",
+      "nameAr": "شوربة عدس وعيش",
+      "pricePiastres": 3,
+      "description": "Warm economical meal; small hydration benefit.",
+      "availability": "all_day",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 35,
+        "energy": 4,
+        "morale": 2,
+        "hydration": 10
+      }
+    },
+    {
+      "id": "malek_kofta",
+      "name": "Charcoal kofta plate",
+      "nameAr": "كفتة مشوية",
+      "pricePiastres": 7,
+      "description": "Minced meat skewers, bread, onions and parsley.",
+      "availability": "grill_hours",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 65,
+        "energy": 8,
+        "morale": 4,
+        "hydration": 0
+      }
+    },
+    {
+      "id": "malek_kebab",
+      "name": "Lamb kebab plate",
+      "nameAr": "كباب ضاني",
+      "pricePiastres": 10,
+      "description": "Premium grilled meat plate; limited fresh stock.",
+      "availability": "grill_hours",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 75,
+        "energy": 10,
+        "morale": 6,
+        "hydration": 0
+      }
+    },
+    {
+      "id": "malek_liver",
+      "name": "Grilled liver and bread",
+      "nameAr": "كبدة مشوية وعيش",
+      "pricePiastres": 5,
+      "description": "Simple charcoal-grilled liver; not a modern Alexandrian sandwich.",
+      "availability": "grill_hours",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 50,
+        "energy": 6,
+        "morale": 3,
+        "hydration": 0
+      }
+    },
+    {
+      "id": "malek_stew",
+      "name": "Beef and onion stew",
+      "nameAr": "لحمة بالبصل",
+      "pricePiastres": 8,
+      "description": "One-pot rotating special; serve with bread, not a vast separate menu.",
+      "availability": "daily_special",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 70,
+        "energy": 9,
+        "morale": 5,
+        "hydration": 0
+      }
+    },
+    {
+      "id": "malek_bastirma",
+      "name": "Bastirma travel portion",
+      "nameAr": "بسطرمة للسفر",
+      "pricePiastres": 6,
+      "description": "Dry-cured spiced beef, wrapped in paper. Longer game storage; salt costs hydration.",
+      "availability": "all_day",
+      "consumption": "inventory",
+      "servings": 1,
+      "weightKg": 0.15,
+      "gameStorageDays": 7,
+      "effectsPerServing": {
+        "satiety": 30,
+        "energy": 2,
+        "morale": 1,
+        "hydration": -8
+      }
+    },
+    {
+      "id": "malek_road_pack",
+      "name": "Road parcel: bastirma and dry bread",
+      "nameAr": "زاد الطريق: بسطرمة وعيش ناشف",
+      "pricePiastres": 9,
+      "description": "Cured beef and dry bread in separate paper parcels, cloth outer wrap; no fresh vegetables.",
+      "availability": "all_day",
+      "consumption": "inventory",
+      "servings": 1,
+      "weightKg": 0.3,
+      "gameStorageDays": 7,
+      "effectsPerServing": {
+        "satiety": 50,
+        "energy": 3,
+        "morale": 2,
+        "hydration": -8
+      }
+    },
+    {
+      "id": "malek_caravan_pack",
+      "name": "Three-serving caravan parcel",
+      "nameAr": "زاد القافلة",
+      "pricePiastres": 24,
+      "description": "Three separately wrapped road portions. Effects per serving, never all at purchase.",
+      "availability": "all_day",
+      "consumption": "inventory",
+      "servings": 3,
+      "weightKg": 0.9,
+      "gameStorageDays": 7,
+      "effectsPerServing": {
+        "satiety": 50,
+        "energy": 3,
+        "morale": 2,
+        "hydration": -8
+      }
+    },
+    {
+      "id": "malek_tea",
+      "name": "Small sweet tea",
+      "nameAr": "شاي",
+      "pricePiastres": 1,
+      "description": "Small fatigue relief; once per four game hours.",
+      "availability": "all_day",
+      "consumption": "eat_in",
+      "servings": 1,
+      "weightKg": 0,
+      "gameStorageDays": 0,
+      "effectsPerServing": {
+        "satiety": 0,
+        "energy": 2,
+        "morale": 1,
+        "hydration": 8
+      }
+    }
+  ]
+}

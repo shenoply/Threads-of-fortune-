@@ -19,6 +19,16 @@ export interface Condition1925 {
   lastTonicDay?: number;
   /** the road diet Arran recommends, in effect until this day */
   dietUntil?: number;
+  /** how well fed the merchant is, 0..100 (Malek's food; src/game/systems/malek.ts) */
+  fed?: number;
+  /** water, 0..100: salt costs it, tea and soup add to it; low at nightfall adds fatigue */
+  water?: number;
+  /** "well fed": extra buyer patience until an absolute game hour (day * 24 + hour) */
+  wellFed?: { value: number; until: number };
+  /** meal energy counts once per window: the window's start and the best energy given in it */
+  mealWindow?: { start: number; energy: number };
+  /** when tea last did any good (absolute game hour) */
+  teaAt?: number;
 }
 export const CONDITION_START: Condition1925 = { fatigue: 10, dependence: 0 };
 

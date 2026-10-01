@@ -1,0 +1,369 @@
+// Malek's grill shop: the visit picture at the door, then the room in 3D (lazy), the menu with a
+// confirm step that shows exactly what you pay and get, food parcels to carry, and his remarks.
+// The whole module is loaded with React.lazy from the Giza district, and the 3D room inside it is
+// loaded lazily again, only when you step inside and the device can draw WebGL.
+import { Component, Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useGame, clock } from '../../game/state/store';
+import { fmt } from '../../game/economy/money';
+import { MALEK_MENU, malekItem, type MalekItem, type MalekItemId } from '../../data/malekMenu';
+import { CONDITION_START } from '../../game/systems/fieldwork';
+import {
+  MALEK_HOURS, MEAL_MINUTES, MORALE_PATIENCE, SCENE_ART, SCENE_TEXT, STORY, UNAVAILABLE_WORD,
+  availability, eatServing, fedOf, parcelDays, parcelWeight, shopOpen, stockLeft, waterOf, wellFedNow,
+  type MalekScene, type MealReport,
+} from '../../game/systems/malek';
+import { audio } from '../../game/audio/engine';
+import { newUid } from '../../game/economy/economy';
+import { INVALIDATE_EVENT, clampOrbit, defaultOrbit, webglAvailable, type Hotspot, type Orbit } from './orbit';
+import './MalekShop.css';
+
+const Room3D = lazy(() => import('./MalekRoom3D'));
+
+/** a 3D failure (no context, lost context, a shader error) drops to the picture instead of a blank screen */
+class Guard extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+/** the effects line for an item, in the game's own terms */
+function effectChips(it: MalekItem) {
+  const e = it.effects;
+  const out: string[] = [];
+  if (e.satiety) out.push(`Fed ${sign(e.satiety)}`);
+  if (e.energy) out.push(`Fatigue −${e.energy}`);
+  if (e.morale) out.push(`Well fed: buyers +${e.morale * MORALE_PATIENCE} patience, 4 h`);
+  if (e.hydration) out.push(`Water ${sign(e.hydration)}`);
+  return out;
+}
+
+type Panel = 'menu' | 'food' | null;
+
+export default function MalekShop({ onLeave }: { onLeave: () => void }) {
+  const g = useGame();
+  const [phase, setPhase] = useState<'door' | 'story' | 'room'>('door');
+  const [visit, setVisit] = useState<{ scene: MalekScene; line: string; stage: number | null } | null>(null);
+  const [speech, setSpeech] = useState('');
+  const [panel, setPanel] = useState<Panel>(null);
+  const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
+  const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
+  const [gl, setGl] = useState<boolean>(() => webglAvailable());
+  const open = shopOpen(g.world.hour);
+
+  // one visit per opening of the shop: the picture, his greeting, and a story stage if one is due
+  const entered = useRef(false);
+  useEffect(() => {
+    if (entered.current || !open) return;
+    entered.current = true;
+    const v = useGame.getState().malekEnter();
+    setVisit(v);
+    if (v.stage != null) setPhase('story');
+  }, [open]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (confirm) setConfirm(null); else onLeave(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onLeave, confirm]);
+
+  const now = g.day * 24 + g.world.hour;
+  const cond = g.condition ?? CONDITION_START;
+  const fedNow = wellFedNow(cond, now);
+  const menuLines = useMemo(() => MALEK_MENU.map((m) => ({ en: m.name.replace('Three-serving caravan parcel', 'Caravan parcel (3)').replace('Road parcel: bastirma and dry bread', 'Road parcel'), ar: m.nameAr, price: `${m.price} PT` })), []);
+
+  // ---------------- camera input: drag to turn, pinch or wheel to zoom ----------------
+  const stage = useRef<HTMLDivElement>(null);
+  const orbit = useRef<Orbit>(defaultOrbit(1));
+  const dragging = useRef(false);
+  const labels = useRef<Partial<Record<Hotspot, HTMLElement | null>>>({});
+  const [, kick] = useState(0);
+  const nudge = () => kick((n) => n + 1);
+  const reset = () => {
+    const el = stage.current;
+    orbit.current = defaultOrbit(el ? el.clientWidth / Math.max(1, el.clientHeight) : 1);
+    nudge(); window.dispatchEvent(new Event(INVALIDATE_EVENT)); audio.sfx('tap');
+  };
+  useEffect(() => {
+    if (phase !== 'room' || !gl) return;
+    const el = stage.current; if (!el) return;
+    orbit.current = defaultOrbit(el.clientWidth / Math.max(1, el.clientHeight));
+    if (import.meta.env.DEV) (window as unknown as { __malekOrbit?: typeof orbit }).__malekOrbit = orbit;
+    const pts = new Map<number, { x: number; y: number }>();
+    let start: { x: number; y: number } | null = null;
+    let pinch0 = 0, r0 = 0;
+    const invalidate = () => window.dispatchEvent(new Event(INVALIDATE_EVENT));
+    const down = (e: PointerEvent) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { el.setPointerCapture?.(e.pointerId); } catch { /* not a live pointer: carry on without capture */ }
+      if (pts.size === 1) { start = { x: e.clientX, y: e.clientY }; dragging.current = false; }
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); r0 = orbit.current.r; dragging.current = true; }
+    };
+    const move = (e: PointerEvent) => {
+      const prev = pts.get(e.pointerId); if (!prev) return;
+      const cur = { x: e.clientX, y: e.clientY };
+      pts.set(e.pointerId, cur);
+      if (pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch0 > 0) orbit.current = clampOrbit({ ...orbit.current, r: r0 * (pinch0 / Math.max(20, d)) });
+        invalidate(); return;
+      }
+      if (!start) return;
+      // a deliberate drag only: small wobbles of a tap never turn the room
+      if (!dragging.current && Math.hypot(cur.x - start.x, cur.y - start.y) < 8) return;
+      dragging.current = true;
+      const w = el.clientWidth || 1;
+      orbit.current = clampOrbit({ ...orbit.current, az: orbit.current.az - ((cur.x - prev.x) / w) * 2.6, pol: orbit.current.pol - ((cur.y - prev.y) / w) * 1.6 });
+      invalidate();
+    };
+    const up = (e: PointerEvent) => {
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch0 = 0;
+      if (!pts.size) { start = null; window.setTimeout(() => { dragging.current = false; }, 0); }
+    };
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      orbit.current = clampOrbit({ ...orbit.current, r: orbit.current.r * Math.exp(e.deltaY * 0.0012) });
+      invalidate();
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', wheel, { passive: false });
+    return () => {
+      el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel);
+    };
+  }, [phase, gl]);
+
+  const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));
+  const pickHotspot = (h: Hotspot) => {
+    audio.sfx('tap');
+    if (h === 'exit') { onLeave(); return; }
+    if (h === 'menu') { setPanel('menu'); say('menu'); return; }
+    if (h === 'tables') { setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return; }
+    say(g.day % 2 ? 'talk' : 'rugs');
+  };
+
+  const paying = useRef(false);
+  const ask = (id: MalekItemId) => { paying.current = false; setConfirm({ id, order: newUid('o') }); audio.sfx('tap'); };
+  const pay = () => {
+    // the order token stops a second charge in the store; this stops a second result sheet
+    if (!confirm || paying.current) return;
+    paying.current = true;
+    const it = malekItem(confirm.id);
+    const r = useGame.getState().malekBuy(confirm.id, confirm.order);
+    setConfirm(null);
+    setResult({ msg: r.msg, report: r.report, title: r.ok ? (it.consumption === 'inventory' ? `${it.name}: in your pack` : it.name) : 'Not this time' });
+    setSpeech(r.msg);
+  };
+  const eat = (uid: string) => {
+    const r = useGame.getState().eatParcel(uid);
+    setResult({ msg: r.msg, report: r.report, title: r.ok ? 'A serving from your pack' : 'Not this time' });
+    audio.sfx('tap');
+  };
+
+  // ---------------- the door: closed, or the visit picture ----------------
+  if (!open) {
+    return (
+      <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
+        <div className="malek-door" data-testid="malek-closed">
+          <img src={SCENE_ART.closing} alt="" aria-hidden="true" className="malek-door__bg" />
+          <div className="malek-door__card">
+            <h2>Malek's grill</h2>
+            <p>The shutters are down. Malek opens at {clock(MALEK_HOURS[0])} and the grill goes cold at 20:00; he locks up at {clock(MALEK_HOURS[1])}.</p>
+            <button className="btn primary" onClick={onLeave} data-testid="malek-leave">Back to the street</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!visit) return <div className="malek" data-testid="malek-shop" />;
+
+  const storyStage = visit.stage != null ? STORY.find((s) => s.n === visit.stage) : undefined;
+  if (phase === 'story' && storyStage?.art) {
+    return (
+      <div className="malek" role="dialog" aria-label={storyStage.title} data-testid="malek-shop">
+        <div className="malek-door" data-testid="malek-story" data-stage={storyStage.n}>
+          <img src={storyStage.art} alt={storyStage.title} className="malek-door__bg" />
+          <div className="malek-door__card">
+            <h2>{storyStage.title}</h2>
+            {storyStage.text.map((t, i) => <p key={i}>{t}</p>)}
+            <div className="malek-row">
+              <button className="btn primary" onClick={() => { useGame.getState().malekStoryDone(storyStage.n); setPhase('room'); }} data-testid="malek-story-done">Continue</button>
+              <button className="btn" onClick={() => setPhase('room')} data-testid="malek-story-later">Not now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'door') {
+    return (
+      <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
+        <div className="malek-door" data-testid="malek-door" data-scene={visit.scene}>
+          <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} className="malek-door__bg" />
+          <div className="malek-door__card">
+            <p className="malek-door__scene">{SCENE_TEXT[visit.scene]}</p>
+            <p className="malek-say"><b>MALEK</b> {visit.line}</p>
+            <div className="malek-row">
+              <button className="btn primary" onClick={() => { setPhase('room'); audio.sfx('tap'); }} data-testid="malek-enter">Step inside</button>
+              <button className="btn" onClick={() => { setPhase('room'); setPanel('menu'); }} data-testid="malek-door-menu">Straight to the menu</button>
+              <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------- inside ----------------
+  const fallback = (
+    <div className="malek-flat" data-testid="malek-fallback">
+      <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} />
+      <p>This device cannot draw the room in 3D. Everything works from the buttons.</p>
+    </div>
+  );
+  const parcels = g.parcels ?? [];
+  return (
+    <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
+      <header className="malek-bar">
+        <div><b>Malek's grill</b><span>Giza · {clock(g.world.hour)}</span></div>
+        <span className="malek-cash" data-testid="malek-cash">{fmt(g.cash)}</span>
+        <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
+      </header>
+      <div className="malek-stage" ref={stage} data-testid="malek-stage">
+        {gl ? (
+          <Guard fallback={fallback}>
+            <Suspense fallback={<div className="malek-loading">Setting out the stools…</div>}>
+              <Room3D scene={visit.scene} orbit={orbit} labels={labels} dragging={dragging} onPick={pickHotspot} menuLines={menuLines} onLost={() => setGl(false)} />
+            </Suspense>
+          </Guard>
+        ) : fallback}
+        {gl && (['malek', 'menu', 'tables', 'exit'] as Hotspot[]).map((h) => (
+          <button key={h} ref={(el) => { labels.current[h] = el; }} className={`malek-hot malek-hot--${h}`} onClick={() => pickHotspot(h)} data-testid={`malek-hot-${h}`}>
+            {h === 'malek' ? 'Malek' : h === 'menu' ? 'Menu board' : h === 'tables' ? 'Sit at a table' : 'Way out'}
+          </button>
+        ))}
+        {gl && <button className="malek-reset" onClick={reset} data-testid="malek-reset" aria-label="Reset the view">⟲ Reset view</button>}
+        {gl && <p className="malek-hint" aria-hidden="true">Drag to look around · pinch or scroll to zoom</p>}
+        {speech && <div className="malek-speech" role="status" data-testid="malek-speech"><b>MALEK</b> {speech}</div>}
+      </div>
+
+      <div className="malek-panel">
+        <div className="malek-meters" data-testid="malek-meters">
+          <span title="How well fed you are">Fed {fedOf(cond)}/100</span>
+          <span title="Fatigue: lower is better">Fatigue {cond.fatigue}</span>
+          <span title="Water">Water {waterOf(cond)}/100</span>
+          {fedNow > 0 && <span className="is-good">Well fed until {clock((cond.wellFed!.until) % 24)}</span>}
+        </div>
+        <div className="malek-tabs" role="tablist">
+          <button role="tab" aria-selected={panel === 'menu'} className={panel === 'menu' ? 'is-on' : ''} onClick={() => setPanel(panel === 'menu' ? null : 'menu')} data-testid="malek-tab-menu">Menu</button>
+          <button role="tab" aria-selected={panel === 'food'} className={panel === 'food' ? 'is-on' : ''} onClick={() => setPanel(panel === 'food' ? null : 'food')} data-testid="malek-tab-food">Your parcels{parcels.length ? ` · ${parcels.reduce((n, p) => n + p.servings, 0)}` : ''}</button>
+          <button onClick={() => say('talk')} data-testid="malek-talk">Talk to Malek</button>
+        </div>
+        {panel === 'menu' && (
+          <ul className="malek-menu" data-testid="malek-menu">
+            {MALEK_MENU.map((it) => {
+              const av = availability(it, g.world.hour, g.day, g.malek);
+              const left = stockLeft(it, g.malek, g.day);
+              return (
+                <li key={it.id} className={av.ok ? '' : 'is-off'} data-testid={`malek-item-${it.id}`}>
+                  <div className="malek-item__head">
+                    <b>{it.name}</b> <span className="malek-ar" lang="ar" dir="rtl">{it.nameAr}</span>
+                    <span className="malek-price">{it.price} PT</span>
+                  </div>
+                  <p>{it.description}</p>
+                  <p className="malek-chips">{effectChips(it).map((c) => <span key={c}>{c}</span>)}</p>
+                  <p className="malek-meta">
+                    {it.consumption === 'eat_in' ? `Eat here · ${MEAL_MINUTES} min` : `Take away · ${it.servings} serving${it.servings > 1 ? 's' : ''} · ${it.weightKg} kg · keeps ${parcelDays(it, g.day)} game days`}
+                    {Number.isFinite(left) && av.ok ? ` · ${left} left today` : ''}
+                  </p>
+                  {av.ok
+                    ? <button className="btn primary small" onClick={() => ask(it.id)} data-testid={`malek-buy-${it.id}`}>{it.consumption === 'eat_in' ? 'Order' : 'Buy'}</button>
+                    : <span className="malek-off" data-testid={`malek-off-${it.id}`}>{UNAVAILABLE_WORD[av.why]}</span>}
+                </li>
+              );
+            })}
+            <li className="malek-note">Prices, effects and keeping times are game values, not 1925 prices or real food-safety advice. Water is free from the jar by the door; salted parcels do not count as water.</li>
+          </ul>
+        )}
+        {panel === 'food' && (
+          <ul className="malek-menu" data-testid="malek-parcels">
+            {!parcels.length && <li className="malek-note">You are not carrying any parcels.</li>}
+            {parcels.map((p) => {
+              const it = malekItem(p.item);
+              return (
+                <li key={p.uid} data-testid={`malek-parcel-${p.uid}`}>
+                  <div className="malek-item__head"><b>{it.name}</b><span className="malek-price">{p.servings} left</span></div>
+                  <p className="malek-meta">{parcelWeight(p)} kg · good until day {p.spoilsDay} (game freshness)</p>
+                  <p className="malek-chips">{effectChips(it).map((c) => <span key={c}>{c} each</span>)}</p>
+                  <button className="btn small" onClick={() => eat(p.uid)} data-testid={`malek-eat-${p.uid}`}>Eat a serving</button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {confirm && <ConfirmSheet id={confirm.id} onPay={pay} onCancel={() => setConfirm(null)} />}
+      {result && (
+        <div className="malek-sheet" role="dialog" aria-label={result.title} data-testid="malek-result">
+          <div className="malek-sheet__card">
+            <h3>{result.title}</h3>
+            <p className="malek-say"><b>MALEK</b> {result.msg}</p>
+            {result.report && <ReportLines r={result.report} />}
+            <button className="btn primary" onClick={() => setResult(null)} data-testid="malek-result-ok">Good</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** What you pay and what you get, worked out on your current state before any money moves. */
+function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: () => void; onCancel: () => void }) {
+  const g = useGame();
+  const it = malekItem(id);
+  const preview = it.consumption === 'eat_in' ? eatServing(g.condition, it, g.day * 24 + g.world.hour).report : null;
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="malek-sheet" role="dialog" aria-label={`Buy ${it.name}`} data-testid="malek-confirm">
+      <div className="malek-sheet__card">
+        <h3>{it.name} <span className="malek-ar" lang="ar" dir="rtl">{it.nameAr}</span></h3>
+        <dl className="malek-dl">
+          <dt>Price</dt><dd data-testid="malek-confirm-price">{it.price} PT ({fmt(it.price)}) · you have {fmt(g.cash)}</dd>
+          <dt>Servings</dt><dd>{it.servings}{it.consumption === 'inventory' ? ' (each eaten later, one at a time)' : ' (eaten now)'}</dd>
+          <dt>Carry weight</dt><dd>{it.weightKg ? `${it.weightKg} kg` : 'none: eaten at the table'}</dd>
+          {it.consumption === 'inventory' && <><dt>Keeps</dt><dd>{parcelDays(it, g.day)} game days (a game value, not food-safety advice)</dd></>}
+          <dt>Per serving</dt><dd>{effectChips(it).join(' · ')}</dd>
+        </dl>
+        {preview && <><p className="malek-meta">If you eat it now:</p><ReportLines r={preview} /></>}
+        {it.consumption === 'inventory' && <p className="malek-meta">Nothing happens to you until you eat a serving. Salted food costs water.</p>}
+        <div className="malek-row">
+          <button className="btn primary" disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${it.price} PT`}</button>
+          <button className="btn" onClick={onCancel} data-testid="malek-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportLines({ r }: { r: MealReport }) {
+  const line = (label: string, gain: number, wasted: number, unit = '') => (
+    <li>{label} {gain >= 0 ? `+${gain}` : gain}{unit}{wasted > 0 ? <em> ({wasted} more would be wasted: you are full)</em> : null}</li>
+  );
+  return (
+    <ul className="malek-report" data-testid="malek-report">
+      {line('Fed', r.fed.gain, r.fed.wasted)}
+      {r.rest.gain || r.rest.wasted ? <li>Fatigue −{r.rest.gain}{r.rest.wasted > 0 ? <em> (already rested)</em> : null}</li> : <li>Fatigue no change <em>(a meal's energy counts once in four hours)</em></li>}
+      {r.water.gain !== 0 || r.water.wasted ? line('Water', r.water.gain, r.water.wasted) : null}
+      <li>{r.wellFed.note === 'new' ? `Well fed: buyers +${r.wellFed.value * MORALE_PATIENCE} patience until ${clock(r.wellFed.until % 24)}`
+        : r.wellFed.note === 'raised' ? `Well fed raised to +${r.wellFed.value * MORALE_PATIENCE} patience (still until ${clock(r.wellFed.until % 24)})`
+        : r.wellFed.note === 'kept' ? 'Well fed: no extra (a better meal already counts)' : 'No well-fed bonus'}</li>
+    </ul>
+  );
+}

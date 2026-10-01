@@ -2135,3 +2135,5 @@ button.hud-chip { cursor: pointer; }
 .upgrade-nudge__go { flex: 1 1 auto; border-color: var(--brass-hi); color: var(--brass-hi); min-height: 36px; }
 .upgrade-nudge__x { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: rgba(0,0,0,0.3); color: var(--text-dim); cursor: pointer; }
 .stock-head-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+/* shown for the moment Malek's shop module is loading */
+.malek-boot { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: #1a120b; color: var(--text-dim); font-style: italic; }

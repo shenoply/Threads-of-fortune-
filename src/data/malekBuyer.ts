@@ -1,0 +1,75 @@
+import type { BuyerDef } from '../game/types';
+
+// Malek "Boo Rayan", Al-Mallem (المعلم): he runs a charcoal grill in Giza on his own and expects the
+// worst of everything, rugs included. He comes to your stall now and then once you have eaten at his
+// place (src/game/systems/malek.ts malekDue). He wants something for a floor that sees grease, boots
+// and spilled tea: dark, hard-wearing, cheap, and he will tell you why every rug is wrong first.
+export const MALEK_BUYER: BuyerDef = {
+  id: 'malek', name: 'Malek', role: 'Owns the charcoal grill round the corner; called Al-Mallem, the boss', roomWord: 'shop',
+  bio: 'Runs his grill shop alone and says partners eat the profits. Pessimistic about everything, generous with the kofta when nobody is looking. Wants a rug for a floor that sees grease, boots and spilled tea.',
+  budget: [120, 520], patience: 70, trust: 40, interest: 45,
+  values: { hardwearing: 3, darkField: 2, washable: 2, wool: 1, lightField: -2, fragile: -3, silk: -3, antique: -1 },
+  colourPref: { crimson: 1, indigo: 1, mixed: 0, gold: -1, ivory: -2 },
+  args: { story: 0.2, craft: 0.6, fit: 1.1, durability: 1.8 },
+  priorities: {
+    room: [{ id: 'grease', label: 'Grease and boots' }, { id: 'tables', label: 'Under the tables' }],
+    drawn: [{ id: 'dark', label: 'Dark enough to forgive' }, { id: 'cheap', label: 'Cheap enough to replace' }],
+  },
+  directBudgetTrust: 1, pushyTrust: -3, embellishNotice: 0.8, catAffinity: -1,
+  needs: [
+    {
+      id: 'shopfloor', label: 'A rug for the shop floor by the tables',
+      room: ['Under my tables. Charcoal dust, grease, boots, tea. The floor has seen worse than your rugs.'],
+      values: { hardwearing: 3, darkField: 2, washable: 2, fragile: -3, silk: -3 },
+      colourPref: { crimson: 1, indigo: 1, ivory: -2 },
+      budget: [120, 520], priorities: [{ id: 'grease', label: 'Grease and boots' }, { id: 'dark', label: 'Dark enough to forgive' }],
+    },
+  ],
+  objections: [
+    { id: 'pale', when: (t) => t.traits.includes('lightField'), text: 'Pale. One drop of fat and it is a map of my mistakes.', honest: 'At least you admit it.', facts: 'It cleans? Everything cleans. Then it is dirty again.', factsWorks: false },
+    { id: 'fine', when: (t) => t.traits.includes('silk') || t.traits.includes('fragile'), text: 'This is for a palace. My customers sit on stools that fight back.', honest: 'Ha. Honest. Keep it for a palace.', facts: 'Strong? It looks like it would faint.', factsWorks: false },
+  ],
+  silhouette: 'fez', accent: '#5a3a24',
+  lines: {
+    arrival: ['A stocky man in an apron that has seen a hundred kebabs walks up and looks at your rugs as if they owe him money.', 'Malek, from the grill, wiping his hands on his apron.'],
+    greeting: ['Now what? Show me a rug that does not mind grease. If you have one, I will be surprised.'],
+    repeat: ['Me again. The floor is still ugly.', 'Bah. I came to look. Looking is free; you told me.'],
+    room: ['Under my tables. Charcoal dust, grease, boots, tea. The floor has seen worse than your rugs.'],
+    drawnTo: ['Dark. Thick. Cheap enough that I do not cry when somebody spills the stew.'],
+    budgetEarly: ['Less than you are thinking. Less than that too.'],
+    budgetLate: ['Four pounds, maybe five, for a rug that lives through a winter of my customers.'],
+    decider: ['I decide. Nobody else in that shop decides anything. That is the problem with the shop.'],
+    smallTalk: ['Business is fine. Business is always fine until it is not.', 'My supplier in Cairo says the bastirma is the best this year. He says that every year.'],
+    tea: ['Your tea. Hm. Mine is better. Fine. Thank you.'],
+    earlyPresent: ['Before you start selling, let me tell you what is wrong with my floor.'],
+    rugGood: ['Hm. That one might live.', 'Dark. Thick. I hate that I like it.'],
+    rugNeutral: ['Maybe. Everything is maybe.', 'It is a rug. I will give it that.'],
+    rugBad: ['No. My customers would eat it.', 'Bah. Pretty. Useless.'],
+    colour: { indigo: 'Indigo hides charcoal. Good.', crimson: 'Red hides a lot. Kebab, for one.', ivory: 'Pale. No.', gold: 'Gold shows every fingerprint.', mixed: 'Busy. Good. Nobody will see the stains.' },
+    condition: { dirty: 'Dirty already. At least it knows where it is going.', worn: 'Worn. So am I. It is not a reason to pay more.', damaged: 'Damaged. My floor will finish it in a week.' },
+    story: { good: ['A nice story. The grease will not read it.'], flat: ['I do not buy stories. I buy floors.'] },
+    craft: { good: ['Tight. Fine. Tight is good.'], flat: ['Knots. Everybody talks about knots.'] },
+    fit: { good: ['That would go under the tables. Ha. Maybe.'], flat: ['Wrong size for my shop. My shop is the wrong size for everything.'] },
+    durability: { good: ['That is the only thing I wanted to hear.'], flat: ['Everybody says it will last. Then it does not.'] },
+    repeatArg: ['You said that. I heard it the first time; I did not believe it then either.'],
+    embellishBelieved: ['Hm. Maybe.'],
+    embellishCaught: ['Ha. No. I have been lied to by better men, and they were selling meat.'],
+    priceLow: ['Done. Before you change your mind.'], priceFair: ['Fair. I hate fair. Done.'], priceHigh: ['For that I could buy a sheep and lie on it.'], priceInsult: ['Bah. No.'],
+    counter: ['{price}. And I am being generous, which I never am.'], holdGive: ['{price}. Fine. Do not tell anyone.'], holdRefuse: ['No. I have a grill to get back to.'],
+    sweetener: ['You will carry it to the shop? Then I will not charge you for the tea.'],
+    impatience: ['The charcoal does not light itself. Hurry.'],
+    success: ['Good. Now it can be ruined properly.', 'Fine. Come and eat. I will not give you a discount; I will give you a bigger plate.'],
+    badSale: ['It will do. Everything only does.'],
+    walkAway: ['Another day. Maybe. Probably not.', 'Bah. I will come back when you have something ugly and strong.'],
+    saffron: ['Your cat looks at me like my customers do.'],
+    commission: ['If this one lives, I need another by the door.'],
+    commissionDone: ['It lived. I did not expect that. Do not tell anyone.'],
+    referral: ['I told the bean man about you. He will complain too. You are used to it.'],
+    rare: ['That one is too good for my floor. Do not let me buy it.'],
+    embellishLater: ['That rug was not what you said it was. The grease told me.'],
+    previousRug: ['The rug is still alive. Grease, boots, stew. Still alive. Hm.'],
+    concession: ['Ha. Thank you.'],
+    catPet: ['It bites? Good. So do I.'],
+  },
+};
+export const MALEK_TIERS: [number, number] = [1, 1];
