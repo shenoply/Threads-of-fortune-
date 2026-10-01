@@ -35,6 +35,8 @@ import { personFor } from '../../data/people';
 import { dateLine } from '../../game/economy/newspaper';
 import { FinancePanel } from './Finance';
 import { LibraryView } from '../ArranLab/Library';
+import { openMalek } from '../../game/nav';
+import { shopOpen as malekOpen } from '../../game/systems/malek';
 import { CairoPlace } from './CairoPlaces';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
@@ -368,6 +370,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         const hh = Math.floor(g.world.hour), mm = Math.floor((g.world.hour % 1) * 60);
         const items: [string, string, string, () => void, string][] = [
           ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s customers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
+          ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
           ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
           ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
           ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],

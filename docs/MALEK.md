@@ -91,7 +91,7 @@ with captions and Skip; the Customers screen keeps a "Films" shelf of the ones y
 | Who | Plays | Picture |
 |---|---|---|
 | Malek | his shop, the first time it is open to you | his video (`public/video/malek-intro.mp4`, WebM fallback); the last frame holds under the narration |
-| Arran | his laboratory, first visit | lab and scene paintings, slow pans (his video replaces them when supplied) |
+| Arran | his laboratory, first visit | his video (`public/video/arran-intro.mp4`): examining linen with the conservator |
 | Abu Hamid | the coffee house, first visit | the Giza map closing in on his tables, then his portrait |
 | Uncle Rashid | his warehouse, first visit | the Cairo map, his portrait |
 | Nabil al-Khatib | the first time he comes to your stall (his greeting waits for the film) | Cairo, his figure, his portrait |
@@ -101,7 +101,6 @@ with captions and Skip; the Customers screen keeps a "Films" shelf of the ones y
 - **Narration:**
   - `tools/generate-intro-films.py` records it offline (Kokoro `bm_lewis`: a stock synthetic narrator, not Arran's voice, not a clone) into `public/audio/intro/<who>.mp3`, with the caption timings in `src/data/introFilms.ts`.
   - Each film says who the character is and what they do for you.
-- **Arran's video:** the Gemini share link was blocked here. Supply the file and set `FILMS.arran.video`.
 
 ## Rules
 
@@ -185,7 +184,7 @@ It starts on a game day later than your first visit to the shop.
    - seated at a table counting coins
 
    Today the room uses one waist-up cut-out (from the reference, the grill removed) in every position.
-5. **Arran's film:** the video file itself (the share link was blocked here).
+
 3. **Optional props:** a grill-front texture, shelf crockery and a menu board, as separate transparent PNGs or tileable textures, to replace the simple shapes.
 4. `05-arthur-bell-lore.png` has its caption painted into the image. That is fine as a lore card. A version without the caption band would let the game set the text.
 

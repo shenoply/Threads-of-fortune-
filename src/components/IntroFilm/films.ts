@@ -1,6 +1,6 @@
-// The first-meeting films: who has one, what is on screen, and where it plays. Malek's is his own
-// video; the others are the game's paintings with a slow pan, under the same documentary narrator
-// (src/data/introFilms.ts). Arran's switches to video once its file is supplied.
+// The first-meeting films: who has one, what is on screen, and where it plays. Malek's and Arran's
+// are their own videos; the others are the game's paintings with a slow pan, under the same documentary narrator
+// (src/data/introFilms.ts).
 import { INTRO_FILMS } from '../../data/introFilms';
 
 export type FilmId = 'malek' | 'arran' | 'abuhamid' | 'rashid' | 'nabil' | 'cohen';
@@ -21,12 +21,7 @@ export const FILMS: Record<FilmId, Film> = {
   },
   arran: {
     title: "Arran's textile laboratory · Giza, 1925", name: 'Arran Embleton',
-    stills: [
-      { src: 'art/arran/13-lab-room.webp', fit: 'cover', from: [1, 50, 50], to: [1.18, 40, 45] },
-      { src: 'art/arran/scenes/s02.webp', fit: 'cover', from: [1.05, 50, 40], to: [1.2, 55, 35] },
-      { src: 'art/arran/scenes/s05.webp', fit: 'cover', from: [1.15, 45, 45], to: [1, 50, 50] },
-      { src: 'art/arran/11-lab-inspect.webp', fit: 'contain', from: [1, 50, 30], to: [1.12, 50, 25] },
-    ],
+    video: { mp4: 'video/arran-intro.mp4', webm: 'video/arran-intro.webm', poster: 'video/arran-intro-poster.webp', last: 'video/arran-intro-last.webp' },
   },
   abuhamid: {
     title: "Abu Hamid's coffee house · Giza", name: 'Abu Hamid',
