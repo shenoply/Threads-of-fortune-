@@ -45,6 +45,8 @@ try {
   console.log('   picked', last.replace('rug-pick-', ''), '-> on the table', pres, '| front of the counter:', (await p.locator('.rugcard').first().getAttribute('class')).includes('presented'));
   // 3. Stock
   await p.click('[data-testid=nav-inventory]').catch(() => {}); await p.waitForTimeout(600);
+  const nm = await p.evaluate(() => [...document.querySelectorAll('h3')].map((h) => h.textContent).filter((t) => /Fayoum Hearth/.test(t)));
+  console.log('   repeated rugs numbered in Stock:', nm.join(' | '));
   console.log('3. Stock values:', await p.locator('[data-testid=stock-value]').count(), '|', (await p.locator('[data-testid=stock-value]').first().textContent()));
 } catch (e) { console.log('FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/picker-fail.png` }); }
 console.log('errors', JSON.stringify(errs));

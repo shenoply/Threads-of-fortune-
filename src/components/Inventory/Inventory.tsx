@@ -1,7 +1,7 @@
 import { CONDITION_FACTOR } from '../../data/rugs';
 import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
-import { typicalSale } from '../StallEncounter/RugPicker';
+import { rugNames, typicalSale } from '../StallEncounter/RugPicker';
 import { fmt } from '../../game/economy/money';
 import { RESERVE_DAYS, heldFor, restorePrice, stallName, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
@@ -18,6 +18,7 @@ import { fedOf, parcelWeight, parcelsWeight, waterOf } from '../../game/systems/
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
   const g = useGame();
+  const names = rugNames(g.inventory);
   const [view, setView] = useState<string | null>(null);
   return (
     <div className="screen" data-testid="inventory">
@@ -51,7 +52,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                 <img src={rugSrc(t)} alt="" style={i.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
               </button>
               <div>
-                <h3>{t.name}</h3>
+                <h3>{names[i.uid] ?? t.name}</h3>
                 <div className="meta">
                   {i.restoringUntil ? (
                     <span className="cond restoring" data-testid="restoring">{i.condition === 'Dirty' ? `Drying in the courtyard until day ${i.restoringUntil}` : `At the restorer until day ${i.restoringUntil}`}</span>

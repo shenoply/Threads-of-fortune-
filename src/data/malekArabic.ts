@@ -13,13 +13,13 @@ export interface ArabicPhrase {
   where: ArabicWhere[];
 }
 export const MALEK_ARABIC: ArabicPhrase[] = [
-  { id: 'aah-wbaadein', ar: 'آه، وبعدين؟', latin: 'Aah, w-ba‘dein?', en: 'Ah… and then what?', clips: ['aah-wbaadein'], where: ['shop'] },
-  { id: 'elli-khalaq', ar: 'اللي خلق علّق', latin: 'Elli khalaq, ‘allaq.', en: 'He who made us will provide.', clips: ['elli-khalaq'], where: ['shop'] },
-  { id: 'tamalli-maak', ar: 'تملّي معاك', latin: 'Tamalli ma‘ak.', en: 'Always with you.', clips: ['tamalli-maak'], where: ['shop'] },
-  { id: 'ha', ar: 'ها؟', latin: 'Ha?', en: 'Well?', clips: ['ha', 'ha-2'], where: ['shop', 'haggle'] },
-  { id: 'ba', ar: 'با!', latin: 'Ba!', en: 'Bah!', clips: ['ba', 'ba-2'], where: ['shop', 'haggle'] },
-  { id: 'meen-aal', ar: 'مين قال؟', latin: 'Meen ’aal?', en: 'Who said so?', clips: ['meen-aal', 'meen-aal-2'], where: ['shop', 'haggle'] },
-  { id: 'tozz', ar: 'طظ!', latin: 'Tozz!', en: 'Pfft, so what!', clips: ['tozz', 'tozz-2'], where: ['shop', 'haggle'] },
+  { id: 'aah-wbaadein', ar: 'آه، وَبَعْدِين؟', latin: 'Aah, w-ba‘dein?', en: 'Ah… and then what?', clips: ['aah-wbaadein'], where: ['shop'] },
+  { id: 'elli-khalaq', ar: 'الِّي خِلَق عَلَّق', latin: 'Elli khile’, ‘alla’.', en: 'He who made us will provide.', clips: ['elli-khalaq'], where: ['shop'] },
+  { id: 'tamalli-maak', ar: 'تِمَلِّي مَعَاك', latin: 'Timalli ma‘ak.', en: 'Always with you.', clips: ['tamalli-maak'], where: ['shop'] },
+  { id: 'ha', ar: 'هَا؟', latin: 'Ha?', en: 'Well?', clips: ['ha', 'ha-2'], where: ['shop', 'haggle'] },
+  { id: 'ba', ar: 'بَا!', latin: 'Ba!', en: 'Bah!', clips: ['ba', 'ba-2'], where: ['shop', 'haggle'] },
+  { id: 'meen-aal', ar: 'مِين قَال؟', latin: 'Meen ’aal?', en: 'Who said so?', clips: ['meen-aal', 'meen-aal-2'], where: ['shop', 'haggle'] },
+  { id: 'taa', ar: 'طَعْ!', latin: 'Ta‘!', en: 'Pfft, no way!', clips: ['taa', 'taa-2'], where: ['shop', 'haggle'] },
   { id: 'how', ar: 'How?', latin: 'How?', en: 'How much? How so?', clips: ['how', 'how-2'], where: ['haggle'] },
 ];
 export const ARABIC_BY_ID: Record<string, ArabicPhrase> = Object.fromEntries(MALEK_ARABIC.map((p) => [p.id, p]));

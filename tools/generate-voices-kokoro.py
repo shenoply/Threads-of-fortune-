@@ -18,9 +18,9 @@ from kokoro_onnx import Kokoro
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'public', 'voices')
 # who sounds like whom: Kokoro voice, speed, language
 CAST = {
-    # Malek speaks English with an Egyptian accent: English phonemes read by the stock Arabic Piper voice
-    # that speaks his Arabic phrases (tools/generate-malek-arabic.py), so both are one voice. Not a clone.
-    'malek': ('piper:/tmp/piper/vits-piper-ar_JO-kareem-medium/ar_JO-kareem-medium.onnx', 0.97, 'en-us'),
+    # Malek: a plain, brisk English voice (the accented Piper reading was too slow and too thick); his
+    # Arabic phrases are separate clips (tools/generate-malek-arabic.py). The 'piper:' engine stays available.
+    'malek': ('am_adam', 1.08, 'en-us'),
     'nabil': ('am_onyx', 0.92, 'en-us'),          # senior Cairo textile merchant: deep, unhurried
     'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler: measured, precise, nasal (FX below)
     'farid-nassar': ('am_eric', 1.0, 'en-us'),     # casino bookings manager

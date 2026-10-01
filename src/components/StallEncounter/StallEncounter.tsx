@@ -2,7 +2,7 @@ import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { createPortal } from 'react-dom';
 import { IntroFilm, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 import { STALL_FILMS } from '../IntroFilm/films';
-import { RugPicker, typicalSale } from './RugPicker';
+import { RugPicker, rugNames, typicalSale } from './RugPicker';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
 import { useEffect, useMemo, useState } from 'react';
@@ -37,6 +37,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // a rug picked from the full list comes to the front of the counter
   const [front, setFront] = useState<string | null>(null);
   const [picker, setPicker] = useState(false);
+  const names = useMemo(() => rugNames(g.inventory), [g.inventory]);
   const ordered = front && avail.some((i) => i.uid === front) ? [avail.find((i) => i.uid === front)!, ...avail.filter((i) => i.uid !== front)] : avail;
   const shown = ordered.length <= 3 ? ordered : [...ordered, ...ordered].slice(offset % ordered.length, (offset % ordered.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
@@ -156,7 +157,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               onClick={() => onRug(it.uid)}
               disabled={disabledByTut}
               data-testid={`rug-${t.id}`}
-              aria-label={`${t.name}${isP ? ', on the table. Tap to inspect' : ''}`}
+              aria-label={`${names[it.uid] ?? t.name}${isP ? ', on the table. Tap to inspect' : ''}`}
             >
               <div className="thumb">
                 <img src={rugSrc(t)} alt="" style={it.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
@@ -168,7 +169,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 </span>
               )}
               {isP && <span className="hint">Inspect</span>}
-              <span className="nm">{t.name}</span>
+              <span className="nm">{names[it.uid] ?? t.name}</span>
               <span className="val" data-testid="rugcard-value">≈ {fmt(typicalSale(it))}</span>
               <span className="meta">
                 {t.origin.split(',')[0].replace('Said to be ', '')} · {t.material.split(' ')[0]} · {t.age}
@@ -185,7 +186,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <Icon name="swap" />
             All {avail.length}
           </button>
-          {picker && <RugPicker rugs={avail} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
+          {picker && <RugPicker rugs={avail} names={names} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
         </div>
       </div>
 

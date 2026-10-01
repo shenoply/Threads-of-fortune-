@@ -14,19 +14,20 @@ import imageio_ffmpeg
 
 # id -> (Egyptian phonemes, length scale: >1 is slower)
 PHRASES = {
-    'aah-wbaadein': ('ʔˈaːh, wi baʕdˈiːn?', 1.15),
-    'elli-khalaq': ('ʔˈilli χˈalaq, ʕˈallaq.', 1.1),
-    'ha': ('hˈaː?', 1.0),
-    'ha-2': ('hˈaː, hˈaː?', 1.0),
-    'ba': ('bˈaː!', 1.0),
-    'ba-2': ('bˈaːh.', 1.2),
-    'tamalli-maak': ('tamˈalli maʕˈaːk.', 1.1),
-    'meen-aal': ('mˈiːn ʔˈaːl?', 1.05),
-    'meen-aal-2': ('mˈiːn ʔˈaːl, mˈiːn?', 1.05),
-    'tozz': ('tˤˈozz!', 1.0),
-    'tozz-2': ('tˤˈozz, tˤˈozz.', 1.05),
-    'how': ('hˈaːw?', 1.0),
-    'how-2': ('hˈaːw? hˈaːw?', 1.0),
+    'aah-wbaadein': ('ʔˈaːh, wi baʕdˈiːn?', 1.0),
+    # الِّي خِلَق عَلَّق: Cairo says the ق as a glottal stop, and خِلَق like "khileq"
+    'elli-khalaq': ('ʔˈilli χilˈaʔ, ʕallˈaʔ.', 1.0),
+    'ha': ('hˈaː?', 0.95),
+    'ha-2': ('hˈaː, hˈaː?', 0.95),
+    'ba': ('bˈaː!', 0.95),
+    'ba-2': ('bˈaːh.', 1.0),
+    'tamalli-maak': ('timˈalli maʕˈaːk.', 1.0),
+    'meen-aal': ('mˈiːn ʔˈaːl?', 0.95),
+    'meen-aal-2': ('mˈiːn ʔˈaːl, mˈiːn?', 0.95),
+    'taa': ('tˤˈaʕ!', 0.95),
+    'taa-2': ('tˤˈaʕ, tˤˈaʕ.', 1.0),
+    'how': ('hˈaːw?', 0.95),
+    'how-2': ('hˈaːw? hˈaːw?', 0.95),
 }
 
 def main(model):

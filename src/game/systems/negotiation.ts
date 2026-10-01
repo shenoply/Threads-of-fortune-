@@ -396,7 +396,7 @@ function buyerSay(enc: Encounter, text: string, mood?: Line['mood']) {
   } else say(enc, 'buyer', text, mood);
   if (mood) enc.mood = mood;
 }
-/** an Arabic opener: ها؟ / How? when he is weighing it up, با! / مين قال؟ / طظ! when he is not having it; about one line in four, never two running */
+/** an Arabic opener: ها؟ / How? when he is weighing it up, با! / مين قال؟ / طع! when he is not having it; about one line in four, never two running */
 function malekInterjection(enc: Encounter, text: string, mood?: Line['mood']): string | undefined {
   if (enc.stage === 'discovery' || /^(ha|bah?|how)\b/i.test(text)) return undefined;
   const prev = enc.log.filter((l) => l.speaker === 'buyer').pop();
@@ -406,7 +406,7 @@ function malekInterjection(enc: Encounter, text: string, mood?: Line['mood']): s
   // which one follows from the line itself, so the same line always gets the same opener
   const h = [...text].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
   const pick = (ids: string[]) => ids[h % ids.length];
-  return mood === 'skeptical' || mood === 'leaving' ? pick(['ba', 'meen-aal', 'tozz']) : pick(['ha', 'how']);
+  return mood === 'skeptical' || mood === 'leaving' ? pick(['ba', 'meen-aal', 'taa']) : pick(['ha', 'how']);
 }
 
 function recentBuyerTexts(enc: Encounter) {
