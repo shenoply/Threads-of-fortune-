@@ -1,6 +1,7 @@
 import { CONDITION_FACTOR } from '../../data/rugs';
 import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
+import { typicalSale } from '../StallEncounter/RugPicker';
 import { fmt } from '../../game/economy/money';
 import { RESERVE_DAYS, heldFor, restorePrice, stallName, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
@@ -57,7 +58,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   ) : (
                     <span className={`cond ${i.condition}`} data-testid="condition">{i.condition}{i.restored ? ' · restored' : ''}</span>
                   )}{' '}
-                  · {t.origin.split(',')[0]} · paid {fmt(i.paid)}
+                  · {t.origin.split(',')[0]} · paid {fmt(i.paid)} · <b className="inv-val" data-testid="stock-value">usually ≈ {fmt(typicalSale(i))}</b>
                   <br />
                   Provenance: {i.provenance}
                   {g.intel?.[i.typeId] && <><br /><span className="intel" data-testid="intel">Seen at auction: about {fmt(Math.round((g.intel[i.typeId].movingAveragePt ?? 0) * CONDITION_FACTOR[i.condition]))} in this condition ({g.intel[i.typeId].observations} sale{g.intel[i.typeId].observations === 1 ? '' : 's'})</span></>}

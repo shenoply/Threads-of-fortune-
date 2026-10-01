@@ -2164,7 +2164,7 @@ export const useGame = create<GameState & Actions>()(
             reputation += 1;
           }
           audio.sfx('step');
-          set({
+          const startPatch: Partial<GameState> = {
             encounter: enc,
             dayOver: false,
             commissions,
@@ -2173,7 +2173,11 @@ export const useGame = create<GameState & Actions>()(
             goals,
             tutorial: tutorial ? { ...s.tutorial, step: 'room' } : s.tutorial,
             ...(malekBackPatch ? { malek: malekBackPatch } : {}),
-          });
+          };
+          // a buyer who leaves on arrival (nothing at their level) is done with: settle the visit and move
+          // the queue on, or "Next customer" would bring the same buyer straight back
+          if (enc.outcome) set({ ...startPatch, ...settle({ ...s, ...startPatch } as GameState, enc), visitIdx: s.visitIdx + 1 });
+          else set(startPatch);
         },
 
         markIntroSeen: (id) => {

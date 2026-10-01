@@ -2,6 +2,7 @@ import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { createPortal } from 'react-dom';
 import { IntroFilm, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 import { STALL_FILMS } from '../IntroFilm/films';
+import { RugPicker, typicalSale } from './RugPicker';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
 import { useEffect, useMemo, useState } from 'react';
@@ -33,7 +34,11 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   useAudioEnv(atCourt ? 'palace' : null, atCourt ? 'palace' : undefined);
   // at court you can only show the rugs your caravan carried there
   const avail = atCourt ? availableRugs(g, enc?.buyerId).filter((i) => !i.stored) : availableRugs(g, enc?.buyerId);
-  const shown = avail.length <= 3 ? avail : [...avail, ...avail].slice(offset % avail.length, (offset % avail.length) + 3);
+  // a rug picked from the full list comes to the front of the counter
+  const [front, setFront] = useState<string | null>(null);
+  const [picker, setPicker] = useState(false);
+  const ordered = front && avail.some((i) => i.uid === front) ? [avail.find((i) => i.uid === front)!, ...avail.filter((i) => i.uid !== front)] : avail;
+  const shown = ordered.length <= 3 ? ordered : [...ordered, ...ordered].slice(offset % ordered.length, (offset % ordered.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
   // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
   // closes (settle() runs inside act(), before the player has seen the result screen or clicked
@@ -164,6 +169,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               )}
               {isP && <span className="hint">Inspect</span>}
               <span className="nm">{t.name}</span>
+              <span className="val" data-testid="rugcard-value">≈ {fmt(typicalSale(it))}</span>
               <span className="meta">
                 {t.origin.split(',')[0].replace('Said to be ', '')} · {t.material.split(' ')[0]} · {t.age}
               </span>
@@ -175,10 +181,11 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <Icon name="search" />
             Inspect
           </button>
-          <button className="side-btn" onClick={() => setOffset((o) => o + 3)} disabled={avail.length <= 3 || tut} aria-label="Change rugs" data-testid="change-rugs">
+          <button className="side-btn" onClick={() => setPicker(true)} disabled={avail.length <= 3 || tut} aria-label={`See all ${avail.length} rugs`} data-testid="change-rugs">
             <Icon name="swap" />
-            Change
+            All {avail.length}
           </button>
+          {picker && <RugPicker rugs={avail} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
         </div>
       </div>
 
