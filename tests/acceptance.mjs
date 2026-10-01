@@ -43,7 +43,7 @@ const has = async (sel) => {
 const enabled = async (sel) => (await has(sel)) && (await p.locator(sel).first().isEnabled());
 
 await p.goto(URL);
-await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-skip-chapters', '1')));
+await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1')));
 await p.reload();
 
 // 1. Opening

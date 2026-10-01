@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 });
 const errors = []; p.on('pageerror', (e) => errors.push(e.message));
-await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
 const pos = { alexandria: [86.4, 387.2], jerusalem: [403.3, 341.1], damascus: [486.9, 291], istanbul: [167.1, 49], amman: [452.3, 339.9], baghdad: [823.9, 266.2] };
 for (const [c, [x, y]] of Object.entries(pos)) {

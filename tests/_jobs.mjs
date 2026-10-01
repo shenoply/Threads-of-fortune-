@@ -9,7 +9,7 @@ const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = u
 Object.assign(s.world, { at: 'giza', hour: 8, x: 146.9, y: 443.7 }); s.visitIdx = 0; s.encounter = null; s.dayOver = false; s.arrivals = [19.5, 19.6, 19.7]; s.queue = s.queue.slice(0, 3);
 s.world.party.food = 20; s.inventory = s.inventory.map((i, k) => (k === 0 ? { ...i, stored: false } : i)); s.jobsDone = [];
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(800);
 await p.click('[data-testid=district-world]'); await p.waitForTimeout(800);

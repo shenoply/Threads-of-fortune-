@@ -27,7 +27,7 @@ const toTown = async (town) => {
   await p.waitForSelector('[data-testid=town-menu]');
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
     Object.assign(s.world, { at: 'giza', hour: 2 }); s.cash = 800; s.queue = []; s.visitIdx = 0;

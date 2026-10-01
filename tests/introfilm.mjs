@@ -19,7 +19,7 @@ const toShop = async () => {
   await p.waitForSelector('[data-testid=malek-shop], [data-testid=film-malek]', { timeout: 20000 }); await p.waitForTimeout(500);
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 6 }); localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();

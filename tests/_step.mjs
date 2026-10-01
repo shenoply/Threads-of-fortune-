@@ -7,7 +7,7 @@ const errors = []; p.on('pageerror', (e) => errors.push(e.message));
 const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.tipsSeen = ['map', 'town', 'auction', 'levelup', 'rumours', 'rashid', 'stock', 'audience'];
 Object.assign(s.world, { at: 'giza', hour: 9, x: 146.9, y: 443.7 }); s.visitIdx = 0; s.encounter = null; s.dayOver = false; s.arrivals = [9.2, 16, 17.5]; s.queue = s.queue.slice(0, 3);
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForSelector('[data-testid=serve-waiting]', { timeout: 20000 });
 await p.screenshot({ path: '/home/claude/shots/step-1.png' });

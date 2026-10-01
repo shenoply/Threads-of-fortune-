@@ -6,7 +6,7 @@ const errors = []; p.on('pageerror', (e) => errors.push(e.message));
 const d = JSON.parse(JSON.stringify(base)); const s = d.state;
 Object.assign(s.world, { at: 'giza', hour: 8 }); s.day = 1; s.tutorial = { done: true, step: 'done', inspected: true }; s.queue = ['yusuf', 'mariam', 'hassan']; s.arrivals = [9, 11.25, 14.5]; s.visitIdx = 0; s.encounter = null; s.dayOver = false; s.onboard = {}; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.reputation = 12;
 s.errands = [{ id: '2-paper', kind: 'paper', label: "Read today's Giza Courier", hint: 'Tap 📰', reward: { xp: ['scholarship', 4] } }, { id: '2-radio', kind: 'radio', label: 'Listen to Radio Giza', hint: 'Tap 📻', reward: { xp: ['speech', 3] } }, { id: '2-sell', kind: 'sell', n: 2, label: 'Sell 2 rugs at the stall', hint: 'Wait at the stall.', reward: { cash: 60 } }];
-await p.goto('http://localhost:4173/'); await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+await p.goto('http://localhost:4173/'); await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(700); for (const t of ['tip-ok', 'mission-ok']) if (await p.locator(`[data-testid=${t}]`).count()) await p.click(`[data-testid=${t}]`).catch(() => {});
 await p.screenshot({ path: '/home/claude/shots/d2-1.png' });

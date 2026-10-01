@@ -10,7 +10,7 @@ const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; 
 const st = async () => JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).state;
 const toStall = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(1200); };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.world.hour = 8.5; s.cash = 500; s.queue = ['samira']; s.visitIdx = 0; localStorage.setItem('tof-skip-chapters', '1');`);
   await toStall();

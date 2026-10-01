@@ -44,7 +44,7 @@ const phone = async (where) => {
   console.log(`  [${where}] sideways scroll: ${r.over} | taps under 44px: ${r.small.length ? r.small.join(', ') : 'none'}`);
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   // a v17 save with an old "fastness" result on the canal kilim, which really does lose colour
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];

@@ -10,7 +10,7 @@ Object.assign(s.world, { at: 'cairo', hour: 9, x: 214.3, y: 413.7 }); s.world.pa
 s.world.known = [...new Set([...s.world.known, 'suez'])];
 s.inventory = s.inventory.map((i, k) => (k < 2 ? { ...i, stored: false } : i));
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(900);
 await p.locator('[data-testid=place-suez]').dispatchEvent('click'); await p.click('[data-testid=speed-4]').catch(() => {});

@@ -9,7 +9,7 @@ const load = async (mut) => {
   const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.tipsSeen = ['map', 'town', 'auction', 'levelup', 'rumours', 'rashid', 'stock', 'audience'];
   mut(s);
   await p.goto('http://localhost:4173/');
-  await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+  await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); }, JSON.stringify(d));
   await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
   await p.waitForTimeout(700); await dismiss();
 };

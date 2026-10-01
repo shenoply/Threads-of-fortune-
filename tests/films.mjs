@@ -1,6 +1,6 @@
 // The first-meeting films: Abu Hamid at the coffee house, Arran at the lab (paintings until his
 // video), Rashid at his warehouse, Nabil when he first comes to the stall (his greeting waits until the
-// film ends). Each plays once; the Customers screen keeps them to watch again.
+// film ends). With tof-films-once each plays once (without it, the place films play every visit for now); the Customers screen keeps them to watch again.
 //   PORT=5173 SHOTS=/tmp/malek node tests/films.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -26,7 +26,7 @@ const watch = async (id, shot) => {
   return `film ${on} | frame ${frame} | "${(cap ?? '').slice(0, 70)}"`;
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 10 }); s.reputation = 30; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
@@ -52,6 +52,12 @@ try {
   await reload(); await district(); await poi('coffee');
   console.log('coffee again: film', await has('film-abuhamid'));
   await p.keyboard.press('Escape'); await reload();
+  // while the game is updated (FILMS_EVERY_ENTRY), a place's film plays on every visit and Skip ends it
+  await p.evaluate(() => localStorage.removeItem('tof-films-once')); await reload(); await district(); await poi('coffee');
+  await p.waitForSelector('[data-testid=film-abuhamid]', { timeout: 5000 }).catch(() => {}); await p.screenshot({ path: `${S}/film-every.png` });
+  const again = await has('film-abuhamid'); await p.click('[data-testid=film-skip]').catch(() => {}); await p.waitForTimeout(400);
+  console.log('every entry: coffee film again', again, '| skipped, gone:', (await has('film-abuhamid')) === 0);
+  await p.keyboard.press('Escape'); await p.evaluate(() => localStorage.setItem('tof-films-once', '1')); await reload();
   // the shelf
   await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
   await p.click('text=Customers').catch(() => {}); await p.waitForTimeout(500);

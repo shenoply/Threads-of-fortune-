@@ -4,7 +4,7 @@ const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 780 } });
 const errors = []; p.on('pageerror', (e) => errors.push(e.message));
 await p.goto('http://localhost:4173/');
-await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-skip-chapters', '1')));
+await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1')));
 await p.reload();
 await p.click('[data-testid=play-opening]'); await p.waitForTimeout(1500);
 await p.click('[data-testid=skip-opening]'); await p.waitForSelector('[data-testid=dayone]', { timeout: 45000 });

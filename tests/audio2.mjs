@@ -7,7 +7,7 @@ const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('conso
 const reqs = []; p.on('requestfinished', (r) => { const u = r.url(); if (u.includes('/audio/')) reqs.push(u.split('/audio/')[1]); });
 const d = JSON.parse(JSON.stringify(base)); Object.assign(d.state.world, { at: 'cairo', x: 214.3, y: 413.7 }); d.state.day = 15; d.state.missionNews = undefined; d.state.levelUps = []; d.state.tipsSeen = ['map','town','auction','levelup','rumours'];
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 const S = async (tag) => { await p.waitForTimeout(3500); console.log(tag.padEnd(14), JSON.stringify(await p.evaluate(() => { const a = window.__tofAudio; return { ...a.state, stack: a.envStack?.map((e) => e.env + '/' + (e.music ?? '')) }; }))); };
 await p.evaluate(() => { window.__tofAudio.startAmbience(); window.__tofAudio.startMusic('stall'); });

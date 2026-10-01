@@ -28,7 +28,7 @@ const toLab = async () => {
   await p.waitForSelector('[data-testid=arran-door]', { timeout: 20000 });
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.cash = 800; s.queue = []; s.visitIdx = 0; s.inventory = s.inventory.slice(0, 3); s.inventory[1].condition = 'Worn'; delete s.volumes; delete s.arranVisit; d.version = 16; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();

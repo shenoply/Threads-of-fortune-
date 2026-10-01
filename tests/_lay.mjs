@@ -7,7 +7,7 @@ const errors = []; p.on('pageerror', (e) => errors.push(e.message));
 const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
 Object.assign(s.world, { at: null, hour: 2, x: 190, y: 430 }); s.world.party.food = 0; s.world.party.troops = {};
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(1200);
 await p.screenshot({ path: '/home/claude/shots/lay-camp.png' });

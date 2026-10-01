@@ -2,7 +2,7 @@
 import { chromium } from 'playwright';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 });
-await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 let n = 0;
 const shot = (tag) => p.screenshot({ path: `/home/claude/shots/play-${String(++n).padStart(2,'0')}-${tag}.png` });
 const idle = async () => { for (let i = 0; i < 80; i++) { if (!(await p.locator('.skip-hint').count())) return; await p.waitForTimeout(250); } };

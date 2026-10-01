@@ -9,7 +9,7 @@ const d = JSON.parse(JSON.stringify(base)); const s = d.state;
 Object.assign(s.world, { at: 'cairo', x: 214.3, y: 413.7 }); s.day = 15; s.cash = 50000; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
 s.tipsSeen = ['map', 'town', 'auction', 'levelup', 'rumours'];
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(800);
 for (const t of ['tip-ok', 'mission-ok']) if (await p.locator(`[data-testid=${t}]`).count()) await p.click(`[data-testid=${t}]`).catch(() => {});

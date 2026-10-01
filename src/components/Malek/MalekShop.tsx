@@ -16,7 +16,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
-import { IntroFilm, filmReady } from '../IntroFilm/IntroFilm';
+import { IntroFilm, filmReady, filmDue } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
 
 const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
@@ -41,8 +41,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [panel, setPanel] = useState<Panel>(null);
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
   const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
-  // the film plays the first time the shop is open to you; "Watch the film again" replays it
-  const [film, setFilm] = useState(() => filmReady('malek') && !(useGame.getState().introSeen ?? []).includes('malek'));
+  // the film plays when the shop is open to you (every visit for now, see FILMS_EVERY_ENTRY); "Watch the film again" replays it
+  const [film, setFilm] = useState(() => filmDue('malek', useGame.getState().introSeen));
   const open = shopOpen(g.world.hour);
 
   // one visit per opening of the shop: the picture, his greeting, and a story stage if one is due

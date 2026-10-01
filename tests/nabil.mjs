@@ -69,7 +69,7 @@ try {
   });
   for (const [k, v] of Object.entries(r)) console.log(k.padEnd(14), JSON.stringify(v));
   // a real visit at the stall: composition and memory
-  await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.reputation = 20; s.queue = ['nabil', 'samira']; s.visitIdx = 0; s.inventory.unshift({ uid: 'r1', typeId: 'sapphire-night', condition: 'Good', restored: true, provenance: 'Documented', paid: 5000, notes: [] }); localStorage.setItem(k, JSON.stringify(d)); localStorage.setItem('tof-skip-chapters', '1'); });
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);

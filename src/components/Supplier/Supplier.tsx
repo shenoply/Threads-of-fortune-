@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { IntroFilm, filmReady } from '../IntroFilm/IntroFilm';
+import { IntroFilm, filmDue } from '../IntroFilm/IntroFilm';
 import { hasPerk } from '../../data/character';
 import { Icon } from '../Icon';
 import { Rumours } from '../Rumours/Rumours';
@@ -26,8 +26,8 @@ const pickOne = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 export function Supplier({ toast }: { toast: (s: string) => void }) {
   const g = useGame();
-  // the first time you come to him, his film
-  const [film, setFilm] = useState(() => filmReady('rashid') && !(useGame.getState().introSeen ?? []).includes('rashid'));
+  // his film when you come to him (every visit for now, see FILMS_EVERY_ENTRY)
+  const [film, setFilm] = useState(() => filmDue('rashid', useGame.getState().introSeen));
   const sup = g.supplier;
   const fam = g.family ?? FAMILY_START;
   // Rashid always has an opinion about how you look, how much you have, and the cat

@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
 await p.evaluate(() => { const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); d.state.tutorial={done:true,step:'done',inspected:true}; d.state.cash=600; d.state.world.known.push('suez','sinai'); localStorage.setItem(k, JSON.stringify(d)); });
 await p.reload(); await p.click('[data-testid=continue]'); await p.waitForTimeout(300);

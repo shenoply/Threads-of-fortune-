@@ -1,8 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { takeMalekRequest } from '../../game/nav';
-import { IntroFilm, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
-const unseen = (id: FilmId) => filmReady(id) && !(useGame.getState().introSeen ?? []).includes(id);
+import { IntroFilm, filmDue, type FilmId } from '../IntroFilm/IntroFilm';
+const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
 import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
@@ -456,7 +456,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [talk, setTalk] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
-  // a first-meeting film over the lab or the coffee house
+  // the film over the lab or the coffee house (every visit for now, see FILMS_EVERY_ENTRY)
   const [film, setFilm] = useState<FilmId | null>(null);
   // asked for from the stall or the evening strip ("Lunch at Malek's"): the app shows the map afresh
   // (a new district), and that district opens the shop as it mounts

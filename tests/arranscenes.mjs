@@ -24,7 +24,7 @@ const visit = async (label, setup) => {
   await p.screenshot({ path: `${S}/sc-${label}.png` });
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.cash = 900; localStorage.setItem('tof-skip-chapters', '1');`);
   await visit('first', `s.arranVisit = { visitCount: 0 }; s.arranBooks = {}; s.papers = [];`);

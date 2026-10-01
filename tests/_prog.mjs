@@ -9,7 +9,7 @@ const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = u
 Object.assign(s.world, { at: 'giza', hour: 9, x: 146.9, y: 443.7 }); s.visitIdx = 0; s.encounter = null; s.dayOver = false; s.arrivals = [9.3, 16, 17.5]; s.queue = s.queue.slice(0, 3);
 s.visits = [{ id: 'v1', who: 'A Greek hotelier', city: 'alexandria', until: s.day + 4, tier: 1, mult: 1.6, rep: 2, text: 'A Greek hotelier is refitting his rooms on the Corniche. Bring a rug before they leave.' }, { id: 'v2', who: 'Umm Kulthum', buyerId: 'umm-kulthum', portrait: 'art/portraits/umm-kulthum.jpg', city: 'cairo', until: s.day + 3, tier: 2, mult: 1.9, rep: 4, text: 'Umm Kulthum is staying in town and asking dealers for a Fine rug.' }];
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); localStorage.setItem('tof-skip-chapters', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(800);
 await p.click('[data-testid=poi-stall]'); await p.waitForTimeout(2600); await p.screenshot({ path: '/home/claude/shots/prog-stall.png' });

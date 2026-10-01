@@ -19,7 +19,7 @@ const serve = async (who) => {
   await p.click('[data-testid=stall-wait]'); await p.waitForTimeout(1200);
 };
 try {
-  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
+  await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1');
     Object.assign(s.world, { at: 'giza', hour: 10 }); s.cash = 300; s.relationships.yusuf = { ...(s.relationships.yusuf || {}), visits: 1, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] };

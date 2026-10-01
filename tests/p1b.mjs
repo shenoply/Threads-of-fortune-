@@ -9,7 +9,7 @@ const d = JSON.parse(JSON.stringify(base)); const s = d.state; s.missionNews = u
 Object.assign(s.world, { at: 'giza', hour: 9, x: 146.9, y: 443.7 }); s.visitIdx = 0; s.encounter = null; s.dayOver = false; s.arrivals = [9.9, 16, 17.5]; s.queue = s.queue.slice(0, 3);
 s.onboard = { news: true, radio: true }; s.buyersSeen = ['samira', 'yusuf', 'mariam']; s.ledger = [...s.ledger, { label: 'Bought X from Rashid' }];
 await p.goto('http://localhost:4173/');
-await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+await p.evaluate((x) => { localStorage.setItem('threads-of-fortune-save', x); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); }, JSON.stringify(d));
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(1200); await dismiss();
 const shot = (n) => p.screenshot({ path: `/home/claude/shots/p1b-${n}.png` });

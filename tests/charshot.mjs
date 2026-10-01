@@ -11,7 +11,7 @@ const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 });
 const errors = []; p.on('pageerror', (e) => errors.push(e.message));
 await p.goto('http://localhost:4173/');
-await p.evaluate((s) => { localStorage.setItem('threads-of-fortune-save', s); localStorage.setItem('tof-intro-seen-v2', '1'); }, JSON.stringify(d));
+await p.evaluate((s) => { localStorage.setItem('threads-of-fortune-save', s); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); }, JSON.stringify(d));
 await p.reload();
 if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.waitForTimeout(600);

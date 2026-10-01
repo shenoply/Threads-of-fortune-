@@ -68,3 +68,16 @@ export const filmReady = (id: FilmId) => !!INTRO_FILMS[id] && (!!FILMS[id].video
 /** the buyers whose film plays when they first come to your stall */
 export const STALL_FILMS: FilmId[] = ['nabil', 'cohen'];
 export const FILM_ORDER: FilmId[] = ['rashid', 'abuhamid', 'arran', 'malek', 'nabil', 'cohen'];
+/** For now, while the game is being updated, the shop and house films play every time you go in
+ *  (Skip ends one at once); set this false to go back to the first visit only. The stall buyers'
+ *  films stay first-meeting only, so a customer does not wait behind a film every visit. */
+export const FILMS_EVERY_ENTRY = true;
+const PLACE_FILMS: FilmId[] = ['malek', 'arran', 'abuhamid', 'rashid'];
+/** should this film play now? (the tests set tof-films-once to see each film once) */
+export function filmDue(id: FilmId, seen: string[] | undefined): boolean {
+  if (!filmReady(id)) return false;
+  let once = false;
+  try { once = localStorage.getItem('tof-films-once') === '1'; } catch { /* no storage */ }
+  if (FILMS_EVERY_ENTRY && !once && PLACE_FILMS.includes(id)) return true;
+  return !(seen ?? []).includes(id);
+}

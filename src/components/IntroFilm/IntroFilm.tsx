@@ -7,7 +7,7 @@ import { FILMS, type FilmId, type Still } from './films';
 import { useGame } from '../../game/state/store';
 import './IntroFilm.css';
 
-export { filmReady, type FilmId } from './films';
+export { filmReady, filmDue, type FilmId } from './films';
 
 export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: string; onDone: () => void }) {
   const film = FILMS[id];
