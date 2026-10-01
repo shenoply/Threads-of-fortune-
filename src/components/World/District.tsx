@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { takeMalekRequest } from '../../game/nav';
+import { IntroFilm, filmReady } from '../IntroFilm/IntroFilm';
 import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
@@ -454,6 +455,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [talk, setTalk] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
+  // Arran's first-visit film, over the lab (it waits for its video: see FILM_VIDEO)
+  const [arranFilm, setArranFilm] = useState(false);
   // asked for from the stall or the evening strip ("Lunch at Malek's"): the app shows the map afresh
   // (a new district), and that district opens the shop as it mounts
   useEffect(() => { if (takeMalekRequest()) setMalek(true); }, []);
@@ -498,7 +501,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     switch (id) {
       case 'stall': onStall(); break;
       case 'coffee': setTalk(true); break;
-      case 'lab': setLab(true); break;
+      case 'lab': setLab(true); if (filmReady('arran') && !(useGame.getState().introSeen ?? []).includes('arran')) setArranFilm(true); break;
       case 'malek': setMalek(true); break;
       case 'souk': setPanel('market'); break;
       case 'animals': setPanel('animals'); break;
@@ -792,6 +795,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       </div>
       {panel && <SettlementPanel id="giza" tab={panel} onClose={() => { setPanel(null); onPanelClosed?.(); }} onStall={onStall} />}
       {lab && <ArranLab onLeave={() => setLab(false)} />}
+      {lab && arranFilm && createPortal(<IntroFilm id="arran" title="Arran's textile laboratory · Giza, 1925" onDone={() => { useGame.getState().markIntroSeen('arran'); setArranFilm(false); }} />, document.body)}
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}

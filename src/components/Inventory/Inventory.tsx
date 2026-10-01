@@ -2,7 +2,9 @@ import { CONDITION_FACTOR } from '../../data/rugs';
 import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
 import { fmt } from '../../game/economy/money';
-import { restorePrice, stallName, useGame } from '../../game/state/store';
+import { RESERVE_DAYS, heldFor, restorePrice, stallName, useGame } from '../../game/state/store';
+import { BUYERS } from '../../data/buyers';
+import { dateFor } from '../../game/economy/economy';
 import { RUGS } from '../../data/rugs';
 import { RESTORATION, UPGRADES } from '../../data/suppliers';
 import { rugSrc } from '../RugViewer/rugArt';
@@ -70,6 +72,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   ) : (
                     <span className="cond">{i.stored ? 'At your stall in Giza · return there to pack it for the road' : 'With the caravan'}</span>
                   )}
+                  <ReserveControl uid={i.uid} />
                   {r && !i.restoringUntil && (
                     <button className="btn" disabled={g.cash < r.cost} onClick={() => g.restore(i.uid)} data-testid="restore" title={r.label}>
                       {i.condition === 'Dirty' ? 'Wash' : i.condition === 'Worn' ? 'Re-fringe' : 'Reweave'} · {fmt(restorePrice(i))} · {r.days}d
@@ -114,5 +117,36 @@ function ParcelList() {
       })}
       {note && <p role="status" data-testid="inv-parcel-note"><small>{note}</small></p>}
     </div>
+  );
+}
+
+/** Put a rug aside for one buyer you know: nobody else is shown it until the hold ends. */
+function ReserveControl({ uid }: { uid: string }) {
+  const g = useGame();
+  const [note, setNote] = useState('');
+  const item = g.inventory.find((i) => i.uid === uid);
+  if (!item) return null;
+  const holder = heldFor(item, g.day);
+  // buyers you have met at the stall (and Malek once you know his shop)
+  const known = Object.entries(g.relationships).filter(([id, r]) => BUYERS[id] && r.visits > 0).map(([id]) => id);
+  if (g.malek?.visits && !known.includes('malek')) known.push('malek');
+  if (holder) {
+    return (
+      <span className="reserved" data-testid="reserved">
+        Kept for {BUYERS[holder]?.name ?? holder} until {dateFor(item.reservedUntil ?? g.day).short}{' '}
+        <button className="btn small" onClick={() => setNote(useGame.getState().reserveRug(uid, null))} data-testid="unreserve">Free it</button>
+      </span>
+    );
+  }
+  if (!known.length) return null;
+  return (
+    <label className="reserve-pick">
+      <select value="" onChange={(e) => { if (e.target.value) setNote(useGame.getState().reserveRug(uid, e.target.value)); }} data-testid="reserve-select" aria-label="Put aside for a buyer">
+        <option value="">Put aside for…</option>
+        {known.map((id) => <option key={id} value={id}>{BUYERS[id].name}</option>)}
+      </select>
+      {note && <small role="status">{note}</small>}
+      <small className="reserve-hint">{RESERVE_DAYS} days; nobody else is shown it</small>
+    </label>
   );
 }

@@ -49,8 +49,9 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
+import { MALEK_RETURN } from '../../data/malekBuyer';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
-import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, STORY_BUYER, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
+import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 export const SAVE_VERSION = 19;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
@@ -196,6 +197,8 @@ export interface GameState {
   malek?: MalekState;
   /** food parcels carried from Malek's (servings are eaten one at a time) */
   parcels?: FoodParcel[];
+  /** first-visit films already shown (Malek's, Arran's) */
+  introSeen?: string[];
   /** a journey under way (path, how far along, by what): kept so a paid train or ship survives the map
    *  screen being rebuilt, a new day, or a reload */
   journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' };
@@ -350,6 +353,10 @@ interface Actions {
   buyTonic: () => string;
   takeTonic: () => string;
   cabinetBuy: (id: CabinetId) => string;
+  /** a first-visit film has been watched or skipped: it does not play again on its own */
+  markIntroSeen: (id: string) => void;
+  /** put a rug aside for one buyer (hidden from everyone else for RESERVE_DAYS), or free it with null */
+  reserveRug: (uid: string, buyerId: string | null) => string;
   /** walk into Malek's: the picture for this visit, his greeting, and a story stage if one is due */
   malekEnter: () => { scene: MalekScene; line: string; stage: number | null };
   /** buy from Malek: eat in now, or take a parcel. `order` is a one-off token so a double tap
@@ -590,8 +597,16 @@ export function stallName(up: string[]) {
   return up.includes('khan') ? 'shop in Khan el-Khalili' : up.includes('bazaar') ? 'bazaar stall' : up.includes('mat') ? 'rug mat' : 'borrowed corner';
 }
 
-export function availableRugs(s: Pick<GameState, 'inventory'>) {
-  return s.inventory.filter((i) => !i.restoringUntil);
+/** a rug put aside for a buyer, while the hold lasts */
+export const heldFor = (i: RugItem, day: number) => (i.reservedFor && (i.reservedUntil ?? Infinity) >= day ? i.reservedFor : undefined);
+/** RESERVE_DAYS: how long a rug stays put aside */
+export const RESERVE_DAYS = 7;
+/** Rugs you can show: not at the restorer, and not put aside for someone else. A rug kept for this
+ *  buyer comes first. */
+export function availableRugs(s: Pick<GameState, 'inventory'> & { day?: number }, buyerId?: string) {
+  const day = s.day ?? 0;
+  const ok = s.inventory.filter((i) => !i.restoringUntil && (!heldFor(i, day) || heldFor(i, day) === buyerId));
+  return buyerId ? [...ok.filter((i) => heldFor(i, day) === buyerId), ...ok.filter((i) => heldFor(i, day) !== buyerId)] : ok;
 }
 
 function cloneEnc(e: Encounter): Encounter {
@@ -755,7 +770,10 @@ export const useGame = create<GameState & Actions>()(
           // your next plates on his account
           const m = s.malek ?? MALEK_START;
           const sold = enc.outcome === 'sold' && enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
-          patch.malek = { ...m, stallLastDay: s.day, stallOutcome: sold ? 'sold' : 'walked', stallNoted: false, ...(sold ? { rug: sold.typeId, rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } : {}) };
+          // not convinced but he liked it: he may come back for that very rug
+          const liked = !sold && enc.malekUnsure && enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
+          patch.malek = { ...m, stallLastDay: s.day, stallOutcome: sold ? 'sold' : 'walked', stallNoted: false, wantsBack: liked ? { uid: liked.uid, typeId: liked.typeId, day: s.day } : sold ? undefined : m.wantsBack, ...(sold ? { rug: sold.typeId, rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } : {}) };
+          if (liked) journal.push({ day: s.day, text: `Malek agreed a price for the ${RUGS[liked.typeId].name} and then would not buy it. He may come back for it; put it aside for him in Stock.` });
           if (sold) journal.push({ day: s.day, text: `Malek bought the ${RUGS[sold.typeId].name} for the floor under his tables. "Your next ${TAB_PLATES} plates are on me. Do not tell anyone."` });
         }
         if (enc.buyerId === 'nabil') {
@@ -825,6 +843,10 @@ export const useGame = create<GameState & Actions>()(
           }
           // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
           const condition = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
+          // rugs put aside for a buyer who never came go back on the stall
+          // (heldFor ignores an expired hold, so the note fires once, on the night it ends)
+          const lapsed = s.inventory.filter((i) => i.reservedFor && i.reservedUntil === s.day);
+          for (const i of lapsed) notes.push(`You stop keeping the ${RUGS[i.typeId].name} for ${BUYERS[i.reservedFor!]?.name ?? 'them'}. It is back on the stall.`);
           // parcels past their (game) freshness are thrown away
           const parcels = (s.parcels ?? []).filter((pc) => {
             if (parcelFresh(pc, s.day + 1)) return true;
@@ -1068,7 +1090,7 @@ export const useGame = create<GameState & Actions>()(
           let malekPatch: MalekState | undefined;
           if (!queue.includes('malek') && malekDue(s.malek, day, rng())) {
             queue.push('malek'); malekPatch = { ...(s.malek ?? MALEK_START), stallLastDay: day };
-            notes.push(s.malek?.rug ? 'Malek said he might come by the stall today. He has not said why. He never says why.' : 'Malek said he might come by the stall today, about a rug for under his tables.');
+            notes.push(s.malek?.wantsBack ? `Malek is coming back to the stall today, about the ${RUGS[s.malek.wantsBack.typeId]?.name ?? 'rug'} he could not decide on.` : s.malek?.rug ? 'Malek said he might come by the stall today. He has not said why. He never says why.' : 'Malek said he might come by the stall today, about a rug for under his tables.');
           }
           // Nabil al-Khatib, now and then, once your name is worth his hour
           if (!queue.includes('nabil') && nabilDue(s.nabil, day, s.reputation, NABIL_MIN_REP, rng())) queue.push('nabil');
@@ -2070,8 +2092,31 @@ export const useGame = create<GameState & Actions>()(
           }
           const buyerId = s.queue[s.visitIdx];
           const tutorial = !s.tutorial.done && buyerId === 'samira' && s.day === 1;
-          const displayed = availableRugs(s).slice(0, 3).map((i) => i.uid);
+          // a rug Malek came back for goes on the counter first (if you still have it)
+          const back = buyerId === 'malek' ? s.malek?.wantsBack : undefined;
+          const backItem = back ? s.inventory.find((i) => i.uid === back.uid && !i.restoringUntil) : undefined;
+          const pool = availableRugs(s, buyerId);
+          const displayed = (backItem ? [backItem, ...pool.filter((i) => i.uid !== backItem.uid)] : pool).slice(0, 3).map((i) => i.uid);
           const enc = startEncounter(buyerId, ctxFor(s, buyerId), displayed, tutorial);
+          // rugs you put aside for this buyer: they notice, and it counts
+          const kept = s.inventory.filter((i) => heldFor(i, s.day) === buyerId);
+          if (!tutorial && kept.length) {
+            enc.trust = Math.min(100, enc.trust + 10); enc.interest = Math.min(100, enc.interest + 8);
+            enc.log.push({ speaker: 'system', text: `You kept the ${RUGS[kept[0].typeId].name} aside for ${BUYERS[buyerId]?.name ?? 'them'}. They notice.` });
+          }
+          let malekBackPatch: MalekState | undefined;
+          if (back) {
+            const name = RUGS[back.typeId]?.name ?? 'rug';
+            if (backItem) {
+              enc.malekReturn = backItem.uid;
+              enc.interest = Math.min(100, enc.interest + 25);
+              enc.log.push({ speaker: 'buyer', text: (heldFor(backItem, s.day) === 'malek' ? MALEK_RETURN.kept : MALEK_RETURN.back)[s.day % 2].replace('{rug}', name), mood: 'neutral' });
+            } else {
+              enc.trust = Math.max(0, enc.trust - 10);
+              enc.log.push({ speaker: 'buyer', text: MALEK_RETURN.sold[s.day % 2], mood: 'skeptical' });
+            }
+            malekBackPatch = { ...(s.malek ?? MALEK_START), wantsBack: undefined };
+          }
           // how you slept, ate and whether you took the tonic shows at the stall: tired sellers lose patience
           const tired = fatigueEffect(s.condition, s.day);
           if (!tutorial && (tired.patience || tired.trust)) {
@@ -2110,7 +2155,26 @@ export const useGame = create<GameState & Actions>()(
             reputation,
             goals,
             tutorial: tutorial ? { ...s.tutorial, step: 'room' } : s.tutorial,
+            ...(malekBackPatch ? { malek: malekBackPatch } : {}),
           });
+        },
+
+        markIntroSeen: (id) => {
+          const seen = get().introSeen ?? [];
+          if (!seen.includes(id)) set({ introSeen: [...seen, id] });
+        },
+
+        reserveRug: (uid, buyerId) => {
+          const s = get();
+          const it = s.inventory.find((i) => i.uid === uid);
+          if (!it) return 'That rug is not in your stock.';
+          if (!buyerId) {
+            set({ inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, reservedFor: undefined, reservedUntil: undefined } : i)) });
+            return `The ${RUGS[it.typeId].name} is back on the stall for anyone.`;
+          }
+          const until = s.day + RESERVE_DAYS;
+          set({ inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, reservedFor: buyerId, reservedUntil: until } : i)) });
+          return `The ${RUGS[it.typeId].name} is put aside for ${BUYERS[buyerId]?.name ?? 'them'} until ${dateFor(until).short}. Nobody else will see it.`;
         },
 
         present: (uid) => {
@@ -2126,6 +2190,14 @@ export const useGame = create<GameState & Actions>()(
               set({ encounter: enc });
               return;
             }
+          }
+          const held = s.inventory.find((i) => i.uid === uid);
+          const holder = held ? heldFor(held, s.day) : undefined;
+          if (holder && holder !== s.encounter.buyerId) {
+            const enc = cloneEnc(s.encounter);
+            enc.log.push({ speaker: 'narrator', text: `You put that one aside for ${BUYERS[holder]?.name ?? 'someone'}. Free it in Stock if you want to show it.` });
+            set({ encounter: enc });
+            return;
           }
           const enc = cloneEnc(s.encounter);
           const fx = presentRug(enc, ctxFor(s, enc.buyerId), uid);
@@ -2442,18 +2514,19 @@ export const useGame = create<GameState & Actions>()(
           // closing time has its own line; otherwise he greets you by how you look, his rug, the hour
           const gr = scene === 'closing' && m0.visits ? { ctx: 'closing' as LineCtx } : malekGreeting(m0, { day, hour: s.world.hour, fed: fedOf(s.condition), fatigue: s.condition?.fatigue ?? 0, salt: day + m0.visits });
           const line = malekLine(gr.ctx, m0.said, day + m0.visits);
-          const buyerMet = (s.relationships[STORY_BUYER]?.visits ?? 0) > 0 || s.nabil?.lastVisitDay != null;
-          const stage = storyStageFor(m0.story, day, { buyerMet });
+          // the story starts on a later day than your first visit (older saves: the last visit counts)
+          const firstDay = m0.firstDay ?? (m0.visits ? m0.lastVisitDay ?? day : day);
+          const stage = storyStageFor(m0.story, day, { introduced: day > firstDay });
           // one counted visit per call: reopening the shop is a new visit, and the stage stays pending
           // until it is finished, so reopening or reloading never skips or repeats one
-          set({ malek: { ...m0, ...restock, ...(gr.noted ? { stallNoted: true } : {}), visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-12), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });
+          set({ malek: { ...m0, ...restock, ...(gr.noted ? { stallNoted: true } : {}), firstDay, visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-12), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });
           return { scene, line, stage };
         },
 
         malekSay: (what) => {
           const s = get();
           const m0 = s.malek ?? MALEK_START;
-          const ctx: LineCtx = what === 'rugs' ? topicCtx('rugs', m0) : what;
+          const ctx: LineCtx = what === 'rugs' || what === 'storeroom' ? topicCtx(what, m0) : what;
           const line = malekLine(ctx, m0.said, s.day * 13 + m0.said.length + Math.floor(s.world.hour * 7));
           set({ malek: { ...m0, said: [...m0.said, line].slice(-12) } });
           return line;

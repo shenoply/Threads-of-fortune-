@@ -16,7 +16,7 @@ const run = async (name, viewport, noGl, body) => {
   const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 13 }); s.cash = 300; s.queue = []; s.visitIdx = 0; localStorage.setItem('tof-skip-chapters', '1');`);
+  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 13 }); s.cash = 300; s.queue = []; s.visitIdx = 0; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
   try { await body(p, { has, edit, reload }); } catch (e) { console.log(name, 'FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/${name}-fail.png` }); }
   console.log(name, 'errors', JSON.stringify(errs));

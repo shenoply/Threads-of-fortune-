@@ -52,6 +52,9 @@ export interface RugItem {
   labReports?: string[];
   /** treated with Arran's moth preservative */
   mothproof?: boolean;
+  /** put aside for one buyer: hidden from everyone else at the stall until this day */
+  reservedFor?: string;
+  reservedUntil?: number;
   notes: string[];
 }
 

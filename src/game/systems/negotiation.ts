@@ -8,6 +8,7 @@ import { RUGS, CONDITION_FACTOR } from '../../data/rugs';
 import { SELLER, NARRATOR, STAGE } from '../../data/dialogue';
 import { levelOf, hasPerk, type SkillId, type Manner } from '../../data/character';
 import { BUYER_MANNER, SELLER_MANNER, type MannerKind } from '../../data/manners';
+import { MALEK_UNSURE } from '../../data/malekBuyer';
 import { GROOMING } from '../../data/grooming';
 import { newUid, dateFor } from '../economy/economy';
 import { cohenChecks, dueFor, manualRub, matches, passes, ORDER_PRICE_PER, type CohenState } from './cohen';
@@ -32,6 +33,12 @@ export interface ActionView {
 }
 
 export interface Encounter {
+  /** Malek: the price was agreed but he was not convinced, so he did not buy */
+  malekUnsure?: boolean;
+  /** Malek came back for this rug (uid): he has thought about it, and is easier to convince */
+  malekReturn?: string;
+  /** the trust Malek needs today before he will buy anything */
+  malekBar?: number;
   // Stamped once at creation and never touched again: the only thing the dialogue playback UI can
   // key a "is this the same conversation as before" reset on. visitIdx moves the moment a sale
   // closes (before the player has even seen the result screen or clicked "Next customer"), so
@@ -325,6 +332,8 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   }
   // Cohen says so at once if a rug you passed on your own rub lost colour under the corridor's boots
   if (buyerId === 'cohen' && ctx.cohen?.complaint) enc.log.push({ speaker: 'buyer', text: `The ${ctx.cohen.complaint} came off red on the porters' boots within a week. You rubbed it yourself, I know. Next time, ask Arran.`, mood: 'skeptical' });
+  // Malek's stubbornness today: how much trust it takes to convince him (48 on a good day, 61 on a bad one)
+  if (buyerId === 'malek') enc.malekBar = 48 + Math.floor(ctx.rng() * 14);
   return enc;
 }
 
@@ -998,8 +1007,23 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   if (enc.tutorial) fx.tutorialAdvance = 'countered';
 }
 
+/** Malek buys only when he is fully convinced: interested, trusting enough for his mood today, and the
+ *  rug right for his floor. A rug he came back for needs less (he has already argued with himself). */
+export const malekConvinced = (enc: Encounter) =>
+  enc.malekReturn && enc.malekReturn === enc.presented
+    ? enc.interest >= 50 && enc.trust >= 40 && enc.presentedFit >= 55
+    : enc.interest >= 72 && enc.trust >= (enc.malekBar ?? 55) && enc.presentedFit >= 65;
+
 function closeSale(enc: Encounter, ctx: Ctx, price: number) {
   const b = BUYERS[enc.buyerId];
+  if (enc.buyerId === 'malek' && !malekConvinced(enc)) {
+    // the figure is agreed, the man is not: he leaves to think about it, and may come back for it
+    enc.outcome = 'walked';
+    enc.stage = 'close';
+    enc.malekUnsure = true;
+    buyerSay(enc, pick(MALEK_UNSURE, ctx.rng), 'leaving');
+    return;
+  }
   enc.outcome = 'sold';
   enc.salePrice = price;
   enc.stage = 'close';

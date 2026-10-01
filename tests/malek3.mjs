@@ -17,7 +17,7 @@ const game = (fn) => p.evaluate(async (src) => { const m = await import('/src/ga
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1');
+  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1');
     Object.assign(s.world, { at: 'giza', hour: 12.9 }); s.cash = 300; s.condition = { fatigue: 10, dependence: 0, fed: 60, water: 70 };
     s.malek = { stockDay: s.day, sold: {}, visits: 1, lastVisitDay: s.day, orders: [], said: [], story: { nextStage: 1, lastStoryDay: null, completed: [] } };
     s.queue = ['malek']; s.arrivals = [13]; s.visitIdx = 0;`);
@@ -27,7 +27,10 @@ try {
   await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(800);
   await p.click('[data-testid=stall-wait]'); await p.waitForTimeout(1500);
   // show him the darkest, toughest rug you have and take whatever he offers
+  // this test is about what follows a sale, so play a Malek who is already convinced (how hard he is
+  // to convince is measured in tests/malek-haggle.ts)
   const pick = await game(`const e = g.encounter; if (!e || e.buyerId !== 'malek') return 'no Malek'; const uid = g.inventory[0].uid; g.present(uid); return uid;`);
+  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); const e = m.useGame.getState().encounter; m.useGame.setState({ encounter: { ...e, malekBar: 0, interest: 95, trust: 80 } }); });
   for (let i = 0; i < 6; i++) {
     const r = await game(`const e = g.encounter; if (!e || e.outcome) return 'done'; if (e.buyerOffer) { g.act('accept_offer'); return 'accepted'; } g.act('name_price', 150); return 'asked';`);
     if (r === 'done') break;

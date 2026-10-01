@@ -55,9 +55,10 @@ function Preview() {
           <button className="btn" onClick={() => useGame.setState({ cash: useGame.getState().cash + 500 })}>Add £5</button>
           <button className="btn" onClick={() => { const s = useGame.getState(); const m = s.malek ?? MALEK_START; useGame.setState({ malek: { ...m, visits: Math.max(1, m.visits), stallLastDay: s.day, stallOutcome: 'sold', stallNoted: false, rug: s.inventory[0]?.typeId ?? 'desert-star', rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } }); }} data-testid="mp-sold-rug">Malek buys a rug at your stall</button>
           <button className="btn" onClick={() => { const s = useGame.getState(); useGame.setState({ condition: { ...(s.condition ?? { fatigue: 10, dependence: 0 }), fed: 5, fatigue: 55 } }); }}>Make me hungry and tired</button>
+          <button className="btn" onClick={() => useGame.setState({ introSeen: (useGame.getState().introSeen ?? []).filter((x) => x !== 'malek') })}>Show the first-visit film again</button>
           <button className="btn" onClick={() => { try { localStorage.removeItem('threads-of-fortune-save'); } catch { /* private mode */ } location.reload(); }}>Reset</button>
         </div>
-        <p className="mp-note">Drag to turn the room, pinch or scroll to zoom. Order, take parcels, then use Next day to see them age and the shop restock. In the game Malek comes to your stall on his own once you have eaten at his place; the rug button stands in for that visit here. Try Talk to Malek for his six topics.</p>
+        <p className="mp-note">The first time the shop is open to you, his film plays (narration and captions). Drag to turn the room, pinch or scroll to zoom. Order, take parcels, then use Next day to see them age and the shop restock. In the game Malek comes to your stall on his own once you have eaten at his place; the rug button stands in for that visit here. Try Talk to Malek for his six topics.</p>
       </section>
       {inside && <Suspense fallback={<div className="malek-boot">Walking over to Malek's…</div>}><MalekShop onLeave={() => setInside(false)} /></Suspense>}
     </div>

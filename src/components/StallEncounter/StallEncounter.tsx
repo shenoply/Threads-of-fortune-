@@ -26,7 +26,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const atCourt = !!enc?.venue;
   useAudioEnv(atCourt ? 'palace' : null, atCourt ? 'palace' : undefined);
   // at court you can only show the rugs your caravan carried there
-  const avail = atCourt ? availableRugs(g).filter((i) => !i.stored) : availableRugs(g);
+  const avail = atCourt ? availableRugs(g, enc?.buyerId).filter((i) => !i.stored) : availableRugs(g, enc?.buyerId);
   const shown = avail.length <= 3 ? avail : [...avail, ...avail].slice(offset % avail.length, (offset % avail.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
   // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
@@ -200,6 +200,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                       ? `Nothing on your stall is at their level. They want ${['', 'Common', 'Fine', 'Exceptional', 'Legendary'][BUYER_TIERS[enc.buyerId]?.[0] ?? (buyer?.royal ? 3 : 2)]} rugs or better.`
                       : enc.groomed === 'smell' && enc.patience <= 0
                         ? 'You smelled of the road. A visit to the hammam would have helped.'
+                      : enc.malekUnsure
+                        ? 'He agreed the price and still would not buy: Malek only buys when he is completely convinced. He liked it, though. Keep it aside and he may come back for it.'
                       : enc.letGo
                         ? 'You let them go without a sale. No harm done.'
                       : enc.nabilAngry
@@ -226,6 +228,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                   {autoNext && <i className="auto-bar" aria-hidden="true" />}
                 </button>
               )}
+              <ReserveAfter />
               {onGoto && !atCourt && !isLast && avail.length <= 3 && (
                 <button className="btn" onClick={() => onGoto('supplier')} data-testid="goto-rashid">
                   Restock at Rashid's
@@ -311,5 +314,23 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         />
       )}
     </div>
+  );
+}
+
+/** After a buyer walks away from a rug they liked: put it aside for them (hidden from everyone else). */
+function ReserveAfter() {
+  const g = useGame();
+  const [done, setDone] = useState('');
+  const enc = g.encounter;
+  if (!enc || enc.outcome !== 'walked' || !enc.presented || enc.venue) return null;
+  const item = g.inventory.find((i) => i.uid === enc.presented);
+  const liked = enc.malekUnsure || enc.presentedFit >= 55;
+  if (!item || !liked) return null;
+  const name = BUYERS[enc.buyerId]?.name ?? 'them';
+  if (done || item.reservedFor === enc.buyerId) return <small className="reserve-done" data-testid="reserve-done">{done || `Kept aside for ${name}.`}</small>;
+  return (
+    <button className="btn" onClick={() => setDone(useGame.getState().reserveRug(item.uid, enc.buyerId))} data-testid="reserve-after">
+      Put the {RUGS[item.typeId].name} aside for {name}
+    </button>
   );
 }

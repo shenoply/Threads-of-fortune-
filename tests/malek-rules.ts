@@ -82,24 +82,26 @@ ok(total >= 100 && catchy / total < 0.12, `${total} lines, catchphrase openers $
 ok(tabCovers(kofta) && !tabCovers(kebab) && !tabCovers(malekItem('malek_road_pack')) && TAB_PLATES === 3, 'his tab covers eat-in plates except the kebab, not parcels');
 
 // story: off while art is missing
-ok(!storyReady(), 'story is off: stages 1-3 have no art');
-ok(storyStageFor(MALEK_START.story, 10, { buyerMet: true }) === null, 'no stage offered in the live build');
+ok(storyReady(), 'every stage has its art: the story is on');
+ok(storyStageFor(MALEK_START.story, 10, { introduced: false }) === null, 'never on the very first visit');
+ok(storyStageFor(MALEK_START.story, 10, { introduced: true }) === 1, 'stage 1 on a later visit');
+ok(storyReady(STORY.map((st) => (st.n === 2 ? { ...st, art: null } : st))) === false, 'a stage without art switches the whole story off');
 // with art for every stage (as it will be), the machine runs one stage a day, in order
 const art: StoryStage[] = STORY.map((s) => ({ ...s, art: s.art ?? `test-${s.n}.webp` }));
 let st: MalekStory = { ...MALEK_START.story };
-ok(storyStageFor(st, 3, { buyerMet: false, stages: art }) === null, 'stage 1 waits until the buyer has been met');
-const s1 = storyStageFor(st, 3, { buyerMet: true, stages: art });
+ok(storyStageFor(st, 3, { introduced: false, stages: art }) === null, 'stage 1 waits until you know the shop');
+const s1 = storyStageFor(st, 3, { introduced: true, stages: art });
 ok(s1 === 1, 'stage 1 offered');
 st = { ...st, pending: 1 };
-ok(storyStageFor(st, 3, { buyerMet: true, stages: art }) === 1, 'dismissed: the same stage is offered again (pending)');
+ok(storyStageFor(st, 3, { introduced: true, stages: art }) === 1, 'dismissed: the same stage is offered again (pending)');
 st = storyComplete(st, 1, 3);
 ok(st.nextStage === 2 && st.lastStoryDay === 3 && st.completed.join() === '1' && st.pending == null, 'completing commits stage, day and next together');
 ok(storyComplete(st, 1, 3).completed.join() === '1', 'completing it again changes nothing');
-ok(storyStageFor(st, 3, { buyerMet: true, stages: art }) === null, 'no second stage on the same day');
-ok(storyStageFor(st, 9, { buyerMet: true, stages: art }) === 2, 'after days away, only the next stage (not all missed ones)');
+ok(storyStageFor(st, 3, { introduced: true, stages: art }) === null, 'no second stage on the same day');
+ok(storyStageFor(st, 9, { introduced: true, stages: art }) === 2, 'after days away, only the next stage (not all missed ones)');
 for (let d = 4, n = 2; n <= 5; d++, n++) st = storyComplete({ ...st, pending: n }, n, d + 6);
 ok(st.nextStage === 6 && st.completed.join() === '1,2,3,4,5', 'all five done');
-ok(storyStageFor(st, 40, { buyerMet: true, stages: art }) === null, 'the story does not loop');
+ok(storyStageFor(st, 40, { introduced: true, stages: art }) === null, 'the story does not loop');
 ok(storyComplete(st, 3, 50).completed.length === 5, 'an out-of-order completion is ignored');
 
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');

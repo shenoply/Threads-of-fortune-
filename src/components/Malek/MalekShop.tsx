@@ -10,13 +10,14 @@ import { CONDITION_START } from '../../game/systems/fieldwork';
 import {
   MALEK_HOURS, MEAL_MINUTES, MORALE_PATIENCE, SCENE_ART, SCENE_TEXT, STORY, UNAVAILABLE_WORD,
   availability, eatServing, fedOf, parcelDays, parcelWeight, shopOpen, stockLeft, waterOf, wellFedNow,
-  TOPIC_LABEL, tabCovers, type MalekScene, type MealReport, type TalkTopic,
+  TOPIC_LABEL, tabCovers, topicsFor, type MalekScene, type MealReport, type TalkTopic,
 } from '../../game/systems/malek';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { INVALIDATE_EVENT, clampOrbit, defaultOrbit, webglAvailable, type Hotspot, type Orbit } from './orbit';
+import { IntroFilm, filmReady } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
 
 const Room3D = lazy(() => import('./MalekRoom3D'));
@@ -41,7 +42,6 @@ function effectChips(it: MalekItem) {
 }
 
 type Panel = 'menu' | 'food' | 'talk' | null;
-const TOPICS: TalkTopic[] = ['shop', 'name', 'storeroom', 'neighbours', 'road', 'rugs'];
 
 export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const g = useGame();
@@ -52,6 +52,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
   const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
   const [gl, setGl] = useState<boolean>(() => webglAvailable());
+  // the film plays the first time the shop is open to you; "Watch the film again" replays it
+  const [film, setFilm] = useState(() => filmReady('malek') && !(useGame.getState().introSeen ?? []).includes('malek'));
   const open = shopOpen(g.world.hour);
 
   // one visit per opening of the shop: the picture, his greeting, and a story stage if one is due
@@ -143,7 +145,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     };
   }, [phase, gl]);
 
-  const talkTurn = useRef(Math.floor(Math.random() * TOPICS.length));
+  const talkTurn = useRef(Math.floor(Math.random() * 6));
   const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));
   const pickHotspot = (h: Hotspot) => {
     audio.sfx('tap');
@@ -151,8 +153,9 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     if (h === 'menu') { setPanel('menu'); say('menu'); return; }
     if (h === 'tables') { setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return; }
     // tapping him: a different topic each time, round the six
-    talkTurn.current = (talkTurn.current + 1) % TOPICS.length;
-    say(TOPICS[talkTurn.current]);
+    const topics = topicsFor(useGame.getState().malek);
+    talkTurn.current = (talkTurn.current + 1) % topics.length;
+    say(topics[talkTurn.current]);
   };
 
   const paying = useRef(false);
@@ -172,6 +175,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     setResult({ msg: r.msg, report: r.report, title: r.ok ? 'A serving from your pack' : 'Not this time' });
     audio.sfx('tap');
   };
+
+  if (film && open) return <IntroFilm id="malek" title="Malek's grill · Giza, 1925" onDone={() => { useGame.getState().markIntroSeen('malek'); setFilm(false); }} />;
 
   // ---------------- the door: closed, or the visit picture ----------------
   if (!open) {
@@ -221,6 +226,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
               <button className="btn primary" onClick={() => { setPhase('room'); audio.sfx('tap'); }} data-testid="malek-enter">Step inside</button>
               <button className="btn" onClick={() => { setPhase('room'); setPanel('menu'); }} data-testid="malek-door-menu">Straight to the menu</button>
               <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
+              {filmReady('malek') && <button className="btn" onClick={() => setFilm(true)} data-testid="malek-film-again">Watch the film again</button>}
             </div>
           </div>
         </div>
@@ -303,7 +309,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         )}
         {panel === 'talk' && (
           <div className="malek-topics" data-testid="malek-topics">
-            {TOPICS.map((t) => <button key={t} className="btn small" onClick={() => { audio.sfx('tap'); say(t); }} data-testid={`malek-topic-${t}`}>{TOPIC_LABEL[t]}</button>)}
+            {topicsFor(g.malek).map((t) => <button key={t} className="btn small" onClick={() => { audio.sfx('tap'); say(t); }} data-testid={`malek-topic-${t}`}>{TOPIC_LABEL[t]}</button>)}
           </div>
         )}
         {panel === 'food' && (

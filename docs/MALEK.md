@@ -60,6 +60,37 @@ times are game values. The menu says so; they are not presented as 1925 prices o
 - **Greetings:** chosen most pressing first: a first visit, hungry, tired, news of the stall visit, back after five days away, a regular, then by the hour.
 - **Lines:** 102 in the shop alone; about 6% open with "Ha", "Bah" or "Now what?", and never two of those in a row.
 
+## Stall haggling: hard to convince, and he comes back
+
+- **The conviction check** (`malekConvinced` in negotiation.ts):
+  - Even with a price agreed, Malek buys only with interest 72+, a fit of 65+, and trust above his stubbornness for the day.
+  - That stubbornness is rolled per visit, 48-61.
+  - Otherwise he leaves to think it over (`MALEK_UNSURE`).
+- **Measured** by `tests/malek-haggle.ts`, 300 haggles each:
+  - a naive seller: 0% sold
+  - a careful one (asks, shows the best fit, argues durability and fit, fair price): about 26%
+  - the same rug on his return visit: about 89%
+- **Coming back:**
+  - A rug he liked but would not buy is remembered (`malek.wantsBack`). He comes back for it two or more days later (80% a day), with a morning note.
+  - It goes on the counter first, and he is easier to convince.
+  - If you kept it for him he says so (+10 trust). If you sold it, he is annoyed (−10 trust).
+
+## Putting a rug aside for a buyer (any buyer)
+
+- **Where:** Stock has "Put aside for…" on each rug, listing buyers you have met. The stall's result card also offers "Put the X aside for {name}" when a buyer walks away from a rug they liked.
+- **A held rug** (7 days, `RugItem.reservedFor/reservedUntil`):
+  - is not laid out for anyone else, and cannot be shown to them (a note says who it is kept for);
+  - is laid out first for that buyer, who notices: +10 trust, +8 interest.
+- **When the hold ends,** a night note says it is back on the stall. "Free it" in Stock ends a hold early.
+
+## First-visit films
+
+- **Malek:** the first time his shop is open to you, `public/video/malek-intro.mp4` plays (WebM fallback).
+  - The film's own sound is kept low under a documentary narrator, then its last frame holds with a slow push-in until the narration ends (about 33 s).
+  - Captions throughout. Skip at any time, and it does not play again on its own; "Watch the film again" is on his door card.
+- **Narration:** `tools/generate-intro-films.py` records it offline (Kokoro `bm_lewis`, a stock synthetic voice, not Arran's) into `public/audio/intro/<who>.mp3`, with the caption timings in `src/data/introFilms.ts`.
+- **Arran:** his film is wired the same way (first lab visit), and its narration is recorded (about 38 s). It waits for its video: the Gemini share link could not be downloaded from this environment. Put the file in the Drive folder or upload it here, then set `FILM_VIDEO.arran` in `src/components/IntroFilm/IntroFilm.tsx`.
+
 ## Rules
 
 - **Hours:** open 07:00-21:00. Ful before 11:00. Grill 11:00-20:00, cold after 20:00 (parcels still sold).
@@ -112,7 +143,7 @@ times are game values. The menu says so; they are not presented as 1925 prices o
   - The shop module is 15 KB. The 3D chunk (three.js) is 833 KB, or 225 KB gzipped, and is fetched only when you step inside.
 - **Touch:** the room has `touch-action: none` and is never part of a scrolling page. The menu scrolls in its own panel and never moves the camera.
 
-## The five-visit story: OFF until its art exists
+## The five-visit story (ON: all five scenes supplied)
 
 The state machine is complete and tested in `tests/malek-rules.ts`:
 - one stage per visit, on a later game day than the last;
@@ -121,30 +152,26 @@ The state machine is complete and tested in `tests/malek-rules.ts`:
 - completion, day and next stage are committed together, once;
 - the story never loops after stage 5.
 
-It plays only when **every** stage has art (`storyReady`). Stages 1-3 have none, so in the live
-build no stage is ever offered, and no missing image path is referenced. Stages 4 and 5 have their
-images (`story-4-reward.webp`, `story-5-arthur.webp`) and drafted text.
+All five scenes are supplied (`story-1-expulsion` … `story-5-arthur`), so the story is on. If any
+stage loses its art, `storyReady` turns the whole sequence off rather than starting it part way.
+It starts on a game day later than your first visit to the shop.
 
-Stage 1 needs the buyer involved to have visited your stall first. `STORY_BUYER` is set to `nabil`,
-the game's existing adult buyer of short stature. **Owner to confirm that he is the intended customer.**
-Nabil's handoff says his stature is never a joke and never the reason for difficulty. A slapstick
-expulsion can easily read as one, so the stage 1-3 art and text need care.
+- **The customer** in stages 1-3 is his own character (red fez, glasses, pinstripe suit), not one of the stall's buyers: none of the 35 cut-outs matches him. The story introduces him as "the man in the fez". He has no name yet (`STORY_CUSTOMER`).
+- **The quarrel** is over the bill (yesterday's bread, so half-price kebab), never about who he is.
+- **After stage 3,** the storeroom talk topic changes to lines about its occupant.
+- **After stage 5,** Arthur Bell is a talk topic, and the story does not loop.
 
 ## Art still needed
 
-1. **Story stages 1-3:** three scenes, 1536×1024, the same painted style and room as the visit pictures:
-   - **1. The Expulsion:** Malek bundles the customer out of the door over a bill. Slapstick, nothing graphic, his stature not the point.
-   - **2. A Paid Grudge:** in an alley nearby, the customer pays three men; Malek's shop beyond.
-   - **3. The Back Room Opens:** the orangutan from stage 4 comes out of the storeroom and the three men go sprawling. No blood or injuries. Malek unimpressed.
-
-   Needed for these: the customer's existing reference (`public/art/portraits/nabil.jpg` / `nabil-stall2.webp` if it is Nabil), and the orangutan reference from `04-orangutan-reward.png`.
+1. **Story stages 1-3:** supplied (and the stall cut-out, `malek-stall2.webp`).
 2. **Malek cut-outs,** transparent PNG, 1024×1536, the same face and clothes as `05-malek-owner-reference.png`:
    - standing behind a counter turning skewers
    - at the bench working mince
    - carrying a plate
    - seated at a table counting coins
 
-   Today one waist-up cut-out (from the reference, the grill removed) is used in every position.
+   Today the room uses one waist-up cut-out (from the reference, the grill removed) in every position.
+5. **Arran's film:** the video file itself (the share link was blocked here).
 3. **Optional props:** a grill-front texture, shelf crockery and a menu board, as separate transparent PNGs or tileable textures, to replace the simple shapes.
 4. `05-arthur-bell-lore.png` has its caption painted into the image. That is fine as a lore card. A version without the caption band would let the game set the text.
 

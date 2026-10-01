@@ -7,7 +7,9 @@ import type { BuyerDef } from '../game/types';
 export const MALEK_BUYER: BuyerDef = {
   id: 'malek', name: 'Malek', role: 'Owns the charcoal grill round the corner; called Al-Mallem, the boss', roomWord: 'shop',
   bio: 'Runs his grill shop alone and says partners eat the profits. Pessimistic about everything, generous with the kofta when nobody is looking. Wants a rug for a floor that sees grease, boots and spilled tea.',
-  budget: [120, 520], patience: 70, trust: 40, interest: 45,
+  // the hardest Common buyer in the lane: short patience, slow trust, and he only buys when fully
+  // convinced (negotiation.ts malekConvinced), otherwise he leaves to think about it
+  budget: [120, 450], patience: 55, trust: 30, interest: 35,
   values: { hardwearing: 3, darkField: 2, washable: 2, wool: 1, lightField: -2, fragile: -3, silk: -3, antique: -1 },
   colourPref: { crimson: 1, indigo: 1, mixed: 0, gold: -1, ivory: -2 },
   args: { story: 0.2, craft: 0.6, fit: 1.1, durability: 1.8 },
@@ -15,7 +17,7 @@ export const MALEK_BUYER: BuyerDef = {
     room: [{ id: 'grease', label: 'Grease and boots' }, { id: 'tables', label: 'Under the tables' }],
     drawn: [{ id: 'dark', label: 'Dark enough to forgive' }, { id: 'cheap', label: 'Cheap enough to replace' }],
   },
-  directBudgetTrust: 1, pushyTrust: -3, embellishNotice: 0.8, catAffinity: -1,
+  directBudgetTrust: 0, pushyTrust: -5, embellishNotice: 0.95, catAffinity: -1,
   needs: [
     {
       id: 'shopfloor', label: 'A rug for the shop floor by the tables',
@@ -32,9 +34,9 @@ export const MALEK_BUYER: BuyerDef = {
   silhouette: 'fez', accent: '#5a3a24',
   lines: {
     arrival: [
-      'A stocky man in an apron that has seen a hundred kebabs walks up and looks at your rugs as if they owe him money.',
-      'Malek, from the grill, wiping his hands on his apron.',
-      'Malek arrives smelling of charcoal, a towel over one shoulder, and frowns at the whole stall at once.',
+      'Malek, out of his apron for once, in a tweed suit that has been to more weddings than he admits. He looks at your rugs as if they owe him money.',
+      'Malek from the grill, in his good suit and a cloud of charcoal smoke, frowns at the whole stall at once.',
+      'A stocky man in a brown tweed suit and a watch chain stops at the stall: Malek, dressed for business, which for him means suspicion.',
     ],
     greeting: ['Now what? Show me a rug that does not mind grease. If you have one, I will be surprised.'],
     repeat: [
@@ -91,3 +93,17 @@ export const MALEK_BUYER: BuyerDef = {
   },
 };
 export const MALEK_TIERS: [number, number] = [1, 1];
+
+/** the price is agreed, he is not convinced: he leaves to think it over */
+export const MALEK_UNSURE = [
+  'Hm. That is the price. I am not sure it is the rug. Keep it. Maybe I come back.',
+  'Fine, the number is fine. My stomach says no. I listen to my stomach; it has never lost me money.',
+  'Ha. You almost had me. Almost is not a sale. I will think about it.',
+  'I need to look at my floor again. Do not sell it to the first fool who asks. Unless he pays more. Bah.',
+];
+/** back for a rug he looked at before */
+export const MALEK_RETURN = {
+  back: ['I thought about the {rug}. I thought about it at the grill. That is a bad sign; I only think about meat at the grill.', 'The {rug}. Is it still here? Do not tell me the price again. I remember the price.'],
+  kept: ['You kept it aside. Hm. Nobody keeps anything for me. Good. Now let us argue properly.', 'You put it aside for me. I noticed. Do not make a speech about it.'],
+  sold: ['You sold it. Of course you did. Everything good goes to someone else.', 'Gone? Bah. This is why I do not come back for things.'],
+};

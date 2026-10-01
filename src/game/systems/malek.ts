@@ -38,6 +38,10 @@ export interface MalekState {
   rugDay?: number;
   /** plates on his account after the rug sale */
   tab?: number;
+  /** a rug he looked at, did not buy, and may come back for (uid, type, the day he left it) */
+  wantsBack?: { uid: string; typeId: string; day: number };
+  /** the day you first came in: the story starts on a later day */
+  firstDay?: number;
   story: MalekStory;
 }
 export const MALEK_START: MalekState = { stockDay: 0, sold: {}, visits: 0, orders: [], said: [], story: { nextStage: 1, lastStoryDay: null, completed: [] } };
@@ -195,11 +199,11 @@ export function pickScene(hour: number, last: MalekScene | undefined, salt: numb
 
 // ---------------- what he says ----------------
 // Dry, short, pessimistic. "Ha", "Bah" and "Now what?" turn up now and then, never every time.
-export type TalkTopic = 'shop' | 'name' | 'storeroom' | 'neighbours' | 'road' | 'rugs';
+export type TalkTopic = 'shop' | 'name' | 'storeroom' | 'neighbours' | 'road' | 'rugs' | 'arthur';
 export type LineCtx =
   | 'greetFirst' | 'greetMorning' | 'greetMidday' | 'greetEvening' | 'greetRegular' | 'greetAway' | 'greetTired' | 'greetHungry' | 'greetRug' | 'greetNoSale'
   | 'menu' | 'kofta' | 'grill' | 'cheap' | 'parcel' | 'tea' | 'tab' | 'soldOut' | 'closing' | 'grillCold' | 'full' | 'broke' | 'bye'
-  | 'rugsWant' | 'rugsHave' | Exclude<TalkTopic, 'rugs'>;
+  | 'rugsWant' | 'rugsHave' | 'storeroomKnown' | Exclude<TalkTopic, 'rugs'>;
 const CATCH = /^(Ha\b|Bah\b|Now what\?)/;
 export const MALEK_LINES: Record<LineCtx, string[]> = {
   // ---- greetings: picked by malekGreeting from the hour and how you look ----
@@ -357,6 +361,17 @@ export const MALEK_LINES: Record<LineCtx, string[]> = {
     'Eat before you sell. A hungry seller gives discounts. A fed seller argues. I argue.',
     'In khamsin season wrap your face and your bread. Sand gets into both.',
   ],
+  storeroomKnown: [
+    'Yes, he lives in the back. No, he does not have a name. He has an appetite.',
+    'He is not a pet. He is staff. Staff eat. Staff do not take orders, which makes him like every other staff.',
+    'The man in the fez has not come back. The kebab price has not come down. Both good.',
+    'Do not feed him. I feed him. If two people feed him, he expects it of everyone.',
+  ],
+  arthur: [
+    'Arthur brings animals out from London for the zoo. Once he brought one more than the paperwork. Now it lives with me. Ha.',
+    'Arthur eats here when a ship comes in. He pays. He is the only Englishman who pays without asking what is in it.',
+    'Arthur says the zoo has a proper house for him. He also says the zoo has rules. My storeroom has kebab. You see the problem.',
+  ],
   rugsWant: [
     'I need a rug for under the tables. Dark, thick, forgiving. I will come to your stall and look. Do not expect me to like anything.',
     'Show me ugly and strong and I will pay. Show me pretty and I will laugh.',
@@ -380,8 +395,11 @@ export function malekLine(ctx: LineCtx, said: string[], salt: number): string {
   return options[Math.abs(salt) % options.length];
 }
 /** a talk topic's line: rugs depends on whether he has bought one of yours */
-export const topicCtx = (t: TalkTopic, m: MalekState | undefined): LineCtx => (t === 'rugs' ? (m?.rug ? 'rugsHave' : 'rugsWant') : t);
-export const TOPIC_LABEL: Record<TalkTopic, string> = { shop: 'The shop', name: 'His name', storeroom: 'The storeroom', neighbours: 'The neighbours', road: 'The road', rugs: 'Rugs' };
+export const topicCtx = (t: TalkTopic, m: MalekState | undefined): LineCtx =>
+  t === 'rugs' ? (m?.rug ? 'rugsHave' : 'rugsWant') : t === 'storeroom' && m?.story.completed.includes(3) ? 'storeroomKnown' : t;
+export const TOPIC_LABEL: Record<TalkTopic, string> = { shop: 'The shop', name: 'His name', storeroom: 'The storeroom', neighbours: 'The neighbours', road: 'The road', rugs: 'Rugs', arthur: 'Arthur Bell' };
+/** the topics on offer: Arthur only once you have met him (story stage 5) */
+export const topicsFor = (m: MalekState | undefined): TalkTopic[] => ['shop', 'name', 'storeroom', 'neighbours', 'road', 'rugs', ...(arthurIntroduced(m?.story) ? ['arthur' as const] : [])];
 
 /** How he greets you, most pressing first: a first visit, how you look, news about the rug, being away, then the hour. */
 export function malekGreeting(m: MalekState, o: { day: number; hour: number; fed: number; fatigue: number; salt: number }): { ctx: LineCtx; noted?: 'rug' | 'stall' } {
@@ -418,9 +436,21 @@ export interface StoryStage { n: number; title: string; art: string | null; text
  * stage plays. Stage 1 also waits until the player has met the buyer it involves.
  */
 export const STORY: StoryStage[] = [
-  { n: 1, title: 'The Expulsion', art: null, text: ['ART PENDING: the buyer quarrels over a bill and Malek bundles him out of the door, slapstick, nothing graphic. The quarrel is about the bill, never about who he is.'] },
-  { n: 2, title: 'A Paid Grudge', art: null, text: ['ART PENDING: in an alley nearby, the same buyer pays three men. You can see Malek\'s shop beyond them.'] },
-  { n: 3, title: 'The Back Room Opens', art: null, text: ['ART PENDING: the three men come in; something large comes out of the storeroom and they go out faster than they came. Nobody is hurt beyond their pride. Malek does not get up.'] },
+  { n: 1, title: 'The Expulsion', art: 'art/malek/story-1-expulsion.webp', text: [
+    'A man in a red fez and a pinstripe suit has eaten two kebab plates and now disputes the bill. The bread, he says, was yesterday\'s, so the bread is free, so the kebab is half price.',
+    'Malek hears the whole argument out. Then he takes the man by the collar and the seat of his trousers and walks him through the door, feet pedalling the air. The fez follows a moment later.',
+    '"Bread is never free. Come back when you have the money and a better argument."',
+  ] },
+  { n: 2, title: 'A Paid Grudge', art: 'art/malek/story-2-grudge.webp', text: [
+    'Across the lane, in the shade by the steps, the man in the fez counts coins into the hands of three large men and points at Malek\'s door.',
+    'Inside, Malek goes on working mince at the bench. If he has noticed, he does not show it.',
+    'The tallest of the three catches your eye and smiles, as if you might be next.',
+  ] },
+  { n: 3, title: 'The Back Room Opens', art: 'art/malek/story-3-backroom.webp', text: [
+    'The three men come in shoulders first, the man in the fez behind them. Malek does not leave the grill.',
+    'The storeroom curtain moves. An orangutan steps out, very large and in no hurry. A stool goes one way and a man goes the other. In a minute all four are back in the street, nobody hurt but their pride.',
+    '"I said the storeroom was private."',
+  ] },
   { n: 4, title: 'Staff Meal', art: 'art/malek/story-4-reward.webp', text: [
     'The shop is quiet again. Stools are back on their feet. The storeroom curtain moves.',
     'An orangutan sits on a stool by the grill as if it has always sat there. Malek wraps grilled meat in flatbread and hands it over without ceremony.',
@@ -432,19 +462,21 @@ export const STORY: StoryStage[] = [
     '"He brought one too many, once," Malek says. "Now what? Now he eats my kebab. Sit, Arthur. Bah. Both of you sit."',
   ] },
 ];
-/** the buyer the first stage involves; he must have come to your stall at least once (to confirm with the owner) */
-export const STORY_BUYER = 'nabil';
+/** The customer in stages 1-3 is his own character (red fez, glasses, pinstripe suit), not one of the
+ *  stall's buyers: the story introduces him. Owner to confirm his name. */
+export const STORY_CUSTOMER = 'the man in the fez';
 /** The sequence plays only when every stage has its art: it cannot start at stage 4. */
 export const storyReady = (stages: StoryStage[] = STORY) => stages.every((s) => !!s.art);
 
-/** Which stage, if any, this visit should show. One a day at most, in order, one step at a time. */
-export function storyStageFor(story: MalekStory, day: number, o: { buyerMet: boolean; stages?: StoryStage[] }): number | null {
+/** Which stage, if any, this visit should show. One a day at most, in order, one step at a time.
+ *  `introduced`: you have been to the shop before, so the first visit is only ever the shop. */
+export function storyStageFor(story: MalekStory, day: number, o: { introduced: boolean; stages?: StoryStage[] }): number | null {
   const stages = o.stages ?? STORY;
   if (!storyReady(stages)) return null;
   if (story.pending != null) return story.pending;
   if (story.nextStage > stages.length) return null;
   if (story.lastStoryDay != null && day <= story.lastStoryDay) return null;
-  if (story.nextStage === 1 && !o.buyerMet) return null;
+  if (story.nextStage === 1 && !o.introduced) return null;
   return story.nextStage;
 }
 /** Finish (or knowingly skip) a stage: completion, day and next stage move together, exactly once. */
@@ -459,6 +491,8 @@ export { MALEK_MENU };
 /** Malek at your stall: only once you have eaten at his place, every five days or so. */
 export function malekDue(m: MalekState | undefined, day: number, roll: number) {
   if (!m || m.visits < 1) return false;
+  // back for a rug he could not make up his mind about, two days or more later
+  if (m.wantsBack && day - m.wantsBack.day >= 2) return roll < 0.8;
   if (m.stallLastDay != null && day - m.stallLastDay < 5) return false;
   // keener while his floor is still bare
   return roll < (m.rug ? 0.35 : 0.55);

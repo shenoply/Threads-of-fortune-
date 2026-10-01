@@ -24,7 +24,7 @@ const camPos = () => p.evaluate(() => { const c = document.querySelector('[data-
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
+  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
     Object.assign(s.world, { at: 'giza', hour: 6 }); s.cash = 300; s.queue = []; s.visitIdx = 0; s.condition = { fatigue: 40, dependence: 0, fed: 20, water: 60 }; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
 
@@ -147,17 +147,21 @@ try {
   for (let i = 0; i < 4; i++) {
     await edit(`s.day = s.day + 1; s.world.hour = 13;`); await reload();
     await toShop();
-    seen.push(await p.locator('[data-testid=malek-door]').getAttribute('data-scene'));
+    // a story stage may come first on these later days; finish it, then note the visit's picture
+    if (await has('malek-story')) { await p.click('[data-testid=malek-story-done]'); await p.waitForTimeout(300); }
+    seen.push((await st()).malek.lastScene);
     await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
   }
   console.log('scenes over five midday visits:', seen.join(' > '), '| repeats:', seen.filter((x, i) => i && x === seen[i - 1]).length);
   await edit(`s.world.hour = 20.4;`); await reload(); await toShop();
-  console.log('20:24 scene:', await p.locator('[data-testid=malek-door]').getAttribute('data-scene'));
-  await p.click('[data-testid=malek-door-menu]'); await p.waitForSelector('[data-testid=malek-menu]'); await p.waitForTimeout(1500);
+  if (await has('malek-story')) await p.click('[data-testid=malek-story-later]');
+  console.log('20:24 scene:', (await st()).malek.lastScene);
+  if (await has('malek-door-menu')) await p.click('[data-testid=malek-door-menu]'); else await p.click('[data-testid=malek-tab-menu]');
+  await p.waitForSelector('[data-testid=malek-menu]'); await p.waitForTimeout(1500);
   console.log('cold grill: kebab off:', await has('malek-off-malek_kebab'), '| parcel still on:', await has('malek-buy-malek_road_pack'));
   await p.screenshot({ path: `${S}/m-closing-room.png` });
   // story is off while art is missing
-  console.log('story offered:', await has('malek-story'), '| story state:', JSON.stringify((await st()).malek.story));
+  console.log('story state after these visits:', JSON.stringify((await st()).malek.story));
   // exit through the door hotspot
   await p.click('[data-testid=malek-hot-exit]'); await p.waitForTimeout(400);
   console.log('exit hotspot leaves:', !(await has('malek-shop')), '| district:', await has('district'));
