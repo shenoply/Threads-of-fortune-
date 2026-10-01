@@ -19,7 +19,7 @@ ROOT = os.path.join(os.path.dirname(__file__), '..', 'public', 'voices')
 # who sounds like whom: Kokoro voice, speed, language
 CAST = {
     'nabil': ('am_onyx', 0.92, 'en-us'),          # senior Cairo textile merchant: deep, unhurried
-    'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler, 43: measured, precise
+    'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler: measured, precise, nasal (FX below)
     'farid-nassar': ('am_eric', 1.0, 'en-us'),     # casino bookings manager
     'kemal-arslan': ('am_fenrir', 1.0, 'en-us'),   # bandleader
     'youssef-hanna': ('am_liam', 0.97, 'en-us'),   # theatre administrator
@@ -29,6 +29,32 @@ CAST = {
 SR = 22050
 GAP = 0.6          # seconds of silence between lines: the engine fetches 0.3 s either side
 ENC_DELAY = 1105 / SR  # LAME's encoder delay: where the first sample lands in the MP3 timeline
+
+
+def _peak(f0, gain_db, q):
+    # RBJ peaking EQ as a second-order section
+    from scipy.signal import tf2sos
+    A = 10 ** (gain_db / 40); w = 2 * np.pi * f0 / SR; al = np.sin(w) / (2 * q)
+    b = [1 + al * A, -2 * np.cos(w), 1 - al * A]; a = [1 + al / A, -2 * np.cos(w), 1 - al / A]
+    return tf2sos(b, a)
+
+
+def nasal(x):
+    """A pinched, nasal colour: less chest, a strong honk around 1 kHz, a little edge, no air."""
+    from scipy.signal import butter, sosfilt
+    sos = np.vstack([
+        butter(2, 320, 'highpass', fs=SR, output='sos'),
+        _peak(250, -6, 1.0),
+        _peak(1050, 10, 1.6),
+        _peak(2400, 4, 1.4),
+        butter(2, 5200, 'lowpass', fs=SR, output='sos'),
+    ])
+    y = sosfilt(sos, x).astype(np.float32)
+    return (y * (0.9 / max(1e-6, float(np.max(np.abs(y)))))).astype(np.float32)
+
+
+# a character's colour on top of the stock voice (same length, so the clip timings hold)
+FX = {'cohen': nasal}
 
 
 def trim(x, thr=0.004):
@@ -62,6 +88,8 @@ def main():
             if sr != SR:  # Kokoro speaks at 24 kHz: resample to the sprite rate
                 n = int(len(audio) * SR / sr)
                 audio = np.interp(np.linspace(0, len(audio) - 1, n), np.arange(len(audio)), audio).astype(np.float32)
+            if sp in FX:
+                audio = FX[sp](audio)
             audio = trim(audio)
             clips[cid] = [round(t + ENC_DELAY, 3), round(len(audio) / SR, 3)]
             chunks += [audio, silence]

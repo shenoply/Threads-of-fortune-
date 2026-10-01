@@ -86,7 +86,7 @@ times are game values. The menu says so; they are not presented as 1925 prices o
 
 - Menu (the tab or the menu mark in the room) opens `MalekMenuBook.tsx`: a leather cover swings open onto parchment pages.
   - Pages: Breakfast and the pot · From the charcoal · For the road · To drink, each with its Arabic heading.
-  - Each dish has a picture cropped from his own shop paintings (`public/art/malek/menu/<id>.webp`), its Arabic name, price in pounds, what it does, how many are left, the tab note, and Order / Buy (or a stamped reason it is off).
+  - Each dish has a picture cropped from his own shop paintings (`public/art/malek/menu/<id>.webp`), its price in piastres (and قرش in Arabic), its Arabic name, what it does, how many are left, the tab note, and Order / Buy (or a stamped reason it is off).
   - One page at a time on a phone (swipe or the arrows), two pages side by side on a wide screen.
   - The book closes once an order goes through; the confirm and result cards sit above it.
 - Test: `tests/malek-menubook.mjs`.

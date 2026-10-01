@@ -8,7 +8,6 @@ import {
   MEAL_MINUTES, MORALE_PATIENCE, UNAVAILABLE_WORD, availability, parcelDays, stockLeft, tabCovers, type MalekState,
 } from '../../game/systems/malek';
 import { audio } from '../../game/audio/engine';
-import { fmt } from '../../game/economy/money';
 
 const PAGES: { title: string; ar: string; items: MalekItemId[]; foot?: string }[] = [
   { title: 'Breakfast and the pot', ar: 'الفطور والحلّة', items: ['malek_ful', 'malek_lentils', 'malek_stew'] },
@@ -18,6 +17,9 @@ const PAGES: { title: string; ar: string; items: MalekItemId[]; foot?: string }[
 ];
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
 const arNum = (n: number) => String(n).replace(/\d/g, (d) => AR_DIGITS[+d]);
+/** a price as the lane says it: piastres, and قرش in Arabic (1 قرش, 2 قرشين, 3-10 قروش, 11+ قرشًا) */
+export const piastres = (n: number) => `${n} piastre${n === 1 ? '' : 's'}`;
+export const arPiastres = (n: number) => (n === 1 ? 'قرش واحد' : n === 2 ? 'قرشين' : n <= 10 ? `${arNum(n)} قروش` : `${arNum(n)} قرشًا`);
 const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 function effects(it: MalekItem) {
   const e = it.effects, out: string[] = [];
@@ -80,8 +82,8 @@ export function MalekMenuBook({ hour, day, malek, onOrder, onClose }: {
                     <li key={id} className={`mbook__dish ${av.ok ? '' : 'is-off'}`} data-testid={`malek-item-${id}`}>
                       <img className="mbook__pic" src={`art/malek/menu/${id}.webp`} alt="" loading="lazy" draggable={false} />
                       <div className="mbook__text">
-                        <p className="mbook__line"><b>{it.name}</b><i aria-hidden="true" /><span className="mbook__price">{fmt(it.price)}</span></p>
-                        <p className="mbook__ar" lang="ar" dir="rtl">{it.nameAr}</p>
+                        <p className="mbook__line"><b>{it.name}</b><i aria-hidden="true" /><span className="mbook__price">{piastres(it.price)}</span></p>
+                        <p className="mbook__ar" lang="ar" dir="rtl">{it.nameAr} — {arPiastres(it.price)}</p>
                         <p className="mbook__desc">{it.description}</p>
                         <p className="mbook__chips">{effects(it).map((c) => <span key={c}>{c}</span>)}</p>
                         <p className="mbook__meta">

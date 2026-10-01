@@ -17,7 +17,7 @@ import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { MalekMutter } from './MalekMutter';
-import { MalekMenuBook } from './MalekMenuBook';
+import { MalekMenuBook, piastres } from './MalekMenuBook';
 import { IntroFilm, filmReady, filmDue } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
 
@@ -241,7 +241,7 @@ function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: (useTab
       <div className="malek-sheet__card">
         <h3>{it.name} <span className="malek-ar" lang="ar" dir="rtl">{it.nameAr}</span></h3>
         <dl className="malek-dl">
-          <dt>Price</dt><dd data-testid="malek-confirm-price">{fmt(it.price)} · you have {fmt(g.cash)}</dd>
+          <dt>Price</dt><dd data-testid="malek-confirm-price">{piastres(it.price)} ({fmt(it.price)}) · you have {fmt(g.cash)}</dd>
           <dt>Servings</dt><dd>{it.servings}{it.consumption === 'inventory' ? ' (each eaten later, one at a time)' : ' (eaten now)'}</dd>
           <dt>Carry weight</dt><dd>{it.weightKg ? `${it.weightKg} kg` : 'none: eaten at the table'}</dd>
           {it.consumption === 'inventory' && <><dt>Keeps</dt><dd>{parcelDays(it, g.day)} game days (a game value, not food-safety advice)</dd></>}
@@ -251,7 +251,7 @@ function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: (useTab
         {it.consumption === 'inventory' && <p className="malek-meta">Nothing happens to you until you eat a serving. Salted food costs water.</p>}
         <div className="malek-row">
           {(g.malek?.tab ?? 0) > 0 && tabCovers(it) && <button className="btn primary" disabled={busy} onClick={() => { if (busy) return; setBusy(true); onPay(true); }} data-testid="malek-pay-tab">On Malek's tab ({g.malek?.tab} left)</button>}
-          <button className={`btn ${(g.malek?.tab ?? 0) > 0 && tabCovers(it) ? '' : 'primary'}`} disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${fmt(it.price)}`}</button>
+          <button className={`btn ${(g.malek?.tab ?? 0) > 0 && tabCovers(it) ? '' : 'primary'}`} disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${piastres(it.price)}`}</button>
           <button className="btn" onClick={onCancel} data-testid="malek-cancel">Cancel</button>
         </div>
       </div>
