@@ -45,7 +45,7 @@ const WHAT: Record<LabService, string> = {
   provisions: '',
   cargo: '',
 };
-// where Arran stands in the room painting (percent of the 1536×1024 room): behind the bench, cut at its top edge
+// which station Arran is working at (x: percent across the 1536×1024 room, for station plates)
 const FIGURE: Record<'microscope' | 'dye' | 'desk' | 'cabinet' | 'board', { x: number; caption: string }> = {
   microscope: { x: 47, caption: 'At the microscope' },
   dye: { x: 70, caption: 'At the dye bench' },
@@ -53,8 +53,6 @@ const FIGURE: Record<'microscope' | 'dye' | 'desk' | 'cabinet' | 'board', { x: n
   cabinet: { x: 88, caption: 'At the cabinet' },
   board: { x: 66, caption: 'At the board' },
 };
-const BENCH_TOP = 45.5;
-const FIG_H = 36;
 
 const TOPICS: Record<Topic, { title: string; formula: string; explanation: string }> = {
   fibre: {
@@ -262,14 +260,17 @@ export function ArranLab({ onLeave }: { onLeave: () => void }) {
             <b>{TOPICS[topic].title}</b>
             <span>{TOPICS[topic].formula}</span>
           </div>
-          <button type="button" className="arran-figure" style={{ left: `${FIGURE[place].x}%`, top: `${BENCH_TOP - FIG_H * 0.6}%`, height: `${FIG_H}%` }} onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk" data-place={place} data-pose={pose}>
-            <img src={`${BASE}${pose}.webp`} alt="Arran Embleton in a laboratory coat, behind the bench" draggable={false} />
-            <span className="arran-figure__cap">{figCaption}</span>
-          </button>
           {(['microscope', 'dye', 'balance', 'notebook'] as Spot[]).map((id) => (
             <span key={id} className={`arran-tag ${spot === id ? 'is-on' : ''}`} style={{ left: `${SPOTS[id].x}%`, top: `${SPOTS[id].y}%` }} aria-hidden="true" data-testid={`arran-tag-${id}`}>{SPOTS[id].label}</span>
           ))}
         </div>
+        {/* Arran as a framed portrait, not a cut-out in the room: the painted bench stands against the
+            wall, so there is nowhere in the painting a waist-up figure could stand. Replace with room
+            plates that have him painted in at each station when that art arrives. */}
+        <button type="button" className="arran-figure" onClick={talk} aria-label="Talk to Arran" data-testid="arran-talk" data-place={place} data-pose={pose}>
+          <span className="arran-figure__frame"><img src={`${BASE}${pose}.webp`} alt="Arran Embleton in a laboratory coat" draggable={false} /></span>
+          <span className="arran-figure__cap">{figCaption}</span>
+        </button>
         <div className="arran-lab__light" style={{ transform: `translate(${px.x * 22}px, ${px.y * 12}px)` }} aria-hidden="true" />
         <ArranSubtitle />
       </div>

@@ -162,10 +162,12 @@
 @media (max-width: 420px) { .arran-lab__tab { font-size: 14px; } .arran-lab__tab--book img { display: none; } }
 
 /* Arran as a figure in the room, standing behind the bench: the painting's bench top hides him below the waist */
-.arran-figure { position: absolute; margin: 0; padding: 0; border: 0; background: none; aspect-ratio: 600 / 900; transform: translateX(-50%); cursor: pointer; transition: left 0.6s ease; }
-.arran-figure:hover img { filter: brightness(1.02) sepia(0.1) drop-shadow(0 0 8px rgba(247,210,134,0.5)); }
-.arran-figure img { display: block; width: 100%; height: 100%; clip-path: inset(0 0 38% 0); filter: brightness(0.93) sepia(0.12) drop-shadow(0 0 6px rgba(20,10,4,0.35)); user-select: none; -webkit-user-drag: none; }
-.arran-figure__cap { position: absolute; left: 50%; top: 55%; transform: translateX(-50%); white-space: nowrap; font-family: var(--label); font-size: max(11px, calc(var(--ww) * 0.0095)); color: #fff3dc; background: rgba(33,22,12,0.72); border-radius: 999px; padding: 0.1em 0.7em; }
+/* Arran's portrait card, pinned to the corner of the view rather than standing in the painting */
+.arran-figure { position: absolute; left: 12px; top: 12px; z-index: 2; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; width: clamp(84px, 13vw, 150px); }
+.arran-figure__frame { display: block; width: 100%; aspect-ratio: 4 / 5; border-radius: 50% 50% 8px 8px / 38% 38% 8px 8px; overflow: hidden; border: 2px solid rgba(231,189,110,0.75); box-shadow: 0 0 0 3px rgba(33,22,12,0.7), 0 6px 18px rgba(10,5,2,0.55); background: radial-gradient(ellipse at 50% 35%, #5c4128, #22160c 75%); }
+.arran-figure__frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; transform: scale(1.35); transform-origin: 50% 8%; filter: sepia(0.12); user-select: none; -webkit-user-drag: none; transition: opacity 0.25s ease; }
+.arran-figure:hover .arran-figure__frame { border-color: #f7d286; }
+.arran-figure__cap { white-space: nowrap; font-family: var(--label); font-size: 11px; color: #fff3dc; background: rgba(33,22,12,0.8); border-radius: 999px; padding: 0.1em 0.7em; }
 @media (prefers-reduced-motion: reduce) { .arran-figure { transition: none; } }
 
 .arran-lab__tabs { overflow-x: auto; scrollbar-width: none; }
