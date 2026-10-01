@@ -22,7 +22,8 @@ function srcFor(s: CutsceneShot) {
 }
 const fxVolume = () => (audio.toggles.sfx ? Math.max(0, Math.min(1, audio.volumes.master * audio.volumes.sfx)) : 0);
 
-export function Cutscene({ shots, title, onEnd }: { shots: CutsceneShot[]; title: string; onEnd?: () => void }) {
+/** `skippable={false}` for a story moment you should not lose by a stray tap: no Skip button. */
+export function Cutscene({ shots, title, onEnd, skippable = true }: { shots: CutsceneShot[]; title: string; onEnd?: () => void; skippable?: boolean }) {
   const vids = useRef<(HTMLVideoElement | null)[]>([]);
   const fx = useRef<(HTMLAudioElement | null)[]>([]);
   const voice = useRef<HTMLAudioElement | null>(null);
@@ -159,7 +160,7 @@ export function Cutscene({ shots, title, onEnd }: { shots: CutsceneShot[]; title
         {state === 'done' && <button className="btn small" onClick={start} data-testid="cutscene-replay">Watch again</button>}
         <button className="btn small" onClick={toggleSound} aria-pressed={sound} data-testid="cutscene-sound">{sound ? 'Sound on' : 'Sound off'}</button>
         <button className="btn small" onClick={() => setSubs(!subs)} aria-pressed={subs} data-testid="cutscene-subs">{subs ? 'Subtitles on' : 'Subtitles off'}</button>
-        {state !== 'done' && <button className="btn small" onClick={finish} data-testid="cutscene-skip">Skip</button>}
+        {skippable && state !== 'done' && <button className="btn small" onClick={finish} data-testid="cutscene-skip">Skip</button>}
       </div>
     </div>
   );

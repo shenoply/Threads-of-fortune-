@@ -44,6 +44,7 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     });
     await p.waitForTimeout(1800);
     const sub = await p.locator('[data-testid=cutscene-sub]').textContent().catch(() => '');
+    console.log(`   while it plays: Skip ${await has('cutscene-skip')} | Continue enabled ${await p.locator('[data-testid=malek-story-done]').isEnabled()} (${await p.locator('[data-testid=malek-story-done]').textContent()}) | Not now ${await has('malek-story-later')}`);
     await p.screenshot({ path: `${S}/cut-${tag}-1.png` });
     // the cut: watch for a moment with neither shot showing a frame
     const gap = await p.evaluate(() => new Promise((res) => {
@@ -63,12 +64,13 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     await p.waitForSelector('[data-testid=cutscene][data-state=done]', { timeout: 10000 });
     console.log(`   subtitle "${sub}" | now shot ${shot} | blank frames at the cut ${gap} | done, sounds still playing ${await playing()}`);
     console.log('   fetched:', got.filter((g) => /cutscene|mp4|webm/.test(g)).join(', '));
-    // replay, then skip
+    // as it happens it cannot be skipped: no Skip, and Continue only once the film has ended
+    console.log(`   live part: Skip button ${await has('cutscene-skip')} | Continue enabled ${await p.locator('[data-testid=malek-story-done]').isEnabled()}`);
     await p.click('[data-testid=cutscene-replay]'); await p.waitForSelector('[data-testid=cutscene][data-state=playing]');
     await p.click('[data-testid=cutscene-sound]'); await p.click('[data-testid=cutscene-subs]'); await p.waitForTimeout(1600);
     const subOff = await has('cutscene-sub');
-    await p.click('[data-testid=cutscene-skip]'); await p.waitForTimeout(200);
-    console.log(`   replay + sound off + subtitles off (sub shown ${subOff}) + skip -> ${await p.locator('[data-testid=cutscene]').getAttribute('data-state')} | playing ${await playing()}`);
+    await p.waitForSelector('[data-testid=cutscene][data-state=done]', { timeout: 15000 });
+    console.log(`   watched again with sound off and subtitles off (sub shown ${subOff}) -> ${await p.locator('[data-testid=cutscene]').getAttribute('data-state')} | playing ${await playing()}`);
     // the stage applies once
     await p.click('[data-testid=malek-story-done]'); await p.waitForTimeout(300);
     let s = await st();
@@ -76,6 +78,17 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
     s = await st();
     console.log('   completed', JSON.stringify(s.malek.story.completed), '(part 3 counted once)');
+    // missed it? "The story so far" at his door plays it again (and changes nothing)
+    await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(300);
+    if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
+    await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
+    await p.waitForSelector('[data-testid=malek-door]');
+    await p.click('[data-testid=malek-story-so-far]'); await p.click('[data-testid=malek-replay-3]');
+    await p.waitForSelector('[data-testid=cutscene][data-state=playing]', { timeout: 10000 });
+    console.log(`   the story so far: part 3 plays again, Skip there ${await has('cutscene-skip')}`);
+    await p.click('[data-testid=cutscene-skip]'); await p.click('[data-testid=malek-replay-close]'); await p.click('[data-testid=malek-story-list-close]');
+    console.log('   story unchanged by watching again:', JSON.stringify((await st()).malek.story.completed));
+    await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
     // part 4 on the next visit: the painting, its sound and Malek's line
     await reload();
     const st4 = await enter();

@@ -193,6 +193,10 @@ waiting) and the next part plays, one part per visit, any day, the first visit i
 - parts go in order; "Not now" keeps that part for the next time you sit, and leaving or reloading
   never skips or repeats one (it stays pending);
 - completion, visit and next part are committed together, once, on Continue;
+- a part cannot be skipped by a stray tap: the film has no Skip and Continue unlocks only when it has
+  ended; a painted part shows Continue after three seconds;
+- "The story so far" at his door replays any part you have passed (the film can be skipped there),
+  and changes nothing; part 3 is also on the Films shelf;
 - part 3 is on film (see below); the story never loops after part 5.
 
 All five scenes are supplied (`story-1-expulsion` … `story-5-arthur`), so the story is on. If any

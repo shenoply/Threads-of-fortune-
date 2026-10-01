@@ -9,7 +9,7 @@ import { CONDITION_START } from '../../game/systems/fieldwork';
 import {
   MALEK_HOURS, MEAL_MINUTES, MORALE_PATIENCE, SCENE_ART, SCENE_TEXT, STORY, UNAVAILABLE_WORD,
   availability, eatServing, fedOf, parcelDays, parcelWeight, shopOpen, stockLeft, waterOf, wellFedNow,
-  TOPIC_LABEL, storyStageFor, tabCovers, topicsFor, type MalekScene, type MealReport, type TalkTopic,
+  TOPIC_LABEL, storyStageFor, tabCovers, topicsFor, type MalekScene, type StoryStage, type MealReport, type TalkTopic,
 } from '../../game/systems/malek';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
@@ -26,6 +26,57 @@ const STORY_STILL_SOUND: Record<number, { bed: string; who: string; line: string
 };
 import { IntroFilm, filmReady, filmDue } from '../IntroFilm/IntroFilm';
 import './MalekShop.css';
+
+/** One part of Malek's story. As it happens it cannot be skipped by a stray tap: the film has no Skip
+ *  and Continue appears only when it has ended; a painted part shows Continue after a moment to read.
+ *  "Not now" keeps the part for the next time you sit down. Watched again from "The story so far",
+ *  it can be skipped and changes nothing. */
+function StoryView({ stage, replay, onContinue, onLater, onClose }: { stage: StoryStage; replay?: boolean; onContinue?: () => void; onLater?: () => void; onClose?: () => void }) {
+  const film = STORY_FILM[stage.n];
+  const still = STORY_STILL_SOUND[stage.n];
+  const [ready, setReady] = useState(!!replay);
+  useEffect(() => {
+    if (replay || film) return;
+    const t = window.setTimeout(() => setReady(true), 3000);
+    return () => window.clearTimeout(t);
+  }, [replay, film]);
+  const buttons = replay
+    ? <button className="btn primary" onClick={onClose} data-testid="malek-replay-close">Back</button>
+    : (
+      <>
+        <button className="btn primary" disabled={!ready} onClick={onContinue} data-testid="malek-story-done">{ready ? 'Continue' : film ? 'Watching…' : 'Reading…'}</button>
+        {!film || ready ? <button className="btn" onClick={onLater} data-testid="malek-story-later">Not now</button> : null}
+      </>
+    );
+  if (film) {
+    return (
+      <div className="malek" role="dialog" aria-label={stage.title} data-testid="malek-shop">
+        <div className="malek-film" data-testid={replay ? 'malek-replay' : 'malek-story'} data-stage={stage.n}>
+          <Cutscene shots={film} title={stage.title} skippable={!!replay} onEnd={() => setReady(true)} />
+          <div className="malek-film__card">
+            <h2>{stage.title}</h2>
+            {stage.text.map((t, i) => <p key={i}>{t}</p>)}
+            <div className="malek-row">{buttons}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="malek" role="dialog" aria-label={stage.title} data-testid="malek-shop">
+      <div className="malek-door" data-testid={replay ? 'malek-replay' : 'malek-story'} data-stage={stage.n}>
+        <img src={stage.art!} alt={stage.title} className="malek-door__bg" />
+        {still && <StillSound src={still.bed} />}
+        {still && <p className="malek-still-line" data-testid="malek-still-line"><b>{still.who}</b> {still.line}</p>}
+        <div className="malek-door__card">
+          <h2>{stage.title}</h2>
+          {stage.text.map((t, i) => <p key={i}>{t}</p>)}
+          <div className="malek-row">{buttons}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** a story picture's sound: the room, once, at the effects volume; stops when the card goes */
 function StillSound({ src }: { src: string }) {
@@ -60,6 +111,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [speech, setSpeech] = useState('');
   const [panel, setPanel] = useState<Panel>(null);
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
+  const [replay, setReplay] = useState<number | null>(null);
+  const [storyList, setStoryList] = useState(false);
   const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
   // the film plays by itself the first time the shop is open to you; "Watch the film again" replays it
   const [film, setFilm] = useState(() => filmDue('malek', useGame.getState().introSeen));
@@ -146,38 +199,26 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   if (!visit) return <div className="malek" data-testid="malek-shop" />;
 
   const storyStage = visit.stage != null ? STORY.find((s) => s.n === visit.stage) : undefined;
-  if (phase === 'story' && storyStage?.art && STORY_FILM[storyStage.n]) {
-    return (
-      <div className="malek" role="dialog" aria-label={storyStage.title} data-testid="malek-shop">
-        <div className="malek-film" data-testid="malek-story" data-stage={storyStage.n}>
-          <Cutscene shots={STORY_FILM[storyStage.n]} title={storyStage.title} />
-          <div className="malek-film__card">
-            <h2>{storyStage.title}</h2>
-            {storyStage.text.map((t, i) => <p key={i}>{t}</p>)}
-            <div className="malek-row">
-              <button className="btn primary" onClick={() => { useGame.getState().malekStoryDone(storyStage.n); setPhase('room'); }} data-testid="malek-story-done">Continue</button>
-              <button className="btn" onClick={() => setPhase('room')} data-testid="malek-story-later">Not now</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // a part of the story, as it happens (it counts once you continue) or watched again (it changes nothing)
   if (phase === 'story' && storyStage?.art) {
-    const still = STORY_STILL_SOUND[storyStage.n];
+    return <StoryView stage={storyStage} onContinue={() => { useGame.getState().malekStoryDone(storyStage.n); setPhase('room'); }} onLater={() => setPhase('room')} />;
+  }
+  if (replay != null) {
+    const st = STORY.find((x) => x.n === replay);
+    if (st) return <StoryView stage={st} replay onClose={() => setReplay(null)} />;
+  }
+  if (phase === 'door' && storyList) {
+    const done = STORY.filter((x) => g.malek?.story.completed.includes(x.n));
     return (
-      <div className="malek" role="dialog" aria-label={storyStage.title} data-testid="malek-shop">
-        <div className="malek-door" data-testid="malek-story" data-stage={storyStage.n}>
-          <img src={storyStage.art} alt={storyStage.title} className="malek-door__bg" />
-          {still && <StillSound src={still.bed} />}
-          {still && <p className="malek-still-line" data-testid="malek-still-line"><b>{still.who}</b> {still.line}</p>}
+      <div className="malek" role="dialog" aria-label="The story so far" data-testid="malek-shop">
+        <div className="malek-door" data-testid="malek-story-list">
+          <img src={SCENE_ART[visit.scene]} alt="" aria-hidden="true" className="malek-door__bg" />
           <div className="malek-door__card">
-            <h2>{storyStage.title}</h2>
-            {storyStage.text.map((t, i) => <p key={i}>{t}</p>)}
-            <div className="malek-row">
-              <button className="btn primary" onClick={() => { useGame.getState().malekStoryDone(storyStage.n); setPhase('room'); }} data-testid="malek-story-done">Continue</button>
-              <button className="btn" onClick={() => setPhase('room')} data-testid="malek-story-later">Not now</button>
+            <h2>The story so far</h2>
+            <div className="malek-row malek-row--col">
+              {done.map((x) => <button key={x.n} className="btn" onClick={() => setReplay(x.n)} data-testid={`malek-replay-${x.n}`}>{x.n}. {x.title}{STORY_FILM[x.n] ? ' ▶' : ''}</button>)}
             </div>
+            <div className="malek-row"><button className="btn primary" onClick={() => setStoryList(false)} data-testid="malek-story-list-close">Back</button></div>
           </div>
         </div>
       </div>
@@ -198,6 +239,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
               <button className="btn" onClick={() => { setPhase('room'); setPanel('menu'); }} data-testid="malek-door-menu">Straight to the menu</button>
               <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
               {filmReady('malek') && <button className="btn" onClick={() => setFilm(true)} data-testid="malek-film-again">Watch the film again</button>}
+              {!!g.malek?.story.completed.length && <button className="btn" onClick={() => setStoryList(true)} data-testid="malek-story-so-far">The story so far</button>}
             </div>
           </div>
         </div>
