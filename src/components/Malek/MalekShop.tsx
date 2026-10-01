@@ -10,8 +10,10 @@ import { CONDITION_START } from '../../game/systems/fieldwork';
 import {
   MALEK_HOURS, MEAL_MINUTES, MORALE_PATIENCE, SCENE_ART, SCENE_TEXT, STORY, UNAVAILABLE_WORD,
   availability, eatServing, fedOf, parcelDays, parcelWeight, shopOpen, stockLeft, waterOf, wellFedNow,
-  type MalekScene, type MealReport,
+  TOPIC_LABEL, tabCovers, type MalekScene, type MealReport, type TalkTopic,
 } from '../../game/systems/malek';
+import { RUGS } from '../../data/rugs';
+import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { INVALIDATE_EVENT, clampOrbit, defaultOrbit, webglAvailable, type Hotspot, type Orbit } from './orbit';
@@ -38,7 +40,8 @@ function effectChips(it: MalekItem) {
   return out;
 }
 
-type Panel = 'menu' | 'food' | null;
+type Panel = 'menu' | 'food' | 'talk' | null;
+const TOPICS: TalkTopic[] = ['shop', 'name', 'storeroom', 'neighbours', 'road', 'rugs'];
 
 export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const g = useGame();
@@ -69,6 +72,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const now = g.day * 24 + g.world.hour;
   const cond = g.condition ?? CONDITION_START;
   const fedNow = wellFedNow(cond, now);
+  const rugType = g.malek?.rug ? RUGS[g.malek.rug] : undefined;
+  const rugImg = useMemo(() => (rugType ? rugSrc(rugType) : undefined), [rugType]);
   const menuLines = useMemo(() => MALEK_MENU.map((m) => ({ en: m.name.replace('Three-serving caravan parcel', 'Caravan parcel (3)').replace('Road parcel: bastirma and dry bread', 'Road parcel'), ar: m.nameAr, price: `${m.price} PT` })), []);
 
   // ---------------- camera input: drag to turn, pinch or wheel to zoom ----------------
@@ -138,23 +143,26 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     };
   }, [phase, gl]);
 
+  const talkTurn = useRef(Math.floor(Math.random() * TOPICS.length));
   const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));
   const pickHotspot = (h: Hotspot) => {
     audio.sfx('tap');
     if (h === 'exit') { onLeave(); return; }
     if (h === 'menu') { setPanel('menu'); say('menu'); return; }
     if (h === 'tables') { setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return; }
-    say(g.day % 2 ? 'talk' : 'rugs');
+    // tapping him: a different topic each time, round the six
+    talkTurn.current = (talkTurn.current + 1) % TOPICS.length;
+    say(TOPICS[talkTurn.current]);
   };
 
   const paying = useRef(false);
   const ask = (id: MalekItemId) => { paying.current = false; setConfirm({ id, order: newUid('o') }); audio.sfx('tap'); };
-  const pay = () => {
+  const pay = (useTab = false) => {
     // the order token stops a second charge in the store; this stops a second result sheet
     if (!confirm || paying.current) return;
     paying.current = true;
     const it = malekItem(confirm.id);
-    const r = useGame.getState().malekBuy(confirm.id, confirm.order);
+    const r = useGame.getState().malekBuy(confirm.id, confirm.order, useTab);
     setConfirm(null);
     setResult({ msg: r.msg, report: r.report, title: r.ok ? (it.consumption === 'inventory' ? `${it.name}: in your pack` : it.name) : 'Not this time' });
     setSpeech(r.msg);
@@ -228,6 +236,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     </div>
   );
   const parcels = g.parcels ?? [];
+  const tab = g.malek?.tab ?? 0;
   return (
     <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
       <header className="malek-bar">
@@ -239,7 +248,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         {gl ? (
           <Guard fallback={fallback}>
             <Suspense fallback={<div className="malek-loading">Setting out the stools…</div>}>
-              <Room3D scene={visit.scene} orbit={orbit} labels={labels} dragging={dragging} onPick={pickHotspot} menuLines={menuLines} onLost={() => setGl(false)} />
+              <Room3D scene={visit.scene} orbit={orbit} labels={labels} dragging={dragging} onPick={pickHotspot} menuLines={menuLines} rug={rugImg} onLost={() => setGl(false)} />
             </Suspense>
           </Guard>
         ) : fallback}
@@ -263,7 +272,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <div className="malek-tabs" role="tablist">
           <button role="tab" aria-selected={panel === 'menu'} className={panel === 'menu' ? 'is-on' : ''} onClick={() => setPanel(panel === 'menu' ? null : 'menu')} data-testid="malek-tab-menu">Menu</button>
           <button role="tab" aria-selected={panel === 'food'} className={panel === 'food' ? 'is-on' : ''} onClick={() => setPanel(panel === 'food' ? null : 'food')} data-testid="malek-tab-food">Your parcels{parcels.length ? ` · ${parcels.reduce((n, p) => n + p.servings, 0)}` : ''}</button>
-          <button onClick={() => say('talk')} data-testid="malek-talk">Talk to Malek</button>
+          <button role="tab" aria-selected={panel === 'talk'} className={panel === 'talk' ? 'is-on' : ''} onClick={() => setPanel(panel === 'talk' ? null : 'talk')} data-testid="malek-talk">Talk to Malek</button>
         </div>
         {panel === 'menu' && (
           <ul className="malek-menu" data-testid="malek-menu">
@@ -282,6 +291,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
                     {it.consumption === 'eat_in' ? `Eat here · ${MEAL_MINUTES} min` : `Take away · ${it.servings} serving${it.servings > 1 ? 's' : ''} · ${it.weightKg} kg · keeps ${parcelDays(it, g.day)} game days`}
                     {Number.isFinite(left) && av.ok ? ` · ${left} left today` : ''}
                   </p>
+                  {tab > 0 && tabCovers(it) && av.ok && <p className="malek-tabnote">On Malek's tab: {tab} plate{tab === 1 ? '' : 's'} left</p>}
                   {av.ok
                     ? <button className="btn primary small" onClick={() => ask(it.id)} data-testid={`malek-buy-${it.id}`}>{it.consumption === 'eat_in' ? 'Order' : 'Buy'}</button>
                     : <span className="malek-off" data-testid={`malek-off-${it.id}`}>{UNAVAILABLE_WORD[av.why]}</span>}
@@ -290,6 +300,11 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
             })}
             <li className="malek-note">Prices, effects and keeping times are game values, not 1925 prices or real food-safety advice. Water is free from the jar by the door; salted parcels do not count as water.</li>
           </ul>
+        )}
+        {panel === 'talk' && (
+          <div className="malek-topics" data-testid="malek-topics">
+            {TOPICS.map((t) => <button key={t} className="btn small" onClick={() => { audio.sfx('tap'); say(t); }} data-testid={`malek-topic-${t}`}>{TOPIC_LABEL[t]}</button>)}
+          </div>
         )}
         {panel === 'food' && (
           <ul className="malek-menu" data-testid="malek-parcels">
@@ -325,7 +340,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
 }
 
 /** What you pay and what you get, worked out on your current state before any money moves. */
-function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: () => void; onCancel: () => void }) {
+function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: (useTab?: boolean) => void; onCancel: () => void }) {
   const g = useGame();
   const it = malekItem(id);
   const preview = it.consumption === 'eat_in' ? eatServing(g.condition, it, g.day * 24 + g.world.hour).report : null;
@@ -344,7 +359,8 @@ function ConfirmSheet({ id, onPay, onCancel }: { id: MalekItemId; onPay: () => v
         {preview && <><p className="malek-meta">If you eat it now:</p><ReportLines r={preview} /></>}
         {it.consumption === 'inventory' && <p className="malek-meta">Nothing happens to you until you eat a serving. Salted food costs water.</p>}
         <div className="malek-row">
-          <button className="btn primary" disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${it.price} PT`}</button>
+          {(g.malek?.tab ?? 0) > 0 && tabCovers(it) && <button className="btn primary" disabled={busy} onClick={() => { if (busy) return; setBusy(true); onPay(true); }} data-testid="malek-pay-tab">On Malek's tab ({g.malek?.tab} left)</button>}
+          <button className={`btn ${(g.malek?.tab ?? 0) > 0 && tabCovers(it) ? '' : 'primary'}`} disabled={busy || g.cash < it.price} onClick={() => { if (busy) return; setBusy(true); onPay(); }} data-testid="malek-pay">{g.cash < it.price ? 'Not enough money' : `Pay ${it.price} PT`}</button>
           <button className="btn" onClick={onCancel} data-testid="malek-cancel">Cancel</button>
         </div>
       </div>

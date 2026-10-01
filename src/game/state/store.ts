@@ -49,6 +49,7 @@ import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
+import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, STORY_BUYER, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 export const SAVE_VERSION = 19;
@@ -353,11 +354,11 @@ interface Actions {
   malekEnter: () => { scene: MalekScene; line: string; stage: number | null };
   /** buy from Malek: eat in now, or take a parcel. `order` is a one-off token so a double tap
    *  cannot charge twice. */
-  malekBuy: (id: MalekItemId, order: string) => { ok: boolean; msg: string; report?: MealReport };
+  malekBuy: (id: MalekItemId, order: string, useTab?: boolean) => { ok: boolean; msg: string; report?: MealReport };
   /** eat one serving from a parcel you carry */
   eatParcel: (uid: string) => { ok: boolean; msg: string; report?: MealReport };
   /** one line from Malek for a context (not one he has just said) */
-  malekSay: (ctx: LineCtx) => string;
+  malekSay: (what: LineCtx | TalkTopic) => string;
   /** the story stage was played through (or knowingly skipped): commit it once */
   malekStoryDone: (stage: number) => void;
   useRestorative: () => string;
@@ -749,6 +750,14 @@ export const useGame = create<GameState & Actions>()(
           }
           patch.cohen = { ...c, visits: c.visits + 1, lastVisitDay: s.day, trust: Math.max(0, Math.min(100, Math.round(trust))), order, ordersDone, complaint };
         }
+        if (enc.buyerId === 'malek') {
+          // Malek remembers how the stall visit went; a rug bought goes under his tables and puts
+          // your next plates on his account
+          const m = s.malek ?? MALEK_START;
+          const sold = enc.outcome === 'sold' && enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
+          patch.malek = { ...m, stallLastDay: s.day, stallOutcome: sold ? 'sold' : 'walked', stallNoted: false, ...(sold ? { rug: sold.typeId, rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } : {}) };
+          if (sold) journal.push({ day: s.day, text: `Malek bought the ${RUGS[sold.typeId].name} for the floor under his tables. "Your next ${TAB_PLATES} plates are on me. Do not tell anyone."` });
+        }
         if (enc.buyerId === 'nabil') {
           // his memory: trust carried over, rugs he turned down, faults you told him, whether he left angry
           const m = s.nabil ?? NABIL_START;
@@ -843,6 +852,7 @@ export const useGame = create<GameState & Actions>()(
               repBill -= 1;
             }
             if (hd === 1) notes.push('No food left. You are hungry and the caravan is slower.');
+            if ((s.parcels ?? []).length) notes.push("You still have Malek's parcels in your pack: eat a serving from Stock and your own ration is covered tonight.");
             else { notes.push(`${hd} days with no food. The caravan is exhausted and moving badly.`); repBill -= 1; }
           }
           const pay = wages(party);
@@ -1056,7 +1066,10 @@ export const useGame = create<GameState & Actions>()(
           }
           // Malek comes to look at rugs now and then, once you have eaten at his place
           let malekPatch: MalekState | undefined;
-          if (!queue.includes('malek') && malekDue(s.malek, day, rng())) { queue.push('malek'); malekPatch = { ...(s.malek ?? MALEK_START), stallLastDay: day }; }
+          if (!queue.includes('malek') && malekDue(s.malek, day, rng())) {
+            queue.push('malek'); malekPatch = { ...(s.malek ?? MALEK_START), stallLastDay: day };
+            notes.push(s.malek?.rug ? 'Malek said he might come by the stall today. He has not said why. He never says why.' : 'Malek said he might come by the stall today, about a rug for under his tables.');
+          }
           // Nabil al-Khatib, now and then, once your name is worth his hour
           if (!queue.includes('nabil') && nabilDue(s.nabil, day, s.reputation, NABIL_MIN_REP, rng())) queue.push('nabil');
           const vips = rankIdx >= 2 ? CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !queue.includes(id)) : [];
@@ -2426,25 +2439,27 @@ export const useGame = create<GameState & Actions>()(
           const day = s.day;
           const restock = m0.stockDay === day ? {} : { stockDay: day, sold: {} };
           const scene = pickScene(s.world.hour, m0.lastScene, day * 7 + m0.visits);
-          const ctx: LineCtx = scene === 'closing' ? 'closing' : m0.visits ? 'greet' : 'greetFirst';
-          const line = malekLine(ctx, m0.said, day + m0.visits);
+          // closing time has its own line; otherwise he greets you by how you look, his rug, the hour
+          const gr = scene === 'closing' && m0.visits ? { ctx: 'closing' as LineCtx } : malekGreeting(m0, { day, hour: s.world.hour, fed: fedOf(s.condition), fatigue: s.condition?.fatigue ?? 0, salt: day + m0.visits });
+          const line = malekLine(gr.ctx, m0.said, day + m0.visits);
           const buyerMet = (s.relationships[STORY_BUYER]?.visits ?? 0) > 0 || s.nabil?.lastVisitDay != null;
           const stage = storyStageFor(m0.story, day, { buyerMet });
           // one counted visit per call: reopening the shop is a new visit, and the stage stays pending
           // until it is finished, so reopening or reloading never skips or repeats one
-          set({ malek: { ...m0, ...restock, visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-8), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });
+          set({ malek: { ...m0, ...restock, ...(gr.noted ? { stallNoted: true } : {}), visits: m0.visits + 1, lastVisitDay: day, lastScene: scene, said: [...m0.said, line].slice(-12), story: stage != null ? { ...m0.story, pending: stage } : m0.story } });
           return { scene, line, stage };
         },
 
-        malekSay: (ctx) => {
+        malekSay: (what) => {
           const s = get();
           const m0 = s.malek ?? MALEK_START;
+          const ctx: LineCtx = what === 'rugs' ? topicCtx('rugs', m0) : what;
           const line = malekLine(ctx, m0.said, s.day * 13 + m0.said.length + Math.floor(s.world.hour * 7));
-          set({ malek: { ...m0, said: [...m0.said, line].slice(-8) } });
+          set({ malek: { ...m0, said: [...m0.said, line].slice(-12) } });
           return line;
         },
 
-        malekBuy: (id, order) => {
+        malekBuy: (id, order, useTab) => {
           const s = get();
           const m0 = s.malek ?? MALEK_START;
           const it = malekItem(id);
@@ -2457,22 +2472,27 @@ export const useGame = create<GameState & Actions>()(
             const ctx: LineCtx = av.why === 'sold_out' ? 'soldOut' : av.why === 'grill_cold' ? 'grillCold' : 'menu';
             return { ok: false, msg: malekLine(ctx, m.said, day + m.said.length) };
           }
-          if (s.cash < it.price) return { ok: false, msg: malekLine('broke', m.said, day + m.said.length) };
+          // a plate on his tab (after he bought a rug from you): no money changes hands
+          const onTab = !!useTab && (m.tab ?? 0) > 0 && tabCovers(it);
+          if (useTab && !onTab) return { ok: false, msg: 'That is not on his tab.' };
+          if (!onTab && s.cash < it.price) return { ok: false, msg: malekLine('broke', m.said, day + m.said.length) };
           const sold = { ...m.sold, [id]: (m.sold[id] ?? 0) + 1 };
-          const ledger = [...s.ledger, { day, kind: 'expense' as const, label: `Malek's: ${it.name.toLowerCase()}`, amount: -it.price }];
+          const price = onTab ? 0 : it.price;
+          const ledger = onTab ? s.ledger : [...s.ledger, { day, kind: 'expense' as const, label: `Malek's: ${it.name.toLowerCase()}`, amount: -it.price }];
           const orders = [...m.orders, order].slice(-30);
-          const ctx: LineCtx = id === 'malek_kofta' ? 'kofta' : id === 'malek_tea' ? 'tea' : it.consumption === 'inventory' ? 'parcel' : id === 'malek_ful' || id === 'malek_lentils' ? 'cheap' : 'grill';
+          const tab = onTab ? (m.tab ?? 0) - 1 : m.tab;
+          const ctx: LineCtx = onTab ? 'tab' : id === 'malek_kofta' ? 'kofta' : id === 'malek_tea' ? 'tea' : it.consumption === 'inventory' ? 'parcel' : id === 'malek_ful' || id === 'malek_lentils' ? 'cheap' : 'grill';
           const line = malekLine(ctx, m.said, day * 3 + m.said.length);
-          const said = [...m.said, line].slice(-8);
+          const said = [...m.said, line].slice(-12);
           if (it.consumption === 'inventory') {
             const parcel: FoodParcel = { uid: newUid('f'), item: id, servings: it.servings, boughtDay: day, spoilsDay: day + parcelDays(it, day) };
-            set({ cash: s.cash - it.price, ledger, parcels: [...(s.parcels ?? []), parcel], malek: { ...m, sold, orders, said } });
+            set({ cash: s.cash - price, ledger, parcels: [...(s.parcels ?? []), parcel], malek: { ...m, sold, orders, said, tab } });
             audio.sfx('coins');
             return { ok: true, msg: line };
           }
           const now = day * 24 + s.world.hour;
           const { c, report } = eatServing(s.condition, it, now);
-          set({ cash: s.cash - it.price, ledger, condition: c, malek: { ...m, sold, orders, said } });
+          set({ cash: s.cash - price, ledger, condition: c, malek: { ...m, sold, orders, said, tab } });
           audio.sfx('coins');
           get().passTime(MEAL_MINUTES);
           return { ok: true, msg: line, report };

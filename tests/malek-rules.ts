@@ -2,7 +2,7 @@
 // picture never repeating when it need not, his lines not repeating, and the five-stage story.
 //   npx tsx tests/malek-rules.ts
 import { malekItem } from '../src/data/malekMenu';
-import { MALEK_START, STORY, availability, eatServing, malekLine, nightMeters, parcelDays, pickScene, storyComplete, storyReady, storyStageFor, wellFedNow, type MalekStory, type StoryStage } from '../src/game/systems/malek';
+import { MALEK_LINES, TAB_PLATES, malekGreeting, tabCovers, topicCtx, MALEK_START, STORY, availability, eatServing, malekLine, nightMeters, parcelDays, pickScene, storyComplete, storyReady, storyStageFor, wellFedNow, type MalekStory, type StoryStage } from '../src/game/systems/malek';
 
 let fails = 0;
 const ok = (cond: boolean, what: string) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${what}`); if (!cond) fails++; };
@@ -63,9 +63,23 @@ ok(rep === 0, 'no immediate repeat at midday across 40 visits');
 // lines
 const said: string[] = [];
 let catchRuns = 0;
-for (let i = 0; i < 30; i++) { const l = malekLine('greet', said, i); if (said.length && /^(Ha\b|Bah\b|Now what\?)/.test(l) && /^(Ha\b|Bah\b|Now what\?)/.test(said[said.length - 1])) catchRuns++; said.push(l); }
+for (let i = 0; i < 30; i++) { const l = malekLine('greetMidday', said, i); if (said.length && /^(Ha\b|Bah\b|Now what\?)/.test(l) && /^(Ha\b|Bah\b|Now what\?)/.test(said[said.length - 1])) catchRuns++; said.push(l); }
 ok(catchRuns === 0, 'never two catchphrase lines in a row');
 ok(said.every((l, i) => i === 0 || l !== said[i - 1]), 'never the same line twice running');
+
+// greetings: the most pressing thing first
+const g = (m: Partial<typeof MALEK_START>, o: Partial<{ day: number; hour: number; fed: number; fatigue: number; salt: number }> = {}) => malekGreeting({ ...MALEK_START, visits: 3, lastVisitDay: 9, ...m }, { day: 10, hour: 13, fed: 50, fatigue: 10, salt: 1, ...o }).ctx;
+ok(g({ visits: 0 }) === 'greetFirst', 'first visit');
+ok(g({}, { fed: 10 }) === 'greetHungry' && g({}, { fatigue: 60 }) === 'greetTired', 'hungry, then tired, show on your face');
+ok(g({ stallOutcome: 'sold', rug: 'x', stallNoted: false }) === 'greetRug' && g({ stallOutcome: 'walked', stallNoted: false }) === 'greetNoSale', 'he mentions how his stall visit went');
+ok(g({ stallOutcome: 'walked', stallNoted: true }) === 'greetMidday', '...only once');
+ok(g({ lastVisitDay: 2 }) === 'greetAway', 'away for days');
+ok(g({}, { hour: 8 }) === 'greetMorning' && g({}, { hour: 19 }) === 'greetEvening', 'by the hour');
+ok(topicCtx('rugs', MALEK_START) === 'rugsWant' && topicCtx('rugs', { ...MALEK_START, rug: 'x' }) === 'rugsHave', 'rug talk depends on whether he bought one');
+const total = Object.values(MALEK_LINES).reduce((n, l) => n + l.length, 0);
+const catchy = Object.values(MALEK_LINES).flat().filter((l) => /^(Ha\b|Bah\b|Now what\?)/.test(l)).length;
+ok(total >= 100 && catchy / total < 0.12, `${total} lines, catchphrase openers ${catchy} (${Math.round((catchy / total) * 100)}%)`);
+ok(tabCovers(kofta) && !tabCovers(kebab) && !tabCovers(malekItem('malek_road_pack')) && TAB_PLATES === 3, 'his tab covers eat-in plates except the kebab, not parcels');
 
 // story: off while art is missing
 ok(!storyReady(), 'story is off: stages 1-3 have no art');

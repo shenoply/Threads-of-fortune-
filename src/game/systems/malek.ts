@@ -30,6 +30,14 @@ export interface MalekState {
   said: string[];
   /** his visits to your stall as a customer */
   stallLastDay?: number;
+  /** how his last stall visit ended, and whether he has said so at his shop yet */
+  stallOutcome?: 'sold' | 'walked';
+  stallNoted?: boolean;
+  /** the rug you sold him (a rug type id): it lies under his tables */
+  rug?: string;
+  rugDay?: number;
+  /** plates on his account after the rug sale */
+  tab?: number;
   story: MalekStory;
 }
 export const MALEK_START: MalekState = { stockDay: 0, sold: {}, visits: 0, orders: [], said: [], story: { nextStage: 1, lastStoryDay: null, completed: [] } };
@@ -187,77 +195,177 @@ export function pickScene(hour: number, last: MalekScene | undefined, salt: numb
 
 // ---------------- what he says ----------------
 // Dry, short, pessimistic. "Ha", "Bah" and "Now what?" turn up now and then, never every time.
-export type LineCtx = 'greetFirst' | 'greet' | 'menu' | 'kofta' | 'grill' | 'cheap' | 'parcel' | 'tea' | 'soldOut' | 'closing' | 'grillCold' | 'full' | 'broke' | 'talk' | 'rugs' | 'bye';
+export type TalkTopic = 'shop' | 'name' | 'storeroom' | 'neighbours' | 'road' | 'rugs';
+export type LineCtx =
+  | 'greetFirst' | 'greetMorning' | 'greetMidday' | 'greetEvening' | 'greetRegular' | 'greetAway' | 'greetTired' | 'greetHungry' | 'greetRug' | 'greetNoSale'
+  | 'menu' | 'kofta' | 'grill' | 'cheap' | 'parcel' | 'tea' | 'tab' | 'soldOut' | 'closing' | 'grillCold' | 'full' | 'broke' | 'bye'
+  | 'rugsWant' | 'rugsHave' | Exclude<TalkTopic, 'rugs'>;
 const CATCH = /^(Ha\b|Bah\b|Now what\?)/;
 export const MALEK_LINES: Record<LineCtx, string[]> = {
+  // ---- greetings: picked by malekGreeting from the hour and how you look ----
   greetFirst: [
     'Sit anywhere. The stools are all equally bad.',
     'You are new. Everyone is new once. Then they complain.',
+    'Welcome. That is the last nice thing I say today, so remember it.',
+    'Al-Mallem. The boss. There is nobody else here to be boss of, but the title stays.',
   ],
-  greet: [
+  greetMorning: [
+    'Beans are on. The grill is not. Do not ask me about the grill before eleven.',
+    'Early. Good. The early ones complain less; they are still asleep.',
+    "Morning. The ful is hot and the bread is yesterday's. Today's bread is late. Bread is always late.",
+    'You are up before the charcoal. Sit. Eat beans like a sensible person.',
+  ],
+  greetMidday: [
     'Now what?',
-    'You again. The food has not changed. Neither have I.',
-    'Sit. If the stool wobbles, that is the stool.',
-    'Bah. Another customer. Good. Sit down.',
-    'Back for more. I knew it. Nobody listens to me, but they come back.',
+    'Lunch. Everyone wants lunch at the same time. Nobody thinks of me.',
+    'Sit, sit. If the stool wobbles, that is the stool.',
+    'The grill is hot, the meat is honest, and I am tired. Two out of three is good for Giza.',
   ],
+  greetEvening: [
+    'Late. The grill is going cold. So am I.',
+    'Evening. If you wanted kebab, you should have wanted it at noon.',
+    'Bah. A customer at the end of the day. Good. The coins were lonely.',
+    'Sit. I am counting. If you talk, I lose count, and then I start again, and then I am angry.',
+  ],
+  greetRegular: [
+    'You again. The food has not changed. Neither have I.',
+    'Your stool is free. Nobody else wants it either.',
+    'Back for more. I knew it. Nobody listens to me, but they come back.',
+    'If you come every day, people will think the food is good. Do not ruin my name.',
+  ],
+  greetAway: [
+    'Ha. Alive. I said you would get lost. I was nearly right.',
+    'Where were you? Never mind. Everywhere is worse than here; you know that now.',
+    'You look like someone who ate road bread for a week. Sit down before you fall down.',
+  ],
+  greetTired: [
+    'You look terrible. That is not an insult; it is a diagnosis. Tea.',
+    'Sit before you fall on my tables. They are older than you and weaker.',
+    'Tired? Eat something with meat in it, then go to bed. Two pieces of advice, both free, both ignored.',
+  ],
+  greetHungry: [
+    'I can hear your stomach from the grill. Order something before it frightens the customers.',
+    'You are hungry. Do not argue; I have seen hungry before. It looks exactly like you.',
+    'Sit. Eat. Then talk. In that order, or not at all.',
+  ],
+  greetRug: [
+    'Your rug is under the tables. A man spilled stew on it this morning. It survived. I am almost impressed.',
+    'Look at the floor. Your rug. Grease, boots, tea, one cat. Still alive. Hm.',
+    'Customers ask where I bought the rug. I tell them a thief sold it to me. They laugh. I do not.',
+  ],
+  greetNoSale: [
+    'I came to your stall. Everything was too pretty. Pretty does not last here.',
+    'Your rugs looked at me like they were too good for my floor. They were right. That is the problem.',
+  ],
+  // ---- ordering ----
   menu: [
     'It is all on the board. Read it slowly; it does not get cheaper if you read it fast.',
     'Kofta, kebab, liver. The pot is whatever the pot is today.',
     'Ha. You want to see the menu. It is four things and some bread.',
+    'The board does not lie. I wrote it. I do not lie either; I only complain.',
+    'Kofta is good. Kebab is better and costs more. That is how the world works; do not look surprised.',
   ],
   kofta: [
     'You want it cheaper? I can put the meat back on the sheep.',
     'Kofta. Mince, onion, fire. Nothing clever. Clever food is for hotels.',
+    "My father's kofta. He also complained the whole time he made it, so it is authentic.",
   ],
   grill: [
     'Straight off the charcoal. Burn your mouth if you like; I do not give refunds for patience.',
     'Eat it hot. Cold kebab is just an argument.',
+    'Liver. Hot, fast, honest. Like an argument with my supplier.',
+    'Lamb. I had four this morning. Now I have fewer. Life is like that.',
   ],
   cheap: [
     'Beans. The cheapest thing in Giza that is not advice.',
     'Soup. It fills you up and it does not argue.',
+    'Ful. Cheap, filling, and it will still be with you at sunset.',
   ],
   parcel: [
     'It lasts longer than my patience. Take water.',
     'Salted beef. You will want water before Suez. You will want water before the end of the street.',
     'Wrapped twice. If it goes off, that is the road, not me.',
+    'Bastirma from Cairo. My supplier swears by it. He swears by everything. Take water.',
+    'For the road? Eat it slowly. The desert is long and my patience is short; one of them will run out.',
   ],
   tea: [
     'Tea. One glass. Two glasses and you will start talking to me.',
     'Sugar is extra. No, it is not. Bah. Drink it.',
+    'Tea. The only thing in this shop that is never late.',
+  ],
+  tab: [
+    'On my account. Do not get used to it. I already regret it.',
+    'Free. Because of the rug. If the rug dies, you pay double.',
+    'Eat. It is paid for. By me. Ha. Do not tell the bean man.',
   ],
   soldOut: [
     'Ha. The sheep has finished its shift.',
     'Gone. Come earlier. Everyone who comes late says they will come earlier.',
+    'Finished. Everything good finishes early. Remember that about life.',
   ],
   closing: [
     'Coins again. Funny how they never breed overnight.',
     'The grill is cold. I can sell you a parcel. I cannot sell you a fire.',
+    'The fire is out. The coins are counted. They were wrong again. They are always wrong.',
   ],
   grillCold: [
     'The fire is out. Fire does not come back because you are hungry.',
+    'Cold grill. Parcels, tea, soup. Or tomorrow. Tomorrow is very popular.',
   ],
   full: [
     'You are full. I can see it from here. Eat it anyway; I already cooked it.',
+    'Another plate? You will roll home. I will not carry you.',
   ],
   broke: [
     'You have the money or you have the story. I take the money.',
     'Bah. Come back when your purse agrees with your stomach.',
-  ],
-  talk: [
-    'Business is fine. Business is always fine until it is not.',
-    'I work alone. Partners eat the profits and then they eat the kofta.',
-    'My supplier in Cairo says the bastirma is the best this year. He says that every year.',
-    'The tourists ask if it is authentic. I tell them it is lunch.',
-  ],
-  rugs: [
-    'You sell rugs. I might need one. A dark one. Grease does not argue with a dark rug.',
-    'I will come by your stall. Do not expect me to like anything.',
+    'Count your coins. I counted mine. Neither of us is happy.',
   ],
   bye: [
     'Go. Come back hungry.',
     'Mind the step. Everyone trips on the step. I will not fix it.',
+    'Close the door. No, leave it, it is too hot. Halfway. Go.',
+  ],
+  // ---- talk topics ----
+  shop: [
+    'I work alone. Partners eat the profits and then they eat the kofta.',
+    'One grill, four tables, one owner. If I had two grills I would need two of me. One of me is enough trouble.',
+    'Business is fine. Business is always fine until it is not.',
+    'The tourists ask if it is authentic. I tell them it is lunch.',
+    'The charcoal man comes on Tuesdays. Some Tuesdays. He thinks the week is a suggestion.',
+  ],
+  name: [
+    'Al-Mallem means the boss. Everyone calls me that. Even the sheep, I think.',
+    'Boo Rayan, because of my son. He is at school learning to argue. He is already better at it than me.',
+    'Malek. My mother chose it. She also chose my wife. Both decisions I respect and fear.',
+  ],
+  storeroom: [
+    'The storeroom? Charcoal, onions, sacks. Nothing else. Why do you ask? Do not ask.',
+    'Do not go in the back. It is not dangerous. It is private. There is a difference, mostly.',
+    'You heard something in the back? That was the onions. They settle.',
+    'I keep the good bastirma in the back. Also other things. Eat your food.',
+  ],
+  neighbours: [
+    'The Englishman with the bottles smells rugs for money. Arran. He eats here and asks what is in the kofta. Meat. It is meat.',
+    'Rashid sells you rugs on credit? Brave man. Or stupid. In Giza those are cousins.',
+    "Abu Hamid's coffee house tells more stories than the newspaper and half as many lies. Do not quote me.",
+    'The bean man across the lane says his ful is better. His ful is wet. I said nothing. I am saying it now.',
+  ],
+  road: [
+    'Going on the road? Take parcels. Take water. Salted meat makes you thirsty; I say it every time and every time they come back dry.',
+    'My parcels keep a week. Less in the summer. If it smells wrong, it is wrong; throw it away.',
+    'Eat before you sell. A hungry seller gives discounts. A fed seller argues. I argue.',
+    'In khamsin season wrap your face and your bread. Sand gets into both.',
+  ],
+  rugsWant: [
+    'I need a rug for under the tables. Dark, thick, forgiving. I will come to your stall and look. Do not expect me to like anything.',
+    'Show me ugly and strong and I will pay. Show me pretty and I will laugh.',
+    'Grease, boots, tea. That is what the rug must survive. Also my customers. Mostly my customers.',
+  ],
+  rugsHave: [
+    'Your rug is still alive. Grease, boots, stew. Still alive.',
+    'If it lasts the winter, I want another by the door. Do not start counting the money.',
+    'People sit longer since the rug. Longer is bad; they order tea and stay all afternoon. Hm. It is a good rug.',
   ],
 };
 /** One line for a context, never one of the last few he said, and a catchphrase only if he has not
@@ -267,10 +375,31 @@ export function malekLine(ctx: LineCtx, said: string[], salt: number): string {
   const recentCatch = said.slice(-3).some((l) => CATCH.test(l));
   // never the line he just said, and no catchphrase straight after one; then prefer lines not said lately
   const allowed = pool.filter((l) => l !== said[said.length - 1] && !(recentCatch && CATCH.test(l)));
-  const fresh = allowed.filter((l) => !said.slice(-6).includes(l));
+  const fresh = allowed.filter((l) => !said.slice(-10).includes(l));
   const options = fresh.length ? fresh : allowed.length ? allowed : pool;
   return options[Math.abs(salt) % options.length];
 }
+/** a talk topic's line: rugs depends on whether he has bought one of yours */
+export const topicCtx = (t: TalkTopic, m: MalekState | undefined): LineCtx => (t === 'rugs' ? (m?.rug ? 'rugsHave' : 'rugsWant') : t);
+export const TOPIC_LABEL: Record<TalkTopic, string> = { shop: 'The shop', name: 'His name', storeroom: 'The storeroom', neighbours: 'The neighbours', road: 'The road', rugs: 'Rugs' };
+
+/** How he greets you, most pressing first: a first visit, how you look, news about the rug, being away, then the hour. */
+export function malekGreeting(m: MalekState, o: { day: number; hour: number; fed: number; fatigue: number; salt: number }): { ctx: LineCtx; noted?: 'rug' | 'stall' } {
+  if (!m.visits) return { ctx: 'greetFirst' };
+  if (o.fed < 20) return { ctx: 'greetHungry' };
+  if (o.fatigue >= 45) return { ctx: 'greetTired' };
+  if (m.stallOutcome && !m.stallNoted) return m.stallOutcome === 'sold' && m.rug ? { ctx: 'greetRug', noted: 'stall' } : { ctx: 'greetNoSale', noted: 'stall' };
+  if (m.lastVisitDay != null && o.day - m.lastVisitDay >= 5) return { ctx: 'greetAway' };
+  if (m.rug && o.salt % 5 === 0) return { ctx: 'greetRug' };
+  if (m.visits >= 5 && o.salt % 3 === 0) return { ctx: 'greetRegular' };
+  return { ctx: o.hour < MORNING_END ? 'greetMorning' : o.hour >= 18 ? 'greetEvening' : 'greetMidday' };
+}
+
+// ---------------- his tab ----------------
+/** plates on his account when he buys a rug from you */
+export const TAB_PLATES = 3;
+/** a tab plate is any eat-in dish except the lamb kebab (he is grateful, not that grateful) */
+export const tabCovers = (item: MalekItem) => item.consumption === 'eat_in' && item.id !== 'malek_kebab';
 
 // ---------------- the five-visit story ----------------
 export interface MalekStory {
@@ -331,5 +460,6 @@ export { MALEK_MENU };
 export function malekDue(m: MalekState | undefined, day: number, roll: number) {
   if (!m || m.visits < 1) return false;
   if (m.stallLastDay != null && day - m.stallLastDay < 5) return false;
-  return roll < 0.45;
+  // keener while his floor is still bare
+  return roll < (m.rug ? 0.35 : 0.55);
 }

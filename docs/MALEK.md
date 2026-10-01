@@ -41,6 +41,25 @@ Prices are in piastres, as in the handoff (2-24 PT). A day's bread for one perso
 in the game's markets, so they sit with the existing economy. Prices, effects, hours and keeping
 times are game values. The menu says so; they are not presented as 1925 prices or food-safety advice.
 
+## Malek at your stall, and in the day
+
+- **His stall visits:**
+  - He comes to your stall once you have eaten at his place: every five days or more, more keenly (55%) while his floor is bare, 35% after.
+  - The morning notes say so on the days he might come.
+  - He haggles as a Common-tier buyer who wants dark, hard-wearing, forgiving rugs, with his own lines.
+- **A sale:**
+  - The rug lies under his tables in the 3D room, and he greets you about it once (or about the stall visit going nowhere).
+  - The journal records it.
+  - His tab gives you 3 plates on the house: any eat-in dish except the lamb kebab, never parcels.
+- **Ways in during the day:**
+  - "Breakfast / Lunch / Supper at Malek's" on the stall's quiet-hours card.
+  - A hungry nudge at the stall.
+  - "Supper at Malek's" on the evening ledger strip until 21:00.
+  - A night note when the caravan's food runs out and you carry his parcels.
+- **Talk to Malek:** six topics: the shop, his name (Al-Mallem, Boo Rayan), the storeroom (hints only), the neighbours (Arran, Rashid, Abu Hamid, the bean man), the road (real tips in his voice) and rugs. Tapping him in the room steps round the topics.
+- **Greetings:** chosen most pressing first: a first visit, hungry, tired, news of the stall visit, back after five days away, a regular, then by the hour.
+- **Lines:** 102 in the shop alone; about 6% open with "Ha", "Bah" or "Now what?", and never two of those in a row.
+
 ## Rules
 
 - **Hours:** open 07:00-21:00. Ful before 11:00. Grill 11:00-20:00, cold after 20:00 (parcels still sold).

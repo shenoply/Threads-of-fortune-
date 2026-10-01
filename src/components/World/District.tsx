@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { takeMalekRequest } from '../../game/nav';
 import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
@@ -453,6 +454,9 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [talk, setTalk] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
+  // asked for from the stall or the evening strip ("Lunch at Malek's"): the app shows the map afresh
+  // (a new district), and that district opens the shop as it mounts
+  useEffect(() => { if (takeMalekRequest()) setMalek(true); }, []);
   const [note, setNote] = useState('');
   useEffect(() => {
     if (!note) return;

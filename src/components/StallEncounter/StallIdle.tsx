@@ -7,6 +7,8 @@ import { useGame, arrivalAt, clock } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { laneDay } from '../../game/economy/life';
 import { affordableUpgrades, openUpgrades } from '../Inventory/StallUpgrades';
+import { openMalek } from '../../game/nav';
+import { fedOf, shopOpen as malekOpen } from '../../game/systems/malek';
 
 /** The stall between customers: the road ahead, the next customer, and the auction calendar. */
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
@@ -19,6 +21,10 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   const mins = next !== null ? Math.max(0, Math.round((next - h) * 60)) : 0;
   const midday = next !== null && next >= 15 && h < 15;
   const friday = next !== null && laneDay(g.day).late && h < 13;
+  // Malek's grill is two minutes away: a meal word for the hour, and a nudge when you are hungry
+  const malekHere = g.world.at === 'giza' && malekOpen(h);
+  const meal = h < 11 ? 'Breakfast' : h < 17 ? 'Lunch' : 'Supper';
+  const hungry = fedOf(g.condition) < 20;
 
   return (
     <div className="screen idle" data-testid="stall-idle">
@@ -29,10 +35,14 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       <div className="idle-next" data-testid="idle-next">
         {g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {canBuy.length > 0 && <p className="idle-upgrade" data-testid="idle-upgrade-note">You can afford {canBuy[0].name.toLowerCase()} now: {canBuy[0].effect.split('.')[0].toLowerCase()}.</p>}
+        {malekHere && hungry && !(next !== null && mins >= 60) && (
+          <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
+        )}
         {!g.held && next !== null && mins >= 60 && (
           <div className="idle-wait" data-testid="idle-wait">
             <p>While you wait (be back by {clock(next)}):</p>
             <div className="idle-wait__row">
+              {malekHere && <button className="btn small" onClick={() => openMalek()} data-testid="idle-wait-malek"><Icon name="tea" /> {meal} at Malek's{hungry ? ' (you are hungry)' : ''}</button>}
               <button className="btn small" onClick={() => onGo('supplier')} data-testid="idle-wait-supplier"><Icon name="bag" /> Stock up at Rashid's</button>
               {g.world.at === 'giza' && <button className="btn small" onClick={() => onGo('district')} data-testid="idle-wait-district"><Icon name="map" /> Walk Giza (Arran's lab)</button>}
               <button className="btn small" onClick={() => onGo('paper')} data-testid="idle-wait-paper"><Icon name="book" /> Read the paper</button>

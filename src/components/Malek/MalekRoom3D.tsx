@@ -6,7 +6,7 @@
 // at the back, the storeroom doorway at the back right, tables on the right, the street door in the
 // right wall), with small generated textures. Malek is the one cut-out, stood behind a counter so the
 // counter hides him below the waist.
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { MalekScene } from '../../game/systems/malek';
@@ -194,6 +194,27 @@ function MalekFigure({ spot, onPick }: { spot: 'grill' | 'bench' | 'table'; onPi
   );
 }
 
+/** the rug you sold him, under the tables; drawn only once its picture has loaded (never blocks the room) */
+function FloorRug({ src }: { src: string }) {
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  const { invalidate } = useThree();
+  useEffect(() => {
+    let live = true;
+    new THREE.TextureLoader().load(src, (t) => { if (!live) return; t.colorSpace = THREE.SRGBColorSpace; setTex(t); invalidate(); }, undefined, () => undefined);
+    return () => { live = false; };
+  }, [src, invalidate]);
+  if (!tex) return null;
+  const img = tex.image as { width?: number; height?: number } | undefined;
+  const ratio = img?.width && img?.height ? img.width / img.height : 1.5;
+  const w = 2.2, d = Math.min(1.8, w / ratio);
+  return (
+    <mesh position={[1.3, 0.006, 0.75]} rotation={[-Math.PI / 2, 0, 0.08]} raycast={() => null} name="malek-rug">
+      <planeGeometry args={[w, d]} />
+      <meshStandardMaterial map={tex} roughness={1} />
+    </mesh>
+  );
+}
+
 /** a wall that fades when it stands between the camera and the room (camera on its outer side) */
 function Wall({ pos, rot, size, normal, mat }: { pos: [number, number, number]; rot: [number, number, number]; size: [number, number]; normal: THREE.Vector3; mat: THREE.MeshStandardMaterial }) {
   const m = useMemo(() => { const c = mat.clone(); c.transparent = true; return c; }, [mat]);
@@ -239,6 +260,8 @@ export interface RoomProps {
   menuLines: { en: string; ar: string; price: string }[];
   /** true while a drag is under way, so a drag that ends over Malek is not a click on him */
   dragging: MutableRefObject<boolean>;
+  /** the picture of the rug you sold him, if you have */
+  rug?: string;
 }
 
 const ANCHORS: Record<Hotspot, THREE.Vector3> = {
@@ -250,7 +273,7 @@ const ANCHORS: Record<Hotspot, THREE.Vector3> = {
 // labels sit just above his head, not over him
 const MALEK_ANCHOR: Record<'grill' | 'bench' | 'table', THREE.Vector3> = { grill: new THREE.Vector3(-3.17, 2.2, -0.75), bench: new THREE.Vector3(1.0, 2.15, -2.82), table: new THREE.Vector3(1.8, 1.95, -0.42) };
 
-function Room({ scene, orbit, labels, onPick, menuLines, dragging }: RoomProps) {
+function Room({ scene, orbit, labels, onPick, menuLines, dragging, rug }: RoomProps) {
   const tex = useTextures();
   const { invalidate } = useThree();
   useEffect(() => {
@@ -309,6 +332,7 @@ function Room({ scene, orbit, labels, onPick, menuLines, dragging }: RoomProps) 
         <meshBasicMaterial map={board} />
       </mesh>
 
+      {rug && <FloorRug src={rug} />}
       <Grill cold={closing} tex={tex} />
       <Shelves tex={tex} />
       <Bench tex={tex} />
@@ -331,8 +355,8 @@ export default function MalekRoom3D(props: RoomProps & { onLost: () => void }) {
       frameloop="demand"
       camera={{ fov: 42, near: 0.1, far: 80, position: [0, 6, 10] }}
       gl={{ antialias: true, powerPreference: 'low-power' }}
-      onCreated={({ gl }) => {
-        if (import.meta.env.DEV) (window as unknown as { __malekGl?: THREE.WebGLRenderer }).__malekGl = gl;
+      onCreated={({ gl, scene }) => {
+        if (import.meta.env.DEV) Object.assign(window, { __malekGl: gl, __malekScene: scene });
         gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost.current(); });
       }}
       data-testid="malek-canvas"

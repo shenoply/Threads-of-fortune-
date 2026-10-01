@@ -7,7 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { useGame, clock } from '../src/game/state/store';
 import { fmt } from '../src/game/economy/money';
 import { malekItem } from '../src/data/malekMenu';
-import { STORY, fedOf, storyReady, waterOf, wellFedNow } from '../src/game/systems/malek';
+import { MALEK_START, STORY, TAB_PLATES, fedOf, storyReady, waterOf, wellFedNow } from '../src/game/systems/malek';
 import '../src/styles.css';
 import './malek-preview.css';
 
@@ -37,7 +37,7 @@ function Preview() {
         <div><b>Day {g.day}</b> · {clock(g.world.hour)} · {fmt(g.cash)}</div>
         <div>Fed {fedOf(c)}/100 · Water {waterOf(c)}/100 · Fatigue {c?.fatigue ?? 0}{wellFedNow(c, now) ? ` · Well fed +${wellFedNow(c, now) * 2} patience` : ''}</div>
         <div>Parcels: {(g.parcels ?? []).length ? (g.parcels ?? []).map((p) => `${malekItem(p.item).name} (${p.servings}, until day ${p.spoilsDay})`).join('; ') : 'none'}</div>
-        <div>Visits to Malek: {g.malek?.visits ?? 0}{g.malek?.lastScene ? ` · last picture: ${g.malek.lastScene}` : ''}</div>
+        <div>Visits to Malek: {g.malek?.visits ?? 0}{g.malek?.lastScene ? ` · last picture: ${g.malek.lastScene}` : ''}{g.malek?.rug ? ` · your rug is on his floor · tab: ${g.malek.tab ?? 0} plates` : ''}</div>
         <div>Story: {storyReady() ? `next stage ${st?.nextStage ?? 1}` : `off: stages ${STORY.filter((s) => !s.art).map((s) => s.n).join(', ')} have no art yet`}</div>
       </section>
       <button className="btn primary big" onClick={() => setInside(true)} data-testid="mp-enter">Walk into Malek's</button>
@@ -53,9 +53,11 @@ function Preview() {
         <div className="mp-row">
           <button className="btn" onClick={() => { useGame.getState().endDay(); setHour(12.5); }} data-testid="mp-next-day">Next day (the game's night rollover)</button>
           <button className="btn" onClick={() => useGame.setState({ cash: useGame.getState().cash + 500 })}>Add £5</button>
+          <button className="btn" onClick={() => { const s = useGame.getState(); const m = s.malek ?? MALEK_START; useGame.setState({ malek: { ...m, visits: Math.max(1, m.visits), stallLastDay: s.day, stallOutcome: 'sold', stallNoted: false, rug: s.inventory[0]?.typeId ?? 'desert-star', rugDay: s.day, tab: (m.tab ?? 0) + TAB_PLATES } }); }} data-testid="mp-sold-rug">Malek buys a rug at your stall</button>
+          <button className="btn" onClick={() => { const s = useGame.getState(); useGame.setState({ condition: { ...(s.condition ?? { fatigue: 10, dependence: 0 }), fed: 5, fatigue: 55 } }); }}>Make me hungry and tired</button>
           <button className="btn" onClick={() => { try { localStorage.removeItem('threads-of-fortune-save'); } catch { /* private mode */ } location.reload(); }}>Reset</button>
         </div>
-        <p className="mp-note">Drag to turn the room, pinch or scroll to zoom. Order, take parcels, then use Next day to see them age and the shop restock.</p>
+        <p className="mp-note">Drag to turn the room, pinch or scroll to zoom. Order, take parcels, then use Next day to see them age and the shop restock. In the game Malek comes to your stall on his own once you have eaten at his place; the rug button stands in for that visit here. Try Talk to Malek for his six topics.</p>
       </section>
       {inside && <Suspense fallback={<div className="malek-boot">Walking over to Malek's…</div>}><MalekShop onLeave={() => setInside(false)} /></Suspense>}
     </div>

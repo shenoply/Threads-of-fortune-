@@ -1744,6 +1744,7 @@ body.travelling .mission-strip{display:none}
 .idle-wait__row { display: flex; flex-wrap: wrap; gap: 6px; }
 .idle-wait__row .btn { display: inline-flex; align-items: center; gap: 5px; }
 .idle-wait__row .btn svg { width: 14px; height: 14px; }
+.idle-hungry { margin: 6px 0 0; font-size: 14px; color: var(--text-dim); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .cv-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 12px; }
 .cv-tile { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border: 1px solid var(--line-strong); border-radius: 8px; background: #1e140b; }
 .cv-tile svg { width: 20px; height: 20px; color: var(--brass-hi); }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
-import { PLAN_EVENT, planTrip } from './game/nav';
+import { MALEK_EVENT, PLAN_EVENT, openMalek, planTrip } from './game/nav';
 import { Newspaper } from './components/Newspaper/Newspaper';
 import { Radio } from './components/Radio/Radio';
 import { Gramophone } from './components/Radio/Gramophone';
@@ -103,6 +103,12 @@ export default function App() {
     const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t }); };
     window.addEventListener(PLAN_EVENT, on);
     return () => window.removeEventListener(PLAN_EVENT, on);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // "Lunch at Malek's": show the district; it opens his shop
+  useEffect(() => {
+    const on = () => mapGo({ view: 'district' });
+    window.addEventListener(MALEK_EVENT, on);
+    return () => window.removeEventListener(MALEK_EVENT, on);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   /** Take the player straight to what a chapter step, or a stall button, asks for. */
   const chapterGo = (t: Target) => {
@@ -388,6 +394,7 @@ export default function App() {
             </span>
           </span>
           {tab !== 'supplier' && <button className="btn" onClick={() => setTab('supplier')} data-testid="visit-rashid-evening">Rashid</button>}
+          {g.world.at === 'giza' && g.world.hour < 21 && <button className="btn" onClick={() => openMalek()} data-testid="malek-evening">Supper at Malek's</button>}
           <button className="btn primary" onClick={() => { g.endDay(); setMapIntent(useGame.getState().journey ? { view: 'world', n: Date.now() } : { view: 'district', n: Date.now() }); setTab('map'); }} data-testid="close-stall">
             Next day
           </button>
