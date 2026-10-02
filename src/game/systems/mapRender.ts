@@ -4,7 +4,7 @@ import geo from '../../data/geo.json';
 import { RANGES, DESERTS, FERTILE, PALMS, LABELS, RAILWAYS, PROJ, proj } from '../../data/mapFeatures';
 import { MASK_W, MASK_H } from '../../data/landmask';
 import { RAIL_LINKS } from '../../data/world';
-import { MAP_W, MAP_H, paint, settlementById } from './world';
+import { MAP_W, MAP_H, paint, settlementById, routeLeg } from './world';
 
 type Ring = number[];
 
@@ -32,7 +32,7 @@ function paintedRails() {
   if (railCache) return railCache;
   railCache = RAIL_LINKS.map((l) => {
     const A = settlementById(l.a), B = settlementById(l.b);
-    return [{ x: A.x, y: A.y }, { x: B.x, y: B.y }];
+    return routeLeg({ x: A.x, y: A.y }, { x: B.x, y: B.y }, 'rail');
   });
   return railCache;
 }

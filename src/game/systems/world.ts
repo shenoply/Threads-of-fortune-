@@ -161,6 +161,102 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
   return out;
 }
 
+/** Ships keep to the sea: a search across water cells from the water nearest each port, straightened
+ * wherever open water allows. Returns null if no sea lane joins them on the map. */
+const SEA_DIRS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]];
+// the straits are narrower than a mask cell, so they are opened for ships only: the Dardanelles and the Bosporus
+const sea = Uint8Array.from(water);
+for (const [x, y] of [[22, 14], [22, 15], [34, 12], [34, 11], [34, 10], [35, 9]]) sea[y * MASK_W + x] = 1;
+const isSeaPx = (p: Pt) => { const { cx, cy } = cellOf(p); return sea[cy * MASK_W + cx] === 1; };
+function nearestWater(cx: number, cy: number): number {
+  for (let r = 0; r < 16; r++)
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = cx + dx, y = cy + dy;
+        if (x >= 0 && y >= 0 && x < MASK_W && y < MASK_H && sea[y * MASK_W + x]) return y * MASK_W + x;
+      }
+  return -1;
+}
+function seaOpen(a: Pt, b: Pt) {
+  const steps = Math.max(1, Math.ceil(dist(a, b) / (CELL / 2)));
+  for (let i = 0; i <= steps; i++) if (!isSeaPx({ x: a.x + (b.x - a.x) * (i / steps), y: a.y + (b.y - a.y) * (i / steps) })) return false;
+  return true;
+}
+export function findSeaPath(from: Pt, to: Pt): Pt[] | null {
+  const s = cellOf(from), g = cellOf(to);
+  const start = nearestWater(s.cx, s.cy), goal = nearestWater(g.cx, g.cy);
+  if (start < 0 || goal < 0) return null;
+  const N = MASK_W * MASK_H;
+  const gScore = new Float32Array(N).fill(Infinity);
+  const came = new Int32Array(N).fill(-1);
+  const closed = new Uint8Array(N);
+  const gx = goal % MASK_W, gy = Math.floor(goal / MASK_W);
+  const h = (i: number) => Math.hypot((i % MASK_W) - gx, Math.floor(i / MASK_W) - gy);
+  // a small binary heap of [f, cell]
+  const heap: number[][] = [[h(start), start]];
+  gScore[start] = 0;
+  const push = (f: number, i: number) => {
+    heap.push([f, i]);
+    for (let k = heap.length - 1; k > 0;) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; }
+  };
+  const pop = () => {
+    const top = heap[0], last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      for (let k = 0; ;) {
+        const l = 2 * k + 1, r = l + 1; let m = k;
+        if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+        if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+        if (m === k) break;
+        [heap[m], heap[k]] = [heap[k], heap[m]]; k = m;
+      }
+    }
+    return top;
+  };
+  while (heap.length) {
+    const [, cur] = pop();
+    if (cur === goal) break;
+    if (closed[cur]) continue;
+    closed[cur] = 1;
+    const cx = cur % MASK_W, cy = Math.floor(cur / MASK_W);
+    for (const [dx, dy, w] of SEA_DIRS) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= MASK_W || ny >= MASK_H) continue;
+      const ni = ny * MASK_W + nx;
+      if (!sea[ni] || closed[ni]) continue;
+      // keep a cable's length off the shore where the sea allows: cells next to land cost a little more
+      const ng = gScore[cur] + w * (sea[ni - 1] && sea[ni + 1] && sea[ni - MASK_W] && sea[ni + MASK_W] ? 1 : 1.6);
+      if (ng < gScore[ni]) { gScore[ni] = ng; came[ni] = cur; push(ng + h(ni), ni); }
+    }
+  }
+  if (came[goal] === -1 && goal !== start) return null;
+  const chain: Pt[] = [];
+  for (let i = goal; i !== -1; i = came[i]) { chain.push(centre(i % MASK_W, Math.floor(i / MASK_W))); if (i === start) break; }
+  chain.reverse();
+  const out: Pt[] = [chain[0]];
+  let anchor = 0;
+  for (let i = 2; i < chain.length; i++) if (!seaOpen(chain[anchor], chain[i])) { out.push(chain[i - 1]); anchor = i - 1; }
+  out.push(chain[chain.length - 1]);
+  return [from, ...out, to];
+}
+
+/** The way a train, a motor car or a ship really goes between two places on the map: railways and cars
+ * along the land route (they take the roads through the passes, never over open mountains or sea), ships
+ * around the coasts. Falls back to the straight line only if the map has no way through. */
+const legCache = new Map<string, Pt[]>();
+export function routeLeg(a: Pt, b: Pt, mode: 'rail' | 'motor' | 'ship'): Pt[] {
+  const key = `${mode}:${a.x},${a.y}:${b.x},${b.y}`;
+  let p = legCache.get(key);
+  if (!p) { p = (mode === 'ship' ? findSeaPath(a, b) : findPath(a, b)) ?? [a, b]; legCache.set(key, p); }
+  return p;
+}
+export function routeThrough(stops: Pt[], mode: 'rail' | 'motor' | 'ship'): Pt[] {
+  const out: Pt[] = [stops[0]];
+  for (let i = 1; i < stops.length; i++) out.push(...routeLeg(stops[i - 1], stops[i], mode).slice(1));
+  return out;
+}
+
 /** Days on foot along a path at `pxPerDay` on good ground, slowed or sped by the terrain under each stretch. */
 export function pathDays(p: Pt[], pxPerDay: number) {
   let d = 0;

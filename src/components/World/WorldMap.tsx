@@ -9,7 +9,7 @@ import { SETTLEMENTS, type Settlement } from '../../data/world';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger,
-  MAP_W, MAP_H, findPath, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
@@ -338,7 +338,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     if (train && plan.train) {
       if (g.cash < plan.train.fare) return setReport('You cannot afford the train fare.');
       useGame.setState((st) => ({ cash: st.cash - plan.train!.fare, ledger: [...st.ledger, { day: st.day, kind: 'expense', label: `Third-class tickets to ${plan.settlement?.name}`, amount: -plan.train!.fare }] }));
-      const path = plan.train.stops.map((id) => { const x = settlementById(id); return { x: x.x, y: x.y }; });
+      const path = routeThrough(plan.train.stops.map((id) => { const x = settlementById(id); return { x: x.x, y: x.y }; }), 'rail');
       follow.current = true;
       setMoving({ path, done: 0, train: true, dest: plan.settlement?.id, pxPerDay: pathLength(path) / plan.train.days });
       setPlan(null);
@@ -367,7 +367,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
       cash: st.cash - r.fare,
       ledger: [...st.ledger, { day: st.day, kind: 'expense', label: mode === 'motor' ? `Nairn desert car to ${dest.name}` : `Deck passage to ${dest.name}`, amount: -r.fare }],
     }));
-    const path = [{ x: from.x, y: from.y }, { x: dest.x, y: dest.y }];
+    const path = routeLeg({ x: from.x, y: from.y }, { x: dest.x, y: dest.y }, mode === 'motor' ? 'motor' : 'ship');
     follow.current = true;
     setMoving({ path, done: 0, train: true, dest: r.to, pxPerDay: pathLength(path) / Math.max(0.1, r.days), mode });
     setPlan(null);
