@@ -31,8 +31,9 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   palace: ['palace-rast', 'palace-nahawand'],
   'auction-small': ['auction'],
   'auction-grand': ['salon-waltz', 'auction', 'the-gavel-rises'],
-  // a night halt away from any town: just the fire and the dark, nothing borrowed from the road or the evening bucket
-  camp: ['solo-nay-flute'],
+  // a night halt away from any town: just the fire and the dark, nothing borrowed from the road or the evening bucket.
+  // ya-rakib-al-layl is the campfire poet-singer tradition — one voice, one bowed rababa, nothing else
+  camp: ['solo-nay-flute', 'ya-rakib-al-layl'],
   // harbour towns and the sea crossing itself: gulls and timber rather than the souk
   port: ['deck-passage', 'corniche-rebetiko'],
   // Jerusalem, Jaffa, Damascus, Amman, Baghdad: still mostly borrows Cairo's khan themes, but
