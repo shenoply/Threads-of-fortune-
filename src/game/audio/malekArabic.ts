@@ -2,6 +2,7 @@
 // browser will not play yet (no tap so far) or dialogue is off, the words on screen are enough.
 import { ARABIC_BY_ID } from '../../data/malekArabic';
 import { dialogueVolume } from './arranVoice';
+import { audio } from './engine';
 
 let current: HTMLAudioElement | null = null;
 /** for tests: the last clip asked for */
@@ -18,9 +19,10 @@ export function sayMalekArabic(phraseId: string, rnd = Math.random) {
   const a = new Audio(`audio/malek/ar-${clip}.mp3`);
   a.volume = vol;
   current = a;
-  a.onended = () => { if (current === a) current = null; };
-  a.play().catch(() => { if (current === a) current = null; });
+  audio.duckForVoice(true);
+  a.onended = () => { if (current === a) { current = null; audio.duckForVoice(false); } };
+  a.play().catch(() => { if (current === a) { current = null; audio.duckForVoice(false); } });
 }
 export function stopMalekArabic() {
-  if (current) { current.pause(); current = null; }
+  if (current) { current.pause(); current = null; audio.duckForVoice(false); }
 }

@@ -29,8 +29,16 @@ export function saleDays(houseId: string): number[] {
   }
   return (scheduleCache[houseId] = out);
 }
-export const saleOn = (houseId: string, day: number) => saleDays(houseId).includes(day);
-export const nextSale = (houseId: string, day: number) => saleDays(houseId).find((d) => d >= day) ?? day;
+/** How many days a sale stays open. An estate sale runs for several days of viewing and bidding, so a dealer
+ * travelling from another city can still make it; a dealers' sale a couple of days, never into the next one. */
+export const saleRun = (houseId: string) => { const h = HOUSES[houseId]; return Math.max(1, Math.min(h.tier === 'grand' ? 5 : 2, h.cadenceMinDays)); };
+/** The first day of the sale running on `day`, if one is. */
+export const saleStart = (houseId: string, day: number) => saleDays(houseId).find((d) => d <= day && day < d + saleRun(houseId));
+export const saleOn = (houseId: string, day: number) => saleStart(houseId, day) !== undefined;
+/** The sale on now, or else the next one: its first day. */
+export const nextSale = (houseId: string, day: number) => saleStart(houseId, day) ?? saleDays(houseId).find((d) => d >= day) ?? day;
+/** The last day a sale that opens on `start` is still on. */
+export const saleEnd = (houseId: string, start: number) => start + saleRun(houseId) - 1;
 
 // ---------- Lots ----------
 export interface Lot {

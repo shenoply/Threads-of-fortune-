@@ -19,7 +19,7 @@ export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | '
 interface FxClip { file: string; dur: number }
 interface Bank { fx: Record<string, FxClip[]>; beds: Record<string, { file: string; dur: number }> }
 
-const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.5, sfx: 0.7, ambience: 0.55 };
+const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.5, sfx: 0.7, ambience: 0.3 };
 
 const PLAYLISTS: Record<MusicCtx, string[]> = {
   documentary: ['title-hijaz'],
@@ -139,6 +139,15 @@ class AudioEngine {
   private level(c: Channel) {
     const slider = c === 'music' ? this.volumes.music : c === 'dialogue' ? this.volumes.dialogue : this.volumes.sfx;
     return (c === 'ambience' ? LEVELS.ambience * (0.75 + 0.25 * this.laneBusy) : LEVELS[c]) * slider;
+  }
+
+  /** While someone speaks, the street and the music step back so the words come through. */
+  private voiceOn = false;
+  duckForVoice(on: boolean) {
+    if (on === this.voiceOn || !this.ctx) { this.voiceOn = on; return; }
+    this.voiceOn = on;
+    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') * (on ? 0.35 : 1) : 0, this.ctx.currentTime, on ? 0.15 : 0.8);
+    this.gains.music.gain.setTargetAtTime(this.toggles.music ? this.level('music') * (on ? 0.45 : 1) : 0, this.ctx.currentTime, on ? 0.15 : 0.8);
   }
 
   /** Lower the music while the radio announcer speaks. */
@@ -415,7 +424,8 @@ class AudioEngine {
     // the camp has no bed of its own: the night (crickets) full, the open road faint beneath it
     if (env === 'camp') { want.set('night', 1); want.set('road', 0.25); }
     else want.set(env, env === 'market' && (this.dayOver || this.night) ? 0.45 : 1);
-    if (this.night && !INDOOR.includes(env)) want.set('night', 1);
+    // the crickets sit under the street at night, never over it (the camp keeps them full)
+    if (this.night && !INDOOR.includes(env)) want.set('night', env === 'camp' ? 1 : 0.4);
     for (const k of [...this.bedLayers.keys()]) if (!want.has(k)) this.stopBed(k);
     for (const [k, lvl] of want) {
       const l = this.bedLayers.get(k);
@@ -633,4 +643,5 @@ class AudioEngine {
 }
 
 export const audio = new AudioEngine();
+voice.onPlaying = (on) => audio.duckForVoice(on);
 if (typeof window !== 'undefined') (window as unknown as { __tofAudio: AudioEngine }).__tofAudio = audio;

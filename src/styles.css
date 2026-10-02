@@ -1386,6 +1386,9 @@ table.ledger .neg { color: var(--bad); }
 .board-row.today{border-color:#f0b24a;box-shadow:0 0 0 2px #f0b24a55}
 .board-row img{width:64px;height:48px;object-fit:cover;border-radius:6px}
 .board-row span{display:flex;flex-direction:column;flex:1;min-width:0}
+.board-row .board-reach{color:#b8e08a;margin-top:2px}
+.board-row.is-far{opacity:.62}
+.board-row.is-far .board-reach{color:#e0a07a}
 .board-row b{font-size:16px}.board-row small{font-size:15.5px;opacity:.85}
 .board-row em{font-style:normal;font-weight:700;font-size:15.5px;color:#f0c987;text-align:right}
 .board-row.today em{color:#ffd27a}
@@ -1747,6 +1750,9 @@ body.travelling .mission-strip{display:none}
 .idle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .idle-row .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .idle-row .btn svg { width: 16px; height: 16px; }
+.idle-auctions { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+.idle-auctions svg { width: 16px; height: 16px; }
+.idle-row:has(> .btn:only-child) { grid-template-columns: 1fr; }
 .idle-wait { margin-top: 8px; }
 .idle-wait p { margin: 0 0 6px; font-size: 13px; opacity: .85; }
 .idle-wait__row { display: flex; flex-wrap: wrap; gap: 6px; }

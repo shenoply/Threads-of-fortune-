@@ -38,6 +38,10 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
         )}
+      </div>
+      <button className="btn primary big" onClick={() => { audio.sfx('tap'); g.waitForCustomer(); }} data-testid="stall-wait">{g.held ? 'Go back to them' : next === null ? 'Close up for the evening' : mins === 0 ? 'Serve them' : `Wait for the customer (${clock(next)})`}</button>
+      <button className="btn idle-auctions" onClick={() => setBoard(true)} data-testid="idle-auctions"><Icon name="calendar" /> Auctions</button>
+      <div className="idle-next idle-next--after">
         {!g.held && next !== null && mins >= 60 && (
           <div className="idle-wait" data-testid="idle-wait">
             <p>While you wait (be back by {clock(next)}):</p>
@@ -52,10 +56,8 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}
       </div>
 
-      <button className="btn primary big" onClick={() => { audio.sfx('tap'); g.waitForCustomer(); }} data-testid="stall-wait">{g.held ? 'Go back to them' : next === null ? 'Close up for the evening' : mins === 0 ? 'Serve them' : `Wait for the customer (${clock(next)})`}</button>
       <div className="idle-row">
         <button className="btn" onClick={() => useGame.setState({ dayOver: true })} data-testid="stall-close-early"><Icon name="lock" /> Shut the stall</button>
-        <button className="btn" onClick={() => setBoard(true)} data-testid="idle-auctions"><Icon name="calendar" /> Auctions</button>
       </div>
       <button className={`btn idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve">
         <Icon name="star" /> Improve your stall{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}

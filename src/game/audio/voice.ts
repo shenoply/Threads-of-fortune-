@@ -79,7 +79,11 @@ class Voice {
   private current: AudioBufferSourceNode | null = null;
   private token = 0;
   enabled = true;
-  playing = false;
+  private _playing = false;
+  /** told when a line starts and stops, so the street and music can step back (set by the audio engine) */
+  onPlaying: ((on: boolean) => void) | null = null;
+  get playing() { return this._playing; }
+  set playing(v: boolean) { if (v !== this._playing) { this._playing = v; this.onPlaying?.(v); } }
   count = 0;
   volume = 1;
 

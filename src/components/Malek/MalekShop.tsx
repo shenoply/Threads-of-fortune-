@@ -16,7 +16,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
-import { MALEK_CHAT, MALEK_HELLO, MALEK_MENU_LINE, type RealLine } from '../../data/malekTalk';
+import { MALEK_TALK, MALEK_MENU_LINE, type RealLine, type Reply, type TalkNodeId } from '../../data/malekTalk';
 import { ARABIC_BY_ID, type ArabicPhrase } from '../../data/malekArabic';
 import { openGuide } from '../Guide/Guide';
 import { voice } from '../../game/audio/voice';
@@ -141,6 +141,16 @@ function effectChips(it: MalekItem) {
 
 type Panel = 'menu' | 'food' | 'talk' | null;
 
+/** Every three turns of talk the shop moves on to another painting of him at work (the night one only after dark). */
+const DAY_SCENES: MalekScene[] = ['preparing', 'grilling', 'serving'];
+function talkScene(base: MalekScene, turns: number, hour: number): MalekScene {
+  const step = Math.floor(turns / 3);
+  if (!step) return base;
+  const pool: MalekScene[] = hour >= 20 ? [...DAY_SCENES, 'closing'] : DAY_SCENES;
+  const i = Math.max(0, pool.indexOf(base));
+  return pool[(i + step) % pool.length];
+}
+
 export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const g = useGame();
   const [phase, setPhase] = useState<'door' | 'story' | 'room'>('door');
@@ -149,8 +159,10 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [sayN, setSayN] = useState(0);
   // an Arabic line of his, shown with its reading and meaning while his recording plays
   const [arSaid, setArSaid] = useState<ArabicPhrase | null>(null);
-  // in the talk: the question you asked and the line he answered with
-  const [asked, setAsked] = useState<{ ask: string; line: RealLine } | null>(null);
+  // the talk: where the conversation is, what you last said, and how many turns it has run
+  const [node, setNode] = useState<TalkNodeId | null>(null);
+  const [you, setYou] = useState<string | null>(null);
+  const [turns, setTurns] = useState(0);
   const [panel, setPanel] = useState<Panel>(null);
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
   const [replay, setReplay] = useState<number | null>(null);
@@ -218,8 +230,19 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
       setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return;
     }
     if (h === 'grill') { setPanel('menu'); say(g.world.hour >= 20 ? 'grillCold' : 'grill'); return; }
-    // tapping him: he asks if you are eating, and the talk opens
-    setPanel('talk'); setAsked(null); sayReal(MALEK_HELLO);
+    // tapping him starts the talk
+    startTalk();
+  };
+
+  const startTalk = () => { setPanel('talk'); setNode('start'); setYou(null); sayReal(MALEK_TALK.start.malek); };
+  const reply = (r: Reply) => {
+    audio.sfx('tap');
+    setYou(r.say);
+    setTurns((t) => t + 1);
+    if (r.to) { setNode(r.to); sayReal(MALEK_TALK[r.to].malek); return; }
+    setNode(null);
+    if (r.then === 'menu') setPanel('menu');
+    else setPanel(null);
   };
 
   const paying = useRef(false);
@@ -321,7 +344,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
       </header>
       <div className="malek-stage" data-testid="malek-stage">
-        <MalekRoom2D scene={visit.scene} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} storyDue={!!g.malek && storyStageFor(g.malek.story, g.malek.visits) != null} />
+        <MalekRoom2D scene={talkScene(visit.scene, turns, g.world.hour)} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} storyDue={!!g.malek && storyStageFor(g.malek.story, g.malek.visits) != null} />
         <p className="malek-hint" aria-hidden="true">Drag to look around · tap a mark</p>
         {speech && <div className="malek-speech" role="status" data-testid="malek-speech"><b>MALEK</b> {speech}</div>}
         {arSaid && !confirm && !result && (
@@ -343,27 +366,26 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <div className="malek-tabs" role="tablist">
           <button role="tab" aria-selected={panel === 'menu'} className={panel === 'menu' ? 'is-on' : ''} onClick={() => setPanel(panel === 'menu' ? null : 'menu')} data-testid="malek-tab-menu">Menu</button>
           <button role="tab" aria-selected={panel === 'food'} className={panel === 'food' ? 'is-on' : ''} onClick={() => setPanel(panel === 'food' ? null : 'food')} data-testid="malek-tab-food">Your parcels{parcels.length ? ` · ${parcels.reduce((n, p) => n + p.servings, 0)}` : ''}</button>
-          <button role="tab" aria-selected={panel === 'talk'} className={panel === 'talk' ? 'is-on' : ''} onClick={() => { if (panel === 'talk') { setPanel(null); return; } setPanel('talk'); setAsked(null); sayReal(MALEK_HELLO); }} data-testid="malek-talk">Talk to Malek</button>
+          <button role="tab" aria-selected={panel === 'talk'} className={panel === 'talk' ? 'is-on' : ''} onClick={() => { if (panel === 'talk') { setPanel(null); return; } startTalk(); }} data-testid="malek-talk">Talk to Malek</button>
         </div>
         {panel === 'menu' && <MalekMenuBook hour={g.world.hour} day={g.day} malek={g.malek} onOrder={ask} onClose={() => setPanel(null)} />}
         {panel === 'talk' && (
           <div className="malek-chat" data-testid="malek-chat">
-            {asked && (
-              <div className="malek-chat__turn" data-testid="malek-chat-turn">
-                <p className="malek-chat__you"><b>YOU</b> {asked.ask}</p>
-                {asked.line.en && asked.line.ar && (
-                  <div className="malek-chat__langs">
-                    <button className="btn small" onClick={() => sayReal(asked.line)} data-testid="malek-chat-en">Hear it in English</button>
-                    <button className="btn small" onClick={() => sayReal(asked.line, true)} data-testid="malek-chat-ar"><span lang="ar">بالعربي</span> · In Arabic</button>
-                  </div>
-                )}
+            {you && <p className="malek-chat__you" data-testid="malek-chat-you"><b>YOU</b> {you}</p>}
+            {node && MALEK_TALK[node].malek.en && MALEK_TALK[node].malek.ar && (
+              <div className="malek-chat__langs">
+                <button className="btn small ghost" onClick={() => sayReal(MALEK_TALK[node].malek, !arSaid)} data-testid="malek-chat-lang">{arSaid ? 'Again, in English' : <><span lang="ar">بالعربي</span> · Again, in Arabic</>}</button>
               </div>
             )}
-            <div className="malek-topics" data-testid="malek-topics">
-              {MALEK_CHAT.map((c) => (
-                <button key={c.id} className={`btn small${asked?.ask === c.ask ? ' is-on' : ''}`} onClick={() => { audio.sfx('tap'); setAsked({ ask: c.ask, line: c }); sayReal(c); }} data-testid={`malek-ask-${c.id}`}>{c.ask}</button>
-              ))}
-            </div>
+            {node ? (
+              <div className="malek-replies" data-testid="malek-replies">
+                {MALEK_TALK[node].replies.map((r) => (
+                  <button key={r.say} className="btn malek-reply" onClick={() => reply(r)} data-testid="malek-reply">{r.say}</button>
+                ))}
+              </div>
+            ) : (
+              <div className="malek-replies"><button className="btn malek-reply" onClick={startTalk} data-testid="malek-talk-again">Talk to him again</button></div>
+            )}
           </div>
         )}
         {panel === 'food' && (
