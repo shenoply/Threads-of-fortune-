@@ -13,7 +13,8 @@ export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 1, sfx: 1, dialogue:
 /** Where the player is, as far as the ears are concerned. */
 export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
 /** Which set of music themes fits the moment. */
-export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | 'istanbul' | 'palace' | 'auction-small' | 'auction-grand';
+export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | 'istanbul' | 'palace' | 'auction-small' | 'auction-grand'
+  | 'camp' | 'port' | 'levant' | 'desert' | 'cabaret' | 'rivalry';
 
 interface FxClip { file: string; dur: number }
 interface Bank { fx: Record<string, FxClip[]>; beds: Record<string, { file: string; dur: number }> }
@@ -23,13 +24,25 @@ const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.5, sfx: 0.7, amb
 const PLAYLISTS: Record<MusicCtx, string[]> = {
   documentary: ['title-hijaz'],
   stall: ['khan-bayati', 'khan-rast', 'khan-kurd'],
-  evening: ['evening-saba', 'evening-bayati', 'sahil-al-layl'],
+  evening: ['evening-saba', 'evening-bayati', 'sahil-al-layl', 'the-ledger-closes'],
   road: ['road-hijaz', 'road-bayati'],
   town: ['khan-rast', 'khan-kurd', 'khan-bayati', 'la-vie-du-levant'],
   istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev', 'larg-nga-malet'],
   palace: ['palace-rast', 'palace-nahawand'],
   'auction-small': ['auction'],
-  'auction-grand': ['salon-waltz', 'auction'],
+  'auction-grand': ['salon-waltz', 'auction', 'the-gavel-rises'],
+  // a night halt away from any town: just the fire and the dark, nothing borrowed from the road or the evening bucket
+  camp: ['camp-nightfall'],
+  // harbour towns and the sea crossing itself: gulls and timber rather than the souk
+  port: ['deck-passage', 'corniche-rebetiko'],
+  // Jerusalem, Jaffa, Damascus, Amman, Baghdad: Levantine towns that currently borrow Cairo's khan themes
+  levant: ['bells-of-the-old-city', 'hijaz-kar-umayyad-gate'],
+  // the Sinai crossing and the Nairn desert car: tenser than an ordinary walk between towns
+  desert: ['the-risky-pass', 'road-hijaz'],
+  // a nightclub table (the Qamar in Cairo, and any other non-Istanbul cabaret), not a royal court
+  cabaret: ['qamar-after-midnight'],
+  // Selim Kassab undercutting you at your own stall, while the rival mission is active
+  rivalry: ['selims-corner', 'khan-kurd'],
 };
 
 /** Sounds that happen now and then in each place: [clip set, weight, gain, distance 0 near .. 1 far]. */

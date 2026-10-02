@@ -32,7 +32,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // a special buyer's film the first time they come to the stall (Nabil, Cohen)
   const [filmDone, setFilmDone] = useState(false);
   const filmFor = enc && !enc.outcome && STALL_FILMS.includes(enc.buyerId as FilmId) && filmReady(enc.buyerId as FilmId) && !(g.introSeen ?? []).includes(enc.buyerId) && !filmDone ? (enc.buyerId as FilmId) : null;
-  useAudioEnv(atCourt ? 'palace' : null, atCourt ? 'palace' : undefined);
+  // Selim Kassab undercutting you is only worth a different tune at your own stall, while that mission is live
+  const rivalActive = !atCourt && g.missions?.rival === 'active';
+  useAudioEnv(atCourt ? 'palace' : rivalActive ? 'market' : null, atCourt ? 'palace' : rivalActive ? 'rivalry' : undefined);
   // at court you can only show the rugs your caravan carried there
   const avail = atCourt ? availableRugs(g, enc?.buyerId).filter((i) => !i.stored) : availableRugs(g, enc?.buyerId);
   // a rug picked from the full list comes to the front of the counter

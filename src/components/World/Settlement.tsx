@@ -67,7 +67,12 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [look, setLook] = useState<RugPreview | null>(null);
   // what the player hears: the town, or the palace or sale-house grounds they are walking
   const hwTier = houseWalk ? HOUSES[houseWalk].tier : null;
-  useAudioEnv(inVenue ? 'palace' : hwTier ? (hwTier === 'grand' ? 'auction-grand' : 'auction-small') : townEnv(id), inVenue ? 'palace' : hwTier ? (hwTier === 'grand' ? 'auction-grand' : 'auction-small') : townMusic(id));
+  // Istanbul's Nightingale Club keeps its own richer bucket (nightingale-club, bu-geceyi-sev...);
+  // any other city's cabaret (the Qamar in Cairo, and so on) gets the new, smaller 'cabaret' bucket
+  useAudioEnv(
+    inVenue ? 'palace' : hwTier ? (hwTier === 'grand' ? 'auction-grand' : 'auction-small') : cabaret ? 'palace' : townEnv(id),
+    inVenue ? 'palace' : hwTier ? (hwTier === 'grand' ? 'auction-grand' : 'auction-small') : cabaret ? (id === 'istanbul' ? 'istanbul' : 'cabaret') : townMusic(id),
+  );
   const walk = CITY_WALKS[id];
   const [audience, setAudience] = useState(false);
   const venue = venueFor(id);

@@ -21,7 +21,7 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
 
   // the fire crackles over the crickets; a cold camp has only the night; at dawn the open road again
   useEffect(() => {
-    audio.pushEnv('camp-halt', dawn ? 'road' : fed ? 'camp' : 'road');
+    audio.pushEnv('camp-halt', dawn ? 'road' : fed ? 'camp' : 'road', dawn ? undefined : fed ? 'camp' : undefined);
     return () => audio.popEnv('camp-halt');
   }, [dawn, fed]);
 
@@ -75,7 +75,7 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
  */
 export function NightPasses({ fed, onDawn, onWake }: { fed: boolean; onDawn: () => void; onWake: () => void }) {
   useEffect(() => {
-    audio.pushEnv('camp-night', fed ? 'camp' : 'road');
+    audio.pushEnv('camp-night', fed ? 'camp' : 'road', fed ? 'camp' : undefined);
     const t = window.setTimeout(onDawn, 2800);
     return () => { window.clearTimeout(t); audio.popEnv('camp-night'); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -16,6 +16,7 @@ import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../g
 import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
+import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { openJobs } from '../../data/jobs';
 import { RUGS } from '../../data/rugs';
@@ -121,6 +122,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     const st = useGame.getState();
     useGame.setState({ journey: m ?? undefined, ...(m && st.dayOver ? { dayOver: false } : {}) });
   };
+  // under way by ship or Nairn desert car gets its own music instead of whatever the base scene (road/town) was playing;
+  // there's no dedicated "open sea" ambience yet, so a ship borrows the harbour's gulls-and-timber sound
+  useAudioEnv(
+    moving?.mode === 'ship' ? 'port' : moving?.mode === 'motor' ? 'road' : null,
+    moving?.mode === 'ship' ? 'port' : moving?.mode === 'motor' ? 'desert' : undefined,
+  );
   const [ownScale, setOwnScale] = useState(1);
   const timeScale = scale ?? ownScale;
   const setTimeScale = setScale ?? setOwnScale;
