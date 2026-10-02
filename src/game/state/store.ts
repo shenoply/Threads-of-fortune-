@@ -952,6 +952,11 @@ export const useGame = create<GameState & Actions>()(
               notes.push(`Rashid is still waiting for ${fmt(family.due)} of your father's debt. His trust in you drops.`);
             }
           }
+          // Three days' warning before the first: what falls due, against what is in the purse
+          if (isFirstOfMonth(day + 3)) {
+            const coming = billTotal(monthlyBill(upgrades, rankOf(s).idx, s.inventory.filter((i) => i.stored).length)) + (family.left > family.due ? Math.min(FAMILY_INSTALMENT, family.left - family.due) : 0);
+            if (cash < coming * 1.5) notes.push(`In three days the month's bill and Rashid's instalment fall due: about ${fmt(coming)}. You have ${fmt(cash)}. Keep enough back.`);
+          }
           // Commissions have deadlines
           const commissionsLeft = s.commissions.map((c) => (!c.done && c.until && day > c.until ? { ...c, done: true, expired: true } : c));
           commissionsLeft.forEach((c, i) => { if (c.expired && !s.commissions[i].expired) notes.push(`${BUYERS[c.buyerId]?.name ?? 'A buyer'} found another dealer for "${c.label}".`); });

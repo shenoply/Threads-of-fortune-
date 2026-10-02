@@ -1,5 +1,5 @@
 // Headless economy simulation: three player styles over 60 game days.
-// Bundle: npx esbuild tests/sim/economy.ts --bundle --platform=node --outfile=tests/sim/.sim.mjs && node tests/sim/.sim.mjs
+// Bundle: npx esbuild tests/sim/economy.ts --bundle --platform=node --format=esm --outfile=tests/sim/.sim.mjs && node tests/sim/.sim.mjs
 // Uses the real data modules. The store (src/game/state/store.ts) pulls in the audio engine, so the few store
 // formulas the sim needs are replicated here with the store line they come from (line numbers as of this writing).
 import { readFileSync } from 'node:fs';
