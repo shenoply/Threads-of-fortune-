@@ -17,7 +17,6 @@
 .hh-stats dd { margin: 0; font-size: 16px; color: var(--parchment); }
 .hh-stats dd small { color: var(--text-dim); font-size: 12.5px; }
 .hh-wearing { color: var(--text-dim); font-size: 12.5px; line-height: 1.35; }
-.nav-face { width: 21px; height: 21px; border-radius: 50%; object-fit: cover; object-position: 45% 30%; border: 1px solid currentColor; }
 @media (max-width: 420px) {
   .hh-top { grid-template-columns: 44% 1fr; }
   .hh-room { min-height: 270px; }

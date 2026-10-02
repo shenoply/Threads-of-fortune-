@@ -1,4 +1,5 @@
 import { MASK_W, MASK_H, CELL, WATER_ROWS } from '../../data/landmask';
+import { TERRAIN_ROWS } from '../../data/terrain';
 import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, type Settlement } from '../../data/world';
 
 export interface Pt { x: number; y: number }
@@ -24,32 +25,60 @@ export const isWaterPx = (p: Pt) => {
 const centre = (cx: number, cy: number): Pt => ({ x: cx * CELL + CELL / 2, y: cy * CELL + CELL / 2 });
 export const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
 
-function nearestLand(cx: number, cy: number): [number, number] {
-  if (!water[cy * MASK_W + cx]) return [cx, cy];
+// Terrain from the painting (tools/build-terrain.py): roads are quick, fertile valleys normal going, open desert
+// and hills slow, mountains closed except where a road crosses them, as in Bannerlord.
+export type Terrain = 'road' | 'fertile' | 'desert' | 'hills' | 'mountains' | 'water';
+const KIND: Record<string, Terrain> = { r: 'road', f: 'fertile', d: 'desert', h: 'hills', m: 'mountains' };
+export const TERRAIN_SPEED: Record<Terrain, number> = { road: 1.25, fertile: 1, desert: 0.8, hills: 0.6, mountains: 0, water: 0 };
+export const TERRAIN_LABEL: Record<Terrain, string> = { road: 'road', fertile: 'farmland', desert: 'open desert', hills: 'hills', mountains: 'mountains', water: 'water' };
+const speedOf = new Float32Array(MASK_W * MASK_H);
+const kindOf: Terrain[] = new Array(MASK_W * MASK_H);
+for (let y = 0; y < MASK_H; y++)
+  for (let x = 0; x < MASK_W; x++) {
+    const i = y * MASK_W + x;
+    const k: Terrain = water[i] ? 'water' : KIND[TERRAIN_ROWS[y]?.[x] ?? 'd'] ?? 'desert';
+    kindOf[i] = k;
+    speedOf[i] = TERRAIN_SPEED[k];
+  }
+const idxOf = (p: Pt) => { const { cx, cy } = cellOf(p); return cy * MASK_W + cx; };
+export const terrainAt = (p: Pt): Terrain => kindOf[idxOf(p)];
+/** How fast the caravan goes here, as a share of its pace on good ground (0 = cannot go). */
+export const terrainSpeed = (p: Pt) => speedOf[idxOf(p)];
+export const isBlockedPx = (p: Pt) => speedOf[idxOf(p)] === 0;
+const MAX_SPEED = TERRAIN_SPEED.road;
+
+function nearestOpen(cx: number, cy: number): [number, number] {
+  if (speedOf[cy * MASK_W + cx]) return [cx, cy];
   for (let r = 1; r < 8; r++)
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++) {
         const x = cx + dx, y = cy + dy;
-        if (x >= 0 && y >= 0 && x < MASK_W && y < MASK_H && !water[y * MASK_W + x]) return [x, y];
+        if (x >= 0 && y >= 0 && x < MASK_W && y < MASK_H && speedOf[y * MASK_W + x]) return [x, y];
       }
   return [cx, cy];
 }
 
-function lineOfSight(a: Pt, b: Pt) {
-  const steps = Math.ceil(dist(a, b) / (CELL / 2));
-  for (let i = 1; i < steps; i++) {
-    const t = i / steps;
-    if (isWaterPx({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })) return false;
+/** Time cost (in cell-lengths at good-ground pace) of a straight line, or Infinity if it crosses closed ground. */
+function lineCost(a: Pt, b: Pt) {
+  const len = dist(a, b);
+  const steps = Math.max(1, Math.ceil(len / (CELL / 2)));
+  let cost = 0;
+  for (let i = 0; i < steps; i++) {
+    const t = (i + 0.5) / steps;
+    const v = speedOf[idxOf({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })];
+    if (!v) return Infinity;
+    cost += len / steps / CELL / v;
   }
-  return true;
+  return cost;
 }
 
-/** A* across land cells, then string-pulled into a short polyline. Returns null if unreachable on land. */
+/** A* across open cells weighted by terrain, then string-pulled wherever a straight line is no slower.
+ * Returns null if the place cannot be reached overland. */
 export function findPath(from: Pt, to: Pt): Pt[] | null {
   const s = cellOf(from), g = cellOf(to);
-  const [sx, sy] = nearestLand(s.cx, s.cy);
-  const [gx, gy] = nearestLand(g.cx, g.cy);
-  if (water[gy * MASK_W + gx]) return null;
+  const [sx, sy] = nearestOpen(s.cx, s.cy);
+  const [gx, gy] = nearestOpen(g.cx, g.cy);
+  if (!speedOf[gy * MASK_W + gx] || !speedOf[sy * MASK_W + sx]) return null;
   const N = MASK_W * MASK_H;
   const gScore = new Float32Array(N).fill(Infinity);
   const came = new Int32Array(N).fill(-1);
@@ -86,7 +115,7 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
     }
     return top;
   };
-  const h = (i: number) => Math.hypot((i % MASK_W) - gx, Math.floor(i / MASK_W) - gy);
+  const h = (i: number) => Math.hypot((i % MASK_W) - gx, Math.floor(i / MASK_W) - gy) / MAX_SPEED;
   while (heap.length) {
     const [, cur] = pop();
     if (cur === goal) break;
@@ -99,8 +128,8 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
         const nx = cx + dx, ny = cy + dy;
         if (nx < 0 || ny < 0 || nx >= MASK_W || ny >= MASK_H) continue;
         const ni = ny * MASK_W + nx;
-        if (water[ni] || closed[ni]) continue;
-        const ng = gScore[cur] + (dx && dy ? 1.4142 : 1);
+        if (!speedOf[ni] || closed[ni]) continue;
+        const ng = gScore[cur] + (dx && dy ? 1.4142 : 1) * 0.5 * (1 / speedOf[cur] + 1 / speedOf[ni]);
         if (ng < gScore[ni]) {
           gScore[ni] = ng;
           came[ni] = cur;
@@ -109,24 +138,37 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
       }
   }
   if (came[goal] === -1 && goal !== start) return null;
-  const cells: Pt[] = [];
+  const chain: number[] = [];
   for (let i = goal; i !== -1; i = came[i]) {
-    cells.push(centre(i % MASK_W, Math.floor(i / MASK_W)));
+    chain.push(i);
     if (i === start) break;
   }
-  cells.reverse();
-  const raw = [from, ...cells.slice(1, -1), to];
-  // string pulling
+  chain.reverse();
+  const raw = [from, ...chain.slice(1, -1).map((i) => centre(i % MASK_W, Math.floor(i / MASK_W))), to];
+  const cum = [0];
+  // (a town drawn on the shore may sit in a water cell: its one step onto land counts at plain pace)
+  for (let i = 1; i < raw.length; i++) { const c = lineCost(raw[i - 1], raw[i]); cum.push(cum[i - 1] + (Number.isFinite(c) ? c : dist(raw[i - 1], raw[i]) / CELL)); }
+  // string pulling: cut a corner only where the straight line is open and no slower than the road it replaces
   const out: Pt[] = [raw[0]];
   let anchor = 0;
   for (let i = 2; i < raw.length; i++) {
-    if (!lineOfSight(raw[anchor], raw[i])) {
+    if (lineCost(raw[anchor], raw[i]) > cum[i] - cum[anchor] + 0.05) {
       out.push(raw[i - 1]);
       anchor = i - 1;
     }
   }
   out.push(raw[raw.length - 1]);
   return out;
+}
+
+/** Days on foot along a path at `pxPerDay` on good ground, slowed or sped by the terrain under each stretch. */
+export function pathDays(p: Pt[], pxPerDay: number) {
+  let d = 0;
+  for (let i = 1; i < p.length; i++) {
+    const c = lineCost(p[i - 1], p[i]);
+    d += Number.isFinite(c) ? c * CELL : dist(p[i - 1], p[i]);
+  }
+  return d / pxPerDay;
 }
 
 export const pathLength = (p: Pt[]) => p.slice(1).reduce((s, q, i) => s + dist(p[i], q), 0);
@@ -232,7 +274,7 @@ function randomLand(around: Pt, radius: number, rng: () => number): Pt {
   for (let k = 0; k < 40; k++) {
     const a = rng() * Math.PI * 2, r = rng() * radius;
     const p = { x: around.x + Math.cos(a) * r, y: around.y + Math.sin(a) * r };
-    if (p.x > 5 && p.y > 5 && p.x < MAP_W - 5 && p.y < MAP_H - 5 && !isWaterPx(p)) return p;
+    if (p.x > 5 && p.y > 5 && p.x < MAP_W - 5 && p.y < MAP_H - 5 && !isBlockedPx(p)) return p;
   }
   return around;
 }
@@ -313,11 +355,11 @@ export function stepParties(parties: Party[], days: number, rng: () => number, p
       if (d < 22 && playerStrength < p.strength * 1.4) {
         const step = Math.min(d, 26 * days); // about a laden camel's pace: animals and horses can outrun them
         const nx = p.x + ((player.x - p.x) / (d || 1)) * step, ny = p.y + ((player.y - p.y) / (d || 1)) * step;
-        if (!isWaterPx({ x: nx, y: ny })) return { ...p, x: nx, y: ny, path: [{ x: nx, y: ny }, { x: nx, y: ny }], travelled: 0 };
+        if (!isBlockedPx({ x: nx, y: ny })) return { ...p, x: nx, y: ny, path: [{ x: nx, y: ny }, { x: nx, y: ny }], travelled: 0 };
       } else if (d < 20 && playerStrength >= p.strength * 2) {
         const step = 30 * days;
         const nx = p.x - ((player.x - p.x) / (d || 1)) * step, ny = p.y - ((player.y - p.y) / (d || 1)) * step;
-        if (!isWaterPx({ x: nx, y: ny })) return { ...p, x: nx, y: ny, path: [{ x: nx, y: ny }, { x: nx, y: ny }], travelled: 0 };
+        if (!isBlockedPx({ x: nx, y: ny })) return { ...p, x: nx, y: ny, path: [{ x: nx, y: ny }, { x: nx, y: ny }], travelled: 0 };
       }
     }
     let travelled = p.travelled + p.speed * days;
@@ -331,4 +373,22 @@ export function stepParties(parties: Party[], days: number, rng: () => number, p
     const pos = along(path, travelled).pos;
     return { ...p, x: pos.x, y: pos.y, path, travelled };
   });
+}
+
+/** Share of a path's length over each kind of ground. */
+export function pathGround(p: Pt[]): Partial<Record<Terrain, number>> {
+  const out: Partial<Record<Terrain, number>> = {};
+  let total = 0;
+  for (let i = 1; i < p.length; i++) {
+    const len = dist(p[i - 1], p[i]);
+    const steps = Math.max(1, Math.ceil(len / (CELL / 2)));
+    for (let k = 0; k < steps; k++) {
+      const t = (k + 0.5) / steps;
+      const kind = terrainAt({ x: p[i - 1].x + (p[i].x - p[i - 1].x) * t, y: p[i - 1].y + (p[i].y - p[i - 1].y) * t });
+      out[kind] = (out[kind] ?? 0) + len / steps;
+    }
+    total += len;
+  }
+  for (const k in out) out[k as Terrain] = out[k as Terrain]! / (total || 1);
+  return out;
 }

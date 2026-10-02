@@ -3,7 +3,7 @@
 // notebook and Arran's provisions assessment all agree with what the journey will actually take.
 import type { RugItem } from '../types';
 import { dailyFood, speedInfo, type PartyState } from './caravan';
-import { findPath, pathLength, railJourney, settlementById } from './world';
+import { findPath, pathDays, railJourney, settlementById } from './world';
 import { MARKETS } from '../../data/caravan';
 
 export interface Journey { walkDays: number | null; rail?: { days: number; fare: number }; ferry: boolean }
@@ -15,7 +15,7 @@ export function journey(from: string | null | undefined, to: string, party: Part
   const a = settlementById(from), b = settlementById(to);
   const path = findPath(a, b);
   const sp = speedInfo(party, inv);
-  const walkDays = path ? Math.max(0.5, Math.round((pathLength(path) / sp.pxPerDay) * 2) / 2) : null;
+  const walkDays = path ? Math.max(0.5, Math.round(pathDays(path, sp.pxPerDay) * 2) / 2) : null;
   const r = railJourney(from, to);
   return { walkDays, rail: r ? { days: r.days, fare: r.fare } : undefined, ferry: false };
 }

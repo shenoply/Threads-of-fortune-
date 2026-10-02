@@ -27,7 +27,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
   {
     img: 'art/world/travel-map.jpg', pos: '30% 70%',
     title: 'Travel',
-    lines: ['Tap a town, then Travel. Walking is slow: about fifteen days to Damascus. The Nile ferry takes you to Cairo in an hour and a half; trains, ships and the Nairn motor car go further, for a fare.', 'Everyone eats. Buy food in a town before a long road, and pack rugs in your Stock to sell elsewhere.'],
+    lines: ['Tap a town, then Travel. Walking is slow: about twelve days to Damascus. The Nile ferry takes you to Cairo in an hour and a half; trains, ships and the Nairn motor car go further, for a fare.', 'The ground sets the pace. Roads are quickest, farmland is fair going, open desert and hills are slow. No caravan crosses the mountains or the sea: the roads go through the passes, and ships go round.', 'Everyone eats. Buy food in a town before a long road, and pack rugs in your Stock to sell elsewhere.'],
   },
   {
     img: 'art/portraits/captainreed.jpg', pos: '50% 30%',

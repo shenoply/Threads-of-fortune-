@@ -337,13 +337,18 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
 
   // caravan roads
   if (opts.roads) {
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = 'rgba(110,62,26,0.6)';
-    ctx.lineWidth = 1.3;
-    for (const r of opts.roads) {
-      ctx.beginPath();
-      r.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y))));
-      ctx.stroke();
+    // a worn track: a dark bed with a pale beaten centre, so it reads apart from the railways' black and white
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const [style, width, dash] of [['rgba(84,46,18,0.55)', 3.2, []], ['rgba(238,214,160,0.85)', 1.2, [5, 4]]] as [string, number, number[]][]) {
+      ctx.setLineDash(dash);
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width;
+      for (const r of opts.roads) {
+        ctx.beginPath();
+        r.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y))));
+        ctx.stroke();
+      }
     }
     ctx.setLineDash([]);
   }

@@ -6,9 +6,10 @@ import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { SETTLEMENTS, type Settlement } from '../../data/world';
-import { ROADS, TROOPS, MARKETS } from '../../data/caravan';
+import { TROOPS, MARKETS } from '../../data/caravan';
+import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger,
-  MAP_W, MAP_H, findPath, pathLength, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, findPath, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
@@ -57,6 +58,14 @@ function tint(hour: number) {
   if (hour >= 18) return `rgba(120,50,20,${0.12 + (hour - 18) * 0.12})`;
   if (hour < 7) return `rgba(120,60,30,${0.3 - (hour - 5) * 0.14})`;
   return 'rgba(0,0,0,0)';
+}
+
+/** "· mostly road" / "· much of it open desert": the ground a walk crosses, which sets its pace. */
+function groundLine(path: Pt[]) {
+  const g = Object.entries(pathGround(path)).sort((x, y) => y[1] - x[1]);
+  if (!g.length) return '';
+  const [kind, share] = g[0];
+  return ` · ${share > 0.7 ? 'mostly' : share > 0.4 ? 'much of it' : 'partly'} ${TERRAIN_LABEL[kind as keyof typeof TERRAIN_LABEL]}`;
 }
 
 export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, scale, setScale, frozen, startZoom, onZoomGiza }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void }) {
@@ -155,10 +164,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [jobsOpen, setJobsOpen] = useState(false);
   const missionTarget = MAIN_ORDER.map((id) => (g.missions?.[id] === 'active' ? MISSIONS[id].target : undefined)).find(Boolean) ?? null;
 
-  const roads = useMemo(
-    () => ROADS.map(([a, b]) => findPath(settlementById(a), settlementById(b))).filter(Boolean) as Pt[][],
-    [],
-  );
+  const roads = useMemo(() => ROAD_LINES.map((r) => r.pts.map(([x, y]) => ({ x, y }))), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
@@ -233,13 +239,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     const target = st ? { x: st.x, y: st.y } : to;
     const ships = here && st ? seaRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
     const motor = here && st ? motorRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
-    if (!st && isWaterPx(to)) {
+    if (!st && (isWaterPx(to) || terrainAt(to) === 'mountains')) {
       const p0: Plan = { to, path: null, days: 0, ships: [], motor: [], from: here };
       setPlan(p0);
       return p0;
     }
     const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
-    const days = path ? pathLength(path) / sp.pxPerDay : 0;
+    const days = path ? pathDays(path, sp.pxPerDay) : 0;
     const train = here && st ? railJourney(here.id, st.id) ?? undefined : undefined;
     const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here };
     setPlan(p);
@@ -384,6 +390,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
       last = now;
       const st0 = useGame.getState();
       let speed = moving.train ? moving.pxPerDay ?? 220 : speedInfo(st0.world.party, st0.inventory).pxPerDay;
+      // the ground underfoot: quick on a road, slow in sand and hills
+      if (!moving.train && !moving.mode) speed *= terrainSpeed(livePos) || 1;
       // a khamsin blowing over the road: sand in the eyes, the camels keep their heads down
       const sand = !moving.train && inKhamsin(st0.day, livePos);
       if (sand) speed *= 0.6;
@@ -740,7 +748,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
               <div className="wc-main">
                 <b>{plan.settlement ? plan.settlement.name : isExplored(w.fog, plan.to) ? 'Open country' : 'Unexplored land'}</b>
                 <span>
-                  {plan.days < 0.1 ? 'A short walk' : `On foot: ${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
+                  {plan.days < 0.1 ? 'A short walk' : `On foot: ${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`}{groundLine(plan.path)} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
                 </span>
                 {(() => {
                   // what the walk leaves for the way home, and a job there that needs a rug packed here
@@ -777,8 +785,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           ) : (
             <div className="wc-row">
               <div className="wc-main">
-                <b>{plan.settlement ? plan.settlement.name : 'Open water'}</b>
-                <span>{plan.ships.length || plan.train ? 'Not reachable on foot from here.' : plan.settlement ? 'Not reachable on foot. Go to a port or a railway station.' : 'You cannot walk on water. Find a port and take a ship.'}</span>
+                <b>{plan.settlement ? plan.settlement.name : terrainAt(plan.to) === 'mountains' ? 'Mountains' : 'Open water'}</b>
+                <span>{plan.ships.length || plan.train ? 'Not reachable on foot from here.' : plan.settlement ? 'Not reachable on foot. Go to a port or a railway station.' : terrainAt(plan.to) === 'mountains' ? 'No caravan can cross these mountains. Follow a road through the passes.' : 'You cannot walk on water. Find a port and take a ship.'}</span>
               </div>
               {plan.train && <button className="btn primary" onClick={() => start(true)}>Train · {fmt(plan.train.fare)}</button>}
               {plan.ships.map((r) => (
