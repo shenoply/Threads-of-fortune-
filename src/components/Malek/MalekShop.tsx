@@ -16,10 +16,11 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
-import { MalekMutter } from './MalekMutter';
+import { MALEK_CHAT, MALEK_HELLO, MALEK_MENU_LINE, type RealLine } from '../../data/malekTalk';
+import { ARABIC_BY_ID, type ArabicPhrase } from '../../data/malekArabic';
 import { openGuide } from '../Guide/Guide';
 import { voice } from '../../game/audio/voice';
-import { stopMalekArabic } from '../../game/audio/malekArabic';
+import { sayMalekArabic, stopMalekArabic } from '../../game/audio/malekArabic';
 import { MalekMenuBook, piastres } from './MalekMenuBook';
 import { Cutscene } from './Cutscene';
 import { STORY_FILM } from './storyFilm';
@@ -145,6 +146,11 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [phase, setPhase] = useState<'door' | 'story' | 'room'>('door');
   const [visit, setVisit] = useState<{ scene: MalekScene; line: string; stage: number | null } | null>(null);
   const [speech, setSpeech] = useState('');
+  const [sayN, setSayN] = useState(0);
+  // an Arabic line of his, shown with its reading and meaning while his recording plays
+  const [arSaid, setArSaid] = useState<ArabicPhrase | null>(null);
+  // in the talk: the question you asked and the line he answered with
+  const [asked, setAsked] = useState<{ ask: string; line: RealLine } | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [confirm, setConfirm] = useState<{ id: MalekItemId; order: string } | null>(null);
   const [replay, setReplay] = useState<number | null>(null);
@@ -187,11 +193,20 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     let live = true;
     voice.whenReady('malek').then(() => { if (live && voice.has('malek', spoken)) { stopMalekArabic(); voice.say('malek', spoken); } });
     return () => { live = false; };
-  }, [spoken]);
+  }, [spoken, sayN]);
   useEffect(() => () => voice.stop(), []);
 
   const talkTurn = useRef(Math.floor(Math.random() * 6));
-  const say = (ctx: Parameters<typeof g.malekSay>[0]) => setSpeech(useGame.getState().malekSay(ctx));
+  const say = (ctx: Parameters<typeof g.malekSay>[0]) => { setArSaid(null); setSpeech(useGame.getState().malekSay(ctx)); };
+  /** one of his own recorded lines: English from his voice file, or Arabic with its reading on screen */
+  const sayReal = (line: RealLine, inArabic = false) => {
+    const ar = line.ar ? ARABIC_BY_ID[line.ar] : undefined;
+    if (ar && (inArabic || !line.en)) {
+      voice.stop(); setSpeech(''); setArSaid(ar); sayMalekArabic(ar.id);
+    } else if (line.en) {
+      stopMalekArabic(); setArSaid(null); setSpeech(line.en); setSayN((n) => n + 1);
+    }
+  };
   const pickHotspot = (h: Hotspot) => {
     audio.sfx('tap');
     if (h === 'exit') { onLeave(); return; }
@@ -203,14 +218,12 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
       setPanel('menu'); setSpeech('You sit down. The stool is as bad as he said.'); return;
     }
     if (h === 'grill') { setPanel('menu'); say(g.world.hour >= 20 ? 'grillCold' : 'grill'); return; }
-    // tapping him: a different topic each time, round the six
-    const topics = topicsFor(useGame.getState().malek);
-    talkTurn.current = (talkTurn.current + 1) % topics.length;
-    say(topics[talkTurn.current]);
+    // tapping him: he asks if you are eating, and the talk opens
+    setPanel('talk'); setAsked(null); sayReal(MALEK_HELLO);
   };
 
   const paying = useRef(false);
-  const ask = (id: MalekItemId) => { paying.current = false; setConfirm({ id, order: newUid('o') }); audio.sfx('tap'); };
+  const ask = (id: MalekItemId) => { paying.current = false; setConfirm({ id, order: newUid('o') }); audio.sfx('tap'); const l = MALEK_MENU_LINE[id]; if (l) sayReal(l); };
   const pay = (useTab = false) => {
     // the order token stops a second charge in the store; this stops a second result sheet
     if (!confirm || paying.current) return;
@@ -219,6 +232,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     const r = useGame.getState().malekBuy(confirm.id, confirm.order, useTab);
     setConfirm(null);
     setResult({ msg: r.msg, report: r.report, title: r.ok ? (it.consumption === 'inventory' ? `${it.name}: in your pack` : it.name) : 'Not this time' });
+    setArSaid(null);
     setSpeech(r.msg);
   };
   const eat = (uid: string) => {
@@ -279,7 +293,6 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
       <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
         <div className="malek-door" data-testid="malek-door" data-scene={visit.scene}>
           <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} className="malek-door__bg" />
-          <MalekMutter />
           <div className="malek-door__card">
             <p className="malek-door__scene">{SCENE_TEXT[visit.scene]}</p>
             <p className="malek-say"><b>MALEK</b> {visit.line}</p>
@@ -311,7 +324,13 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <MalekRoom2D scene={visit.scene} onPick={pickHotspot} rug={rugImg} coldGrill={g.world.hour >= 20} storyDue={!!g.malek && storyStageFor(g.malek.story, g.malek.visits) != null} />
         <p className="malek-hint" aria-hidden="true">Drag to look around · tap a mark</p>
         {speech && <div className="malek-speech" role="status" data-testid="malek-speech"><b>MALEK</b> {speech}</div>}
-        <MalekMutter quiet={!!confirm || !!result} />
+        {arSaid && !confirm && !result && (
+          <div className="malek-mutter is-said" role="status" data-testid="malek-arabic" data-phrase={arSaid.id}>
+            <b>MALEK</b>
+            <span className="malek-mutter__ar" lang="ar" dir="rtl">{arSaid.ar}</span>
+            <span className="malek-mutter__en"><i>{arSaid.latin}</i> · {arSaid.en}</span>
+          </div>
+        )}
       </div>
 
       <div className="malek-panel">
@@ -324,12 +343,27 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
         <div className="malek-tabs" role="tablist">
           <button role="tab" aria-selected={panel === 'menu'} className={panel === 'menu' ? 'is-on' : ''} onClick={() => setPanel(panel === 'menu' ? null : 'menu')} data-testid="malek-tab-menu">Menu</button>
           <button role="tab" aria-selected={panel === 'food'} className={panel === 'food' ? 'is-on' : ''} onClick={() => setPanel(panel === 'food' ? null : 'food')} data-testid="malek-tab-food">Your parcels{parcels.length ? ` · ${parcels.reduce((n, p) => n + p.servings, 0)}` : ''}</button>
-          <button role="tab" aria-selected={panel === 'talk'} className={panel === 'talk' ? 'is-on' : ''} onClick={() => setPanel(panel === 'talk' ? null : 'talk')} data-testid="malek-talk">Talk to Malek</button>
+          <button role="tab" aria-selected={panel === 'talk'} className={panel === 'talk' ? 'is-on' : ''} onClick={() => { if (panel === 'talk') { setPanel(null); return; } setPanel('talk'); setAsked(null); sayReal(MALEK_HELLO); }} data-testid="malek-talk">Talk to Malek</button>
         </div>
         {panel === 'menu' && <MalekMenuBook hour={g.world.hour} day={g.day} malek={g.malek} onOrder={ask} onClose={() => setPanel(null)} />}
         {panel === 'talk' && (
-          <div className="malek-topics" data-testid="malek-topics">
-            {topicsFor(g.malek).map((t) => <button key={t} className="btn small" onClick={() => { audio.sfx('tap'); say(t); }} data-testid={`malek-topic-${t}`}>{TOPIC_LABEL[t]}</button>)}
+          <div className="malek-chat" data-testid="malek-chat">
+            {asked && (
+              <div className="malek-chat__turn" data-testid="malek-chat-turn">
+                <p className="malek-chat__you"><b>YOU</b> {asked.ask}</p>
+                {asked.line.en && asked.line.ar && (
+                  <div className="malek-chat__langs">
+                    <button className="btn small" onClick={() => sayReal(asked.line)} data-testid="malek-chat-en">Hear it in English</button>
+                    <button className="btn small" onClick={() => sayReal(asked.line, true)} data-testid="malek-chat-ar"><span lang="ar">بالعربي</span> · In Arabic</button>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="malek-topics" data-testid="malek-topics">
+              {MALEK_CHAT.map((c) => (
+                <button key={c.id} className={`btn small${asked?.ask === c.ask ? ' is-on' : ''}`} onClick={() => { audio.sfx('tap'); setAsked({ ask: c.ask, line: c }); sayReal(c); }} data-testid={`malek-ask-${c.id}`}>{c.ask}</button>
+              ))}
+            </div>
           </div>
         )}
         {panel === 'food' && (

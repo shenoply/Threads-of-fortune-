@@ -25,22 +25,29 @@ try {
   await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
   await p.waitForSelector('[data-testid=malek-door]', { timeout: 20000 });
   await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-room]');
-  // nothing plays by itself: after 6 s still silent, then each press of "Hear Malek" says the next one
-  await p.waitForTimeout(6000);
-  const silent = !(await has('malek-mutter'));
-  await p.click('[data-testid=malek-listen]');
-  await p.waitForSelector('[data-testid=malek-mutter]', { timeout: 3000 });
-  const m1 = await p.locator('[data-testid=malek-mutter]').innerText();
-  const id1 = await p.locator('[data-testid=malek-mutter]').getAttribute('data-phrase');
+  // nothing plays by itself
+  await p.waitForTimeout(5000);
+  const silent = !(await has('malek-arabic'));
+  // open the talk: he asks if you are eating, in Arabic, from his own recording
+  await p.click('[data-testid=malek-talk]'); await p.waitForSelector('[data-testid=malek-arabic]', { timeout: 3000 });
+  const hello = await p.locator('[data-testid=malek-arabic]').getAttribute('data-phrase');
+  // ask about the kofta: he answers in English (his recording), then in Arabic on request
+  await p.click('[data-testid=malek-ask-kofta]'); await p.waitForTimeout(1500);
+  const en = (await p.locator('[data-testid=malek-speech]').textContent()).replace(/^MALEK\s*/, '');
+  await p.click('[data-testid=malek-chat-ar]'); await p.waitForSelector('[data-testid=malek-arabic]');
+  const arK = await p.locator('[data-testid=malek-arabic]').getAttribute('data-phrase');
   await p.screenshot({ path: `${S}/ar-shop.png` });
-  await p.click('[data-testid=malek-listen]'); await p.waitForTimeout(300);
-  const id2 = await p.locator('[data-testid=malek-mutter]').getAttribute('data-phrase');
-  console.log('   silent until pressed:', silent);
-  console.log('1. shop:', JSON.stringify(m1.replace(/\n/g, ' | ')), '| then', id2, '| different:', id1 !== id2, '| clips fetched:', heard.join(', '));
-  // he speaks English too: tap him and his line is fetched from his own recording
-  await p.locator('[data-testid=malek-hot-malek]').evaluate((e) => e.click()); await p.waitForTimeout(1500);
-  const said = { has: !!(await p.locator('[data-testid=malek-speech]').count()) };
-  console.log('   English voice: line recorded', said.has, '| sprite fetched', heard.some((h) => /malek\.mp3/.test(h)));
+  // an Arabic-only answer
+  await p.click('[data-testid=malek-ask-thanks]'); await p.waitForTimeout(300);
+  const thanks = await p.locator('[data-testid=malek-arabic]').getAttribute('data-phrase');
+  // picking kofta from the menu: he says his kofta line
+  await p.click('[data-testid=malek-tab-menu]'); await p.waitForTimeout(300);
+  const koftaBtn = p.locator('[data-testid=malek-buy-malek_kofta]');
+  let menuLine = 'n/a';
+  if (await koftaBtn.count()) { await koftaBtn.first().evaluate((e) => e.click()); await p.waitForTimeout(400); menuLine = (await p.locator('[data-testid=malek-speech]').textContent().catch(() => '')).replace(/^MALEK\s*/, ''); if (await has('malek-cancel')) await p.click('[data-testid=malek-cancel]'); }
+  await p.waitForTimeout(1500);
+  console.log('   silent until asked:', silent, '| hello:', hello, '| kofta EN:', JSON.stringify(en), '| kofta AR:', arK, '| thanks:', thanks, '| menu kofta:', JSON.stringify(menuLine));
+  console.log('1. clips fetched:', heard.join(', '));
   await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
 
   // 2. at the stall

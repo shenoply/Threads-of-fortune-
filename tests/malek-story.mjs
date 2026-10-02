@@ -55,7 +55,7 @@ try {
   await done(); await leave();
   for (const want of [4, 5]) { await enter(); const got = await sit(); console.log(`visit: sit -> part ${got} (want ${want})`); await done(); await leave(); }
   const s = await st();
-  console.log('all done:', JSON.stringify(s.malek.story.completed), '| arthur topic', await (async () => { await enter(); await p.click('[data-testid=malek-talk]'); return has('malek-topic-arthur'); })());
+  console.log('all done:', JSON.stringify(s.malek.story.completed), '| arthur topic', await (async () => { await enter(); await p.click('[data-testid=malek-talk]'); return has('malek-chat'); })());
   console.log('after the story: glowing', await glowing(), '| sit -> part', await sit());
 } catch (e) { console.log('FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/story-fail.png` }); }
 console.log('errors', JSON.stringify(errs));

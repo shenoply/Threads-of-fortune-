@@ -67,7 +67,7 @@ try {
   // 3. talk topics
   await p.click('[data-testid=malek-talk]');
   const lines = [];
-  for (const t of ['storeroom', 'storeroom', 'name', 'neighbours', 'road', 'rugs']) { await p.click(`[data-testid=malek-topic-${t}]`); await p.waitForTimeout(150); lines.push(`${t}: ${(await p.locator('[data-testid=malek-speech]').textContent()).replace('MALEK ', '').slice(0, 70)}`); }
+  for (const t of ['who', 'early', 'kofta', 'stool', 'discount', 'rug']) { await p.click(`[data-testid=malek-ask-${t}]`); await p.waitForTimeout(150); lines.push(`${t}: ${(await p.locator('[data-testid=malek-speech]').textContent()).replace('MALEK ', '').slice(0, 70)}`); }
   console.log('3. talk:\n   ' + lines.join('\n   '));
   await p.screenshot({ path: `${S}/m3-talk.png` });
   await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(400);

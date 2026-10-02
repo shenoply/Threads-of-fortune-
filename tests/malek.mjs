@@ -66,7 +66,7 @@ try {
 
   // Malek hotspot talks; menu hotspot opens the menu
   await p.locator('[data-testid=malek-hot-malek]').evaluate((e) => e.click()); await p.waitForTimeout(300);
-  console.log('talk:', (await p.locator('[data-testid=malek-speech]').textContent()).slice(0, 90));
+  console.log('talk: opens', await has('malek-chat'), '| he says', await p.locator('[data-testid=malek-arabic]').getAttribute('data-phrase'));
   await p.locator('[data-testid=malek-hot-menu]').evaluate((e) => e.click()); await p.waitForTimeout(300);
   console.log('menu open:', await has('malek-menu'), '| ful (morning only) off at 12:30:', await has('malek-off-malek_ful'));
   await p.screenshot({ path: `${S}/m-menu.png` });
