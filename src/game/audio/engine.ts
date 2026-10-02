@@ -35,8 +35,9 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   camp: ['solo-nay-flute'],
   // harbour towns and the sea crossing itself: gulls and timber rather than the souk
   port: ['deck-passage', 'corniche-rebetiko'],
-  // Jerusalem, Jaffa, Damascus, Amman, Baghdad: Levantine towns that currently borrow Cairo's khan themes
-  levant: ['bells-of-the-old-city', 'hijaz-kar-umayyad-gate'],
+  // Jerusalem, Jaffa, Damascus, Amman, Baghdad: still mostly borrows Cairo's khan themes, but
+  // Damascus now has its own voice too — a qudud halabiya for the city that genre comes from
+  levant: ['bells-of-the-old-city', 'hijaz-kar-umayyad-gate', 'qamar-dimashq'],
   // the Sinai crossing and the Nairn desert car: tenser than an ordinary walk between towns
   desert: ['the-risky-pass', 'road-hijaz'],
   // a nightclub table (the Qamar in Cairo, and any other non-Istanbul cabaret), not a royal court
