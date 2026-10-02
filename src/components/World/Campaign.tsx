@@ -11,7 +11,7 @@ import { audio } from '../../game/audio/engine';
 
 /** Places a button can send you to: a screen, a town, or a yard in the district. */
 export type Target = 'buyers' | 'paper' | 'radio' | 'supplier' | 'map' | 'district' | 'cairo' | 'auction' | 'animals' | 'guards' | 'alexandria' | (string & {});
-export type MapIntent = { view?: 'district' | 'world'; panel?: string; tab?: SetTab; plan?: string; stall?: boolean; n: number };
+export type MapIntent = { view?: 'district' | 'world'; panel?: string; tab?: SetTab; plan?: string; go?: boolean; stall?: boolean; n: number };
 
 // remembered between visits to other screens, so coming back finds you where you were
 const memo = { layer: 'giza' as 'giza' | 'world', stall: false, scale: 1 };
@@ -59,12 +59,13 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
           />
         ) : (
           <WorldMap
-            key={`${intent?.panel ?? ''}-${intent?.plan ?? ''}`}
+            key={`${intent?.panel ?? ''}-${intent?.plan ?? ''}-${intent?.go ? intent.n : ''}`}
             onStall={() => { setLayer('giza', 'in'); setStall(true); }}
             onDistrict={() => setLayer('giza', 'in')}
             openPanel={intent?.panel}
             openTab={intent?.tab}
             planFor={intent?.plan}
+            goFastest={intent?.go}
             frozen={frozen}
             startZoom={anim === 'out' ? 4.3 : undefined}
             onZoomGiza={() => setLayer('giza', 'in')}

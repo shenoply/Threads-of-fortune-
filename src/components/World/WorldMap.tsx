@@ -72,7 +72,7 @@ function groundLine(path: Pt[]) {
   return ` · ${share > 0.7 ? 'mostly' : share > 0.4 ? 'much of it' : 'partly'} ${TERRAIN_LABEL[kind as keyof typeof TERRAIN_LABEL]}`;
 }
 
-export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, scale, setScale, frozen, startZoom, onZoomGiza }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void }) {
+export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goFastest, scale, setScale, frozen, startZoom, onZoomGiza }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; goFastest?: boolean; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void }) {
   const g = useGame();
   const w = g.world;
   const wrap = useRef<HTMLDivElement>(null);
@@ -334,9 +334,28 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     const target = planFor ?? (openPanel && openPanel !== w.at ? openPanel : undefined);
     if (!target || w.at === target) return;
     const st = SETTLEMENTS.find((x) => x.id === target);
-    if (st) setTimeout(() => planTo(st, st), 50);
+    if (st) setTimeout(() => {
+      // set off once, however many times this effect runs
+      if (goFastest) { if (!setOffOnce.current) { setOffOnce.current = true; travelFastest(st); } } else planTo(st, st);
+    }, 50);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+
+  const setOffOnce = useRef(false);
+  /** Set off at once by the quickest way there you can afford: train, ship, motor car, or on foot. */
+  const travelFastest = (st: Settlement) => {
+    const at = useGame.getState().world.at;
+    if ((at === 'giza' && st.id === 'cairo') || (at === 'cairo' && st.id === 'giza')) { goTo(st, st); return; }
+    const p = planTo(st, st, true);
+    if (!p) return;
+    const cash = useGame.getState().cash;
+    const ways: { days: number; go: () => void }[] = [];
+    if (p.path) ways.push({ days: p.days, go: () => start(false, p) });
+    if (p.train && cash >= p.train.fare) ways.push({ days: p.train.days, go: () => start(true, p) });
+    for (const r of p.ships) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'ship', p.from) });
+    for (const r of p.motor) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'motor', p.from) });
+    ways.sort((a, b) => a.days - b.days)[0]?.go();
+  };
 
   const stop = (why = '') => {
     setMoving(null);

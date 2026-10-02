@@ -109,7 +109,7 @@ export default function App() {
   const mapGo = (m: Omit<MapIntent, 'n'>) => { setMapIntent({ ...m, n: Date.now() }); setTab('map'); };
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
   useEffect(() => {
-    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t }); };
+    const on = (e: Event) => { const d = (e as CustomEvent<string | { town: string; go?: boolean }>).detail; const t = typeof d === 'string' ? d : d?.town; const go = typeof d === 'object' && !!d?.go; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t, go }); };
     window.addEventListener(PLAN_EVENT, on);
     return () => window.removeEventListener(PLAN_EVENT, on);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
