@@ -108,7 +108,13 @@ class Voice {
     return this.ctx;
   }
 
-  private url(sp: string) { const s = this.sprites[sp]; return `${s.file}?v=${Object.keys(s.clips).length}`; }
+  /** the file's address, versioned by its clip table: a re-recorded file never meets an old copy in a cache */
+  private url(sp: string) {
+    const s = this.sprites[sp];
+    let h = 0;
+    for (const [id, [st, d]] of Object.entries(s.clips)) for (const c of `${id}:${st}:${d};`) h = (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0;
+    return `${s.file}?v=${h.toString(36)}`;
+  }
 
   /** Bytes [from, to) of a character's file. A 206 is just those bytes; a 200 is the whole file, kept. */
   private async range(sp: string, from: number, to: number): Promise<{ bytes: Uint8Array; offset: number } | null> {
