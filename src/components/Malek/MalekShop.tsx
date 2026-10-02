@@ -93,6 +93,39 @@ function StillSound({ src }: { src: string }) {
   return null;
 }
 
+/** A short bonus clip right after the intro film: his own voice over a clip of him at the grill,
+ *  carrying its own audio track (dialogue, a little market hum, a little music underneath). Skip at
+ *  any time; otherwise it ends on its own. */
+function MalekBonusClip({ onDone }: { onDone: () => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [needTap, setNeedTap] = useState(false);
+  const done = useRef(false);
+  const finish = () => { if (done.current) return; done.current = true; video.current?.pause(); onDone(); };
+  useEffect(() => {
+    video.current?.play().catch(() => setNeedTap(true));
+  }, []);
+  return (
+    <div className="film" role="dialog" aria-label="Malek's grill" data-testid="malek-bonus-clip">
+      <div className="film__frame">
+        <video
+          ref={video}
+          className="film__video"
+          src="video/malek-shawarma-bit.mp4"
+          playsInline
+          preload="auto"
+          onEnded={finish}
+          onError={finish}
+          data-testid="malek-bonus-video"
+        />
+      </div>
+      <div className="film__btns">
+        {needTap && <button className="btn primary" onClick={() => { void video.current?.play(); setNeedTap(false); }} data-testid="malek-bonus-play">▶ Play</button>}
+        <button className="btn" onClick={finish} data-testid="malek-bonus-skip">Skip</button>
+      </div>
+    </div>
+  );
+}
+
 const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 /** the effects line for an item, in the game's own terms */
 function effectChips(it: MalekItem) {
@@ -119,6 +152,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
   const [result, setResult] = useState<{ msg: string; report?: MealReport; title: string } | null>(null);
   // the film plays by itself the first time the shop is open to you; "Watch the film again" replays it
   const [film, setFilm] = useState(() => filmDue('malek', useGame.getState().introSeen));
+  // a short bonus clip (his own voice, dubbed in) right after the intro film, the first time only
+  const [bonus, setBonus] = useState(false);
   const open = shopOpen(g.world.hour);
 
   // one visit per opening of the shop: the picture, his greeting, and a story stage if one is due
@@ -192,7 +227,8 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     audio.sfx('tap');
   };
 
-  if (film && open) return <IntroFilm id="malek" title="Malek's grill · Giza, 1925" onDone={() => { useGame.getState().markIntroSeen('malek'); setFilm(false); }} />;
+  if (film && open) return <IntroFilm id="malek" title="Malek's grill · Giza, 1925" onDone={() => { useGame.getState().markIntroSeen('malek'); setFilm(false); setBonus(true); }} />;
+  if (bonus && open) return <MalekBonusClip onDone={() => setBonus(false)} />;
 
   // ---------------- the door: closed, or the visit picture ----------------
   if (!open) {
