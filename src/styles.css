@@ -2187,3 +2187,13 @@ button.hud-chip { cursor: pointer; }
 .rugpick__fit { font-style: normal; font-family: var(--label); font-size: 11.5px; color: var(--text-dim); }
 .rugpick__fit.is-good { color: #b8e08a; }
 .rugpick__fit.is-low { color: #e0a08a; }
+
+/* phones and tablets: every control big enough for a thumb. Buttons grow to 40px; small chips and
+   switches keep their look but get a larger invisible hit area around them */
+@media (pointer: coarse) {
+  .btn { min-height: 40px; }
+  .switch, .hud-chip, .hud-place, .linkish, .skip-hint, .stall-paper, .help-link, .merchant-help { position: relative; }
+  .switch::after, .hud-chip::after, .hud-place::after, .linkish::after, .skip-hint::after, .stall-paper::after, .help-link::after, .merchant-help::after { content: ''; position: absolute; inset: -8px -6px; }
+}
+/* "How to play" on Progress stays on one line */
+.merchant-help { white-space: nowrap; font-size: 12.5px; }
