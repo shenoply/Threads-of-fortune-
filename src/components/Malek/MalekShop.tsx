@@ -17,6 +17,7 @@ import { audio } from '../../game/audio/engine';
 import { newUid } from '../../game/economy/economy';
 import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { MalekMutter } from './MalekMutter';
+import { openGuide } from '../Guide/Guide';
 import { voice } from '../../game/audio/voice';
 import { stopMalekArabic } from '../../game/audio/malekArabic';
 import { MalekMenuBook, piastres } from './MalekMenuBook';
@@ -267,6 +268,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
       <header className="malek-bar">
         <div><b>Malek's grill</b><span>Giza · {clock(g.world.hour)}</span></div>
         <span className="malek-cash" data-testid="malek-cash">{fmt(g.cash)}</span>
+        <button className="btn help-q" onClick={() => openGuide('malek')} aria-label="How Malek's grill works" data-testid="help-malek">?</button>
         <button className="btn" onClick={onLeave} data-testid="malek-leave">Leave</button>
       </header>
       <div className="malek-stage" data-testid="malek-stage">

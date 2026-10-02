@@ -20,7 +20,7 @@ import { StallEncounter } from './components/StallEncounter/StallEncounter';
 import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/Documentary/Documentary';
 import { Supplier } from './components/Supplier/Supplier';
 import { Inventory } from './components/Inventory/Inventory';
-import { Guide } from './components/Guide/Guide';
+import { Guide, guidePage } from './components/Guide/Guide';
 import { ObjectiveBar, SideTasks } from './components/Mission/Mission';
 import { firstHourStep } from './components/Tips/FirstHour';
 import { CaravanScreen } from './components/World/CaravanScreen';
@@ -80,6 +80,13 @@ export default function App() {
   const [settings, setSettings] = useState(false);
   const [msub, setMsub] = useState<MerchantSub>('customers');
   const [guide, setGuide] = useState(false);
+  const [guideAt, setGuideAt] = useState(0);
+  // a "?" anywhere opens How to play on its page
+  useEffect(() => {
+    const on = (e: Event) => { setGuideAt(guidePage((e as CustomEvent<string | undefined>).detail)); setGuide(true); };
+    window.addEventListener('tof-guide', on);
+    return () => window.removeEventListener('tof-guide', on);
+  }, []);
   const [cal, setCal] = useState(false);
   const [toastMsg, setToast] = useState('');
   const [paper, setPaperRaw] = useState<number | null>(null);
@@ -374,7 +381,7 @@ export default function App() {
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
         {tab === 'map' && <Campaign key={mapIntent?.n ?? 0} intent={mapIntent} onGo={chapterGo} frozen={frozen} clearIntent={() => setMapIntent(null)} />}
         {cal && <Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} />}
-        {guide && <Guide onClose={() => { setGuide(false); g.markGuide(); }} />}
+        {guide && <Guide start={guideAt} onClose={() => { setGuide(false); setGuideAt(0); g.markGuide(); }} />}
         <Tip id="rashid" when={tab === 'supplier'} />
         <Tip id="stock" when={tab === 'inventory'} />
         <Tip id="map" when={tab === 'map'} />

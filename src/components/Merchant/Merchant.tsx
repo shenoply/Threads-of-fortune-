@@ -6,6 +6,8 @@ import { Customers } from './Customers';
 export type MerchantSub = 'me' | 'skills' | 'customers' | 'collection' | 'book';
 
 /** The Merchant page: who you are, what you can do, what you own, and the book of accounts. */
+import { openGuide } from '../Guide/Guide';
+
 export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: MerchantSub) => void }) {
   const g = useGame();
   useEffect(() => { g.markMerchantSeen(); if (sub === 'customers' && !g.onboard?.buyers) useGame.setState({ onboard: { ...(g.onboard ?? {}), buyers: true } }); }, [sub]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -15,6 +17,7 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
         {([['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Book']] as [MerchantSub, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)} data-testid={`msub-${k}`}>{label}</button>
         ))}
+        <button className="merchant-help" onClick={() => openGuide()} data-testid="progress-how-to-play">How to play</button>
       </div>
       {(sub === 'me' || sub === 'skills') && <Customers />}
       {sub === 'customers' && <Customers />}

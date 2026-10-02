@@ -3,7 +3,7 @@ import { FAMILY_INSTALMENT, FAMILY_START } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 
 // How to play: short pages, plain words. Opens from Settings.
-const PAGES: { img: string; pos?: string; title: string; lines: string[] }[] = [
+const PAGES: { id?: string; img: string; pos?: string; title: string; lines: string[] }[] = [
   {
     img: 'art/world/giza-district.jpg', pos: '50% 50%',
     title: 'The map is home',
@@ -46,13 +46,38 @@ const PAGES: { img: string; pos?: string; title: string; lines: string[] }[] = [
   },
   {
     img: 'art/stall-seller.jpg', pos: '25% 40%',
+    id: 'radio',
     title: 'The paper and the radio',
-    lines: ['Every day is a real day of 1925. The Courier and Radio Giza carry the real news of that day.', 'What happens in the world moves prices, brings buyers, and makes some roads safer or worse. Read it in the morning.'],
+    lines: ['Every day is a real day of 1925. The Courier and Radio Giza carry the real news of that day.', 'What happens in the world moves prices, brings buyers, and makes some roads safer or worse. Read it in the morning.', 'On the radio, "Skip to the news" jumps past the greeting; tap any line to hear it from there. Films of the people you meet play once and wait on the Customers screen.'],
+  },
+  {
+    id: 'rugs', img: 'art/stall2/stall-empty-patched.webp', pos: '50% 60%',
+    title: 'Choosing a rug for a buyer',
+    lines: ['Three rugs fit on the counter. "All" lists every rug you can show, by what it usually sells for ("\u2248 \u00a3"), by name or condition; tap one to lay it on the table. A buyer you have learned shows what suits them.', 'A buyer who liked a rug but did not buy can come back for it: put it aside for them (on the result card, or in Stock) and nobody else is shown it for a week.'],
+  },
+  {
+    id: 'arran', img: 'art/arran/13-lab-room.webp', pos: '50% 50%',
+    title: "Arran's laboratory",
+    lines: ['Arran, in the Giza lanes, tests a rug for a fee: what it is made of, whether the dye runs, whether it washes. A signed report travels with the rug and buyers believe it.', 'Some tests need a book he lacks: find it (his notebook says where) and bring it to him. His cabinet sells tonics and kit for the road.'],
+  },
+  {
+    id: 'cohen', img: 'art/portraits/cohen.jpg', pos: '50% 30%',
+    title: "Cohen's orders",
+    lines: ['Cohen, a wholesaler, does not haggle: he places an order for two matching corridor rugs by a date, at his price per rug. Promise it, bring two that pass his checks (size, hard-wearing wool, sound edges, colour that holds) and he pays.', 'He does not like you and watches his margin. Deliver on time and he comes back with more; push him on price before you have delivered and he walks.'],
+  },
+  {
+    id: 'malek', img: 'art/malek/scene-serving.webp', pos: '40% 40%',
+    title: "Malek's grill",
+    lines: ['Malek feeds you round the corner from the stall: eat well and buyers find you more patient for a few hours. Road parcels keep for days on a journey.', 'Sit at one of his tables and his story goes on, one part each visit. He comes to your stall too, unpredictable with money; sell him a rug and his next plates are on his tab.'],
   },
 ];
 
-export function Guide({ onClose }: { onClose: () => void }) {
-  const [i, setI] = useState(0);
+/** open How to play on a given page (the "?" buttons where each thing lives) */
+export const openGuide = (page?: string) => window.dispatchEvent(new CustomEvent('tof-guide', { detail: page }));
+export const guidePage = (id?: string) => Math.max(0, PAGES.findIndex((p) => p.id === id));
+
+export function Guide({ onClose, start = 0 }: { onClose: () => void; start?: number }) {
+  const [i, setI] = useState(start);
   const p = PAGES[i];
   const last = i === PAGES.length - 1;
   return (

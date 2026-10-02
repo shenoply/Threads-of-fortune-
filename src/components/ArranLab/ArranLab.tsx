@@ -13,6 +13,7 @@ import { playArranVoice, preloadArranVoice, stopArranVoice, useSubtitle } from '
 import { ACTIVITY_SCENE, mummyPermitted, type ArranActivity } from '../../game/systems/arranVisits';
 import { RoadPanel } from './RoadPanel';
 import { pickArranScene, type ScenePick } from '../../game/systems/arranScenes';
+import { openGuide } from '../Guide/Guide';
 import { ErrandCard } from './ErrandCard';
 import './ArranLab.css';
 
@@ -271,6 +272,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
         <div><strong>Arran's textile laboratory</strong><small>Giza · 1925 · {clock}</small></div>
         <span className="arran-lab__cash" data-testid="arran-cash">{fmt(g.cash)}</span>
         {onFilm && <button type="button" className="btn" onClick={onFilm} data-testid="arran-film-again-in" title="Watch Arran's film again">▶ Film</button>}
+        <button className="btn help-q" onClick={() => openGuide('arran')} aria-label="How Arran's laboratory works" data-testid="help-arran">?</button>
         <button type="button" className="btn" onClick={onLeave} data-testid="arran-leave">Leave</button>
       </header>
 

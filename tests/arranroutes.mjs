@@ -17,6 +17,8 @@ const live = () => p.evaluate(() => { const s = JSON.parse(localStorage.getItem(
 const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
 const toLab = async () => {
+  // the caravan can come home at night, when the lab is shut: call in the next morning
+  { const h = (await live()).hour; if (h < 7 || h >= 20) { await edit(`s.world.hour = 10;`); await reload(); } }
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(400);
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
   await p.locator('[data-testid=poi-lab]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-lab]');
@@ -58,6 +60,8 @@ try {
 
   // 1. the lab opens on the lab, not on an event; the case file waits
   await toLab();
+  // the lab opens on a scene card now: "Look around the lab" shows the day's activity line
+  if (await has('arran-scene-leave')) { await p.click('[data-testid=arran-scene-leave]'); await p.waitForTimeout(200); }
   console.log('1. entry: modal open?', await has('mummy-study'), '| scene line:', (await p.locator('[data-testid=arran-activity]').textContent()).slice(0, 70));
   await p.click('[data-testid=arran-tab-notebook]'); await p.waitForTimeout(200);
   console.log('   notebook scene line:', await p.locator('[data-testid=arran-activity]').textContent(), '| Arran:', await p.locator('[data-testid=arran-talk]').getAttribute('data-place'), await p.locator('[data-testid=arran-talk]').getAttribute('data-pose'));
@@ -120,7 +124,7 @@ try {
   console.log('   arrived at Port Said:', ok2, '| hour', (await live()).hour.toFixed(1));
   await edit(`s.world.hour = 9;`); await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-portsaid]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }
-  await p.waitForTimeout(1200); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
+  await p.waitForTimeout(1200); await p.screenshot({ path: '/tmp/claude-0/ps.png' }); console.log('   town menu items:', (await p.evaluate(() => [...document.querySelectorAll('[data-testid^=menu-]')].map((e) => e.dataset.testid))).join(' ')); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   await p.click('[data-testid=library-search-restricted_records]'); await p.click('[data-testid=library-copy-restricted_records]'); await p.waitForTimeout(200);
   console.log('   extract bought:', (await st()).arranBooks.restricted_records.phase);
   await p.click('[data-testid=library-leave]');
@@ -143,7 +147,7 @@ try {
   console.log('   in the lab:', await p.locator('[data-testid=arran-patrols]').innerText().then((t) => t.replace(/\n+/g, ' | ')).catch(() => 'none'), '| watch:', await p.locator('[data-testid=arran-attention]').textContent());
   await p.screenshot({ path: `${S}/r-patrols.png` });
 } catch (e) {
-  console.log('FAILED', e.message.split('\n')[0]);
+  console.log('FAILED', e.message.split('\n').slice(0, 9).join(' / '));
   await p.screenshot({ path: `${S}/r-fail.png` });
 }
 console.log('errors', JSON.stringify(errs));

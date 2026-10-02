@@ -4,14 +4,18 @@ import { startingInventory } from '../src/game/economy/economy';
 let fails = 0;
 const check = (name: string, ok: boolean, d = '') => { if (!ok) fails++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name} ${d}`); };
 const rel = () => ({ visits: 1, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] as string[] });
-const inv = startingInventory();
+// the starting stock changes over time: use whatever three rugs a new game starts with, plus one
+// with no papers (the "pasha's house" question is only asked of a rug of uncertain provenance)
+const inv = [...startingInventory()];
+const [R0, R1, R2] = inv.map((i) => i.uid);
+inv.push({ ...inv[0], uid: 'no-papers', provenance: 'Uncertain' });
 const ctx = (r = rel()): Ctx => ({ inventory: inv, upgrades: [], reputation: 0, rel: r, rng: Math.random });
 
 // 1. Embellishment caught at roughly Samira's notice rate
 let caught = 0, N = 2000;
 for (let i = 0; i < N; i++) {
   const e = startEncounter('samira', ctx(), [], false); e.saffronOn = undefined;
-  presentRug(e, ctx(), 'start-dr');
+  presentRug(e, ctx(), 'no-papers');
   if (e.stage === 'objection') doAction(e, ctx(), 'obj_honest');
   doAction(e, ctx(), 'story');
   if (e.prompt?.kind === 'story') doAction(e, ctx(), 'story_embellish');
@@ -25,8 +29,8 @@ const ids = ['ask_room','ask_drawn','ask_budget','small_talk','story','craft','f
 for (let i = 0; i < 4000; i++) {
   const buyer = ['samira','yusuf','mariam'][i % 3];
   const c = ctx();
-  const e = startEncounter(buyer, c, ['start-ds','start-cg','start-dr'], false);
-  presentRug(e, c, ['start-ds','start-cg','start-dr'][i % 3]);
+  const e = startEncounter(buyer, c, [R0, R1, R2], false);
+  presentRug(e, c, [R0, R1, R2][i % 3]);
   for (let k = 0; k < 30 && !e.outcome; k++) {
     const id = ids[Math.floor(Math.random() * ids.length)];
     const wasSold = false;

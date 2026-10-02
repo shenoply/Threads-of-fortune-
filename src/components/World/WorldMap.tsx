@@ -403,6 +403,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
         setMoving({ ...moving, done });
         setPass({ key: pt.key });
         setReport('The narrows of the Sinai passes. Decide how to cross.');
+        // keep the loop alive at a standstill (time scale 0): the route has not changed, so nothing
+        // else would restart it once the crossing is chosen and the caravan sets off again
+        raf = requestAnimationFrame(loop);
         return;
       }
       // smooth every frame: the caravan glides and the camera eases after it

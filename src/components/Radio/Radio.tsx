@@ -3,6 +3,7 @@ import { useGame } from '../../game/state/store';
 import { bulletin, newsStart, type Lang } from '../../game/radio/bulletin';
 import { radio } from '../../game/radio/player';
 import { audio } from '../../game/audio/engine';
+import { openGuide } from '../Guide/Guide';
 
 /** The wireless set: two channels, one announcer each, reading this morning's bulletin. */
 export function Radio({ onClose }: { onClose: () => void }) {
@@ -60,7 +61,10 @@ export function Radio({ onClose }: { onClose: () => void }) {
           {/* tap a line to hear it from there */}
           {paras.map((p, i) => <p key={i} className={`${line >= p.from && line <= p.to ? 'on' : line > p.to ? 'past' : ''} seekable`} onClick={() => start(lang, p.from)} title={lang === 'ar' ? 'استمع من هنا' : 'Play from here'} data-testid={`radio-line-${i}`}>{p.text}</p>)}
         </div>
-        <button className="btn radio-close" onClick={() => { stop(); onClose(); }} data-testid="radio-close">Turn it off</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn help-q" onClick={() => openGuide('radio')} aria-label="How the radio works" data-testid="help-radio">?</button>
+          <button className="btn radio-close" style={{ flex: 1 }} onClick={() => { stop(); onClose(); }} data-testid="radio-close">Turn it off</button>
+        </div>
       </div>
     </div>
   );

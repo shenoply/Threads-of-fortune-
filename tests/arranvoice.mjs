@@ -30,12 +30,13 @@ const toLab = async () => {
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.cash = 800; s.queue = []; s.visitIdx = 0; s.inventory = s.inventory.slice(0, 3); s.inventory[1].condition = 'Worn'; delete s.volumes; delete s.arranVisit; d.version = 16; localStorage.setItem('tof-skip-chapters', '1');`);
+  await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['arran']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.cash = 800; s.queue = []; s.visitIdx = 0; s.inventory = s.inventory.slice(0, 3); s.inventory[1].condition = 'Worn'; delete s.volumes; delete s.arranVisit; d.version = 16; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
   const st0 = JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save')));
   console.log('migrated to', st0.version, '| volumes', JSON.stringify(st0.state.volumes), '| manifest requests before the lab:', manifestHits);
   await toLab(); await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(600);
-  console.log('1-4 enter: subtitle', JSON.stringify(await sub()), '| audio', JSON.stringify(await V()), '| activity', await p.locator('[data-testid=arran-activity]').getAttribute('data-activity'));
+  const activityNow = async () => { if (await has('arran-scene-leave')) { await p.click('[data-testid=arran-scene-leave]'); await p.waitForTimeout(200); } return p.locator('[data-testid=arran-activity]').getAttribute('data-activity').catch(() => '(none today)'); };
+  console.log('1-4 enter: subtitle', JSON.stringify(await sub()), '| audio', JSON.stringify(await V()), '| activity', await activityNow());
   await p.screenshot({ path: `${S}/voice-${tag}-greeting.png` });
   const seen = [];
   for (let i = 0; i < 4; i++) { await p.click('[data-testid=arran-talk]'); await p.waitForTimeout(250); seen.push((await sub()).line); }
@@ -68,11 +69,14 @@ try {
   console.log('   left mid-line: audio', JSON.stringify(await V()), '| subtitle on screen', await has('arran-subtitle'));
   // same day re-entry keeps the activity
   await toLab(); await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(300);
-  console.log('   same-day re-entry activity:', await p.locator('[data-testid=arran-activity]').getAttribute('data-activity'));
+  console.log('   same-day re-entry activity:', await activityNow());
   await p.click('[data-testid=arran-leave]');
   // mummy scene: the conservator's permission
   await edit(`s.arranVisit = { ...(s.arranVisit || { visitCount: 1 }), permitDay: s.day, lastActivityDay: -1 };`); await reload();
-  await toLab(); await p.click('[data-testid=arran-enter]'); await p.waitForSelector('[data-testid=mummy-study]'); await p.waitForTimeout(400);
+  await toLab(); await p.click('[data-testid=arran-enter]'); await p.waitForTimeout(400);
+  // the study is announced on his desk (it never opens over the lab by itself): open it from there
+  if (await has('arran-scene-leave')) await p.click('[data-testid=arran-scene-leave]');
+  await p.click('[data-testid=arran-mummy-open]'); await p.waitForSelector('[data-testid=mummy-study]'); await p.waitForTimeout(400);
   await p.click('[data-testid=mummy-next]'); await p.waitForTimeout(500);
   console.log('13-14 mummy scene:', (await sub()).line, JSON.stringify(await V()));
   await p.screenshot({ path: `${S}/voice-${tag}-mummy.png` });

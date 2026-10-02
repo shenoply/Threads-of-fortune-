@@ -2,14 +2,15 @@ import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { createPortal } from 'react-dom';
 import { IntroFilm, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 import { STALL_FILMS } from '../IntroFilm/films';
-import { RugPicker, rugNames, typicalSale } from './RugPicker';
+import { RugPicker, rugNames, typicalSale, type BuyerTaste } from './RugPicker';
+import { openGuide } from '../Guide/Guide';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
 import { useEffect, useMemo, useState } from 'react';
 import { stallFigure } from './stallArt';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
 import { availableRugs, tutorialAllows, useGame } from '../../game/state/store';
-import { getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, type ActionId } from '../../game/systems/negotiation';
+import { fitScore, getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, type ActionId } from '../../game/systems/negotiation';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { Scene, InfoBand } from './Scene';
@@ -38,6 +39,14 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const [front, setFront] = useState<string | null>(null);
   const [picker, setPicker] = useState(false);
   const names = useMemo(() => rugNames(g.inventory), [g.inventory]);
+  // what you have learned of this buyer: asked about their room or taste, or met them before
+  const relNow = enc ? g.relationships[enc.buyerId] : undefined;
+  const learned = !!enc && (enc.revealed.length > 0 || (relNow?.visits ?? 0) > 0);
+  const taste: BuyerTaste | undefined = enc && learned && BUYERS[enc.buyerId] ? {
+    name: BUYERS[enc.buyerId].name,
+    fit: (it) => fitScore(prefsFor(enc), RUGS[it.typeId], it),
+    minTier: BUYER_TIERS[enc.buyerId]?.[0] ?? (BUYERS[enc.buyerId].royal ? 3 : 1),
+  } : undefined;
   const ordered = front && avail.some((i) => i.uid === front) ? [avail.find((i) => i.uid === front)!, ...avail.filter((i) => i.uid !== front)] : avail;
   const shown = ordered.length <= 3 ? ordered : [...ordered, ...ordered].slice(offset % ordered.length, (offset % ordered.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
@@ -142,6 +151,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       )}
       <InfoBand enc={enc} presented={presented} view={view} tierName={tier.name} priorities={priorities} />
 
+      {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work ?</button>}
       <div className="rugstrip" data-testid="rugstrip">
         {[0, 1, 2].map((k) => {
           const it = shown[k];
@@ -186,7 +196,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <Icon name="swap" />
             All {avail.length}
           </button>
-          {picker && <RugPicker rugs={avail} names={names} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
+          {picker && <RugPicker rugs={avail} names={names} taste={taste} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
         </div>
       </div>
 
