@@ -10,6 +10,7 @@ const LABELS: Record<string, string> = {
   'sahil-al-layl': "Sahil al-Layl",
   'la-vie-du-levant': 'La Vie du Levant',
   'qamar-dimashq': 'Qamar Dimashq',
+  'ya-layl-ya-ayn': 'Ya Layl Ya Ayn',
 };
 const label = (id: string) => LABELS[id] ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 // The gramophone is a jukebox of finished songs, not every incidental theme cue the score also uses

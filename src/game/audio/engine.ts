@@ -42,7 +42,7 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   // the Sinai crossing and the Nairn desert car: tenser than an ordinary walk between towns
   desert: ['the-risky-pass', 'road-hijaz'],
   // a nightclub table (the Qamar in Cairo, and any other non-Istanbul cabaret), not a royal court
-  cabaret: ['qamar-after-midnight'],
+  cabaret: ['qamar-after-midnight', 'ya-layl-ya-ayn'],
   // Selim Kassab undercutting you at your own stall, while the rival mission is active
   rivalry: ['selims-corner', 'khan-kurd'],
 };
