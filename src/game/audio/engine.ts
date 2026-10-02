@@ -493,6 +493,11 @@ class AudioEngine {
   private track: { name: string; src: AudioBufferSourceNode; gain: GainNode } | null = null;
   private musicTimer: number | null = null;
   private recent: string[] = [];
+  // a context change doesn't cut the music the instant it happens: it waits here first, and a
+  // change that reverts before the wait is up (a rival stepping off, a sheet opening and
+  // closing) never touches the score at all
+  private pendingMusicCtx: MusicCtx | null = null;
+  private pendingTimer: number | null = null;
 
   private chooseTrack(ctx: MusicCtx) {
     const list = PLAYLISTS[ctx];
@@ -501,7 +506,8 @@ class AudioEngine {
     return (pool.length ? pool : list)[Math.floor(Math.random() * (pool.length || list.length))];
   }
 
-  private fadeOutTrack(secs = 3) {
+  /** A slow swell down, like a radio drifting out of range, not a cut. */
+  private fadeOutTrack(secs = 4.5) {
     if (!this.track || !this.ctx) return;
     const { src, gain } = this.track;
     gain.gain.cancelScheduledValues(this.ctx.currentTime);
@@ -512,7 +518,7 @@ class AudioEngine {
     this.state.track = '';
   }
 
-  private async playTrack(name: string, fadeIn = 2.5) {
+  private async playTrack(name: string, fadeIn = 4.5) {
     if (!this.ctx || !this.musicOn) return;
     const want = this.musicCtx;
     const buf = await this.buffer(`audio/music/${name}.mp3`);
@@ -539,18 +545,40 @@ class AudioEngine {
     };
   }
 
-  private syncMusic() {
-    if (!this.musicOn || !this.ctx) return;
-    const next = this.currentMusic();
-    if (next === this.musicCtx) return;
+  /** Actually commit to a new musical context: cross-fade, don't cut-then-silence-then-start.
+   *  The next piece starts rising while the last one is still falling, so the two overlap and
+   *  the ear never meets true silence between them. */
+  private applyMusicCtx(next: MusicCtx) {
     this.musicCtx = next;
     this.state.music = next;
     if (this.musicTimer) clearTimeout(this.musicTimer);
-    // the piece already playing may suit the new place too
+    // the piece already playing may suit the new place too: let it keep going
     if (this.track && PLAYLISTS[next].includes(this.track.name)) return;
     const had = !!this.track;
-    this.fadeOutTrack(3);
-    this.musicTimer = window.setTimeout(() => this.playTrack(this.chooseTrack(next)), had ? 2000 : 600);
+    this.fadeOutTrack();
+    this.musicTimer = window.setTimeout(() => this.playTrack(this.chooseTrack(next)), had ? 350 : 0);
+  }
+
+  private syncMusic() {
+    if (!this.musicOn || !this.ctx) return;
+    const next = this.currentMusic();
+    if (next === this.musicCtx) {
+      // back to where it already is: whatever change was pending is moot
+      this.pendingMusicCtx = null;
+      if (this.pendingTimer) { clearTimeout(this.pendingTimer); this.pendingTimer = null; }
+      return;
+    }
+    if (next === this.pendingMusicCtx) return; // already waiting to switch to this one
+    this.pendingMusicCtx = next;
+    if (this.pendingTimer) clearTimeout(this.pendingTimer);
+    // nothing playing yet (first boot): no reason to make the player wait for silence to end
+    const hold = this.track ? 1400 : 0;
+    this.pendingTimer = window.setTimeout(() => {
+      this.pendingTimer = null;
+      if (this.pendingMusicCtx !== next) return; // changed its mind again in the meantime
+      this.pendingMusicCtx = null;
+      this.applyMusicCtx(next);
+    }, hold);
   }
 
   /** Kept for the opening film and the first morning. */
@@ -569,6 +597,9 @@ class AudioEngine {
     this.state.musicPlaying = false;
     this.popEnvSilently('documentary');
     if (this.musicTimer) clearTimeout(this.musicTimer);
+    if (this.pendingTimer) clearTimeout(this.pendingTimer);
+    this.pendingTimer = null;
+    this.pendingMusicCtx = null;
     this.fadeOutTrack(1.2);
     this.musicCtx = null;
     this.state.music = '';
