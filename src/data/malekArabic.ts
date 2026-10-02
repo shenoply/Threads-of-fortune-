@@ -1,6 +1,6 @@
 // Malek's Arabic: a handful of Egyptian phrases he says to himself in the shop and drops into a
-// haggle. The clips (public/audio/malek/ar-<clip>.mp3) are a stock offline voice reading
-// hand-written Egyptian phonemes (tools/generate-malek-arabic.py), not a clone of anyone. The text
+// haggle. The clips (public/audio/malek/ar-<clip>.mp3) are Malek's own recordings (voice notes of
+// 2 Oct 2026, cut and cleaned), except 'how' and 'how-2', still the stock offline voice. The text
 // on screen is the Arabic, a reading in Latin letters and what it means.
 export type ArabicWhere = 'shop' | 'haggle';
 export interface ArabicPhrase {
