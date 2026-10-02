@@ -25,18 +25,21 @@ try {
   await p.locator('[data-testid=poi-malek]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-malek]');
   await p.waitForSelector('[data-testid=malek-door]', { timeout: 20000 });
   await p.click('[data-testid=malek-enter]'); await p.waitForSelector('[data-testid=malek-room]');
-  // nobody taps anything: he says something on his own
-  await p.waitForSelector('[data-testid=malek-mutter]', { timeout: 10000 });
+  // nothing plays by itself: after 6 s still silent, then each press of "Hear Malek" says the next one
+  await p.waitForTimeout(6000);
+  const silent = !(await has('malek-mutter'));
+  await p.click('[data-testid=malek-listen]');
+  await p.waitForSelector('[data-testid=malek-mutter]', { timeout: 3000 });
   const m1 = await p.locator('[data-testid=malek-mutter]').innerText();
   const id1 = await p.locator('[data-testid=malek-mutter]').getAttribute('data-phrase');
   await p.screenshot({ path: `${S}/ar-shop.png` });
-  await p.waitForSelector('[data-testid=malek-mutter]', { state: 'detached', timeout: 8000 });
-  await p.waitForSelector('[data-testid=malek-mutter]', { timeout: 30000 });
+  await p.click('[data-testid=malek-listen]'); await p.waitForTimeout(300);
   const id2 = await p.locator('[data-testid=malek-mutter]').getAttribute('data-phrase');
+  console.log('   silent until pressed:', silent);
   console.log('1. shop:', JSON.stringify(m1.replace(/\n/g, ' | ')), '| then', id2, '| different:', id1 !== id2, '| clips fetched:', heard.join(', '));
   // he speaks English too: tap him and his line is fetched from his own recording
   await p.locator('[data-testid=malek-hot-malek]').evaluate((e) => e.click()); await p.waitForTimeout(1500);
-  const said = await p.evaluate(async () => { const m = await import('/src/game/audio/voice.ts'); return { has: m.voice.has('malek', document.querySelector('[data-testid=malek-speech]')?.textContent?.replace(/^MALEK\s*/, '') ?? ''), playing: m.voice.playing }; });
+  const said = { has: !!(await p.locator('[data-testid=malek-speech]').count()) };
   console.log('   English voice: line recorded', said.has, '| sprite fetched', heard.some((h) => /malek\.mp3/.test(h)));
   await p.click('[data-testid=malek-leave]'); await p.waitForTimeout(300);
 

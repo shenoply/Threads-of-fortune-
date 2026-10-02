@@ -9,10 +9,10 @@ export type Hotspot = 'malek' | 'grill' | 'menu' | 'tables' | 'exit';
 type Pt = [number, number];
 /** where things are in each painting (percent across, percent down) */
 const SPOTS: Record<MalekScene, Record<Hotspot, Pt> & { rug: Pt; smoke: Pt | null; lamps: Pt[] }> = {
-  grilling: { malek: [33, 17], grill: [17, 50], menu: [40, 12], tables: [64, 50], exit: [89, 40], rug: [47, 66], smoke: [17, 40], lamps: [[72, 37], [66, 52], [80, 19]] },
-  preparing: { malek: [66, 10], grill: [17, 49], menu: [40, 13], tables: [62, 57], exit: [88, 40], rug: [44, 64], smoke: [17, 42], lamps: [[80, 21]] },
-  serving: { malek: [41, 14], grill: [18, 38], menu: [52, 15], tables: [62, 56], exit: [90, 46], rug: [32, 76], smoke: [22, 28], lamps: [[74, 44], [67, 55], [83, 22]] },
-  closing: { malek: [60, 29], grill: [18, 50], menu: [40, 13], tables: [72, 44], exit: [88, 40], rug: [44, 66], smoke: null, lamps: [[72, 37], [68, 54], [80, 19]] },
+  grilling: { malek: [32, 36], grill: [17, 50], menu: [40, 12], tables: [64, 50], exit: [89, 40], rug: [47, 66], smoke: [17, 40], lamps: [[72, 37], [66, 52], [80, 19]] },
+  preparing: { malek: [66, 22], grill: [17, 49], menu: [40, 13], tables: [62, 57], exit: [88, 40], rug: [44, 64], smoke: [17, 42], lamps: [[80, 21]] },
+  serving: { malek: [41, 42], grill: [18, 38], menu: [52, 15], tables: [62, 56], exit: [90, 46], rug: [32, 76], smoke: [22, 28], lamps: [[74, 44], [67, 55], [83, 22]] },
+  closing: { malek: [61, 46], grill: [18, 50], menu: [40, 13], tables: [72, 44], exit: [88, 40], rug: [44, 66], smoke: null, lamps: [[72, 37], [68, 54], [80, 19]] },
 };
 export const SCENE_IMG: Record<MalekScene, string> = {
   preparing: 'art/malek/scene-preparing.webp',

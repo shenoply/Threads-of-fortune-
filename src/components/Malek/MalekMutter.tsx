@@ -1,43 +1,42 @@
-// Malek talking to himself while you are in his shop: every so often an Egyptian phrase, spoken, with
-// the Arabic, a reading and the meaning on screen. Nobody has to ask him.
+// Malek talking to himself in his shop, in his own recorded voice: an Egyptian phrase or one of his own
+// sentences, with the Arabic, a reading and the meaning on screen. Nothing plays by itself: the player
+// presses "Hear Malek" and he says the next one.
 import { useEffect, useRef, useState } from 'react';
-import { pickArabic, type ArabicPhrase } from '../../data/malekArabic';
+import { MALEK_ARABIC, type ArabicPhrase } from '../../data/malekArabic';
 import { sayMalekArabic, stopMalekArabic } from '../../game/audio/malekArabic';
 import { voice } from '../../game/audio/voice';
 
-/** seconds before the first phrase, and between phrases */
-const FIRST: [number, number] = [4, 7];
-const EVERY: [number, number] = [14, 24];
 const SHOW_MS = 4200;
-const within = ([a, b]: [number, number]) => (a + Math.random() * (b - a)) * 1000;
+const SHOP = MALEK_ARABIC.filter((p) => p.where.includes('shop'));
 
 export function MalekMutter({ quiet }: { quiet?: boolean }) {
   const [said, setSaid] = useState<ArabicPhrase | null>(null);
-  const last = useRef<string | null>(null);
-  const quietRef = useRef(quiet); quietRef.current = quiet;
-  useEffect(() => {
-    let next: number, hide: number;
-    const speak = () => {
-      // he keeps it to himself while you are reading something of his
-      if (!quietRef.current && !voice.playing) {
-        const p = pickArabic('shop', last.current);
-        last.current = p.id;
-        setSaid(p);
-        sayMalekArabic(p.id);
-        window.clearTimeout(hide);
-        hide = window.setTimeout(() => setSaid(null), Math.max(SHOW_MS, p.en.length * 75));
-      }
-      next = window.setTimeout(speak, within(EVERY));
-    };
-    next = window.setTimeout(speak, within(FIRST));
-    return () => { window.clearTimeout(next); window.clearTimeout(hide); stopMalekArabic(); };
-  }, []);
-  if (!said) return null;
+  const turn = useRef(Math.floor(Math.random() * SHOP.length));
+  const hide = useRef(0);
+  useEffect(() => () => { window.clearTimeout(hide.current); stopMalekArabic(); }, []);
+  const speak = () => {
+    const p = SHOP[turn.current % SHOP.length];
+    turn.current += 1;
+    voice.stop();
+    setSaid(p);
+    sayMalekArabic(p.id);
+    window.clearTimeout(hide.current);
+    hide.current = window.setTimeout(() => setSaid(null), Math.max(SHOW_MS, p.en.length * 75));
+  };
   return (
-    <div className="malek-mutter" role="status" data-testid="malek-mutter" data-phrase={said.id}>
-      <b>MALEK, to himself</b>
-      <span className="malek-mutter__ar" lang="ar" dir="rtl">{said.ar}</span>
-      <span className="malek-mutter__en"><i>{said.latin}</i> · {said.en}</span>
-    </div>
+    <>
+      {!quiet && (
+        <button className="malek-listen" onClick={speak} data-testid="malek-listen" aria-label="Hear Malek talk to himself">
+          <span aria-hidden="true">🔊</span> Hear Malek
+        </button>
+      )}
+      {said && !quiet && (
+        <div className="malek-mutter" role="status" data-testid="malek-mutter" data-phrase={said.id}>
+          <b>MALEK, to himself</b>
+          <span className="malek-mutter__ar" lang="ar" dir="rtl">{said.ar}</span>
+          <span className="malek-mutter__en"><i>{said.latin}</i> · {said.en}</span>
+        </div>
+      )}
+    </>
   );
 }
