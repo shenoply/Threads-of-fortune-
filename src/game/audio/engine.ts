@@ -32,7 +32,7 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   'auction-small': ['auction'],
   'auction-grand': ['salon-waltz', 'auction', 'the-gavel-rises'],
   // a night halt away from any town: just the fire and the dark, nothing borrowed from the road or the evening bucket
-  camp: ['camp-nightfall'],
+  camp: ['solo-nay-flute'],
   // harbour towns and the sea crossing itself: gulls and timber rather than the souk
   port: ['deck-passage', 'corniche-rebetiko'],
   // Jerusalem, Jaffa, Damascus, Amman, Baghdad: Levantine towns that currently borrow Cairo's khan themes
