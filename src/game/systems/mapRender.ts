@@ -148,7 +148,7 @@ const SEA_DEEP = '#93aba1';
 const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
-export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { x: number; y: number }[][]; labels?: boolean } = {}) {
+export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean } = {}) {
   const c = build();
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -335,19 +335,27 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
 
   }
 
-  // caravan roads
+  // caravan roads: a worn track, dark bed with a pale beaten centre, so it reads apart from the
+  // railways' black and white. A trunk route between major places (city, port or home) draws
+  // heavier than a local track to a village, oasis, monastery or camp, the way a real atlas would.
   if (opts.roads) {
-    // a worn track: a dark bed with a pale beaten centre, so it reads apart from the railways' black and white
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (const [style, width, dash] of [['rgba(84,46,18,0.55)', 3.2, []], ['rgba(238,214,160,0.85)', 1.2, [5, 4]]] as [string, number, number[]][]) {
-      ctx.setLineDash(dash);
-      ctx.strokeStyle = style;
-      ctx.lineWidth = width;
-      for (const r of opts.roads) {
-        ctx.beginPath();
-        r.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y))));
-        ctx.stroke();
+    for (const major of [false, true]) {
+      // a minor track to a village/oasis/monastery/camp fades into the paper; a trunk route between
+      // real cities and ports stays dark and gets a brighter beaten centre, so it reads as "the way" first
+      const wMul = major ? 1.35 : 0.5;
+      const aMul = major ? 1 : 0.6;
+      for (const [style, width, dash] of [[`rgba(84,46,18,${0.55 * aMul})`, 3.2 * wMul, []], [`rgba(238,214,160,${0.85 * aMul})`, 1.2 * wMul, [5, 4]]] as [string, number, number[]][]) {
+        ctx.setLineDash(dash);
+        ctx.strokeStyle = style;
+        ctx.lineWidth = width;
+        for (const r of opts.roads) {
+          if (r.major !== major) continue;
+          ctx.beginPath();
+          r.pts.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y))));
+          ctx.stroke();
+        }
       }
     }
     ctx.setLineDash([]);

@@ -575,6 +575,10 @@ table.ledger .neg { color: var(--bad); }
 .route { fill: none; stroke: #7a1d12; stroke-width: 1.6; stroke-dasharray: 4 3; stroke-linecap: round; filter: drop-shadow(0 0 2px rgba(255,230,180,0.8)); }
 .route.live { animation: dash 1s linear infinite; }
 @keyframes dash { to { stroke-dashoffset: -14; } }
+/* raiders could outmatch you on this road: brighter, thicker, tighter dashes, a warning glow instead
+   of the calm highlight — visible the moment the route is drawn, not just in the text after you commit */
+.route.danger { stroke: var(--bad); stroke-width: 2.2; stroke-dasharray: 3 2.5; filter: drop-shadow(0 0 3px rgba(192,85,63,0.9)); }
+.route.danger.live { animation: dash 0.6s linear infinite; }
 .route-bad { fill: none; stroke: #c0553f; stroke-width: 1.5; }
 .place { position: absolute; transform: translate(-50%, -50%); background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; z-index: 2; }
 .place .pdot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(28,18,10,0.88); border: 1.5px solid var(--parchment-2); box-shadow: 0 2px 6px rgba(0,0,0,0.5); }

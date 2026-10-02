@@ -52,6 +52,9 @@ interface Plan {
   /** the port or town this plan was made from, so a ship can still be booked from it even after
    *  you've since set off on foot and world.at has gone back to null on the road */
   from?: Settlement;
+  /** true when raiders on this path could outmatch your caravan: colours the route line red
+   *  instead of waiting for the text warning after you commit */
+  risky?: boolean;
 }
 
 function tint(hour: number) {
@@ -150,6 +153,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
   const pts = useRef(new Map<number, Pt>());
   const pinch = useRef<{ d: number; z: number } | null>(null);
+  // a mouse hovering open water or mountains, away from any settlement, shows "you can't walk there"
+  // before the tap — not just the card that explains it afterwards
+  const [hoverBlocked, setHoverBlocked] = useState(false);
   const follow = useRef(true);
   const lastTap = useRef(0);
   const scaleRef = useRef(1);
@@ -171,7 +177,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const [jobsOpen, setJobsOpen] = useState(false);
   const missionTarget = MAIN_ORDER.map((id) => (g.missions?.[id] === 'active' ? MISSIONS[id].target : undefined)).find(Boolean) ?? null;
 
-  const roads = useMemo(() => ROAD_LINES.map((r) => r.pts.map(([x, y]) => ({ x, y }))), []);
+  // a trunk route (both ends a city, port or your home) draws heavier than a local track to a village,
+  // oasis, monastery or camp — so the map reads "this is the way between places that matter" at a glance
+  const MAJOR_KIND = new Set(['home', 'city', 'town', 'port']);
+  const roads = useMemo(() => ROAD_LINES.map((r) => ({
+    pts: r.pts.map(([x, y]) => ({ x, y })),
+    major: MAJOR_KIND.has(settlementById(r.a).kind) && MAJOR_KIND.has(settlementById(r.b).kind),
+  })), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
@@ -254,7 +266,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
     const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
     const days = path ? pathDays(path, sp.pxPerDay) : 0;
     const train = here && st ? railJourney(here.id, st.id) ?? undefined : undefined;
-    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here };
+    // the same check setOff() warns about in text, done here too so the route line itself can go red
+    const risky = !!path && routeDanger(path, w.parties) > strength(w.party);
+    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here, risky };
     setPlan(p);
     audio.sfx('tap');
     return p;
@@ -523,6 +537,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
   const news = newsMarks(g.day);
   const sandZones = khamsinZones(g.day);
   const routeSvg = plan?.path ?? (moving ? moving.path : null);
+  // the planned route colours red the moment it's drawn; an already-under-way walk (not train/ship/motor,
+  // which don't run into raiders the same way) checks the same thing live, since the danger along it can
+  // change as parties move
+  const routeRisky = plan ? plan.risky : moving && !moving.train && !moving.mode ? routeDanger(moving.path, w.parties) > strength(w.party) : false;
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
   const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food ${foodDaysLeft(w.party)} days`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
   const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
@@ -552,6 +570,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           } else drag.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y, moved: false };
         }}
         onPointerMove={(e) => {
+          // a bare hover (mouse, no button down, not dragging the map): check what's under the cursor
+          // so open water or mountains shows "can't walk there" before the tap, not just after it
+          if (e.pointerType === 'mouse' && !pts.current.has(e.pointerId)) {
+            const r = wrap.current!.getBoundingClientRect();
+            const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
+            const nearSettlement = SETTLEMENTS.some((x) => w.known.includes(x.id) && dist(x, mp) * s < 22);
+            setHoverBlocked(!nearSettlement && (isWaterPx(mp) || terrainAt(mp) === 'mountains'));
+            return;
+          }
           if (!pts.current.has(e.pointerId)) return;
           pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           if (pinch.current && pts.current.size === 2) {
@@ -567,7 +594,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
           }
         }}
         onPointerUp={onPointerUp}
-        onPointerLeave={() => { drag.current = null; }}
+        onPointerLeave={() => { drag.current = null; setHoverBlocked(false); }}
+        style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
         <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
         <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)}>
@@ -576,7 +604,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, sca
             <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
-            {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''}`} />}
+            {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}
             {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
           </svg>
           {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => (
