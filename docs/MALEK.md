@@ -107,7 +107,7 @@ times are game values. The menu says so; they are not presented as 1925 prices o
 
 ## His voice: English and Arabic
 
-- **English:** all his lines, at the stall and in his shop, are recorded in a plain, brisk stock English voice (Kokoro am_adam at 1.08, not a clone; `tools/generate-voices-kokoro.py malek`, after `npx tsx tools/export-voice-script.ts`). An accented reading through the Arabic voice was tried and dropped: too slow and too thick. In the shop his greeting and every remark is spoken; he does not mutter in Arabic over himself.
+- **English:** all his lines, at the stall and in his shop, are in his own voice: Kokoro's Spanish male timbre blended with a British male (0.6 em_alex + 0.4 bm_daniel, a colour nobody else in the game has), with an Egyptian accent put into the pronunciation (tapped r, pure vowels, s/z for th) at a natural pace; a stock synthetic voice, not a clone (`tools/generate-voices-kokoro.py malek`, after `npx tsx tools/export-voice-script.ts`). Tried and dropped: reading English through the Arabic voice (too slow, too thick) and plain am_adam (sounded like everyone else).
 - **Arabic openers at the stall:** a line that opens with an Arabic phrase plays that phrase, then the rest of the line in his English.
 
 ## His Arabic

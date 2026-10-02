@@ -18,9 +18,11 @@ from kokoro_onnx import Kokoro
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'public', 'voices')
 # who sounds like whom: Kokoro voice, speed, language
 CAST = {
-    # Malek: a plain, brisk English voice (the accented Piper reading was too slow and too thick); his
-    # Arabic phrases are separate clips (tools/generate-malek-arabic.py). The 'piper:' engine stays available.
-    'malek': ('am_adam', 1.08, 'en-us'),
+    # Malek: his own voice, not a stock one: Kokoro's Spanish male timbre blended with a British male
+    # (a Mediterranean colour nobody else in the game has), speaking English with an Egyptian accent put
+    # into the pronunciation (tapped r, pure vowels, s/z for th) at a natural pace. The Arabic-model
+    # reading ('piper:') was too slow and thick; plain am_adam sounded like everyone else. Not a clone.
+    'malek': ('blend:em_alex=0.6,bm_daniel=0.4|egyptian', 1.04, 'en-us'),
     'nabil': ('am_onyx', 0.92, 'en-us'),          # senior Cairo textile merchant: deep, unhurried
     'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler: measured, precise, nasal (FX below)
     'farid-nassar': ('am_eric', 1.0, 'en-us'),     # casino bookings manager
@@ -78,6 +80,24 @@ def piper_say(model, k, text, speed, lang):
     return audio / max(1e-6, float(np.max(np.abs(audio)))) * 0.9, sr
 
 
+# Egyptian English, put into the phonemes: a tapped r, pure vowels, no "th", full unstressed vowels
+EGYPTIAN = [('ɚ', 'ɛɾ'), ('ɝ', 'ɛɾ'), ('ɹ', 'ɾ'), ('oʊ', 'oː'), ('eɪ', 'eː'), ('ʌ', 'a'), ('æ', 'a'), ('ɑː', 'aː'), ('ɐ', 'a'), ('ð', 'z'), ('θ', 's'), ('ɪ', 'i'), ('ʊ', 'u'), ('ᵻ', 'i'), ('ɾ', 'ɾ')]
+
+
+def blend_say(k, spec, text, speed, lang):
+    voices, _, accent = spec.partition('|')
+    style = None
+    for part in voices.split(','):
+        name, w = part.split('=')
+        v = k.get_voice_style(name) * float(w)
+        style = v if style is None else style + v
+    ph = k.tokenizer.phonemize(text, lang)
+    if accent == 'egyptian':
+        for a, b in EGYPTIAN:
+            ph = ph.replace(a, b)
+    return k.create(ph, voice=style, speed=speed, lang=lang, is_phonemes=True)
+
+
 # a character's colour on top of the stock voice (same length, so the clip timings hold)
 FX = {'cohen': nasal}
 
@@ -109,7 +129,9 @@ def main():
             cid = os.path.basename(r['file'])[:-4]
             if cid in clips:
                 continue
-            if voice.startswith('piper:'):
+            if voice.startswith('blend:'):
+                audio, sr = blend_say(k, voice[6:], r['text'], speed, lang)
+            elif voice.startswith('piper:'):
                 audio, sr = piper_say(voice[6:], k, r['text'], speed, lang)
             else:
                 audio, sr = k.create(r['text'], voice=voice, speed=speed, lang=lang)
