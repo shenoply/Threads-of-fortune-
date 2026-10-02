@@ -7,9 +7,9 @@ import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
-import { ArranLab } from '../ArranLab/ArranLab';
 // Malek's grill loads only when you walk in
 const MalekShop = lazy(() => import('../Malek/MalekShop'));
+const ArranLab = lazy(() => import('../ArranLab/ArranLab').then((m) => ({ default: m.ArranLab })));
 
 // Giza, seen from above: the lane with your stall, the coffee house, the souk, the animal market,
 // the guard yard, the station, the ferry, the pyramids and the desert road. Walk to discover it.
@@ -795,7 +795,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         <button className="btn primary" onClick={() => { save(); if (onZoomOut) onZoomOut(); else onWorld(); }} data-testid="district-world">⤢ Zoom out to the world</button>
       </div>
       {panel && <SettlementPanel id="giza" tab={panel} onClose={() => { setPanel(null); onPanelClosed?.(); }} onStall={onStall} />}
-      {lab && <ArranLab onLeave={() => setLab(false)} onFilm={filmReady('arran') ? () => setFilm('arran') : undefined} />}
+      {lab && <Suspense fallback={null}><ArranLab onLeave={() => setLab(false)} onFilm={filmReady('arran') ? () => setFilm('arran') : undefined} /></Suspense>}
       {film && createPortal(<IntroFilm id={film} onDone={() => { useGame.getState().markIntroSeen(film); setFilm(null); }} />, document.body)}
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}

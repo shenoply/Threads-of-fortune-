@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { bulletin, newsStart, type Lang } from '../../game/radio/bulletin';
+import { arabicReady, bulletin, loadArabic, newsStart, type Lang } from '../../game/radio/bulletin';
 import { radio } from '../../game/radio/player';
 import { audio } from '../../game/audio/engine';
 import { openGuide } from '../Guide/Guide';
@@ -9,7 +9,10 @@ import { openGuide } from '../Guide/Guide';
 export function Radio({ onClose }: { onClose: () => void }) {
   const g = useGame();
   const [lang, setLang] = useState<Lang>(() => (localStorageGet('tof-radio-lang') as Lang) || 'en');
-  const segs = useMemo(() => bulletin(g.day, lang), [g.day, lang]);
+  // the Arabic texts load the first time the Arabic channel is tuned
+  const [arReady, setArReady] = useState(arabicReady);
+  useEffect(() => { if (lang === 'ar' && !arReady) loadArabic().then(() => setArReady(true)); }, [lang, arReady]);
+  const segs = useMemo(() => bulletin(g.day, lang), [g.day, lang, arReady]);
   // pieces that belong to one sentence (a date, a sentence around a town's name) show as one paragraph
   const paras = useMemo(() => {
     const out: { text: string; from: number; to: number }[] = [];
@@ -26,8 +29,9 @@ export function Radio({ onClose }: { onClose: () => void }) {
   const box = useRef<HTMLDivElement>(null);
 
   const news = newsStart(segs);
-  const start = (l: Lang, from = 0) => {
+  const start = async (l: Lang, from = 0) => {
     audio.sfx('tap');
+    if (l === 'ar') { await loadArabic(); setArReady(true); }
     setOn(true); setLine(-1);
     if ((g.radioHeard ?? 0) < g.day) { useGame.setState({ radioHeard: g.day }); g.passTime(20); }
     if (!g.onboard?.radio) useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), radio: true } });

@@ -1,18 +1,32 @@
 // Radio Giza: a morning bulletin read in English or Arabic, built from recorded pieces.
 // Every piece has a key; the same keys are used to render the recordings, so text and audio always match.
 import { EVENT_NEWS, SURPRISES, FILLER, WEATHER, KHAMSIN } from '../../data/news';
-import { CITY_AR, AR_EVENTS, AR_WEATHER, AR_KHAMSIN, AR_FIXED } from '../../data/radioAr1';
-import { AR_SURPRISES, AR_FILLER } from '../../data/radioAr2';
 import { SETTLEMENTS } from '../../data/world';
 import { EVENTS, eventsOn, eventsStarting, dateOfDay, type GameEvent } from '../economy/life';
 import { wiresOn } from '../../data/daily1925';
-import AR0 from '../../data/radio/ar-wires-0.json';
-import AR1 from '../../data/radio/ar-wires-1.json';
-import AR2 from '../../data/radio/ar-wires-2.json';
-import AR3 from '../../data/radio/ar-wires-3.json';
+import type * as ArabicData from '../../data/radioArabic';
 
-/** The day's lead story from the wires, in Arabic, fully vocalized for the reader. */
-const AR_WIRES: Record<string, string> = { ...AR0, ...AR1, ...AR2, ...AR3 };
+// The Arabic texts load on demand (loadArabic) the first time the Arabic channel is tuned: they are
+// most of the radio's weight and an English listener never needs them.
+let CITY_AR = {} as typeof ArabicData.CITY_AR;
+let AR_EVENTS = {} as typeof ArabicData.AR_EVENTS;
+let AR_WEATHER = {} as typeof ArabicData.AR_WEATHER;
+let AR_KHAMSIN = [] as unknown as typeof ArabicData.AR_KHAMSIN;
+let AR_FIXED = {} as typeof ArabicData.AR_FIXED;
+let AR_SURPRISES = {} as typeof ArabicData.AR_SURPRISES;
+let AR_FILLER = [] as unknown as typeof ArabicData.AR_FILLER;
+let AR_WIRES: Record<string, string> = {};
+let arabic: Promise<void> | null = null;
+let arabicLoaded = false;
+/** fetch the Arabic texts (once); resolves when bulletin(day, 'ar') can be read */
+export function loadArabic(): Promise<void> {
+  arabic ??= import('../../data/radioArabic').then((m) => {
+    ({ CITY_AR, AR_EVENTS, AR_WEATHER, AR_KHAMSIN, AR_FIXED, AR_SURPRISES, AR_FILLER, AR_WIRES } = m);
+    arabicLoaded = true;
+  });
+  return arabic;
+}
+export const arabicReady = () => arabicLoaded;
 const GAME_FIRST = Date.UTC(1925, 2, 10), GAME_LAST = Date.UTC(1926, 2, 31);
 /** The real lead story of a date, as one recorded piece; grouped by month so a bulletin loads one small file. */
 function wirePiece(d: Date, lang: Lang): Segment | null {
@@ -125,6 +139,7 @@ export const newsStart = (segs: Segment[]) => { const i = segs.findIndex((s) => 
 
 /** Today's bulletin, in order. */
 export function bulletin(day: number, lang: Lang): Segment[] {
+  if (lang === 'ar' && !arabicLoaded) return [];
   const F = fixed(lang);
   const out: Segment[] = [];
   const core = (key: string, text: string) => out.push({ key, group: 'core', text });

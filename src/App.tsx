@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, openMalek, planTrip } from './game/nav';
-import { Newspaper } from './components/Newspaper/Newspaper';
-import { Radio } from './components/Radio/Radio';
-import { Gramophone } from './components/Radio/Gramophone';
 import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
@@ -29,9 +26,7 @@ import type { SetTab } from './components/World/Settlement';
 import { Tip } from './components/Tips/Tip';
 import { Rumours } from './components/Rumours/Rumours';
 import { levelOf } from './data/character';
-import { HeroHub } from './components/Hero/HeroHub';
 import { Merchant, progressScore, type MerchantSub } from './components/Merchant/Merchant';
-import { Calendar } from './components/Calendar/Calendar';
 import { settlementById } from './game/systems/world';
 import { RUGS } from './data/rugs';
 import { rentFor } from './data/suppliers';
@@ -40,6 +35,13 @@ import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
 import { FinancePanel } from './components/World/Finance';
 import { overdue } from './game/systems/finance';
+// screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
+// when first opened, so a phone starts the game without downloading and parsing them
+const Newspaper = lazy(() => import('./components/Newspaper/Newspaper').then((m) => ({ default: m.Newspaper })));
+const Radio = lazy(() => import('./components/Radio/Radio').then((m) => ({ default: m.Radio })));
+const Gramophone = lazy(() => import('./components/Radio/Gramophone').then((m) => ({ default: m.Gramophone })));
+const Calendar = lazy(() => import('./components/Calendar/Calendar').then((m) => ({ default: m.Calendar })));
+const HeroHub = lazy(() => import('./components/Hero/HeroHub').then((m) => ({ default: m.HeroHub })));
 
 type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan' | 'hero';
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
@@ -377,10 +379,10 @@ export default function App() {
         {tab === 'supplier' && <Supplier toast={toast} />}
         {tab === 'inventory' && <Inventory onRashid={() => setTab('supplier')} />}
         {tab === 'ledger' && <Merchant sub={msub} setSub={setMsub} />}
-        {tab === 'hero' && <HeroHub />}
+        {tab === 'hero' && <Suspense fallback={null}><HeroHub /></Suspense>}
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
         {tab === 'map' && <Campaign key={mapIntent?.n ?? 0} intent={mapIntent} onGo={chapterGo} frozen={frozen} clearIntent={() => setMapIntent(null)} />}
-        {cal && <Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} />}
+        {cal && <Suspense fallback={null}><Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} /></Suspense>}
         {guide && <Guide start={guideAt} onClose={() => { setGuide(false); setGuideAt(0); g.markGuide(); }} />}
         <Tip id="rashid" when={tab === 'supplier'} />
         <Tip id="stock" when={tab === 'inventory'} />
@@ -490,9 +492,11 @@ export default function App() {
           </div>
         </div>
       )}
-      {paper !== null && <Newspaper day={paper} onClose={() => setPaper(null)} />}
-      {radioOpen && <Radio onClose={() => setRadioOpen(false)} />}
-      {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
+      <Suspense fallback={null}>
+        {paper !== null && <Newspaper day={paper} onClose={() => setPaper(null)} />}
+        {radioOpen && <Radio onClose={() => setRadioOpen(false)} />}
+        {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
+      </Suspense>
       {toastMsg && <div className="toast">{toastMsg}</div>}
     </div>
   );

@@ -11,7 +11,7 @@ import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
 import { Atmosphere } from '../Atmosphere/Atmosphere';
 import { radio } from '../../game/radio/player';
-import { bulletin, newsStart, type Lang } from '../../game/radio/bulletin';
+import { bulletin, loadArabic, newsStart, type Lang } from '../../game/radio/bulletin';
 import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
@@ -420,7 +420,8 @@ function StallRadio() {
     const t = setInterval(() => setOn(radio.playing), 1000);
     return () => clearInterval(t);
   }, []);
-  const play = (l: Lang, from = 0) => {
+  const play = async (l: Lang, from = 0) => {
+    if (l === 'ar') await loadArabic();
     radio.play(l, bulletin(g.day, l), (i) => setLine(i), () => { setOn(false); setLine(-1); }, 0.4, from);
     setOn(true);
   };
