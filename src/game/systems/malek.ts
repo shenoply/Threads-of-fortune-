@@ -211,17 +211,17 @@ export const MALEK_LINES: Record<LineCtx, string[]> = {
     'Sit anywhere. The stools are all equally bad.',
     'You are new. Everyone is new once. Then they complain.',
     'Welcome. That is the last nice thing I say today, so remember it.',
-    'Al-Mallem. The boss. There is nobody else here to be boss of, but the title stays.',
+    'I am Malek, Al-Mallem. The boss. And there is nobody else here to be boss of.',
   ],
   greetMorning: [
     'Beans are on. The grill is not. Do not ask me about the grill before eleven.',
     'Early. Good. The early ones complain less; they are still asleep.',
     "Morning. The ful is hot and the bread is yesterday's. Today's bread is late. Bread is always late.",
-    'You are up before the charcoal. Sit. Eat beans like a sensible person.',
+    'I light the charcoal before the sun. I put the beans on.',
   ],
   greetMidday: [
     'Now what?',
-    'Lunch. Everyone wants lunch at the same time. Nobody thinks of me.',
+    'And by noon everyone wants lunch at the same time. Nobody thinks of me.',
     'Sit, sit. If the stool wobbles, that is the stool.',
     'The grill is hot, the meat is honest, and I am tired. Two out of three is good for Giza.',
   ],
@@ -273,6 +273,7 @@ export const MALEK_LINES: Record<LineCtx, string[]> = {
     'You want it cheaper? I can put the meat back on the sheep.',
     'Kofta. Mince, onion, fire. Nothing clever. Clever food is for hotels.',
     "My father's kofta. He also complained the whole time he made it, so it is authentic.",
+    'Is the kofta good? Of course it is good. I make it with my own hands.',
   ],
   grill: [
     'Straight off the charcoal. Burn your mouth if you like; I do not give refunds for patience.',

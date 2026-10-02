@@ -25,7 +25,7 @@ export function MalekMutter({ quiet }: { quiet?: boolean }) {
         setSaid(p);
         sayMalekArabic(p.id);
         window.clearTimeout(hide);
-        hide = window.setTimeout(() => setSaid(null), SHOW_MS);
+        hide = window.setTimeout(() => setSaid(null), Math.max(SHOW_MS, p.en.length * 75));
       }
       next = window.setTimeout(speak, within(EVERY));
     };
