@@ -19,13 +19,20 @@ export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | '
 interface FxClip { file: string; dur: number }
 interface Bank { fx: Record<string, FxClip[]>; beds: Record<string, { file: string; dur: number }> }
 
-const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.5, sfx: 0.7, ambience: 0.3 };
+const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.62, sfx: 0.7, ambience: 0.3 };
 
 const PLAYLISTS: Record<MusicCtx, string[]> = {
   documentary: ['title-hijaz'],
   stall: ['khan-bayati', 'khan-rast', 'khan-kurd'],
-  evening: ['evening-saba', 'evening-bayati', 'sahil-al-layl', 'the-ledger-closes'],
-  road: ['road-hijaz', 'road-bayati'],
+  // the-ledger-closes was dropped: it was never produced, and a missing file used to mean the
+  // score just went silent here until something else changed the scene (fixed for any future
+  // gap too, but no sense leaving a dead reference in). ya-layl-ya-ayn fits the mood of this
+  // context directly — it names Egypt in its own closing line — so it plays here too, not only
+  // at the cabaret table
+  evening: ['evening-saba', 'evening-bayati', 'sahil-al-layl', 'ya-layl-ya-ayn'],
+  // ya-rakib-al-layl (the campfire rababa piece) is a night-rider's song, so it belongs on the
+  // road itself as much as at the halt where you first hear it
+  road: ['road-hijaz', 'road-bayati', 'ya-rakib-al-layl'],
   town: ['khan-rast', 'khan-kurd', 'khan-bayati', 'la-vie-du-levant'],
   istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev', 'larg-nga-malet'],
   palace: ['palace-rast', 'palace-nahawand'],
@@ -534,7 +541,15 @@ class AudioEngine {
     if (!this.ctx || !this.musicOn) return;
     const want = this.musicCtx;
     const buf = await this.buffer(`audio/music/${name}.mp3`);
-    if (!buf || !this.ctx || !this.musicOn || this.musicCtx !== want) return;
+    if (!this.ctx || !this.musicOn || this.musicCtx !== want) return;
+    if (!buf) {
+      // a track that failed to load (missing file, bad network) must not just go silent until
+      // something else happens to change the scene: try another piece from the same pool instead
+      if (!want) return;
+      const list = PLAYLISTS[want].filter((n: string) => n !== name);
+      if (list.length) this.playTrack(list[Math.floor(Math.random() * list.length)]);
+      return;
+    }
     const c = this.ctx;
     const src = c.createBufferSource();
     src.buffer = buf;
@@ -550,8 +565,9 @@ class AudioEngine {
       if (this.track?.src !== src) return;
       this.track = null;
       this.state.track = '';
-      // a pause of just the room between pieces, then the next one
-      const gap = this.musicCtx === 'documentary' ? 800 : 15000 + Math.random() * 30000;
+      // a short room-tone pause between pieces, not a long dead stretch — the point is to feel
+      // like an ongoing score, not isolated cues separated by silence
+      const gap = this.musicCtx === 'documentary' ? 800 : 4000 + Math.random() * 8000;
       if (this.musicTimer) clearTimeout(this.musicTimer);
       this.musicTimer = window.setTimeout(() => this.musicCtx && this.playTrack(this.chooseTrack(this.musicCtx)), gap);
     };
