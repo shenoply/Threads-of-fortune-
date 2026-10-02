@@ -14,6 +14,8 @@ import { GROOMING } from '../../data/grooming';
 import { newUid, dateFor } from '../economy/economy';
 import { cohenChecks, dueFor, manualRub, matches, passes, ORDER_PRICE_PER, type CohenState } from './cohen';
 import type { LabFinding } from './arranLab';
+import { LIES, PRAISE } from '../../data/patter';
+import { lieOptions, praiseOptions, rollLie, rollPraise, seeded, stretch, MAX_LIES, MAX_PRAISE, LIE_PAY_CAP, type LieKind, type PraiseKind } from './patter';
 
 export type ActionId =
   | 'ask_room' | 'ask_drawn' | 'ask_budget' | 'ask_decider' | 'small_talk' | 'tea'
@@ -22,6 +24,7 @@ export type ActionId =
   | 'obj_honest' | 'obj_facts' | 'obj_concede' | 'obj_another'
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
   | 'm_charm' | 'm_kind' | 'm_firm'
+  | 'lie_menu' | 'praise_menu' | 'patter_back' | `lie_${LieKind}` | `praise_${PraiseKind}`
   | 'nabil_package'
   | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_more' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
 
@@ -83,11 +86,15 @@ export interface Encounter {
   catPetted: boolean;
   embellished: boolean;
   embellishCaught: boolean;
+  /** the lies told this sale, in order, what they add to the price when believed, and the compliments paid */
+  liesTold?: LieKind[];
+  lieBoost?: number;
+  praiseUsed?: PraiseKind[];
   honestCount: number;
   askPrice?: number;
   buyerOffer?: number;
   rounds: number;
-  prompt?: { kind: 'story' | 'saffron' | 'manner'; rugUid: string };
+  prompt?: { kind: 'story' | 'saffron' | 'manner' | 'lie' | 'praise'; rugUid: string; opts?: { kind: string; line: string }[] };
   saffronOn?: string;
   venue?: string; // set for a royal audience, away from the stall
   log: Line[];
@@ -206,7 +213,7 @@ export function wtp(enc: Encounter, item: RugItem): number {
   }
   const factor = 0.72 + 0.45 * (enc.interest / 100) + 0.15 * ((enc.trust - 50) / 50);
   let v = perceivedValue(t, item) * factor;
-  if (enc.embellished && !enc.embellishCaught) v *= 1.12;
+  if (enc.embellished && !enc.embellishCaught) v *= 1 + (enc.lieBoost ?? 0.12);
   if (enc.sweetened) v *= 1.08;
   // Malek on a good week will pay well over the odds; on a bad one, under them
   if (enc.malekPurse) v *= MALEK_PURSE[enc.malekPurse].value;
@@ -430,7 +437,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   if (enc.prompt?.kind === 'story') {
     return [
       { id: 'story_true', label: 'Tell it straight', sub: 'No papers, only the rug', icon: 'scroll' },
-      { id: 'story_embellish', label: 'Add a pasha\'s house', sub: 'Better story. Is it true?', icon: 'crown' },
+      { id: 'story_embellish', label: 'Give it a famous owner', sub: enc.prompt.opts?.[0]?.line ?? 'Better story. Is it true?', icon: 'crown' },
     ];
   }
   if (enc.prompt?.kind === 'manner') {
@@ -438,6 +445,13 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       { id: 'm_charm', label: 'Pay a compliment', sub: 'Charm', icon: 'crown' },
       { id: 'm_kind', label: 'Ask after the family', sub: 'Kindness', icon: 'tea' },
       { id: 'm_firm', label: 'Get down to business', sub: 'Firmness', icon: 'shield' },
+    ];
+  }
+  if (enc.prompt?.kind === 'lie' || enc.prompt?.kind === 'praise') {
+    const lie = enc.prompt.kind === 'lie';
+    return [
+      ...(enc.prompt.opts ?? []).map((o) => ({ id: `${lie ? 'lie' : 'praise'}_${o.kind}` as ActionId, label: lie ? LIES[o.kind as LieKind].label : PRAISE[o.kind as PraiseKind].label, sub: `“${o.line}”`, icon: lie ? 'crown' : 'chat' })),
+      { id: 'patter_back', label: 'Say nothing', sub: lie ? 'Keep it honest' : 'Back to the rugs', icon: 'hand' },
     ];
   }
   if (enc.prompt?.kind === 'saffron') {
@@ -529,8 +543,45 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       break;
   }
   void b;
-  return out.slice(0, 4);
+  const core = out.slice(0, 4);
+  if (enc.tutorial || enc.buyerId === 'nabil' || enc.buyerId === 'cohen') return core;
+  const told = enc.liesTold?.length ?? 0, praised = enc.praiseUsed?.length ?? 0;
+  if (enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') && told < MAX_LIES && !enc.embellishCaught)
+    core.push({ id: 'lie_menu', label: 'Bend the truth', sub: told ? `Riskier each time · ${told} told` : 'Make it sound better than it is', icon: 'crown' });
+  if ((enc.stage === 'qualification' || enc.stage === 'presentation' || enc.stage === 'bargaining') && praised < MAX_PRAISE)
+    core.push({ id: 'praise_menu', label: 'Pay a compliment', sub: praised ? 'Careful: flattery wears thin' : 'Win them over', icon: 'chat' });
+  return core;
 }
+
+const LIE_KINDS_ALL = Object.keys(LIES) as LieKind[];
+/** Tell one lie: believed or caught, by the rules in systems/patter.ts. */
+function tellLie(enc: Encounter, ctx: Ctx, kind: LieKind, line: string, t: RugType, fx: Effects) {
+  const b = BUYERS[enc.buyerId];
+  say(enc, 'seller', line);
+  const told = enc.liesTold?.length ?? 0;
+  enc.liesTold = [...(enc.liesTold ?? []), kind];
+  enc.embellished = true;
+  gain(fx, 'speech', 4);
+  const r = rollLie(kind, b, t, told, lvl(ctx, 'speech'), perk(ctx, 'speech', 10), ctx.manner?.honesty ?? 0, ctx.rng, { caught: b.lines.embellishCaught, believed: b.lines.embellishBelieved });
+  if (r.caught) {
+    enc.embellishCaught = true;
+    enc.lieBoost = 0;
+    buyerSay(enc, r.reply, 'skeptical');
+    adjust(enc, { trust: r.trust, interest: r.interest, patience: r.patience });
+    fx.repDelta = (fx.repDelta ?? 0) - 1;
+    fx.lie = 'caught';
+    lean(fx, { honesty: -8 });
+  } else {
+    // a lie that is nearly the truth sounds like knowledge, not salesmanship
+    const near = stretch(kind, t) < 0.7;
+    enc.lieBoost = Math.min(LIE_PAY_CAP, (enc.lieBoost ?? 0) + r.pay);
+    buyerSay(enc, r.reply, 'pleased');
+    adjust(enc, { interest: r.interest, patience: r.patience, trust: near ? 2 : 0 });
+    lean(fx, { honesty: near ? -1 : -3 });
+    fx.lie = 'ok';
+  }
+}
+void seeded;
 
 function reveal(enc: Encounter, list: { id: string }[]) {
   for (const p of list) if (!enc.revealed.includes(p.id)) enc.revealed.push(p.id);
@@ -675,6 +726,28 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
     if (keenQuestions(enc.buyerId).includes(q)) adjust(enc, { trust: 3, interest: 2 });
     else adjust(enc, { patience: -5 });
   }
+  if (id.startsWith('lie_') && id !== 'lie_menu') {
+    const kind = id.slice(4) as LieKind;
+    const line = enc.prompt?.opts?.find((o) => o.kind === kind)?.line ?? LIES[kind].lines[0].replace(/\{rug\}/g, t?.name ?? 'it');
+    enc.prompt = undefined;
+    if (item && t) tellLie(enc, ctx, kind, line, t, fx);
+    checkWalk(enc, ctx);
+    return fx;
+  }
+  if (id.startsWith('praise_') && id !== 'praise_menu') {
+    const kind = id.slice(7) as PraiseKind;
+    const line = enc.prompt?.opts?.find((o) => o.kind === kind)?.line ?? PRAISE[kind].lines[0];
+    enc.prompt = undefined;
+    say(enc, 'seller', line);
+    const r = rollPraise(kind, enc.buyerId, BUYER_MANNER[enc.buyerId]?.charm.like ?? 0, enc.praiseUsed?.length ?? 0, lvl(ctx, 'speech'), ctx.rng);
+    enc.praiseUsed = [...(enc.praiseUsed ?? []), kind];
+    buyerSay(enc, r.reply, r.result === 'pleased' ? 'warm' : r.result === 'flat' ? 'neutral' : 'skeptical');
+    adjust(enc, { trust: r.trust, interest: r.interest, patience: r.patience });
+    lean(fx, { charm: 2 });
+    gain(fx, 'speech', 2);
+    checkWalk(enc, ctx);
+    return fx;
+  }
   switch (id) {
     case 'ask_room':
       say(enc, 'seller', pick(SELLER.askRoom, ctx.rng));
@@ -753,7 +826,9 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
     case 'durability': {
       if (!item || !t) break;
       if (id === 'story' && (item.provenance === 'Uncertain' || item.provenance === 'Disputed') && !enc.argsUsed.includes('story') && !enc.tutorial) {
-        enc.prompt = { kind: 'story', rugUid: item.uid };
+        const said = enc.log.map((l) => l.text);
+        const opt = lieOptions(enc.id, (LIE_KINDS_ALL.filter((k) => k !== 'provenance')) as LieKind[], t.name, b.name, said)[0];
+        enc.prompt = { kind: 'story', rugUid: item.uid, opts: opt ? [opt] : undefined };
         say(enc, 'system', 'You have no papers for this rug. How do you tell it?');
         return fx;
       }
@@ -769,29 +844,28 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       break;
     case 'story_embellish': {
       if (!item || !t) break;
+      const line = enc.prompt?.opts?.[0]?.line ?? SELLER.embellish;
       enc.prompt = undefined;
       enc.argsUsed.push('story');
-      say(enc, 'seller', SELLER.embellish);
-      enc.embellished = true;
-      // a practised liar is caught less often; a known fox is watched more closely
-      const notice = b.embellishNotice * (1 - lvl(ctx, 'speech') * 0.025) * (perk(ctx, 'speech', 10) ? 0.7 : 1) * (1 + Math.max(0, -(ctx.manner?.honesty ?? 0)) / 200);
-      gain(fx, 'speech', 4);
-      if (ctx.rng() < notice) {
-        enc.embellishCaught = true;
-        buyerSay(enc, pick(L.embellishCaught, ctx.rng), 'skeptical');
-        adjust(enc, { trust: -30, interest: -15, patience: -10 });
-        fx.repDelta = -1;
-        fx.lie = 'caught';
-        lean(fx, { honesty: -8 });
-      } else {
-        buyerSay(enc, pick(L.embellishBelieved, ctx.rng), 'pleased');
-        adjust(enc, { interest: 12 + Math.round(8 * Math.max(0, b.args.story)), patience: -Q.arg });
-        lean(fx, { honesty: -3 });
-        fx.lie = 'ok';
-      }
+      tellLie(enc, ctx, 'provenance', line, t, fx);
       afterArgument(enc, ctx, item, t);
       break;
     }
+    case 'lie_menu': {
+      if (!item || !t) break;
+      enc.turn--;
+      enc.prompt = { kind: 'lie', rugUid: item.uid, opts: lieOptions(enc.id, enc.liesTold ?? [], t.name, b.name, enc.log.map((l) => l.text)) };
+      return fx;
+    }
+    case 'praise_menu': {
+      enc.turn--;
+      enc.prompt = { kind: 'praise', rugUid: item?.uid ?? '', opts: praiseOptions(enc.id, enc.praiseUsed ?? [], t?.name ?? 'this rug', b.name, enc.log.map((l) => l.text)) };
+      return fx;
+    }
+    case 'patter_back':
+      enc.turn--;
+      enc.prompt = undefined;
+      return fx;
     case 'saffron_move': {
       const uid = enc.prompt?.rugUid;
       say(enc, 'seller', SELLER.saffronMove[0]);
