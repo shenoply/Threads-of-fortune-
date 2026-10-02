@@ -70,11 +70,16 @@ A professional clone needs much more clean speech than 40 seconds: at least 30 m
 
 ## Current recordings (stock voice)
 
-At the owner's request ("a typical English man"), Arran's 65 lines (25 lab lines, and the opening and
-"Ask about it" answer for each of the 20 lab scenes) are recorded with **Kokoro's stock British male
-voice `bm_george`**, generated offline. This is a generic synthetic voice. It is **not** a clone of
-the real person, and no reference audio was used. The cloning scripts remain available and
+Arran's 65 lines (25 lab lines, and the opening and "Ask about it" answer for each of the 20 lab
+scenes) are recorded offline in a **posher, 1920s Received Pronunciation** (owner: "not posh enough"):
+a blend of Kokoro's stock British male voices (0.6 `bm_george` + 0.4 `bm_fable`), a touch slower
+(0.94), with period RP put into the phonemes: the old æ of "that" and "back", a tapped r between vowels
+("ve-ry"), a short final -y, and "clawth"/"orf" for cloth and off. Generic synthetic voices: **not** a
+clone of the real person, and no reference audio was used. The cloning scripts remain available and
 consent-gated if a cloned voice is wanted later.
 
-Regenerate after editing lines: see `tools/generate-voices-kokoro.py` for the model files, then run the
-Arran step described there and `node tools/build-arran-voice-manifest.mjs`.
+Regenerate after editing lines:
+
+    npx tsx tools/export-arran-lines.ts > /tmp/arran-lines.json
+    python3 tools/generate-arran-voice-kokoro.py --model /tmp/kokoro /tmp/arran-lines.json
+    node tools/build-arran-voice-manifest.mjs
