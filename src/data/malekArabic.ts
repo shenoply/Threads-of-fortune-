@@ -1,7 +1,7 @@
 // Malek's Arabic: a handful of Egyptian phrases he says to himself in the shop and drops into a
-// haggle. The clips (public/audio/malek/ar-<clip>.mp3) are Malek's own recordings (voice notes of
-// 2 Oct 2026, cut and cleaned), except 'how' and 'how-2', still the stock offline voice. The text
-// on screen is the Arabic, a reading in Latin letters and what it means.
+// haggle. The clips (public/audio/malek/ar-<clip>.mp3) are all Malek's own recordings (voice notes
+// of 2 Oct 2026, cut and cleaned). The text on screen is the Arabic, a reading in Latin letters and
+// what it means.
 export type ArabicWhere = 'shop' | 'haggle';
 export interface ArabicPhrase {
   id: string;
@@ -20,7 +20,6 @@ export const MALEK_ARABIC: ArabicPhrase[] = [
   { id: 'ba', ar: 'بَا!', latin: 'Ba!', en: 'Bah!', clips: ['ba', 'ba-2'], where: ['shop', 'haggle'] },
   { id: 'meen-aal', ar: 'مِين قَال؟', latin: 'Meen ’aal?', en: 'Who said so?', clips: ['meen-aal', 'meen-aal-2'], where: ['shop', 'haggle'] },
   { id: 'taa', ar: 'طَعْ!', latin: 'Ta‘!', en: 'Pfft, no way!', clips: ['taa', 'taa-2'], where: ['shop', 'haggle'] },
-  { id: 'how', ar: 'How?', latin: 'How?', en: 'How much? How so?', clips: ['how', 'how-2'], where: ['haggle'] },
 ];
 export const ARABIC_BY_ID: Record<string, ArabicPhrase> = Object.fromEntries(MALEK_ARABIC.map((p) => [p.id, p]));
 /** the English words of a line that opens with one of his Arabic phrases (for the English recording) */

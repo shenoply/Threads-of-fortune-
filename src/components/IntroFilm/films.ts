@@ -18,9 +18,10 @@ export interface Film {
 }
 export const FILMS: Record<FilmId, Film> = {
   malek: {
+    // stills for now, not the video: it predates his own recorded voice, so it stays on the shelf
+    // until a cut matches his real voice (the clip itself is kept at video/malek-intro.mp4 in case)
     title: "Malek's grill · Giza, 1925", name: 'Malek',
-    video: { mp4: 'video/malek-intro.mp4', webm: 'video/malek-intro.webm', poster: 'video/malek-intro-poster.webp', last: 'video/malek-intro-last.webp' },
-    after: [
+    stills: [
       // Malek at his grill (about 33% across, 44% down the painting): the camera closes in on him
       { src: 'art/malek/scene-grilling.webp', fit: 'cover', from: [1.05, 34, 45], to: [2.1, 34, 43] },
       { src: 'art/portraits/malek.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 35] },
