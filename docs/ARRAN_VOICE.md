@@ -1,6 +1,6 @@
 # Arran's voice: how it works
 
-**Status:** the voice system is built, but no voice clips are recorded yet. Every line shows as a subtitle.
+**Status:** all 65 lines are recorded in Arran's voice (see "Current recordings" below).
 
 **Consent:** on 30 Sep 2026 the project owner confirmed that Arran approved cloning his voice for this game only. The cloned voice and its clips may be used for Arran's lines in Threads of Fortune and nothing else.
 
@@ -68,18 +68,17 @@ The reference is in the Arran Drive folder: `arran_reference_0-40s.wav` is the m
 
 A professional clone needs much more clean speech than 40 seconds: at least 30 minutes, ideally 1–3 hours, recorded in a quiet room with one close microphone. It should be natural reading in his normal voice, including some calm explaining and some livelier moments. Instant cloning works from a minute or two but drifts more between lines.
 
-## Current recordings (stock voice)
+## Current recordings (Arran's voice, converted)
 
-Arran's 65 lines (25 lab lines, and the opening and "Ask about it" answer for each of the 20 lab
-scenes) are recorded offline in a **posher, 1920s Received Pronunciation** (owner: "not posh enough"):
-a blend of Kokoro's stock British male voices (0.6 `bm_george` + 0.4 `bm_fable`), a touch slower
-(0.94), with period RP put into the phonemes: the old æ of "that" and "back", a tapped r between vowels
-("ve-ry"), a short final -y, and "clawth"/"orf" for cloth and off. Generic synthetic voices: **not** a
-clone of the real person, and no reference audio was used. The cloning scripts remain available and
-consent-gated if a cloned voice is wanted later.
+Arran's 65 lines are in **Arran's own voice**. They started as the period-RP stock recordings
+(Kokoro, 0.6 `bm_george` + 0.4 `bm_fable`, speed 0.94, RP phonemes), and each was then put through
+**FreeVC** voice conversion (Coqui TTS model `voice_conversion_models/multilingual/vctk/freevc24`,
+MIT licence) with the owner-approved reference `arran_reference_0-40s.wav` as the target speaker.
+The accent and timing come from the stock take; the voice itself is Arran's. The reference was
+cleaned first with ffmpeg `highpass=f=80,afftdn=nf=-30,loudnorm`, and the output is normalised to
+-18 LUFS, 48 kHz mono, 64 kbps MP3. No paid service or API key is needed.
 
-Regenerate after editing lines:
-
-    npx tsx tools/export-arran-lines.ts > /tmp/arran-lines.json
-    python3 tools/generate-arran-voice-kokoro.py --model /tmp/kokoro /tmp/arran-lines.json
-    node tools/build-arran-voice-manifest.mjs
+To redo or add a line: record or generate the stock RP take, then
+`tts --model_name voice_conversion_models/multilingual/vctk/freevc24 --source_wav <take.wav> --target_wav <reference.wav> --out_path <out.wav>`
+(pip install coqui-tts), then encode as above. A longer, cleaner reference recording will bring
+the voice closer to Arran.
