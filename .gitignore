@@ -13,3 +13,4 @@ tests/sim/.sim.mjs
 
 # voice reference recordings stay out of the public repo
 voice-src/
+__pycache__/
