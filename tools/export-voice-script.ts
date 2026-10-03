@@ -6,6 +6,7 @@ import { SELLER, NARRATOR, RASHID, DOCUMENTARY, STAGE } from '../src/data/dialog
 import { NPCS } from '../src/data/world';
 import { VOICE_BRIEFS } from '../src/data/voices';
 import { SELLER_MANNER, BUYER_MANNER } from '../src/data/manners';
+import { LIES, PRAISE } from '../src/data/patter';
 import { GROOMING } from '../src/data/grooming';
 import { AUCTIONEER } from '../src/data/auctioneer';
 import { lineId, quotes } from '../src/game/audio/voice';
@@ -70,6 +71,10 @@ for (const b of Object.values(BUYERS)) {
   b.objections.forEach((o) => { add(b.id, o.text, 'Objection.'); add(b.id, o.honest, 'Reply to an honest answer.'); add(b.id, o.facts, 'Reply to facts.'); });
   b.needs.forEach((n) => n.room.forEach((t) => add(b.id, t, n.label)));
 }
+
+// Patter: the lies the merchant can tell about a rug and the compliments he can pay
+for (const [kind, d] of Object.entries(LIES)) for (const l of d.lines) add('seller', l, `A lie (${kind}): said with a straight face, warm and confident.`);
+for (const [kind, d] of Object.entries(PRAISE)) for (const l of d.lines) add('seller', l, `A compliment (${kind}): warm, a little playful.`);
 
 // Manner: the seller's charm, kindness and firmness, and how each buyer takes it
 walk('seller', SELLER_MANNER, 'Choosing a manner with a buyer.');
