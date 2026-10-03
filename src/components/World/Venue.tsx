@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { streetRoute } from '../../game/systems/streets';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { VENUES, VENUE_W as DW, VENUE_H as DH, type VenuePoi, type Venue as VenueDef } from '../../data/venues';
@@ -47,7 +48,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
   const cvs = useRef<HTMLCanvasElement>(null);
   // what you explored here before stays explored
   const saved = useGame.getState().world.walks?.[v.id];
-  const st = useRef({ x: v.start.x, y: v.start.y, tx: v.start.x, ty: v.start.y, fog: saved && saved.fog.length === FW * FH ? saved.fog.split('').map((c) => c === '1') : (new Array(FW * FH).fill(false) as boolean[]), seen: new Set<string>([...v.pois.filter((p) => p.kind === 'exit' || p.kind === 'audience' || p.kind === 'goto').map((p) => p.id), ...(saved?.seen ?? [])]), target: null as string | null, dirty: true });
+  const st = useRef({ x: v.start.x, y: v.start.y, tx: v.start.x, ty: v.start.y, fog: saved && saved.fog.length === FW * FH ? saved.fog.split('').map((c) => c === '1') : (new Array(FW * FH).fill(false) as boolean[]), seen: new Set<string>([...v.pois.filter((p) => p.kind === 'exit' || p.kind === 'audience' || p.kind === 'goto').map((p) => p.id), ...(saved?.seen ?? [])]), target: null as string | null, route: [] as { x: number; y: number }[], dirty: true });
   const save = () => useGame.getState().setWalk(v.id, st.current.fog.map((b) => (b ? '1' : '0')).join(''), [...st.current.seen]);
   useEffect(() => () => save(), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [cam, setCam] = useState({ s: 1, cx: v.start.x, cy: v.start.y - 120 });
@@ -112,8 +113,11 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
 
   const walkTo = (x: number, y: number, target: string | null) => {
     const s = st.current;
-    s.tx = Math.max(10, Math.min(DW - 10, x));
-    s.ty = Math.max(10, Math.min(DH - 10, y));
+    // keep to the streets: the way there, point by point
+    const way = streetRoute(v.id, { x: s.x, y: s.y }, { x: Math.max(10, Math.min(DW - 10, x)), y: Math.max(10, Math.min(DH - 10, y)) });
+    const first = way.shift()!;
+    s.tx = first.x; s.ty = first.y;
+    s.route = way;
     s.target = target;
     audio.sfx('step');
   };
@@ -159,6 +163,9 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
         reveal(s.x, s.y);
         const cm = camRef.current, k = Math.min(1, dt * 3);
         setCam({ ...cm, cx: cm.cx + (s.x - cm.cx) * k, cy: cm.cy + (s.y - cm.cy) * k });
+      } else if (s.route.length) {
+        const n = s.route.shift()!;
+        s.tx = n.x; s.ty = n.y;
       } else if (s.target) {
         const t = v.pois.find((p) => p.id === s.target);
         s.target = null;

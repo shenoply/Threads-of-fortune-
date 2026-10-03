@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { streetRoute } from '../../game/systems/streets';
 import { createPortal } from 'react-dom';
 import { takeMalekRequest } from '../../game/nav';
 import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
@@ -445,7 +446,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const st = useRef({
     x: d0?.x ?? 760, y: d0?.y ?? 468, tx: d0?.x ?? 760, ty: d0?.y ?? 468,
     fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek']),
-    target: null as string | null, dirty: true,
+    target: null as string | null, route: [] as { x: number; y: number }[], dirty: true,
   });
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
   const camRef = useRef(cam);
@@ -529,8 +530,11 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
 
   const walkTo = (x: number, y: number, target: string | null) => {
     const s = st.current;
-    s.tx = Math.max(10, Math.min(DW - 10, x));
-    s.ty = Math.max(10, Math.min(DH - 10, y));
+    // keep to the streets: the way there, point by point
+    const way = streetRoute('giza', { x: s.x, y: s.y }, { x: Math.max(10, Math.min(DW - 10, x)), y: Math.max(10, Math.min(DH - 10, y)) });
+    const first = way.shift()!;
+    s.tx = first.x; s.ty = first.y;
+    s.route = way;
     s.target = target;
     audio.sfx('step');
   };
@@ -596,6 +600,9 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         const cm = camRef.current;
         const k = Math.min(1, dt * 3);
         setCam({ ...cm, cx: cm.cx + (s.x - cm.cx) * k, cy: cm.cy + (s.y - cm.cy) * k });
+      } else if (s.route.length) {
+        const n = s.route.shift()!;
+        s.tx = n.x; s.ty = n.y;
       } else if (s.target) {
         const t = s.target;
         s.target = null;
