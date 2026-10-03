@@ -1765,21 +1765,32 @@ export const useGame = create<GameState & Actions>()(
             rep += 1;
             msg = 'You share bread and water. Word of a generous merchant travels. Reputation +1.';
             ledger.push({ day: s.day, kind: 'expense', label: 'Bread and water for travellers', amount: -3 });
-          } else if (choice === 'toll') {
-            const toll = Math.max(10, Math.round(cash * 0.1));
-            cash -= toll;
-            msg = `You pay ${fmt(toll)}. They wave you on, almost friendly.`;
-            ledger.push({ day: s.day, kind: 'expense', label: 'Road toll', amount: -toll });
+          } else if (choice === 'toll' || (choice === 'talk' && !s.world.rumours.some((r) => r.includes('Salim')) && rng() >= 0.5)) {
+            const talked = choice === 'talk';
+            const toll = talked ? Math.max(15, Math.round(cash * 0.18)) : Math.max(10, Math.round(cash * 0.1));
+            if (cash >= toll) {
+              cash -= toll;
+              msg = talked ? `They listen politely and take ${fmt(toll)} anyway.` : `You pay ${fmt(toll)}. They wave you on, almost friendly.`;
+              ledger.push({ day: s.day, kind: 'expense', label: 'Road toll', amount: -toll });
+            } else {
+              // you cannot pay what you do not have: they take what there is, and something in kind
+              const had = Math.max(0, cash);
+              if (had > 0) ledger.push({ day: s.day, kind: 'expense', label: 'Robbed on the road', amount: -had });
+              cash -= had;
+              const carried = s.inventory.filter((i) => !i.stored);
+              if (carried.length) {
+                const r = carried.sort((a, b) => (RUGS[a.typeId]?.tier ?? 1) - (RUGS[b.typeId]?.tier ?? 1))[0];
+                set({ inventory: get().inventory.filter((i) => i.uid !== r.uid) });
+                msg = `${had ? `You turn out your purse: ${fmt(had)} is all there is.` : 'Your purse is empty.'} They take the ${RUGS[r.typeId].name} off your animal instead.`;
+              } else {
+                const party: PartyState = { ...s.world.party, food: Math.max(0, s.world.party.food - Math.ceil(s.world.party.food / 2)) };
+                set({ world: { ...get().world, party } });
+                msg = had ? `You turn out your purse: ${fmt(had)} is all there is. They take it, and half your food.` : 'You have nothing worth taking. They search your bags, take half your food and ride off laughing.';
+              }
+            }
           } else if (choice === 'talk') {
             if (s.world.rumours.some((r) => r.includes('Salim'))) msg = 'You mention Salim ibn Eid. The leader laughs, offers you a date, and rides off.';
-            else if (rng() < 0.5) {
-              msg = 'You talk about Cairo, cats and camels. They decide you are too poor to rob.';
-            } else {
-              const toll = Math.max(15, Math.round(cash * 0.18));
-              cash -= toll;
-              msg = `They listen politely and take ${fmt(toll)} anyway.`;
-              ledger.push({ day: s.day, kind: 'expense', label: 'Road toll', amount: -toll });
-            }
+            else msg = 'You talk about Cairo, cats and camels. They decide you are too poor to rob.';
           } else if (choice === 'turn') {
             hour += 8;
             msg = 'You turn back and lose half a day circling around them.';
