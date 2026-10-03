@@ -3,6 +3,7 @@ import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
 import { TROOPS } from '../../data/caravan';
 import { strength } from '../../game/systems/caravan';
+import { BREEDS, withArticle } from '../../data/animals';
 import { threatForParty, THREAT_LINES, THREAT_VOICE } from '../../data/travelThreats1925';
 import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
@@ -15,6 +16,15 @@ type Stance = 'charge' | 'hold';
 interface Unit { id: string; name: string; img: string; str: number; n: number; start: number }
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+
+/** What a beaten band is likely to have been riding, by who they are - a village robber on a donkey
+ *  is not mounted the same as a Sinai raider. Falls back to the common Egyptian donkey. */
+const BAND_MOUNT: Record<string, string> = {
+  'egypt-rural-highway-robbers': 'baladi_d',
+  'sinai-transjordan-desert-raiders': 'bishari',
+  'palestine-road-thieves': 'baladi_d',
+  'iraq-border-smuggler-brigands': 'maghrabi',
+};
 
 /** Bandits on the road, Bannerlord-style: the map stops, both sides are weighed, and you talk, pay, run or fight. */
 export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (msg: string) => void; onTurnBack: () => void }) {
@@ -35,11 +45,11 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const [stage, setStage] = useState<Stage>('standoff');
   const [text, setText] = useState(lines.open);
   const [result, setResult] = useState('');
-  const [spoils, setSpoils] = useState<{ cash: number; joiners: number } | null>(null);
+  const [spoils, setSpoils] = useState<{ cash: number; joiners: number; animal?: string } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const settle = (o: Parameters<typeof g.ambushOutcome>[1]) => {
     setResult(g.ambushOutcome(party.id, o));
-    setSpoils(o.cashGain ? { cash: o.cashGain, joiners: o.joiners ?? 0 } : null);
+    setSpoils(o.cashGain || o.animalsGained ? { cash: o.cashGain ?? 0, joiners: o.joiners ?? 0, animal: o.animalsGained ? BREEDS[o.animalsGained.id].name : undefined } : null);
     setStage('result');
   };
   // the fight can end well below the fold on a phone (the battlefield picture is tall); once the
@@ -82,7 +92,20 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     if (win) {
       audio.sfx('coins');
       const joiners = !rebels && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0;
-      settle({ cashGain: 10 + killed * 6, rep: 2, troopsLost, joiners, theyLeave: true, enemyLost: killed, text: `The ${threat.displayName.toLowerCase()} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}` });
+      // a band riding into an ambush doesn't carry much, but it is mounted: beat enough of them and
+      // one of their animals is left behind rather than ridden off
+      const mountId = BAND_MOUNT[threat.id] ?? 'baladi_d';
+      const animalsGained = !rebels && Math.random() < Math.min(0.5, 0.12 + killed * 0.12) ? { id: mountId, n: 1 } : undefined;
+      settle({
+        cashGain: 10 + killed * 6,
+        rep: 2,
+        troopsLost,
+        joiners,
+        theyLeave: true,
+        enemyLost: killed,
+        animalsGained,
+        text: `The ${threat.displayName.toLowerCase()} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}${animalsGained ? ` You also catch ${withArticle(BREEDS[mountId].name)} they left behind.` : ''}`,
+      });
     } else if (retreat) {
       settle({ cashLoss: Math.round(g.cash * 0.2), rugsLost: 1, troopsLost, delayHours: 6, enemyLost: killed, text: `You pull your caravan back and run for it, leaving a bale and a purse behind.${lostList ? ` Lost: ${lostList}.` : ''}` });
     } else {
@@ -211,9 +234,10 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         {stage === 'result' && (
           <div ref={resultRef}>
             <p className="amb-text" data-testid="encounter-result">{result}</p>
-            {spoils && (spoils.cash > 0 || spoils.joiners > 0) && (
+            {spoils && (spoils.cash > 0 || spoils.joiners > 0 || spoils.animal) && (
               <div className="amb-spoils" data-testid="amb-spoils">
                 {spoils.cash > 0 && <span><Icon name="coin" /> +{fmt(spoils.cash)} spoils</span>}
+                {spoils.animal && <span><Icon name="camel" /> +1 {spoils.animal}</span>}
                 {spoils.joiners > 0 && <span><Icon name="people" /> +{spoils.joiners} {spoils.joiners > 1 ? 'men join' : 'man joins'} you</span>}
               </div>
             )}

@@ -268,7 +268,7 @@ interface Actions {
   cargoAt: (id: string) => void;
   checkJobs: (id: string) => void;
   /** settle a stand-off or a battle on the road */
-  ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; text: string }) => string;
+  ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; animalsGained?: { id: string; n: number }; text: string }) => string;
   setStallShut: (shut: boolean) => void;
   setDistrict: (d: DistrictState) => void;
   setWalk: (id: string, fog: string, seen: string[]) => void;
@@ -1452,6 +1452,9 @@ export const useGame = create<GameState & Actions>()(
           const troops = { ...s.world.party.troops };
           for (const [id, n] of Object.entries(o.troopsLost ?? {})) troops[id] = Math.max(0, (troops[id] ?? 0) - n);
           if (o.joiners) troops.reformed = (troops.reformed ?? 0) + o.joiners;
+          // a beaten band's animals go with their men: caught, not bought
+          const animals = { ...s.world.party.animals };
+          if (o.animalsGained) animals[o.animalsGained.id] = (animals[o.animalsGained.id] ?? 0) + o.animalsGained.n;
           const parties = s.world.parties.map((x) => (x.id === partyId ? {
             ...x,
             // a band that has had its answer, in loot or in lead, rides home and leaves this caravan alone
@@ -1462,7 +1465,7 @@ export const useGame = create<GameState & Actions>()(
             ...(o.enemyLost ? { size: Math.max(2, (x.size ?? 4) - o.enemyLost), strength: Math.max(4, (x.strength ?? 8) - o.enemyLost * 2) } : {}),
           } : x));
           const hour = s.world.hour + (o.delayHours ?? 0);
-          set({ cash, ledger, inventory, reputation: Math.max(0, s.reputation + (o.rep ?? 0)), world: { ...s.world, hour: Math.min(hour, 23.9), party: { ...s.world.party, troops }, parties }, journal: [...s.journal, { day: s.day, text: o.text, kind: 'road' }] });
+          set({ cash, ledger, inventory, reputation: Math.max(0, s.reputation + (o.rep ?? 0)), world: { ...s.world, hour: Math.min(hour, 23.9), party: { ...s.world.party, troops, animals }, parties }, journal: [...s.journal, { day: s.day, text: o.text, kind: 'road' }] });
           return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.${claim ? ` You are insured: the agent in the next town will pay ${fmt(claim)}.` : ''}` : o.text;
         },
 
