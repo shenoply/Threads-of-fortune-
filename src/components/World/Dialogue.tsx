@@ -69,7 +69,8 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
         {feedback.length > 0 && <p className="dlg-fb" data-testid="dlg-feedback">{feedback[feedback.length - 1]}</p>}
         <div className="dlg-opts">
           {n.options.filter(ok).map((o, i) => (
-            <button key={i} className="act" onClick={(e) => { e.stopPropagation(); choose(o); }} data-testid={`opt-${i}`}>
+            // a tap while the line is still being written finishes the line first, so nothing is skipped unread
+            <button key={i} className={`act${typed < n.text.length ? ' is-early' : ''}`} onClick={(e) => { e.stopPropagation(); if (typed < n.text.length) { setTyped(n.text.length); return; } choose(o); }} data-testid={`opt-${i}`}>
               <span className="t">{o.label}</span>
             </button>
           ))}

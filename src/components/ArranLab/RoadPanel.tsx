@@ -47,7 +47,16 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
           <dt>The law</dt><dd>{it.law}</dd>
         </dl>
         <div className="arran-btns">
-          <button type="button" className="btn primary" disabled={short} onClick={() => say(g.cabinetBuy(it.id))} data-testid="arran-confirm-pay">{short ? 'Not enough money' : `Pay ${fmt(it.price)}`}</button>
+          <button type="button" className="btn primary" disabled={short} onClick={() => {
+            const said = g.cabinetBuy(it.id);
+            // the tonic is for now when you are tired: he hands you the first dose with it
+            const tired = (useGame.getState().condition?.fatigue ?? 0) > 0;
+            if (it.id === 'restorative' && tired && (useGame.getState().cabinet?.restorative ?? 0) > 0) {
+              const before = useGame.getState().condition!.fatigue;
+              useGame.getState().useRestorative();
+              say(`${said} You take the first dose there and then: fatigue ${before} → ${useGame.getState().condition!.fatigue}.`);
+            } else say(said);
+          }} data-testid="arran-confirm-pay">{short ? 'Not enough money' : it.id === 'restorative' && (g.condition?.fatigue ?? 0) > 0 ? `Pay ${fmt(it.price)} and take a dose` : `Pay ${fmt(it.price)}`}</button>
           <button type="button" className="btn" onClick={() => { setConfirm(null); onSpot(null); }} data-testid="arran-confirm-cancel">Not now</button>
         </div>
       </div>

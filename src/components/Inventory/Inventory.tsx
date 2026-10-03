@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
 import { rugNames, typicalSale } from '../StallEncounter/RugPicker';
 import { fmt } from '../../game/economy/money';
-import { RESERVE_DAYS, heldFor, restorePrice, stallName, useGame } from '../../game/state/store';
+import { RESERVE_DAYS, heldFor, restoreCharge, stallName, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { dateFor } from '../../game/economy/economy';
 import { RUGS } from '../../data/rugs';
@@ -76,9 +76,15 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   )}
                   <ReserveControl uid={i.uid} />
                   {r && !i.restoringUntil && (
-                    <button className="btn" disabled={g.cash < r.cost} onClick={() => g.restore(i.uid)} data-testid="restore" title={r.label}>
-                      {i.condition === 'Dirty' ? 'Wash' : i.condition === 'Worn' ? 'Re-fringe' : 'Reweave'} · {fmt(restorePrice(i))} · {r.days}d
-                    </button>
+                    (() => {
+                      const cost = restoreCharge(g, i);
+                      const short = g.cash < cost;
+                      return (
+                        <button className="btn" disabled={short} onClick={() => g.restore(i.uid)} data-testid="restore" title={short ? `Needs ${fmt(cost)}; you have ${fmt(g.cash)}` : r.label}>
+                          {i.condition === 'Dirty' ? 'Wash' : i.condition === 'Worn' ? 'Re-fringe' : 'Reweave'} · {fmt(cost)} · {r.days}d{short ? ` · you have ${fmt(g.cash)}` : ''}
+                        </button>
+                      );
+                    })()
                   )}
                 </div>
               </div>

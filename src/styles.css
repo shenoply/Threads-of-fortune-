@@ -2222,3 +2222,4 @@ button.hud-chip { cursor: pointer; }
 
 /* the "Me" tab shows your face; kept here because the hero screen loads on demand */
 .nav-face { width: 21px; height: 21px; border-radius: 50%; object-fit: cover; object-position: 45% 30%; border: 1px solid currentColor; }
+.dlg-opts .act.is-early{opacity:.6}

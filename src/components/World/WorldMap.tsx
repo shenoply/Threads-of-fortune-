@@ -715,7 +715,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             {moving ? (
               <span className="bl-speeds">
                 {[0, 1, 2, 4].map((k) => (
-                  <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => setTimeScale(k)} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
+                  <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => { setTimeScale(k); audio.sfx('tap'); }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}

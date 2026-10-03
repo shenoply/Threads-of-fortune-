@@ -519,6 +519,10 @@ export function restorePrice(item: RugItem) {
   const [lo, hi] = RUGS[item.typeId].valueBand;
   return restoreCost((lo + hi) / 2, item.condition);
 }
+/** what a wash or repair actually costs you, with your craft skill and perks */
+export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
+  return Math.round(restorePrice(item) * (1 - Math.min(0.4, levelOf(s.skills?.craft ?? 0) * 0.02)) * (item.condition === 'Dirty' && hasPerk(s.skills?.craft, 'craft', 5) ? 0.7 : 1));
+}
 
 export function localBid(sid: string, item: RugItem, day = 1): number {
   const st = settlementById(sid);
@@ -636,6 +640,7 @@ export const useGame = create<GameState & Actions>()(
   persist(
     (set, get) => {
       const ctxFor = (s: GameState, buyerId: string): Ctx => ({
+        hour: s.world.hour,
         inventory: s.inventory,
         upgrades: s.upgrades,
         reputation: s.reputation,
@@ -728,9 +733,12 @@ export const useGame = create<GameState & Actions>()(
             ledger[ledger.length - 1] = { day: s.day, kind: 'sale', label: `${t.name} and ${t2.name} to ${b.name} (package)`, amount: enc.salePrice, cost: item.paid + second.paid };
             stats.sales += 1;
             stats.gross -= second.paid;
+            enc.saleCost = item.paid + second.paid;
             rep += 1;
             journal.push({ day: s.day, text: `The ${t2.name} went with it, in one package.` });
           }
+          // the delivery you threw in came out of this sale: the receipt and the day's profit say so
+          if (enc.sweetened) { enc.saleCost = (enc.saleCost ?? item.paid) + 5; stats.gross -= 5; }
           patch.inventory = s.inventory.filter((i) => i.uid !== item.uid && i.uid !== second?.uid);
           patch.totalSales = s.totalSales + 1;
           if (s.missions?.rival === 'active' && !enc.venue) patch.stats = { ...(s.stats ?? {}), rivalSales: (s.stats?.rivalSales ?? 0) + 1 };
@@ -2905,7 +2913,7 @@ export const useGame = create<GameState & Actions>()(
           const i = s.inventory.find((x) => x.uid === uid);
           if (!i) return;
           const r = RESTORATION[i.condition];
-          const cost = Math.round(restorePrice(i) * (1 - Math.min(0.4, levelOf(s.skills?.craft ?? 0) * 0.02)) * (i.condition === 'Dirty' && hasPerk(s.skills?.craft, 'craft', 5) ? 0.7 : 1));
+          const cost = restoreCharge(s, i);
           if (!r || s.cash < cost || i.restoringUntil) return;
           set({
             cash: s.cash - cost,

@@ -29,7 +29,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
   const [anim, setAnim] = useState<'in' | 'out' | null>(null);
   const [stall, setStallRaw] = useState(() => layer === 'giza' && (intent?.stall ?? (intent ? false : memo.stall)));
   const [scale, setScaleRaw] = useState(memo.scale);
-  const setScale = (n: number) => { memo.scale = n; setScaleRaw(n); audio.sfx('tap'); };
+  const setScale = (n: number) => { memo.scale = n; setScaleRaw(n); };
   const setStall = (v: boolean) => { memo.stall = v; setStallRaw(v); };
   const setLayer = (l: 'giza' | 'world', a: 'in' | 'out') => { memo.layer = l; setAnim(a); setLayerRaw(l); if (l === 'world') setStall(false); audio.sfx('step'); };
   // the first look at the wider world counts as having opened the map
@@ -68,6 +68,9 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
             goFastest={intent?.go}
             frozen={frozen}
             startZoom={anim === 'out' ? 4.3 : undefined}
+            // the speed (and a pause) is kept here, so it survives a trip to another screen and back
+            scale={scale}
+            setScale={setScale}
             onZoomGiza={() => setLayer('giza', 'in')}
           />
         )}

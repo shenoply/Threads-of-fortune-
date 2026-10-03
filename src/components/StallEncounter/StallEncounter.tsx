@@ -65,9 +65,10 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const buyer = enc ? BUYERS[enc.buyerId] : null;
   const priorities = buyer && enc ? [...prefsFor(enc).roomPriorities, ...buyer.priorities.drawn].filter((p) => enc.revealed.includes(p.id)) : [];
   const tut = !!enc?.tutorial && !g.tutorial.done;
-  // the deal done, the customer takes their leave: the next one comes on their own unless you are
-  // quicker (a plain timer, so a phone with its sound off is not kept waiting on a voice line)
-  const autoNext = !!enc?.outcome && !atCourt && !tut;
+  // a customer who walks away: the next one comes on their own unless you are quicker (a plain
+  // timer, so a phone with its sound off is not kept waiting). A sale waits for your tap, so the
+  // receipt stays up as long as you want to read it.
+  const autoNext = !!enc?.outcome && enc.outcome !== 'sold' && !atCourt && !tut;
   useEffect(() => {
     if (!autoNext) return;
     const t = window.setTimeout(() => { setDial(null); useGame.getState().nextVisit(); }, 8000);
@@ -215,7 +216,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <div className="r-main">
               {enc.outcome === 'sold' ? (
                 <>
-                  <b>Sold for {fmt(enc.salePrice ?? 0)}{enc.saleCost !== undefined ? ` · profit ${fmt((enc.salePrice ?? 0) - enc.saleCost)}` : ''}</b>
+                  <b>Sold for {fmt(enc.salePrice ?? 0)}{enc.saleCost !== undefined ? ` · profit ${fmt((enc.salePrice ?? 0) - enc.saleCost)}${enc.sweetened ? ' after delivery' : ''}` : ''}</b>
                   <span>
                     {buyer?.royal ? `${buyer.royal.warrant} · ` : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
                   </span>

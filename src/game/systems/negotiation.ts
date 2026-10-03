@@ -119,7 +119,20 @@ export interface Encounter {
   edge?: { pay: number; open: number; budget: number };
 }
 
+/** Greetings that name the time of day only at the right time: after noon a buyer picks a line
+ *  without "good morning", and if all of theirs have it, the words change to fit the hour. */
+export function forHour(lines: string[], hour?: number): string[] {
+  if (hour == null || hour < 12) return lines;
+  const morning = /\bgood morning\b/i;
+  const other = lines.filter((l) => !morning.test(l));
+  if (other.length) return other;
+  const word = hour < 17 ? 'afternoon' : 'evening';
+  return lines.map((l) => l.replace(/\b(G|g)ood morning\b/, (_m, g) => `${g}ood ${word}`));
+}
+
 export interface Ctx {
+  /** the hour of the day, for greetings that name the time */
+  hour?: number;
   inventory: RugItem[];
   upgrades: string[];
   reputation: number;
@@ -299,10 +312,10 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
       enc.log.push({ speaker: 'buyer', text: pick(L.previousRug, ctx.rng).replace('{rug}', RUGS[rel.lastRug]?.name ?? 'rug'), mood: 'warm' });
       enc.mood = 'warm';
     } else {
-      enc.log.push({ speaker: 'buyer', text: pick(L.repeat, ctx.rng) });
+      enc.log.push({ speaker: 'buyer', text: pick(forHour(L.repeat, ctx.hour), ctx.rng) });
     }
   } else {
-    enc.log.push({ speaker: 'buyer', text: pick(L.greeting, ctx.rng) });
+    enc.log.push({ speaker: 'buyer', text: pick(forHour(L.greeting, ctx.hour), ctx.rng) });
   }
   // a returning buyer does not forget being insulted or lied to: they arrive colder and thinner-skinned
   if (rel.visits > 0 && rel.bad > 0) {
