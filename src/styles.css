@@ -1594,6 +1594,8 @@ table.ledger .neg { color: var(--bad); }
 .amb-opts .btn small{font-size:12px;font-weight:400;opacity:.85}
 .amb-log{min-height:96px;padding:10px 12px;border-radius:10px;background:#0d0804cc;border:1px solid #5a3b20}
 .amb-log p{margin:0 0 4px;font-size:15px;color:#f0dfc0}
+.amb-spoils{display:flex;gap:14px;flex-wrap:wrap;margin:2px 0 10px;padding:8px 12px;border-radius:10px;background:#1c1206cc;border:1px solid #d99a3c}
+.amb-spoils span{display:flex;align-items:center;gap:6px;font-size:15px;color:#ffd27a;font-weight:600}
 
 /* travel mode: more map, less chrome */
 body.travelling .mission-banner,body.travelling .mission-slot{height:0;min-height:0;margin:0;padding:0;border:0;overflow:hidden;opacity:0;box-shadow:none}

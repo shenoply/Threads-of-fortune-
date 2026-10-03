@@ -35,7 +35,16 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const [stage, setStage] = useState<Stage>('standoff');
   const [text, setText] = useState(lines.open);
   const [result, setResult] = useState('');
-  const settle = (o: Parameters<typeof g.ambushOutcome>[1]) => { setResult(g.ambushOutcome(party.id, o)); setStage('result'); };
+  const [spoils, setSpoils] = useState<{ cash: number; joiners: number } | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const settle = (o: Parameters<typeof g.ambushOutcome>[1]) => {
+    setResult(g.ambushOutcome(party.id, o));
+    setSpoils(o.cashGain ? { cash: o.cashGain, joiners: o.joiners ?? 0 } : null);
+    setStage('result');
+  };
+  // the fight can end well below the fold on a phone (the battlefield picture is tall); once the
+  // result is in, bring the Continue button on screen so the game never looks stuck
+  useEffect(() => { if (stage === 'result') resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [stage]);
   // the leader speaks his demand aloud
   const leader = THREAT_VOICE[threat.id] ?? 'robberchief';
   useEffect(() => { voice.load().then(() => voice.preload([leader])); return () => voice.stop(); }, [leader]);
@@ -200,10 +209,16 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         )}
 
         {stage === 'result' && (
-          <>
+          <div ref={resultRef}>
             <p className="amb-text" data-testid="encounter-result">{result}</p>
+            {spoils && (spoils.cash > 0 || spoils.joiners > 0) && (
+              <div className="amb-spoils" data-testid="amb-spoils">
+                {spoils.cash > 0 && <span><Icon name="coin" /> +{fmt(spoils.cash)} spoils</span>}
+                {spoils.joiners > 0 && <span><Icon name="people" /> +{spoils.joiners} {spoils.joiners > 1 ? 'men join' : 'man joins'} you</span>}
+              </div>
+            )}
             <button className="btn primary big" onClick={() => onDone(result)} data-testid="encounter-continue">Continue</button>
-          </>
+          </div>
         )}
       </div>
     </div>
