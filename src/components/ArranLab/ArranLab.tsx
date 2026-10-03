@@ -299,7 +299,8 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
             <b>{TOPICS[topic].title}</b>
             <span>{TOPICS[topic].formula}</span>
           </div>}
-          {(['microscope', 'dye', 'balance', 'notebook'] as Spot[]).map((id) => (
+          {/* instrument labels only while testing: on the board, notebook and supplies tabs they sat over the chalk */}
+          {tab === 'test' && (['microscope', 'dye', 'balance', 'notebook'] as Spot[]).map((id) => (
             <span key={id} className={`arran-tag ${spot === id ? 'is-on' : ''}`} style={{ left: `${SPOTS[id].x}%`, top: `${SPOTS[id].y}%` }} aria-hidden="true" data-testid={`arran-tag-${id}`}>{SPOTS[id].label}</span>
           ))}
         </div>

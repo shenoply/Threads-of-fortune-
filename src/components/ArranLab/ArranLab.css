@@ -16,7 +16,7 @@
 .arran-lab__light { position: absolute; inset: -40px; pointer-events: none; background: radial-gradient(ellipse 60% 55% at 22% 40%, rgba(255,214,150,0.16), transparent 70%), radial-gradient(ellipse 90% 70% at 50% 60%, transparent 55%, rgba(15,8,3,0.5)); transition: transform 0.25s ease-out; }
 
 /* the slate: inner edge of the painted frame in 13-lab-room */
-.arran-lab__board { position: absolute; left: 59.6%; top: 6.5%; width: 31.8%; height: 27%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5em; text-align: center; color: #efe7d3; text-shadow: 0 1px 1px #111; font-family: Georgia, serif; font-size: calc(var(--ww) * 0.0165); line-height: 1.2; user-select: text; }
+.arran-lab__board { position: absolute; left: 59.6%; top: 6.5%; width: 17%; height: 26%; padding: 0 0.4em; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5em; text-align: center; color: #efe7d3; text-shadow: 0 1px 1px #111; font-family: Georgia, serif; font-size: calc(var(--ww) * 0.015); line-height: 1.2; user-select: text; overflow-wrap: anywhere; }
 .arran-lab__board b { font-weight: 400; font-style: italic; opacity: 0.85; font-size: 0.85em; letter-spacing: 0.02em; }
 .arran-lab__board span { font-size: 1.15em; }
 
