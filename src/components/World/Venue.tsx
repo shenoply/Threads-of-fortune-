@@ -114,7 +114,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
   const walkTo = (x: number, y: number, target: string | null) => {
     const s = st.current;
     // keep to the streets: the way there, point by point
-    const way = streetRoute(v.id, { x: s.x, y: s.y }, { x: Math.max(10, Math.min(DW - 10, x)), y: Math.max(10, Math.min(DH - 10, y)) });
+    const way = streetRoute(v.id, { x: s.x, y: s.y }, { x: Math.max(10, Math.min(DW - 10, x)), y: Math.max(10, Math.min(DH - 10, y)) }, !!target);
     const first = way.shift()!;
     s.tx = first.x; s.ty = first.y;
     s.route = way;
@@ -293,7 +293,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
     const p = local(e);
     const { sc, ox, oy } = view();
     const wx = (p.x - ox) / sc, wy = (p.y - oy) / sc;
-    const hit = v.pois.find((q) => st.current.seen.has(q.id) && Math.hypot(q.x - wx, q.y - wy) < 24 / sc + 6);
+    const hit = v.pois.find((q) => st.current.seen.has(q.id) && Math.hypot(q.x - wx, q.y - wy) < 40 / sc + 10);
     if (hit && hit.kind === 'note') peek(hit);
     else if (hit) walkTo(hit.x, hit.y, hit.id);
     else walkTo(wx, wy, null);

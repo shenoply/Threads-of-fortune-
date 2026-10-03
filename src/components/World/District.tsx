@@ -532,7 +532,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const walkTo = (x: number, y: number, target: string | null) => {
     const s = st.current;
     // keep to the streets: the way there, point by point
-    const way = streetRoute('giza', { x: s.x, y: s.y }, { x: Math.max(10, Math.min(DW - 10, x)), y: Math.max(10, Math.min(DH - 10, y)) });
+    const way = streetRoute('giza', { x: s.x, y: s.y }, { x: Math.max(10, Math.min(DW - 10, x)), y: Math.max(10, Math.min(DH - 10, y)) }, !!target);
     const first = way.shift()!;
     s.tx = first.x; s.ty = first.y;
     s.route = way;

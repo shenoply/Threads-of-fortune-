@@ -34,7 +34,7 @@ const DOOR = 70;
  * The way from `from` to `to` on this map's streets, as the points to walk through in order (the
  * last is where you stop). With no street map, the straight line.
  */
-export function streetRoute(mapKey: string, from: Pt, to: Pt): Pt[] {
+export function streetRoute(mapKey: string, from: Pt, to: Pt, toPlace = false): Pt[] {
   const m = STREETS[mapKey];
   if (!m) return [to];
   const freeOf = (p: Pt) => m.free?.findIndex((r) => inRect(p, r)) ?? -1;
@@ -111,7 +111,8 @@ export function streetRoute(mapKey: string, from: Pt, to: Pt): Pt[] {
   keys.reverse();
   const pts = keys.map((k) => nodes.get(k)!);
   // off the street at the end: only as far as a door, unless it is open ground
-  if (fTo < 0 && pTo.d > DOOR) pts[pts.length - 1] = pTo.at;
+  // (a place you tapped is always reached: its door is on its street)
+  if (fTo < 0 && pTo.d > DOOR && !toPlace) pts[pts.length - 1] = pTo.at;
   // the first step from where you stand to the street is fine (you are always on or next to it)
   void pFrom;
   // drop points that are on top of each other
