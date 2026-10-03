@@ -1,3 +1,4 @@
+import { CROSSINGS } from '../../data/barriers';
 import { venueFor } from '../../data/venues';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
 import { Tip } from '../Tips/Tip';
@@ -434,7 +435,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (fromId === toId) return;
     const from = settlementById(fromId);
     const dest = settlementById(toId);
-    const path = routeLeg({ x: from.x, y: from.y }, { x: dest.x, y: dest.y }, 'ship');
+    // straight across the river, bank to bank (a sea route between the two wound a long way round)
+    const path = [{ x: from.x, y: from.y }, { x: dest.x, y: dest.y }];
     follow.current = true;
     setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / (1.5 / 24), mode: 'ferry' });
     setPlan(null);
@@ -471,7 +473,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (sand) speed *= 0.6;
       if (sand && !inSand) setReport('A khamsin is blowing: the caravan slows.');
       inSand = sand;
-      const days = dt * DAYS_PER_SECOND * scaleRef.current;
+      let days = dt * DAYS_PER_SECOND * scaleRef.current;
+      // the ferry is an hour and a half on the clock, but you watch it cross: about six seconds
+      if (moving.mode === 'ferry') days = (dt / 6) * (1.5 / 24);
       done += days * speed;
       acc += days;
       const { pos, done: arrived } = along(moving.path, done);
@@ -656,6 +660,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <div className="daynight" style={{ background: tint(w.hour) }} />
           {sandZones.map((c, i) => (
             <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
+          ))}
+          {/* where a river or the canal can be crossed: a bridge, or a slow ford or ferry */}
+          {z >= 1.6 && CROSSINGS.map((c) => (
+            <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
             {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}

@@ -2244,3 +2244,6 @@ button.hud-chip { cursor: pointer; }
 /* the "Me" tab shows your face; kept here because the hero screen loads on demand */
 .nav-face { width: 21px; height: 21px; border-radius: 50%; object-fit: cover; object-position: 45% 30%; border: 1px solid currentColor; }
 .dlg-opts .act.is-early{opacity:.6}
+/* river crossings on the travel map */
+.xing{position:absolute;transform:translate(-50%,-50%);z-index:2;pointer-events:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 Georgia,serif;color:#2b1b0d;background:#efe0bf;border:1.5px solid #5a3d20;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.xing-ford{background:#f3d77a}

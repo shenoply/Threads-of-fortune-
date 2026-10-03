@@ -20,7 +20,7 @@ const r = await p.evaluate(async () => {
       const q = { x: path[i - 1].x + (path[i].x - path[i - 1].x) * t, y: path[i - 1].y + (path[i].y - path[i - 1].y) * t };
       const k = W.terrainAt(q);
       // (a lone sample can clip the corner of a river cell; a town on the coast stands half in the sea)
-      if (['river', 'lake', 'canal'].includes(k)) { wet++; crossed.add('!' + k + '@' + Math.round(q.x) + ',' + Math.round(q.y)); }
+      if (['river', 'lake', 'canal', 'mountains'].includes(k)) { wet++; crossed.add('!' + k + '@' + Math.round(q.x) + ',' + Math.round(q.y)); }
       if (k === 'bridge' || k === 'ford') crossed.add(W.placeNameAt(q) ?? k);
     }
     rows.push({ to: s.id, ok: !!path, days: path ? +W.pathDays(path, W.PX_PER_DAY).toFixed(1) : null, wet, crossed: [...crossed].join(', ') });
