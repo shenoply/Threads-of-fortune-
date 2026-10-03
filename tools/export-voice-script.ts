@@ -16,6 +16,7 @@ import { MISSIONS } from '../src/data/missions';
 import { ladder, spoken } from '../src/game/economy/money';
 import { MALEK_LINES } from '../src/game/systems/malek';
 import { MALEK_UNSURE } from '../src/data/malekBuyer';
+import { AMMAR } from '../src/data/ammar';
 
 type Row = { speaker: string; file: string; text: string; note: string };
 const rows: Row[] = [];
@@ -85,6 +86,9 @@ for (const [id, gr] of Object.entries(GROOMING)) walk(id, gr, 'Reacting to the m
 
 // Rashid (supplier screen) and world NPCs
 walk('rashid', RASHID, '');
+
+// Ammar: the childhood-friend-turned-investor story arc (not yet wired into gameplay — lines only)
+walk('ammar', AMMAR, '');
 for (const n of Object.values(NPCS)) for (const [id, node] of Object.entries(n.nodes)) add(n.id, node.text, `Dialogue node "${id}".`);
 
 // Road ambushes: the band's leader speaks the quoted part of his demand

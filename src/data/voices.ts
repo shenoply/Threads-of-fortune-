@@ -18,4 +18,5 @@ export const VOICE_BRIEFS: Record<string, string> = {
   whitcombe: 'English governess, mid thirties, Surrey accent, precise, polite, dry humour',
   kasparian: 'Armenian physician, fifties, soft-spoken, exact, a little weary',
   benakis: 'Greek cotton broker from Alexandria, forties, charming, expansive, vain',
+  ammar: "Ammar. Egyptian man, mid-to-late 30s, a childhood friend back from years in Rome — confident, fast-talking, warm on the surface, a gold tooth you can practically hear. Italian polish over a Cairene base; charming even when he's lying, never raises his voice to make a point.",
 };
