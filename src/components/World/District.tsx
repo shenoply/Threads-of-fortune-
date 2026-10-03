@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { streetRoute } from '../../game/systems/streets';
 import { createPortal } from 'react-dom';
-import { takeMalekRequest } from '../../game/nav';
+import { takeMalekRequest, travelTo } from '../../game/nav';
 import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
 import { useGame, arrivalAt } from '../../game/state/store';
@@ -511,9 +511,10 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       case 'station': onWorld(); break;
       case 'gate': onWorld(); break;
       case 'ferry': {
-        const m = useGame.getState().ferryToCairo();
-        if (m.startsWith('The ferryman')) setNote(m);
-        else onWorld('cairo');
+        // hand off to the world map so the crossing actually plays out (a moving boat, the river)
+        // instead of snapping straight to the far bank the instant it's booked
+        if (useGame.getState().cash < 1) setNote('The ferryman wants a piastre.');
+        else travelTo('cairo');
         break;
       }
       case 'pyramids': {

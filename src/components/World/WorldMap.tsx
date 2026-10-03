@@ -110,7 +110,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const passTrip = useRef<{ key: string; atPx: number } | null>(null);
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
-  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' };
+  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry' };
   // resume a journey already under way, from where the caravan actually is along its path
   const [moving, setMovingRaw] = useState<null | Moving>(() => {
     const j = useGame.getState().journey;
@@ -292,9 +292,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const goTo = (to: Pt, st?: Settlement) => {
     // Giza and Cairo face each other across the river: the ferry takes an hour and a half, never days on foot
     if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza')) && !moving) {
-      const note = g.ferry(st.id as 'giza' | 'cairo');
-      setReport(note);
-      if (useGame.getState().world.at === st.id) { if (st.id === 'giza' && onDistrict) onDistrict(); else setPanel(st.id); }
+      startFerry(st.id as 'giza' | 'cairo');
       return;
     }
     const p = planTo(to, st, true);
@@ -360,7 +358,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   /** Set off at once by the quickest way there you can afford: train, ship, motor car, or on foot. */
   const travelFastest = (st: Settlement) => {
     const at = useGame.getState().world.at;
-    if ((at === 'giza' && st.id === 'cairo') || (at === 'cairo' && st.id === 'giza')) { goTo(st, st); return; }
+    if ((at === 'giza' && st.id === 'cairo') || (at === 'cairo' && st.id === 'giza')) { startFerry(st.id as 'giza' | 'cairo'); return; }
     const p = planTo(st, st, true);
     if (!p) return;
     const cash = useGame.getState().cash;
@@ -421,6 +419,27 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     setPlan(null);
     setAlt(null);
     setReport(mode === 'motor' ? `By Nairn motor car across the desert to ${dest.name}.` : `By ship to ${dest.name}.`);
+    audio.sfx('tap');
+  };
+
+  /** The Nile ferry between Giza and Cairo: the one crossing in the game that used to just snap the
+   *  view to the far bank the instant it was booked, with no boat, no river, nothing to watch — unlike
+   *  every other way of travelling. Now it runs through the same moving-marker loop as a ship or train,
+   *  just over a much shorter, much faster leg, so you actually see the crossing. The fare, the hour and
+   *  the journal line are still applied by g.ferry() itself, once the crossing lands. */
+  const startFerry = (toId: 'giza' | 'cairo') => {
+    const st = useGame.getState();
+    if (st.cash < 1) { setReport('The ferryman wants a piastre.'); return; }
+    const fromId = st.world.at === 'giza' ? 'giza' : 'cairo';
+    if (fromId === toId) return;
+    const from = settlementById(fromId);
+    const dest = settlementById(toId);
+    const path = routeLeg({ x: from.x, y: from.y }, { x: dest.x, y: dest.y }, 'ship');
+    follow.current = true;
+    setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / (1.5 / 24), mode: 'ferry' });
+    setPlan(null);
+    setAlt(null);
+    setReport('The ferry noses out across the brown river.');
     audio.sfx('tap');
   };
 
@@ -533,10 +552,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         setTimeScale(1);
         const dest = moving.dest;
         if (dest) {
-          useGame.getState().arriveAt(dest);
+          // the ferry fare, the hour and a half, and the journal line are g.ferry()'s own job, not
+          // the generic arriveAt() every other arrival uses
+          setReport(moving.mode === 'ferry' ? useGame.getState().ferry(dest as 'giza' | 'cairo', true) : (useGame.getState().arriveAt(dest), ''));
           if (dest === 'giza' && onDistrict) onDistrict();
           else setPanel(dest);
-          setReport('');
         } else {
           const near = SETTLEMENTS.find((x) => dist(x, pos) < 10);
           if (near) useGame.getState().arriveAt(near.id);
@@ -577,7 +597,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const routeRisky = plan ? plan.risky : moving && !moving.train && !moving.mode ? routeDanger(moving.path, w.parties) > strength(w.party) : false;
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
   const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food ${foodDaysLeft(w.party)} days`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
-  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
+  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.mode === 'ferry' ? 'Crossing the Nile' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
   // where you are on screen: when the map has been dragged away from you, a labelled button points back
@@ -735,7 +755,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
             <button className={`bl-night ${nightRule}`} onClick={() => setNightRule(nightRule === 'ask' ? 'camp' : nightRule === 'camp' ? 'march' : 'ask')} title="What to do when night falls on the road" data-testid="night-rule"><Icon name="moon" />{nightRule === 'ask' ? 'Ask' : nightRule === 'camp' ? 'Camp' : 'March'}</button>
-            {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
+            {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.mode === 'ferry' ? 'By ferry' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
           </div>
           {/* small on the map; a tap opens it larger, with each number named */}
           <button type="button" className={`bl-party ${partyOpen ? 'open' : ''}`} onClick={() => setPartyOpen((o) => !o)} aria-expanded={partyOpen} aria-label="Your caravan: tap for details" data-testid="bl-party">
@@ -782,7 +802,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <div className="wc-main">
               <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
               <span>
-                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}
+                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}
               </span>
             </div>
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
@@ -805,7 +825,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <div className="wc-alt" data-testid="alt-routes">
             <span>Faster:</span>
             {altFerry && alt.settlement && (
-              <button className="btn" onClick={() => { const to = alt.settlement!.id as 'giza' | 'cairo'; setMoving(null); setAlt(null); setReport(g.ferry(to)); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">Nile ferry · £0.01</button>
+              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · £0.01</button>
             )}
             {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)}</button>}
             {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)}</button>)}
@@ -834,7 +854,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </div>
               <div className="wc-btns">
                 {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) ? (
-                  <button className="btn primary sail-btn faster" onClick={() => { const to = plan.settlement!.id as 'giza' | 'cairo'; setReport(g.ferry(to)); setPlan(null); if (to === 'giza' && onDistrict) onDistrict(); else setPanel(to); }} data-testid="ferry">⛴ Nile ferry · £0.01 · 1½ h · fastest way there</button>
+                  <button className="btn primary sail-btn faster" onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · £0.01 · 1½ h · fastest way there</button>
                 ) : (
                   <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
                 )}

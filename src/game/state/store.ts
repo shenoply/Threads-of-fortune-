@@ -203,7 +203,7 @@ export interface GameState {
   introSeen?: string[];
   /** a journey under way (path, how far along, by what): kept so a paid train or ship survives the map
    *  screen being rebuilt, a new day, or a reload */
-  journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' };
+  journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry' };
   /** the khamsin kit protects until this day */
   khamsinUntil?: number;
   /** coca wine bottles bought from the chemist */
@@ -272,9 +272,11 @@ interface Actions {
   setStallShut: (shut: boolean) => void;
   setDistrict: (d: DistrictState) => void;
   setWalk: (id: string, fog: string, seen: string[]) => void;
-  ferryToCairo: () => string;
-  /** the Nile ferry between Giza and Cairo, an hour and a half either way */
-  ferry: (to: 'giza' | 'cairo') => string;
+  ferryToCairo: (skipHour?: boolean) => string;
+  /** the Nile ferry between Giza and Cairo, an hour and a half either way. skipHour: true when an
+   *  animated crossing on the world map already spent that time travelling, so this call should only
+   *  book the fare and the arrival, not add the hour and a half again. */
+  ferry: (to: 'giza' | 'cairo', skipHour?: boolean) => string;
   sail: (to: string, mode?: 'sea' | 'motor', from?: string) => string;
   talk: (npcId: string, effects: string[]) => string;
   /** walk into a cabaret or music hall; notes the visit */
@@ -1338,22 +1340,27 @@ export const useGame = create<GameState & Actions>()(
         setDistrict: (d) => set({ world: { ...get().world, district: d } }),
         setWalk: (id, fog, seen) => set({ walkedDay: id.startsWith('city-') ? get().day : get().walkedDay, world: { ...get().world, walks: { ...(get().world.walks ?? {}), [id]: { fog, seen } } } }),
 
-        ferry: (to) => {
-          if (to === 'cairo') return get().ferryToCairo();
+        // skipHour: the crossing is animated on the world map (WorldMap's startFerry), and that
+        // animated journey already advances the clock by its own travel time via travelStep, same as
+        // walking, the train or a ship. Passing true here (as WorldMap does on arrival) just books the
+        // fare and the arrival, without taking another hour and a half on top of the one already spent
+        // crossing. A caller that still wants the old one-step jump (no animation) leaves it false.
+        ferry: (to, skipHour) => {
+          if (to === 'cairo') return get().ferryToCairo(skipHour);
           const s = get();
           if (s.cash < 1) return 'The ferryman wants a piastre.';
           const st = settlementById('giza');
-          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'giza' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry back to Giza.', kind: 'arrive' }], cash: s.cash - 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Nile ferry to Giza', amount: -1 }], world: { ...s.world, at: 'giza', x: st.x, y: st.y, hour: Math.min(s.world.hour + 1.5, 23.5) } });
+          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'giza' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry back to Giza.', kind: 'arrive' }], cash: s.cash - 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Nile ferry to Giza', amount: -1 }], world: { ...s.world, at: 'giza', x: st.x, y: st.y, hour: Math.min(s.world.hour + (skipHour ? 0 : 1.5), 23.5) } });
           audio.sfx('arrive');
           get().checkJobs('giza');
           return 'The ferry drifts back across the river. You step off at Giza with the pyramids behind the palms.';
         },
 
-        ferryToCairo: () => {
+        ferryToCairo: (skipHour) => {
           const s = get();
           if (s.cash < 1) return 'The ferryman wants a piastre.';
           const st = settlementById('cairo');
-          const hour = s.world.hour + 1.5;
+          const hour = s.world.hour + (skipHour ? 0 : 1.5);
           set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'cairo' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry to Cairo.', kind: 'arrive' }], cash: s.cash - 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Nile ferry to Cairo', amount: -1 }], world: { ...s.world, at: 'cairo', x: st.x, y: st.y, hour: Math.min(hour, 23.5), known: s.world.known.includes('cairo') ? s.world.known : [...s.world.known, 'cairo'] } });
           audio.sfx('arrive');
           get().checkJobs('cairo');

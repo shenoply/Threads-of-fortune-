@@ -51,6 +51,15 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [finance, setFinance] = useState(false);
   const [library, setLibrary] = useState(false);
   const [cairoPlace, setCairoPlace] = useState<'chemist' | 'museum' | null>(null);
+  // sit tight somewhere safe and let the clock run: raiders and other road danger drift and cool down
+  // over time (see stepParties), so waiting here is a real way to let trouble on the road move on
+  // before you set off again, instead of only ever being able to walk straight into it.
+  const [waitOpen, setWaitOpen] = useState(false);
+  const waitHere = (hours: number) => {
+    setWaitOpen(false);
+    const notes = useGame.getState().worldTick(hours / 24);
+    setNote(notes.length ? notes.join(' ') : `You wait ${hours === 1 ? 'an hour' : hours < 24 ? `${hours} hours` : 'a day'}. Nothing happens.`);
+  };
   const goTo = (t: SetTab, anchor?: string) => {
     setMenu(false); setTab(t);
     if (anchor) window.setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
@@ -377,6 +386,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s customers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
           ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
           ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
+          ['hourglass', 'Wait here', 'Let time pass — trouble on the road may move on before you set off again', () => setWaitOpen(true), 'menu-wait'],
           ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
           ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
           ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
@@ -418,6 +428,22 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       })()}
       {finance && <FinancePanel onClose={() => setFinance(false)} />}
       {library && <LibraryView town={id} onClose={() => setLibrary(false)} />}
+      {waitOpen && (
+        <div className="overlay" onClick={() => setWaitOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="wait-card">
+            <h2>Wait here</h2>
+            <p>You sit tight in {st.name}. The road outside keeps moving without you — raiders drift, and trouble you'd rather not meet may wander off before you go back out.</p>
+            <div className="save-row" style={{ flexWrap: 'wrap' }}>
+              <button className="btn" onClick={() => waitHere(1)} data-testid="wait-1h">An hour</button>
+              <button className="btn" onClick={() => waitHere(3)} data-testid="wait-3h">3 hours</button>
+              <button className="btn" onClick={() => waitHere(6)} data-testid="wait-6h">6 hours</button>
+              <button className="btn primary" onClick={() => waitHere(Math.max(1, ((6 - g.world.hour) % 24 + 24) % 24))} data-testid="wait-morning">Until morning</button>
+              <button className="btn" onClick={() => waitHere(24)} data-testid="wait-day">A full day</button>
+            </div>
+            <button className="ghost-btn" onClick={() => setWaitOpen(false)} data-testid="wait-cancel">Never mind</button>
+          </div>
+        </div>
+      )}
       {cairoPlace && <CairoPlace place={cairoPlace} onClose={() => setCairoPlace(null)} />}
       <Tip id="town" when={!menu && !inCity && !inVenue && !talkTo && !inAuction} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
