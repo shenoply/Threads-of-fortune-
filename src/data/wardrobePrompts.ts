@@ -2,13 +2,14 @@
 // Used by the wardrobe's Fit mode (copy a prompt) and by tools/wardrobe-prompts.mjs (the full file).
 import { POSE_INFO, type Piece, type Pose } from './wardrobe';
 
-export const HERO_LOOKS = 'completely bald head, thick dark beard with grey at the chin, olive-brown sun-weathered skin, deep-set dark eyes, strong nose, lined forehead, age about 45, solid medium build with strong forearms';
-const STYLE = 'Orientalist oil painting, warm golden light from the upper left, the same painting style as the attached image';
+// Hassan, the merchant you play (approved identity: art/hero/hassan-identity.jpg)
+export const HERO_LOOKS = 'a man in his mid-thirties, completely bald head, neatly shaped short dark beard and moustache, warm olive-brown skin, dark expressive eyes under heavy brows, straight strong nose, broad shoulders, broad muscular build with thick forearms';
+const STYLE = 'warm game illustration matching the attached image, golden light from the upper left; no visible brush strokes, no canvas texture, skin not airbrushed or overly smooth';
 
 export const BASE_ATTACH: Record<Pose, string> = {
-  wardrobe: 'stall-seller.jpg + hero-face-reference.jpg',
-  stall: 'hero-face-reference.jpg + hero-base-wardrobe.png',
-  profile: 'hero-face-reference.jpg + hero-base-wardrobe.png',
+  wardrobe: 'hassan-identity.jpg + hassan-face-reference.jpg',
+  stall: 'hassan-face-reference.jpg + hero-base-wardrobe.png',
+  profile: 'hassan-face-reference.jpg + hero-base-wardrobe.png',
 };
 
 export function basePrompt(pose: Pose): string {
@@ -21,7 +22,7 @@ He wears ONLY a plain, thin, close-fitting off-white cotton undershirt with shor
 Background: fully transparent (PNG with alpha). No floor, no shadow.
 Style: ${STYLE}.
 Canvas: portrait 1024x1536. Figure centred, top of head 60px from the top edge, feet 40px from the bottom edge.`;
-  if (pose === 'stall') return `Use the attached images as the exact reference for this man. Same bald head, dark greying beard, face, skin and build as the wardrobe image. Keep him identical.
+  if (pose === 'stall') return `Use the attached images as the exact reference for this man. Same bald head, short dark beard, face, skin and build as the wardrobe image. Keep him identical.
 
 Waist-up image of this same man leaning forward over his rug counter, body turned slightly to the viewer's right, head in three-quarter view, focused merchant's look, both forearms resting forward at the bottom edge of the frame with hands open, as if presenting a rug. Do not draw the counter or the rug.
 
@@ -30,7 +31,7 @@ He wears ONLY the same plain off-white short-sleeved cotton undershirt. No vest,
 Background: fully transparent (PNG with alpha).
 Style: ${STYLE}.
 Canvas: portrait 1024x1536. Head in the upper third, body cut off by the bottom edge at the waist.`;
-  return `Use the attached images as the exact reference for this man. Same bald head, dark greying beard, face, skin and build. Keep him identical.
+  return `Use the attached images as the exact reference for this man. Same bald head, short dark beard, face, skin and build. Keep him identical.
 
 Head-and-shoulders portrait of this same man facing the viewer, shoulders square, steady confident merchant's look, like a portrait in an auction catalogue.
 
