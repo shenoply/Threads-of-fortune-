@@ -91,7 +91,7 @@ export function Cutscene({ shots, title, onEnd, skippable = true }: { shots: Cut
           if (c.voice && t >= c.at && t < c.until && !fired.current.has(key)) {
             fired.current.add(key);
             const vol = dialogueVolume();
-            if (soundRef.current && vol > 0) { const el = new Audio(c.voice); el.volume = vol; voice.current = el; el.play().catch(() => {}); }
+            if (soundRef.current && vol > 0) { const el = audio.attach(new Audio(c.voice), 'dialogue'); voice.current = el; el.play().catch(() => {}); }
           }
         });
       }

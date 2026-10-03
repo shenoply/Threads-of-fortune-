@@ -17,15 +17,13 @@ const label = (id: string) => LABELS[id] ?? id.replace(/-/g, ' ').replace(/\b\w/
 // elsewhere (those play on their own as you move around); only offer the tracks named above, in this order.
 const SONG_ORDER = Object.keys(LABELS);
 
-/** Ramp a plain <audio> element's volume, since it has no built-in gain scheduling of its own.
- *  Used so a chosen record rises in (and falls out) instead of slamming in at full volume the
- *  instant whatever was already playing gets cut. */
-function fadeEl(el: HTMLAudioElement, to: number, ms: number) {
-  const from = el.volume;
+/** Ramp a record's own level (the sliders still apply on top, through the audio engine), so a
+ *  chosen record rises in and falls out instead of slamming in. */
+function fadeEl(el: HTMLAudioElement, from: number, to: number, ms: number) {
   const start = performance.now();
   const tick = () => {
     const t = Math.min(1, (performance.now() - start) / ms);
-    el.volume = from + (to - from) * t;
+    audio.setElLevel(el, from + (to - from) * t);
     if (t < 1) requestAnimationFrame(tick);
   };
   tick();
@@ -46,26 +44,34 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
       .catch(() => setTracks([]));
   }, []);
 
-  useEffect(() => () => { elRef.current?.pause(); audio.muteMusic(false); }, []);
+  const [failed, setFailed] = useState<string | null>(null);
+  useEffect(() => () => { elRef.current?.pause(); if (elRef.current) audio.detach(elRef.current); audio.muteMusic(false); }, []);
 
+  const let_go = (el: HTMLAudioElement, ms: number) => {
+    fadeEl(el, 0.85, 0, ms);
+    setTimeout(() => { el.pause(); audio.detach(el); }, ms + 20);
+  };
   const play = (id: string) => {
     audio.sfx('tap');
     audio.ensure();
+    setFailed(null);
     // switching records: the old one drops out quickly, the new one still rises on its own fade-in
-    // below, so there's a brief overlap rather than one cutting dead before the next is heard
-    if (elRef.current) { const prev = elRef.current; fadeEl(prev, 0, 300); setTimeout(() => prev.pause(), 320); }
+    if (elRef.current) let_go(elRef.current, 300);
     audio.muteMusic(true, 1.1);
-    const el = new Audio(`audio/music/${id}.mp3`);
-    el.volume = 0;
-    el.onended = () => { setPlaying(null); audio.muteMusic(false); };
-    el.play().catch(() => {});
-    fadeEl(el, 0.85, 1400);
+    const el = audio.attach(new Audio(`audio/music/${id}.mp3`), 'music', 0);
     elRef.current = el;
+    // only the record that is on now may end the session or bring the score back
+    const mine = () => elRef.current === el;
+    el.onended = () => { if (!mine()) return; elRef.current = null; setPlaying(null); audio.muteMusic(false); };
+    const fail = () => { if (!mine()) return; elRef.current = null; audio.detach(el); setPlaying(null); setFailed(id); audio.muteMusic(false); };
+    el.onerror = fail;
+    el.play().catch(fail);
+    fadeEl(el, 0, 0.85, 1400);
     setPlaying(id);
   };
   const stop = () => {
     const el = elRef.current;
-    if (el) { fadeEl(el, 0, 500); setTimeout(() => el.pause(), 520); }
+    if (el) let_go(el, 500);
     elRef.current = null;
     setPlaying(null);
     audio.muteMusic(false);
@@ -80,6 +86,7 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
         <div className="radio-captions" data-testid="gramophone-list">
           {tracks === null && <p className="hint">Winding it up…</p>}
           {tracks?.length === 0 && <p className="hint">The records are packed away this trip.</p>}
+          {failed && <p className="hint" data-testid="gramo-failed">The record would not play. <button className="btn small" onClick={() => play(failed)} data-testid="gramo-retry">Try again</button></p>}
           {tracks?.map((id) => (
             <button
               key={id}

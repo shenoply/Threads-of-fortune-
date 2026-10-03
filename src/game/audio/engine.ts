@@ -54,6 +54,24 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   rivalry: ['selims-corner', 'khan-kurd'],
 };
 
+// Measured loudness of each piece (integrated LUFS, Music test batch 1). Each plays at a gain that
+// brings it about halfway to -19 LUFS: the loud and the quiet pieces come closer together without
+// flattening the ones that are meant to be soft.
+const LUFS: Record<string, number> = {
+  auction: -19.55, 'bells-of-the-old-city': -16.03, 'bu-geceyi-sev': -19.81, 'corniche-rebetiko': -15.58, 'deck-passage': -15.83,
+  'evening-bayati': -18.96, 'evening-saba': -18.9, 'hijaz-kar-umayyad-gate': -15.23, 'istanbul-ussak': -18.2, 'khan-bayati': -18.79,
+  'khan-kurd': -18.14, 'khan-rast': -19.16, 'la-vie-du-levant': -21.1, 'larg-nga-malet': -23.13, 'nightingale-club': -19.96,
+  'palace-nahawand': -18.03, 'palace-rast': -18.64, 'qamar-after-midnight': -15.7, 'qamar-dimashq': -16.52, 'road-bayati': -19.24,
+  'road-hijaz': -19.28, 'sahil-al-layl': -21.38, 'salon-waltz': -18.13, 'selims-corner': -16.25, 'solo-nay-flute': -18.44,
+  'the-gavel-rises': -16.07, 'the-risky-pass': -16.19, 'title-hijaz': -18.78, 'ya-layl-ya-ayn': -17.09, 'ya-rakib-al-layl': -16.1,
+};
+/** the playing gain for a piece (1 for one not measured); quieter pieces are not pushed past 1.6x */
+export function trackGain(name: string) {
+  const l = LUFS[name];
+  if (l == null) return 1;
+  return Math.min(1.6, 10 ** (((-19 - l) / 2) / 20));
+}
+
 /** Sounds that happen now and then in each place: [clip set, weight, gain, distance 0 near .. 1 far]. */
 const EVENTS: Record<Env, [string, number, number, number][]> = {
   market: [['footsteps', 3, 0.5, 0.3], ['laughing', 2, 0.35, 0.6], ['coughing', 1.5, 0.3, 0.5], ['pouring_water', 1.5, 0.35, 0.4], ['drinking_sipping', 1, 0.3, 0.2], ['hen', 1.2, 0.3, 0.7], ['rooster', 0.6, 0.25, 0.85], ['dog', 1, 0.25, 0.9], ['sheep', 1, 0.28, 0.8], ['crow', 0.8, 0.25, 0.8], ['chirping_birds', 1.5, 0.25, 0.6], ['door_wood_creaks', 1, 0.3, 0.5], ['cow', 0.4, 0.22, 0.9]],
@@ -123,18 +141,87 @@ class AudioEngine {
     this.toggles = { ...t };
     voice.enabled = t.dialogue;
     if (!t.dialogue) voice.stop();
-    if (!this.ctx) return;
-    (Object.keys(LEVELS) as Channel[]).forEach((c) => this.gains[c].gain.setTargetAtTime(t[c] ? this.level(c) : 0, this.ctx!.currentTime, 0.1));
+    this.applyEls();
     if (this.voice) this.voice.muted = !t.dialogue;
+    this.mix(0.1);
   }
 
   /** The volume sliders: master scales everything, dialogue also sets the recorded voices. */
   setVolumes(v: Volumes) {
     this.volumes = { ...v };
     voice.setVolume(v.master * v.dialogue);
+    if (this.voice) this.voice.volume = Math.max(0, Math.min(1, v.master * v.dialogue));
+    this.applyEls();
     if (!this.ctx) return;
     this.master.gain.setTargetAtTime(0.9 * v.master, this.ctx.currentTime, 0.05);
-    (Object.keys(LEVELS) as Channel[]).forEach((c) => this.gains[c].gain.setTargetAtTime(this.toggles[c] ? this.level(c) : 0, this.ctx!.currentTime, 0.05));
+    this.mix(0.05);
+  }
+
+  // ---------- the mixer ----------
+  // Every reason to lower the music or the street is kept on its own (a voice speaking, the radio
+  // announcer, a record on the gramophone, a film). The level is always worked out from the
+  // sliders and every reason still active, so ending one never undoes another, and moving a slider
+  // never undoes any of them.
+  private cuts = new Map<string, { music: number; ambience: number }>();
+  private static CUT: Record<string, { music: number; ambience: number }> = {
+    voice: { music: 0.45, ambience: 0.35 },
+    radio: { music: 0.18, ambience: 0.5 },
+    record: { music: 0, ambience: 0 },
+  };
+  /** turn one reason on or off (`secs`: how quickly the level moves) */
+  attenuate(reason: string, on: boolean, secs?: number, cut?: { music: number; ambience: number }) {
+    if (on) this.cuts.set(reason, cut ?? AudioEngine.CUT[reason] ?? { music: 0, ambience: 0 });
+    else this.cuts.delete(reason);
+    this.mix(secs ?? (on ? 0.15 : 0.8));
+  }
+  private factor(c: 'music' | 'ambience') {
+    let f = 1;
+    for (const k of this.cuts.values()) f = Math.min(f, k[c]);
+    return f;
+  }
+  private mix(secs: number) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    (Object.keys(LEVELS) as Channel[]).forEach((c) => {
+      const f = c === 'music' || c === 'ambience' ? this.factor(c) : 1;
+      this.gains[c].gain.setTargetAtTime(this.toggles[c] ? this.level(c) * f : 0, t, secs);
+    });
+  }
+
+  // Plain <audio> players (the gramophone, Malek's recorded lines, film voices) are not on the
+  // Web Audio graph, so the engine keeps a list of them and sets their volume itself: the master,
+  // the channel's slider and its on/off all apply to a line that is already playing.
+  private els = new Map<HTMLAudioElement, { kind: 'dialogue' | 'music' | 'sfx'; f: number }>();
+  /** what a plain player of this kind should be at, before its own level */
+  elVolume(kind: 'dialogue' | 'music' | 'sfx') {
+    const v = this.volumes;
+    const on = kind === 'dialogue' ? this.toggles.dialogue : kind === 'music' ? this.toggles.music : this.toggles.sfx;
+    return on ? Math.max(0, Math.min(1, v.master * (kind === 'dialogue' ? v.dialogue : kind === 'music' ? v.music : v.sfx))) : 0;
+  }
+  /** look after a plain player: its volume follows the sliders until it ends or is let go */
+  attach(el: HTMLAudioElement, kind: 'dialogue' | 'music' | 'sfx', f = 1) {
+    this.els.set(el, { kind, f });
+    el.volume = Math.min(1, f * this.elVolume(kind));
+    const drop = () => this.els.delete(el);
+    el.addEventListener('ended', drop, { once: true });
+    el.addEventListener('error', drop, { once: true });
+    return el;
+  }
+  /** a player's own level (fades), 0..1, still under the sliders */
+  setElLevel(el: HTMLAudioElement, f: number) {
+    const e = this.els.get(el);
+    if (!e) return;
+    e.f = f;
+    el.volume = Math.max(0, Math.min(1, f * this.elVolume(e.kind)));
+  }
+  detach(el: HTMLAudioElement) { this.els.delete(el); }
+  private applyEls() {
+    for (const [el, e] of this.els) {
+      const v = this.elVolume(e.kind);
+      el.volume = Math.max(0, Math.min(1, e.f * v));
+      // dialogue switched off stops a line mid-word; a record only goes quiet (it keeps its place)
+      if (e.kind === 'dialogue' && !this.toggles.dialogue) { el.pause(); this.els.delete(el); }
+    }
   }
 
   /** How full the lane is today (Friday quiet, feast days crowded): the market bed and its passing sounds follow. */
@@ -142,7 +229,7 @@ class AudioEngine {
   setLane(level: number) {
     if (level === this.laneBusy) return;
     this.laneBusy = level;
-    if (this.ctx) this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') : 0, this.ctx.currentTime, 1.5);
+    this.mix(1.5);
   }
   private level(c: Channel) {
     const slider = c === 'music' ? this.volumes.music : c === 'dialogue' ? this.volumes.dialogue : this.volumes.sfx;
@@ -150,30 +237,16 @@ class AudioEngine {
   }
 
   /** While someone speaks, the street and the music step back so the words come through. */
-  private voiceOn = false;
-  duckForVoice(on: boolean) {
-    if (on === this.voiceOn || !this.ctx) { this.voiceOn = on; return; }
-    this.voiceOn = on;
-    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') * (on ? 0.35 : 1) : 0, this.ctx.currentTime, on ? 0.15 : 0.8);
-    this.gains.music.gain.setTargetAtTime(this.toggles.music ? this.level('music') * (on ? 0.45 : 1) : 0, this.ctx.currentTime, on ? 0.15 : 0.8);
-  }
+  duckForVoice(on: boolean) { this.attenuate('voice', on); }
 
   /** Lower the music while the radio announcer speaks. */
-  duckMusic(on: boolean) {
-    if (!this.ctx) return;
-    this.gains.music.gain.setTargetAtTime(this.toggles.music ? this.level('music') * (on ? 0.18 : 1) : 0, this.ctx.currentTime, 0.4);
-    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience ? this.level('ambience') * (on ? 0.5 : 1) : 0, this.ctx.currentTime, 0.4);
-  }
+  duckMusic(on: boolean) { this.attenuate('radio', on, 0.4); }
 
   /** Silence the background score and ambience entirely while a record plays on the gramophone,
    *  so the two pieces of music never overlap; restores both fully once the lid closes.
    *  `secs` lets the drop-out recede over the same span the gramophone's own track takes to rise,
    *  instead of the default quick duck — a handoff rather than a cut. */
-  muteMusic(on: boolean, secs = 0.3) {
-    if (!this.ctx) return;
-    this.gains.music.gain.setTargetAtTime(this.toggles.music && !on ? this.level('music') : 0, this.ctx.currentTime, secs);
-    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience && !on ? this.level('ambience') : 0, this.ctx.currentTime, secs);
-  }
+  muteMusic(on: boolean, secs = 0.3) { this.attenuate('record', on, secs); }
 
   private loadBank() {
     if (!this.bankLoading) this.bankLoading = fetch('audio/soundbank.json').then((r) => r.json()).then((b: Bank) => (this.bank = b)).catch(() => null);
@@ -512,6 +585,11 @@ class AudioEngine {
   // ---------- music ----------
   private musicCtx: MusicCtx | null = null;
   private track: { name: string; src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  // every music source started and not yet ended, fading ones included, so Stop reaches them all
+  private live = new Set<AudioBufferSourceNode>();
+  // bumped by every new request: a load that finishes after a newer request was made is dropped
+  private gen = 0;
+  private tails = new WeakMap<AudioBuffer, number>();
   private musicTimer: number | null = null;
   private recent: string[] = [];
   // a context change doesn't cut the music the instant it happens: it waits here first, and a
@@ -539,11 +617,24 @@ class AudioEngine {
     this.state.track = '';
   }
 
+  /** seconds of near-silence (under -50 dB) at the end of a piece, worked out once per file */
+  private tail(buf: AudioBuffer) {
+    let t = this.tails.get(buf);
+    if (t != null) return t;
+    const floor = 10 ** (-50 / 20), sr = buf.sampleRate, chans = [...Array(buf.numberOfChannels)].map((_, i) => buf.getChannelData(i));
+    let i = buf.length - 1;
+    for (; i > 0; i -= 64) if (chans.some((d) => Math.abs(d[i]) > floor)) break;
+    t = Math.max(0, (buf.length - 1 - i) / sr);
+    this.tails.set(buf, t);
+    return t;
+  }
+
   private async playTrack(name: string, fadeIn = 4.5) {
     if (!this.ctx || !this.musicOn) return;
     const want = this.musicCtx;
+    const my = ++this.gen;
     const buf = await this.buffer(`audio/music/${name}.mp3`);
-    if (!this.ctx || !this.musicOn || this.musicCtx !== want) return;
+    if (!this.ctx || !this.musicOn || this.musicCtx !== want || my !== this.gen) return;
     if (!buf) {
       // a track that failed to load (missing file, bad network) must not just go silent until
       // something else happens to change the scene: try another piece from the same pool instead
@@ -555,24 +646,35 @@ class AudioEngine {
     const c = this.ctx;
     const src = c.createBufferSource();
     src.buffer = buf;
+    // anything still sounding as the current piece (a race from an older request) goes now
+    if (this.track) this.fadeOutTrack(1.5);
     const gain = c.createGain();
+    const lvl = trackGain(name);
     gain.gain.setValueAtTime(0.0001, c.currentTime);
-    gain.gain.linearRampToValueAtTime(1, c.currentTime + fadeIn);
+    gain.gain.linearRampToValueAtTime(lvl, c.currentTime + fadeIn);
     src.connect(gain).connect(this.gains.music);
     src.start();
+    this.live.add(src);
     this.track = { name, src, gain };
     this.state.track = name;
     this.recent = [...this.recent.filter((n) => n !== name), name].slice(-3);
     src.onended = () => {
-      if (this.track?.src !== src) return;
-      this.track = null;
-      this.state.track = '';
-      // a short room-tone pause between pieces, not a long dead stretch — the point is to feel
-      // like an ongoing score, not isolated cues separated by silence
-      const gap = this.musicCtx === 'documentary' ? 800 : 4000 + Math.random() * 8000;
-      if (this.musicTimer) clearTimeout(this.musicTimer);
-      this.musicTimer = window.setTimeout(() => this.musicCtx && this.playTrack(this.chooseTrack(this.musicCtx)), gap);
+      this.live.delete(src);
+      try { gain.disconnect(); } catch { /* gone */ }
+      if (this.track?.src === src) { this.track = null; this.state.track = ''; }
     };
+    // the next piece is timed from where this one's music actually ends, not from the silent
+    // padding after it: a short breath (shorter on the road and at a show, a longer quiet at camp)
+    const ctxNow = this.musicCtx;
+    const breath = ctxNow === 'documentary' ? 0.8 : ctxNow === 'camp' ? 6 + Math.random() * 8 : ctxNow === 'road' || ctxNow === 'desert' || ctxNow === 'cabaret' ? 1 + Math.random() * 2 : 2 + Math.random() * 3;
+    const endsAt = Math.max(5, buf.duration - this.tail(buf));
+    if (this.musicTimer) clearTimeout(this.musicTimer);
+    this.musicTimer = window.setTimeout(() => {
+      if (my !== this.gen || !this.musicCtx) return;
+      this.playTrack(this.chooseTrack(this.musicCtx));
+    }, (endsAt + breath) * 1000);
+    // fetch the likely next piece now, so it starts on time
+    if (want) { const next = PLAYLISTS[want].filter((n) => n !== name); if (next.length) this.buffer(`audio/music/${next[Math.floor(Math.random() * next.length)]}.mp3`); }
   }
 
   /** Actually commit to a new musical context: cross-fade, don't cut-then-silence-then-start.
@@ -585,6 +687,7 @@ class AudioEngine {
     // the piece already playing may suit the new place too: let it keep going
     if (this.track && PLAYLISTS[next].includes(this.track.name)) return;
     const had = !!this.track;
+    this.gen++;
     this.fadeOutTrack();
     this.musicTimer = window.setTimeout(() => this.playTrack(this.chooseTrack(next)), had ? 350 : 0);
   }
@@ -630,7 +733,9 @@ class AudioEngine {
     if (this.pendingTimer) clearTimeout(this.pendingTimer);
     this.pendingTimer = null;
     this.pendingMusicCtx = null;
+    this.gen++; // a piece still loading must not start after Stop
     this.fadeOutTrack(1.2);
+    if (this.ctx) { const t = this.ctx.currentTime; for (const s of this.live) try { s.stop(t + 1.3); } catch { /* stopped */ } }
     this.musicCtx = null;
     this.state.music = '';
   }
@@ -640,8 +745,7 @@ class AudioEngine {
   playVoice(url?: string) {
     this.stopVoice();
     if (!url || !this.toggles.dialogue) return;
-    const a = new Audio(url);
-    a.volume = Math.max(0, Math.min(1, this.volumes.master * this.volumes.dialogue));
+    const a = this.attach(new Audio(url), 'dialogue');
     this.voice = a;
     this.state.voicePlaying = true;
     a.onended = () => { this.state.voicePlaying = false; };

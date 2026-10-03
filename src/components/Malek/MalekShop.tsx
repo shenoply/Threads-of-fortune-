@@ -87,9 +87,9 @@ function StillSound({ src }: { src: string }) {
   useEffect(() => {
     const vol = audio.toggles.sfx ? audio.volumes.master * audio.volumes.sfx : 0;
     if (vol <= 0) return;
-    const a = new Audio(src); a.volume = Math.min(1, vol);
+    const a = audio.attach(new Audio(src), 'sfx');
     a.play().catch(() => {});
-    return () => a.pause();
+    return () => { a.pause(); audio.detach(a); };
   }, [src]);
   return null;
 }

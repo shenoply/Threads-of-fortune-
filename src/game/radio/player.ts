@@ -29,12 +29,14 @@ class RadioPlayer {
    *  part-way through (skipping to the news, or a line you tapped). */
   async play(lang: Lang, segs: Segment[], onLine: (i: number) => void, onEnd: () => void, volume = 1, from = 0) {
     this.stop();
-    if (!audio.ensure()) return;
+    if (!audio.ensure()) { onEnd(); return; }
     const run = ++this.runId;
     this.playing = true;
     const ctx = audio.ctx!;
     const m = await this.load();
-    if (!m || run !== this.runId) return;
+    if (run !== this.runId) return;
+    // no bulletin to read (the list would not load): the set is off again, and the screen is told
+    if (!m) { this.stop(); onEnd(); return; }
     // the set warms up: a gentle hiss with the odd crackle
     this.out = ctx.createGain();
     this.out.gain.value = volume; // lower when it plays in the background at the stall
@@ -56,7 +58,8 @@ class RadioPlayer {
       onLine(i);
       if (!grp || !clip) { await new Promise((r) => setTimeout(r, 1500)); continue; }
       const buf = await this.buffer(grp.file);
-      if (!buf || run !== this.runId) return;
+      if (run !== this.runId) return;
+      if (!buf) { await new Promise((r) => setTimeout(r, 1500)); continue; } // a piece that would not load: its caption shows, the rest goes on
       await new Promise<void>((resolve) => {
         const src = ctx.createBufferSource();
         src.buffer = buf;

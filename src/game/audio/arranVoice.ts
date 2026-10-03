@@ -104,7 +104,7 @@ export function playArranVoice(what: ArranVoiceContext | { id: string; noSubtitl
     const a = preloaded.get(src) ?? new Audio(src);
     preloaded.delete(src);
     a.currentTime = 0;
-    a.volume = vol;
+    audio.attach(a, 'dialogue');
     current = a;
     a.onended = () => { if (current === a) { current = null; hold(); } };
     a.onerror = () => { if (current === a) current = null; };

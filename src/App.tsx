@@ -158,8 +158,10 @@ export default function App() {
   const tourStep = g.tutorial.done ? (['buyers', 'news', 'radio', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
   const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
   useEffect(() => {
-    audio.setScene(tab === 'map' ? 'road' : 'market');
-  }, [tab, g.world.at]);
+    // the music follows where you are (in a town, or out on the road), not which screen is open:
+    // looking at the map or your stock does not change the score
+    audio.setScene(g.world.at ? 'market' : 'road');
+  }, [g.world.at]);
   useEffect(() => {
     audio.setClock(g.world.hour, g.dayOver);
   }, [g.world.hour, g.dayOver]);

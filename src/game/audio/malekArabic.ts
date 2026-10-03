@@ -15,14 +15,16 @@ export function sayMalekArabic(phraseId: string, rnd = Math.random) {
   malekArabicDebug.last = clip;
   const vol = dialogueVolume();
   if (vol <= 0 || typeof Audio === 'undefined') return;
-  if (current) current.pause();
-  const a = new Audio(`audio/malek/ar-${clip}.mp3`);
-  a.volume = vol;
+  if (current) { const prev = current; current = null; prev.pause(); audio.detach(prev); }
+  const a = audio.attach(new Audio(`audio/malek/ar-${clip}.mp3`), 'dialogue');
   current = a;
   audio.duckForVoice(true);
-  a.onended = () => { if (current === a) { current = null; audio.duckForVoice(false); } };
-  a.play().catch(() => { if (current === a) { current = null; audio.duckForVoice(false); } });
+  const done = () => { if (current === a) { current = null; audio.duckForVoice(false); } };
+  a.onended = done;
+  a.onerror = done;
+  a.onpause = done; // stopped by the dialogue switch or a slider at zero
+  a.play().catch(done);
 }
 export function stopMalekArabic() {
-  if (current) { current.pause(); current = null; audio.duckForVoice(false); }
+  if (current) { const a = current; current = null; a.pause(); audio.detach(a); audio.duckForVoice(false); }
 }
