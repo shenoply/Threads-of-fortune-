@@ -12,6 +12,12 @@
 // stay small and honest. Either way the story can end in bankruptcy; what differs after that is
 // the road back — a good honour score gives you a real revenge/comeback arc, a bad one makes the
 // climb back much harder, with fewer people willing to stand behind you.
+//
+// Art direction (locked): muscular build, visible gold tooth, 1925-appropriate clothing, in the
+// game's existing painted portrait style. Final portrait goes to public/art/portraits/ammar.jpg
+// (every other buyer/NPC portrait follows this id-based convention already — no code change
+// needed once the file lands). A -stall.webp/-stall2.webp pair, like Antonios and Benakis have,
+// is worth adding too if Ammar gets stall-visit scenes.
 
 export const AMMAR = {
   // ---------------- he turns up again, after years away ----------------
