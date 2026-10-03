@@ -50,6 +50,7 @@ def town(src, sid):
 # Roads: waypoints in painting pixels between named towns, after the 1920s routes
 ROADS = [
     ('giza', [], 'saqqara'), ('saqqara', [], 'fayoum'), ('giza', [], 'fayoum'),
+    ('giza', [(355, 713)], 'cairo'),                            # the Nile bridge by Cairo's old citadel
     ('cairo', [], 'tanta'), ('tanta', [(270, 660)], 'alexandria'),
     ('cairo', [(470, 760)], 'suez'), ('cairo', [(470, 690)], 'portsaid'),
     ('suez', [(660, 760), (760, 770)], 'sinai'),               # Wadi Feiran up to the monastery
