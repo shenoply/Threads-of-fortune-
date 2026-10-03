@@ -17,6 +17,20 @@ const label = (id: string) => LABELS[id] ?? id.replace(/-/g, ' ').replace(/\b\w/
 // elsewhere (those play on their own as you move around); only offer the tracks named above, in this order.
 const SONG_ORDER = Object.keys(LABELS);
 
+/** Ramp a plain <audio> element's volume, since it has no built-in gain scheduling of its own.
+ *  Used so a chosen record rises in (and falls out) instead of slamming in at full volume the
+ *  instant whatever was already playing gets cut. */
+function fadeEl(el: HTMLAudioElement, to: number, ms: number) {
+  const from = el.volume;
+  const start = performance.now();
+  const tick = () => {
+    const t = Math.min(1, (performance.now() - start) / ms);
+    el.volume = from + (to - from) * t;
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  tick();
+}
+
 /** The gramophone on the shelf: pick any record you have collected and it plays through the horn.
  *  The game's own score and ambience go fully quiet while it plays, so the two never overlap, and
  *  come back once the lid is closed. */
@@ -37,17 +51,21 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
   const play = (id: string) => {
     audio.sfx('tap');
     audio.ensure();
-    if (elRef.current) { elRef.current.pause(); elRef.current = null; }
-    audio.muteMusic(true);
+    // switching records: the old one drops out quickly, the new one still rises on its own fade-in
+    // below, so there's a brief overlap rather than one cutting dead before the next is heard
+    if (elRef.current) { const prev = elRef.current; fadeEl(prev, 0, 300); setTimeout(() => prev.pause(), 320); }
+    audio.muteMusic(true, 1.1);
     const el = new Audio(`audio/music/${id}.mp3`);
-    el.volume = 0.85;
+    el.volume = 0;
     el.onended = () => { setPlaying(null); audio.muteMusic(false); };
     el.play().catch(() => {});
+    fadeEl(el, 0.85, 1400);
     elRef.current = el;
     setPlaying(id);
   };
   const stop = () => {
-    elRef.current?.pause();
+    const el = elRef.current;
+    if (el) { fadeEl(el, 0, 500); setTimeout(() => el.pause(), 520); }
     elRef.current = null;
     setPlaying(null);
     audio.muteMusic(false);

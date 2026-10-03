@@ -211,6 +211,11 @@ canvas.dust { position: absolute; left: 0; top: 0; width: 1312px; height: 380px;
   display: flex; flex-direction: column; gap: 4px;
 }
 .plate-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.plate-row-btn {
+  background: none; border: none; padding: 0; margin: 0; width: 100%; text-align: left; cursor: pointer;
+  border-radius: 3px; transition: background-color 0.15s;
+}
+.plate-row-btn:hover, .plate-row-btn:focus-visible { background: rgba(255,255,255,0.06); }
 .plate-buyer .name { font-family: var(--display); font-size: 16.5px; color: var(--brass-hi); }
 .plate-buyer .role { font-size: 14px; color: var(--text-dim); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .tier { font-family: var(--label); font-size: 12.5px; letter-spacing: 0.08em; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 2px; color: var(--parchment-2); background: rgba(0,0,0,0.45); }

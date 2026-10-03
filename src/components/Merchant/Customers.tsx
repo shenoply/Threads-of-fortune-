@@ -58,33 +58,48 @@ export function Customers() {
           </div>
         </section>
       ))}
-      {open && BUYERS[open] && (() => {
-        const b = BUYERS[open];
-        const need = unlockOf(open);
-        const locked = g.reputation < need;
-        const r = g.relationships[open];
-        const t = BUYER_TIERS[open] ?? [3, 4];
-        const i = allIds.indexOf(open);
-        return (
-          <div className="overlay" onClick={() => setOpen(null)}>
-            <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card">
-              <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={() => setOpen(null)} data-testid="buyer-card-close">⟵ Back</button></div>
-              <img className="buyer-big" src={`art/portraits/${open}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              <p className="buyer-role">{CELEB_INFO[open as keyof typeof CELEB_INFO]?.role ?? b.role}</p>
-              <div className="buyer-facts">
-                <span><small>Buys</small><b>{TIER[t[0]]}{t[1] > t[0] ? ` – ${TIER[t[1]]}` : ''}</b></span>
-                <span><small>Spends</small><b>{fmt(b.budget[0])} – {fmt(b.budget[1])}</b></span>
-                <span><small>{locked ? 'Comes at' : 'Visits'}</small><b>{locked ? `Rep ${need}` : r?.visits ? r.visits : 'Not met'}</b></span>
-              </div>
-              <p className="buyer-bio">{b.bio}</p>
-              <div className="buyer-nav">
-                <button className="btn" disabled={i <= 0} onClick={() => show(allIds[i - 1])}>⟵ Previous</button>
-                <button className="btn" disabled={i >= allIds.length - 1} onClick={() => show(allIds[i + 1])} data-testid="buyer-next">Next ⟶</button>
-              </div>
-            </div>
+      {open && BUYERS[open] && (
+        <BuyerCard
+          id={open}
+          onClose={() => setOpen(null)}
+          onPrev={allIds.indexOf(open) > 0 ? () => show(allIds[allIds.indexOf(open) - 1]) : undefined}
+          onNext={allIds.indexOf(open) < allIds.length - 1 ? () => show(allIds[allIds.indexOf(open) + 1]) : undefined}
+        />
+      )}
+    </div>
+  );
+}
+
+/** A buyer's card: who they are, what they buy and spend, and how things stand with them so far.
+ *  Used both from the full customers list (with Previous/Next) and, standalone, from mid-negotiation
+ *  so a buyer's name or portrait can be tapped to see who they are without leaving the table. */
+export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose: () => void; onPrev?: () => void; onNext?: () => void }) {
+  const g = useGame();
+  const b = BUYERS[id];
+  if (!b) return null;
+  const need = id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? b.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0;
+  const locked = g.reputation < need;
+  const r = g.relationships[id];
+  const t = BUYER_TIERS[id] ?? [3, 4];
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card">
+        <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="buyer-card-close">⟵ Back</button></div>
+        <img className="buyer-big" src={`art/portraits/${id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <p className="buyer-role">{CELEB_INFO[id as keyof typeof CELEB_INFO]?.role ?? b.role}</p>
+        <div className="buyer-facts">
+          <span><small>Buys</small><b>{TIER[t[0]]}{t[1] > t[0] ? ` – ${TIER[t[1]]}` : ''}</b></span>
+          <span><small>Spends</small><b>{fmt(b.budget[0])} – {fmt(b.budget[1])}</b></span>
+          <span><small>{locked ? 'Comes at' : 'Visits'}</small><b>{locked ? `Rep ${need}` : r?.visits ? r.visits : 'Not met'}</b></span>
+        </div>
+        <p className="buyer-bio">{b.bio}</p>
+        {(onPrev || onNext) && (
+          <div className="buyer-nav">
+            <button className="btn" disabled={!onPrev} onClick={onPrev}>⟵ Previous</button>
+            <button className="btn" disabled={!onNext} onClick={onNext} data-testid="buyer-next">Next ⟶</button>
           </div>
-        );
-      })()}
+        )}
+      </div>
     </div>
   );
 }

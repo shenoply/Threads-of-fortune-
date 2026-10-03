@@ -16,6 +16,7 @@ import { useGame } from '../../game/state/store';
 import { START_WARDROBE } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { stallFigure } from './stallArt';
+import { BuyerCard } from '../Merchant/Customers';
 
 const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
 // lantern flames in each painting, as fractions of the image (see Atmosphere)
@@ -230,6 +231,9 @@ interface BandProps {
 /** Status band under the scene: narrator, stage, buyer meters, what you have learned. */
 export function InfoBand({ enc, presented, view, tierName, priorities }: BandProps) {
   const buyer = enc ? BUYERS[enc.buyerId] : null;
+  // tap the buyer's name or portrait to see their card (bio, what they buy, how things stand) without
+  // stepping away from the table
+  const [profileOpen, setProfileOpen] = useState(false);
   const stageIdx = enc ? STAGES.findIndex((x) => x.id === enc.stage) : -1;
   const allP = buyer && enc ? [...prefsFor(enc).roomPriorities, ...buyer.priorities.drawn] : [];
   // On phones the speech sits here, under the picture, instead of in a bubble over it.
@@ -265,12 +269,13 @@ export function InfoBand({ enc, presented, view, tierName, priorities }: BandPro
       })()}
       {enc && buyer && (
         <div className="plate-buyer" data-testid="buyer-plate">
-          <div className="plate-row">
+          <button className="plate-row plate-row-btn" onClick={() => setProfileOpen(true)} data-testid="buyer-plate-open" aria-label={`${buyer.name}'s profile`}>
             <BuyerFace id={buyer.id} />
             <span className="name">{buyer.name}</span>
             <span className="tier" data-testid="enc-tier">{tierName}</span>
             <span className="role">{enc.asked.includes('room') ? prefsFor(enc).needLabel : buyer.role}</span>
-          </div>
+          </button>
+          {profileOpen && <BuyerCard id={buyer.id} onClose={() => setProfileOpen(false)} />}
           <div className="meters">
             <Meter label="Interest" v={enc.interest} color="#d9a441" />
             <Meter label="Patience" v={enc.patience} color="#8fae5b" max={Math.max(100, enc.patience)} />

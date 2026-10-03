@@ -166,11 +166,13 @@ class AudioEngine {
   }
 
   /** Silence the background score and ambience entirely while a record plays on the gramophone,
-   *  so the two pieces of music never overlap; restores both fully once the lid closes. */
-  muteMusic(on: boolean) {
+   *  so the two pieces of music never overlap; restores both fully once the lid closes.
+   *  `secs` lets the drop-out recede over the same span the gramophone's own track takes to rise,
+   *  instead of the default quick duck — a handoff rather than a cut. */
+  muteMusic(on: boolean, secs = 0.3) {
     if (!this.ctx) return;
-    this.gains.music.gain.setTargetAtTime(this.toggles.music && !on ? this.level('music') : 0, this.ctx.currentTime, 0.3);
-    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience && !on ? this.level('ambience') : 0, this.ctx.currentTime, 0.3);
+    this.gains.music.gain.setTargetAtTime(this.toggles.music && !on ? this.level('music') : 0, this.ctx.currentTime, secs);
+    this.gains.ambience.gain.setTargetAtTime(this.toggles.ambience && !on ? this.level('ambience') : 0, this.ctx.currentTime, secs);
   }
 
   private loadBank() {
