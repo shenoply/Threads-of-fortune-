@@ -1,5 +1,6 @@
 import { MASK_W, MASK_H, CELL, WATER_ROWS } from '../../data/landmask';
 import { TERRAIN_ROWS } from '../../data/terrain';
+import { BARRIER_ROWS, BARRIER_NAMES } from '../../data/barriers';
 import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, type Settlement } from '../../data/world';
 
 export interface Pt { x: number; y: number }
@@ -27,21 +28,28 @@ export const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
 
 // Terrain from the painting (tools/build-terrain.py): roads are quick, fertile valleys normal going, open desert
 // and hills slow, mountains closed except where a road crosses them, as in Bannerlord.
-export type Terrain = 'road' | 'fertile' | 'desert' | 'hills' | 'mountains' | 'water';
+// Rivers, lakes and the canal (tools/build-barriers.py) are closed too, and a river is crossed only at a
+// bridge (as quick as a road) or a ford (slow, wet going).
+export type Terrain = 'road' | 'fertile' | 'desert' | 'hills' | 'mountains' | 'water' | 'river' | 'lake' | 'canal' | 'bridge' | 'ford';
 const KIND: Record<string, Terrain> = { r: 'road', f: 'fertile', d: 'desert', h: 'hills', m: 'mountains' };
-export const TERRAIN_SPEED: Record<Terrain, number> = { road: 1.25, fertile: 1, desert: 0.8, hills: 0.6, mountains: 0, water: 0 };
-export const TERRAIN_LABEL: Record<Terrain, string> = { road: 'road', fertile: 'farmland', desert: 'open desert', hills: 'hills', mountains: 'mountains', water: 'water' };
+export const TERRAIN_SPEED: Record<Terrain, number> = { road: 1.25, fertile: 1, desert: 0.8, hills: 0.6, mountains: 0, water: 0, river: 0, lake: 0, canal: 0, bridge: 1.25, ford: 0.45 };
+export const TERRAIN_LABEL: Record<Terrain, string> = { road: 'road', fertile: 'farmland', desert: 'open desert', hills: 'hills', mountains: 'mountains', water: 'water', river: 'a river', lake: 'a lake', canal: 'the canal', bridge: 'a bridge', ford: 'a ford' };
+const BARRIER: Record<string, Terrain> = { R: 'river', L: 'lake', C: 'canal', B: 'bridge', F: 'ford' };
 const speedOf = new Float32Array(MASK_W * MASK_H);
 const kindOf: Terrain[] = new Array(MASK_W * MASK_H);
 for (let y = 0; y < MASK_H; y++)
   for (let x = 0; x < MASK_W; x++) {
     const i = y * MASK_W + x;
-    const k: Terrain = water[i] ? 'water' : KIND[TERRAIN_ROWS[y]?.[x] ?? 'd'] ?? 'desert';
+    const bar = BARRIER[BARRIER_ROWS[y]?.[x] ?? '.'];
+    // a bridge or ford also opens a river the sea mask drew (the Nile above Cairo)
+    const k: Terrain = bar === 'bridge' || bar === 'ford' ? bar : bar ?? (water[i] ? 'water' : KIND[TERRAIN_ROWS[y]?.[x] ?? 'd'] ?? 'desert');
     kindOf[i] = k;
     speedOf[i] = TERRAIN_SPEED[k];
   }
 const idxOf = (p: Pt) => { const { cx, cy } = cellOf(p); return cy * MASK_W + cx; };
 export const terrainAt = (p: Pt): Terrain => kindOf[idxOf(p)];
+/** the river, lake or crossing here by name, if it has one */
+export const placeNameAt = (p: Pt): string | undefined => BARRIER_NAMES[idxOf(p)];
 /** How fast the caravan goes here, as a share of its pace on good ground (0 = cannot go). */
 export const terrainSpeed = (p: Pt) => speedOf[idxOf(p)];
 export const isBlockedPx = (p: Pt) => speedOf[idxOf(p)] === 0;

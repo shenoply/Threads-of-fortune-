@@ -9,7 +9,7 @@ import { SETTLEMENTS, type Settlement } from '../../data/world';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger,
-  MAP_W, MAP_H, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
@@ -70,6 +70,21 @@ function groundLine(path: Pt[]) {
   if (!g.length) return '';
   const [kind, share] = g[0];
   return ` · ${share > 0.7 ? 'mostly' : share > 0.4 ? 'much of it' : 'partly'} ${TERRAIN_LABEL[kind as keyof typeof TERRAIN_LABEL]}`;
+}
+
+/** What a closed place on the map is, for the card that says you cannot go there. */
+function blockedTitle(p: Pt) {
+  const k = terrainAt(p);
+  const name = placeNameAt(p);
+  return k === 'mountains' ? 'Mountains' : k === 'river' ? (name ?? 'A river') : k === 'canal' ? 'The Suez Canal' : k === 'lake' ? 'A lake' : 'Open water';
+}
+function blockedText(p: Pt) {
+  const k = terrainAt(p);
+  if (k === 'mountains') return 'No caravan can cross these mountains. Follow a road through the passes.';
+  if (k === 'river') return 'Too deep and too wide to wade. Cross at a bridge or a ford: the route will find one.';
+  if (k === 'canal') return 'Cross the canal at Kantara or by the Ismailia ferry.';
+  if (k === 'lake') return 'A lake. Go round it.';
+  return 'You cannot walk on water. Find a port and take a ship.';
 }
 
 export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goFastest, scale, setScale, frozen, startZoom, onZoomGiza }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; goFastest?: boolean; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void }) {
@@ -258,7 +273,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const target = st ? { x: st.x, y: st.y } : to;
     const ships = here && st ? seaRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
     const motor = here && st ? motorRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
-    if (!st && (isWaterPx(to) || terrainAt(to) === 'mountains')) {
+    if (!st && isBlockedPx(to)) {
       const p0: Plan = { to, path: null, days: 0, ships: [], motor: [], from: here };
       setPlan(p0);
       return p0;
@@ -595,7 +610,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const r = wrap.current!.getBoundingClientRect();
             const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
             const nearSettlement = SETTLEMENTS.some((x) => w.known.includes(x.id) && dist(x, mp) * s < 22);
-            setHoverBlocked(!nearSettlement && (isWaterPx(mp) || terrainAt(mp) === 'mountains'));
+            setHoverBlocked(!nearSettlement && isBlockedPx(mp));
             return;
           }
           if (!pts.current.has(e.pointerId)) return;
@@ -839,8 +854,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           ) : (
             <div className="wc-row">
               <div className="wc-main">
-                <b>{plan.settlement ? plan.settlement.name : terrainAt(plan.to) === 'mountains' ? 'Mountains' : 'Open water'}</b>
-                <span>{plan.ships.length || plan.train ? 'Not reachable on foot from here.' : plan.settlement ? 'Not reachable on foot. Go to a port or a railway station.' : terrainAt(plan.to) === 'mountains' ? 'No caravan can cross these mountains. Follow a road through the passes.' : 'You cannot walk on water. Find a port and take a ship.'}</span>
+                <b>{plan.settlement ? plan.settlement.name : blockedTitle(plan.to)}</b>
+                <span>{plan.ships.length || plan.train ? 'Not reachable on foot from here.' : plan.settlement ? 'Not reachable on foot. Go to a port or a railway station.' : blockedText(plan.to)}</span>
               </div>
               {plan.train && <button className="btn primary" onClick={() => start(true)}>Train · {fmt(plan.train.fare)}</button>}
               {plan.ships.map((r) => (
