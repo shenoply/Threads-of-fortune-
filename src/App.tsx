@@ -35,6 +35,7 @@ import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
 import { FinancePanel } from './components/World/Finance';
 import { overdue } from './game/systems/finance';
+import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, type SlotInfo } from './game/state/slots';
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
 const Newspaper = lazy(() => import('./components/Newspaper/Newspaper').then((m) => ({ default: m.Newspaper })));
@@ -74,12 +75,27 @@ export default function App() {
       } catch { window.alert('That file is not a Threads of Fortune save.'); }
     });
   };
+  // three in-browser save slots: a quicker alternative to downloading/loading a file, for a few
+  // separate games on one phone. Read fresh whenever the picker might be open, since a slot can be
+  // written from the title screen (no game loaded) as well as from Settings mid-game.
+  const [slots, setSlots] = useState<(SlotInfo | null)[]>(() => readSlots());
+  const refreshSlots = () => setSlots(readSlots());
+  const slotSave = (n: number) => { if (saveToSlot(n)) { refreshSlots(); audio.sfx('tap'); } };
+  const slotLoad = (n: number, info: SlotInfo) => {
+    if (!window.confirm(`Load the save from day ${info.day}? Your current game will be replaced.`)) return;
+    if (loadFromSlot(n)) window.location.reload();
+  };
+  const slotClear = (n: number) => {
+    if (!window.confirm('Clear this save slot? This cannot be undone.')) return;
+    clearSlot(n); refreshSlots();
+  };
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
   useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
   const [settings, setSettings] = useState(false);
+  useEffect(() => { if (settings) refreshSlots(); }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
   const [msub, setMsub] = useState<MerchantSub>('customers');
   const [guide, setGuide] = useState(false);
   const [guideAt, setGuideAt] = useState(0);
@@ -141,6 +157,7 @@ export default function App() {
     }
   };
   const [confirmReset, setConfirmReset] = useState(false);
+  const [loadOpen, setLoadOpen] = useState(false);
   const toastTimer = useRef<number>();
   const toast = (m: string) => {
     if (!m) return;
@@ -297,9 +314,10 @@ export default function App() {
                   Continue · Day {g.day}
                 </button>
                 {confirmReset ? (
-                  <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ color: 'var(--text-dim)', fontSize: 14 }}>Erase this save?</span>
-                    <button className="btn" onClick={() => { g.reset(); setConfirmReset(false); }} data-testid="confirm-reset">Erase</button>
+                    <button className="btn" onClick={() => { saveToSlot(slots.findIndex((s) => !s) + 1 || 1); g.reset(); setConfirmReset(false); refreshSlots(); }} data-testid="confirm-reset-keep">Save it to a slot, then erase</button>
+                    <button className="btn" onClick={() => { g.reset(); setConfirmReset(false); }} data-testid="confirm-reset">Just erase</button>
                     <button className="ghost-btn" onClick={() => setConfirmReset(false)}>Keep</button>
                   </span>
                 ) : (
@@ -318,7 +336,24 @@ export default function App() {
                 )}
               </>
             )}
+            {slots.some((s) => s) && (
+              <button className="ghost-btn" onClick={() => { refreshSlots(); setLoadOpen((o) => !o); }} data-testid="title-load-toggle">
+                {loadOpen ? 'Hide saves' : 'Load a save'}
+              </button>
+            )}
           </div>
+          {loadOpen && (
+            <div className="slot-list" data-testid="title-slot-list">
+              {slots.map((info, i) => info && (
+                <div className="slot-row" key={i} data-testid={`title-slot-${i + 1}`}>
+                  <span className="slot-info">{slotLabel(info)}</span>
+                  <span className="slot-btns">
+                    <button className="btn small" onClick={() => slotLoad(i + 1, info)} data-testid={`title-slot-load-${i + 1}`}>Load</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="title-foot">TRADE · PEOPLE · STORIES</div>
       </div>
@@ -443,6 +478,23 @@ export default function App() {
               <label className="btn" data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
             </div>
             <p className="dim">A save file keeps a copy you can bring back, or open on another phone or computer.</p>
+            <h3>Save slots</h3>
+            <p className="dim">Keep up to {SLOT_COUNT} games side by side on this phone or computer, without downloading a file.</p>
+            <div className="slot-list" data-testid="slot-list">
+              {slots.map((info, i) => {
+                const n = i + 1;
+                return (
+                  <div className="slot-row" key={n} data-testid={`slot-${n}`}>
+                    <span className="slot-info">{info ? slotLabel(info) : 'Empty slot'}</span>
+                    <span className="slot-btns">
+                      <button className="btn small" onClick={() => slotSave(n)} data-testid={`slot-save-${n}`}>{info ? 'Overwrite' : 'Save here'}</button>
+                      {info && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
+                      {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`}>Clear</button>}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
             <h2>Sound</h2>
             <p>Voices play only where recorded lines exist. Everything else is captioned.</p>
             <div className="vol-sliders" data-testid="volume-sliders">
