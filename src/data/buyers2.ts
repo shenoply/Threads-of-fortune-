@@ -4,7 +4,7 @@ import type { BuyerDef } from '../game/types';
 
 export const MORE_BUYERS: Record<string, BuyerDef> = {
   hassan: {
-    id: 'hassan', name: 'Hassan', role: 'Keeps the Nile Star coffee house on the Pyramids Road', roomWord: 'coffee house',
+    id: 'hassan', name: 'Hasan', role: 'Keeps the Nile Star coffee house on the Pyramids Road', roomWord: 'coffee house',
     bio: 'Thirty years of coffee, backgammon and gossip. Knows everyone, pays in coins.',
     budget: [100, 450], patience: 85, trust: 60, interest: 35,
     values: { hardwearing: 3, humble: 2, warm: 2, washable: 1, story: 1, flatweave: 1, silk: -3, fragile: -3, fineWeave: -1, lightField: -2 },
@@ -38,9 +38,9 @@ export const MORE_BUYERS: Record<string, BuyerDef> = {
       { id: 'dirty', when: (_t, i) => i.condition === 'Dirty' || i.condition === 'Damaged', text: 'It is already dirty. You want me to pay for somebody else\'s coffee?', honest: 'Good, then we talk about the price.', facts: 'Under the dirt it is good, you say. Everyone says that.', factsWorks: true },
       { id: 'cost', when: () => true, text: 'Tell me honestly. Why should a coffee-house man pay for this and not for a mat from the Wednesday market?', honest: 'Now that is a good answer. I like a man who does not pretend.', facts: 'Ten years? My last rug lasted three. We will see.', factsWorks: true },
     ],
-    commission: { traits: ['hard-wearing', 'warm'], label: 'A runner for Hassan\'s doorway', bonus: 120, wants: (t) => t.traits.includes('hardwearing') && (t.traits.includes('warm') || t.traits.includes('flatweave')) },
+    commission: { traits: ['hard-wearing', 'warm'], label: 'A runner for Hasan\'s doorway', bonus: 120, wants: (t) => t.traits.includes('hardwearing') && (t.traits.includes('warm') || t.traits.includes('flatweave')) },
     lines: {
-      arrival: ['Hassan from the coffee house wanders in, drying a glass on his towel.', 'Hassan arrives, amber beads clicking in one hand.'],
+      arrival: ['Hasan from the coffee house wanders in, drying a glass on his towel.', 'Hasan arrives, amber beads clicking in one hand.'],
       greeting: ['Peace be upon you, neighbour. I smelled carpets and followed my nose.', 'Good morning, good morning. Business is good? Mine is.'],
       repeat: ['Me again. The last rug has had a thousand men on it and still smiles.', 'I told the whole coffee house about you. Now I have to buy again, or they call me a liar.'],
       room: ['My coffee house. Twelve tables, a backgammon corner, a radio that works when it wants to.', 'The floor by the door, where the men leave their shoes and their troubles.'],

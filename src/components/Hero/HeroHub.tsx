@@ -1,3 +1,4 @@
+import { HERO_NAME } from '../../data/hero';
 import { useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -27,7 +28,8 @@ export function HeroHub() {
         </button>
         <div className="hh-stats">
           <small>THE MERCHANT OF GIZA</small>
-          <h2>{rank.name}</h2>
+          <h2 data-testid="hero-name">{HERO_NAME}</h2>
+          <p className="hh-called">{rank.name}</p>
           <p className="hh-called">The bazaar calls you <b>{mannerTitle(g.manner ?? START_MANNER)}</b>.</p>
           <dl>
             <div><dt>Cash</dt><dd data-testid="hh-cash">{fmt(g.cash)}</dd></div>
