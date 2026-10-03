@@ -175,6 +175,8 @@ export interface GameState {
   /** cargo cover bought from a Lloyd's agent, and what the insurers owe you for rugs lost under it */
   insurance?: { until: number };
   claims?: number;
+  /** Rashid has bought your father's rug back once; he will not do it again */
+  faridRecovered?: boolean;
   /** Arran's notebook: lab results keyed `${rug uid}:${service}`; reopening one is free */
   arranFindings?: LabFinding[];
   /** Arran's book errands, the copies you carry, and the tests his returned books have unlocked */
@@ -519,6 +521,12 @@ export function restorePrice(item: RugItem) {
   const [lo, hi] = RUGS[item.typeId].valueBand;
   return restoreCost((lo + hi) / 2, item.condition);
 }
+/** Your father's rug, while Farid has still to see it: it is not for sale. */
+export function keptBack(s: Pick<GameState, 'missions' | 'world'>, item: RugItem) {
+  return item.typeId === 'fayoum-hearth' && s.missions?.farid === 'active' && !s.world.appraised.length;
+}
+export const KEPT_BACK_NOTE = 'That is your father\'s rug. It stays with you until Farid has seen it in Damascus.';
+
 /** what a wash or repair actually costs you, with your craft skill and perks */
 export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
   return Math.round(restorePrice(item) * (1 - Math.min(0.4, levelOf(s.skills?.craft ?? 0) * 0.02)) * (item.condition === 'Dirty' && hasPerk(s.skills?.craft, 'craft', 5) ? 0.7 : 1));
@@ -738,7 +746,10 @@ export const useGame = create<GameState & Actions>()(
             journal.push({ day: s.day, text: `The ${t2.name} went with it, in one package.` });
           }
           // the delivery you threw in came out of this sale: the receipt and the day's profit say so
-          if (enc.sweetened) { enc.saleCost = (enc.saleCost ?? item.paid) + 5; stats.gross -= 5; }
+          // the receipt counts what this sale really cost you: the rug(s), any repairs to them, and the
+          // delivery you threw in. The day's gross stays the rug margin; repairs and delivery are already
+          // in the day's expenses, so they are not counted twice.
+          enc.saleCost = (enc.saleCost ?? item.paid) + (item.spent ?? 0) + (second?.spent ?? 0) + (enc.sweetened ? 5 : 0);
           patch.inventory = s.inventory.filter((i) => i.uid !== item.uid && i.uid !== second?.uid);
           patch.totalSales = s.totalSales + 1;
           if (s.missions?.rival === 'active' && !enc.venue) patch.stats = { ...(s.stats ?? {}), rivalSales: (s.stats?.rivalSales ?? 0) + 1 };
@@ -908,9 +919,11 @@ export const useGame = create<GameState & Actions>()(
             else { notes.push(`${hd} days with no food. The caravan is exhausted and moving badly.`); repBill -= 1; }
           }
           const pay = wages(party);
+          let paidWages = 0;
           if (pay > 0) {
             if (cash >= pay) {
               cash -= pay;
+              paidWages = pay;
               ledger.push({ day: s.day, kind: 'expense', label: 'Wages for your men', amount: -pay });
               moraleV = Math.min(100, moraleV + 3);
             } else {
@@ -930,7 +943,7 @@ export const useGame = create<GameState & Actions>()(
             }
           }
           party.morale = Math.max(0, Math.min(100, moraleV));
-          const summary: DaySummary = { day: s.day, ...s.dayStats, expenses: s.dayStats.expenses + rent + foodCost + (cash >= 0 ? pay : 0), notes };
+          const summary: DaySummary = { day: s.day, ...s.dayStats, expenses: s.dayStats.expenses + rent + foodCost + paidWages, notes };
           const day = s.day + 1;
           // The first of the month: rent, dues, household. Unpaid bills grow and cost you your pitch.
           let bills = { ...(s.bills ?? { due: 0, since: 0, warned: 0 }) };
@@ -1459,7 +1472,7 @@ export const useGame = create<GameState & Actions>()(
           const visit = (s.visits ?? []).find((v) => v.city === id && v.until >= s.day);
           if (visit) {
             const tierOfV = (i: RugItem) => RUGS[i.typeId]?.tier ?? 1;
-            const rug = s.inventory.filter((i) => !i.stored && tierOfV(i) >= visit.tier).sort((a, b) => tierOfV(a) - tierOfV(b))[0];
+            const rug = s.inventory.filter((i) => !i.stored && !keptBack(s, i) && tierOfV(i) >= visit.tier).sort((a, b) => tierOfV(a) - tierOfV(b))[0];
             if (!rug) set({ jobNote: `${visit.who} wants a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][visit.tier]}. Pack one for the road in your Stock and come back before ${dateFor(visit.until).short}.` });
             else {
               const t = RUGS[rug.typeId];
@@ -1483,7 +1496,7 @@ export const useGame = create<GameState & Actions>()(
           const job = openJobs(s.jobsDone, s.reputation).find((j) => j.target === id);
           if (!job) return;
           const tierOf = (i: RugItem) => RUGS[i.typeId]?.tier ?? 1;
-          const packed = job.need?.packedTier ? s.inventory.filter((i) => !i.stored && tierOf(i) >= job.need!.packedTier!).sort((a, b) => tierOf(a) - tierOf(b))[0] : undefined;
+          const packed = job.need?.packedTier ? s.inventory.filter((i) => !i.stored && !(job.reward.sellPacked && keptBack(s, i)) && tierOf(i) >= job.need!.packedTier!).sort((a, b) => tierOf(a) - tierOf(b))[0] : undefined;
           const missing =
             job.need?.packedTier && !packed ? `bring a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][job.need.packedTier]} packed for the road. Rugs are packed at your Giza stall (Stock tab), so this one means a trip home first` :
             job.need?.animals && animalCount(s.world.party) < job.need.animals ? `bring at least ${job.need.animals} animals` :
@@ -1665,6 +1678,7 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const it = s.inventory.find((i) => i.uid === uid);
           if (!it || it.restoringUntil) return 0;
+          if (keptBack(s, it)) { set({ jobNote: KEPT_BACK_NOTE }); return 0; }
           let bid = localBid(sid, it, s.day);
           // a dealer never pays more for a rug than they are asking for that same type today, in the
           // condition you actually hold it: without this, a type this town both sells and has high
@@ -2254,6 +2268,12 @@ export const useGame = create<GameState & Actions>()(
             }
           }
           const held = s.inventory.find((i) => i.uid === uid);
+          if (held && keptBack(s, held)) {
+            const enc = cloneEnc(s.encounter);
+            enc.log.push({ speaker: 'narrator', text: KEPT_BACK_NOTE });
+            set({ encounter: enc });
+            return;
+          }
           const holder = held ? heldFor(held, s.day) : undefined;
           if (holder && holder !== s.encounter.buyerId) {
             const enc = cloneEnc(s.encounter);
@@ -2917,7 +2937,7 @@ export const useGame = create<GameState & Actions>()(
           if (!r || s.cash < cost || i.restoringUntil) return;
           set({
             cash: s.cash - cost,
-            inventory: s.inventory.map((x) => (x.uid === uid ? { ...x, restoringUntil: s.day + r.days, restoreTo: r.to } : x)),
+            inventory: s.inventory.map((x) => (x.uid === uid ? { ...x, restoringUntil: s.day + r.days, restoreTo: r.to, spent: (x.spent ?? 0) + cost } : x)),
             ...growth(s, { craft: 6 }),
             ledger: [...s.ledger, { day: s.day, kind: 'restoration', label: `${r.label}: ${RUGS[i.typeId].name}`, amount: -cost }],
             dayStats: { ...s.dayStats, expenses: s.dayStats.expenses + cost },
@@ -3129,13 +3149,14 @@ useGame.subscribe((s) => {
 
 // "Your father's rug" cannot be done without the Fayoum Hearth. If it was sold or lost before
 // Rashid sent you to Damascus with it, he tracks it down and buys it back: it waits at the stall.
+// Once only: lose it a second time and the mission has to be done without it (or not at all).
 useGame.subscribe((s) => {
-  if (!s.started || s.missions?.farid !== 'active' || s.world.appraised.length) return;
+  if (!s.started || s.missions?.farid !== 'active' || s.world.appraised.length || s.faridRecovered) return;
   if (s.inventory.some((i) => i.typeId === 'fayoum-hearth')) return;
   const t = RUGS['fayoum-hearth'];
   const item: RugItem = { uid: newUid('r'), typeId: 'fayoum-hearth', condition: 'Worn', restored: false, provenance: t.provenance, paid: 0, notes: ['Your father\'s rug. Rashid bought it back for you.'], stored: true };
   const text = 'Rashid found your father\'s Fayoum rug and bought it back. "Some things are not for sale." It is waiting at your stall: pack it before you go to Damascus.';
-  useGame.setState({ inventory: [...s.inventory, item], journal: [...s.journal, { day: s.day, text, kind: 'mission' }], jobNote: text });
+  useGame.setState({ inventory: [...s.inventory, item], faridRecovered: true, journal: [...s.journal, { day: s.day, text, kind: 'mission' }], jobNote: text });
 });
 
 // Titles are checked whenever the state changes, and announced once.

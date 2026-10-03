@@ -28,7 +28,9 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
         {note && <p className="set-note" data-testid="finance-note">{note}</p>}
 
         <div className="section-label">WHAT YOU OWE</div>
-        {owed <= 0 && loans.length === 0 && bills.due <= 0 && g.cash >= 0 && <p className="dim">Nothing. Your name is clean in the bazaar.</p>}
+        {owed <= 0 && loans.length === 0 && bills.due <= 0 && g.cash >= 0 && !(g.family?.left ?? 0) && !g.supplier.debt && <p className="dim">Nothing. Your name is clean in the bazaar.</p>}
+        {(g.family?.left ?? 0) > 0 && <p className={`fin-line ${g.family!.due > 0 ? 'warn' : ''}`} data-testid="fin-family">Your father's debt to Uncle Rashid: {fmt(g.family!.left)} left{g.family!.due > 0 ? `, ${fmt(g.family!.due)} of it due now` : ''}. An instalment falls due on the first of each month.</p>}
+        {g.supplier.debt > 0 && <p className="fin-line" data-testid="fin-credit">Rashid's credit for stock: {fmt(g.supplier.debt)}.</p>}
         {g.cash < 0 && <p className="fin-line warn">Your purse is empty: you owe the landlord {fmt(-g.cash)}.</p>}
         {bills.due > 0 && <p className={`fin-line ${g.day - bills.since >= 5 ? 'warn' : ''}`}>The month's bill: {fmt(bills.due)}{g.day - bills.since > 0 ? `, ${g.day - bills.since} days late` : ''}. It is paid from your cash when you have it.</p>}
         {loans.map((l) => (

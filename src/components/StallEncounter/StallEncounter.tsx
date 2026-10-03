@@ -216,7 +216,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <div className="r-main">
               {enc.outcome === 'sold' ? (
                 <>
-                  <b>Sold for {fmt(enc.salePrice ?? 0)}{enc.saleCost !== undefined ? ` · profit ${fmt((enc.salePrice ?? 0) - enc.saleCost)}${enc.sweetened ? ' after delivery' : ''}` : ''}</b>
+                  <b>Sold for {fmt(enc.salePrice ?? 0)}{enc.saleCost !== undefined ? ` · net profit ${fmt((enc.salePrice ?? 0) - enc.saleCost)}` : ''}</b>
                   <span>
                     {buyer?.royal ? `${buyer.royal.warrant} · ` : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
                   </span>

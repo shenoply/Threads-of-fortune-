@@ -5,7 +5,8 @@ import { BUYERS } from '../../data/buyers';
 import type { RugItem } from '../types';
 import { missionsDone, MAIN_ORDER, MISSIONS } from '../../data/missions';
 
-interface S { cash: number; reputation: number; inventory: RugItem[]; upgrades: string[]; supplier: { debt: number }; court: { warrants: string[] }; register?: string[]; missions?: Record<string, string> }
+interface S { cash: number; reputation: number; inventory: RugItem[]; upgrades: string[]; supplier: { debt: number }; court: { warrants: string[] }; register?: string[]; missions?: Record<string, string>;
+  loans?: { owed: number }[]; family?: { left: number }; bills?: { due: number } }
 
 const PROPERTY: Record<string, number> = { khan: 60000 };
 export const ROYAL_IDS = Object.values(BUYERS).filter((b) => b.royal).map((b) => b.id);
@@ -14,9 +15,14 @@ export const ROYAL_IDS = Object.values(BUYERS).filter((b) => b.royal).map((b) =>
 export const stockValue = (inv: RugItem[]) =>
   inv.reduce((s, i) => { const t = RUGS[i.typeId]; return s + ((t.valueBand[0] + t.valueBand[1]) / 2) * CONDITION_FACTOR[i.condition]; }, 0);
 
+/** Everything you owe, each counted once: Rashid's credit, lenders' loans (with their interest),
+ *  what is left of your father's debt (the instalment now due is part of it) and unpaid bills. */
+export function liabilities(s: S) {
+  return s.supplier.debt + (s.loans ?? []).reduce((a, l) => a + l.owed, 0) + Math.max(0, s.family?.left ?? 0) + Math.max(0, s.bills?.due ?? 0);
+}
 export function netWorth(s: S) {
   const property = s.upgrades.reduce((a, u) => a + (PROPERTY[u] ?? 0), 0);
-  return Math.round(s.cash + stockValue(s.inventory) + property - s.supplier.debt);
+  return Math.round(s.cash + stockValue(s.inventory) + property - liabilities(s));
 }
 
 export const HOUSE_TARGET = 500000; // £5,000: a rich man's fortune in 1925

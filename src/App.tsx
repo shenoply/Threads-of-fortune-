@@ -402,7 +402,8 @@ export default function App() {
             <span className="es-lines">
               <span><i>Sales</i> {g.dayStats.sales}</span>
               <span><i>Takings</i> {fmt(g.dayStats.revenue)}</span>
-              <span><i>Profit</i> <em className={g.dayStats.gross > 0 ? 'pos' : g.dayStats.gross < 0 ? 'neg' : ''}>{fmt(g.dayStats.gross)}</em></span>
+              {/* the rug margin less what the day cost you so far (deliveries, repairs) */}
+              {(() => { const net = g.dayStats.gross - g.dayStats.expenses; return <span><i>Profit</i> <em className={net > 0 ? 'pos' : net < 0 ? 'neg' : ''}>{fmt(net)}</em></span>; })()}
               {g.bills?.due ? <span><i>Owed</i> {fmt(g.bills.due)}</span> : null}
             </span>
           </span>

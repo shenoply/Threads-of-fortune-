@@ -40,6 +40,8 @@ export interface RugType {
 
 export interface RugItem {
   uid: string;
+  /** what you have spent on it since buying it (washing, re-fringing, reweaving) */
+  spent?: number;
   typeId: string;
   condition: Condition;
   restored: boolean;
