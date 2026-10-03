@@ -42,7 +42,10 @@ for (let y = 0; y < MASK_H; y++)
     const i = y * MASK_W + x;
     const bar = BARRIER[BARRIER_ROWS[y]?.[x] ?? '.'];
     // a bridge or ford also opens a river the sea mask drew (the Nile above Cairo)
-    const k: Terrain = bar === 'bridge' || bar === 'ford' ? bar : bar ?? (water[i] ? 'water' : KIND[TERRAIN_ROWS[y]?.[x] ?? 'd'] ?? 'desert');
+    const opened = BARRIER_ROWS[y]?.[x] === 'O'; // land an old trace marked as water
+    if (opened) water[i] = 0;
+    const land = KIND[TERRAIN_ROWS[y]?.[x] ?? 'd'] ?? 'desert';
+    const k: Terrain = bar === 'bridge' || bar === 'ford' ? bar : bar ?? (water[i] ? 'water' : land === 'mountains' && opened ? 'fertile' : land);
     kindOf[i] = k;
     speedOf[i] = TERRAIN_SPEED[k];
   }
