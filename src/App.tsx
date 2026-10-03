@@ -227,14 +227,17 @@ export default function App() {
   // Resume a saved game: bring the next buyer in.
   useEffect(() => {
     // at the stall, a customer who has arrived walks straight up; otherwise the stall waits
-    if (phase === 'game' && g.started && !g.encounter && !g.dayOver && g.world.at === 'giza' && (tab === 'stall' || tab === 'map') && !frozen) {
+    if (phase === 'game' && g.started && !g.encounter && !g.dayOver && !g.journey && g.world.at === 'giza' && (tab === 'stall' || tab === 'map') && !frozen) {
       // the stall day ends at eight in the evening, not when the last customer has been
+      // served — but not while you're already on the road out of Giza (g.journey): the
+      // evening-strip would otherwise snap down mid-journey and freeze travel in place,
+      // with no obvious way out ("stuck, won't move").
       if (g.world.hour >= 20) useGame.setState({ dayOver: true });
       // a customer who arrives waits at the stall; you choose when to serve them
     }
     // a sale is over: back to the lane, with the stall open
     if (phase === 'game' && tab === 'stall' && g.tutorial.done && !g.encounter && !g.dayOver) { if (!g.held) openStallNext(); setTab('map'); }
-  }, [phase, g.started, g.encounter, g.dayOver, g.visitIdx, g.queue.length, g, tab, g.world.hour]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, g.started, g.encounter, g.dayOver, g.journey, g.visitIdx, g.queue.length, g, tab, g.world.hour]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the hero as he is dressed now, ready before the wardrobe or a mirror shows him
   useEffect(() => {

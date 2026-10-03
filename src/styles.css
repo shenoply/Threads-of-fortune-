@@ -106,11 +106,25 @@ img { max-width: 100%; }
 /* ---------- Stall ---------- */
 .stall {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  /* Named areas, not row position by DOM order: the toolbar and the Cohen help-link are each only
+     rendered some of the time (no active unresolved encounter, a tutorial, a court audience, a buyer
+     other than Cohen). With plain row order, whichever of those was missing shifted every row below it
+     up by one — in particular bumping the scrollable .band out of its flexible minmax(0,1fr) track and
+     into an "auto" one, so it (and everything after it) grew to full content height instead of
+     scrolling internally, overflowing the screen. Naming each area fixes every item's row regardless of
+     which optional siblings are present. */
   grid-template-columns: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "toolbar" "scene" "band" "help" "rugstrip" "actions";
   min-height: 0;
   height: 100%;
 }
+.stall-toolbar { grid-area: toolbar; }
+.stall > .scene { grid-area: scene; }
+.stall > .band { grid-area: band; }
+.stall > .help-link { grid-area: help; }
+.stall > .rugstrip { grid-area: rugstrip; }
+.stall > .actions { grid-area: actions; }
 .scene {
   position: relative;
   overflow: hidden;
