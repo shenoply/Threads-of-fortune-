@@ -50,7 +50,7 @@ import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
-import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, type TalkTopic } from '../systems/malek';
+import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 export const SAVE_VERSION = 19;
@@ -177,6 +177,10 @@ export interface GameState {
   claims?: number;
   /** Rashid has bought your father's rug back once; he will not do it again */
   faridRecovered?: boolean;
+  /** robbed with nothing to pay: the bandits wrote your name down; the next toll is double until paid */
+  banditMark?: number;
+  /** a bandit chief's token: riders let you pass until this day */
+  chiefTokenUntil?: number;
   /** Arran's notebook: lab results keyed `${rug uid}:${service}`; reopening one is free */
   arranFindings?: LabFinding[];
   /** Arran's book errands, the copies you carry, and the tests his returned books have unlocked */
@@ -286,6 +290,8 @@ interface Actions {
   sellLocal: (uid: string, sid: string) => number;
   buyLocal: (sid: string, key: string) => string;
   partyChoice: (partyId: string, choice: string) => string;
+  /** bandits stop you and you cannot pay: one of ten things happens instead; returns what did */
+  robBroke: () => string;
   buyFood: (n: number) => string;
   butcherAnimal: (breed: string) => string;
   trade: (breed: string, delta: number) => string;
@@ -1742,6 +1748,7 @@ export const useGame = create<GameState & Actions>()(
         },
 
         partyChoice: (partyId, choice) => {
+          let robAfter = false;
           const s = get();
           const p = s.world.parties.find((x) => x.id === partyId);
           if (!p) return '';
@@ -1767,26 +1774,22 @@ export const useGame = create<GameState & Actions>()(
             ledger.push({ day: s.day, kind: 'expense', label: 'Bread and water for travellers', amount: -3 });
           } else if (choice === 'toll' || (choice === 'talk' && !s.world.rumours.some((r) => r.includes('Salim')) && rng() >= 0.5)) {
             const talked = choice === 'talk';
-            const toll = talked ? Math.max(15, Math.round(cash * 0.18)) : Math.max(10, Math.round(cash * 0.1));
-            if (cash >= toll) {
+            const marked = (s.banditMark ?? 0) > 0;
+            const toll = (talked ? Math.max(15, Math.round(cash * 0.18)) : Math.max(10, Math.round(cash * 0.1))) * (marked ? 2 : 1);
+            if ((s.chiefTokenUntil ?? 0) >= s.day) {
+              msg = 'You hold up the chief\'s knotted cord. They look at it and wave you through.';
+            } else if (cash >= toll) {
               cash -= toll;
-              msg = talked ? `They listen politely and take ${fmt(toll)} anyway.` : `You pay ${fmt(toll)}. They wave you on, almost friendly.`;
+              if (marked) set({ banditMark: 0 });
+              msg = (talked ? `They listen politely and take ${fmt(toll)} anyway.` : `You pay ${fmt(toll)}. They wave you on, almost friendly.`) + (marked ? ' Double, for the name in their book; now it is crossed out.' : '');
               ledger.push({ day: s.day, kind: 'expense', label: 'Road toll', amount: -toll });
             } else {
-              // you cannot pay what you do not have: they take what there is, and something in kind
+              // you cannot pay what you do not have: they take what there is, then something else happens
               const had = Math.max(0, cash);
               if (had > 0) ledger.push({ day: s.day, kind: 'expense', label: 'Robbed on the road', amount: -had });
               cash -= had;
-              const carried = s.inventory.filter((i) => !i.stored);
-              if (carried.length) {
-                const r = carried.sort((a, b) => (RUGS[a.typeId]?.tier ?? 1) - (RUGS[b.typeId]?.tier ?? 1))[0];
-                set({ inventory: get().inventory.filter((i) => i.uid !== r.uid) });
-                msg = `${had ? `You turn out your purse: ${fmt(had)} is all there is.` : 'Your purse is empty.'} They take the ${RUGS[r.typeId].name} off your animal instead.`;
-              } else {
-                const party: PartyState = { ...s.world.party, food: Math.max(0, s.world.party.food - Math.ceil(s.world.party.food / 2)) };
-                set({ world: { ...get().world, party } });
-                msg = had ? `You turn out your purse: ${fmt(had)} is all there is. They take it, and half your food.` : 'You have nothing worth taking. They search your bags, take half your food and ride off laughing.';
-              }
+              msg = had ? `You turn out your purse: ${fmt(had)} is all there is.` : 'Your purse is empty.';
+              robAfter = true;
             }
           } else if (choice === 'talk') {
             if (s.world.rumours.some((r) => r.includes('Salim'))) msg = 'You mention Salim ibn Eid. The leader laughs, offers you a date, and rides off.';
@@ -1866,7 +1869,94 @@ export const useGame = create<GameState & Actions>()(
             }
           } else msg = 'You move on.';
           set({ cash, reputation: rep, ledger, world: { ...s.world, parties, known, hour: Math.min(hour, 23.9) } });
+          if (robAfter) msg = `${msg} ${get().robBroke()}`;
           return msg;
+        },
+
+        robBroke: () => {
+          const s = get();
+          const party = s.world.party;
+          const herdIds = Object.entries(party.animals ?? {}).filter(([, n]) => n > 0).map(([id]) => id);
+          const w = s.wardrobe ?? START_WARDROBE;
+          const o = w.outfit;
+          const takeable = ([['outer', o.outer], ['head', o.head], ['feet', o.feet], ['weapon', o.weapon], ['carry', o.carry]] as [keyof Outfit, string | null][]).filter(([, id]) => !!id);
+          const carried = s.inventory.filter((i) => !i.stored && !keptBack(s, i));
+          const c = s.condition ?? CONDITION_START;
+          const journal = (text: string) => [...get().journal, { day: s.day, text, kind: 'road' as const }];
+          type Fate = { w: number; ok: boolean; go: () => string };
+          const fates: Fate[] = [
+            // 1 your animals
+            { w: 3, ok: herdIds.length > 0, go: () => {
+              const id = herdIds[Math.floor(rng() * herdIds.length)];
+              set({ world: { ...get().world, party: { ...party, animals: { ...party.animals, [id]: (party.animals[id] ?? 1) - 1 } } }, journal: journal(`Robbed on the road: they took a ${BREEDS[id]?.name.toLowerCase() ?? 'beast'}.`) });
+              return `So they take a ${BREEDS[id]?.name.toLowerCase() ?? 'beast'} instead, and lead it away. You will carry less and go slower until you buy another.`;
+            } },
+            // 2 your clothes
+            { w: 3, ok: takeable.length > 0, go: () => {
+              const [slot, id] = takeable[Math.floor(rng() * takeable.length)];
+              const outfit = { ...o, [slot]: null };
+              set({ wardrobe: { ...w, outfit, owned: w.owned.filter((x) => x !== id) } });
+              return `So the leader takes your ${PIECES[id!]?.name.toLowerCase() ?? 'clothes'} off your back. You ride on looking poorer, and buyers will notice.`;
+            } },
+            // 3 a beating
+            { w: 3, ok: true, go: () => {
+              set({ condition: { ...c, fatigue: Math.min(100, c.fatigue + 35) } });
+              return 'So they give you a beating for wasting their morning. Fatigue +35: you will be slow for a few days.';
+            } },
+            // 4 held for ransom: Rashid pays, the debt grows
+            { w: 1, ok: true, go: () => {
+              const days = 1 + Math.floor(rng() * 3);
+              const ransom = 300 + Math.floor(rng() * 5) * 100;
+              const fam = s.family ?? FAMILY_START;
+              get().passTime(days * 24 * 60);
+              set({ family: { ...fam, left: fam.left + ransom }, journal: journal(`Held for ransom for ${days} day${days > 1 ? 's' : ''}. Uncle Rashid paid ${fmt(ransom)}; it is added to your father's debt.`) });
+              return `So they keep you. ${days} day${days > 1 ? 's' : ''} in a goat-hair tent until a boy rides to Uncle Rashid. He pays ${fmt(ransom)} to get you back and adds it to your father's debt, with a letter you would rather not read.`;
+            } },
+            // 5 put to work
+            { w: 2, ok: true, go: () => {
+              get().passTime(10 * 60);
+              const tips = ['The well at the second ridge is sweet; the one after it is salt.', 'A Damascus dealer pays double for Kurdish kilims this month.', 'The police post on the Jaffa road changes guard at noon.', 'Raiders do not ride on Fridays.']; const tip = tips[Math.floor(rng() * tips.length)];
+              set({ world: { ...get().world, rumours: [...get().world.rumours, tip] } });
+              return `So they put you to work loading their camels until sundown. You lose the day, but you hear something round their fire: "${tip}"`;
+            } },
+            // 6 an IOU in their book
+            { w: 2, ok: true, go: () => {
+              set({ banditMark: (s.banditMark ?? 0) + 1 });
+              return 'So they write your name in a greasy ledger. "Next time, double." Pay them in full next time and your name comes out of the book.';
+            } },
+            // 7 your papers
+            { w: 1, ok: (s.papers ?? []).length > 0, go: () => {
+              const ps = s.papers ?? [];
+              const lost = ps[Math.floor(rng() * ps.length)];
+              set({ papers: ps.filter((x) => x.id !== lost.id) });
+              return `So they take your satchel of papers: ${lost.title} is gone. It will have to be copied again.`;
+            } },
+            // 8 your food and water spoiled
+            { w: 2, ok: party.food > 0, go: () => {
+              set({ world: { ...get().world, party: { ...party, food: 0 } }, condition: { ...c, water: Math.max(0, waterOf(c) - 50) } });
+              return 'So they slit your waterskins and tip your food into the sand, laughing. Find a well and a town quickly.';
+            } },
+            // 9 the chief takes an interest
+            { w: 1, ok: true, go: () => {
+              set({ chiefTokenUntil: s.day + 30, reputation: get().reputation + 1 });
+              return 'Their chief rides up, hears your name, and laughs. He gives you a knotted cord: "Show this and my men will let you pass." For a month, riders on this road leave you be.';
+            } },
+            // 10 word spreads
+            { w: 2, ok: s.reputation >= 2, go: () => {
+              set({ reputation: Math.max(0, get().reputation - 2) });
+              return 'So they take nothing but your dignity, and tell every caravan they meet. In the next town everyone knows Hassan was robbed. Reputation −2.';
+            } },
+            // and if you carry rugs, a rug
+            { w: 3, ok: carried.length > 0, go: () => {
+              const r = [...carried].sort((a, b) => (RUGS[b.typeId]?.tier ?? 1) - (RUGS[a.typeId]?.tier ?? 1))[0];
+              set({ inventory: get().inventory.filter((i) => i.uid !== r.uid), journal: journal(`Robbed on the road: they took the ${RUGS[r.typeId].name}.`) });
+              return `So they take the ${RUGS[r.typeId].name} off your animal instead.`;
+            } },
+          ];
+          const pool = fates.filter((f) => f.ok);
+          let roll = rng() * pool.reduce((a, f) => a + f.w, 0);
+          const pick = pool.find((f) => (roll -= f.w) <= 0) ?? pool[0];
+          return pick.go();
         },
 
         buyFood: (n) => {

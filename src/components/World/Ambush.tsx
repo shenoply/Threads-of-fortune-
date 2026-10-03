@@ -38,18 +38,21 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const guide = Object.entries(g.world.party.troops).some(([id, n]) => (n ?? 0) > 0 && (id === 'desertcaptain' || id === 'bedouin')) ? 1 : 0;
   const talkChance = Math.min(0.9, 0.35 + guide * 0.3 + Math.min(0.2, (g.skills?.speech ?? 0) / 500) + (rebels ? 0.2 : 0) + (g.cash < 20 && !g.inventory.some((i) => !i.stored) ? 0.25 : 0)); // a man with nothing to take is easier to wave through
   const ratio = theirs / Math.max(1, mine);
-  const tax = Math.max(20, Math.min(g.cash, Math.round(g.cash * (0.08 + 0.05 * Math.min(3, ratio)))));
+  // your name in their book (robbed once with nothing to pay): the price is doubled until you pay in full
+  const marked = (g.banditMark ?? 0) > 0;
+  const tax = Math.max(20, Math.min(g.cash, Math.round(g.cash * (0.08 + 0.05 * Math.min(3, ratio))))) * (marked ? 2 : 1);
+  const token = !rebels && (g.chiefTokenUntil ?? 0) >= g.day;
   const canDeter = mine >= theirs * 1.5;
   // what they ask, against what you have: short of it, they take what there is and something in kind
   const short = g.cash < tax;
   const carried = g.inventory.filter((i) => !i.stored);
-  const payInKind = () => settle({
-    cashLoss: g.cash,
-    rugsLost: carried.length ? 1 : 0,
-    delayHours: carried.length ? 0 : 2,
-    text: `${g.cash > 0 ? `You turn out your purse: ${fmt(g.cash)} is all there is.` : 'Your purse is empty.'} ${carried.length ? 'They take the best rug off your animal instead and let you go.' : 'They search your bags, find nothing worth the trouble, and keep you sitting in the sun for two hours before they ride off.'}`,
-    theyLeave: true,
-  });
+  // not enough to pay: they take what there is, and then one of ten things happens (store: robBroke)
+  const payInKind = () => {
+    const purse = g.cash > 0 ? `You turn out your purse: ${fmt(g.cash)} is all there is.` : 'Your purse is empty.';
+    const fate = useGame.getState().robBroke();
+    settle({ cashLoss: g.cash, theyLeave: true, text: `${purse} ${fate}` });
+  };
+  const payFull = (text: string) => { if (marked) useGame.setState({ banditMark: 0 }); settle({ cashLoss: tax, theyLeave: true, text: marked ? `${text} They cross your name out of their book.` : text }); };
   const payLabel = short ? (g.cash > 0 ? `${fmt(g.cash)} is all you have` : 'you have no money') : '';
   const odds = Math.round((mine / (mine + theirs)) * 100);
 
@@ -208,10 +211,11 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
             <p className="amb-text">{text}</p>
             <div className="amb-opts">
               <button className="btn" onClick={() => { if (Math.random() < talkChance) settle({ rep: 1, theyLeave: true, text: lines.talkOk }); else { setText(lines.talkBad); setStage('demand'); } }} data-testid="amb-talk"><Icon name="talk" /> Talk your way through <small>{Math.round(talkChance * 100)}%{guide ? ', your guide helps' : ''}</small></button>
+              {token && <button className="btn primary" onClick={() => settle({ theyLeave: true, text: 'You hold up the chief\'s knotted cord. They look at it, look at each other, and ride off without a word.' })} data-testid="amb-token"><Icon name="shield" /> Show the chief's cord <small>they will let you pass</small></button>}
               {canDeter && <button className="btn" onClick={() => settle({ theyLeave: true, text: 'They count your guards, look at each other, and ride back the way they came.' })} data-testid="amb-deter"><Icon name="shield" /> Show them your guards <small>they are outnumbered</small></button>}
               {short
-                ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}{carried.length ? '; they will want a rug' : ''}</small></button>
-                : <button className="btn" onClick={() => settle({ cashLoss: tax, theyLeave: true, text: rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.` })} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
+                ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
+                : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
               {!rebels && <button className="btn primary" onClick={() => { setStage('battle'); audio.sfx('chest'); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}% of the strength is yours</small></button>}
               <button className="btn" onClick={() => { if (Math.random() < (rebels ? 0.9 : 0.55)) { g.ambushOutcome(party.id, { delayHours: 6, text: 'You turn your animals around and lose half a day going round.' }); onTurnBack(); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> Turn back <small>{rebels ? 'usually allowed' : 'they may chase you'}</small></button>
             </div>
@@ -223,8 +227,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
             <p className="amb-text">{text} {lines.demand}</p>
             <div className="amb-opts">
               {short
-                ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}{carried.length ? '; they will want a rug' : ''}</small></button>
-                : <button className="btn" onClick={() => settle({ cashLoss: tax, theyLeave: true, text: `You pay ${fmt(tax)}. They let you go.` })} data-testid="amb-pay"><Icon name="coin" /> Pay <small>{fmt(tax)}</small></button>}
+                ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
+                : <button className="btn" onClick={() => payFull(`You pay ${fmt(tax)}. They let you go.`)} data-testid="amb-pay"><Icon name="coin" /> Pay <small>{fmt(tax)}</small></button>}
               <button className="btn" onClick={() => { if (ratio >= 2) settle({ cashLoss: Math.round(g.cash * 0.5), rugsLost: 2, rep: -1, text: lines.strip }); else { setStage('battle'); audio.sfx('chest'); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
               {!rebels && <button className="btn primary" onClick={() => { setStage('battle'); audio.sfx('chest'); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}%</small></button>}
             </div>
