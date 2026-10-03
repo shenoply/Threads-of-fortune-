@@ -146,9 +146,11 @@ export default function App() {
     if (!m) return;
     setToast(m);
     window.clearTimeout(toastTimer.current);
-    // a sale the player did not choose (a visitor buying a rug they packed days ago) is easy to miss
-    // if it flashes by at the usual reading pace, so it gets extra time on screen
-    const money = /\bbuys? your\b|\bbuys? the\b/.test(m);
+    // any note that moves money without the player choosing to (a visitor buying a packed rug, a
+    // completed job, a delivered parcel, an insurance claim, a checkpoint "fee") is easy to miss if
+    // it flashes by at the usual reading pace — doubly so arriving somewhere fast, like the ferry —
+    // so anything naming an amount gets extra time on screen, not just the "buys" sale wording
+    const money = /£/.test(m);
     toastTimer.current = window.setTimeout(() => setToast(''), Math.max(money ? 5000 : 2600, m.length * (money ? 85 : 55)));
   };
   const tutorialActive = !g.tutorial.done;

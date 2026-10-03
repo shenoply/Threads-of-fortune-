@@ -9,7 +9,13 @@ export interface PartyState {
   /** a personal weapon with a permit (Arran's cabinet): counts toward strength everywhere */
   arms?: number;
   hungryDays?: number; // consecutive rollovers with no food left; resets the day rations cover the party again
+  /** how much more a hungry or unpaid night your men will tolerate before one actually walks, 0-100 */
+  morale?: number;
 }
+
+export const MORALE_START = 70;
+export const MORALE_DESERT_AT = 25;
+export const morale = (p: PartyState) => p.morale ?? MORALE_START;
 
 export const startingParty = (): PartyState => ({ animals: {}, food: 6, troops: {} }); // you start on foot: carrying more means buying an animal
 

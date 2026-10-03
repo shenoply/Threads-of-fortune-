@@ -4,7 +4,7 @@ import { useGame } from '../../game/state/store';
 import { TROOPS, MARKETS, YARD_ART } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, type Breed } from '../../data/animals';
 import { animalPrice } from '../../game/state/store';
-import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDaysLeft, animalCount } from '../../game/systems/caravan';
+import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDaysLeft, animalCount, morale as moraleOf } from '../../game/systems/caravan';
 import { AnimalPlate } from './AnimalPlate';
 import { Icon } from '../Icon';
 
@@ -99,6 +99,13 @@ export function CaravanRoster() {
         <p className="set-demand">No guards. Raiders will come looking for you. Hire men in villages, towns and the Bedouin camp.</p>
       ) : (
         <div className="mkt">
+          <div className="mkt-row" data-testid="caravan-morale">
+            <span style={{ flex: 1 }}>
+              <b>Men's patience</b>
+              <small>{moraleOf(p) <= 25 ? 'Close to someone walking' : moraleOf(p) <= 50 ? 'Grumbling — keep them fed and paid' : 'Steady'}</small>
+            </span>
+            <Stat label="" v={moraleOf(p)} max={100} />
+          </div>
           {troops.map(([id, n]) => (
             <div className="mkt-row" key={id}>
               <img className="troop-pic small" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} />

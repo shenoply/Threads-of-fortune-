@@ -44,7 +44,7 @@ import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, type PartyState } from '../systems/caravan';
+import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -862,16 +862,30 @@ export const useGame = create<GameState & Actions>()(
             return false;
           });
           let repBill = 0;
-          if (party.food >= need) { party.food -= need; party.hungryDays = 0; }
-          else {
+          // how much more a bad night your men will stand before one of them actually walks: a hungry
+          // or unpaid night costs morale and gets you a warning in a guard's own words; only once it is
+          // already low does someone really leave, and that resets it partway so the rest settle down
+          let moraleV = party.morale ?? MORALE_START;
+          const troopIds = () => Object.keys(party.troops).filter((k) => party.troops[k] > 0);
+          const aGuard = (ids: string[]) => ids[Math.floor(rng() * ids.length)];
+          if (party.food >= need) {
+            party.food -= need; party.hungryDays = 0;
+            if (troopIds().length) moraleV = Math.min(100, moraleV + 3);
+          } else {
             party.food = 0;
             party.hungryDays = (party.hungryDays ?? 0) + 1;
             const hd = party.hungryDays;
-            const ids = Object.keys(party.troops).filter((k) => party.troops[k] > 0);
+            const ids = troopIds();
             if (ids.length) {
-              const id = ids[Math.floor(rng() * ids.length)];
-              party.troops[id] -= 1;
-              notes.push(`No food. A ${TROOPS[id].name.toLowerCase()} walked off in the night.`);
+              moraleV = Math.max(0, moraleV - 22);
+              const id = aGuard(ids);
+              if (moraleV <= MORALE_DESERT_AT) {
+                party.troops[id] -= 1;
+                notes.push(`No food, and patience ran out. A ${TROOPS[id].name.toLowerCase()} speaks for the rest: "We did not sign on to starve, effendi." He takes what he's owed and walks.`);
+                moraleV = 45;
+              } else {
+                notes.push(`No food tonight. ${TROOPS[id].name} pulls you aside: "The sacks are empty, effendi. Fill them soon, or some of us will think about leaving."`);
+              }
             }
             // after a couple of lean days, a starving animal can collapse; the risk climbs the longer it goes on
             const animalIds = Object.keys(party.animals).filter((k) => party.animals[k] > 0);
@@ -890,14 +904,24 @@ export const useGame = create<GameState & Actions>()(
             if (cash >= pay) {
               cash -= pay;
               ledger.push({ day: s.day, kind: 'expense', label: 'Wages for your men', amount: -pay });
+              moraleV = Math.min(100, moraleV + 3);
             } else {
-              const ids = Object.keys(party.troops).filter((k) => party.troops[k] > 0);
-              const id = ids[Math.floor(rng() * ids.length)];
-              const leave = Math.min(party.troops[id], 2);
-              party.troops[id] -= leave;
-              notes.push(`You could not pay wages. ${leave} ${TROOPS[id].plural.toLowerCase()} left.`);
+              const ids = troopIds();
+              if (ids.length) {
+                moraleV = Math.max(0, moraleV - 22);
+                const id = aGuard(ids);
+                if (moraleV <= MORALE_DESERT_AT) {
+                  const leave = Math.min(party.troops[id], 2);
+                  party.troops[id] -= leave;
+                  notes.push(`Wages unpaid too long. ${leave} ${TROOPS[id].plural.toLowerCase()} collect what they're owed in kind and leave.`);
+                  moraleV = 45;
+                } else {
+                  notes.push(`You could not pay wages tonight. ${TROOPS[id].name} is blunt about it: "No pay, no patience, effendi. Settle up soon."`);
+                }
+              }
             }
           }
+          party.morale = Math.max(0, Math.min(100, moraleV));
           const summary: DaySummary = { day: s.day, ...s.dayStats, expenses: s.dayStats.expenses + rent + foodCost + (cash >= 0 ? pay : 0), notes };
           const day = s.day + 1;
           // The first of the month: rent, dues, household. Unpaid bills grow and cost you your pitch.
@@ -1474,13 +1498,17 @@ export const useGame = create<GameState & Actions>()(
             const t = RUGS[typeId];
             inventory = [...inventory, { uid: newUid('r'), typeId, condition: 'Good', restored: false, provenance: t.provenance, paid: job.reward.fee ?? 0, notes: [job.done], stored: false }];
           }
+          // a job that pays out resolves itself the moment you walk in, with no screen of its own, so
+          // the note it leaves is the only place that money is ever accounted for — say the amount,
+          // not just the flavour text, or a completed job reads as cash appearing from nowhere
+          const net = cash - s.cash;
           set({
             cash, inventory, ledger,
             reputation: s.reputation + (job.reward.rep ?? 0),
             register: [...new Set([...(s.register ?? []), ...(job.reward.rugs ?? [])])],
             jobsDone: [...(s.jobsDone ?? []), job.id],
             journal: [...s.journal, { day: s.day, text: `${job.title}: ${job.done}`, kind: 'arrive' }],
-            jobNote: `Job done: ${job.title}. ${job.done}`,
+            jobNote: `Job done: ${job.title} (${net >= 0 ? '+' : ''}${fmt(net)}). ${job.done}`,
           });
           audio.sfx('coins');
         },

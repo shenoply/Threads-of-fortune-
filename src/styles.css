@@ -209,6 +209,12 @@ canvas.dust { position: absolute; left: 0; top: 0; width: 1312px; height: 380px;
 
 .plate-buyer {
   display: flex; flex-direction: column; gap: 4px;
+  /* the band (speech, narrator, echo, the table) scrolls as one column on a phone, and the buyer's
+     name/tier/meters used to be wherever that put them — scroll past a long line and they were gone.
+     Pinning this to the top of that scroll means Interest/Patience/Trust are always on screen. */
+  position: sticky; top: 0; z-index: 3;
+  padding-top: 2px; padding-bottom: 4px;
+  background: linear-gradient(180deg, #140d07 88%, rgba(20,13,7,0));
 }
 .plate-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .plate-row-btn {
