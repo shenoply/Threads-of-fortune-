@@ -2247,3 +2247,4 @@ button.hud-chip { cursor: pointer; }
 /* river crossings on the travel map */
 .xing{position:absolute;transform:translate(-50%,-50%);z-index:2;pointer-events:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 Georgia,serif;color:#2b1b0d;background:#efe0bf;border:1.5px solid #5a3d20;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .xing-ford{background:#f3d77a}
+.cafe-play-float { position: fixed; z-index: 95; left: 12px; top: calc(10px + env(safe-area-inset-top, 0px)); }

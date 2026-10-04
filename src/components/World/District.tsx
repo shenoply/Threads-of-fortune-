@@ -8,6 +8,7 @@ import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
+const CafeTable = lazy(() => import('../Cafe/CafeTable').then((m) => ({ default: m.CafeTable })));
 // Malek's grill loads only when you walk in
 const MalekShop = lazy(() => import('../Malek/MalekShop'));
 const ArranLab = lazy(() => import('../ArranLab/ArranLab').then((m) => ({ default: m.ArranLab })));
@@ -455,6 +456,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
+  const [cafe, setCafe] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
   // the film over the lab or the coffee house: by itself the first time, then on request
@@ -808,6 +810,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
+      {talk && !film && createPortal(<button className="btn small cafe-play-float" onClick={() => { setTalk(false); setCafe(true); }} data-testid="cafe-play">♞ ⚅ Play Bilgin</button>, document.body)}
+      {cafe && <Suspense fallback={null}><CafeTable onClose={(m) => { setCafe(false); if (m) setNote(m); }} /></Suspense>}
       {talk && !film && filmReady('abuhamid') && createPortal(<button className="btn small film-again-float" onClick={() => setFilm('abuhamid')} data-testid="abuhamid-film-again">▶ Bilgin's film</button>, document.body)}
     </div>
   );

@@ -309,6 +309,8 @@ interface Actions {
   waitForCustomer: () => void;
   /** time passing on something other than a sale: reading, walking, bidding */
   passTime: (minutes: number) => void;
+  /** A game of chess or tawla with Bilgin in the coffee house: the stake changes hands, time passes */
+  cafeGame: (game: 'chess' | 'tawla', result: 'win' | 'loss' | 'draw', stake: number, minutes: number) => string;
   startAudience: (buyerId: string) => string;
   markGuide: () => void;
   endAudience: () => void;
@@ -2447,6 +2449,23 @@ export const useGame = create<GameState & Actions>()(
           set(patch);
         },
 
+        cafeGame: (game, result, stake, minutes) => {
+          const s = get();
+          const name = game === 'chess' ? 'chess' : 'tawla';
+          const won = result === 'win' ? stake : result === 'loss' ? -Math.min(stake, Math.max(0, s.cash)) : 0;
+          const text = result === 'win'
+            ? `Beat Bilgin at ${name} in the coffee house${stake ? ` and took his ${fmt(stake)}` : ''}.`
+            : result === 'loss' ? `Lost to Bilgin at ${name}${won ? `; ${fmt(-won)} went across the table` : ''}.`
+            : `Played Bilgin to a draw at ${name}.`;
+          set({
+            cash: s.cash + won,
+            ...(won ? { ledger: [...s.ledger, { day: s.day, kind: won > 0 ? 'bonus' : 'expense', label: `${name === 'chess' ? 'Chess' : 'Tawla'} with Bilgin`, amount: won }] } : {}),
+            journal: [...s.journal, { day: s.day, text, kind: 'quiet' }],
+            reputation: s.reputation + (result === 'win' && stake >= 20 ? 1 : 0),
+          } as Partial<GameState>);
+          get().passTime(minutes);
+          return text;
+        },
         pet: () => {
           const s = get();
           if (!s.encounter) {
