@@ -28,6 +28,11 @@ FILMS = {
         ('Ask him for the news, the roads north, or men who can hold a rifle. He will tell you slowly, and laugh at his own jokes.', None),
         ('Half of what a merchant needs to know in this town is said first at his tables.', None),
     ],
+    'bilgin-chess': [
+        ('Before the coffee house, Bilgin played chess for money and for honour, in the cafés of Istanbul.', None),
+        ('They called him a champion. He says only that he lost less often than the others.', None),
+        ('Now he plays in the back corner, slowly, smiling, and he sees three moves further than he lets on.', None),
+    ],
     'rashid': [
         ('Uncle Rashid. A wholesaler in the old khan of Cairo, who sold rugs to your father for thirty years.', None),
         ('He is loud, he is old, and he will roast you every single day.', None),

@@ -52,6 +52,26 @@ export const INTRO_FILMS: Record<string, { length: number; cues: IntroCue[] }> =
       }
     ]
   },
+  "bilgin-chess": {
+    "length": 17.52,
+    "cues": [
+      {
+        "start": 0.8,
+        "end": 6.09,
+        "text": "Before the coffee house, Bilgin played chess for money and for honour, in the cafés of Istanbul."
+      },
+      {
+        "start": 6.64,
+        "end": 10.99,
+        "text": "They called him a champion. He says only that he lost less often than the others."
+      },
+      {
+        "start": 11.54,
+        "end": 16.97,
+        "text": "Now he plays in the back corner, slowly, smiling, and he sees three moves further than he lets on."
+      }
+    ]
+  },
   "rashid": {
     "length": 22.05,
     "cues": [
