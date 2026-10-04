@@ -13,7 +13,7 @@ const STAKES = [0, 5, 20, 50];
 const MINUTES: Record<Game, number> = { chess: 45, tawla: 30 };
 const tap = () => audio.sfx('tap');
 
-export function CafeTable({ onClose }: { onClose: (note?: string) => void }) {
+export function CafeTable({ onClose, onFilm }: { onClose: (note?: string) => void; onFilm?: () => void }) {
   const cash = useGame((g) => g.cash);
   const cafeGame = useGame((g) => g.cafeGame);
   const [game, setGame] = useState<Game | null>(null);
@@ -30,8 +30,9 @@ export function CafeTable({ onClose }: { onClose: (note?: string) => void }) {
 
   return (
     <div className="overlay cafe-overlay pick" data-testid="cafe-table" style={{ ['--cafe-bg' as string]: 'url(art/cafe/bilgin-chess.webp)' }}>
-      <div className="overlay-head"><h2>Bilgin's table</h2><span className="sub">the back of the coffee house</span><button className="btn small close" onClick={() => onClose()}>✕</button></div>
+      <div className="overlay-head"><h2>Bilgin's table</h2><span className="sub">the back of the coffee house</span><button className="btn small close" onClick={() => onClose()} data-testid="cafe-close">✕</button></div>
       <div className="cafe-pick">
+        {onFilm && <button className="btn small cafe-film" onClick={onFilm} data-testid="bilgin-chess-film-again">▶ Bilgin's chess story</button>}
         <p className="cafe-say">"Sit, sit. The boy will bring tea. What will it be: the board of kings, or the dice?"</p>
         <div className="cafe-row">
           <span>Stake</span>

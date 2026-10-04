@@ -3,7 +3,7 @@
 // (src/data/introFilms.ts).
 import { INTRO_FILMS } from '../../data/introFilms';
 
-export type FilmId = 'malek' | 'arran' | 'abuhamid' | 'rashid' | 'nabil' | 'cohen';
+export type FilmId = 'malek' | 'arran' | 'abuhamid' | 'bilgin-chess' | 'rashid' | 'nabil' | 'cohen';
 /** one painting on screen: `cover` fills the frame, `contain` sits over a blurred copy of itself;
  *  the pan goes from `from` to `to` ([scale, x%, y%] of the focus point) */
 export interface Still { src: string; fit: 'cover' | 'contain'; from: [number, number, number]; to: [number, number, number] }
@@ -15,6 +15,13 @@ export interface Film {
   /** after the video ends: their main paintings, panned until the narration finishes (never a frozen frame) */
   after?: Still[];
   stills?: Still[];
+  /** the video carries its own narration: it plays at the dialogue level, with no narrator over it.
+   *  If it cannot play, the stills (with the narrator, when there is a script) or the thumbnail
+   *  with `text` take its place. */
+  ownSound?: boolean;
+  /** the introduction as text, shown over the thumbnail when the video cannot play and there is no
+   *  narrated script for this film */
+  text?: string[];
 }
 export const FILMS: Record<FilmId, Film> = {
   malek: {
@@ -36,14 +43,29 @@ export const FILMS: Record<FilmId, Film> = {
       { src: 'art/arran/11-lab-inspect.webp', fit: 'contain', from: [1, 50, 30], to: [1.12, 50, 25] },
     ],
   },
+  // Bilgin's own films: his café, then (the first time you sit down to play him) his chess past.
+  // Both videos carry their own narration. Ids stay 'abuhamid' so old saves keep what they have seen.
   abuhamid: {
     title: "Bilgin's coffee house · Giza", name: 'Bilgin',
+    video: { mp4: 'video/bilgin-intro-cafe.mp4', poster: 'art/cafe/bilgin-cafe-working.webp', last: 'art/cafe/bilgin-cafe-working.webp' },
+    ownSound: true,
+    // if the video cannot play: the paintings under the narrator
     stills: [
       { src: 'art/world/giza-district.jpg', fit: 'cover', from: [1, 50, 50], to: [2.2, 55, 30] },
-      // Bilgin at his brazier, then at his own table, then the chess corner
       { src: 'art/cafe/bilgin-cafe-working.webp', fit: 'cover', from: [1.15, 60, 50], to: [1.35, 42, 40] },
       { src: 'art/cafe/bilgin-profile.webp', fit: 'cover', from: [1.3, 40, 35], to: [1.1, 45, 45] },
       { src: 'art/cafe/bilgin-chess.webp', fit: 'cover', from: [1.05, 55, 55], to: [1.3, 62, 50] },
+    ],
+  },
+  'bilgin-chess': {
+    title: 'Bilgin · the chess corner', name: 'Bilgin at chess',
+    video: { mp4: 'video/bilgin-intro-chess.mp4', poster: 'art/cafe/bilgin-chess.webp', last: 'art/cafe/bilgin-chess.webp' },
+    ownSound: true,
+    stills: [{ src: 'art/cafe/bilgin-chess.webp', fit: 'cover', from: [1.05, 55, 55], to: [1.35, 60, 42] }],
+    text: [
+      'Before the coffee house, Bilgin played chess for money and for honour, in the cafés of Istanbul.',
+      'They called him a champion. He says only that he lost less often than the others.',
+      'Now he plays in the back corner, slowly, smiling, and he sees three moves further than he lets on.',
     ],
   },
   rashid: {
@@ -70,15 +92,15 @@ export const FILMS: Record<FilmId, Film> = {
     ],
   },
 };
-export const filmReady = (id: FilmId) => !!INTRO_FILMS[id] && (!!FILMS[id].video || !!FILMS[id].stills?.length);
+export const filmReady = (id: FilmId) => (!!INTRO_FILMS[id] || !!FILMS[id].text?.length) && (!!FILMS[id].video || !!FILMS[id].stills?.length);
 /** the buyers whose film plays when they first come to your stall */
 export const STALL_FILMS: FilmId[] = ['nabil', 'cohen'];
-export const FILM_ORDER: FilmId[] = ['rashid', 'abuhamid', 'arran', 'malek', 'nabil', 'cohen'];
+export const FILM_ORDER: FilmId[] = ['rashid', 'abuhamid', 'bilgin-chess', 'arran', 'malek', 'nabil', 'cohen'];
 /** A film plays by itself the first time you go in; after that it is yours to replay ("Watch the
  *  film again" at the place, and the Films shelf on the Customers screen). Setting this true makes
  *  the place films play on every entry again (it was on while the game was being updated). */
 export const FILMS_EVERY_ENTRY = false;
-const PLACE_FILMS: FilmId[] = ['malek', 'arran', 'abuhamid', 'rashid'];
+const PLACE_FILMS: FilmId[] = ['malek', 'arran', 'abuhamid', 'bilgin-chess', 'rashid'];
 /** should this film play by itself now? (the tests set tof-films-once to see each film once) */
 export function filmDue(id: FilmId, seen: string[] | undefined): boolean {
   if (!filmReady(id)) return false;

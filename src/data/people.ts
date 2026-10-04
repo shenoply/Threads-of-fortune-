@@ -15,7 +15,8 @@ export const PEOPLE: Record<string, PersonSpec> = {
   kasparian: { skin: '#d0a888', hair: '#7a7470', age: 50, head: 'fez', headColor: '#8e1f18', clothes: 'suit', cloth: '#2a2a30', cloth2: '#20202a', moustache: 'thin', face: 'long', smile: 0.1, brow: 0.4 },
   benakis: { skin: '#caa07c', hair: '#141010', age: 45, head: 'bare', headColor: '#d8c890', clothes: 'suit', cloth: '#e0d6bc', cloth2: '#8a6a2a', face: 'round', smile: 0.6 },
   kassab: { skin: '#b3845d', hair: '#120c08', age: 38, head: 'fez', headColor: '#8e1f18', clothes: 'suit', cloth: '#6a5a2a', cloth2: '#d8b22a', moustache: 'thin', face: 'long', smile: 0.7 },
-  abuhamid: { skin: '#a8764f', hair: '#2a1d14', age: 62, head: 'turban', headColor: '#ece2cc', clothes: 'galabiya', cloth: '#6b4a2a', moustache: 'thick', beard: 'short', face: 'round', smile: 0.6 },
+  // Bilgin (id kept from the old coffee-house keeper): young, dark curls and a full dark beard, green waistcoat
+  abuhamid: { skin: '#b98a63', hair: '#18110c', age: 32, head: 'bare', clothes: 'vest', cloth: '#2f3d2a', cloth2: '#ece2cc', moustache: 'thick', beard: 'full', face: 'square', smile: 0.5 },
   mansour: { skin: '#8e5f3c', hair: '#221710', age: 58, head: 'turban', headColor: '#e6dcc4', clothes: 'galabiya', cloth: '#7a6a52', beard: 'full', moustache: 'thick', face: 'long', smile: 0 },
   ummsalah: { skin: '#a77650', hair: '#1a100a', age: 55, female: true, head: 'cowl', headColor: '#1c1714', headColor2: '#6f7a3c', clothes: 'melaya', cloth: '#1c1714', cloth2: '#6f7a3c', face: 'round', smile: 0.2 },
   rashid: { skin: '#b07e57', hair: '#221810', age: 60, head: 'fez', headColor: '#7e2418', clothes: 'vest', cloth: '#5b4a2e', cloth2: '#e6dcc8', moustache: 'thick', beard: 'stubble', face: 'square', smile: 0.3 },
@@ -36,7 +37,7 @@ export const PEOPLE: Record<string, PersonSpec> = {
 
 const LOOK_DEFAULT: Record<string, PersonSpec> = {
   fez: PEOPLE.farid,
-  turban: PEOPLE.abuhamid,
+  turban: { skin: '#a8764f', hair: '#2a1d14', age: 62, head: 'turban', headColor: '#ece2cc', clothes: 'galabiya', cloth: '#6b4a2a', moustache: 'thick', beard: 'short', face: 'round', smile: 0.6 },
   scarf: PEOPLE.ayse,
   hat: PEOPLE.hagop,
   keffiyeh: PEOPLE.salim,

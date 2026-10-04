@@ -1,5 +1,5 @@
 /* first-visit films: full screen, the portrait video centred over a blurred copy of itself */
-.film { position: fixed; inset: 0; z-index: 95; background: #0c0805; color: #f6ecd6; display: flex; flex-direction: column; animation: fade 0.4s ease; }
+.film { position: fixed; inset: 0; z-index: 97; background: #0c0805; color: #f6ecd6; display: flex; flex-direction: column; animation: fade 0.4s ease; }
 .film__frame { position: absolute; inset: 0; overflow: hidden; }
 .film__bg { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(28px) brightness(0.45); }
 .film__video, .film__still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
@@ -23,3 +23,4 @@
 .film__frame::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 14%; background: linear-gradient(to bottom, rgba(8,5,2,0.7), rgba(8,5,2,0)); pointer-events: none; z-index: 1; }
 .film__title, .film__caption, .film__btns { z-index: 2; }
 .film__after { position: absolute; inset: 0; animation: fade 1.2s ease; }
+.film__sound { min-width: 44px; padding: 0 10px; font-size: 18px; }

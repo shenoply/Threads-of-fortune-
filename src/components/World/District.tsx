@@ -809,9 +809,9 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {film && createPortal(<IntroFilm id={film} onDone={() => { useGame.getState().markIntroSeen(film); setFilm(null); }} />, document.body)}
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
-      {talk && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
-      {talk && !film && createPortal(<button className="btn small cafe-play-float" onClick={() => { setTalk(false); setCafe(true); }} data-testid="cafe-play">♞ ⚅ Play Bilgin</button>, document.body)}
-      {cafe && <Suspense fallback={null}><CafeTable onClose={(m) => { setCafe(false); if (m) setNote(m); }} /></Suspense>}
+      {talk && !film && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
+      {talk && !film && createPortal(<button className="btn small cafe-play-float" onClick={() => { setTalk(false); setCafe(true); if (unseen('bilgin-chess')) setFilm('bilgin-chess'); }} data-testid="cafe-play">♞ ⚅ Play Bilgin</button>, document.body)}
+      {cafe && <Suspense fallback={null}><CafeTable onClose={(m) => { setCafe(false); if (m) setNote(m); }} onFilm={filmReady('bilgin-chess') ? () => setFilm('bilgin-chess') : undefined} /></Suspense>}
       {talk && !film && filmReady('abuhamid') && createPortal(<button className="btn small film-again-float" onClick={() => setFilm('abuhamid')} data-testid="abuhamid-film-again">▶ Bilgin's film</button>, document.body)}
     </div>
   );

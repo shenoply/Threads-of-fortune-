@@ -58,3 +58,4 @@
 .tw-off.dest { background: #3f9a6a; color: #fff; }
 
 .cafe-overlay.pick { background: linear-gradient(180deg, rgba(13,8,5,.55) 0%, rgba(13,8,5,.82) 45%, rgba(13,8,5,.96) 100%), var(--cafe-bg) center 30% / cover no-repeat, #0d0805; }
+.cafe-film { align-self: center; }

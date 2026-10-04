@@ -209,8 +209,8 @@ export const NPCS: Record<string, Npc> = {
     },
   },
   abuhamid: {
-    id: 'abuhamid', name: 'Bilgin', role: 'Keeps the coffee house at the end of your lane', look: 'turban', accent: '#6b4a2a',
-    voice: 'Turkish coffee-house keeper settled in Giza, warm and unhurried, enjoys his own jokes',
+    id: 'abuhamid', name: 'Bilgin', role: 'Keeps the coffee house at the end of your lane', look: 'bare', accent: '#2f3d2a',
+    voice: 'Young Turkish coffee-house owner settled in Giza, once a chess champion in Istanbul: calm, hospitable, well connected, enjoys his own jokes',
     nodes: {
       start: {
         text: 'Sit, sit. You look like a man who sold something today, or a man who wants to. Coffee?',
@@ -219,8 +219,13 @@ export const NPCS: Record<string, Npc> = {
           { label: 'Where can I find rugs cheaper than Rashid?', next: 'cheap' },
           { label: 'Tell me about the roads north.', next: 'roads' },
           { label: 'Where can I hire guards?', next: 'guards' },
+          { label: 'They say you were a chess champion.', next: 'chess' },
           bye('Another time, Bilgin.'),
         ],
+      },
+      chess: {
+        text: 'In Istanbul, once. I won more than I lost, and I lost to the right people. Now I play in the back corner for tea, or for a few piastres if you are brave. Come and sit when you have time.',
+        options: [{ label: 'What is the news on the lane?', next: 'news' }, bye('Another time, Bilgin.')],
       },
       news: {
         text: 'A Frenchwoman came asking for "a rug with a real past". The hotel man Yusuf complains about porters. And the police moved the tourist donkeys again. Nothing changes except the prices.',
