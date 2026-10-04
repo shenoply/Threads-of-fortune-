@@ -553,7 +553,20 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     // the painted district; the drawn fallback is only used if the painting cannot load
     let bg: HTMLCanvasElement | null = null;
     let bgImg: HTMLImageElement | null = null;
-    { const im = new Image(); im.onload = () => { bgImg = im; }; im.onerror = () => { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); bg = f; }; im.src = 'art/world/giza-district.jpg'; }
+    // a dropped download (patchy phone signal) must not leave the drawn plan up for good: keep trying,
+    // and the painting replaces the plan the moment it arrives
+    let bgTries = 0, bgTimer = 0, alive = true;
+    const loadBg = () => {
+      const im = new Image();
+      im.onload = () => { if (alive) bgImg = im; };
+      im.onerror = () => {
+        if (!alive) return;
+        if (!bg) { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); bg = f; }
+        if (++bgTries < 8) bgTimer = window.setTimeout(loadBg, 1500 * bgTries);
+      };
+      im.src = bgTries ? `art/world/giza-district.jpg?r=${bgTries}` : 'art/world/giza-district.jpg';
+    };
+    loadBg();
     const fogC = document.createElement('canvas');
     fogC.width = FW; fogC.height = FH;
     const fctx = fogC.getContext('2d')!;
@@ -699,7 +712,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); save(); };
+    return () => { cancelAnimationFrame(raf); save(); alive = false; clearTimeout(bgTimer); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 2600); return () => clearTimeout(t); }, [toast]);
