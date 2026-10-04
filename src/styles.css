@@ -2361,3 +2361,7 @@ button.hud-chip { cursor: pointer; }
   .stall.in-talk .rugcard .thumb { max-height: 96px; }
   .stall.in-talk > .band > * { flex: 0 0 auto !important; min-width: 0 !important; }
 }
+
+/* the install offer: the button with one line on why it's worth it */
+.install-offer { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; max-width: 280px; }
+.install-offer small { font-size: 12.5px; line-height: 1.3; color: var(--text-dim); font-style: italic; }

@@ -20,7 +20,12 @@ export function InstallButton({ className = 'btn' }: { className?: string }) {
   useEffect(() => { const f = () => bump((n) => n + 1); fans.add(f); return () => { fans.delete(f); }; }, []);
   if (!offer || installed()) return null;
   const go = async () => { const o = offer; if (!o) return; await o.prompt(); const r = await o.userChoice.catch(() => null); if (r?.outcome === 'accepted') offer = null; fans.forEach((f) => f()); };
-  return <button className={className} onClick={go} data-testid="install-btn">⤓ Install the game</button>;
+  return (
+    <span className="install-offer">
+      <button className={className} onClick={go} data-testid="install-btn">⤓ Install the game</button>
+      <small data-testid="install-why">Tip: installed, it opens from its own icon, full screen with no address bar, and keeps your save.</small>
+    </span>
+  );
 }
 
 export function toggleFullScreen() {
