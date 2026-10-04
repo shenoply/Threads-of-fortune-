@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../Icon';
-import { useGame } from '../../game/state/store';
+import { useGame, robFate } from '../../game/state/store';
 import { TROOPS } from '../../data/caravan';
 import { strength } from '../../game/systems/caravan';
 import { BREEDS, withArticle } from '../../data/animals';
@@ -50,6 +50,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const payInKind = () => {
     const purse = g.cash > 0 ? `You turn out your purse: ${fmt(g.cash)} is all there is.` : 'Your purse is empty.';
     const fate = useGame.getState().robBroke();
+    setFateImg(robFate.last);
     settle({ cashLoss: g.cash, theyLeave: true, text: `${purse} ${fate}` });
   };
   const payFull = (text: string) => { if (marked) useGame.setState({ banditMark: 0 }); settle({ cashLoss: tax, theyLeave: true, text: marked ? `${text} They cross your name out of their book.` : text }); };
@@ -59,6 +60,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const [stage, setStage] = useState<Stage>('standoff');
   const [text, setText] = useState(lines.open);
   const [result, setResult] = useState('');
+  // the robbery outcome's picture (art/events/rob-<id>.webp), when you could not pay
+  const [fateImg, setFateImg] = useState('');
   const [spoils, setSpoils] = useState<{ cash: number; joiners: number; animal?: string } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const settle = (o: Parameters<typeof g.ambushOutcome>[1]) => {
@@ -252,6 +255,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
 
         {stage === 'result' && (
           <div ref={resultRef}>
+            {fateImg && <img className="amb-fate" src={`art/events/rob-${fateImg}.webp`} alt="" draggable={false} data-testid="amb-fate" data-fate={fateImg} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
             <p className="amb-text" data-testid="encounter-result">{result}</p>
             {spoils && (spoils.cash > 0 || spoils.joiners > 0 || spoils.animal) && (
               <div className="amb-spoils" data-testid="amb-spoils">

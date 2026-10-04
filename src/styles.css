@@ -2247,3 +2247,5 @@ button.hud-chip { cursor: pointer; }
 /* river crossings on the travel map */
 .xing{position:absolute;transform:translate(-50%,-50%);z-index:2;pointer-events:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 Georgia,serif;color:#2b1b0d;background:#efe0bf;border:1.5px solid #5a3d20;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .xing-ford{background:#f3d77a}
+/* the picture of what happened when you could not pay the bandits: landscape, never stretched */
+.amb-fate{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:8px;margin:4px 0 8px;border:1px solid rgba(231,189,110,.35)}

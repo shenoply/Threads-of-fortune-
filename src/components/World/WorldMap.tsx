@@ -5,7 +5,7 @@ import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGame } from '../../game/state/store';
+import { useGame, robFate } from '../../game/state/store';
 import { SETTLEMENTS, type Settlement } from '../../data/world';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
@@ -975,6 +975,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m: string) => void; onTurnBack: () => void }) {
   const g = useGame();
   const [msg, setMsg] = useState('');
+  const [fate, setFate] = useState(''); // the robbery outcome's picture, when you could not pay
   const mine = strength(g.world.party);
   const men = Object.entries(g.world.party.troops).filter(([, n]) => n > 0).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`).join(', ');
   const text = useMemo(() => {
@@ -1003,13 +1004,14 @@ function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         {party.kind === 'raiders' && <p>Your side: strength {mine}{men ? ` (${men})` : ', just you'}. Theirs: about {party.strength}.</p>}
         {msg ? (
           <>
+            {fate && <img className="amb-fate" src={`art/events/rob-${fate}.webp`} alt="" draggable={false} data-testid="amb-fate" data-fate={fate} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
             <p style={{ color: 'var(--parchment)' }} data-testid="encounter-result">{msg}</p>
             <button className="btn primary" onClick={() => (msg.includes('turn back') ? onTurnBack() : onDone(msg))} data-testid="encounter-continue">Continue</button>
           </>
         ) : (
           <div style={{ display: 'grid', gap: 6 }}>
             {opts.map(([id, label]) => (
-              <button key={id} className="btn" onClick={() => { setMsg(g.partyChoice(party.id, id)); audio.sfx(id === 'fight' ? 'chest' : 'tap'); }} data-testid={`enc-${id}`}>{label}</button>
+              <button key={id} className="btn" onClick={() => { robFate.last = ''; setMsg(g.partyChoice(party.id, id)); setFate(robFate.last); audio.sfx(id === 'fight' ? 'chest' : 'tap'); }} data-testid={`enc-${id}`}>{label}</button>
             ))}
           </div>
         )}
