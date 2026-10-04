@@ -70,11 +70,18 @@ const LUFS: Record<string, number> = {
   'the-gavel-rises': -16.07, 'the-risky-pass': -16.19, 'title-hijaz': -18.78, 'ya-layl-ya-ayn': -17.09, 'ya-rakib-al-layl': -16.1,
   'au-bout-du-chemin': -16.4, 'a-mile-before-supper': -15.5, 'yol-boyunca': -16.5,
 };
+/** Full sung songs (a voice and a band), not the instrumental oud/ney pieces the rest of the score
+ *  is built from. A full mix reads louder than its LUFS number alone suggests, and two of them (or
+ *  one of these against the instrumental score) crossfading the normal way sounds like two different
+ *  songs colliding rather than one cue melting into another, so these get their own, non-overlapping
+ *  handling in playTrack() below and a little extra trim on top of the usual loudness match. */
+const VOCAL = new Set(['au-bout-du-chemin', 'a-mile-before-supper', 'yol-boyunca']);
 /** the playing gain for a piece (1 for one not measured); quieter pieces are not pushed past 1.6x */
 export function trackGain(name: string) {
   const l = LUFS[name];
   if (l == null) return 1;
-  return Math.min(1.6, 10 ** (((-19 - l) / 2) / 20));
+  const g = Math.min(1.6, 10 ** (((-19 - l) / 2) / 20));
+  return VOCAL.has(name) ? g * 0.8 : g;
 }
 
 /** Sounds that happen now and then in each place: [clip set, weight, gain, distance 0 near .. 1 far]. */
@@ -651,14 +658,21 @@ class AudioEngine {
     const c = this.ctx;
     const src = c.createBufferSource();
     src.buffer = buf;
+    // A full sung song stepping on the tail of another piece reads as two different songs playing
+    // at once, not a cue melting into the next one, so a vocal piece on either side of the join
+    // gets silence first instead of the usual rise-while-the-last-one-falls crossfade.
+    const vocalJoin = VOCAL.has(name) || (!!this.track && VOCAL.has(this.track.name));
+    const outSecs = vocalJoin ? 1.1 : 1.5;
+    const inSecs = vocalJoin ? 1.3 : fadeIn;
+    const startAt = c.currentTime + (vocalJoin && this.track ? outSecs + 0.2 : 0);
     // anything still sounding as the current piece (a race from an older request) goes now
-    if (this.track) this.fadeOutTrack(1.5);
+    if (this.track) this.fadeOutTrack(outSecs);
     const gain = c.createGain();
     const lvl = trackGain(name);
-    gain.gain.setValueAtTime(0.0001, c.currentTime);
-    gain.gain.linearRampToValueAtTime(lvl, c.currentTime + fadeIn);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.linearRampToValueAtTime(lvl, startAt + inSecs);
     src.connect(gain).connect(this.gains.music);
-    src.start();
+    src.start(startAt);
     this.live.add(src);
     this.track = { name, src, gain };
     this.state.track = name;
@@ -692,9 +706,13 @@ class AudioEngine {
     // the piece already playing may suit the new place too: let it keep going
     if (this.track && PLAYLISTS[next].includes(this.track.name)) return;
     const had = !!this.track;
+    // fadeOutTrack() clears this.track, so a vocal outgoing piece has to be remembered here: by
+    // the time playTrack() runs there is nothing left in this.track for it to see and avoid overlapping.
+    const outgoingVocal = had && VOCAL.has(this.track!.name);
     this.gen++;
-    this.fadeOutTrack();
-    this.musicTimer = window.setTimeout(() => this.playTrack(this.chooseTrack(next)), had ? 350 : 0);
+    this.fadeOutTrack(outgoingVocal ? 1.1 : 4.5);
+    const gap = outgoingVocal ? 1300 : had ? 350 : 0;
+    this.musicTimer = window.setTimeout(() => this.playTrack(this.chooseTrack(next)), gap);
   }
 
   private syncMusic() {
