@@ -2373,6 +2373,6 @@ button.hud-chip { cursor: pointer; }
 }
 
 /* the install offer: the button with one line on why it's worth it */
-.install-offer { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; max-width: 280px; }
-.install-offer small { font-size: 12.5px; line-height: 1.3; color: var(--text-dim); font-style: italic; }
-.install-offer .install-steps { font-style: normal; color: var(--text); }
+.install-offer { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; max-width: 320px; text-align: center; }
+.install-offer small { font-size: 13.5px; line-height: 1.35; color: #f3e6cc; font-style: normal; background: rgba(18,11,6,0.82); border: 1px solid rgba(214,170,90,0.35); border-radius: 8px; padding: 6px 10px; text-shadow: 0 1px 2px #000; }
+.install-offer .install-steps { color: #fff; }
