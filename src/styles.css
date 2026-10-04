@@ -1214,7 +1214,9 @@ table.ledger .neg { color: var(--bad); }
 .floor-price b { font-family: var(--display); font-size: 26px; color: var(--parchment); line-height: 1.1; }
 .floor-price span:last-child b { font-size: 18px; color: #e8c877; }
 .floor-poor { margin: 0; font-size: 14px; color: #e0a070; text-align: center; }
-.floor-btns { display: grid; grid-template-columns: 1fr 1.5fr 1fr 1fr; gap: 6px; }
+/* five actions now (inspect, bid, jump-bid, watch, skip): wrap to a second row rather than
+   squeezing them all into one on a phone-width screen */
+.floor-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .floor-btns .btn { padding: 11px 4px; font-size: 15px; }
 .floor-body .bid-over { display: grid; gap: 8px; }
 .floor-body .bid-over p { margin: 0; font-size: 15.5px; color: var(--parchment); text-align: center; }

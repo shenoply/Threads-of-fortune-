@@ -194,21 +194,24 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
   const canBid = canAffordBid(g.cash, nextBid, h.buyerPremiumPct);
   const nameOf = (id: string | null) => (id === 'you' ? 'you' : room.find((b) => b.id === id)?.name ?? '');
 
-  const finish = (winner: string | null, at: number) => {
+  const finish = (winner: string | null, at: number, instant = false) => {
     gen.current++;
     window.clearTimeout(timer.current);
     const bought = winner !== null && at >= lot.reserve ? winner : null;
     const msg = g.lotResult(houseId, lot, bought, at, bought && bought !== 'you' ? nameOf(bought) : undefined);
     const text = bought === 'you' ? msg : bought ? `Sold to ${nameOf(bought)} for ${fmt(at)}.` : winner ? `Bought in at ${fmt(at)}: the reserve was not met.` : 'No bids. Bought in.';
     g.passTime(8);
-    speak(bought ? pickLine('sold', at) : pickLine('noSale'), bought ? `Sold to ${bought === 'you' ? 'you' : nameOf(bought)}.` : winner ? 'The reserve was not met.' : 'Nobody bid.', () => {
+    const settle = () => {
       audio.sfx('gavel');
       if (bought && h.tier === 'grand' && at >= 5000) setTimeout(() => audio.sfx('applause'), 500);
       if (!alive.current) return;
       setOver(text);
       onDone(text, bought === 'you');
       setBusy(false);
-    });
+    };
+    // skipping a lot resolves it in one go instead of waiting out the auctioneer's calls
+    if (instant) { setLine(''); setWho(text); settle(); return; }
+    speak(bought ? pickLine('sold', at) : pickLine('noSale'), bought ? `Sold to ${bought === 'you' ? 'you' : nameOf(bought)}.` : winner ? 'The reserve was not met.' : 'Nobody bid.', settle);
   };
 
   /** One pass around the room at the next price. Returns who raised, if anyone. */
@@ -262,10 +265,10 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
   };
   const skip = () => {
     if (over || busy) return;
-    if (leader === 'you') return;
     gen.current++;
     window.clearTimeout(timer.current);
-    // let the room finish the lot without you
+    // resolve the rest of this lot at once — the room keeps bidding against whoever is
+    // leading (including you, if you want out of a bidding war) until it settles
     let L = leader, P = price, G: Going = going;
     for (let i = 0; i < 80; i++) {
       const np = L ? P + increment(P, h.tier) : P;
@@ -274,7 +277,25 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
       if (G >= 2) break;
       G = (G + 1) as Going;
     }
-    setPrice(P); setLeader(L); finish(L, P);
+    setPrice(P); setLeader(L); finish(L, P, true);
+  };
+  /** A big jump bid, well above the next step, for closing a lot out fast instead of inching up. */
+  const jumpBid = (() => {
+    let p = nextBid;
+    for (let i = 0; i < 6; i++) p += increment(p, h.tier);
+    const maxAfford = Math.floor(g.cash / (1 + (h.buyerPremiumPct ?? 0)));
+    return Math.min(p, maxAfford);
+  })();
+  const canJump = jumpBid > nextBid && canAffordBid(g.cash, jumpBid, h.buyerPremiumPct);
+  const bidJump = () => {
+    if (!canJump || busy || over || leader === 'you') return;
+    gen.current++;
+    window.clearTimeout(timer.current);
+    setBusy(true); audio.sfx('tap');
+    setPrice(jumpBid); setLeader('you'); setGoing(0);
+    const at = jumpBid;
+    speak(pickLine('youBid', at), 'You raise your hand — high, to settle it.');
+    next(() => step('you', at, 0), 500);
   };
 
   return (
@@ -316,8 +337,9 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
           <div className="floor-btns">
             <button className="btn" onClick={() => { if (!inspect) g.practise('appraisal', 1); setInspect(!inspect); }} data-testid="bid-inspect">Inspect</button>
             <button className="btn primary" disabled={!canBid || busy || leader === 'you'} onClick={bid} data-testid="bid-raise">{leader === 'you' ? 'Your bid' : `Bid ${fmt(nextBid)}`}</button>
+            <button className="btn" disabled={!canJump || busy || leader === 'you'} onClick={bidJump} data-testid="bid-jump" title="Bid well above the next step to close this out fast">Jump to {fmt(jumpBid)}</button>
             <button className="btn" disabled={busy || leader === 'you'} onClick={hold} data-testid="bid-hold">{going ? 'Let it go' : 'Watch'}</button>
-            <button className="btn" disabled={busy || leader === 'you'} onClick={skip} data-testid="bid-pass">Skip lot</button>
+            <button className="btn" disabled={busy} onClick={skip} data-testid="bid-pass">{leader === 'you' ? 'Stop bidding & skip' : 'Skip lot'}</button>
           </div>
         </>
       )}
