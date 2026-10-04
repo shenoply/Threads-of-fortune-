@@ -36,7 +36,7 @@ import { paintedMap } from './game/systems/mapRender';
 import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
 import { FinancePanel } from './components/World/Finance';
-import { overdue } from './game/systems/finance';
+import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, type SlotInfo } from './game/state/slots';
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
@@ -57,6 +57,13 @@ export default function App() {
   const [finance, setFinance] = useState(false);
   // money trouble shows in the top bar: an empty purse, a late bill, a loan past due, the creditors
   const inDebt = g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day) > 0);
+  // the creditors' road, once a lawyer's letter has gone out: 0 at the letter, 100 the moment the
+  // court would declare you bankrupt. A second bankruptcy ends the game for good, so that one gets
+  // the starkest framing.
+  const ruin = g.ruin ?? { stage: 0, since: 0 };
+  const risk = g.started ? ruinRisk(ruin, g.day) : 0;
+  const daysToCourt = Math.max(0, RUIN_STEPS.court - (g.day - ruin.since));
+  const finalStrike = (g.bankruptcies ?? 0) > 0;
   // only the "last saved" label follows autosave's own on/off switch — Save now and the slots
   // update it through their own handlers regardless
   useEffect(() => useGame.subscribe(() => { if (useGame.getState().autosaveOn !== false) setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }), []);
@@ -393,6 +400,21 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (
+        <button className={`ruin-banner ${finalStrike ? 'final' : ''}`} onClick={() => setFinance(true)} data-testid="ruin-banner">
+          <div className="ruin-banner-text">
+            <b>{finalStrike ? 'FINAL WARNING — ' : ''}{ruin.stage === 1 ? 'A lawyer has written' : 'The bailiff has been'}</b>
+            <span>
+              {ruin.stage === 1
+                ? `The bailiff comes to the stall in ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} day${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since)) === 1 ? '' : 's'} unless you pay.`
+                : `The court declares you bankrupt in ${daysToCourt} day${daysToCourt === 1 ? '' : 's'} unless you pay.`}
+              {finalStrike ? ' This bankruptcy ends your father’s business for good.' : ''}
+            </span>
+          </div>
+          <div className="ruin-meter" aria-hidden="true"><i style={{ width: `${risk}%` }} /></div>
+        </button>
+      )}
 
       {phase === 'game' && !(tab === 'stall' && g.encounter) && (() => {
         const fh = firstHourStep(g);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
-import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, overdue, premiumFor } from '../../game/systems/finance';
+import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, overdue, premiumFor, ruinRisk } from '../../game/systems/finance';
 import { settlementById } from '../../game/systems/world';
 
 /**
@@ -34,15 +34,20 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
         <h2>Money matters</h2>
         {note && <p className="set-note" data-testid="finance-note">{note}</p>}
 
-        {ruin.stage > 0 && (
-          <p className="fin-line ruin" data-testid="ruin">
-            <b>{ruin.stage === 1 ? 'A lawyer has written.' : 'The bailiff has been.'}</b>{' '}
-            {ruin.stage === 1
-              ? `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} days, or the bailiff comes to the stall.`
-              : `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.court - (g.day - ruin.since))} days, or the Mixed Court will declare you bankrupt.`}
-            {' '}Sell rugs, borrow, or cut your costs.
-          </p>
-        )}
+        {ruin.stage > 0 && (() => {
+          const risk = ruinRisk(ruin, g.day);
+          return (
+            <div className="fin-line ruin" data-testid="ruin">
+              <b>{ruin.stage === 1 ? 'A lawyer has written.' : 'The bailiff has been.'}</b>{' '}
+              {ruin.stage === 1
+                ? `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} days, or the bailiff comes to the stall.`
+                : `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.court - (g.day - ruin.since))} days, or the Mixed Court will declare you bankrupt.`}
+              {' '}Sell rugs, borrow, or cut your costs.
+              {(g.bankruptcies ?? 0) > 0 && <><br /><b>A second bankruptcy ends your father&rsquo;s business for good.</b></>}
+              <div className="ruin-meter" data-testid="ruin-risk"><i style={{ width: `${risk}%` }} /></div>
+            </div>
+          );
+        })()}
 
         <div className="section-label">WHAT YOU OWE</div>
         {nothingOwed ? <p className="dim">Nothing. Your name is clean in the bazaar.</p> : (

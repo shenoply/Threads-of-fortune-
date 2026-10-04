@@ -59,3 +59,12 @@ export const RUIN_GRACE = 30;
 export function overdue(cash: number, billsDue: number, billsLate: boolean, loans: Loan[], day: number) {
   return Math.max(0, -cash) + (billsLate ? billsDue : 0) + loans.filter((l) => day > l.due).reduce((s, l) => s + l.owed, 0);
 }
+
+/** How close to the court and bankruptcy you are right now, 0-100: 0 at the lawyer's first letter,
+ *  100 the moment the court would declare you bankrupt (the full creditors' road is RUIN_STEPS.court
+ *  days from that first letter, bailiff included). 0 if you owe nothing overdue. */
+export function ruinRisk(ruin: Ruin, day: number): number {
+  if (ruin.stage === 0) return 0;
+  const late = day - ruin.since;
+  return Math.max(0, Math.min(100, Math.round((late / RUIN_STEPS.court) * 100)));
+}

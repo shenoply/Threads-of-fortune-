@@ -2132,6 +2132,20 @@ button.hud-chip { cursor: pointer; }
 /* money trouble */
 .hud-chip.hud-debt { background: #6a1d12; border-color: #e0704a; color: #ffd9c4; font-family: var(--label); animation: debt-pulse 2.4s ease-in-out infinite; }
 @keyframes debt-pulse { 50% { box-shadow: 0 0 0 3px #e0704a55; } }
+
+/* the creditors' road, once a lawyer's letter has gone out: a full-width red strip under the top
+   bar, impossible to miss, with a meter showing how close the court really is. The second
+   bankruptcy ends the game, so that state gets its own harsher, faster pulse. */
+.ruin-banner { display: block; width: 100%; text-align: left; padding: 9px 14px 8px; background: linear-gradient(180deg, #7a1e10, #5c160c); border: none; border-bottom: 2px solid #ff6a3d; color: #fff0e6; cursor: pointer; animation: ruin-pulse 2.6s ease-in-out infinite; }
+.ruin-banner.final { background: linear-gradient(180deg, #8f170a, #5c0a04); border-bottom-color: #ff3b1f; animation: ruin-pulse-final 1.3s ease-in-out infinite; }
+.ruin-banner-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.ruin-banner-text b { font-family: var(--display); font-size: 16px; letter-spacing: 0.02em; }
+.ruin-banner.final .ruin-banner-text b { color: #ffd9c4; text-transform: uppercase; font-size: 15px; }
+.ruin-banner-text span { font-size: 13.5px; color: #ffd9c4; }
+.ruin-meter { margin-top: 6px; height: 6px; border-radius: 4px; background: #2a0d07; border: 1px solid #ff6a3d55; overflow: hidden; }
+.ruin-meter i { display: block; height: 100%; background: linear-gradient(90deg, #ffb24d, #ff6a3d, #ff3b1f); border-radius: 4px; transition: width 0.4s ease; }
+@keyframes ruin-pulse { 50% { box-shadow: inset 0 0 0 999px #ff6a3d22; } }
+@keyframes ruin-pulse-final { 50% { box-shadow: inset 0 0 0 999px #ff3b1f3d; } }
 .modal-card.finance { max-height: 88vh; overflow-y: auto; }
 .fin-line { margin: 4px 0; padding: 6px 9px; border-radius: 5px; background: #1c1209; border: 1px solid #5b4128; font-size: 15px; }
 .fin-line.warn { border-color: #e0704a; color: #ffd0bb; }
