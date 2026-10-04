@@ -25,6 +25,7 @@ CAST = {
     'malek': ('blend:em_alex=0.6,bm_daniel=0.4|egyptian', 1.04, 'en-us'),
     # Bilgin: the Turkish keeper of the coffee house in your lane (replaced Abu Hamid): warm, unhurried
     'abuhamid': ('blend:bm_lewis=0.6,am_puck=0.4', 0.94, 'en-gb'),
+    'selim': ('bm_george', 0.9, 'en-gb'),         # Selim Bey, Ottoman gentleman in his sixties: formal, slow, melancholy
     'nabil': ('am_onyx', 0.92, 'en-us'),          # senior Cairo textile merchant: deep, unhurried
     'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler: measured, precise, nasal (FX below)
     'farid-nassar': ('am_eric', 1.0, 'en-us'),     # casino bookings manager

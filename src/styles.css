@@ -2297,3 +2297,63 @@ button.hud-chip { cursor: pointer; }
 @keyframes tok-bob { 50% { translate: 0 -1.5px; } }
 @media (prefers-reduced-motion: reduce) { .me.moving .me-tok { animation: none; } }
 .buyer-card-overlay { z-index: 90; }
+
+/* ---------- the stall during a negotiation (v3): what must always be in view is the stall picture,
+   what was just said, the buyer's interest and the things you can do. So: the toolbar sits on the
+   picture instead of a row of its own, the screen tabs step aside (Step away is how you leave), the
+   picture takes whatever height is left, the rug tray folds away once a rug is on the table (a handle
+   brings it back), and the secondary details (stage trail, the "you said" echo, the rug line) give
+   way first. ---------- */
+@media all {
+  .app:has(.stall.in-talk) .nav { display: none; }
+  .stall.in-talk {
+    grid-template-columns: 100%;
+    grid-template-rows: minmax(96px, 1fr) auto auto auto auto auto;
+    grid-template-areas: "scene" "band" "help" "tray" "rugstrip" "actions";
+  }
+  .stall.in-talk > .stall-toolbar { grid-area: scene; align-self: start; justify-self: end; z-index: 9; background: none; border: 0; padding: 6px; gap: 6px; pointer-events: none; }
+  .stall.in-talk > .stall-toolbar > * { pointer-events: auto; }
+  .stall.in-talk .step-away { min-height: 34px; padding: 4px 10px; font-size: 13px; border-width: 1px; border-radius: 16px; background: rgba(32,20,12,.86); backdrop-filter: blur(2px); }
+  .stall.in-talk .step-away small { display: none; }
+  .stall.in-talk > .scene { aspect-ratio: auto; height: 100%; max-height: none; min-height: 96px; }
+  .stall.in-talk > .band { overflow: visible; gap: 4px; padding: 6px 10px 4px; }
+  .stall.in-talk > .band > :first-child, .stall.in-talk > .band > :last-child { margin-top: 0; margin-bottom: 0; }
+  .stall.in-talk .band .speech { font-size: 15.5px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+  .stall.in-talk .band .narrator { font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; padding: 4px 8px; }
+  .stall.in-talk .band .echo, .stall.in-talk .band .stages, .stall.in-talk .band .on-table { display: none !important; }
+  .stall.in-talk .band .plate-buyer { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; }
+  .stall.in-talk .band .plate-buyer .plate-row { grid-column: 1; }
+  .stall.in-talk .band .plate-buyer .meters { grid-column: 2; display: flex; gap: 8px; }
+  .stall.in-talk .band .plate-buyer .values { grid-column: 1 / -1; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .stall.in-talk .band .plate-buyer .role { display: none; }
+  .stall.in-talk > .tray-handle { grid-area: tray; display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%; min-height: 32px; padding: 4px 10px; border: 0; border-top: 1px solid var(--line); background: #150e08; color: var(--text-dim); font-family: var(--label); font-size: 13px; touch-action: none; }
+  .stall.in-talk > .tray-handle i { width: 34px; height: 4px; border-radius: 2px; background: rgba(231,189,110,.45); position: absolute; margin-top: -22px; }
+  .stall.in-talk > .tray-handle b { color: var(--parchment); font-weight: 500; }
+  .stall.in-talk > .tray-handle span { color: var(--brass-hi); }
+  .stall.in-talk.tray-shut > .rugstrip { display: none; }
+  .stall.in-talk > .actions { min-height: 0; padding: 5px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .stall.in-talk .act { min-height: 46px; padding: 5px 8px; }
+  .stall.in-talk .act .t { font-size: 15px; }
+  .stall.in-talk .act .s { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-height: 680px) {
+    .stall.in-talk .act { min-height: 40px; }
+    .stall.in-talk .act .s { display: none; }
+    .stall.in-talk .rugcard .meta { display: none; }
+  }
+  .stall.in-talk .band .plate-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; padding: 0; }
+  .stall.in-talk .band .plate-row .buyer-face { width: 28px !important; height: 28px !important; }
+  .stall.in-talk .band .plate-row .name { font-size: 15px; }
+  .stall.in-talk .band .plate-row .tier { font-size: 11px; padding: 0 5px; }
+  .stall.in-talk .band .plate-buyer .values:empty { display: none; }
+}
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  .app:has(.stall.in-talk) .nav { display: flex; }
+  .stall.in-talk > .stall-toolbar, .stall.in-talk > .scene, .stall.in-talk > .band, .stall.in-talk > .rugstrip, .stall.in-talk > .actions { grid-column: 1; }
+  .stall.in-talk > .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stall.in-talk > .band { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  /* on a wide screen the table keeps a phone-like column in the middle, so the picture, the talk and
+     the buttons stay together instead of the rug cards growing to fill the width */
+  .stall.in-talk { width: min(100%, 860px); margin: 0 auto; }
+  .stall.in-talk .rugcard .thumb { max-height: 96px; }
+  .stall.in-talk > .band > * { flex: 0 0 auto !important; min-width: 0 !important; }
+}

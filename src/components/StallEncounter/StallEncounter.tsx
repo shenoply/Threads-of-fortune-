@@ -52,6 +52,12 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const ordered = front && avail.some((i) => i.uid === front) ? [avail.find((i) => i.uid === front)!, ...avail.filter((i) => i.uid !== front)] : avail;
   const shown = ordered.length <= 3 ? ordered : [...ordered, ...ordered].slice(offset % ordered.length, (offset % ordered.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
+  // the rug tray folds away once a rug is on the table, so the talk has the room; a tap (or a swipe)
+  // on its handle brings it back. Open again whenever nothing is on the table.
+  const [tray, setTray] = useState(true);
+  useEffect(() => { setTray(!enc?.presented); }, [enc?.presented, enc?.id]);
+  const [swipe, setSwipe] = useState<number | null>(null);
+  const talking = !!enc && !enc.outcome;
   // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
   // closes (settle() runs inside act(), before the player has seen the result screen or clicked
   // "Next customer"), so keying the dialogue-playback reset on it replayed the whole conversation
@@ -125,7 +131,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const isLast = g.visitIdx >= g.queue.length;
 
   return (
-    <div className="stall" data-testid="stall">
+    <div className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}`} data-testid="stall">
       {filmFor && createPortal(<IntroFilm id={filmFor} onDone={() => { useGame.getState().markIntroSeen(filmFor); setFilmDone(true); }} />, document.body)}
       {((enc && !enc.outcome && !enc.tutorial && !enc.venue) || (tut && enc && !enc.outcome)) && (
         <div className="stall-toolbar">
@@ -155,6 +161,20 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       <InfoBand enc={enc} presented={presented} view={view} tierName={tier.name} priorities={priorities} />
 
       {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work ?</button>}
+      {talking && (
+        <button
+          className="tray-handle"
+          onClick={() => setTray((t) => !t)}
+          onPointerDown={(e) => setSwipe(e.clientY)}
+          onPointerUp={(e) => { if (swipe !== null && Math.abs(e.clientY - swipe) > 24) { setTray(e.clientY < swipe); } setSwipe(null); }}
+          aria-expanded={tray}
+          data-testid="tray-handle"
+        >
+          <i aria-hidden="true" />
+          {tray ? 'Hide the rugs' : presented ? <>Rugs · <b>{names[presented.uid] ?? RUGS[presented.typeId].name}</b> on the table</> : 'Show the rugs'}
+          <span aria-hidden="true">{tray ? '▾' : '▴'}</span>
+        </button>
+      )}
       <div className="rugstrip" data-testid="rugstrip">
         {[0, 1, 2].map((k) => {
           const it = shown[k];
