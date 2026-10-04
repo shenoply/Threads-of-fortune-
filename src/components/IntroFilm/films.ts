@@ -51,7 +51,7 @@ export const FILMS: Record<FilmId, Film> = {
     ownSound: true,
     // if the video cannot play: the paintings under the narrator
     stills: [
-      { src: 'art/world/giza-district.jpg', fit: 'cover', from: [1, 50, 50], to: [2.2, 55, 30] },
+      { src: 'art/cafe/cafe-angle.webp', fit: 'cover', from: [1.25, 50, 85], to: [1.05, 55, 30] },
       { src: 'art/cafe/bilgin-cafe-working.webp', fit: 'cover', from: [1.15, 60, 50], to: [1.35, 42, 40] },
       { src: 'art/cafe/bilgin-profile.webp', fit: 'cover', from: [1.3, 40, 35], to: [1.1, 45, 45] },
       { src: 'art/cafe/bilgin-chess.webp', fit: 'cover', from: [1.05, 55, 55], to: [1.3, 62, 50] },

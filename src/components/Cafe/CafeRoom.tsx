@@ -6,13 +6,13 @@ import './cafe.css';
 
 type Pt = [number, number];
 type Game = 'chess' | 'tawla';
-const IMG = 'art/cafe/cafe-birdseye.webp';
+const IMG = 'art/cafe/cafe-birdseye-v2.webp';
 /** where things are in the painting (percent across, percent down) */
 export const CAFE_SPOTS = {
-  bilgin: [52, 9] as Pt,
-  chess: [51, 18] as Pt,
-  tawla: [71, 22] as Pt,
-  door: [50, 87] as Pt,
+  bilgin: [64, 10] as Pt,
+  chess: [69, 18] as Pt,
+  tawla: [89, 24] as Pt,
+  door: [50, 85] as Pt,
 };
 
 export function CafeRoom({ onTalk, onPlay, onLeave, onFilm, note, onNote }: {
