@@ -41,5 +41,8 @@ const STALL_PROPS = [
   'prop-herbs', 'prop-lanterns', 'cat-doorway', 'cat-counter', 'cat-topshelf', 'cat-radio',
 ].map((p) => `art/stall2/props/${p}.webp`);
 
-export const STALL_ART = ['art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/hero-base-stall.webp', 'art/portraits/samira-stall2.webp', 'art/radio-stall.webp', 'art/newspaper-pov.jpg', 'art/world/giza-district.jpg', 'art/world/stall-top.jpg', ...STALL_PROPS];
+// the map and the stall-idle bottom sheet are the two full screens the player bounces between
+// most, so their backgrounds go first — otherwise they're the ones caught mid-fetch when you
+// jump straight to them
+export const STALL_ART = ['art/world/giza-district.jpg', 'art/stall-empty.webp', 'art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/hero-base-stall.webp', 'art/portraits/samira-stall2.webp', 'art/radio-stall.webp', 'art/newspaper-pov.jpg', 'art/world/stall-top.jpg', ...STALL_PROPS];
 export const CITY_ART = ['alexandria', 'jerusalem', 'damascus', 'amman', 'baghdad', 'istanbul'].map((c) => `art/world/city-${c}.jpg`);

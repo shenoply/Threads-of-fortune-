@@ -556,12 +556,14 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     // a dropped download (patchy phone signal) must not leave the drawn plan up for good: keep trying,
     // and the painting replaces the plan the moment it arrives
     let bgTries = 0, bgTimer = 0, alive = true;
+    // paint the drawn fallback right away, so a slow (but successful) fetch of the real painting
+    // shows something other than a blank screen while it's in flight, not just after it fails
+    { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); bg = f; }
     const loadBg = () => {
       const im = new Image();
       im.onload = () => { if (alive) bgImg = im; };
       im.onerror = () => {
         if (!alive) return;
-        if (!bg) { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); bg = f; }
         if (++bgTries < 8) bgTimer = window.setTimeout(loadBg, 1500 * bgTries);
       };
       im.src = bgTries ? `art/world/giza-district.jpg?r=${bgTries}` : 'art/world/giza-district.jpg';
