@@ -434,6 +434,20 @@ class AudioEngine {
       case 'tap':
         this.noise(0.05, d, { type: 'bandpass', f: 1600 + Math.random() * 500, q: 2, gain: 0.1 });
         break;
+      case 'dice': {
+        // a shake-and-throw: a handful of rattly wood-on-wood knocks, fading as the dice settle
+        const n = 5 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          this.noise(0.045, d, { type: 'bandpass', f: 1100 + Math.random() * 900, q: 3 + Math.random() * 2, gain: 0.24 * (1 - i / (n + 2)), attack: 0.002, delay: i * (0.045 + Math.random() * 0.03) });
+        }
+        this.noise(0.09, d, { type: 'bandpass', f: 650, q: 2, gain: 0.3, attack: 0.003, delay: n * 0.055 });
+        break;
+      }
+      case 'piece':
+        // a wooden chess piece or tawla checker set down: one firm, low knock
+        this.noise(0.08, d, { type: 'bandpass', f: 480 + Math.random() * 180, q: 2.2, gain: 0.32, attack: 0.002 });
+        this.noise(0.035, d, { type: 'highpass', f: 2200, gain: 0.08, attack: 0.001 });
+        break;
       case 'shot':
         this.shot(0);
         break;
