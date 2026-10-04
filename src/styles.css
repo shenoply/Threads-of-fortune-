@@ -2376,3 +2376,10 @@ button.hud-chip { cursor: pointer; }
 .install-offer { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; max-width: 320px; text-align: center; }
 .install-offer small { font-size: 13.5px; line-height: 1.35; color: #f3e6cc; font-style: normal; background: rgba(18,11,6,0.82); border: 1px solid rgba(214,170,90,0.35); border-radius: 8px; padding: 6px 10px; text-shadow: 0 1px 2px #000; }
 .install-offer .install-steps { color: #fff; }
+
+/* the evening ledger slip: one compact line of figures, the buttons in a row beneath, never a tall column */
+.evening-strip { flex-wrap: wrap !important; row-gap: 4px !important; padding: 4px 6px 6px 30px !important; }
+.evening-strip .es-text { flex: 1 1 100% !important; flex-direction: row !important; flex-wrap: wrap; align-items: baseline; column-gap: 10px; }
+.evening-strip .es-text > b { font-size: 14px !important; line-height: 20px !important; white-space: nowrap; }
+.evening-strip .es-lines { font-size: 13.5px !important; line-height: 20px !important; column-gap: 9px !important; }
+.evening-strip .btn { flex: 1 1 0 !important; min-height: 32px !important; padding: 4px 8px !important; font-size: 12.5px !important; white-space: nowrap; }
