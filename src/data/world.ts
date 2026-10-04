@@ -203,14 +203,14 @@ export const NPCS: Record<string, Npc> = {
         options: [{ label: 'Then I will outsell you.', effects: ['rep:0'], next: 'bet' }, bye()],
       },
       bet: {
-        text: 'Ha! I like you. We will see who is still here at the end of the month. Loser buys the coffee at Abu Hamid\'s.',
+        text: 'Ha! I like you. We will see who is still here at the end of the month.',
         options: [bye()],
       },
     },
   },
   abuhamid: {
-    id: 'abuhamid', name: 'Abu Hamid', role: 'Keeps the coffee house at the end of your lane', look: 'turban', accent: '#6b4a2a',
-    voice: 'Old Cairene man, warm and gravelly, slow, enjoys his own jokes',
+    id: 'abuhamid', name: 'Bilgin', role: 'Keeps the coffee house at the end of your lane', look: 'turban', accent: '#6b4a2a',
+    voice: 'Turkish coffee-house keeper settled in Giza, warm and unhurried, enjoys his own jokes',
     nodes: {
       start: {
         text: 'Sit, sit. You look like a man who sold something today, or a man who wants to. Coffee?',
@@ -219,7 +219,7 @@ export const NPCS: Record<string, Npc> = {
           { label: 'Where can I find rugs cheaper than Rashid?', next: 'cheap' },
           { label: 'Tell me about the roads north.', next: 'roads' },
           { label: 'Where can I hire guards?', next: 'guards' },
-          bye('Another time, Abu Hamid.'),
+          bye('Another time, Bilgin.'),
         ],
       },
       news: {
@@ -234,7 +234,7 @@ export const NPCS: Record<string, Npc> = {
         ],
       },
       fayoum: {
-        text: 'Southwest, past Saqqara. A day and a half on a donkey, or take the train from Cairo. Ask for Umm Salah. Tell her Abu Hamid sent you and she will charge you double.',
+        text: 'Southwest, past Saqqara. A day and a half on a donkey, or take the train from Cairo. Ask for Umm Salah. Tell her Bilgin sent you and she will charge you double.',
         options: [bye('Thank you, I think.')],
       },
       roads: {

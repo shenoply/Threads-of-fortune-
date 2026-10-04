@@ -69,8 +69,8 @@ export const MISSIONS: Record<string, Mission> = {
     check: (s) => (s.stats?.rivalSales ?? 0) >= RIVAL_SALES,
   },
   ambush: {
-    id: 'ambush', title: 'Selim\'s cousins', giver: 'Abu Hamid',
-    brief: 'Abu Hamid lowers his voice. Selim Kassab left owing half of Cairo, and he blames you. "His cousins are waiting on the Suez road for your next caravan. Do not go alone. Hire men who have fought before, and show them your caravan is not worth the trouble."',
+    id: 'ambush', title: 'Selim\'s cousins', giver: 'Bilgin',
+    brief: 'Bilgin lowers his voice. Selim Kassab left owing half of Cairo, and he blames you. "His cousins are waiting on the Suez road for your next caravan. Do not go alone. Hire men who have fought before, and show them your caravan is not worth the trouble."',
     steps: ['Hire guards until your caravan\'s strength is 10 or more (Giza watchmen, Cairo sentinels, a Bedouin captain or an Arnaut)', 'Travel to Suez', 'Arrive with your guards still with you'],
     target: 'suez',
     locks: 'Your rank cannot rise past Khan dealer while Selim\'s cousins hunt your caravans.',

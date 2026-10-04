@@ -28,26 +28,26 @@ export const INTRO_FILMS: Record<string, { length: number; cues: IntroCue[] }> =
     ]
   },
   "abuhamid": {
-    "length": 24.1,
+    "length": 23.82,
     "cues": [
       {
         "start": 0.8,
-        "end": 5.67,
-        "text": "At the end of your lane, under a vine, there is a coffee house. Its keeper is Abu Hamid."
+        "end": 5.4,
+        "text": "At the end of your lane, under a vine, there is a coffee house. Its keeper is Bilgin."
       },
       {
-        "start": 6.22,
-        "end": 11.38,
+        "start": 5.95,
+        "end": 11.1,
         "text": "He has poured coffee for your father, for the drivers of pashas, and for every rumour in Giza."
       },
       {
-        "start": 11.93,
-        "end": 18.84,
+        "start": 11.65,
+        "end": 18.56,
         "text": "Ask him for the news, the roads north, or men who can hold a rifle. He will tell you slowly, and laugh at his own jokes."
       },
       {
-        "start": 19.39,
-        "end": 23.55,
+        "start": 19.11,
+        "end": 23.27,
         "text": "Half of what a merchant needs to know in this town is said first at his tables."
       }
     ]

@@ -1,4 +1,4 @@
-"""First-meeting films (Malek, Arran, Abu Hamid, Rashid, Nabil, Cohen): record the documentary narration offline
+"""First-meeting films (Malek, Arran, Bilgin, Rashid, Nabil, Cohen): record the documentary narration offline
 with Kokoro (a stock synthetic British voice, bf_emma: not a clone of anyone, and unlike the voice the
 game uses for Arran himself), and write the caption timings.
 
@@ -23,7 +23,7 @@ FILMS = {
         ('Whatever lives in his storeroom, he has never said.', None),
     ],
     'abuhamid': [
-        ('At the end of your lane, under a vine, there is a coffee house. Its keeper is Abu Hamid.', None),
+        ('At the end of your lane, under a vine, there is a coffee house. Its keeper is Bilgin.', None),
         ('He has poured coffee for your father, for the drivers of pashas, and for every rumour in Giza.', None),
         ('Ask him for the news, the roads north, or men who can hold a rifle. He will tell you slowly, and laugh at his own jokes.', None),
         ('Half of what a merchant needs to know in this town is said first at his tables.', None),
@@ -57,7 +57,7 @@ FILMS = {
 VOICE, SPEED, LANG = 'bf_emma', 0.92, 'en-gb'
 # names the phonemizer gets wrong: what it produces -> how the name is said
 # (Arran, like the Scottish isle: ARR-un, stress on the first syllable, as in "Aaron")
-FIX_PHONEMES = {'ɐɹˈan': 'ˈaɹən'}
+FIX_PHONEMES = {'ɐɹˈan': 'ˈaɹən', 'bˈɪldʒɪn': 'bɪlɡˈiːn'}  # Bilgin, Turkish: bil-GEEN, hard g
 SR = 24000
 LEAD, GAP = 0.8, 0.55
 

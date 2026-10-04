@@ -353,7 +353,7 @@ export const MALEK_LINES: Record<LineCtx, string[]> = {
   neighbours: [
     'The Englishman with the bottles smells rugs for money. Arran. He eats here and asks what is in the kofta. Meat. It is meat.',
     'Rashid sells you rugs on credit? Brave man. Or stupid. In Giza those are cousins.',
-    "Abu Hamid's coffee house tells more stories than the newspaper and half as many lies. Do not quote me.",
+    "Coffee house tells more stories than the newspaper and half as many lies. Do not quote me.",
     'The bean man across the lane says his ful is better. His ful is wet. I said nothing. I am saying it now.',
   ],
   road: [

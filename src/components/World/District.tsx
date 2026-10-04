@@ -22,7 +22,7 @@ const REVEAL = 180;
 interface Poi { id: string; name: string; sub: string; x: number; y: number; glyph: string }
 export const POIS: Poi[] = [
   { id: 'stall', name: 'Your stall', sub: 'Open for buyers', x: 760, y: 522, glyph: 'S' },
-  { id: 'coffee', name: "Abu Hamid's coffee house", sub: 'Gossip, rumours and advice', x: 842, y: 305, glyph: 'C' },
+  { id: 'coffee', name: "Bilgin's coffee house", sub: 'Gossip, rumours and advice', x: 842, y: 305, glyph: 'C' },
   { id: 'souk', name: 'Food souk', sub: 'Bread, dates and water for the road', x: 1080, y: 478, glyph: 'F' },
   { id: 'animals', name: 'Animal market', sub: 'Camels, horses, donkeys and mules', x: 565, y: 745, glyph: 'A' },
   { id: 'guards', name: 'Guard yard', sub: 'Hire men to guard your caravan', x: 930, y: 740, glyph: 'G' },
@@ -808,7 +808,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
-      {talk && !film && filmReady('abuhamid') && createPortal(<button className="btn small film-again-float" onClick={() => setFilm('abuhamid')} data-testid="abuhamid-film-again">▶ Abu Hamid's film</button>, document.body)}
+      {talk && !film && filmReady('abuhamid') && createPortal(<button className="btn small film-again-float" onClick={() => setFilm('abuhamid')} data-testid="abuhamid-film-again">▶ Bilgin's film</button>, document.body)}
     </div>
   );
 }

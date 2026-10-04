@@ -23,6 +23,8 @@ CAST = {
     # into the pronunciation (tapped r, pure vowels, s/z for th) at a natural pace. The Arabic-model
     # reading ('piper:') was too slow and thick; plain am_adam sounded like everyone else. Not a clone.
     'malek': ('blend:em_alex=0.6,bm_daniel=0.4|egyptian', 1.04, 'en-us'),
+    # Bilgin: the Turkish keeper of the coffee house in your lane (replaced Abu Hamid): warm, unhurried
+    'abuhamid': ('blend:bm_lewis=0.6,am_puck=0.4', 0.94, 'en-gb'),
     'nabil': ('am_onyx', 0.92, 'en-us'),          # senior Cairo textile merchant: deep, unhurried
     'cohen': ('am_michael', 0.97, 'en-us'),       # Alexandrian wholesaler: measured, precise, nasal (FX below)
     'farid-nassar': ('am_eric', 1.0, 'en-us'),     # casino bookings manager
@@ -91,7 +93,7 @@ def blend_say(k, spec, text, speed, lang):
         name, w = part.split('=')
         v = k.get_voice_style(name) * float(w)
         style = v if style is None else style + v
-    ph = k.tokenizer.phonemize(text, lang)
+    ph = k.tokenizer.phonemize(text, lang).replace('bˈɪldʒɪn', 'bɪlɡˈiːn')  # Bilgin: bil-GEEN, hard g
     if accent == 'egyptian':
         for a, b in EGYPTIAN:
             ph = ph.replace(a, b)

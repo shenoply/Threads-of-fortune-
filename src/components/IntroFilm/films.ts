@@ -37,7 +37,7 @@ export const FILMS: Record<FilmId, Film> = {
     ],
   },
   abuhamid: {
-    title: "Abu Hamid's coffee house · Giza", name: 'Abu Hamid',
+    title: "Bilgin's coffee house · Giza", name: 'Bilgin',
     stills: [
       { src: 'art/world/giza-district.jpg', fit: 'cover', from: [1, 50, 50], to: [2.2, 55, 30] },
       { src: 'art/portraits/abuhamid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },

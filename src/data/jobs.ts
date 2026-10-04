@@ -45,7 +45,7 @@ export const JOBS: Job[] = [
     done: 'The pilgrims arrive safely. Their elder presses coins into your hand and blesses your stall.',
   },
   {
-    id: 'bedouin-camp', title: 'Find the Tarabin camp', giver: 'Abu Hamid', target: 'bedouin',
+    id: 'bedouin-camp', title: 'Find the Tarabin camp', giver: 'Bilgin', target: 'bedouin',
     text: 'Somewhere in Sinai the Tarabin herders keep camp. Find them. They trade in rugs the Cairo dealers never see.',
     reward: { rep: 3 },
     done: 'Coffee first, business later. The Tarabin will trade with you from now on.',
@@ -57,8 +57,8 @@ export const JOBS: Job[] = [
     done: 'The officer pays in sterling and asks for a receipt "for the wife".',
   },
   {
-    id: 'jerusalem-letter', title: 'Abu Hamid\'s letter', giver: 'Abu Hamid', target: 'jerusalem', minRep: 3,
-    text: 'Abu Hamid has a letter for his cousin in Jerusalem, and will not trust the post. Carry it by hand.',
+    id: 'jerusalem-letter', title: 'Bilgin\'s letter', giver: 'Bilgin', target: 'jerusalem', minRep: 3,
+    text: 'Bilgin has a letter for his cousin in Jerusalem, and will not trust the post. Carry it by hand.',
     reward: { cash: 500, rep: 2 },
     done: 'The cousin reads the letter twice, laughs, and pays you for your trouble.',
   },
@@ -79,7 +79,7 @@ export const JOBS: Job[] = [
 /** Givers who have a recorded voice: they speak the 'done' line of their job (and quotes in their missions). */
 export const GIVER_VOICE: Record<string, string> = {
   'Uncle Rashid': 'rashid',
-  'Abu Hamid': 'abuhamid',
+  'Bilgin': 'abuhamid',
   'Captain Reed': 'captainreed',
   'Farid al-Khatib': 'farid',
 };
