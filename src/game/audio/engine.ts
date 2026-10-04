@@ -33,8 +33,12 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   // ya-rakib-al-layl (the campfire rababa piece) is a night-rider's song, so it belongs on the
   // road itself as much as at the halt where you first hear it
   road: ['road-hijaz', 'road-bayati', 'ya-rakib-al-layl'],
-  town: ['khan-rast', 'khan-kurd', 'khan-bayati', 'la-vie-du-levant'],
-  istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev', 'larg-nga-malet'],
+  // au-bout-du-chemin and a-mile-before-supper are the new sung French/English Suno tracks: a
+  // European or American traveller's own song rather than a local one, so they sit in the general
+  // town pool (Cairo) alongside the local khan themes instead of replacing them
+  town: ['khan-rast', 'khan-kurd', 'khan-bayati', 'la-vie-du-levant', 'au-bout-du-chemin', 'a-mile-before-supper'],
+  // yol-boyunca is the new Turkish road song; it belongs here with the other Turkey-set pieces
+  istanbul: ['istanbul-ussak', 'khan-kurd', 'nightingale-club', 'bu-geceyi-sev', 'larg-nga-malet', 'yol-boyunca'],
   palace: ['palace-rast', 'palace-nahawand'],
   'auction-small': ['auction'],
   'auction-grand': ['salon-waltz', 'auction', 'the-gavel-rises'],
@@ -64,6 +68,7 @@ const LUFS: Record<string, number> = {
   'palace-nahawand': -18.03, 'palace-rast': -18.64, 'qamar-after-midnight': -15.7, 'qamar-dimashq': -16.52, 'road-bayati': -19.24,
   'road-hijaz': -19.28, 'sahil-al-layl': -21.38, 'salon-waltz': -18.13, 'selims-corner': -16.25, 'solo-nay-flute': -18.44,
   'the-gavel-rises': -16.07, 'the-risky-pass': -16.19, 'title-hijaz': -18.78, 'ya-layl-ya-ayn': -17.09, 'ya-rakib-al-layl': -16.1,
+  'au-bout-du-chemin': -16.4, 'a-mile-before-supper': -15.5, 'yol-boyunca': -16.5,
 };
 /** the playing gain for a piece (1 for one not measured); quieter pieces are not pushed past 1.6x */
 export function trackGain(name: string) {
