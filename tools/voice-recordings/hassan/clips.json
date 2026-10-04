@@ -654,5 +654,533 @@
   "text": "They told me you are fair. Now I see they were being modest for you.",
   "start": 273.68,
   "end": 277.96
+ },
+ {
+  "sec": "C",
+  "n": 1,
+  "id": "02c7ac71",
+  "text": "Let me show you Nile Reed.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 6.68,
+    "end": 7.5
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 2,
+  "id": "5f512ed4",
+  "text": "Let me show you Village Kilim of the Canal.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 8.34,
+    "end": 9.72
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 3,
+  "id": "4ed2f979",
+  "text": "Let me show you Delta House.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 10.3,
+    "end": 11.14
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 4,
+  "id": "68445838",
+  "text": "Let me show you Fayoum Hearth.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 11.92,
+    "end": 12.76
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 5,
+  "id": "03418e66",
+  "text": "Let me show you Red Medina.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 13.24,
+    "end": 14.06
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 6,
+  "id": "8e1fe03b",
+  "text": "Let me show you Date Palm Runner.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 15.16,
+    "end": 16.28
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 7,
+  "id": "f4383aaa",
+  "text": "Let me show you Tanta Courtyard.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 17.14,
+    "end": 17.92
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 8,
+  "id": "c21fdfc0",
+  "text": "Let me show you Canal Ferry Rug.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 18.46,
+    "end": 19.48
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 9,
+  "id": "2ebf7696",
+  "text": "Let me show you Desert Star.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 20.28,
+    "end": 20.92
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 10,
+  "id": "82d378f7",
+  "text": "Let me show you Jaffa Citrus.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 22.98,
+    "end": 23.92
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 11,
+  "id": "43a69018",
+  "text": "Let me show you Cedar Caravan.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 24.900000000000002,
+    "end": 26.1
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 12,
+  "id": "0ac4e5aa",
+  "text": "Let me show you Cairo Garden.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 26.92,
+    "end": 27.72
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 13,
+  "id": "6c7e885e",
+  "text": "Let me show you Jerusalem Stone.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 28.34,
+    "end": 29.3
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 14,
+  "id": "c28f423e",
+  "text": "Let me show you Anatolian Hearth.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 29.98,
+    "end": 30.740000000000002
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 15,
+  "id": "05a84357",
+  "text": "Let me show you Aleppo Courtyard.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 31.720000000000002,
+    "end": 32.54
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 16,
+  "id": "cfc91104",
+  "text": "Let me show you Damascus Blue.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 33.2,
+    "end": 34.14
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 17,
+  "id": "892813c0",
+  "text": "Let me show you Konya Prayer Rug.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 35.12,
+    "end": 36.9
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 18,
+  "id": "c93f1f2a",
+  "text": "Let me show you Moroccan Ember.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 37.32,
+    "end": 38.12
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 19,
+  "id": "35ca1c76",
+  "text": "Let me show you Golden Palm.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 38.9,
+    "end": 39.76
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 20,
+  "id": "292def01",
+  "text": "Let me show you Caucasus Eagle.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 40.800000000000004,
+    "end": 41.44
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 21,
+  "id": "6643beb9",
+  "text": "Let me show you Sapphire Night.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 42.980000000000004,
+    "end": 44.02
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 22,
+  "id": "cc59bcc9",
+  "text": "Let me show you Damascus Rose.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 44.4,
+    "end": 45.34
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 23,
+  "id": "38b2f07f",
+  "text": "Let me show you Istanbul Tulip.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 45.6,
+    "end": 46.68
+   }
+  ]
+ },
+ {
+  "sec": "C",
+  "n": 24,
+  "id": "fc9ba278",
+  "text": "Let me show you Baghdad Night.",
+  "parts": [
+   {
+    "sec": "B",
+    "start": 41.64,
+    "end": 42.2,
+    "pad": [
+     0.03,
+     0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 47.28,
+    "end": 48.14
+   }
+  ]
  }
 ]

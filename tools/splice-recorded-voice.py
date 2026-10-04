@@ -47,17 +47,31 @@ def main():
     old = decode(os.path.join(ROOT, os.path.basename(sprite['file'])))
     clips = json.load(open(os.path.join(folder, 'clips.json')))
     takes, gains = {}, {}
-    for sec in sorted({c['sec'] for c in clips}):
+    for sec in sorted({c['sec'] for c in clips} | {p['sec'] for c in clips for p in c.get('parts', [])}):
         f = os.path.join(folder, f'{sec}.m4a')
         takes[sec] = decode(f)
         gains[sec] = 10 ** ((TARGET - loudness(f)) / 20)
     real = {}
-    for c in clips:
-        x = takes[c['sec']]
-        a = max(0, int((c['start'] - 0.12) * SR)); b = min(len(x), int((c['end'] + 0.22) * SR))
-        y = highpass(x[a:b]) * gains[c['sec']]
-        fade = int(0.012 * SR)
+    fade = int(0.012 * SR)
+
+    def cut(sec, start, end, pad=(0.12, 0.22)):
+        x = takes[sec]
+        a = max(0, int((start - pad[0]) * SR)); b = min(len(x), int((end + pad[1]) * SR))
+        y = highpass(x[a:b]) * gains[sec]
         y[:fade] *= np.linspace(0, 1, fade); y[-fade:] *= np.linspace(1, 0, fade)
+        return y
+
+    for c in clips:
+        if 'parts' in c:
+            # a line put together from pieces he said elsewhere ("Let me show you" + a rug's name)
+            gap = np.zeros(int(0.1 * SR), dtype=np.float32)
+            pieces = []
+            for k, p in enumerate(c['parts']):
+                if k: pieces.append(gap)
+                pieces.append(cut(p['sec'], p['start'], p['end'], p.get('pad', (0.12, 0.22))))
+            y = np.concatenate(pieces)
+        else:
+            y = cut(c['sec'], c['start'], c['end'])
         peak = np.abs(y).max()
         if peak > 0.95: y *= 0.95 / peak
         real[c['id']] = y.astype(np.float32)
