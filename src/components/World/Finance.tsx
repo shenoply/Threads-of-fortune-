@@ -21,16 +21,41 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
   const insurerHere = !!at && INSURERS.includes(at);
   const carried = g.inventory.filter((i) => !i.stored);
   const covered = (g.insurance?.until ?? 0) >= g.day;
+  // the stock credit has its own due date even though it never joins the overdue total below (that's
+  // reserved for what a lawyer can act on); shown separately so it doesn't look like a debt with no clock.
+  const stockLate = g.supplier.debt > 0 && g.day > g.supplier.debtDue;
+  // everything you owe anyone, due or not, so there is one number to measure the trouble by before
+  // the line-by-line detail underneath it.
+  const totalOwed = Math.max(0, -g.cash) + bills.due + loans.reduce((s, l) => s + l.owed, 0) + (g.family?.left ?? 0) + g.supplier.debt;
+  const nothingOwed = totalOwed <= 0;
   return (
     <div className="overlay" onClick={onClose}>
       <div className="modal-card finance" onClick={(e) => e.stopPropagation()} data-testid="finance">
         <h2>Money matters</h2>
         {note && <p className="set-note" data-testid="finance-note">{note}</p>}
 
+        {ruin.stage > 0 && (
+          <p className="fin-line ruin" data-testid="ruin">
+            <b>{ruin.stage === 1 ? 'A lawyer has written.' : 'The bailiff has been.'}</b>{' '}
+            {ruin.stage === 1
+              ? `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} days, or the bailiff comes to the stall.`
+              : `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.court - (g.day - ruin.since))} days, or the Mixed Court will declare you bankrupt.`}
+            {' '}Sell rugs, borrow, or cut your costs.
+          </p>
+        )}
+
         <div className="section-label">WHAT YOU OWE</div>
-        {owed <= 0 && loans.length === 0 && bills.due <= 0 && g.cash >= 0 && !(g.family?.left ?? 0) && !g.supplier.debt && <p className="dim">Nothing. Your name is clean in the bazaar.</p>}
+        {nothingOwed ? <p className="dim">Nothing. Your name is clean in the bazaar.</p> : (
+          <p className={`fin-line ${owed > 0 ? 'warn' : ''}`} data-testid="fin-total">
+            <b>{fmt(totalOwed)} in total</b>{owed > 0 ? ` · ${fmt(owed)} of that is overdue now` : ' · none of it is overdue yet'}.
+          </p>
+        )}
         {(g.family?.left ?? 0) > 0 && <p className={`fin-line ${g.family!.due > 0 ? 'warn' : ''}`} data-testid="fin-family">Your father's debt to Uncle Rashid: {fmt(g.family!.left)} left{g.family!.due > 0 ? `, ${fmt(g.family!.due)} of it due now` : ''}. An instalment falls due on the first of each month.</p>}
-        {g.supplier.debt > 0 && <p className="fin-line" data-testid="fin-credit">Rashid's credit for stock: {fmt(g.supplier.debt)}.</p>}
+        {g.supplier.debt > 0 && (
+          <p className={`fin-line ${stockLate ? 'warn' : ''}`} data-testid="fin-credit">
+            Rashid's credit for stock: {fmt(g.supplier.debt)}, {stockLate ? `overdue since ${dateFor(g.supplier.debtDue).short}` : `due ${dateFor(g.supplier.debtDue).short}`}. It does not go to a lawyer, but he stops trusting you with more until it's settled.
+          </p>
+        )}
         {g.cash < 0 && <p className="fin-line warn">Your purse is empty: you owe the landlord {fmt(-g.cash)}.</p>}
         {bills.due > 0 && <p className={`fin-line ${g.day - bills.since >= 5 ? 'warn' : ''}`}>The month's bill: {fmt(bills.due)}{g.day - bills.since > 0 ? `, ${g.day - bills.since} days late` : ''}. It is paid from your cash when you have it.</p>}
         {loans.map((l) => (
@@ -40,14 +65,6 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
           </div>
         ))}
         {loans.length > 0 && !(at && loans.some((l) => LENDERS[l.lender].towns.includes(at))) && <p className="dim">Loans are repaid in Cairo or Alexandria, where the lenders keep their offices.</p>}
-        {ruin.stage > 0 && (
-          <p className="fin-line ruin" data-testid="ruin">
-            {ruin.stage === 1
-              ? `A lawyer has written: pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} days, or the bailiff comes to the stall.`
-              : `The bailiff has been. Pay within ${Math.max(0, RUIN_STEPS.court - (g.day - ruin.since))} days or the Mixed Court will declare you bankrupt.`}
-            {' '}Sell rugs, borrow, or cut your costs.
-          </p>
-        )}
         {(g.bankruptcies ?? 0) > 0 && <p className="dim">You have been declared bankrupt once. A second time ends your father's business for good.</p>}
 
         {lendersHere.length > 0 && <div className="section-label">LENDERS IN {settlementById(at!).name.toUpperCase()}</div>}

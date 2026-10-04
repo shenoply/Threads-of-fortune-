@@ -7,6 +7,14 @@
      zooms the whole page in and leaves it "stuck" there — this is a native app-like map/stall UI,
      not a document meant to be pinch-zoomed. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<!-- The built JS/CSS get a fresh hashed filename on every deploy (see vite.config), so once the browser
+     has fetched this page it always finds the latest build; what can go stale is this page itself — a
+     phone or an in-between proxy holding onto an old index.html forever keeps pointing at an old build,
+     which is why a fix that's clearly live in the repo can still look unfixed on a particular phone. These
+     ask the browser not to do that. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>Threads of Fortune</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:wght@500;700&family=UnifrakturCook:wght@700&family=Amiri:wght@400;700&display=swap" />
