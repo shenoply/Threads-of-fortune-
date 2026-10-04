@@ -11,7 +11,7 @@ export type MannerKind = 'charm' | 'kind' | 'firm';
 
 export const SELLER_MANNER: Record<MannerKind, string[]> = {
   charm: ['Forgive me, but you have a better eye than half the dealers in this lane.', 'A room with you in it hardly needs a carpet. But let us find one anyway.'],
-  kind: ['How is the family? Sit, rest a moment. There is no hurry here.', 'Please, the shade is better on this side. Business can wait for a glass of water.'],
+  kind: ['How is the family? Sit, rest a moment.', 'Business can wait for a glass of water.'],
   firm: ['I will be plain with you. I do not waste your time, and I do not lower my prices for show.', 'Let us talk business. Good rugs, fair prices, no theatre.'],
 };
 

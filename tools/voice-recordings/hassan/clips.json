@@ -1,0 +1,658 @@
+[
+ {
+  "sec": "A",
+  "n": 1,
+  "id": "5e818792",
+  "text": "Before I unroll anything, tell me about the room.",
+  "start": 5.86,
+  "end": 9.12
+ },
+ {
+  "sec": "A",
+  "n": 2,
+  "id": "ce6f07a3",
+  "text": "Where will it lie? Tell me about the room first.",
+  "start": 10.78,
+  "end": 13.44
+ },
+ {
+  "sec": "A",
+  "n": 3,
+  "id": "2809ccd6",
+  "text": "Tell me the room, and I will tell you the rug.",
+  "start": 15.28,
+  "end": 17.64
+ },
+ {
+  "sec": "A",
+  "n": 4,
+  "id": "cbc26502",
+  "text": "What makes you stop at a rug? What catches you?",
+  "start": 19.18,
+  "end": 22.54
+ },
+ {
+  "sec": "A",
+  "n": 5,
+  "id": "b2f19ff3",
+  "text": "When you walk the market, what makes you slow down?",
+  "start": 24.3,
+  "end": 27.54
+ },
+ {
+  "sec": "A",
+  "n": 6,
+  "id": "737b85f6",
+  "text": "What were you thinking of spending?",
+  "start": 30.04,
+  "end": 32.04
+ },
+ {
+  "sec": "A",
+  "n": 7,
+  "id": "8108ffb4",
+  "text": "Let us be practical. What is your budget?",
+  "start": 36.16,
+  "end": 39.3
+ },
+ {
+  "sec": "A",
+  "n": 8,
+  "id": "107f23ec",
+  "text": "If this is the right rug, what would it be worth to you?",
+  "start": 41.74,
+  "end": 45.5
+ },
+ {
+  "sec": "A",
+  "n": 9,
+  "id": "3e26940e",
+  "text": "So I do not waste your time: how far can you go?",
+  "start": 47.44,
+  "end": 51.2
+ },
+ {
+  "sec": "A",
+  "n": 10,
+  "id": "80c3ac09",
+  "text": "Is anyone else choosing with you?",
+  "start": 52.84,
+  "end": 54.6
+ },
+ {
+  "sec": "A",
+  "n": 11,
+  "id": "3a1b9c7e",
+  "text": "Will someone at home have an opinion?",
+  "start": 56.18,
+  "end": 58.22
+ },
+ {
+  "sec": "A",
+  "n": 12,
+  "id": "6741c70d",
+  "text": "Another hot one. The tourists at the pyramids are melting.",
+  "start": 59.9,
+  "end": 64.34
+ },
+ {
+  "sec": "A",
+  "n": 13,
+  "id": "76d91e6e",
+  "text": "Business is quiet this week. It gives a man time to look after his rugs.",
+  "start": 70.44,
+  "end": 76.2
+ },
+ {
+  "sec": "A",
+  "n": 14,
+  "id": "ab649747",
+  "text": "Please, sit. Saffron, move. Tea is coming.",
+  "start": 77.5,
+  "end": 83.1
+ },
+ {
+  "sec": "A",
+  "n": 15,
+  "id": "70cb460b",
+  "text": "Saffron, habibti, off. Go and sit somewhere useful.",
+  "start": 84.28,
+  "end": 88.82
+ },
+ {
+  "sec": "A",
+  "n": 16,
+  "id": "1d37ceae",
+  "text": "She has good taste. She always sits on the best one.",
+  "start": 90.26,
+  "end": 93.36
+ },
+ {
+  "sec": "A",
+  "n": 17,
+  "id": "e822eb6d",
+  "text": "Go in peace.",
+  "start": 94.62,
+  "end": 95.68
+ },
+ {
+  "sec": "A",
+  "n": 18,
+  "id": "9369b7b2",
+  "text": "Come back any time.",
+  "start": 96.28,
+  "end": 97.54
+ },
+ {
+  "sec": "A",
+  "n": 19,
+  "id": "34ecd84a",
+  "text": "A room with you in it hardly needs a carpet. But let us find one anyway.",
+  "start": 101.84,
+  "end": 106.4
+ },
+ {
+  "sec": "A",
+  "n": 20,
+  "id": "fd23bbd5",
+  "text": "How is the family? Sit, rest a moment.",
+  "start": 107.98,
+  "end": 111.42
+ },
+ {
+  "sec": "A",
+  "n": 21,
+  "id": "ee52ab3b",
+  "text": "Business can wait for a glass of water.",
+  "start": 112.08,
+  "end": 114.02
+ },
+ {
+  "sec": "A",
+  "n": 22,
+  "id": "cc2757a3",
+  "text": "I will be plain with you. I do not waste your time, and I do not lower my prices for show.",
+  "start": 115.36,
+  "end": 120.96
+ },
+ {
+  "sec": "A",
+  "n": 23,
+  "id": "db8948f3",
+  "text": "Let us talk business. Good rugs, fair prices, no theatre.",
+  "start": 122.12,
+  "end": 126.54
+ },
+ {
+  "sec": "B",
+  "n": 1,
+  "id": "aea1d1d0",
+  "text": "Between us, it came out of a pasha's house in Zamalek. The family would not want me to say which.",
+  "start": 9.92,
+  "end": 17.34
+ },
+ {
+  "sec": "B",
+  "n": 2,
+  "id": "b5bde7bd",
+  "text": "You are right. I will not pretend otherwise.",
+  "start": 19.42,
+  "end": 21.98
+ },
+ {
+  "sec": "B",
+  "n": 3,
+  "id": "d5379918",
+  "text": "That is fair. I would say the same in your place.",
+  "start": 24.18,
+  "end": 27.98
+ },
+ {
+  "sec": "B",
+  "n": 4,
+  "id": "96ff0748",
+  "text": "For you, I will come down from my first price.",
+  "start": 29.58,
+  "end": 33.5
+ },
+ {
+  "sec": "B",
+  "n": 5,
+  "id": "e20da48f",
+  "text": "I can move a little on the price. A little.",
+  "start": 35.98,
+  "end": 39.06
+ },
+ {
+  "sec": "B",
+  "n": 6,
+  "id": "83cf6bd1",
+  "text": "Then let me show you something else.",
+  "start": 41.28,
+  "end": 43.12
+ },
+ {
+  "sec": "B",
+  "n": 7,
+  "id": "caedd527.a",
+  "text": "For you, \u2026",
+  "start": 44.64,
+  "end": 47.66
+ },
+ {
+  "sec": "B",
+  "n": 8,
+  "id": "23d2c7e1.a",
+  "text": "I can let it go for \u2026",
+  "start": 49.9,
+  "end": 51.34
+ },
+ {
+  "sec": "B",
+  "n": 9,
+  "id": "cdb34dab.a",
+  "text": "I cannot go lower than \u2026",
+  "start": 53.3,
+  "end": 54.76
+ },
+ {
+  "sec": "B",
+  "n": 10,
+  "id": "6c7b0c52.a",
+  "text": "Let us meet in the middle. \u2026",
+  "start": 57.1,
+  "end": 58.4
+ },
+ {
+  "sec": "B",
+  "n": 11,
+  "id": "9ee415cb.a",
+  "text": "Split the difference: \u2026",
+  "start": 60.64,
+  "end": 61.96
+ },
+ {
+  "sec": "B",
+  "n": 12,
+  "id": "85dbda70",
+  "text": "I will have it carried to your door and the fringe washed. No charge.",
+  "start": 71.8,
+  "end": 77.06
+ },
+ {
+  "sec": "B",
+  "n": 13,
+  "id": "3e1459a5.a",
+  "text": "Done. \u2026",
+  "start": 78.96,
+  "end": 79.54
+ },
+ {
+  "sec": "B",
+  "n": 14,
+  "id": "6feecdcb.b",
+  "text": "(straight after a price) That is my price.",
+  "start": 84.02,
+  "end": 85.0
+ },
+ {
+  "sec": "B",
+  "n": 15,
+  "id": "e9e46017.b",
+  "text": "(straight after a price) It is worth every piastre.",
+  "start": 86.46,
+  "end": 89.14
+ },
+ {
+  "sec": "B",
+  "n": 16,
+  "id": "cdb34dab.b",
+  "text": "(straight after a price) Not for this one.",
+  "start": 90.14,
+  "end": 91.14
+ },
+ {
+  "sec": "B",
+  "n": 17,
+  "id": "0ab232f8.b",
+  "text": "(straight after a price) Agreed. God bless the sale.",
+  "start": 92.32,
+  "end": 94.18
+ },
+ {
+  "sec": "D",
+  "n": 1,
+  "id": "7bb20cd6",
+  "text": "You went straight to the best rug in the stall. Most people need an hour.",
+  "start": 8.0,
+  "end": 13.3
+ },
+ {
+  "sec": "D",
+  "n": 2,
+  "id": "40eb871c",
+  "text": "You look at the back of a rug before the front. Only dealers do that.",
+  "start": 15.74,
+  "end": 21.3
+ },
+ {
+  "sec": "D",
+  "n": 3,
+  "id": "2b52864a",
+  "text": "Forgive me, but you have a better eye than half the dealers in this lane.",
+  "start": 22.56,
+  "end": 27.32
+ },
+ {
+  "sec": "D",
+  "n": 4,
+  "id": "94eb89c7",
+  "text": "You saw the fault in the corner before I did. I am almost offended.",
+  "start": 30.04,
+  "end": 34.78
+ },
+ {
+  "sec": "D",
+  "n": 5,
+  "id": "f775be93",
+  "text": "With an eye like that, you should be selling, not buying. Do not tell anyone I said so.",
+  "start": 37.02,
+  "end": 42.84
+ },
+ {
+  "sec": "D",
+  "n": 6,
+  "id": "74abde3f",
+  "text": "You noticed the border. Nobody notices the border.",
+  "start": 44.5,
+  "end": 48.0
+ },
+ {
+  "sec": "D",
+  "n": 7,
+  "id": "e2b0e2b8",
+  "text": "I hear your house is the most beautiful on the street. A good rug deserves a good room.",
+  "start": 49.94,
+  "end": 55.72
+ },
+ {
+  "sec": "D",
+  "n": 8,
+  "id": "209c092d",
+  "text": "People speak of your rooms in this lane. I would like to be spoken of in them.",
+  "start": 57.32,
+  "end": 62.34
+ },
+ {
+  "sec": "D",
+  "n": 9,
+  "id": "0f8db1a7",
+  "text": "A house like yours makes a rug look better than it is. Good for me.",
+  "start": 64.02,
+  "end": 69.78
+ },
+ {
+  "sec": "D",
+  "n": 10,
+  "id": "2a296f6b",
+  "text": "Your guests must leave and talk about your house all the way home.",
+  "start": 71.32,
+  "end": 76.28
+ },
+ {
+  "sec": "D",
+  "n": 11,
+  "id": "2bc06dce",
+  "text": "Somebody with your taste does not keep an ordinary house.",
+  "start": 77.62,
+  "end": 80.98
+ },
+ {
+  "sec": "D",
+  "n": 12,
+  "id": "49ebf05c",
+  "text": "I would give a rug away just to see it lie in a house like yours. Almost.",
+  "start": 82.6,
+  "end": 89.28
+ },
+ {
+  "sec": "D",
+  "n": 13,
+  "id": "33c50b92",
+  "text": "Your family has a good name in Cairo. Good names buy good rugs.",
+  "start": 91.26,
+  "end": 97.26
+ },
+ {
+  "sec": "D",
+  "n": 14,
+  "id": "56a152be",
+  "text": "Your father was a man people trusted. I can see where you get it.",
+  "start": 98.6,
+  "end": 103.34
+ },
+ {
+  "sec": "D",
+  "n": 15,
+  "id": "2c25d720",
+  "text": "Your children will fight over this rug one day. That is how you know it was well bought.",
+  "start": 105.1,
+  "end": 111.94
+ },
+ {
+  "sec": "D",
+  "n": 16,
+  "id": "38a16e87",
+  "text": "They say your family never buys twice, because the first time is right.",
+  "start": 113.74,
+  "end": 117.72
+ },
+ {
+  "sec": "D",
+  "n": 17,
+  "id": "7f8edf78",
+  "text": "God keep your house full. A full house needs a strong rug.",
+  "start": 119.2,
+  "end": 124.16
+ },
+ {
+  "sec": "D",
+  "n": 18,
+  "id": "e353a5e0",
+  "text": "My mother used to say your family's door was never closed to a guest.",
+  "start": 124.96,
+  "end": 128.84
+ },
+ {
+  "sec": "D",
+  "n": 19,
+  "id": "a22ccc8f",
+  "text": "That is a fine coat. English cloth, Cairo tailoring: the best of both.",
+  "start": 130.78,
+  "end": 136.18
+ },
+ {
+  "sec": "D",
+  "n": 20,
+  "id": "fcdf1c7b",
+  "text": "Your tarboosh sits better than the king's. Do not repeat that.",
+  "start": 137.74,
+  "end": 142.7
+ },
+ {
+  "sec": "D",
+  "n": 21,
+  "id": "553f5c45",
+  "text": "The colour you are wearing would sit beautifully with this red.",
+  "start": 144.06,
+  "end": 147.94
+ },
+ {
+  "sec": "D",
+  "n": 22,
+  "id": "7e495cfc",
+  "text": "Forgive me, but you dress like somebody who knows quality when they feel it.",
+  "start": 149.14,
+  "end": 154.12
+ },
+ {
+  "sec": "D",
+  "n": 23,
+  "id": "c09ca30e",
+  "text": "That ring has been in a family for a long time. I know old gold when I see it.",
+  "start": 155.78,
+  "end": 160.12
+ },
+ {
+  "sec": "D",
+  "n": 24,
+  "id": "a8e65a52",
+  "text": "You look like you stepped off the boat from Paris this morning.",
+  "start": 161.34,
+  "end": 165.14
+ },
+ {
+  "sec": "D",
+  "n": 25,
+  "id": "f785c9fc",
+  "text": "It is an honour. My stall does not see many guests of your standing.",
+  "start": 166.44,
+  "end": 170.68
+ },
+ {
+  "sec": "D",
+  "n": 26,
+  "id": "48fea35c",
+  "text": "When people ask where you buy your rugs, I would like the answer to be here.",
+  "start": 172.64,
+  "end": 177.14
+ },
+ {
+  "sec": "D",
+  "n": 27,
+  "id": "bebfac19",
+  "text": "A person in your position cannot be seen walking on ordinary wool.",
+  "start": 178.34,
+  "end": 182.42
+ },
+ {
+  "sec": "D",
+  "n": 28,
+  "id": "46616a00",
+  "text": "The whole lane is watching you stop at my stall. My neighbours are green.",
+  "start": 184.78,
+  "end": 189.06
+ },
+ {
+  "sec": "D",
+  "n": 29,
+  "id": "fe27bc12",
+  "text": "You honour my stall. I will tell my grandchildren you sat on this stool.",
+  "start": 190.04,
+  "end": 196.56
+ },
+ {
+  "sec": "D",
+  "n": 30,
+  "id": "377a7891",
+  "text": "Important people come in a hurry. You stopped anyway. I am grateful.",
+  "start": 198.56,
+  "end": 203.42
+ },
+ {
+  "sec": "D",
+  "n": 31,
+  "id": "29e94d84",
+  "text": "Ha! You should sell rugs. You would steal all my customers.",
+  "start": 204.28,
+  "end": 208.9
+ },
+ {
+  "sec": "D",
+  "n": 32,
+  "id": "e7276ae5",
+  "text": "That is the best thing anyone has said in this lane all week.",
+  "start": 210.46,
+  "end": 215.12
+ },
+ {
+  "sec": "D",
+  "n": 33,
+  "id": "16f89899",
+  "text": "A buyer with a sense of humour. God is good to me today.",
+  "start": 215.44,
+  "end": 219.98
+ },
+ {
+  "sec": "D",
+  "n": 34,
+  "id": "8d693831",
+  "text": "I will tell that one to my wife. She will laugh, and then she will ask what you bought.",
+  "start": 222.2,
+  "end": 228.54
+ },
+ {
+  "sec": "D",
+  "n": 35,
+  "id": "98fa18d6",
+  "text": "You are sharper than you let people think. That is dangerous in a buyer.",
+  "start": 229.9,
+  "end": 236.34
+ },
+ {
+  "sec": "D",
+  "n": 36,
+  "id": "c7824c15",
+  "text": "Ha. Saffron agrees with you, and she agrees with nobody.",
+  "start": 237.04,
+  "end": 240.76
+ },
+ {
+  "sec": "D",
+  "n": 37,
+  "id": "aec4185b",
+  "text": "You bargain like an honest man. That is rarer than silk.",
+  "start": 242.02,
+  "end": 246.12
+ },
+ {
+  "sec": "D",
+  "n": 38,
+  "id": "0ff157b5",
+  "text": "People say you pay what a thing is worth, and not a piastre less. I believe them.",
+  "start": 246.98,
+  "end": 255.06
+ },
+ {
+  "sec": "D",
+  "n": 39,
+  "id": "6f787c61",
+  "text": "With you I do not need to start high. You know a fair price when you hear it.",
+  "start": 256.0,
+  "end": 261.1
+ },
+ {
+  "sec": "D",
+  "n": 40,
+  "id": "a02ee796",
+  "text": "You do not insult a merchant to save a shilling. I respect that.",
+  "start": 263.6,
+  "end": 268.2
+ },
+ {
+  "sec": "D",
+  "n": 41,
+  "id": "dc472845",
+  "text": "An honest buyer makes an honest seller. You make it easy.",
+  "start": 269.02,
+  "end": 272.54
+ },
+ {
+  "sec": "D",
+  "n": 42,
+  "id": "bcac610a",
+  "text": "They told me you are fair. Now I see they were being modest for you.",
+  "start": 273.68,
+  "end": 277.96
+ }
+]
