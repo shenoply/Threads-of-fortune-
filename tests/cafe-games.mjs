@@ -23,8 +23,6 @@ try {
   await p.locator('[data-testid=poi-coffee]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-coffee]');
   await p.waitForSelector('[data-testid=cafe-room]', { timeout: 8000 });
   await p.screenshot({ path: `${S}/room-counter.png` });
-  await p.click('[data-testid=cafe-hot-corner]'); await p.waitForTimeout(700);
-  await p.screenshot({ path: `${S}/room-corner.png` });
   await p.click('[data-testid=cafe-play]'); await p.waitForSelector('[data-testid=cafe-table]');
   await p.screenshot({ path: `${S}/table.png` });
 
@@ -49,8 +47,8 @@ try {
   const chessOk = answered === moves.length && c1 === c0 - 5;
 
   // tawla for 20: opening roll, then play several of your turns by tapping
-  await p.waitForSelector('[data-testid=cafe-play]', { timeout: 8000 });
-  await p.click('[data-testid=cafe-play]'); await p.click('[data-testid=cafe-stake-20]'); await p.click('[data-testid=cafe-tawla]');
+  await p.waitForSelector('[data-testid=cafe-play-tawla]', { timeout: 8000 });
+  await p.click('[data-testid=cafe-play-tawla]'); await p.click('[data-testid=cafe-stake-20]'); await p.click('[data-testid=cafe-tawla]');
   await p.click('[data-testid=tw-open]');
   let myMoves = 0, turnsSeen = 0;
   for (let k = 0; k < 120 && turnsSeen < 4; k++) {

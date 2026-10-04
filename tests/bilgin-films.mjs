@@ -56,7 +56,6 @@ try {
 
   // 2. the chess film, the first time you sit down to play
   await p.click('text=Another time, Bilgin.'); await p.waitForTimeout(400);
-  await p.click('[data-testid=cafe-hot-corner]'); await p.waitForTimeout(600);
   await p.click('[data-testid=cafe-play]');
   await p.waitForSelector('[data-testid=film-bilgin-chess]', { timeout: 6000 });
   await p.waitForTimeout(3000);
@@ -83,7 +82,6 @@ try {
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
   await district(); await coffee();
   check(!(await has('film-abuhamid')) && (await has('cafe-room')) > 0, 'café film not again after reload');
-  await p.click('[data-testid=cafe-hot-corner]'); await p.waitForTimeout(600);
   await p.click('[data-testid=cafe-play]'); await p.waitForTimeout(800);
   check(!(await has('film-bilgin-chess')) && (await has('cafe-table')) > 0, 'chess film not again after reload');
   await p.click('[data-testid=cafe-close]'); await p.waitForTimeout(300);

@@ -13,7 +13,7 @@ const STAKES = [0, 5, 20, 50];
 const MINUTES: Record<Game, number> = { chess: 45, tawla: 30 };
 const tap = () => audio.sfx('tap');
 
-export function CafeTable({ onClose, onFilm }: { onClose: (note?: string) => void; onFilm?: () => void }) {
+export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) => void; onFilm?: () => void; only?: Game }) {
   const cash = useGame((g) => g.cash);
   const cafeGame = useGame((g) => g.cafeGame);
   const [game, setGame] = useState<Game | null>(null);
@@ -46,9 +46,9 @@ export function CafeTable({ onClose, onFilm }: { onClose: (note?: string) => voi
             <button key={v} className={`btn small${strength === v ? ' on' : ''}`} onClick={() => { tap(); setStrength(v); }}>{v === 'easy' ? 'gently' : v === 'fair' ? 'properly' : 'to win'}</button>
           ))}
         </div>
-        <div className="cafe-games">
-          <button className="btn cafe-game" onClick={() => { tap(); setGame('chess'); }} data-testid="cafe-chess"><b>♞</b>Chess<small>about {MINUTES.chess} minutes</small></button>
-          <button className="btn cafe-game" onClick={() => { tap(); setGame('tawla'); }} data-testid="cafe-tawla"><b>⚅</b>Tawla<small>about {MINUTES.tawla} minutes · a mars pays double</small></button>
+        <div className={`cafe-games${only ? ' one' : ''}`}>
+          {only !== 'tawla' && <button className="btn cafe-game" onClick={() => { tap(); setGame('chess'); }} data-testid="cafe-chess"><b>♞</b>Chess<small>about {MINUTES.chess} minutes</small></button>}
+          {only !== 'chess' && <button className="btn cafe-game" onClick={() => { tap(); setGame('tawla'); }} data-testid="cafe-tawla"><b>⚅</b>Tawla<small>about {MINUTES.tawla} minutes · a mars pays double</small></button>}
         </div>
       </div>
     </div>

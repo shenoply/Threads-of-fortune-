@@ -36,6 +36,9 @@ function syncFrom(b: Uint8Array, i: number): number {
 
 const CLIP_CACHE = 40; // recent lines kept decoded; a few seconds each
 
+/** speakers whose price lines are voiced without the number (it stays on screen) */
+const SILENT_NUMBERS = new Set(['seller']);
+
 export function lineId(speaker: string, text: string) {
   let h = 0x811c9dc5;
   const s = `${speaker}|${text.trim()}`;
@@ -172,6 +175,9 @@ class Voice {
     const a = sp.clips[`${tid}.a`], num = sp.clips[`num-${n}`], b = sp.clips[`${tid}.b`];
     // a line that opens on the price has no first half
     const lead = template.trim().startsWith('{price}');
+    // Hassan's own voice says his half of the line; the figure itself is only shown on screen (a
+    // synthetic voice reading the number in the middle of his would break it)
+    if (SILENT_NUMBERS.has(speaker)) return a || b ? [...(a ? [a] : []), ...(b ? [b] : [])] : null;
     if ((!a && !lead) || !num) return null;
     return [...(a ? [a] : []), num, ...(b ? [b] : [])];
   }

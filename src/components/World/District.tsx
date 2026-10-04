@@ -457,7 +457,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
-  const [cafe, setCafe] = useState(false);
+  const [cafe, setCafe] = useState<false | 'chess' | 'tawla'>(false);
   const [room, setRoom] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
@@ -827,8 +827,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && !film && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
-      {room && createPortal(<CafeRoom onTalk={() => setTalk(true)} onPlay={() => { setCafe(true); if (unseen('bilgin-chess')) setFilm('bilgin-chess'); }} onLeave={() => { setRoom(false); setTalk(false); setNote(''); }} onFilm={filmReady('abuhamid') ? () => setFilm('abuhamid') : undefined} note={note} onNote={() => setNote('')} />, document.body)}
-      {cafe && <Suspense fallback={null}><CafeTable onClose={(m) => { setCafe(false); if (m) setNote(m); }} onFilm={filmReady('bilgin-chess') ? () => setFilm('bilgin-chess') : undefined} /></Suspense>}
+      {room && createPortal(<CafeRoom onTalk={() => setTalk(true)} onPlay={(g) => { setCafe(g); if (g === 'chess' && unseen('bilgin-chess')) setFilm('bilgin-chess'); }} onLeave={() => { setRoom(false); setTalk(false); setNote(''); }} onFilm={filmReady('abuhamid') ? () => setFilm('abuhamid') : undefined} note={note} onNote={() => setNote('')} />, document.body)}
+      {cafe && <Suspense fallback={null}><CafeTable only={cafe} onClose={(m) => { setCafe(false); if (m) setNote(m); }} onFilm={filmReady('bilgin-chess') ? () => setFilm('bilgin-chess') : undefined} /></Suspense>}
     </div>
   );
 }
