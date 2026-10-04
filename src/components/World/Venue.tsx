@@ -128,6 +128,11 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     let bg: HTMLImageElement | null = null;
     { const im = new Image(); im.onload = () => { bg = im; }; im.src = v.map!; }
+    // the same painted walking figure as the world map and Giza's own district, so the merchant
+    // stays himself in every walkable town, auction house and palace ground, not just at home.
+    const meSprites: (HTMLImageElement | null)[] = [null, null];
+    [1, 2].forEach((k, i) => { const im = new Image(); im.onload = () => { meSprites[i] = im; }; im.src = `art/world/party-solo-${k}.webp`; });
+    let facing: 1 | -1 = 1;
     const fogC = document.createElement('canvas');
     fogC.width = FW; fogC.height = FH;
     const fctx = fogC.getContext('2d')!;
@@ -187,15 +192,23 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
         ctx.beginPath(); ctx.arc(s.tx, s.ty, 8 + Math.sin(now / 150) * 2, 0, 7); ctx.stroke();
       }
       const bob = moving ? Math.sin(now / 90) * 1.2 : 0;
+      if (moving && Math.abs(dx) > 0.5) facing = dx < 0 ? -1 : 1;
+      const sprite = moving ? meSprites[Math.floor(now / 170) % 2] : meSprites[0];
       ctx.save(); ctx.translate(s.x, s.y);
       const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
       glow.addColorStop(0, 'rgba(255,210,120,0.55)'); glow.addColorStop(1, 'rgba(255,210,120,0)');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
-      ctx.fillStyle = 'rgba(30,16,6,0.35)'; ctx.beginPath(); ctx.ellipse(5, 4, 9, 6, 0.3, 0, 7); ctx.fill();
-      ctx.fillStyle = '#4a3322'; ctx.beginPath(); ctx.ellipse(0, bob, 6.5, 8.5, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = '#e8d8b8'; ctx.beginPath(); ctx.ellipse(0, bob, 3.5, 5.5, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = '#3a2618'; ctx.beginPath(); ctx.arc(0, bob, 4, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#e7bd6e'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, 12, 0, 7); ctx.stroke();
+      ctx.fillStyle = 'rgba(30,16,6,0.35)'; ctx.beginPath(); ctx.ellipse(5, 11, 9, 4.5, 0.3, 0, 7); ctx.fill();
+      if (sprite) {
+        const h = 34, w = h * (sprite.width / sprite.height);
+        ctx.scale(facing, 1);
+        ctx.drawImage(sprite, -w / 2, -h + 2 + bob * 0.4, w, h);
+      } else {
+        ctx.fillStyle = '#4a3322'; ctx.beginPath(); ctx.ellipse(0, bob, 6.5, 8.5, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#e8d8b8'; ctx.beginPath(); ctx.ellipse(0, bob, 3.5, 5.5, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#3a2618'; ctx.beginPath(); ctx.arc(0, bob, 4, 0, 7); ctx.fill();
+        ctx.strokeStyle = '#e7bd6e'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, 12, 0, 7); ctx.stroke();
+      }
       ctx.restore();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       for (const p of v.pois) {
