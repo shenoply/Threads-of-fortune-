@@ -152,3 +152,51 @@
 .table-blur { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(24px) brightness(.35); pointer-events: none; }
 .chess-table, .tawla-table, .tawla-body .cafe-say { position: relative; z-index: 1; }
 .tawla-body .cafe-actions { position: relative; z-index: 1; }
+
+/* ── the head of a game: title, stake, sound and leave on the right; a two-sided scoreboard beneath ── */
+.cafe-head { position: relative; z-index: 4; flex: 0 0 auto; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; background: linear-gradient(#1c120a, #120b06); border-bottom: 1px solid rgba(201,162,74,.35); }
+.cafe-head__top { display: flex; align-items: center; gap: 8px; }
+.cafe-head__top h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 19px; color: var(--brass-hi, #e3bd6b); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cafe-head__stake { font-family: var(--label); font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; color: #d9c49a; margin-right: auto; white-space: nowrap; }
+.cafe-head__btn { flex: 0 0 auto; min-width: 40px; min-height: 40px; font-size: 17px; }
+.cafe-scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.cafe-side { border: 1px solid rgba(201,162,74,.3); border-radius: 8px; padding: 5px 10px 6px; background: rgba(255,240,210,.04); display: flex; flex-direction: column; min-width: 0; transition: border-color .2s, background .2s; }
+.cafe-side.on { border-color: #e3bd6b; background: rgba(227,189,107,.14); box-shadow: 0 0 0 1px rgba(227,189,107,.35); }
+.cafe-side__who { font-family: var(--label); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #cdb88e; white-space: nowrap; }
+.cafe-side__who i { font-style: normal; color: #ffe38a; }
+.cafe-side__main { font-size: 18px; line-height: 1.25; color: #fbf1dc; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols2', var(--body, serif); letter-spacing: .02em; }
+.cafe-side__sub { font-size: 13.5px; color: #e6d5b1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cafe-sound { position: absolute; right: 10px; top: calc(100% - 6px); width: min(320px, calc(100vw - 20px)); background: #1e140b; border: 1px solid #c9a24a; border-radius: 10px; padding: 10px 12px 6px; box-shadow: 0 12px 30px rgba(0,0,0,.7); z-index: 6; }
+.cafe-sound__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.cafe-sound__head b { font-family: var(--display); color: var(--brass-hi, #e3bd6b); font-weight: 500; }
+.cafe-sound .vol-row { font-size: 15px; grid-template-columns: 70px 1fr 30px; }
+
+/* what just happened and what to do: a clear line under the board, not dim italics */
+.chess-body .cafe-say, .tawla-body .cafe-say { color: #f6ead2; font-style: normal; font-size: 15px; background: rgba(18,11,6,.85); border: 1px solid rgba(201,162,74,.35); border-radius: 8px; padding: 6px 12px; margin: 0 12px; text-shadow: none; }
+
+/* ── tawla: solid ivory dice thrown into the roller's half of the board ── */
+.tw-board.at-table .tw-mid { position: relative; height: 100%; }
+.tw-dice { position: absolute; top: 50%; translate: -50% -50%; display: flex; gap: calc(var(--w) * .25); z-index: 3; pointer-events: none; }
+.tw-dice.mine { left: 76%; }
+.tw-dice.his { left: 24%; }
+.die { --d: calc(var(--w) * 1.0); width: var(--d); height: var(--d); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: calc(var(--d) * .13); gap: calc(var(--d) * .04); border-radius: calc(var(--d) * .2); background: linear-gradient(145deg, #ffffff 0%, #f7f1e3 55%, #e2d6bd 100%); box-shadow: 0 3px 5px rgba(0,0,0,.55), inset 0 -2px 2px rgba(0,0,0,.15), inset 0 1px 1px #fff; transform: translateY(var(--dy)) rotate(var(--r)); animation: die-throw .85s cubic-bezier(.15,.75,.3,1) both; transition: opacity .25s, filter .25s; }
+.die i { display: block; border-radius: 50%; }
+.die i.pip { background: radial-gradient(circle at 40% 35%, #3a2a1c, #0c0805 70%); box-shadow: inset 0 1px 1px rgba(0,0,0,.6); }
+.die.used { opacity: .4; filter: grayscale(.4); }
+@keyframes die-throw {
+  0%   { transform: translate(var(--fx), var(--fy)) rotate(calc(var(--r) + 540deg)) scale(1.3); opacity: 0; }
+  12%  { opacity: 1; }
+  50%  { transform: translate(calc(var(--fx) * -.15), calc(var(--fy) * .06)) rotate(calc(var(--r) + 110deg)) scale(1.04); }
+  68%  { transform: translate(calc(var(--fx) * .06), calc(var(--dy) - 14%)) rotate(calc(var(--r) - 18deg)) scale(1); }
+  84%  { transform: translate(0, calc(var(--dy) + 3%)) rotate(calc(var(--r) + 5deg)); }
+  100% { transform: translate(0, var(--dy)) rotate(var(--r)); }
+}
+@media (prefers-reduced-motion: reduce) { .die { animation: none; } }
+/* the checkers you can move: the outer checker glows, instead of loose dots in the middle */
+.tw-board.at-table .tw-pt.can::after { content: none; }
+.tw-board.at-table .tw-pt.can .stack .ck:last-child { box-shadow: 0 0 0 2px #ffe38a, 0 0 10px 2px rgba(255,227,138,.75), 0 3px 4px rgba(0,0,0,.6); }
+.tw-board.at-table .tw-bar.can { box-shadow: none; }
+.tw-board.at-table .tw-bar.can .ck.you:last-child { box-shadow: 0 0 0 2px #ffe38a, 0 0 10px 2px rgba(255,227,138,.75); }
+.tawla-table .tw-info--you { justify-content: flex-end; }
+.chess-body .cafe-actions { align-items: center; }
+.chess-body .cafe-actions .cafe-say { margin: 0; }

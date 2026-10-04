@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, type Square } from 'chess.js';
 import { useGame } from '../../game/state/store';
-import { audio } from '../../game/audio/engine';
+import { audio, DEFAULT_VOLUMES, type Volumes } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
 import { bestMove, type Strength } from '../../game/cafe/chessAI';
 import { startBoard, plays, apply, choosePlay, winner, sameStep, pips, type Board, type Side, type Step } from '../../game/cafe/tawla';
@@ -58,13 +58,50 @@ export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) 
 
 interface TableProps { strength: Strength; stake: number; onEnd: (r: 'win' | 'loss' | 'draw', mult?: number) => void; onQuit: () => void }
 
-function Head({ title, stake, onQuit, status, score }: { title: string; stake: number; onQuit: () => void; status: string; score?: string }) {
+interface Seat { label: string; main: React.ReactNode; sub?: string }
+
+/** the sound at the table: the same sliders as Settings, a tap away from the right-hand corner */
+function SoundPanel({ onClose }: { onClose: () => void }) {
+  const vols = useGame((g) => g.volumes ?? DEFAULT_VOLUMES);
+  const setVolume = useGame((g) => g.setVolume);
   return (
-    <div className="overlay-head">
-      <h2>{title}</h2>
-      <span className="sub">{stake ? `for ${fmt(stake)}` : 'for tea'} · {status}</span>
-      {score && <span className="sub cafe-score" data-testid="cafe-score">{score}</span>}
-      <button className="btn small close" onClick={onQuit} data-testid="cafe-quit" title={stake ? 'Leaving a game you have started gives up the stake' : 'Leave'}>✕</button>
+    <div className="cafe-sound" role="dialog" aria-label="Sound" data-testid="cafe-sound-panel">
+      <div className="cafe-sound__head"><b>Sound</b><button className="btn small" onClick={onClose} aria-label="Close sound">✕</button></div>
+      {([['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects'], ['dialogue', 'Voices']] as [keyof Volumes, string][]).map(([k, l]) => (
+        <label className="vol-row" key={k}>
+          <span>{l}</span>
+          <input type="range" min={0} max={100} step={5} value={Math.round(vols[k] * 100)} onChange={(e) => setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`cafe-vol-${k}`} />
+          <b>{Math.round(vols[k] * 100)}</b>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** the top of a game: title and stake, sound and leave on the right, then a clear scoreboard */
+function Head({ title, stake, onQuit, you, him, turn }: { title: string; stake: number; onQuit: () => void; you: Seat; him: Seat; turn: 'you' | 'him' | null }) {
+  const [sound, setSound] = useState(false);
+  return (
+    <div className="cafe-head">
+      <div className="cafe-head__top">
+        <h2>{title}</h2>
+        <span className="cafe-head__stake">{stake ? `for ${fmt(stake)}` : 'for tea'}</span>
+        <button className="btn small cafe-head__btn" onClick={() => setSound((v) => !v)} aria-label="Sound" aria-pressed={sound} data-testid="cafe-sound">🔊</button>
+        <button className="btn small cafe-head__btn" onClick={onQuit} data-testid="cafe-quit" aria-label="Leave the table" title={stake ? 'Leaving a game you have started gives up the stake' : 'Leave'}>✕</button>
+      </div>
+      <div className="cafe-scores" data-testid="cafe-score">
+        {[['you', you], ['him', him]].map(([k, sd]) => {
+          const x = sd as Seat;
+          return (
+            <div key={k as string} className={`cafe-side ${k}${turn === k ? ' on' : ''}`}>
+              <span className="cafe-side__who">{x.label}{turn === k && <i> · to play</i>}</span>
+              <b className="cafe-side__main">{x.main}</b>
+              {x.sub && <small className="cafe-side__sub">{x.sub}</small>}
+            </div>
+          );
+        })}
+      </div>
+      {sound && <SoundPanel onClose={() => setSound(false)} />}
     </div>
   );
 }
@@ -90,6 +127,15 @@ function materialScore(c: Chess): string {
   for (const row of c.board()) for (const p of row) if (p) (p.color === 'w' ? (w += VALUE[p.type]) : (b += VALUE[p.type]));
   const d = w - b;
   return d === 0 ? 'material even' : d > 0 ? `you're up ${d}` : `Bilgin's up ${-d}`;
+}
+
+const START: Record<string, number> = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+/** the pieces each side has taken, as glyphs, and the material balance */
+function taken(c: Chess) {
+  const left: Record<'w' | 'b', Record<string, number>> = { w: {}, b: {} };
+  for (const row of c.board()) for (const p of row) if (p) left[p.color][p.type] = (left[p.color][p.type] ?? 0) + 1;
+  const lost = (col: 'w' | 'b') => (['q', 'r', 'b', 'n', 'p'] as const).flatMap((t) => Array(Math.max(0, START[t] - (left[col][t] ?? 0))).fill(GLYPH[t])).join('');
+  return { byYou: lost('b'), byHim: lost('w') };
 }
 
 function ChessTable({ strength, stake, onEnd, onQuit }: TableProps) {
@@ -138,12 +184,16 @@ function ChessTable({ strength, stake, onEnd, onQuit }: TableProps) {
 
   const board = c.board();
   const checkSq = c.inCheck() ? (() => { for (const row of board) for (const p of row) if (p && p.type === 'k' && p.color === c.turn()) return p.square; return null; })() : null;
-  const status = over ? 'finished' : thinking ? 'Bilgin is thinking…' : c.inCheck() ? 'check!' : 'your move (white)';
+  const status = over ? 'Finished.' : thinking ? 'Bilgin is thinking…' : c.inCheck() ? 'Check! Get your king out of danger.' : sel ? 'Tap where it goes.' : 'Your move: tap a white piece.';
   const [res, text]: ['win' | 'loss' | 'draw', string] = over ? result() : ['draw', ''];
+  const cap = taken(c);
 
   return (
     <div className="overlay cafe-overlay at-chess" data-testid="cafe-chess-board" style={TABLE_BG}>
-      <Head title="Chess with Bilgin" stake={stake} onQuit={() => (stake && c.history().length && !over ? onEnd('loss') : onQuit())} status={status} score={c.history().length ? materialScore(c) : undefined} />
+      <Head title="Chess with Bilgin" stake={stake} onQuit={() => (stake && c.history().length && !over ? onEnd('loss') : onQuit())}
+        turn={over ? null : c.turn() === 'w' ? 'you' : 'him'}
+        you={{ label: 'You · white', main: cap.byYou || '–', sub: c.history().length ? materialScore(c) : 'pieces you have taken' }}
+        him={{ label: 'Bilgin · black', main: cap.byHim || '–', sub: thinking ? 'thinking…' : 'pieces he has taken' }} />
       <div className="cafe-body chess-body">
         <img className="table-blur" src="art/cafe/chess-table.webp" alt="" aria-hidden="true" />
         <div className="chess-table">
@@ -162,7 +212,7 @@ function ChessTable({ strength, stake, onEnd, onQuit }: TableProps) {
           }))}
         </div>
         </div>
-        {!over && <div className="cafe-actions"><button className="btn small" onClick={() => setResign(true)} disabled={thinking} data-testid="cafe-resign">Resign</button></div>}
+        {!over && <div className="cafe-actions"><p className="cafe-say" data-testid="chess-say">{status}</p><button className="btn small" onClick={() => setResign(true)} disabled={thinking} data-testid="cafe-resign">Resign</button></div>}
         {over && <EndCard text={text} onDone={() => onEnd(res)} />}
       </div>
     </div>
@@ -172,7 +222,32 @@ function ChessTable({ strength, stake, onEnd, onQuit }: TableProps) {
 // ─── tawla ───────────────────────────────────────────────────────────────────
 
 const roll = (): [number, number] => [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
-const PIPS = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+// a real ivory die: the pips sit on a 3 x 3 grid
+const FACE: Record<number, number[]> = { 1: [4], 2: [2, 6], 3: [2, 4, 6], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+const rnd = (seed: number) => { const x = Math.sin(seed * 9301 + 49297) * 233280; return x - Math.floor(x); };
+
+/** thrown from the roller's side of the board: it tumbles (faces flicking), bounces and settles a little askew */
+function Die({ n, seed, k, from, used }: { n: number; seed: number; k: number; from: 1 | -1; used: boolean }) {
+  const [face, setFace] = useState(() => 1 + Math.floor(rnd(seed) * 6));
+  useEffect(() => {
+    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) { setFace(n); return; }
+    let i = 0;
+    const t = window.setInterval(() => { i++; if (i >= 7) { setFace(n); window.clearInterval(t); } else setFace(1 + Math.floor(Math.random() * 6)); }, 75);
+    return () => window.clearInterval(t);
+  }, [n]);
+  const style = {
+    ['--r' as string]: `${Math.round((rnd(seed + 1) - 0.5) * 40)}deg`,
+    ['--fx' as string]: `${Math.round((rnd(seed + 2) - 0.5) * 120)}%`,
+    ['--fy' as string]: `${from === 1 ? 320 : -320}%`,
+    ['--dy' as string]: `${Math.round((rnd(seed + 3) - 0.5) * 18)}%`,
+    animationDelay: `${k * 70}ms`,
+  } as React.CSSProperties;
+  return (
+    <span className={`die${used ? ' used' : ''}`} style={style} data-die={n} aria-label={`${n}`}>
+      {Array.from({ length: 9 }, (_, i) => <i key={i} className={FACE[face].includes(i) ? 'pip' : ''} />)}
+    </span>
+  );
+}
 
 function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
   const [board, setBoard] = useState<Board>(startBoard);
@@ -251,6 +326,9 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
 
   const diceLeft = dice ? (dice[0] === dice[1] ? [dice[0], dice[0], dice[0], dice[0]] : [...dice]) : [];
   for (const u of used) { const k = diceLeft.indexOf(u); if (k >= 0) diceLeft.splice(k, 1); }
+  // every die thrown, the ones still to play first, the played ones after (dimmed)
+  const allDice = dice ? [...diceLeft, ...(dice[0] === dice[1] ? [dice[0], dice[0], dice[0], dice[0]] : [...dice]).slice(diceLeft.length)] : [];
+  const usedCount = allDice.length - diceLeft.length;
 
   const Point = ({ i, top }: { i: number; top: boolean }) => {
     const n = board.pts[i];
@@ -273,19 +351,20 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
   );
 
   const offDest = dests.some((s) => s.to === 'off');
-  const status = won ? 'finished' : opening ? 'opening roll' : turn === 1 ? 'your move' : 'Bilgin plays…';
   const endText = won ? (won.side === 1
     ? (won.mars ? 'Mars! Every one of yours is off before Bilgin bore off a single checker. He pays double, groaning.' : 'All fifteen home and off. Bilgin pushes the board away: "The dice love you today."')
     : (won.mars ? 'Mars. Bilgin bore everything off before you got one home. That costs double.' : 'Bilgin bears off his last checker and claps. "Tawla is mathematics, my friend. And luck. Mostly luck."')) : '';
 
   return (
     <div className="overlay cafe-overlay at-tawla" data-testid="cafe-tawla-board" style={TABLE_BG}>
-      <Head title="Tawla with Bilgin" stake={stake} onQuit={() => (stake && !opening && !won ? onEnd('loss') : onQuit())} status={status} score={opening ? undefined : `you ${board.off[1]} off, ${pips(board, 1)} pips · Bilgin ${board.off[-1]} off, ${pips(board, -1)} pips`} />
+      <Head title="Tawla with Bilgin" stake={stake} onQuit={() => (stake && !opening && !won ? onEnd('loss') : onQuit())}
+        turn={won || opening ? null : turn === 1 ? 'you' : 'him'}
+        you={{ label: 'You · white', main: `${board.off[1]} / 15 off`, sub: `${pips(board, 1)} pips to go` }}
+        him={{ label: 'Bilgin · dark', main: `${board.off[-1]} / 15 off`, sub: `${pips(board, -1)} pips to go` }} />
       <div className="cafe-body tawla-body">
         <img className="table-blur" src="art/cafe/tawla-table.webp" alt="" aria-hidden="true" />
         <div className="tawla-table">
         <img className="chess-table__img" src="art/cafe/tawla-table.webp" alt="" aria-hidden="true" draggable={false} />
-        <div className="tw-info tw-info--him"><span>Bilgin · {15 - board.off[-1]} left · {pips(board, -1)} pips</span></div>
         <div className="tw-board at-table">
           <div className="tw-row">
             {[12, 13, 14, 15, 16, 17].map((i) => <Point key={i} i={i} top />)}
@@ -293,7 +372,11 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
             {[18, 19, 20, 21, 22, 23].map((i) => <Point key={i} i={i} top />)}
           </div>
           <div className="tw-mid">
-            {dice && !opening && <span className="tw-dice" key={rollId} data-testid="tw-dice">{(turn === 1 ? diceLeft : dice).map((d, k) => <b key={k} className="tw-die-throw" style={{ animationDelay: `${k * 60}ms` }}>{PIPS[d]}</b>)}</span>}
+            {dice && !opening && (
+              <span className={`tw-dice ${turn === 1 ? 'mine' : 'his'}`} key={rollId} data-testid="tw-dice">
+                {allDice.map((d, k) => <Die key={k} n={d} seed={rollId * 7 + k} k={k} from={turn === 1 ? 1 : -1} used={turn === 1 && k >= allDice.length - usedCount} />)}
+              </span>
+            )}
           </div>
           <div className="tw-row">
             {[11, 10, 9, 8, 7, 6].map((i) => <Point key={i} i={i} top={false} />)}
@@ -302,7 +385,6 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
           </div>
         </div>
         <div className="tw-info tw-info--you">
-          <span>You · {15 - board.off[1]} left · {pips(board, 1)} pips</span>
           <button className={`btn small tw-off${offDest ? ' dest' : ''}`} disabled={!offDest} onClick={() => tapPoint('off')} data-testid="tw-off">Bear off ({board.off[1]})</button>
         </div>
         </div>
