@@ -59,3 +59,10 @@
 
 .cafe-overlay.pick { background: linear-gradient(180deg, rgba(13,8,5,.55) 0%, rgba(13,8,5,.82) 45%, rgba(13,8,5,.96) 100%), var(--cafe-bg) center 30% / cover no-repeat, #0d0805; }
 .cafe-film { align-self: center; }
+.cafe-room { position: fixed; inset: 0; z-index: 45; background: #2a1b10; }
+.cafe-room .mroom { position: absolute; inset: 0; }
+.cafe-room__head { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px; background: linear-gradient(rgba(12,7,3,.85), rgba(12,7,3,0)); z-index: 3; }
+.cafe-room__head b { font-family: var(--display); color: var(--brass-hi, #e3bd6b); font-weight: 500; font-size: 18px; margin-right: auto; text-shadow: 0 1px 3px #000; }
+.cafe-room__note { position: absolute; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 3; background: rgba(239,224,191,.97); color: var(--ink); border-radius: 10px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.5); display: flex; gap: 10px; align-items: flex-end; }
+.cafe-room__note p { margin: 0; flex: 1; font-size: 15px; line-height: 1.4; }
+.cafe-room__note .btn { color: var(--ink); border-color: rgba(90,61,32,.5); }

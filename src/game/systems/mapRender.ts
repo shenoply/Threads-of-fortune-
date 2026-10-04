@@ -9,21 +9,38 @@ import { MAP_W, MAP_H, paint, settlementById, routeLeg } from './world';
 type Ring = number[];
 
 // ---------- the painted travel map ----------
+// Two copies of the same painting: the small one (half a megabyte) arrives at once on a phone, so the
+// painted map is up straight away; the sharp one (4.5 MB, for zooming in) replaces it when it lands.
+// Until either has loaded, the engraved map is drawn.
 let artImg: HTMLImageElement | null = null;
+let artSmall: HTMLImageElement | null = null;
 let artReady = false;
+let smallReady = false;
 let artFailed = false;
 const artListeners = new Set<() => void>();
-/** The painting, once it has loaded; until then the engraved map is drawn. */
+/** The painting, once it has loaded (the sharp copy when it is in, the small one before that). */
 export function paintedMap(): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
+  if (!artSmall) {
+    artSmall = new Image();
+    artSmall.decoding = 'async';
+    artSmall.onload = () => { smallReady = true; if (!artReady) artListeners.forEach((f) => f()); };
+    artSmall.src = 'art/world/travel-map-original.jpg';
+  }
   if (!artImg) {
     artImg = new Image();
     artImg.decoding = 'async';
-    artImg.onload = () => { artReady = true; artListeners.forEach((f) => f()); };
+    artImg.onload = () => {
+      // a phone that cannot hold the big picture decoded keeps the small one
+      artImg!.decode?.().then(() => { artReady = true; artListeners.forEach((f) => f()); }).catch(() => { artFailed = true; });
+      if (!artImg!.decode) { artReady = true; artListeners.forEach((f) => f()); }
+    };
     artImg.onerror = () => { artFailed = true; artListeners.forEach((f) => f()); };
-    artImg.src = 'art/world/travel-map.jpg';
+    // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
+    const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+    artImg.src = phone ? 'art/world/travel-map-3k.jpg' : 'art/world/travel-map.jpg';
   }
-  return artReady ? artImg : null;
+  return artReady ? artImg : smallReady ? artSmall : null;
 }
 export function onPaintedMap(f: () => void) { artListeners.add(f); return () => { artListeners.delete(f); }; }
 

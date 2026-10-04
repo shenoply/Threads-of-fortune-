@@ -1,4 +1,4 @@
-// Chess and tawla with Bilgin in the Giza coffee house: the table opens from his dialogue, both games
+// Chess and tawla with Bilgin in the Giza coffee house: the table opens from the chess corner of his café, both games
 // play on a phone, Bilgin answers, and the stake changes hands.
 //   PORT=5173 SHOTS=/tmp/cafe node tests/cafe-games.mjs
 import { chromium } from 'playwright';
@@ -21,7 +21,10 @@ try {
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(300);
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
   await p.locator('[data-testid=poi-coffee]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-coffee]');
-  await p.waitForSelector('[data-testid=cafe-play]', { timeout: 8000 });
+  await p.waitForSelector('[data-testid=cafe-room]', { timeout: 8000 });
+  await p.screenshot({ path: `${S}/room-counter.png` });
+  await p.click('[data-testid=cafe-hot-corner]'); await p.waitForTimeout(700);
+  await p.screenshot({ path: `${S}/room-corner.png` });
   await p.click('[data-testid=cafe-play]'); await p.waitForSelector('[data-testid=cafe-table]');
   await p.screenshot({ path: `${S}/table.png` });
 
@@ -46,7 +49,7 @@ try {
   const chessOk = answered === moves.length && c1 === c0 - 5;
 
   // tawla for 20: opening roll, then play several of your turns by tapping
-  await p.click('[data-testid=poi-coffee]').catch(() => {}); await p.waitForSelector('[data-testid=cafe-play]', { timeout: 8000 });
+  await p.waitForSelector('[data-testid=cafe-play]', { timeout: 8000 });
   await p.click('[data-testid=cafe-play]'); await p.click('[data-testid=cafe-stake-20]'); await p.click('[data-testid=cafe-tawla]');
   await p.click('[data-testid=tw-open]');
   let myMoves = 0, turnsSeen = 0;

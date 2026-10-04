@@ -8,6 +8,7 @@ import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
+import { CafeRoom } from '../Cafe/CafeRoom';
 const CafeTable = lazy(() => import('../Cafe/CafeTable').then((m) => ({ default: m.CafeTable })));
 // Malek's grill loads only when you walk in
 const MalekShop = lazy(() => import('../Malek/MalekShop'));
@@ -457,6 +458,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
   const [cafe, setCafe] = useState(false);
+  const [room, setRoom] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
   // the film over the lab or the coffee house: by itself the first time, then on request
@@ -504,7 +506,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     save();
     switch (id) {
       case 'stall': onStall(); break;
-      case 'coffee': setTalk(true); if (unseen('abuhamid')) setFilm('abuhamid'); break;
+      case 'coffee': setRoom(true); if (unseen('abuhamid')) setFilm('abuhamid'); break;
       case 'lab': setLab(true); if (unseen('arran')) setFilm('arran'); break;
       case 'malek': setMalek(true); break;
       case 'souk': setPanel('market'); break;
@@ -825,9 +827,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && !film && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
-      {talk && !film && createPortal(<button className="btn small cafe-play-float" onClick={() => { setTalk(false); setCafe(true); if (unseen('bilgin-chess')) setFilm('bilgin-chess'); }} data-testid="cafe-play">♞ ⚅ Play Bilgin</button>, document.body)}
+      {room && createPortal(<CafeRoom onTalk={() => setTalk(true)} onPlay={() => { setCafe(true); if (unseen('bilgin-chess')) setFilm('bilgin-chess'); }} onLeave={() => { setRoom(false); setTalk(false); setNote(''); }} onFilm={filmReady('abuhamid') ? () => setFilm('abuhamid') : undefined} note={note} onNote={() => setNote('')} />, document.body)}
       {cafe && <Suspense fallback={null}><CafeTable onClose={(m) => { setCafe(false); if (m) setNote(m); }} onFilm={filmReady('bilgin-chess') ? () => setFilm('bilgin-chess') : undefined} /></Suspense>}
-      {talk && !film && filmReady('abuhamid') && createPortal(<button className="btn small film-again-float" onClick={() => setFilm('abuhamid')} data-testid="abuhamid-film-again">▶ Bilgin's film</button>, document.body)}
     </div>
   );
 }

@@ -48,11 +48,15 @@ try {
   const mutedNow = await p.evaluate(() => { const m = document.querySelector('[data-testid=film-video]') ?? document.querySelector('[data-testid=film-voice]'); return m?.muted; });
   check(mutedNow === true, 'sound off mutes the film');
   await p.click('[data-testid=film-skip]'); await p.waitForTimeout(600);
-  check(!(await has('film-abuhamid')) && (await has('dialogue')) > 0, 'skip closes the film, the dialogue follows');
+  check(!(await has('film-abuhamid')) && (await has('cafe-room')) > 0, 'skip closes the film, the café room follows');
+  await p.click('[data-testid=cafe-hot-bilgin]'); await p.waitForTimeout(500);
+  check((await has('dialogue')) > 0, 'talking to Bilgin from the room');
   check((await seen()).includes('abuhamid'), 'café film marked seen');
   await p.screenshot({ path: `${S}/dialogue.png` });
 
   // 2. the chess film, the first time you sit down to play
+  await p.click('text=Another time, Bilgin.'); await p.waitForTimeout(400);
+  await p.click('[data-testid=cafe-hot-corner]'); await p.waitForTimeout(600);
   await p.click('[data-testid=cafe-play]');
   await p.waitForSelector('[data-testid=film-bilgin-chess]', { timeout: 6000 });
   await p.waitForTimeout(3000);
@@ -78,14 +82,15 @@ try {
   // 3. after a reload: neither film plays by itself again; both replay
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
   await district(); await coffee();
-  check(!(await has('film-abuhamid')) && (await has('dialogue')) > 0, 'café film not again after reload');
+  check(!(await has('film-abuhamid')) && (await has('cafe-room')) > 0, 'café film not again after reload');
+  await p.click('[data-testid=cafe-hot-corner]'); await p.waitForTimeout(600);
   await p.click('[data-testid=cafe-play]'); await p.waitForTimeout(800);
   check(!(await has('film-bilgin-chess')) && (await has('cafe-table')) > 0, 'chess film not again after reload');
   await p.click('[data-testid=cafe-close]'); await p.waitForTimeout(300);
-  await coffee();
   await p.click('[data-testid=abuhamid-film-again]'); await p.waitForTimeout(800);
   check((await has('film-abuhamid')) > 0, 'café film replay button');
   await p.click('[data-testid=film-skip]'); await p.waitForTimeout(400);
+  await p.click('[data-testid=cafe-hot-bilgin]'); await p.waitForTimeout(500);
   check((await p.locator('.dlg-who img').getAttribute('src')) === 'art/portraits/abuhamid.jpg', 'dialogue card uses the new portrait');
   console.log(out.join('\n'));
   console.log(ok && !errs.length ? 'PASS' : 'FAIL', 'errors', JSON.stringify(errs.slice(0, 3)));
