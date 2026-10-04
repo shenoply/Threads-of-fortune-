@@ -6,7 +6,7 @@ import { RugPicker, rugNames, typicalSale, type BuyerTaste } from './RugPicker';
 import { openGuide } from '../Guide/Guide';
 import { BUYER_TIERS } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { stallFigure } from './stallArt';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
 import { availableRugs, tutorialAllows, useGame } from '../../game/state/store';
@@ -52,12 +52,36 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const ordered = front && avail.some((i) => i.uid === front) ? [avail.find((i) => i.uid === front)!, ...avail.filter((i) => i.uid !== front)] : avail;
   const shown = ordered.length <= 3 ? ordered : [...ordered, ...ordered].slice(offset % ordered.length, (offset % ordered.length) + 3);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
-  // the rug tray folds away once a rug is on the table, so the talk has the room; a tap (or a swipe)
-  // on its handle brings it back. Open again whenever nothing is on the table.
-  const [tray, setTray] = useState(true);
-  useEffect(() => { setTray(!enc?.presented); }, [enc?.presented, enc?.id]);
+  // the rug tray starts open; its handle (a tap, or a swipe down/up) folds it away and back, and the
+  // choice holds from one buyer to the next
+  const [tray, setTray] = useState(() => { try { return localStorage.getItem('tof-rug-tray') !== 'shut'; } catch { return true; } });
+  useEffect(() => { try { localStorage.setItem('tof-rug-tray', tray ? 'open' : 'shut'); } catch { /* no storage */ } }, [tray]);
   const [swipe, setSwipe] = useState<number | null>(null);
   const talking = !!enc && !enc.outcome;
+  // During the talk the picture gets exactly the height the rest leaves free, and never more than its
+  // own shape (taller would zoom in and crop the people out). Measured, because grid sizing alone
+  // squeezes the talk and the buttons before it gives up any of the picture.
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el || !talking) return;
+    const fit = () => {
+      let rest = 0;
+      for (const c of Array.from(el.children) as HTMLElement[]) {
+        if (c.classList.contains('scene') || c.classList.contains('stall-toolbar')) continue;
+        if (getComputedStyle(c).position === 'absolute' || getComputedStyle(c).position === 'fixed') continue;
+        rest += c.getBoundingClientRect().height;
+      }
+      const natural = el.clientWidth * 380 / 780;
+      const h = Math.max(96, Math.min(natural, el.clientHeight - rest));
+      el.style.setProperty('--scene-h', `${Math.floor(h)}px`);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    for (const c of Array.from(el.children)) ro.observe(c);
+    return () => ro.disconnect();
+  });
   // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
   // closes (settle() runs inside act(), before the player has seen the result screen or clicked
   // "Next customer"), so keying the dialogue-playback reset on it replayed the whole conversation
@@ -131,7 +155,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const isLast = g.visitIdx >= g.queue.length;
 
   return (
-    <div className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}`} data-testid="stall">
+    <div ref={root} className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}`} data-testid="stall">
       {filmFor && createPortal(<IntroFilm id={filmFor} onDone={() => { useGame.getState().markIntroSeen(filmFor); setFilmDone(true); }} />, document.body)}
       {((enc && !enc.outcome && !enc.tutorial && !enc.venue) || (tut && enc && !enc.outcome)) && (
         <div className="stall-toolbar">
