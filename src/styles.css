@@ -2241,7 +2241,7 @@ button.hud-chip { cursor: pointer; }
    switches keep their look but get a larger invisible hit area around them */
 @media (pointer: coarse) {
   .btn { min-height: 40px; }
-  .switch, .hud-chip, .hud-place, .linkish, .skip-hint, .stall-paper, .help-link, .merchant-help { position: relative; }
+  .switch, .hud-chip, .hud-place, .linkish, .stall-paper, .help-link, .merchant-help { position: relative; }
   .switch::after, .hud-chip::after, .hud-place::after, .linkish::after, .skip-hint::after, .stall-paper::after, .help-link::after, .merchant-help::after { content: ''; position: absolute; inset: -8px -6px; }
 }
 /* "How to play" on Progress stays on one line */
