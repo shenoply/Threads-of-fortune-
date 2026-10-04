@@ -14,7 +14,8 @@ import { routeDanger,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
-import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood } from '../../game/systems/caravan';
+import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf } from '../../game/systems/caravan';
+import { MenTalk } from './Troops';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
@@ -164,6 +165,21 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const [rememberNight, setRememberNight] = useState(false);
   useEffect(() => { if (timeScale > 0) setNightfall(false); }, [timeScale]);
   const [report, setReport] = useState<string>('');
+  // your men stop you on the road when the bread is nearly gone or their patience is wearing thin
+  // (once a day for each reason), so you can deal with it before someone walks
+  const [menStop, setMenStop] = useState(false);
+  const stopSeen = useRef<string>('');
+  const pfood = foodDaysLeft(w.party), pmor = moraleOf(w.party), pmen = troopCount(w.party);
+  useEffect(() => {
+    if (!moving || moving.train || moving.mode || !pmen) return;
+    const why = pfood < 2 ? 'food' : pmor <= 40 ? 'patience' : '';
+    if (!why) return;
+    const k = `${g.day}:${why}`;
+    if (stopSeen.current === k) return;
+    stopSeen.current = k;
+    setMoving(null);
+    setMenStop(true);
+  }, [pfood, pmor, pmen, moving, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   // a town's own screen opens only where you actually are; a shortcut to anywhere else plans the route instead
   const [panel, setPanel] = useState<string | null>(openPanel && openPanel === w.at ? openPanel : null);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
@@ -187,7 +203,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   sizeRef.current = size;
   const sp = speedInfo(w.party, g.inventory);
   // the map figure leads a camel only once you own one
-  const hasCamel = Object.entries(w.party.animals ?? {}).some(([id, n]) => n > 0 && BREEDS[id]?.kind === 'camel');
+  // who walks behind you on the map: the strongest guards first, then the animals, one token each
+  const train = useMemo(() => {
+    const toks: { src: string; kind: 'man' | 'beast' }[] = [];
+    Object.entries(w.party.troops ?? {}).filter(([, n]) => n > 0).sort((a, b) => (TROOPS[b[0]]?.strength ?? 0) - (TROOPS[a[0]]?.strength ?? 0))
+      .forEach(([id, n]) => { for (let i = 0; i < n; i++) toks.push({ src: `art/troops/${id}.jpg`, kind: 'man' }); });
+    Object.entries(w.party.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id])
+      .forEach(([id, n]) => { for (let i = 0; i < n; i++) toks.push({ src: `art/animals/${id}.jpg`, kind: 'beast' }); });
+    const MAX = 12;
+    return { shown: toks.slice(0, MAX), more: Math.max(0, toks.length - MAX) };
+  }, [w.party.troops, w.party.animals]);
   const jobs = openJobs(g.jobsDone, g.reputation);
   const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
   const [jobsOpen, setJobsOpen] = useState(false);
@@ -723,15 +748,23 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             {moving && (moving.train || moving.mode) ? (
               <span className="pbadge me-badge"><Icon name="camel" /></span>
             ) : (
-              // you and the camel on foot: two painted steps that alternate while you walk
-              <span className={`me-walk ${hasCamel ? '' : 'solo'}`} aria-hidden="true">
-                {[1, 2].map((k) => <img key={k} src={`art/world/party-${hasCamel ? 'walk' : 'solo'}-${k}.webp`} alt="" draggable={false} />)}
+              // you on foot, two painted steps that alternate while you walk, and behind you, Bannerlord
+              // style, the caravan that follows: your guards and every animal you own, each as its own token
+              <span className="me-row">
+                <span className="me-train" aria-hidden="true" data-testid="me-train">
+                  {train.shown.map((t, k) => <img key={k} className={`me-tok ${t.kind}`} src={t.src} alt="" draggable={false} style={{ ['--k' as string]: k }} />)}
+                  {train.more > 0 && <i className="me-more" style={{ ['--k' as string]: train.shown.length }}>+{train.more}</i>}
+                </span>
+                <span className="me-walk solo" aria-hidden="true">
+                  {[1, 2].map((k) => <img key={k} src={`art/world/party-solo-${k}.webp`} alt="" draggable={false} />)}
+                </span>
               </span>
             )}
             {z >= 3 && <span className="pname me-name">You · {partySize(w.party)}</span>}
           </span>
         </div>
 
+        {menStop && <MenTalk stopped onClose={() => setMenStop(false)} />}
         {showOverhead && (
           <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 100, Math.max(100, gizaScreen.x)), top: Math.max(100, gizaScreen.y - 110) }} data-testid="overhead-pin">
             <StallOverhead compact onOpen={() => (w.at === 'giza' ? onStall() : planTo(giza, giza))} />

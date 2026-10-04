@@ -81,8 +81,9 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
   const locked = g.reputation < need;
   const r = g.relationships[id];
   const t = BUYER_TIERS[id] ?? [3, 4];
-  return (
-    <div className="overlay" onClick={onClose}>
+  // drawn at the top of the page, so nothing from the stall (the rug on the counter) shows through it
+  return createPortal(
+    <div className="overlay buyer-card-overlay" onClick={onClose}>
       <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card">
         <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="buyer-card-close">⟵ Back</button></div>
         <img className="buyer-big" src={`art/portraits/${id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -100,7 +101,8 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

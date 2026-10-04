@@ -11,9 +11,13 @@ export interface PartyState {
   hungryDays?: number; // consecutive rollovers with no food left; resets the day rations cover the party again
   /** how much more a hungry or unpaid night your men will tolerate before one actually walks, 0-100 */
   morale?: number;
+  /** the day you last sat down with your men (a talk lifts them once a day) */
+  talkedDay?: number;
 }
 
 export const MORALE_START = 70;
+/** How many men you can lead: a caravan master's name brings more men who will follow him */
+export const troopCap = (reputation: number) => Math.min(24, 6 + Math.floor(Math.max(0, reputation) / 10));
 export const MORALE_DESERT_AT = 25;
 export const morale = (p: PartyState) => p.morale ?? MORALE_START;
 

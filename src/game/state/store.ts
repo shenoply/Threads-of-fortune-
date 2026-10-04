@@ -44,7 +44,7 @@ import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, type PartyState } from '../systems/caravan';
+import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -309,6 +309,8 @@ interface Actions {
   waitForCustomer: () => void;
   /** time passing on something other than a sale: reading, walking, bidding */
   passTime: (minutes: number) => void;
+  /** sit down with your men: what you give them (extra rations, a bonus, half a day's rest, or just your ear) */
+  talkToMen: (how: 'rations' | 'bonus' | 'rest' | 'listen') => string;
   /** A game of chess or tawla with Bilgin in the coffee house: the stake changes hands, time passes */
   cafeGame: (game: 'chess' | 'tawla', result: 'win' | 'loss' | 'draw', stake: number, minutes: number) => string;
   startAudience: (buyerId: string) => string;
@@ -2019,6 +2021,8 @@ export const useGame = create<GameState & Actions>()(
           if (k <= 0) return 'No more volunteers today.';
           const cost = t.cost * k;
           if (s.cash < cost) return 'Not enough cash.';
+          const cap = troopCap(s.reputation);
+          if (troopCount(s.world.party) + k > cap) return `You can lead ${cap} men at most for now. A bigger name (reputation) brings more who will follow you.`;
           const party = { ...s.world.party, troops: { ...s.world.party.troops, [troop]: (s.world.party.troops[troop] ?? 0) + k } };
           set({ cash: s.cash - cost, world: { ...s.world, party, hired: { ...s.world.hired, [key]: (s.world.hired[key] ?? 0) + k } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Recruited ${k} ${k > 1 ? t.plural.toLowerCase() : t.name.toLowerCase()}`, amount: -cost }] });
           audio.sfx('coins');
@@ -2449,6 +2453,32 @@ export const useGame = create<GameState & Actions>()(
           set(patch);
         },
 
+        talkToMen: (how) => {
+          const s = get();
+          const p = s.world.party;
+          const men = troopCount(p);
+          if (!men) return '';
+          const already = p.talkedDay === s.day;
+          let food = p.food, cash = s.cash, lift = 0, text = '', ledger = s.ledger;
+          if (how === 'rations') {
+            if (food < men) return 'There is not enough food to share out.';
+            food -= men; lift = 10; text = 'You share out an extra ration each. The fire burns a little brighter tonight.';
+          } else if (how === 'bonus') {
+            const b = Math.max(5, wages(p));
+            if (cash < b) return 'You cannot spare a bonus.';
+            cash -= b; lift = 14; ledger = [...ledger, { day: s.day, kind: 'expense', label: 'A bonus for the men', amount: -b }];
+            text = `A day's wages extra, ${fmt(b)}, from your own purse. Nobody says it, but nobody forgets it.`;
+          } else if (how === 'rest') {
+            lift = 8; text = 'You call a halt for half a day. Boots off, tea on. The men are glad of it.';
+          } else {
+            lift = 3; text = 'You sit with them a while and listen. It is not much, but it is noticed.';
+          }
+          if (already) lift = Math.round(lift / 2);
+          const m = Math.min(100, (p.morale ?? MORALE_START) + lift);
+          set({ cash, ledger, world: { ...s.world, party: { ...p, food, morale: m, talkedDay: s.day } } });
+          if (how === 'rest') get().passTime(6 * 60);
+          return text + (already ? ' (Twice in a day counts for less.)' : '');
+        },
         cafeGame: (game, result, stake, minutes) => {
           const s = get();
           const name = game === 'chess' ? 'chess' : 'tawla';

@@ -6,6 +6,8 @@ import { BREEDS, ANIMAL_MARKETS, type Breed } from '../../data/animals';
 import { animalPrice } from '../../game/state/store';
 import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDaysLeft, animalCount, morale as moraleOf } from '../../game/systems/caravan';
 import { AnimalPlate } from './AnimalPlate';
+import { TroopPage, MenTalk, capLine } from './Troops';
+import { troopCount, troopCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 
 /** One-line caravan status used on the map and in towns. */
@@ -36,8 +38,12 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
   if (!m) return null;
   const p = g.world.party;
   const pool = recruitPool(sid, g.day, g.world.hired);
+  const [page, setPage] = useState<string | null>(null);
+  const full = troopCount(p) >= troopCap(g.reputation);
+  const pageRow = page ? pool.find((r) => r.troop === page) : undefined;
   return (
     <div data-testid="town-supplies">
+      {page && <TroopPage id={page} onClose={() => setPage(null)} onHire={pageRow ? () => setNote(g.recruit(pageRow.troop, pageRow.key, 1)) : undefined} hireDisabled={!pageRow?.available || g.cash < TROOPS[page].cost || full} hireLabel={full ? 'Your caravan is full' : `Hire one · ${TROOPS[page].cost ? fmt(TROOPS[page].cost) : 'free'}`} />}
       {note && <p className="set-note" data-testid="supply-note">{note}</p>}
       {show.includes('food') && (<>
       <div className="section-label">PROVISIONS</div>
@@ -60,15 +66,15 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
         <>
           {YARD_ART[sid] && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
           <div className="section-label">HIRE GUARDS</div>
-          <p className="set-demand">Guards fight off raiders on the road. Each is paid every morning and eats a ration a day; unpaid men go home.</p>
+          <p className="set-demand">Guards fight off raiders on the road. Each is paid every morning and eats a ration a day; unpaid men go home. Tap a man to read about his kind. <b data-testid="troop-cap">{capLine(troopCount(p), g.reputation)}</b>.</p>
           <div className="mkt">
             {pool.map((r) => {
               const t = TROOPS[r.troop];
               return (
                 <div className="mkt-row troop-row" key={r.key} data-testid={`recruit-${r.troop}`}>
-                  <img className="troop-pic" src={`art/troops/${r.troop}.jpg`} alt={t.name} />
-                  <span><b>{r.available} {r.available === 1 ? t.name.toLowerCase() : t.plural.toLowerCase()}</b><small>{t.blurb} Strength {t.strength}, wage {fmt(t.wage)} a day{t.scout ? ', scouts ahead' : ''}.</small></span>
-                  <button className="btn primary" disabled={!r.available || g.cash < t.cost} onClick={() => setNote(g.recruit(r.troop, r.key, 1))} data-testid={`hire-${r.troop}`}>Hire {t.cost ? fmt(t.cost) : "free"}</button>
+                  <img className="troop-pic tappable" src={`art/troops/${r.troop}.jpg`} alt={t.name} onClick={() => setPage(r.troop)} data-testid={`troop-info-${r.troop}`} />
+                  <span className="troop-name-btn" onClick={() => setPage(r.troop)}><b>{r.available} {r.available === 1 ? t.name.toLowerCase() : t.plural.toLowerCase()}</b><small>{t.blurb} Strength {t.strength}, wage {fmt(t.wage)} a day{t.scout ? ', scouts ahead' : ''}.</small></span>
+                  <button className="btn primary" disabled={!r.available || g.cash < t.cost || full} onClick={() => setNote(g.recruit(r.troop, r.key, 1))} data-testid={`hire-${r.troop}`}>Hire {t.cost ? fmt(t.cost) : "free"}</button>
                 </div>
               );
             })}
@@ -86,8 +92,12 @@ export function CaravanRoster() {
   const p = g.world.party;
   const sp = speedInfo(p, g.inventory);
   const troops = Object.entries(p.troops).filter(([, n]) => n > 0);
+  const [page, setPage] = useState<string | null>(null);
+  const [talk, setTalk] = useState(false);
   return (
     <div data-testid="caravan-roster">
+      {page && <TroopPage id={page} onClose={() => setPage(null)} />}
+      {talk && <MenTalk onClose={() => setTalk(false)} />}
       <div className="section-label">YOUR CARAVAN</div>
       <CaravanStrip />
       <Herd />
@@ -105,11 +115,13 @@ export function CaravanRoster() {
               <small>{moraleOf(p) <= 25 ? 'Close to someone walking' : moraleOf(p) <= 50 ? 'Grumbling — keep them fed and paid' : 'Steady'}</small>
             </span>
             <Stat label="" v={moraleOf(p)} max={100} />
+            <button className="btn" onClick={() => setTalk(true)} data-testid="talk-to-men">Talk to your men</button>
           </div>
+          <p className="set-demand" data-testid="troop-cap-roster">{capLine(troopCount(p), g.reputation)}. A bigger name brings more men who will follow you.</p>
           {troops.map(([id, n]) => (
             <div className="mkt-row" key={id}>
-              <img className="troop-pic small" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} />
-              <span><b>{n} {n === 1 ? TROOPS[id].name.toLowerCase() : TROOPS[id].plural.toLowerCase()}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each</small></span>
+              <img className="troop-pic small tappable" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
+              <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name.toLowerCase() : TROOPS[id].plural.toLowerCase()}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each</small></span>
               <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>Send one home</button>
             </div>
           ))}
