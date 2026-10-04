@@ -8,6 +8,7 @@ import { radio } from './game/radio/player';
 import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/wardrobe';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
+import { FullScreenButton } from './components/Settings/FullScreen';
 import { useGame, dateFor, clock } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
@@ -340,6 +341,7 @@ export default function App() {
                 )}
               </>
             )}
+            <FullScreenButton className="ghost-btn" />
             {slots.some((s) => s) && (
               <button className="ghost-btn" onClick={() => { refreshSlots(); setLoadOpen((o) => !o); }} data-testid="title-load-toggle">
                 {loadOpen ? 'Hide saves' : 'Load a save'}
@@ -529,9 +531,10 @@ export default function App() {
                 <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`} />
               </div>
             ))}
-            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">How to play</button>
               <button className="btn" onClick={() => { audio.stopAll(); setSettings(false); setPhase('title'); }}>Title screen</button>
+              <FullScreenButton />
               <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setSettings(false)}>Close</button>
             </div>
             <SecretCode />
