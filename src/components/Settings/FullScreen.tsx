@@ -46,9 +46,20 @@ export function InstallButton({ className = 'btn' }: { className?: string }) {
   );
 }
 
+// Browsers only allow full screen from a tap, so the game goes full screen on your first tap (and again
+// after the phone's back gesture drops out of it), unless you turned it off with the button.
+const PREF = 'tof-fullscreen';
+const wantAuto = () => { try { return localStorage.getItem(PREF) !== 'off'; } catch { return true; } };
+const setPref = (v: 'on' | 'off') => { try { localStorage.setItem(PREF, v); } catch { /* private mode */ } };
+const enter = () => { try { const r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen?.(); (r as Promise<void> | undefined)?.catch?.(() => {}); } catch { /* not allowed here */ } };
+if (canApi && !installed()) {
+  window.addEventListener('pointerup', () => { if (wantAuto() && !isFull()) enter(); }, { capture: true });
+}
+
 export function toggleFullScreen() {
-  if (isFull()) { (doc.exitFullscreen ?? doc.webkitExitFullscreen)?.call(doc); return; }
-  try { const r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen?.(); (r as Promise<void> | undefined)?.catch?.(() => {}); } catch { /* not allowed here */ }
+  if (isFull()) { setPref('off'); (doc.exitFullscreen ?? doc.webkitExitFullscreen)?.call(doc); return; }
+  setPref('on');
+  enter();
 }
 
 export function FullScreenButton({ className = 'btn' }: { className?: string }) {
