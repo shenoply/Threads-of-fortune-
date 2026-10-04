@@ -235,7 +235,7 @@
   "sec": "B",
   "n": 7,
   "id": "caedd527.a",
-  "text": "For you, \u2026",
+  "text": "For you, …",
   "start": 44.64,
   "end": 47.66
  },
@@ -243,7 +243,7 @@
   "sec": "B",
   "n": 8,
   "id": "23d2c7e1.a",
-  "text": "I can let it go for \u2026",
+  "text": "I can let it go for …",
   "start": 49.9,
   "end": 51.34
  },
@@ -251,7 +251,7 @@
   "sec": "B",
   "n": 9,
   "id": "cdb34dab.a",
-  "text": "I cannot go lower than \u2026",
+  "text": "I cannot go lower than …",
   "start": 53.3,
   "end": 54.76
  },
@@ -259,7 +259,7 @@
   "sec": "B",
   "n": 10,
   "id": "6c7b0c52.a",
-  "text": "Let us meet in the middle. \u2026",
+  "text": "Let us meet in the middle. …",
   "start": 57.1,
   "end": 58.4
  },
@@ -267,7 +267,7 @@
   "sec": "B",
   "n": 11,
   "id": "9ee415cb.a",
-  "text": "Split the difference: \u2026",
+  "text": "Split the difference: …",
   "start": 60.64,
   "end": 61.96
  },
@@ -283,7 +283,7 @@
   "sec": "B",
   "n": 13,
   "id": "3e1459a5.a",
-  "text": "Done. \u2026",
+  "text": "Done. …",
   "start": 78.96,
   "end": 79.54
  },
@@ -1174,6 +1174,1438 @@
     "pad": [
      0.03,
      0.0
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 47.28,
+    "end": 48.14
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 1,
+  "id": "3819e2fc",
+  "text": "This comes up the river with the grain boats. Every house on the Nile has one like it, and every house is right to.",
+  "start": 13.9,
+  "end": 21.62
+ },
+ {
+  "sec": "F",
+  "n": 2,
+  "id": "553c5378",
+  "text": "Flatwoven, tight, and the red is a real madder red. Simple work done properly.",
+  "start": 23.44,
+  "end": 31.1
+ },
+ {
+  "sec": "F",
+  "n": 3,
+  "id": "ec16b5dc",
+  "text": "Nothing to wear down. Beat it, wash it, turn it over. It will outlast the floor.",
+  "start": 34.76,
+  "end": 39.92
+ },
+ {
+  "sec": "F",
+  "n": 4,
+  "id": "c99be0f5",
+  "text": "A sailor's rug. They buy these at Ismailia and carry them round the world rolled in a sea chest.",
+  "start": 45.16,
+  "end": 53.58
+ },
+ {
+  "sec": "F",
+  "n": 5,
+  "id": "21d37168",
+  "text": "The hooks and lozenges are old village patterns. Look at the little gaps where the colours meet: woven by hand.",
+  "start": 59.32,
+  "end": 68.84
+ },
+ {
+  "sec": "F",
+  "n": 6,
+  "id": "7892d765",
+  "text": "Flat and tightly packed, no pile to wear through. Feet, chair legs, years of traffic: it takes all of it and shows nothing.",
+  "start": 74.04,
+  "end": 86.32
+ },
+ {
+  "sec": "F",
+  "n": 7,
+  "id": "5db37417",
+  "text": "A family rug from the Delta. The kind a man buys when he marries and keeps until his grandchildren sit on it.",
+  "start": 88.78,
+  "end": 97.32
+ },
+ {
+  "sec": "F",
+  "n": 8,
+  "id": "e1ebaa5c",
+  "text": "Turkish knots, good thick wool, and the medallions are drawn by eye, not from a cartoon. You can see the weaver's hand.",
+  "start": 100.82,
+  "end": 111.6
+ },
+ {
+  "sec": "F",
+  "n": 9,
+  "id": "d9a333fc",
+  "text": "Thick village wool. Children, guests, feasts: it takes all of it.",
+  "start": 113.8,
+  "end": 119.88
+ },
+ {
+  "sec": "F",
+  "n": 10,
+  "id": "aa2745f6",
+  "text": "Your father kept this one back. He said it was woven by a family in the Fayoum who put a little camel in every rug they made. There, in the corner.",
+  "start": 122.9,
+  "end": 133.2
+ },
+ {
+  "sec": "F",
+  "n": 11,
+  "id": "8fe182b9",
+  "text": "Coarse wool, and the red changes shade across the field. That is abrash: a new batch of dye. Machines never do it.",
+  "start": 136.26,
+  "end": 147.08
+ },
+ {
+  "sec": "F",
+  "n": 12,
+  "id": "c6005f04",
+  "text": "It has already lived twenty years on a stone floor. It will live twenty more.",
+  "start": 149.74,
+  "end": 154.78
+ },
+ {
+  "sec": "F",
+  "n": 13,
+  "id": "ca4c6f9d",
+  "text": "The dealers call these Red Medina. It is a market name, not a town. The red is what people come back for.",
+  "start": 158.8,
+  "end": 166.62
+ },
+ {
+  "sec": "F",
+  "n": 14,
+  "id": "b4b65f74",
+  "text": "The medallion is an old Anatolian shape, drawn clean. Good red, good blue, and no chemical orange.",
+  "start": 169.18,
+  "end": 179.62
+ },
+ {
+  "sec": "F",
+  "n": 15,
+  "id": "889b05ed",
+  "text": "Dark red forgives everything: coffee, feet, the street. It will look better in ten years.",
+  "start": 185.36,
+  "end": 191.88
+ },
+ {
+  "sec": "F",
+  "n": 16,
+  "id": "0daf9bcc",
+  "text": "For a corridor. You walk in along a line of palm trees, like the road to Saqqara.",
+  "start": 197.28,
+  "end": 202.92
+ },
+ {
+  "sec": "F",
+  "n": 17,
+  "id": "b1612f51",
+  "text": "Every palm is slightly different. The weaver was counting in her head, not from a paper.",
+  "start": 205.86,
+  "end": 211.22
+ },
+ {
+  "sec": "F",
+  "n": 18,
+  "id": "75fcdd2a",
+  "text": "Runners take the most feet in the house. This one has the wool for it.",
+  "start": 214.06,
+  "end": 218.1
+ },
+ {
+  "sec": "F",
+  "n": 19,
+  "id": "3a08c7b5",
+  "text": "From the moulid at Tanta. The women there buy light rugs for their receiving rooms and fight over the good ones.",
+  "start": 221.74,
+  "end": 229.64
+ },
+ {
+  "sec": "F",
+  "n": 20,
+  "id": "5dd45c11",
+  "text": "A pale field is hard to weave. One dirty hand and it shows. This one is clean.",
+  "start": 233.06,
+  "end": 239.94
+ },
+ {
+  "sec": "F",
+  "n": 21,
+  "id": "fd987a34",
+  "text": "For a receiving room, not a kitchen. Shoes off, and it will stay beautiful.",
+  "start": 242.16,
+  "end": 246.6
+ },
+ {
+  "sec": "F",
+  "n": 22,
+  "id": "7ef1611e",
+  "text": "The shipping agents at Port Said put these in their offices. A French captain tried to buy this one off the quay.",
+  "start": 248.66,
+  "end": 255.86
+ },
+ {
+  "sec": "F",
+  "n": 23,
+  "id": "299184f5",
+  "text": "Wool on a cotton warp, so it lies flat. The octagons are a trade pattern every weaver from Tabriz to Smyrna knows.",
+  "start": 258.24,
+  "end": 267.92
+ },
+ {
+  "sec": "F",
+  "n": 24,
+  "id": "be1e0e5a",
+  "text": "Indigo does not fade. Put it in the sun and it stays blue.",
+  "start": 270.3,
+  "end": 274.16
+ },
+ {
+  "sec": "F",
+  "n": 25,
+  "id": "d338f65e",
+  "text": "Cairo work. The old Mamluk weavers used stars like these five hundred years ago, and a few workshops near the Khan still do.",
+  "start": 276.54,
+  "end": 286.94
+ },
+ {
+  "sec": "F",
+  "n": 26,
+  "id": "96f6527c",
+  "text": "Fine wool and a restrained palette, only a few colours. The stars are laid out by count, row by row.",
+  "start": 289.7,
+  "end": 297.56
+ },
+ {
+  "sec": "F",
+  "n": 27,
+  "id": "aae0721a",
+  "text": "Fine wool is stronger than it looks. In a sitting room it will outlast the house.",
+  "start": 299.04,
+  "end": 306.28
+ },
+ {
+  "sec": "F",
+  "n": 28,
+  "id": "462e972e",
+  "text": "The orange growers of Jaffa buy these for their new houses. The rosettes in the border, they say, are oranges.",
+  "start": 308.0,
+  "end": 319.38
+ },
+ {
+  "sec": "F",
+  "n": 29,
+  "id": "37487d42",
+  "text": "Three medallions in a column, and the border never breaks at the corners. That takes planning.",
+  "start": 321.1,
+  "end": 328.02
+ },
+ {
+  "sec": "F",
+  "n": 30,
+  "id": "0013ab5b",
+  "text": "Cotton warp, good wool. A family rug that can take a family.",
+  "start": 329.32,
+  "end": 333.22
+ },
+ {
+  "sec": "F",
+  "n": 31,
+  "id": "7f5e6787",
+  "text": "This one has travelled. It crossed the Lebanon on a mule, and someone mended it in Damascus. See the new wool at the edge.",
+  "start": 335.16,
+  "end": 344.05
+ },
+ {
+  "sec": "F",
+  "n": 32,
+  "id": "06a59367",
+  "text": "Two traditions in one rug: Syrian stripes, Anatolian stars. Nobody knows exactly where it was woven.",
+  "start": 351.14,
+  "end": 357.08
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "46e1a135",
+  "text": "Here. Nile Reed. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 6.68,
+    "end": 7.5
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "4db7d774",
+  "text": "Look at this one. Nile Reed.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 6.68,
+    "end": 7.5
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "068fe332",
+  "text": "Here. Village Kilim of the Canal. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 8.34,
+    "end": 9.72
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "e9de6f97",
+  "text": "Look at this one. Village Kilim of the Canal.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 8.34,
+    "end": 9.72
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "85a81409",
+  "text": "Here. Delta House. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 10.3,
+    "end": 11.14
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "17e11608",
+  "text": "Look at this one. Delta House.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 10.3,
+    "end": 11.14
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "9aaaa7dc",
+  "text": "Here. Fayoum Hearth. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 11.92,
+    "end": 12.76
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "cea34261",
+  "text": "Look at this one. Fayoum Hearth.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 11.92,
+    "end": 12.76
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "f12763ec",
+  "text": "Here. Red Medina. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 13.24,
+    "end": 14.06
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "26b72d31",
+  "text": "Look at this one. Red Medina.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 13.24,
+    "end": 14.06
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "111b2d01",
+  "text": "Here. Date Palm Runner. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 15.16,
+    "end": 16.28
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "3bdb457c",
+  "text": "Look at this one. Date Palm Runner.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 15.16,
+    "end": 16.28
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "35b0b27e",
+  "text": "Here. Tanta Courtyard. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 17.14,
+    "end": 17.92
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "9ef19c67",
+  "text": "Look at this one. Tanta Courtyard.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 17.14,
+    "end": 17.92
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "6cced1ec",
+  "text": "Here. Canal Ferry Rug. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 18.46,
+    "end": 19.48
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "34dfe0d9",
+  "text": "Look at this one. Canal Ferry Rug.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 18.46,
+    "end": 19.48
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "dc5a47ca",
+  "text": "Here. Desert Star. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 20.28,
+    "end": 20.92
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "2e61f447",
+  "text": "Look at this one. Desert Star.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 20.28,
+    "end": 20.92
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "7dce88d9",
+  "text": "Here. Jaffa Citrus. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 22.98,
+    "end": 23.92
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "143111d4",
+  "text": "Look at this one. Jaffa Citrus.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 22.98,
+    "end": 23.92
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "39bea698",
+  "text": "Here. Cedar Caravan. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 24.900000000000002,
+    "end": 26.1
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "4e1d72d9",
+  "text": "Look at this one. Cedar Caravan.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 24.900000000000002,
+    "end": 26.1
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "f9d25ae8",
+  "text": "Here. Cairo Garden. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 26.92,
+    "end": 27.72
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "880f566d",
+  "text": "Look at this one. Cairo Garden.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 26.92,
+    "end": 27.72
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "08d678b2",
+  "text": "Here. Jerusalem Stone. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 28.34,
+    "end": 29.3
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "bad2a4f7",
+  "text": "Look at this one. Jerusalem Stone.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 28.34,
+    "end": 29.3
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "df1881d4",
+  "text": "Here. Anatolian Hearth. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 29.98,
+    "end": 30.740000000000002
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "358e3691",
+  "text": "Look at this one. Anatolian Hearth.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 29.98,
+    "end": 30.740000000000002
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "7abcca3d",
+  "text": "Here. Aleppo Courtyard. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 31.720000000000002,
+    "end": 32.54
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "d9c3164c",
+  "text": "Look at this one. Aleppo Courtyard.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 31.720000000000002,
+    "end": 32.54
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "abe5f078",
+  "text": "Here. Damascus Blue. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 33.2,
+    "end": 34.14
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "c16f3ac9",
+  "text": "Look at this one. Damascus Blue.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 33.2,
+    "end": 34.14
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "8d69993a",
+  "text": "Here. Konya Prayer Rug. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 35.12,
+    "end": 36.9
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "42c78c3f",
+  "text": "Look at this one. Konya Prayer Rug.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 35.12,
+    "end": 36.9
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "e46815b8",
+  "text": "Here. Moroccan Ember. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 37.32,
+    "end": 38.12
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "39de56f5",
+  "text": "Look at this one. Moroccan Ember.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 37.32,
+    "end": 38.12
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "676cd32e",
+  "text": "Here. Golden Palm. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 38.9,
+    "end": 39.76
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "9d294c6f",
+  "text": "Look at this one. Golden Palm.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 38.9,
+    "end": 39.76
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "f0be4d87",
+  "text": "Here. Caucasus Eagle. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 40.800000000000004,
+    "end": 41.44
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "20d81c12",
+  "text": "Look at this one. Caucasus Eagle.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 40.800000000000004,
+    "end": 41.44
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "2cb45ab7",
+  "text": "Here. Sapphire Night. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 42.980000000000004,
+    "end": 44.02
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "0a62108e",
+  "text": "Look at this one. Sapphire Night.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 42.980000000000004,
+    "end": 44.02
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "fb034359",
+  "text": "Here. Damascus Rose. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 44.4,
+    "end": 45.34
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "fbb84f08",
+  "text": "Look at this one. Damascus Rose.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 44.4,
+    "end": 45.34
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "0b68cb2d",
+  "text": "Here. Istanbul Tulip. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 45.6,
+    "end": 46.68
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "3fb5047c",
+  "text": "Look at this one. Istanbul Tulip.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 45.6,
+    "end": 46.68
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "723521c0",
+  "text": "Here. Baghdad Night. Give it a moment.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 4.64,
+    "end": 5.2,
+    "pad": [
+     0.12,
+     0.25
+    ]
+   },
+   {
+    "sec": "C",
+    "start": 47.28,
+    "end": 48.14
+   },
+   {
+    "sec": "F",
+    "start": 6.38,
+    "end": 7.22
+   }
+  ]
+ },
+ {
+  "sec": "F",
+  "n": 0,
+  "id": "5f6d2551",
+  "text": "Look at this one. Baghdad Night.",
+  "parts": [
+   {
+    "sec": "F",
+    "start": 9.46,
+    "end": 10.24,
+    "pad": [
+     0.12,
+     0.2
     ]
    },
    {
