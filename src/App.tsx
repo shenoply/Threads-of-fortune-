@@ -7,6 +7,7 @@ import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/wardrobe';
 import { preload, buyerArt, STALL_ART } from './game/preload';
+import { SecretCode } from './components/Settings/SecretCode';
 import { useGame, dateFor, clock } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
@@ -533,6 +534,7 @@ export default function App() {
               <button className="btn" onClick={() => { audio.stopAll(); setSettings(false); setPhase('title'); }}>Title screen</button>
               <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setSettings(false)}>Close</button>
             </div>
+            <SecretCode />
           </div>
         </div>
       )}
