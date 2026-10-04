@@ -9,7 +9,7 @@ import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/war
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
-import { useGame, dateFor, clock } from './game/state/store';
+import { useGame, dateFor, clock, forceSave } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
 import { voice } from './game/audio/voice';
@@ -57,8 +57,11 @@ export default function App() {
   const [finance, setFinance] = useState(false);
   // money trouble shows in the top bar: an empty purse, a late bill, a loan past due, the creditors
   const inDebt = g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day) > 0);
-  useEffect(() => useGame.subscribe(() => setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))), []);
+  // only the "last saved" label follows autosave's own on/off switch — Save now and the slots
+  // update it through their own handlers regardless
+  useEffect(() => useGame.subscribe(() => { if (useGame.getState().autosaveOn !== false) setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }), []);
   const downloadSave = () => {
+    forceSave(); // autosave may be off: make sure the file reflects where you actually are
     const raw = localStorage.getItem('threads-of-fortune-save');
     if (!raw) return;
     const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
@@ -82,7 +85,7 @@ export default function App() {
   // written from the title screen (no game loaded) as well as from Settings mid-game.
   const [slots, setSlots] = useState<(SlotInfo | null)[]>(() => readSlots());
   const refreshSlots = () => setSlots(readSlots());
-  const slotSave = (n: number) => { if (saveToSlot(n)) { refreshSlots(); audio.sfx('tap'); } };
+  const slotSave = (n: number) => { forceSave(); if (saveToSlot(n)) { refreshSlots(); audio.sfx('tap'); } };
   const slotLoad = (n: number, info: SlotInfo) => {
     if (!window.confirm(`Load the save from day ${info.day}? Your current game will be replaced.`)) return;
     if (loadFromSlot(n)) window.location.reload();
@@ -321,7 +324,7 @@ export default function App() {
                 {confirmReset ? (
                   <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ color: 'var(--text-dim)', fontSize: 14 }}>Erase this save?</span>
-                    <button className="btn" onClick={() => { saveToSlot(slots.findIndex((s) => !s) + 1 || 1); g.reset(); setConfirmReset(false); refreshSlots(); }} data-testid="confirm-reset-keep">Save it to a slot, then erase</button>
+                    <button className="btn" onClick={() => { forceSave(); saveToSlot(slots.findIndex((s) => !s) + 1 || 1); g.reset(); setConfirmReset(false); refreshSlots(); }} data-testid="confirm-reset-keep">Save it to a slot, then erase</button>
                     <button className="btn" onClick={() => { g.reset(); setConfirmReset(false); }} data-testid="confirm-reset">Just erase</button>
                     <button className="ghost-btn" onClick={() => setConfirmReset(false)}>Keep</button>
                   </span>
@@ -478,9 +481,16 @@ export default function App() {
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="settings">
             <h2>Your game</h2>
-            <p data-testid="save-status">Your game saves itself after everything you do, in this browser on this device. {savedAt ? `Last saved ${savedAt}.` : ''}</p>
+            <p data-testid="save-status">{g.autosaveOn === false ? 'Autosave is off — use Save now, or a save slot, to keep your progress.' : 'Your game saves itself after everything you do, in this browser on this device.'} {savedAt ? `Last saved ${savedAt}.` : ''}</p>
+            <div className="toggle-row">
+              <span>
+                Autosave
+                <small>Save after everything you do. Turn off to only save when you choose to.</small>
+              </span>
+              <button className="switch" role="switch" aria-checked={g.autosaveOn !== false} aria-label="Autosave" onClick={() => g.setAutosave(!(g.autosaveOn !== false))} data-testid="toggle-autosave" />
+            </div>
             <div className="save-row">
-              <button className="btn primary" onClick={() => { useGame.setState({}); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save now</button>
+              <button className="btn primary" onClick={() => { forceSave(); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save now</button>
               <button className="btn" onClick={downloadSave} data-testid="save-download">Download a save file</button>
               <label className="btn" data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
             </div>

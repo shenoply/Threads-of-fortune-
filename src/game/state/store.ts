@@ -102,6 +102,9 @@ export interface GameState {
   totalSales: number;
   lastSummary?: DaySummary;
   settings: Record<Channel, boolean>;
+  /** whether the game saves itself to this browser after every action; off means only "Save now"
+   *  or a save slot writes to disk. Missing on older saves, which always autosaved. */
+  autosaveOn?: boolean;
   /** volume sliders 0..1 (older saves: all full) */
   volumes?: Volumes;
   guideSeen?: boolean;
@@ -400,6 +403,9 @@ interface Actions {
   restore: (uid: string) => void;
   buyUpgrade: (id: string) => void;
   setSetting: (c: Channel, on: boolean) => void;
+  /** turn this browser's autosave on or off; the change itself is always written to disk,
+   *  whichever way it goes */
+  setAutosave: (on: boolean) => void;
   setVolume: (c: keyof Volumes, v: number) => void;
   reset: () => void;
 }
@@ -576,6 +582,7 @@ function initial(): Omit<GameState, keyof Actions> {
     journal: [{ day: 1, text: 'Opened the borrowed corner in Giza with three rugs, 120 piastres and Saffron.' }],
     totalSales: 0,
     settings: { dialogue: true, music: true, sfx: true, ambience: true },
+    autosaveOn: true,
     world: initialWorld(),
     court: { last: {}, warrants: [] },
     register: ['desert-star', 'cairo-garden', 'fayoum-hearth'],
@@ -597,6 +604,11 @@ function initial(): Omit<GameState, keyof Actions> {
   };
 }
 
+// Autosave can be turned off in Settings. When it's off, writes to the main save slot are
+// skipped so the game stops updating itself on disk — "Save now" and the save slots still work,
+// by briefly flipping this flag on for their one write (see forceSave below).
+let autosaveEnabled = true;
+
 const safeStorage: StateStorage = {
   getItem: (k) => {
     try {
@@ -606,6 +618,7 @@ const safeStorage: StateStorage = {
     }
   },
   setItem: (k, v) => {
+    if (!autosaveEnabled) return;
     try {
       localStorage.setItem(k, v);
     } catch {
@@ -620,6 +633,14 @@ const safeStorage: StateStorage = {
     }
   },
 };
+
+/** Force one write of the current state to disk even while autosave is off (used by "Save now"). */
+export function forceSave() {
+  const prev = autosaveEnabled;
+  autosaveEnabled = true;
+  useGame.setState({});
+  autosaveEnabled = prev;
+}
 
 export function stallName(up: string[]) {
   return up.includes('khan') ? 'shop in Khan el-Khalili' : up.includes('bazaar') ? 'bazaar stall' : up.includes('mat') ? 'rug mat' : 'borrowed corner';
@@ -3137,6 +3158,14 @@ export const useGame = create<GameState & Actions>()(
           set({ settings });
         },
 
+        setAutosave: (on) => {
+          // let this one write through regardless of the previous state, so the choice itself
+          // is always recorded, then leave the flag set to match it for everything after
+          autosaveEnabled = true;
+          set({ autosaveOn: on });
+          autosaveEnabled = on;
+        },
+
         reset: () => {
           audio.stopAll();
           set({ ...initial() });
@@ -3269,6 +3298,8 @@ export const useGame = create<GameState & Actions>()(
       },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        // carry the saved autosave choice forward, so a reload doesn't silently turn it back on
+        autosaveEnabled = state.autosaveOn ?? true;
         // A visit in progress is not saved; the same buyer returns on reload.
         if (state.started && !state.tutorial.done) {
           state.tutorial = { done: false, step: 'room', inspected: false };
