@@ -8,6 +8,21 @@ const canApi = !!(el.requestFullscreen || el.webkitRequestFullscreen);
 const isFull = () => !!(doc.fullscreenElement || doc.webkitFullscreenElement);
 const installed = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
+// Chrome hands us its install offer; we keep it and show our own "Install the game" button instead
+type InstallEvt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+let offer: InstallEvt | null = null;
+const fans = new Set<() => void>();
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); offer = e as InstallEvt; fans.forEach((f) => f()); });
+window.addEventListener('appinstalled', () => { offer = null; fans.forEach((f) => f()); });
+
+export function InstallButton({ className = 'btn' }: { className?: string }) {
+  const [, bump] = useState(0);
+  useEffect(() => { const f = () => bump((n) => n + 1); fans.add(f); return () => { fans.delete(f); }; }, []);
+  if (!offer || installed()) return null;
+  const go = async () => { const o = offer; if (!o) return; await o.prompt(); const r = await o.userChoice.catch(() => null); if (r?.outcome === 'accepted') offer = null; fans.forEach((f) => f()); };
+  return <button className={className} onClick={go} data-testid="install-btn">⤓ Install the game</button>;
+}
+
 export function toggleFullScreen() {
   if (isFull()) { (doc.exitFullscreen ?? doc.webkitExitFullscreen)?.call(doc); return; }
   try { const r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen?.(); (r as Promise<void> | undefined)?.catch?.(() => {}); } catch { /* not allowed here */ }
