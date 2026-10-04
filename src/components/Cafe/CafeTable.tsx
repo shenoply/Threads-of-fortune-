@@ -29,7 +29,7 @@ export function CafeTable({ onClose }: { onClose: (note?: string) => void }) {
   if (game === 'tawla') return <TawlaTable strength={strength} stake={stake} onEnd={finish} onQuit={() => onClose()} />;
 
   return (
-    <div className="overlay cafe-overlay" data-testid="cafe-table">
+    <div className="overlay cafe-overlay pick" data-testid="cafe-table" style={{ ['--cafe-bg' as string]: 'url(art/cafe/bilgin-chess.webp)' }}>
       <div className="overlay-head"><h2>Bilgin's table</h2><span className="sub">the back of the coffee house</span><button className="btn small close" onClick={() => onClose()}>✕</button></div>
       <div className="cafe-pick">
         <p className="cafe-say">"Sit, sit. The boy will bring tea. What will it be: the board of kings, or the dice?"</p>

@@ -40,7 +40,10 @@ export const FILMS: Record<FilmId, Film> = {
     title: "Bilgin's coffee house · Giza", name: 'Bilgin',
     stills: [
       { src: 'art/world/giza-district.jpg', fit: 'cover', from: [1, 50, 50], to: [2.2, 55, 30] },
-      { src: 'art/portraits/abuhamid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
+      // Bilgin at his brazier, then at his own table, then the chess corner
+      { src: 'art/cafe/bilgin-cafe-working.webp', fit: 'cover', from: [1.15, 60, 50], to: [1.35, 42, 40] },
+      { src: 'art/cafe/bilgin-profile.webp', fit: 'cover', from: [1.3, 40, 35], to: [1.1, 45, 45] },
+      { src: 'art/cafe/bilgin-chess.webp', fit: 'cover', from: [1.05, 55, 55], to: [1.3, 62, 50] },
     ],
   },
   rashid: {
