@@ -12,6 +12,7 @@ type Game = 'chess' | 'tawla';
 const STAKES = [0, 5, 20, 50];
 const MINUTES: Record<Game, number> = { chess: 45, tawla: 30 };
 const tap = () => audio.sfx('tap');
+const TABLE_BG = { ['--table-bg' as string]: 'url(art/cafe/cafe-birdseye.webp)' } as React.CSSProperties;
 
 export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) => void; onFilm?: () => void; only?: Game }) {
   const cash = useGame((g) => g.cash);
@@ -29,7 +30,7 @@ export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) 
   if (game === 'tawla') return <TawlaTable strength={strength} stake={stake} onEnd={finish} onQuit={() => onClose()} />;
 
   return (
-    <div className="overlay cafe-overlay pick" data-testid="cafe-table" style={{ ['--cafe-bg' as string]: 'url(art/cafe/bilgin-chess.webp)' }}>
+    <div className="overlay cafe-overlay pick" data-testid="cafe-table" style={{ ['--cafe-bg' as string]: 'url(art/cafe/cafe-birdseye.webp)' }}>
       <div className="overlay-head"><h2>Bilgin's table</h2><span className="sub">the back of the coffee house</span><button className="btn small close" onClick={() => onClose()} data-testid="cafe-close">✕</button></div>
       <div className="cafe-pick">
         {onFilm && <button className="btn small cafe-film" onClick={onFilm} data-testid="bilgin-chess-film-again">▶ Bilgin's chess story</button>}
@@ -130,10 +131,12 @@ function ChessTable({ strength, stake, onEnd, onQuit }: TableProps) {
   const [res, text]: ['win' | 'loss' | 'draw', string] = over ? result() : ['draw', ''];
 
   return (
-    <div className="overlay cafe-overlay" data-testid="cafe-chess-board">
+    <div className="overlay cafe-overlay at-chess" data-testid="cafe-chess-board" style={TABLE_BG}>
       <Head title="Chess with Bilgin" stake={stake} onQuit={() => (stake && c.history().length && !over ? onEnd('loss') : onQuit())} status={status} />
-      <div className="cafe-body">
-        <div className="chess-board">
+      <div className="cafe-body chess-body">
+        <div className="chess-table">
+        <img className="chess-table__img" src="art/cafe/chess-table-top.webp" alt="" aria-hidden="true" draggable={false} />
+        <div className="chess-board on-table">
           {board.map((row, r) => row.map((p, f) => {
             const sq = `${FILES[f]}${8 - r}` as Square;
             const cls = ['sq', (r + f) % 2 ? 'dark' : 'light', sel === sq && 'sel', targets.includes(sq) && (p ? 'cap' : 'dot'), last && (last.from === sq || last.to === sq) && 'last', checkSq === sq && 'check'].filter(Boolean).join(' ');
@@ -145,6 +148,7 @@ function ChessTable({ strength, stake, onEnd, onQuit }: TableProps) {
               </button>
             );
           }))}
+        </div>
         </div>
         {!over && <div className="cafe-actions"><button className="btn small" onClick={() => setResign(true)} disabled={thinking} data-testid="cafe-resign">Resign</button></div>}
         {over && <EndCard text={text} onDone={() => onEnd(res)} />}
@@ -262,7 +266,7 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
     : (won.mars ? 'Mars. Bilgin bore everything off before you got one home. That costs double.' : 'Bilgin bears off his last checker and claps. "Tawla is mathematics, my friend. And luck. Mostly luck."')) : '';
 
   return (
-    <div className="overlay cafe-overlay" data-testid="cafe-tawla-board">
+    <div className="overlay cafe-overlay at-tawla" data-testid="cafe-tawla-board" style={TABLE_BG}>
       <Head title="Tawla with Bilgin" stake={stake} onQuit={() => (stake && !opening && !won ? onEnd('loss') : onQuit())} status={status} />
       <div className="cafe-body">
         <div className="tw-info"><span>Bilgin · {15 - board.off[-1]} left · {pips(board, -1)} pips</span></div>

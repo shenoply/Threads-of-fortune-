@@ -65,7 +65,7 @@
 .cafe-room__note { position: absolute; left: 12px; right: 12px; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); z-index: 3; background: rgba(239,224,191,.97); color: var(--ink); border-radius: 10px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.5); display: flex; gap: 10px; align-items: flex-end; }
 .cafe-room__note p { margin: 0; flex: 1; font-size: 15px; line-height: 1.4; }
 .cafe-room__note .btn { color: var(--ink); border-color: rgba(90,61,32,.5); }
-.cafe-room__pic { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.cafe-room__pic { position: relative; flex: 1; min-height: 0; overflow: hidden; container-type: size; }
 .cafe-room__bg { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(26px) brightness(.4); }
 .cafe-room__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 30px rgba(0,0,0,.6)); }
 .cafe-room__view { position: absolute; left: 12px; bottom: 12px; z-index: 2; }
@@ -73,3 +73,40 @@
 .cafe-act { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; font-size: 15px; min-height: 76px; }
 .cafe-act b { font-size: 26px; line-height: 1; color: var(--brass-hi, #e3bd6b); font-weight: 400; }
 .cafe-games.one { grid-template-columns: 1fr; width: min(100%, 300px); }
+.cafe-room__map { position: absolute; left: 50%; top: 50%; width: min(100cqw, calc(100cqh * 1024 / 1536)); aspect-ratio: 1024 / 1536; translate: -50% -50%; transition: transform .65s cubic-bezier(.5,0,.2,1), opacity .65s; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.cafe-room__map img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
+.cafe-room__map.is-zooming { transform: scale(5); opacity: .25; }
+.cafe-spot { position: absolute; transform: translate(-50%, -50%); z-index: 2; padding: 0; border: 0; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; min-height: 0; }
+.cafe-spot::before { content: ''; width: 14px; height: 14px; border-radius: 50%; background: #f7d286; box-shadow: 0 0 0 4px rgba(247,210,134,.35), 0 0 14px rgba(247,210,134,.8); animation: cafe-pulse 2.4s ease-in-out infinite; }
+.cafe-spot span { margin-top: 4px; font-family: var(--label); font-size: 13px; color: #fff3dc; background: rgba(33,22,12,.85); border: 1px solid rgba(231,189,110,.6); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.cafe-spot.is-main span { background: #9a5a24; border-color: #f7d286; }
+@keyframes cafe-pulse { 50% { transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .cafe-spot::before { animation: none; } .cafe-room__map { transition: none; } }
+.cafe-act { min-height: 62px; padding: 8px 6px; }
+.cafe-act b { font-size: 22px; }
+/* the games are played on the table itself: the room's painting, close in on that table, behind the board */
+.cafe-overlay.at-chess, .cafe-overlay.at-tawla { background: linear-gradient(rgba(10,6,3,.55), rgba(10,6,3,.72)), var(--table-bg) var(--table-pos) / 520% auto no-repeat, #0d0805; }
+.cafe-overlay.at-chess { --table-pos: 51% 13%; }
+.cafe-overlay.at-tawla { --table-pos: 71% 18%; }
+/* Bilgin's table: maple and walnut squares with a little grain, an inlaid walnut frame with a brass line */
+.at-chess .chess-board { border: 12px solid #3e220f; border-image: repeating-linear-gradient(45deg, #3e220f 0 6px, #4d2b14 6px 9px, #e8dcc4 9px 10px, #4d2b14 10px 13px) 12; outline: 2px solid #c9a24a; outline-offset: -14px; box-shadow: 0 18px 40px rgba(0,0,0,.7), 0 0 0 1px #1c0f06; border-radius: 2px; }
+.at-chess .chess-board .light { background: #e6cf9f linear-gradient(100deg, rgba(255,255,255,.08), rgba(120,80,30,.08) 40%, rgba(255,255,255,.05)); }
+.at-chess .chess-board .dark { background: #6e4224 linear-gradient(80deg, rgba(0,0,0,.12), rgba(255,220,170,.06) 50%, rgba(0,0,0,.1)); }
+.at-chess .chess-board .rk, .at-chess .chess-board .fl { color: #f0dfbf; text-shadow: 0 1px 1px #000; opacity: .55; }
+.at-chess .chess-board .light .rk, .at-chess .chess-board .light .fl { color: #4a2c14; text-shadow: none; }
+.at-tawla .tw-board { background: #4a2a14 repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 3px, rgba(255,220,170,.03) 3px 7px); border: 10px solid #2f1a0b; outline: 2px solid #c9a24a; outline-offset: -12px; box-shadow: 0 18px 40px rgba(0,0,0,.7); }
+.at-tawla .tw-pt .tri { background: #ead7b0; }
+.at-tawla .tw-pt.odd .tri { background: #7d2418; }
+
+/* chess on Bilgin's own table: the painted board (seen from above, his hands at the top, yours at the
+   bottom) with the pieces stood on its squares; the grid below matches the painting's squares */
+.chess-body { padding: 0 0 calc(10px + env(safe-area-inset-bottom, 0px)); gap: 8px; container-type: size; }
+.chess-table { position: relative; flex: 1 1 auto; min-height: 0; width: min(100cqw, calc((100cqh - 52px) * 1024 / 1536)); aspect-ratio: 1024 / 1536; max-height: calc(100cqh - 52px); }
+.chess-table__img { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; }
+.chess-board.on-table { position: absolute; left: 19.73%; top: 28.125%; width: 60.94%; height: 39.45%; --s: calc(min(100cqw, calc((100cqh - 52px) * 1024 / 1536)) * 0.0762); grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border: 0; border-image: none; outline: 0; box-shadow: none; }
+.chess-board.on-table .sq, .chess-board.on-table .light, .chess-board.on-table .dark { background: transparent; }
+.chess-board.on-table .last { background: rgba(240,200,80,.35); }
+.chess-board.on-table .sel { box-shadow: inset 0 0 0 3px #3fd38a; }
+.chess-board.on-table .pc { font-size: calc(var(--s) * .86); filter: drop-shadow(0 3px 2px rgba(0,0,0,.55)); }
+.chess-board.on-table .rk, .chess-board.on-table .fl { display: none; }
+.at-chess { background: #0d0805 !important; }
