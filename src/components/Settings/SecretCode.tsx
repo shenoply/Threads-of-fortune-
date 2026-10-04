@@ -6,7 +6,8 @@ import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
 
 const CODES: Record<string, number> = {
-  bb71f37eb6eb91553e39ca37a705d89fbcebe2ddcf96b0c42c97ad17553a7ec0: 10000, // £100
+  bb71f37eb6eb91553e39ca37a705d89fbcebe2ddcf96b0c42c97ad17553a7ec0: 10000, // £100 (old/lost code, kept harmless)
+  f8afb17fed0a681dbea3ba779193a3f1e02418525fcec22e813cfedde72755c7: 10000, // £100 — "hassan100"
 };
 
 async function sha256(s: string) {
