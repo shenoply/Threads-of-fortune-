@@ -61,4 +61,4 @@
 .cl-run .cl-feras { font-size: 16px; }
 
 .cl-booktab { flex: 1; min-height: 40px; border: 1px solid var(--brass-hi, #e3bd6b); border-radius: 8px; background: #efe3c8; color: #2e1c0e; font-family: var(--label); font-size: 13.5px; cursor: pointer; }
-.cl-desk { display: block; width: 100%; max-width: 620px; margin: 0 auto; aspect-ratio: 1000 / 480; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.55); }
+.cl-desk { display: block; width: 100%; max-width: 760px; margin: 0 auto; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.55); }

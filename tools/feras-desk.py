@@ -1,39 +1,32 @@
 #!/usr/bin/env python3
-"""Dr Feras explaining a case: his book open on the desk, seen at an angle, his finger on the plate.
+"""Dr Feras explaining a case, from his chair: his book open on the desk, his finger on the page,
+Hassan's arms across the desk, the clinic behind (art/clinic/feras-desk-pov.webp, blank pages).
 
-The desk, the open book and his pointing hand come from the approved clinic introduction (the atlas
-shot, 7.5 s in; Hassan's bruised face is outside this crop). For each illness or injury the left page
-gets that condition's teaching plate and the right page the opening of its chapter, both warped into
-the pages' perspective and printed onto the paper (multiply), and his hand is laid back on top.
+For each illness or injury the left page gets the condition's teaching plate with its caption and the
+right page the opening of its chapter, both warped into the pages' perspective and printed onto the
+paper (multiply, so the paper's light and the hand's shadow stay), and his hand is laid back on top.
 
   python3 tools/feras-desk.py   ->  public/art/clinic/desk/<id>.webp
 """
-import os, re, subprocess, textwrap
+import os, re, textwrap
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-VIDEO = os.path.join(ROOT, 'public/video/clinic/feras-introduction.mp4')
+BASE = os.path.join(ROOT, 'public/art/clinic/feras-desk-pov.webp')
 OUT = os.path.join(ROOT, 'public/art/clinic/desk')
 FONT = '/usr/share/fonts/truetype/google-fonts/Lora-Variable.ttf'
-SCALE = 2                      # the crop is upscaled 2x
-CROP = (300, 380, 800, 620)    # in the 1280 x 720 frame
-# page corners in the upscaled crop (TL, TR, BR, BL)
-LEFT = [(100, 184), (452, 147), (615, 305), (250, 343)]
-RIGHT = [(458, 147), (655, 122), (880, 268), (625, 305)]
-# his hand and pointing finger, kept from the original frame
-HAND = [(205, 60), (330, 88), (420, 125), (462, 170), (478, 212), (452, 216), (420, 198), (330, 202), (258, 198), (205, 178)]
-
-
-def frame():
-    raw = subprocess.run(['ffmpeg', '-v', 'error', '-ss', '7.5', '-i', VIDEO, '-frames:v', '1', '-f', 'image2pipe', '-vcodec', 'png', '-'], capture_output=True, check=True).stdout
-    from io import BytesIO
-    im = Image.open(BytesIO(raw)).convert('RGB').crop(CROP)
-    return im.resize((im.width * SCALE, im.height * SCALE), Image.LANCZOS).filter(ImageFilter.UnsharpMask(1.2, 60, 2))
+W0 = 1672  # the width the quads below were measured at
+# printable area of each page (TL, TR, BR, BL), inside the margins
+LEFT = [(478, 445), (815, 442), (808, 728), (428, 738)]
+RIGHT = [(885, 440), (1205, 436), (1385, 712), (880, 724)]
+# a generous outline round his hand and cuff; inside it, whatever is not paper is hand
+HAND = [(688, 560), (800, 572), (880, 605), (960, 650), (1012, 718), (1600, 840), (1672, 941), (900, 941), (760, 805), (700, 725), (688, 600)]
+PAGE = (800, 1000)
+INK = (38, 24, 12)
 
 
 def coeffs(dst, src):
-    """perspective coefficients mapping output quad `dst` back onto rectangle corners `src`"""
     A, B = [], []
     for (x, y), (u, v) in zip(dst, src):
         A += [[x, y, 1, 0, 0, 0, -u * x, -u * y], [0, 0, 0, x, y, 1, -v * x, -v * y]]
@@ -43,49 +36,11 @@ def coeffs(dst, src):
 
 def warp(img, quad, size):
     w, h = img.size
-    return img.transform(size, Image.PERSPECTIVE, coeffs(quad, [(0, 0), (w, 0), (w, h), (0, h)]), Image.BICUBIC)
+    return img.transform(size, Image.PERSPECTIVE, coeffs(quad, [(0, 0), (w, 0), (w, h), (0, h)]), Image.BICUBIC, fillcolor=(255, 255, 255))
 
 
-def quad_mask(quad, size):
+def poly(quad, size):
     m = Image.new('L', size, 0); ImageDraw.Draw(m).polygon(quad, fill=255); return m
-
-
-def paper(base, quad):
-    """the page as blank paper: the lighting across it, without what was printed on it"""
-    a = np.asarray(base).astype(float)
-    pts = [(int(x + (cx - x) * 0.12), int(y + (cy - y) * 0.12)) for (x, y) in quad for (cx, cy) in [tuple(np.mean(quad, 0))]]
-    cols = [a[max(0, y - 3): y + 4, max(0, x - 3): x + 4].reshape(-1, 3).mean(0) for x, y in pts]
-    # bilinear blend of the four corner colours over a unit square, warped onto the page
-    n = 64; u = np.linspace(0, 1, n)[None, :, None]; v = np.linspace(0, 1, n)[:, None, None]
-    sq = (1 - u) * (1 - v) * cols[0] + u * (1 - v) * cols[1] + u * v * cols[2] + (1 - u) * v * cols[3]
-    tile = Image.fromarray(np.clip(sq, 0, 255).astype(np.uint8))
-    return warp(tile, quad, base.size)
-
-
-def multiply(a, b):
-    return Image.fromarray((np.asarray(a).astype(float) * np.asarray(b).astype(float) / 255).astype(np.uint8))
-
-
-def chapter_text(n, name, cause, symptom):
-    # a short page with large type: it is seen from across the desk and nearly edge-on
-    W, H = 480, 420
-    page = Image.new('RGB', (W, H), (255, 255, 255)); d = ImageDraw.Draw(page)
-    ink = (40, 24, 10)
-    f_s = ImageFont.truetype(FONT, 26); f_b = ImageFont.truetype(FONT, 30)
-    def centre(y, s, f):
-        w = d.textlength(s, font=f); d.text(((W - w) / 2, y), s, font=f, fill=ink)
-    centre(26, f'CHAPTER {roman(n)}', f_s)
-    title = name.upper(); fs = ImageFont.truetype(FONT, 44)
-    while d.textlength(title, font=fs) > W - 50: fs = ImageFont.truetype(FONT, fs.size - 2)
-    centre(62, title, fs)
-    d.line([(W / 2 - 46, 122), (W / 2 + 46, 122)], fill=ink, width=3)
-    y = 140
-    for i, ln in enumerate(textwrap.wrap(f'Symptoms. — {symptom}', width=30)[:4]):
-        d.text((36 if i else 58, y), ln, font=f_b, fill=ink); y += 38
-    y += 8
-    while y < H - 24:
-        d.line([(36, y + 12), (W - 36 - (90 if (y // 26) % 4 == 3 else 0), y + 12)], fill=(120, 100, 80), width=6); y += 26
-    return page
 
 
 ROMAN = [(40, 'XL'), (10, 'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I')]
@@ -96,28 +51,80 @@ def roman(n):
     return s
 
 
+def font(n): return ImageFont.truetype(FONT, n)
+
+
+def centre(d, y, s, f, W=PAGE[0]):
+    d.text(((W - d.textlength(s, font=f)) / 2, y), s, font=f, fill=INK)
+
+
+def plate_page(n, cid, name):
+    W, H = PAGE
+    pg = Image.new('RGB', PAGE, (255, 255, 255)); d = ImageDraw.Draw(pg)
+    d.text((20, 10), str(7 + (n - 1) * 2), font=font(26), fill=INK)
+    centre(d, 10, 'PLATE ' + roman(n), font(26))
+    d.line([(20, 50), (W - 20, 50)], fill=INK, width=2)
+    art = Image.open(os.path.join(ROOT, f'public/art/clinic/plates/{cid}.webp')).convert('RGB')
+    h = 780; w = round(art.width * h / art.height)
+    if w > W - 60: w = W - 60; h = round(art.height * w / art.width)
+    x0, y0 = (W - w) // 2, 80
+    pg.paste(art.resize((w, h), Image.LANCZOS), (x0, y0))
+    d.rectangle([x0 - 2, y0 - 2, x0 + w + 1, y0 + h + 1], outline=INK, width=2)
+    cap = f'Plate {roman(n)}. — {name}.'; f = font(32)
+    while d.textlength(cap, font=f) > W - 60: f = font(f.size - 2)
+    centre(d, y0 + h + 22, cap, f)
+    return pg
+
+
+def text_page(n, name, kind, cause, symptom, doctor):
+    W, H = PAGE
+    pg = Image.new('RGB', PAGE, (255, 255, 255)); d = ImageDraw.Draw(pg)
+    run = 'INJURIES' if kind == 'injury' else 'DISEASES OF EGYPT'
+    centre(d, 10, run, font(24)); d.text((W - 60, 10), str(8 + (n - 1) * 2), font=font(26), fill=INK)
+    d.line([(20, 50), (W - 20, 50)], fill=INK, width=2)
+    centre(d, 78, f'CHAPTER {roman(n)}', font(30))
+    t = name.upper(); f = font(46)
+    while d.textlength(t, font=f) > W - 60: f = font(f.size - 2)
+    centre(d, 120, t, f)
+    d.line([(W / 2 - 50, 186), (W / 2 + 50, 186)], fill=INK, width=2)
+    y = 212; fb = font(36)
+    for head, body in [('Aetiology.', cause), ('Symptoms.', symptom), ('Treatment.', doctor)]:
+        lines = textwrap.wrap(f'{head} — {body}', width=34)
+        for i, ln in enumerate(lines):
+            if y > H - 50: return pg
+            if i == 0:
+                d.text((70, y), head, font=font(36), fill=INK, stroke_width=1, stroke_fill=INK)
+                d.text((70 + d.textlength(head + ' ', font=fb), y), ln[len(head) + 1:], font=fb, fill=INK)
+            else:
+                d.text((30, y), ln, font=fb, fill=INK)
+            y += 48
+        y += 10
+    return pg
+
+
 def main():
     src = open(os.path.join(ROOT, 'src/game/systems/disease.ts')).read()
-    rows = re.findall(r'\{ id: "([a-z]+)", name: "((?:[^"\\]|\\.)*)", kind: "(disease|injury)".*?cause: "((?:[^"\\]|\\.)*)", symptom: "((?:[^"\\]|\\.)*)"', src)
+    rows = re.findall(r'\{ id: "([a-z]+)", name: "((?:[^"\\]|\\.)*)", kind: "(disease|injury)".*?cause: "((?:[^"\\]|\\.)*)", symptom: "((?:[^"\\]|\\.)*)", doctor: "((?:[^"\\]|\\.)*)"', src)
     order = [r for r in rows if r[2] == 'disease'] + [r for r in rows if r[2] == 'injury']
-    base = frame()
+    base = Image.open(BASE).convert('RGB')
+    k = base.width / W0
+    sc = lambda q: [(x * k, y * k) for x, y in q]
+    L, R, Hq = sc(LEFT), sc(RIGHT), sc(HAND)
+    a = np.asarray(base).astype(float)
+    # hand: inside the outline, pixels darker / redder than the paper around them
+    lum = a.mean(2); paper = np.asarray(Image.fromarray(lum.astype(np.uint8)).filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.GaussianBlur(25))).astype(float)
+    red = a[..., 0] - a[..., 2]
+    hand = ((lum < paper * 0.80) | (red > 95) | ((lum > 238) & (a[..., 2] > 225) & (np.arange(a.shape[1])[None, :] > 905 * k))) & (np.asarray(poly(Hq, base.size)) > 0)
+    hm = Image.fromarray((hand * 255).astype(np.uint8)).filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
     os.makedirs(OUT, exist_ok=True)
-    hand = quad_mask(HAND, base.size).filter(ImageFilter.GaussianBlur(2))
-    for n, (cid, name, kind, cause, symptom) in enumerate(order, 1):
+    for n, (cid, name, kind, cause, symptom, doctor) in enumerate(order, 1):
         img = base.copy()
-        for quad, art in [(LEFT, Image.open(os.path.join(ROOT, f'public/art/clinic/plates/{cid}.webp')).convert('RGB')), (RIGHT, chapter_text(n, name, cause, symptom))]:
-            if quad is LEFT:
-                # the plate sits inside the page's margins
-                # the subject of the plate, cut wider than tall: the page is seen nearly edge-on, so a
-                # portrait plate would be squashed flat
-                w, h = art.size; cw, ch = int(w * .92), int(w * .92 / 1.25); y0 = max(0, int((h - ch) * .45))
-                art = art.crop(((w - cw) // 2, y0, (w + cw) // 2, y0 + ch))
-                pad = Image.new('RGB', (int(art.width * 1.14), int(art.height * 1.12)), (255, 255, 255)); pad.paste(art, ((pad.width - art.width) // 2, (pad.height - art.height) // 2)); art = pad
-            blank = paper(base, quad)
-            printed = multiply(blank, warp(art.filter(ImageFilter.GaussianBlur(0.5)), quad, base.size))
-            img.paste(printed, (0, 0), quad_mask(quad, base.size).filter(ImageFilter.GaussianBlur(1)))
-        img.paste(base, (0, 0), hand)
-        img.save(os.path.join(OUT, f'{cid}.webp'), 'WEBP', quality=80)
+        for q, pg in [(L, plate_page(n, cid, name)), (R, text_page(n, name, kind, cause, symptom, doctor))]:
+            ink = np.asarray(warp(pg.filter(ImageFilter.GaussianBlur(0.6)), q, base.size)).astype(float)
+            printed = Image.fromarray((np.asarray(img).astype(float) * (0.08 + 0.92 * ink / 255)).astype(np.uint8))
+            img.paste(printed, (0, 0), poly(q, base.size).filter(ImageFilter.GaussianBlur(1)))
+        img.paste(base, (0, 0), hm)
+        img.resize((1280, round(1280 * base.height / base.width)), Image.LANCZOS).save(os.path.join(OUT, f'{cid}.webp'), 'WEBP', quality=82)
         print(cid, flush=True)
 
 
