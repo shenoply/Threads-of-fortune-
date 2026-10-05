@@ -49,6 +49,25 @@ const Calendar = lazy(() => import('./components/Calendar/Calendar').then((m) =>
 const HeroHub = lazy(() => import('./components/Hero/HeroHub').then((m) => ({ default: m.HeroHub })));
 
 type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan' | 'hero';
+const TITLE_BGS: { src: string; place: string; pos?: string }[] = [
+  { src: 'art/title/caravan.webp', place: 'The canal road · 1925' },
+  { src: 'art/title/ambush.webp', place: 'Trouble in the cane' },
+  { src: 'art/title/bandit.webp', place: 'Stop. Who goes there?' },
+  { src: 'art/stall-seller.jpg', place: 'Giza · the stall', pos: '50% 30%' },
+  { src: 'art/world/stall-top.jpg', place: 'Giza · the stall' },
+  { src: 'art/world/giza-district.jpg', place: 'Giza · the district' },
+  { src: 'art/world/city-alexandria.jpg', place: 'Alexandria' },
+  { src: 'art/world/city-damascus.jpg', place: 'Damascus' },
+  { src: 'art/world/city-istanbul.jpg', place: 'Istanbul' },
+  { src: 'art/world/city-baghdad.jpg', place: 'Baghdad' },
+  { src: 'art/world/city-jerusalem.jpg', place: 'Jerusalem' },
+  { src: 'art/world/city-amman.jpg', place: 'Amman' },
+  { src: 'art/royal/abdeen-exterior.jpg', place: 'Abdeen Palace, Cairo' },
+  { src: 'art/events/camp-night.webp', place: 'A night on the road' },
+  { src: 'art/events/hospitality-tea.webp', place: 'Tea with a stranger' },
+  { src: 'art/cities/alexandria-arrival-poster.webp', place: 'Alexandria · arrival' },
+];
+
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
 
 export default function App() {
@@ -106,6 +125,7 @@ export default function App() {
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
   useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
+  const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
   const [settings, setSettings] = useState(false);
@@ -319,7 +339,7 @@ export default function App() {
   if (phase === 'title') {
     return (
       <div className="title-screen" data-testid="title">
-        <div className="bg" style={{ backgroundImage: 'url(art/stall-seller.jpg)' }} />
+        <div className="bg" key={titleBg.src} style={{ backgroundImage: `url(${titleBg.src})`, backgroundPosition: titleBg.pos ?? '50% 45%' }} />
         <Atmosphere hour={17.4} />
         <div className="title-card">
           <div className="eyebrow">GIZA · 1925</div>
@@ -361,6 +381,7 @@ export default function App() {
                 )}
               </>
             )}
+            <div className="title-links">
             <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ How it plays</button>
             <InstallButton className="ghost-btn" />
             <FullScreenButton className="ghost-btn" />
@@ -369,6 +390,7 @@ export default function App() {
                 {loadOpen ? 'Hide saves' : 'Load a save'}
               </button>
             )}
+            </div>
           </div>
           {loadOpen && (
             <div className="slot-list" data-testid="title-slot-list">
@@ -383,6 +405,7 @@ export default function App() {
             </div>
           )}
         </div>
+        <button className="title-place" onClick={() => setTitleBg((c) => { let n = c; while (n === c) n = TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]; return n; })} title="Show another picture" data-testid="title-shuffle">⟳ {titleBg.place}</button>
         <div className="title-foot">TRADE · PEOPLE · STORIES</div>
         {howView}
       </div>
