@@ -3,7 +3,7 @@
 Hassan's arms across the desk, the clinic behind (art/clinic/feras-desk-pov.webp, blank pages).
 
 For each illness or injury the left page gets the condition's teaching plate with its caption and the
-right page the opening of its chapter, both warped into the pages' perspective and printed onto the
+right page the opening of its chapter (as Hassan sees them: the book is turned towards him), both warped into the pages' perspective and printed onto the
 paper (multiply, so the paper's light and the hand's shadow stay), and his hand is laid back on top.
 
   python3 tools/feras-desk.py   ->  public/art/clinic/desk/<id>.webp
@@ -120,7 +120,9 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for n, (cid, name, kind, cause, symptom, doctor) in enumerate(order, 1):
         img = base.copy()
-        for q, pg in [(L, plate_page(n, cid, name)), (R, text_page(n, name, kind, cause, symptom, doctor))]:
+        # the book is turned round for Hassan to read: from Feras's side both pages are upside down, and the
+        # plate (Hassan's left page) lies on Feras's right
+        for q, pg in [(R, plate_page(n, cid, name).rotate(180)), (L, text_page(n, name, kind, cause, symptom, doctor).rotate(180))]:
             ink = np.asarray(warp(pg.filter(ImageFilter.GaussianBlur(0.6)), q, base.size)).astype(float)
             printed = Image.fromarray((np.asarray(img).astype(float) * (0.08 + 0.92 * ink / 255)).astype(np.uint8))
             img.paste(printed, (0, 0), poly(q, base.size).filter(ImageFilter.GaussianBlur(1)))
