@@ -356,6 +356,8 @@ interface Actions {
   bathe: (sid: string) => string;
   /** Dr Feras treats one illness or injury: a fee by how serious it is; the rest of it is halved */
   treatIllness: (id: string) => string;
+  /** for trying the clinic out: come down with any illness or injury on demand */
+  catchForTest: (id: string) => string;
   readBook: (id: string) => string;
   buyOffer: (uid: string, credit: boolean) => string;
   haggle: (uid: string) => string;
@@ -2178,6 +2180,13 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           if (s.tutorial.done) return;
           set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false } : s.encounter });
+        },
+        catchForTest: (id) => {
+          const s = get();
+          const d = DISEASE(id);
+          if (!d || (s.illnesses ?? []).some((x) => x.id === id)) return '';
+          set({ illnesses: addIllness(s.illnesses, id, s.day) });
+          return `You now have ${d.name.toLowerCase()}, for the test. See the Consultation tab.`;
         },
         treatIllness: (id) => {
           const s = get();

@@ -480,6 +480,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
             }
             else if (a.startsWith('house:')) setHouseWalk(a.slice(6));
             else if (a.startsWith('npc:')) setTalkTo(a.slice(4));
+            else if (a === 'clinic') setClinic(true);
             else { setInCity(false); setTab(a as SetTab); }
           }} />
         </div>

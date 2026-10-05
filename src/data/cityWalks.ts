@@ -15,6 +15,7 @@ export const CITY_WALKS: Record<string, Venue> = {
       { id: 'khanauction', name: 'Khan el-Khalili Dealer Room', sub: 'Dealers\' auction', x: 1224, y: 405, glyph: '⚖', kind: 'goto', action: 'house:cairo-khan' },
       { id: 'hagop', name: 'Hagop\'s shop', sub: 'Hagop Boyajian, dealer', x: 1030, y: 330, glyph: 'H', kind: 'goto', action: 'npc:hagop' },
       { id: 'wikala', name: 'The Wikala', sub: 'Uncle Rashid\'s bales', x: 1053, y: 566, glyph: 'R', kind: 'goto', action: 'npc:rashid' },
+      { id: 'clinic', name: 'Dr Feras\'s clinic', sub: 'Illness and injury', x: 770, y: 400, glyph: '✚', kind: 'goto', action: 'clinic' },
       { id: 'abdeen', name: 'Abdeen Palace', sub: 'King Fuad\'s court', x: 921, y: 474, glyph: '♛', kind: 'goto', action: 'palace' },
       { id: 'gardencity', name: 'Garden City Pasha Estate Sale', sub: 'Grand estate auction', x: 955, y: 700, glyph: '⚖', kind: 'goto', action: 'house:cairo-garden-city' },
       { id: 'citadel', name: 'The Citadel', sub: 'Guards and gendarmes', x: 1224, y: 803, glyph: 'G', kind: 'goto', action: 'guards' },

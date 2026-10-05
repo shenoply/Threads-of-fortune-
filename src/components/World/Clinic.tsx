@@ -5,7 +5,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame, TREAT_FEE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
-import { DISEASES, DISEASE, TIER_LABEL, type Disease, type Effects } from '../../game/systems/disease';
+import { DISEASES, DISEASE, TIER_LABEL, type Disease } from '../../game/systems/disease';
+import { MedicalBook } from './MedicalBook';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
 import { radio } from '../../game/radio/player';
@@ -17,62 +18,56 @@ const PORTRAIT = 'art/portraits/feras.webp';
 const plate = (id: string) => `art/clinic/plates/${id}.webp`;
 const CAPTION = 'Doctor Feras runs this Cairo clinic. He treats illness and injury, explains your condition, and helps you get back to business.';
 
-const EFFECT_WORDS: [keyof Effects, string, (v: number) => string][] = [
-  ['fatigue', 'Tiredness', (v) => `+${v} a day`],
-  ['hours', 'Stall hours lost', (v) => `${v} a day`],
-  ['focus', 'Patience when haggling', (v) => `${v}`],
-  ['trust', 'Buyers’ trust', (v) => `${v}`],
-  ['speed', 'Travel speed', (v) => `${v}%`],
-  ['carry', 'What you can carry', (v) => `${v}%`],
-  ['sight', 'Judging a rug by eye', (v) => `${v}%`],
-];
-const effectsOf = (d: Disease) => EFFECT_WORDS.filter(([k]) => d.effects[k]).map(([k, label, f]) => `${label} ${f(d.effects[k]!)}`);
-const deadliness = (f: number) => (f >= 0.2 ? 'Often fatal' : f >= 0.05 ? 'Can kill' : f >= 0.01 ? 'Rarely fatal' : f > 0 ? 'Almost never fatal' : 'Not fatal');
-
-/** a page of Feras's book */
-function Page({ d, onBack }: { d: Disease; onBack: () => void }) {
+/** A case on demand: Feras talks it through as if you had walked in with it (his voice and his words),
+ *  with the plate from his book. For trying any of them out. */
+function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack: () => void }) {
+  const g = useGame();
+  const a = useRef<HTMLAudioElement>(null);
   const [pic, setPic] = useState(true);
+  const [note, setNote] = useState('');
+  const has = (g.illnesses ?? []).some((x) => x.id === d.id);
+  useEffect(() => {
+    voice.stop();
+    audio.attenuate('feras', true, 0.3, { music: 0.15, ambience: 0.3 });
+    a.current?.play().catch(() => {});
+    return () => { a.current?.pause(); audio.attenuate('feras', false, 0.8); };
+  }, [d.id]);
   return (
-    <article className="cl-page" data-testid={`book-page-${d.id}`}>
-      <button className="linkish cl-back" onClick={onBack} data-testid="book-back">‹ The book</button>
-      <h3>{d.name}</h3>
-      <small className={`cl-tier t-${d.tier}`}>{d.kind === 'injury' ? 'Injury' : 'Disease'} · {TIER_LABEL[d.tier]} · {deadliness(d.fatality)}</small>
-      {pic && <img className="cl-plate" src={plate(d.id)} alt="" onError={() => setPic(false)} />}
+    <div className="cl-run" data-testid={`case-run-${d.id}`}>
+      <button className="linkish cl-back" onClick={onBack} data-testid="case-back">‹ All cases</button>
+      <div className="cl-run-head">
+        <img src={PORTRAIT} alt="" />
+        <div><b>{d.name}</b><small>{TIER_LABEL[d.tier]} {d.kind === 'injury' ? 'injury' : 'disease'} · Dr Feras explains</small></div>
+      </div>
+      {/* his book open on the desk at that chapter, his finger on the plate (tools/feras-desk.py) */}
+      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} data-testid="case-desk" />
       <p className="cl-feras">“{d.doctor}”</p>
-      <dl>
-        <div><dt>How it comes</dt><dd>{d.cause}</dd></div>
-        <div><dt>What you feel</dt><dd>{d.symptom}</dd></div>
-        <div><dt>How long</dt><dd>{d.days[0]}–{d.days[1]} days</dd></div>
-        {effectsOf(d).length > 0 && <div><dt>While it lasts</dt><dd>{effectsOf(d).join(' · ')}</dd></div>}
-      </dl>
-    </article>
+      <audio ref={a} src={`audio/feras/${d.id}.mp3`} preload="auto" data-testid="feras-voice" />
+      <div className="cl-case-btns">
+        <button className="btn" onClick={() => { const el = a.current; if (el) { el.currentTime = 0; void el.play(); } }} data-testid="case-replay">▶ Hear him again</button>
+        <button className="btn" onClick={onBook} data-testid="case-chapter">Read the chapter</button>
+        <button className="btn" disabled={has} onClick={() => setNote(g.catchForTest(d.id))} data-testid="case-catch">{has ? 'You have it now' : 'Give me this, to test'}</button>
+      </div>
+      {note && <p className="cl-note">{note}</p>}
+    </div>
   );
 }
 
-function Book({ start }: { start?: string }) {
-  const [open, setOpen] = useState<string | null>(start ?? null);
-  const [kind, setKind] = useState<'disease' | 'injury'>('disease');
-  const d = open ? DISEASE(open) : null;
-  if (d) return <Page d={d} onBack={() => setOpen(null)} />;
-  const list = DISEASES.filter((x) => x.kind === kind);
+function Cases({ onBook }: { onBook: (id: string) => void }) {
+  const [run, setRun] = useState<string | null>(null);
+  const d = run ? DISEASE(run) : null;
+  if (d) return <CaseRun d={d} onBack={() => setRun(null)} onBook={() => onBook(d.id)} />;
   return (
-    <div className="cl-book" data-testid="feras-book">
-      <p className="cl-intro">His own book, with a teaching plate for each page. "Read it before you come to me, and you will waste less of my time."</p>
-      <div className="cl-tabs" role="tablist">
-        <button role="tab" aria-selected={kind === 'disease'} className={kind === 'disease' ? 'on' : ''} onClick={() => setKind('disease')} data-testid="book-diseases">Diseases · {DISEASES.filter((x) => x.kind === 'disease').length}</button>
-        <button role="tab" aria-selected={kind === 'injury'} className={kind === 'injury' ? 'on' : ''} onClick={() => setKind('injury')} data-testid="book-injuries">Injuries · {DISEASES.filter((x) => x.kind === 'injury').length}</button>
-      </div>
-      {(['common', 'uncommon', 'rare', 'extreme'] as const).map((t) => {
-        const rows = list.filter((x) => x.tier === t);
-        return rows.length ? (
-          <section key={t}>
-            <h4>{TIER_LABEL[t]}</h4>
-            <div className="cl-index">
-              {rows.map((x) => <button key={x.id} className="cl-entry" onClick={() => setOpen(x.id)} data-testid={`book-${x.id}`}><b>{x.name}</b><small>{x.symptom}</small></button>)}
-            </div>
-          </section>
-        ) : null;
-      })}
+    <div className="cl-cases" data-testid="clinic-cases">
+      <p className="cl-intro">Pick any illness or injury and Dr Feras will talk you through it as if you had come in with it.</p>
+      {(['disease', 'injury'] as const).map((k) => (
+        <section key={k}>
+          <h4>{k === 'disease' ? 'Diseases' : 'Injuries'}</h4>
+          <div className="cl-index">
+            {DISEASES.filter((x) => x.kind === k).map((x) => <button key={x.id} className="cl-entry" onClick={() => setRun(x.id)} data-testid={`case-${x.id}`}><b>{x.name}</b><small>{TIER_LABEL[x.tier]}</small></button>)}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -83,8 +78,9 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   const [intro, setIntro] = useState(!seen);
   const [blocked, setBlocked] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [tab, setTab] = useState<'consult' | 'book'>('consult');
-  const [bookAt, setBookAt] = useState<string | undefined>();
+  const [tab, setTab] = useState<'consult' | 'cases'>('consult');
+  // the book opens full screen, over the clinic, like picking it up off his desk
+  const [book, setBook] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const v = useRef<HTMLVideoElement>(null);
   const ill = g.illnesses ?? [];
@@ -134,7 +130,8 @@ export function Clinic({ onClose }: { onClose: () => void }) {
         </div>
         <div className="cl-tabs" role="tablist">
           <button role="tab" aria-selected={tab === 'consult'} className={tab === 'consult' ? 'on' : ''} onClick={() => setTab('consult')} data-testid="clinic-consult">Consultation{ill.length ? ` · ${ill.length}` : ''}</button>
-          <button role="tab" aria-selected={tab === 'book'} className={tab === 'book' ? 'on' : ''} onClick={() => { setBookAt(undefined); setTab('book'); }} data-testid="clinic-book">His medical book</button>
+          <button role="tab" aria-selected={tab === 'cases'} className={tab === 'cases' ? 'on' : ''} onClick={() => setTab('cases')} data-testid="clinic-cases-tab">Ask about any case</button>
+          <button className="cl-booktab" onClick={() => setBook('')} data-testid="clinic-book">His book</button>
         </div>
         {note && <p className="cl-note" data-testid="clinic-note">{note}</p>}
         {tab === 'consult' ? (
@@ -149,14 +146,20 @@ export function Clinic({ onClose }: { onClose: () => void }) {
                   <p className="cl-feras">“{d.doctor}”</p>
                   <div className="cl-case-btns">
                     {il.treated ? <span className="cl-done">Treated</span> : <button className="btn primary" disabled={g.cash < TREAT_FEE[d.tier]} onClick={() => setNote(g.treatIllness(il.id))} data-testid={`treat-${il.id}`}>Treat it · {fmt(TREAT_FEE[d.tier])}</button>}
-                    <button className="btn" onClick={() => { setBookAt(il.id); setTab('book'); }} data-testid={`read-${il.id}`}>Read his page</button>
+                    <button className="btn" onClick={() => setBook(il.id)} data-testid={`read-${il.id}`}>Read his page</button>
                   </div>
                 </div>
               );
             })}
           </div>
-        ) : <Book key={bookAt ?? 'index'} start={bookAt} />}
+        ) : <Cases onBook={(id) => setBook(id)} />}
       </div>
+      {book !== null && (
+        <div className="mb-reader" role="dialog" aria-label="Dr Feras's book" data-testid="book-reader">
+          <div className="mb-reader-head"><b>Dr Feras’s book</b><button className="btn small" onClick={() => setBook(null)} data-testid="book-close">Close the book</button></div>
+          <div className="mb-reader-body"><MedicalBook key={book || 'contents'} start={book || undefined} /></div>
+        </div>
+      )}
     </section>
   );
 }
