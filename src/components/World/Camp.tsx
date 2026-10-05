@@ -39,6 +39,7 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
   return (
     <div className={`camp-screen ${dawn ? 'dawn' : ''}`} role="dialog" aria-label="Camp for the night" data-testid="camp-screen">
       <img className="camp-art" src={`art/events/camp-${fed ? 'night' : 'cold'}.webp`} alt={fed ? 'Your camp: the camel couched by a small fire under the stars' : 'A cold camp: no fire, the camel a dark shape under the moon'} draggable={false} />
+      {fed && !dawn && <video className="camp-art camp-video" src="video/camp-fire.mp4" poster="art/events/camp-night.webp" autoPlay loop muted playsInline preload="auto" aria-hidden="true" />}
       <div className="camp-panel">
         <small className="camp-when">{dateLine(g.day)} · {String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</small>
         {!dawn ? (

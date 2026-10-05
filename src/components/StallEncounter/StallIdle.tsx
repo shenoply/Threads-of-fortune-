@@ -14,6 +14,7 @@ import { fedOf, shopOpen as malekOpen } from '../../game/systems/malek';
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   const g = useGame();
   const [board, setBoard] = useState(false);
+  const [tidy, setTidy] = useState(false);
   const canBuy = affordableUpgrades(g);
   const h = g.world.hour;
   const left = Math.max(0, g.queue.length - g.visitIdx);
@@ -62,6 +63,13 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       <button className={`btn idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve">
         <Icon name="star" /> Improve your stall{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}
       </button>
+      <button className="btn idle-tidy" onClick={() => { audio.sfx('tap'); setTidy(true); }} data-testid="idle-tidy">Tidy the stall</button>
+      {tidy && (
+        <div className="tidy-film" role="dialog" aria-label="Tidying the stall" onClick={() => setTidy(false)} data-testid="tidy-film">
+          <video src="video/stall-tidy.mp4" autoPlay playsInline onEnded={() => setTidy(false)} onError={() => setTidy(false)} />
+          <small>Tap to close</small>
+        </div>
+      )}
       {board && <AuctionBoard onClose={() => setBoard(false)} onMap={() => { setBoard(false); onGo('map'); }} />}
     </div>
   );

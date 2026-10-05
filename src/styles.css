@@ -2401,3 +2401,9 @@ button.hud-chip { cursor: pointer; }
 .evening-strip .btn { flex: 1 1 0 !important; min-height: 32px !important; padding: 4px 8px !important; font-size: 12.5px !important; white-space: nowrap; }
 
 .amb-rob-art { width: 100%; max-height: 38vh; object-fit: cover; border-radius: 10px; margin-bottom: 8px; display: block; }
+
+.camp-video { z-index: 0; }
+.idle-tidy { margin-top: 8px; }
+.tidy-film { position: fixed; inset: 0; z-index: 500; background: #000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.tidy-film video { width: 100%; max-height: 100%; object-fit: contain; }
+.tidy-film small { position: absolute; bottom: 14px; color: #fff9; }
