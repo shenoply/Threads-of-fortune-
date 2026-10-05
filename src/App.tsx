@@ -1,3 +1,4 @@
+import { DISEASE } from './game/systems/disease';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, openMalek, planTrip } from './game/nav';
@@ -414,6 +415,12 @@ export default function App() {
           </div>
           <div className="ruin-meter" aria-hidden="true"><i style={{ width: `${risk}%` }} /></div>
         </button>
+      )}
+
+      {g.started && (g.illnesses ?? []).length > 0 && !(tab === 'stall' && g.encounter) && (
+        <div className="ill-banner" data-testid="ill-banner">
+          {(g.illnesses ?? []).map((il) => { const d = DISEASE(il.id); return d ? <span key={il.id}><b>{d.name}</b> · about {Math.max(1, il.until - g.day)} day{il.until - g.day === 1 ? '' : 's'} left. {d.symptom}</span> : null; })}
+        </div>
       )}
 
       {phase === 'game' && !(tab === 'stall' && g.encounter) && (() => {

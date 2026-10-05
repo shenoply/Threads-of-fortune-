@@ -27,6 +27,7 @@ import { CARGO_JOBS, CHECKPOINTS, midSentence, CONDITION_START, PASS_DANGER, DIE
 import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
+import { stepIllness, DISEASE, type Illness } from '../systems/disease';
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
@@ -175,6 +176,12 @@ export interface GameState {
   bankruptcies?: number;
   /** a second bankruptcy ends the run */
   ended?: { day: number; text: string };
+  /** diseases the merchant has now (src/game/systems/disease.ts) */
+  illnesses?: Illness[];
+  /** Ironman: a fatal illness (or fight) ends the run */
+  ironman?: boolean;
+  /** scales how often illness strikes: 1 = historical, 3 or 5 = harsher */
+  illRisk?: number;
   /** cargo cover bought from a Lloyd's agent, and what the insurers owe you for rugs lost under it */
   insurance?: { until: number };
   claims?: number;
@@ -906,7 +913,11 @@ export const useGame = create<GameState & Actions>()(
             cash -= foodCost;
           }
           // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
-          const condition = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
+          const condBase = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
+          // illness: new cases, the days of an old one, and the crisis that can kill
+          const ill = stepIllness(s.illnesses, { day: s.day + 1, onRoad: !s.world.at, thirsty: !!night.thirsty, fatigue: condBase.fatigue }, { risk: s.illRisk ?? 1, deadly: !!s.ironman, resting: !!s.world.at });
+          for (const n of ill.notes) notes.push(n);
+          const condition = { ...condBase, fatigue: Math.max(0, Math.min(100, condBase.fatigue + ill.fatigueAdd)) };
           // rugs put aside for a buyer who never came go back on the stall
           // (heldFor ignores an expired hold, so the note fires once, on the night it ends)
           const lapsed = s.inventory.filter((i) => i.reservedFor && i.reservedUntil === s.day);
@@ -1097,6 +1108,7 @@ export const useGame = create<GameState & Actions>()(
           let ruin: Ruin = { ...(s.ruin ?? { stage: 0, since: 0 }) };
           let bankruptcies = s.bankruptcies ?? 0;
           let ended = s.ended;
+          if (ill.died && !ended) ended = { day, text: `${DISEASE(ill.died.id)?.name ?? 'Illness'} took Hassan. The bazaar mourns a rug merchant who was never quite as clever as he thought.` };
           const owedNow = overdue(cash, bills.due, bills.due > 0 && day - bills.since >= 5, loans, day);
           if (owedNow < RUIN_THRESHOLD || day < (ruin.graceUntil ?? 0)) {
             if (ruin.stage > 0 && owedNow < RUIN_THRESHOLD) { notes.push('Your creditors are paid. The lane stops whispering.'); ruin = { stage: 0, since: 0, graceUntil: ruin.graceUntil }; }
@@ -1237,6 +1249,7 @@ export const useGame = create<GameState & Actions>()(
             ruin,
             bankruptcies,
             ended,
+            illnesses: ill.illnesses,
             commissions: commissionsLeft,
             day,
             cash,
