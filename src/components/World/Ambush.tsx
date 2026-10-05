@@ -123,10 +123,12 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         text: `The ${threat.displayName.toLowerCase()} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}${animalsGained ? ` You also catch ${withArticle(BREEDS[mountId].name)} they left behind.` : ''}`,
       });
     } else if (retreat) {
-      settle({ cashLoss: Math.round(g.cash * 0.2), rugsLost: 1, troopsLost, delayHours: 6, enemyLost: killed, text: `You pull your caravan back and run for it, leaving a bale and a purse behind.${lostList ? ` Lost: ${lostList}.` : ''}` });
+      const wound = Math.random() < 0.25 ? ` ${useGame.getState().hurt('fight')}` : '';
+      settle({ cashLoss: Math.round(g.cash * 0.2), rugsLost: 1, troopsLost, delayHours: 6, enemyLost: killed, text: `You pull your caravan back and run for it, leaving a bale and a purse behind.${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
     } else {
       audio.sfx('chest');
-      settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}` });
+      const wound = Math.random() < 0.7 ? ` ${useGame.getState().hurt('fight')}` : '';
+      settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
     }
   };
 

@@ -27,7 +27,7 @@ import { CARGO_JOBS, CHECKPOINTS, midSentence, CONDITION_START, PASS_DANGER, DIE
 import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
-import { stepIllness, DISEASE, type Illness } from '../systems/disease';
+import { stepIllness, DISEASE, healthEffects, addIllness, rollInjury, type Illness } from '../systems/disease';
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
@@ -302,6 +302,8 @@ interface Actions {
   partyChoice: (partyId: string, choice: string) => string;
   /** bandits stop you and you cannot pay: one of ten things happens instead; returns what did */
   robBroke: () => string;
+  /** an injury from a fight, a fall or a beating; returns a sentence for the result screen */
+  hurt: (kind: string, injuryId?: string) => string;
   buyFood: (n: number) => string;
   butcherAnimal: (breed: string) => string;
   trade: (breed: string, delta: number) => string;
@@ -1915,6 +1917,13 @@ export const useGame = create<GameState & Actions>()(
           return msg;
         },
 
+        hurt: (kind, injuryId) => {
+          const s = get(); const id = injuryId ?? rollInjury(kind); const d = DISEASE(id);
+          if (!d) return '';
+          set({ illnesses: addIllness(s.illnesses, id, s.day), journal: [...s.journal, { day: s.day, text: `Injured: ${d.name.toLowerCase()}.`, kind: 'road' as const }] });
+          return `Injury: ${d.name.toLowerCase()}. ${d.symptom}`;
+        },
+
         robBroke: () => {
           const s = get();
           const party = s.world.party;
@@ -1943,7 +1952,7 @@ export const useGame = create<GameState & Actions>()(
             // 3 a beating
             { art: 'rob-beating', w: 3, ok: true, go: () => {
               set({ condition: { ...c, fatigue: Math.min(100, c.fatigue + 35) } });
-              return 'So they give you a beating for wasting their morning. Fatigue +35: you will be slow for a few days.';
+              return `So they give you a beating for wasting their morning. Fatigue +35: you will be slow for a few days. ${get().hurt('beating')}`;
             } },
             // 4 held for ransom: Rashid pays, the debt grows
             { art: 'rob-ransom', w: 1, ok: true, go: () => {
@@ -2342,6 +2351,8 @@ export const useGame = create<GameState & Actions>()(
           }
           // how you slept, ate and whether you took the tonic shows at the stall: tired sellers lose patience
           const tired = fatigueEffect(s.condition, s.day);
+          const hurt = healthEffects(s.illnesses);
+          tired.patience += hurt.focus; tired.trust += hurt.trust;
           if (!tutorial && (tired.patience || tired.trust)) {
             enc.patience = Math.max(10, enc.patience + tired.patience);
             enc.trust = Math.max(0, Math.min(100, enc.trust + tired.trust));
