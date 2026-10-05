@@ -2424,3 +2424,32 @@ button.hud-chip { cursor: pointer; }
 .iron-toggle small { display: block; font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
 .iron-toggle.on { border-color: #b3402b; background: rgba(120,30,20,0.28); }
 .iron-badge { display: inline-block; margin-bottom: 10px; padding: 4px 12px; border: 1px solid #b3402b; border-radius: 999px; color: #e7a090; font-family: var(--label); font-size: 12.5px; letter-spacing: 0.12em; }
+
+/* ---------- Readable menus: bigger type, stronger contrast (title screen + settings) ---------- */
+.title-card { width: min(94vw, 540px); }
+.title-card .eyebrow { font-size: 16px; }
+.title-card .tag { font-size: 20px; color: var(--parchment); margin-bottom: 22px; }
+.title-card h1 { font-size: clamp(40px, 10vw, 68px); }
+.title-card .big-btn { font-size: 19px; padding: 16px 22px; min-height: 56px; }
+.title-links .ghost-btn, .title-card .ghost-btn { font-size: 17px; color: var(--parchment); padding: 10px 16px; min-height: 44px; }
+.title-card .row .ghost-btn { font-size: 17px; color: var(--parchment-2); }
+.iron-toggle { font-size: 17px; color: var(--parchment); }
+.iron-toggle small { font-size: 15px; line-height: 1.35; color: var(--parchment-2); }
+.whatsnew span { font-size: 17px; }
+.title-place { font-size: 15px; color: var(--parchment); padding: 8px 14px; }
+.title-foot { font-size: 14px; color: rgba(234,219,189,0.65); }
+.slot-row { font-size: 16px; }
+.slot-row .slot-info { font-size: 16px; color: var(--parchment); }
+
+[data-testid="settings"] { width: min(94%, 560px); font-size: 17px; }
+[data-testid="settings"] h2 { font-size: 28px; }
+[data-testid="settings"] h3 { font-size: 20px; color: var(--brass-hi); margin: 18px 0 6px; }
+[data-testid="settings"] p { font-size: 17px; line-height: 1.45; color: var(--parchment-2); }
+[data-testid="settings"] .toggle-row { padding: 12px 0; font-size: 18px; color: var(--parchment); }
+[data-testid="settings"] .toggle-row span small { font-size: 15.5px; color: var(--parchment-2); margin-top: 2px; }
+[data-testid="settings"] .switch { width: 56px; height: 32px; border-radius: 16px; }
+[data-testid="settings"] .switch::after { width: 26px; height: 26px; }
+[data-testid="settings"] .switch[aria-checked='true']::after { left: 24px; }
+[data-testid="settings"] .btn { font-size: 17px; min-height: 46px; padding: 10px 14px; }
+[data-testid="settings"] .btn.small { font-size: 16px; min-height: 42px; }
+[data-testid="settings"] .slot-info { font-size: 16px; }
