@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dr Feras explaining a case, from his chair: his book open on the desk, his finger on the page,
+"""Dr Feras explaining a case, from his chair: his book open on the desk, his hand at its edge,
 Hassan's arms across the desk, the clinic behind (art/clinic/feras-desk-pov.webp, blank pages).
 
 For each illness or injury the left page gets the condition's teaching plate with its caption and the
@@ -18,10 +18,10 @@ OUT = os.path.join(ROOT, 'public/art/clinic/desk')
 FONT = '/usr/share/fonts/truetype/google-fonts/Lora-Variable.ttf'
 W0 = 1672  # the width the quads below were measured at
 # printable area of each page (TL, TR, BR, BL), inside the margins
-LEFT = [(478, 445), (815, 442), (808, 728), (428, 738)]
-RIGHT = [(885, 440), (1205, 436), (1385, 712), (880, 724)]
+LEFT = [(490, 446), (822, 443), (880, 712), (442, 720)]
+RIGHT = [(892, 441), (1205, 433), (1388, 703), (935, 716)]
 # a generous outline round his hand and cuff; inside it, whatever is not paper is hand
-HAND = [(688, 560), (800, 572), (880, 605), (960, 650), (1012, 718), (1600, 840), (1672, 941), (900, 941), (760, 805), (700, 725), (688, 600)]
+HAND = [(1070, 745), (1420, 745), (1672, 941), (1070, 941)]
 PAGE = (800, 1000)
 INK = (38, 24, 12)
 
