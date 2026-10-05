@@ -1,78 +1,129 @@
-// How it plays: one square tile per main feature, each a short silent clip of the game itself playing
-// that feature (recorded by tools/record-feature-clips.mjs). Tap a tile for the whole clip and two
-// lines on how it works. Opens from the title screen, Settings and How to play.
+// How it plays: one square tile per main feature, each a moving thumbnail of its film. Tap one and the
+// film plays full screen: the game itself, screen by screen, with the narrator explaining each step and
+// the words on screen. Take your time: nothing moves on until you choose. "Watch them all" plays the
+// films one after another. The films are made by tools/how-films (capture.mjs, then compose.py).
 import { useEffect, useRef, useState } from 'react';
+import { HOW_FILMS } from '../../data/howFilms';
+import { audio } from '../../game/audio/engine';
+import { voice } from '../../game/audio/voice';
+import { radio } from '../../game/radio/player';
 import './howItPlays.css';
 
-export interface Feature { id: string; name: string; what: string; how: string; focus: string }
+export interface Feature { id: string; name: string; what: string }
 export const FEATURES: Feature[] = [
-  { id: 'stall', name: 'Selling at your stall', focus: '50% 18%', what: 'Wait for a buyer, lay a rug on the table and talk them round.', how: 'Ask about their room, argue what they care about, watch interest, patience and trust, then name your price.' },
-  { id: 'district', name: 'Walking Giza', focus: '50% 40%', what: 'Your lane in Giza is a map you walk.', how: 'Tap anywhere to walk there. Tap a place to go in: your stall, Bilgin’s coffee house, Arran’s laboratory, Malek’s grill.' },
-  { id: 'rashid', name: 'Buying stock', focus: '50% 30%', what: 'Uncle Rashid sells you the rugs you sell on.', how: 'Look closely, haggle, then pay cash or take it on credit. Buy well below what Giza will pay.' },
-  { id: 'inspect', name: 'Inspecting a rug', focus: '50% 38%', what: 'Know what you are selling before you price it.', how: 'Zoom in, turn it over, and read its condition, weave and history.' },
-  { id: 'travel', name: 'Travelling', focus: '50% 45%', what: 'The whole region is open to you.', how: 'Zoom out from Giza and tap a town. The clock runs while you travel: speed it up, or stop any time.' },
-  { id: 'caravan', name: 'Your caravan', focus: '50% 30%', what: 'Everything you take on the road.', how: 'Buy food for the days ahead, animals to carry rugs, and men to guard them. Everyone eats.' },
-  { id: 'cafe', name: 'Chess and tawla', focus: '50% 45%', what: 'Bilgin’s coffee house, for an hour off.', how: 'Play him at chess or tawla, for tea or for a few piastres.' },
-  { id: 'news', name: 'Paper and radio', focus: '50% 40%', what: 'Every day is a real day of 1925.', how: 'The Courier and Radio Giza carry that day’s news. It moves prices, brings buyers and changes the roads.' },
-];
-const src = (id: string, ext: 'mp4' | 'webp') => `video/how/${id}.${ext}`;
+  { id: 'stall', name: 'Selling at your stall', what: 'Wait for a buyer, lay a rug on the table and talk them round.' },
+  { id: 'district', name: 'Walking Giza', what: 'Your lane in Giza is a map you walk.' },
+  { id: 'rashid', name: 'Buying stock', what: 'Uncle Rashid sells you the rugs you sell on.' },
+  { id: 'inspect', name: 'Inspecting a rug', what: 'Know what you are selling before you price it.' },
+  { id: 'travel', name: 'Travelling', what: 'The whole region is open to you.' },
+  { id: 'caravan', name: 'Your caravan', what: 'Everything you take on the road.' },
+  { id: 'cafe', name: 'Chess and tawla', what: 'Bilgin’s coffee house, for an hour off.' },
+  { id: 'news', name: 'Paper and radio', what: 'Every day is a real day of 1925.' },
+].filter((f) => HOW_FILMS[f.id]);
+const src = (id: string, kind: 'film' | 'loop' | 'poster') => (kind === 'film' ? `video/how/${id}.mp4` : kind === 'loop' ? `video/how/${id}-loop.mp4` : `video/how/${id}.webp`);
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /** open How it plays from anywhere */
 export const openHowItPlays = (id?: string) => window.dispatchEvent(new CustomEvent('tof-how', { detail: id }));
 
-/** a muted looping clip that only plays while it is on screen */
-function Clip({ id, focus, className }: { id: string; focus?: string; className?: string }) {
+/** the moving thumbnail: a short silent loop that only plays while its tile is on screen */
+function Loop({ id }: { id: string }) {
   const v = useRef<HTMLVideoElement>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     const el = v.current; if (!el) return;
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) el.play().catch(() => {}); else el.pause(); }, { threshold: 0.35 });
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) el.play().catch(() => {}); else el.pause(); }, { threshold: 0.3 });
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  if (failed) return <img className={className} src={src(id, 'webp')} alt="" style={{ objectPosition: focus }} />;
-  return <video ref={v} className={className} src={src(id, 'mp4')} poster={src(id, 'webp')} muted loop playsInline preload="metadata" style={{ objectPosition: focus }} onError={() => setFailed(true)} aria-hidden="true" />;
+  if (failed) return <img className="how__clip" src={src(id, 'poster')} alt="" />;
+  return <video ref={v} className="how__clip" src={src(id, 'loop')} poster={src(id, 'poster')} muted loop playsInline autoPlay preload="auto" onError={() => setFailed(true)} aria-hidden="true" />;
+}
+
+/** One film, full screen, with sound and captions. */
+function Player({ at, all, onPick, onClose }: { at: number; all: boolean; onPick: (k: number) => void; onClose: () => void }) {
+  const f = FEATURES[at];
+  const film = HOW_FILMS[f.id];
+  const v = useRef<HTMLVideoElement>(null);
+  const [t, setT] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const next = at + 1 < FEATURES.length ? at + 1 : null;
+  useEffect(() => { setT(0); setEnded(false); setPaused(false); setFailed(false); }, [at]);
+  // the film has the stage: the music steps back, the radio and anyone talking stop
+  useEffect(() => {
+    voice.stop();
+    if (radio.playing) radio.stop();
+    audio.attenuate('how', true, 0.4, { music: 0, ambience: 0.15 });
+    return () => audio.attenuate('how', false, 1.0);
+  }, []);
+  // watching them all: go on by itself a moment after each one ends
+  useEffect(() => {
+    if (!ended || !all || next === null) return;
+    const h = window.setTimeout(() => onPick(next), 2500);
+    return () => window.clearTimeout(h);
+  }, [ended, all, next, onPick]);
+  const cue = film.cues.find((c) => t >= c.start - 0.05 && t <= c.end + 0.6);
+  const toggle = () => { const el = v.current; if (!el) return; if (el.paused) { void el.play(); setPaused(false); } else { el.pause(); setPaused(true); } };
+  const seek = (e: React.MouseEvent<HTMLDivElement>) => { const el = v.current; if (!el) return; const r = e.currentTarget.getBoundingClientRect(); el.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * film.length; setEnded(false); };
+  return (
+    <div className="how-play" role="dialog" aria-label={f.name} data-testid="how-view">
+      {failed
+        ? <img className="how-play__video" src={src(f.id, 'poster')} alt="" />
+        : <video ref={v} key={f.id} className="how-play__video" src={src(f.id, 'film')} poster={src(f.id, 'poster')} autoPlay playsInline muted={muted} onClick={toggle}
+            onTimeUpdate={(e) => setT(e.currentTarget.currentTime)} onEnded={() => setEnded(true)} onError={() => setFailed(true)} data-testid="how-video" />}
+      <div className="how-play__top">
+        <div className="how-play__title"><small>{at + 1} of {FEATURES.length}</small><b>{f.name}</b></div>
+        <button className="btn small" onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} data-testid="how-sound">{muted ? '🔇' : '🔊'}</button>
+        <button className="btn small" onClick={onClose} aria-label="Close" data-testid="how-close-film">✕</button>
+      </div>
+      {(cue || failed) && !ended && <p className="how-play__caption" data-testid="how-caption">{failed ? film.cues.map((c) => c.text).join(' ') : cue!.text}</p>}
+      {paused && !ended && <button className="how-play__big" onClick={toggle} aria-label="Play">▶</button>}
+      {ended && (
+        <div className="how-play__end" data-testid="how-end">
+          <button className="btn" onClick={() => { const el = v.current; if (el) { el.currentTime = 0; void el.play(); } setEnded(false); }}>↺ Watch again</button>
+          {next !== null ? <button className="btn primary" onClick={() => onPick(next)} data-testid="how-next">Next: {FEATURES[next].name} ›</button> : <button className="btn primary" onClick={onClose}>Done</button>}
+        </div>
+      )}
+      <div className="how-play__bar">
+        <button className="btn small" disabled={at === 0} onClick={() => onPick(at - 1)} aria-label="Previous" data-testid="how-prev">‹</button>
+        <button className="btn small" onClick={toggle} aria-label={paused ? 'Play' : 'Pause'} data-testid="how-pause">{paused ? '▶' : '❚❚'}</button>
+        <div className="how-play__track" onClick={seek}><i style={{ width: `${Math.min(100, (t / film.length) * 100)}%` }} /></div>
+        <span className="how-play__time">{mmss(t)} / {mmss(film.length)}</span>
+        <button className="btn small" disabled={next === null} onClick={() => next !== null && onPick(next)} aria-label="Next" data-testid="how-skip">›</button>
+      </div>
+    </div>
+  );
 }
 
 export function HowItPlays({ onClose, start }: { onClose: () => void; start?: string }) {
   const [open, setOpen] = useState<number | null>(() => { const k = FEATURES.findIndex((f) => f.id === start); return k >= 0 ? k : null; });
+  const [all, setAll] = useState(false);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') (open === null ? onClose() : setOpen(null)); };
     addEventListener('keydown', key); return () => removeEventListener('keydown', key);
   }, [open, onClose]);
-  const f = open === null ? null : FEATURES[open];
+  const total = FEATURES.reduce((n, f) => n + HOW_FILMS[f.id].length, 0);
   return (
     <div className="how" role="dialog" aria-label="How it plays" data-testid="how-it-plays">
       <div className="how__head">
         <div><small>Threads of Fortune</small><h2>How it plays</h2></div>
         <button className="btn small" onClick={onClose} aria-label="Close" data-testid="how-close">✕</button>
       </div>
-      <p className="how__intro">Tap a square to watch it and read how it works.</p>
+      <p className="how__intro">Short narrated films of the game itself. Tap one to watch it full screen, with sound.</p>
+      <button className="btn primary how__all" onClick={() => { setAll(true); setOpen(0); }} data-testid="how-all">▶ Watch them all · {Math.round(total / 60)} min</button>
       <div className="how__grid">
         {FEATURES.map((x, k) => (
-          <button key={x.id} className="how__tile" onClick={() => setOpen(k)} data-testid={`how-${x.id}`}>
-            <Clip id={x.id} focus={x.focus} className="how__clip" />
-            <span className="how__name">{x.name}</span>
+          <button key={x.id} className="how__tile" onClick={() => { setAll(false); setOpen(k); }} data-testid={`how-${x.id}`}>
+            <Loop id={x.id} />
+            <span className="how__len">{mmss(HOW_FILMS[x.id].length)}</span>
+            <span className="how__name">{x.name}<small>{x.what}</small></span>
           </button>
         ))}
       </div>
-      {f && (
-        <div className="how__view" data-testid="how-view" onClick={() => setOpen(null)}>
-          <div className="how__card" onClick={(e) => e.stopPropagation()}>
-            <div className="how__frame"><Clip key={f.id} id={f.id} className="how__full" /></div>
-            <div className="how__text">
-              <small>{open! + 1} of {FEATURES.length}</small>
-              <h3>{f.name}</h3>
-              <p><b>{f.what}</b> {f.how}</p>
-            </div>
-            <div className="how__nav">
-              <button className="btn" onClick={() => setOpen((open! + FEATURES.length - 1) % FEATURES.length)} data-testid="how-prev">‹ Back</button>
-              <button className="btn" onClick={() => setOpen(null)} data-testid="how-all">All</button>
-              <button className="btn primary" onClick={() => setOpen((open! + 1) % FEATURES.length)} data-testid="how-next">Next ›</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {open !== null && <Player at={open} all={all} onPick={setOpen} onClose={() => { setOpen(null); setAll(false); }} />}
     </div>
   );
 }

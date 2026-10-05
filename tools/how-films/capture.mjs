@@ -88,7 +88,14 @@ for (const film of FILMS) {
     }
     steps.push({ shot, say: st.say, tap });
     console.log(film.id, i, tap ? `tap ${tap.map(Math.round)}` : '', st.say.slice(0, 50));
-    if (tap) { await p.mouse.click(tap[0], tap[1]); await p.waitForTimeout(400); }
+    if (tap) {
+      // a real click on the element where there is one (some controls ignore a bare mouse event)
+      const l = typeof st.tap === 'string' ? p.locator(st.tap).first() : null;
+      let done = false;
+      if (l) done = await l.click({ force: true, timeout: 3000, noWaitAfter: true }).then(() => true).catch(() => false);
+      if (!done) await p.mouse.click(tap[0], tap[1]);
+      await p.waitForTimeout(400);
+    }
   }
   writeFileSync(`${dir}/steps.json`, JSON.stringify({ id: film.id, title: film.title, steps }, null, 1));
   await ctx.close();

@@ -47,8 +47,8 @@ export const FILMS = [
     id: 'travel', title: 'Travelling',
     steps: [
       { say: 'When Giza is not enough, zoom out to the world.', tap: '[data-testid=district-world]' },
-      { say: 'This is the region in nineteen twenty-five: Egypt, Palestine, Syria, Iraq and Anatolia, with every town you can trade in.', tap: 'button[aria-label="Zoom out"]', settle: 1500 },
-      { say: 'Tap a town to set off. Your route is drawn, and the clock starts to run.', before: async (p) => { await p.locator('button[aria-label="Zoom out"]').first().click().catch(() => {}); }, tap: '[data-testid=place-cairo]', settle: 1500 },
+      { say: 'This is the region in nineteen twenty-five: Egypt, Palestine, Syria, Iraq and Anatolia, with every town you can trade in.', tap: '[data-testid=world] button[aria-label="Zoom out"]', settle: 1500 },
+      { say: 'Tap a town to set off. Your route is drawn, and the clock starts to run.', before: async (p) => { await p.locator('[data-testid=world] button[aria-label="Zoom out"]').first().click().catch(() => {}); }, tap: '[data-testid=place-cairo]', settle: 1500 },
       { say: 'Speed the journey up, or stop at any time. Roads are quick and the desert is slow. Ferries, trains and ships cost a fare, but they save days.', settle: 3000 },
       { say: 'Arrive, and the town is yours to trade in: its buyers, its jobs and its sale rooms.', before: async (p) => { for (let i = 0; i < 60 && !(await p.locator('[data-testid=settlement]').count()); i++) await p.waitForTimeout(250); }, settle: 1500 },
     ],
