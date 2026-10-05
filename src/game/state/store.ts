@@ -47,7 +47,7 @@ import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, type PartyState } from '../systems/caravan';
+import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, setHealthMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -919,7 +919,7 @@ export const useGame = create<GameState & Actions>()(
           // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
           const condBase = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
           // illness: new cases, the days of an old one, and the crisis that can kill
-          const ill = stepIllness(s.illnesses, { day: s.day + 1, onRoad: !s.world.at, thirsty: !!night.thirsty, fatigue: condBase.fatigue }, { risk: s.illRisk ?? 1, deadly: !!s.ironman, resting: !!s.world.at });
+          const ill = stepIllness(s.illnesses, { day: s.day + 1, onRoad: !s.world.at, thirsty: !!night.thirsty, fatigue: condBase.fatigue, at: s.world.at, mounted: Object.values(party.animals ?? {}).some((n) => (n ?? 0) > 0) }, { risk: s.illRisk ?? 1, deadly: !!s.ironman, resting: !!s.world.at });
           for (const n of ill.notes) notes.push(n);
           const condition = { ...condBase, fatigue: Math.max(0, Math.min(100, condBase.fatigue + ill.fatigueAdd)) };
           // rugs put aside for a buyer who never came go back on the stall
@@ -2581,7 +2581,9 @@ export const useGame = create<GameState & Actions>()(
 
         endDay: () => {
           const { patch, summary } = rollover(get());
-          set({ ...patch, lastSummary: summary, world: { ...(patch.world ?? get().world), hour: 7 } });
+          // an ill or hurt man opens the stall late: each point of 'hours' lost pushes the morning back
+          const lost = Math.min(8, healthEffects((patch.illnesses ?? get().illnesses) as Illness[] | undefined).hours);
+          set({ ...patch, lastSummary: summary, world: { ...(patch.world ?? get().world), hour: 7 + lost } });
           audio.sfx('pen');
         },
 
@@ -3387,6 +3389,11 @@ useGame.subscribe((s) => {
   if (!fresh.length) return;
   useGame.setState({ titles: [...have, ...fresh], titleNews: [...(s.titleNews ?? []), ...fresh], journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Earned the title: ${TITLES.find((t) => t.id === id)!.name}.` }))] });
 });
+
+// What ails him slows the caravan and cuts what it can carry (illness and injury effects).
+const syncHealth = (s: { illnesses?: Illness[] }) => { const h = healthEffects(s.illnesses); setHealthMods({ speed: h.speed, carry: h.carry }); };
+syncHealth(useGame.getState());
+useGame.subscribe((s) => syncHealth(s));
 
 // Every rug that comes into stock is entered in the Carpet Register.
 useGame.subscribe((s) => {

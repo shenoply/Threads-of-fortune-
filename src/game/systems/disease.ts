@@ -91,22 +91,63 @@ export function addIllness(list: Illness[] | undefined, id: string, day: number,
 }
 
 export interface Illness { id: string; since: number; until: number; peaked?: boolean; /** Dr Feras has treated it */ treated?: boolean }
-export interface ExposureCtx { day: number; onRoad: boolean; thirsty: boolean; fatigue: number }
+/** `at`: the settlement he sleeps in (null on the road). `mounted`: he rides or leads animals. `wounds`: open wounds he has. */
+export interface ExposureCtx { day: number; onRoad: boolean; thirsty: boolean; fatigue: number; at?: string | null; mounted?: boolean }
+
+const PORTS = ['alexandria', 'portsaid', 'jaffa', 'beirut', 'istanbul'];
+const BIG_TOWNS = ['cairo', 'alexandria', 'portsaid', 'istanbul', 'damascus', 'aleppo', 'baghdad', 'jerusalem', 'beirut'];
+const OUTSIDE_EGYPT_CHOLERA = ['baghdad', 'damascus', 'aleppo', 'beirut'];
+const WET_EGYPT = ['giza', 'cairo', 'tanta', 'fayoum', 'saqqara', 'portsaid', 'alexandria'];
+/** wounds that stay open and can go bad */
+export const OPEN_WOUNDS = ['cut', 'stab', 'gunshot', 'camelbite', 'burn', 'crush', 'snake'];
 
 const GUT = ['bacillary', 'amoebic', 'typhoid'];
 const month = (day: number) => new Date(Date.UTC(1925, 2, 9 + day)).getUTCMonth(); // 0 = January
 
 /** how much the day's circumstances scale a disease's yearly chance */
 export function exposure(id: string, c: ExposureCtx): number {
-  const m = month(c.day), summer = m >= 4 && m <= 9, winter = m === 11 || m <= 1;
+  const m = month(c.day), summer = m >= 4 && m <= 9, winter = m === 11 || m <= 1, spring = m >= 2 && m <= 4;
+  const at = c.at ?? '', town = BIG_TOWNS.includes(at);
   let x = 1;
-  if (GUT.includes(id)) { if (c.onRoad) x *= 2.5; if (c.thirsty) x *= 1.5; if (summer) x *= 1.5; }
-  if (id === 'malaria') { x *= summer ? 2.5 : 0.3; if (c.onRoad) x *= 3; }
-  if (id === 'bilharzia' || id === 'hookworm') { if (c.onRoad) x *= 3; }
+  if (GUT.includes(id)) { if (c.onRoad) x *= 2.5; if (c.thirsty) x *= 1.5; if (summer) x *= 1.5; if (town) x *= 1.3; }
+  if (id === 'malaria') { x *= summer ? 2.5 : 0.3; if (c.onRoad) x *= 3; if (at === 'fayoum') x *= 3; }
+  if (id === 'bilharzia' || id === 'hookworm') { if (c.onRoad) x *= 3; if (WET_EGYPT.includes(at)) x *= 1.5; }
   if (id === 'bronchitis' || id === 'pneumonia') { if (winter) x *= 2.5; if (c.onRoad && winter) x *= 1.5; }
+  if (id === 'influenza') { if (winter) x *= 3; if (town) x *= 1.6; }
   if (id === 'trachoma' && c.onRoad) x *= 1.5;
+  if (id === 'heatstroke') { x *= summer ? 3 : 0.1; if (c.onRoad) x *= 2; if (c.thirsty) x *= 4; }
+  if (id === 'relapsing' || id === 'typhus') { if (c.onRoad) x *= 3; if (town && winter) x *= 2; if (c.fatigue >= 70) x *= 1.3; }
+  if (id === 'brucellosis' || id === 'tapeworm') { if (c.onRoad) x *= 2; }
+  if (id === 'leish') { if (c.onRoad) x *= 2; if (summer) x *= 2; }
+  if (id === 'tb' || id === 'smallpox' || id === 'diphtheria') { if (town) x *= 2; if (winter && id === 'diphtheria') x *= 2; }
+  if (id === 'plague') { if (PORTS.includes(at)) x *= 10; if (spring) x *= 2; }
+  if (id === 'cholera') { if (OUTSIDE_EGYPT_CHOLERA.includes(at)) x *= 25; else if (c.onRoad) x *= 2; }
+  if (id === 'rabies' && c.onRoad) x *= 4;
+  if (id === 'dental' && c.fatigue >= 60) x *= 1.4;
   if (c.fatigue >= 70) x *= 1.5; // a worn-out man falls ill more easily
   return x;
+}
+
+/** Chance per night of a mishap, by injury. Triggers: rough ground and a long day, mounts, pack animals,
+ *  a cold camp in the desert, the fire, wind and sand, and heavy loading. */
+export function injuryRisk(id: string, c: ExposureCtx): number {
+  const m = month(c.day), summer = m >= 4 && m <= 9;
+  const tired = c.fatigue >= 70 ? 1.6 : 1;
+  const road = c.onRoad;
+  switch (id) {
+    case 'ankle': return (road ? 0.003 : 0.0003) * tired;
+    case 'kick': return (c.mounted ? (road ? 0.002 : 0.0004) : 0) * tired;
+    case 'camelbite': return c.mounted ? (road ? 0.002 : 0.0006) : 0;
+    case 'dislocation': return (road ? 0.0005 : 0.0001) * tired;
+    case 'ribs': return c.mounted && road ? 0.0008 * tired : 0;
+    case 'scorpion': return road ? (summer ? 0.004 : 0.001) : 0.0002;
+    case 'snake': return road ? (summer ? 0.0015 : 0.0003) : 0;
+    case 'burn': return road ? 0.0012 : 0.0002;
+    case 'eyeinjury': return road ? 0.0012 : 0.0003;
+    case 'crush': return road ? 0.0004 : 0.0002;
+    case 'cut': return road ? 0.0008 : 0.0004;
+    default: return 0;
+  }
 }
 
 /** annual chance -> the chance on one day, so a year of the same exposure gives that annual chance */
@@ -140,6 +181,29 @@ export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { ri
   }
   if (!died) {
     const have = new Set(out.map((i) => i.id));
+    // wounds that stay open and untreated can go bad: wound infection, and rarely tetanus
+    const open = out.filter((i) => OPEN_WOUNDS.includes(i.id) && !i.treated);
+    if (open.length) {
+      const mult = (c.onRoad ? 2 : 1) * (c.fatigue >= 70 ? 1.4 : 1) * risk;
+      if (!have.has('infection') && rand() < 0.006 * mult * open.length) {
+        out.push({ id: 'infection', since: c.day, until: c.day + 7 + Math.floor(rand() * 15) }); have.add('infection');
+        notes.push('The wound has gone bad. It is hot, swollen and weeping. Go and see Dr Feras.');
+      }
+      if (!have.has('tetanus') && rand() < 0.0004 * mult * open.length) {
+        out.push({ id: 'tetanus', since: c.day, until: c.day + 14 + Math.floor(rand() * 17) }); have.add('tetanus');
+        notes.push('Your jaw is stiff and the muscles in your back have begun to spasm. This is serious.');
+      }
+    }
+    // accidents of the road and the camp
+    for (const d of DISEASES) {
+      if (d.kind !== 'injury' || have.has(d.id)) continue;
+      const q = injuryRisk(d.id, c) * risk;
+      if (q > 0 && rand() < q) {
+        const len = d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1));
+        out.push({ id: d.id, since: c.day, until: c.day + len }); have.add(d.id);
+        notes.push(`Hurt: ${d.name.toLowerCase()}. ${d.symptom}`);
+      }
+    }
     for (const d of DISEASES) {
       if (have.has(d.id) || d.annual <= 0) continue;
       if (rand() < dailyHazard(d.annual * exposure(d.id, c) * risk)) {

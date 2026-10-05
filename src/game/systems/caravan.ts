@@ -48,9 +48,13 @@ function assign(p: PartyState) {
   return { list, walkers: riders, mountedTroops };
 }
 
+/** set by the store from the merchant's illnesses and injuries: travel speed % and carrying % (both 0 or negative) */
+export const healthMods = { speed: 0, carry: 0 };
+export const setHealthMods = (m: { speed: number; carry: number }) => { healthMods.speed = m.speed; healthMods.carry = m.carry; };
+
 export const capacity = (p: PartyState) => {
   const { list } = assign(p);
-  return Math.round((WALKER_LOAD + troopCount(p) + list.reduce((s, a) => s + BREEDS[a.id].load * (a.ridden ? 0.4 : 1), 0)) * 10) / 10;
+  return Math.round((WALKER_LOAD + troopCount(p) + list.reduce((s, a) => s + BREEDS[a.id].load * (a.ridden ? 0.4 : 1), 0)) * (1 + healthMods.carry / 100) * 10) / 10;
 };
 export const carried = (inv: RugItem[]) => inv.filter((i) => !i.stored);
 export const load = (p: PartyState, inv: RugItem[]) => carried(inv).length + p.food / FOOD_PER_LOAD;
@@ -71,7 +75,7 @@ export function speedInfo(p: PartyState, inv: RugItem[]) {
   const over = l > cap ? Math.max(0.35, cap / l) : 1;
   // the pace worsens the longer the caravan goes hungry, down to a crawl, rather than a flat penalty forever
   const hungry = p.food <= 0 ? Math.max(0.4, 0.75 - (p.hungryDays ?? 0) * 0.05) : 1;
-  const mult = pace * over * hungry * SKILL_MODS.speed;
+  const mult = pace * over * hungry * SKILL_MODS.speed * Math.max(0.2, 1 + healthMods.speed / 100);
   const slowest = walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name.toLowerCase() : 'nobody';
   return { pxPerDay: BASE_SPEED * mult, mult, mounted, over: l > cap, hungry: p.food <= 0, cap, load: l, slowest };
 }
