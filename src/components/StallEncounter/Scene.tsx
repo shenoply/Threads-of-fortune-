@@ -166,7 +166,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   // above where the 94% line puts them, so the figure is set that much lower to put hands on cloth.
   // The head (11% down) must stay inside the visible frame.
   const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.175 + 0) / 0.83);
-  const heroStyle = { height: heroH, bottom: sh * 0.175 - heroH * 0.06 };
+  const heroStyle = { height: heroH, bottom: sh * 0.175 - heroH * 0.13 };
   // a standing buyer is drawn head to foot, the merchant only head to hands: their heads come out the
   // same size as his at 1.3 times his height; the counter then cuts them at the waist (40% up the figure) rather than the
   // shins, and their head (the top 5% of the picture is air) must stay inside the visible frame

@@ -29,6 +29,8 @@ import { dateLabel } from '../Auction/Auction';
 import { BOOKS, HAMMAMS, SKILLS } from '../../data/character';
 import { OUTFITS, soldIn } from '../../data/wardrobe';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
+import { Catalogue } from '../Wardrobe/Catalogue';
+import { shopsIn } from '../../data/clothingShops';
 import { BUYERS } from '../../data/buyers';
 import { PortraitOrCameo } from '../People/Person';
 import { personFor } from '../../data/people';
@@ -65,6 +67,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     if (anchor) window.setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
   const [wardrobe, setWardrobe] = useState(false);
+  const [shop, setShop] = useState<string | null>(null);
   const st = settlementById(id);
   const [talkTo, setTalkTo] = useState<string | null>(null);
   const [inVenue, setInVenue] = useState(false);
@@ -113,6 +116,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   return (
     <div className={`overlay settlement${menu ? ' menu-open' : ''}`} role="dialog" aria-label={st.name} data-testid="settlement">
       {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
+      {shop && <Catalogue shopId={shop} onClose={() => setShop(null)} />}
       <div className="set-head">
         {id === 'giza' ? <img className="thumb" src="art/world/giza-district.jpg" alt="" style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={walk.map} alt="" style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
         <div className="set-head-shade" />
@@ -206,7 +210,13 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                   <button className="btn primary" disabled={g.cash < HAMMAMS[id].cost || (g.attire?.clean ?? 100) >= 100} onClick={() => setNote(g.bathe(id))} data-testid="bathe">Bathe {fmt(HAMMAMS[id].cost)}</button>
                 </div>
               )}
-              {(() => {
+              {shopsIn(id).length > 0 ? shopsIn(id).map((sh) => (
+                <div className="mkt-row" key={sh.id} data-testid={`shop-${sh.id}`}>
+                  <span className="svc-ico"><Icon name="needle" /></span>
+                  <span><b>{sh.name}</b><small>{sh.tagline}. {sh.address}.</small></span>
+                  <button className="btn primary" onClick={() => setShop(sh.id)} data-testid={`open-shop-${sh.id}`}>Catalogue</button>
+                </div>
+              )) : (() => {
                 const special = OUTFITS.filter((o) => o.where.includes(id));
                 const all = OUTFITS.filter((o) => soldIn(o, id));
                 return (
@@ -372,12 +382,12 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </>)}
       </div>
       {/* the way out, always in reach: the panel scrolls, so the button in the header goes off the top */}
-      {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && !cabaret && (
+      {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && !shop && !cabaret && (
         <div className="set-exit">
           <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">⟵ Leave {st.name} · back to the map</button>
         </div>
       )}
-      {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && (() => {
+      {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && !shop && (() => {
         const people = st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival);
         const venues = venuesIn(id);
         const pic = id === 'giza' ? 'art/world/giza-district.jpg' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.jpg` : null);
@@ -388,6 +398,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
           ['hourglass', 'Wait here', 'Let time pass — trouble on the road may move on before you set off again', () => setWaitOpen(true), 'menu-wait'],
           ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
+          ...shopsIn(id).map((sh) => ['needle', sh.name, `Clothes catalogue · ${sh.tagline}`, () => setShop(sh.id), `menu-shop-${sh.id}`] as [string, string, string, () => void, string]),
           ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
           ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
           ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards'), 'menu-guards'],

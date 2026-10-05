@@ -34,7 +34,7 @@ for (const [w, h] of [[412, 760], [390, 700], [360, 640], [1280, 800]]) {
       rows: getComputedStyle(document.querySelector('.stall')).gridTemplateRows,
       chain: (() => { const out = []; for (let e = document.querySelector('.stall'); e && out.length < 6; e = e.parentElement) { const r = e.getBoundingClientRect(); out.push(`${e.className.split(' ')[0]}:${Math.round(r.height)}/${getComputedStyle(e).overflowY}`); } return out.join(' < '); })(),
       bandSpill: (() => { const b = [...document.querySelectorAll('[data-testid=band] > *')].reduce((mx, e) => Math.max(mx, e.getBoundingClientRect().bottom), 0); const h = document.querySelector('[data-testid=tray-handle]')?.getBoundingClientRect().top ?? 9999; return b > h + 1; })(),
-      sceneOk: (() => { const r = document.querySelector('.stall > .scene').getBoundingClientRect(); return r.height <= r.width * 380 / 780 + 2; })(),
+      sceneOk: (() => { const r = document.querySelector('.stall > .scene').getBoundingClientRect(); return r.height <= r.width * 470 / 780 + 2; })(),
       overlap: (() => { const a = document.querySelector('[data-testid=enc-tier]')?.getBoundingClientRect(); const b = document.querySelector('[data-testid=meter-interest]')?.getBoundingClientRect(); return !!(a && b && a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom); })(),
     };
   });

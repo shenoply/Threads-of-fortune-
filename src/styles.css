@@ -130,13 +130,13 @@ img { max-width: 100%; }
   overflow: hidden;
   background: #0d0805;
   width: 100%;
-  aspect-ratio: 780 / 380;
+  aspect-ratio: 780 / 470;
   /* Capped lower than it used to be: on a phone, the browser's own address bar eats into the
      viewport height the game never sees, so a scene sized for the full window left the band below
      it (buyer meters, the stage tracker, the action grid) squeezed into a sliver that needed
      scrolling to reach. A shorter picture leaves that content room to breathe without it. */
-  max-height: 42vh;
-  min-height: 190px;
+  max-height: 52vh;
+  min-height: 220px;
   touch-action: manipulation;
 }
 .cam {
@@ -558,7 +558,7 @@ table.ledger .neg { color: var(--bad); }
 }
 
 @media (max-height: 780px) {
-  .scene { max-height: 35vh; min-height: 160px; }
+  .scene { max-height: 44vh; min-height: 190px; }
   .narrator { font-size: 14.5px; padding: 4px 9px 5px; }
   .narrator small { display: none; }
   .band.has-narr .stages { display: none; }
@@ -1929,7 +1929,7 @@ body.travelling .mission-strip{display:none}
 .idle-clock-chip{position:absolute;right:10px;top:10px;font-family:var(--display);font-size:22px;letter-spacing:.04em;color:var(--brass-hi);background:#140c06cc;padding:3px 10px;border-radius:8px;border:1px solid #7a5028}
 /* the folded stock on the counter in front of a visiting buyer */
 /* the stall as one painting: figures behind the counter, the counter cloth in front */
-.scene.stall{background:#120c07;aspect-ratio:780/380}
+.scene.stall{background:#120c07;aspect-ratio:780/470}
 .scene.stall .stage{position:absolute;bottom:0}
 .scene.stall .stage-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .scene.stall .hero-at-stall{position:absolute;left:0;aspect-ratio:1024/1536;z-index:2;animation:sil 6s ease-in-out infinite}
@@ -2365,10 +2365,11 @@ button.hud-chip { cursor: pointer; }
   .stall.in-talk .act { min-height: 46px; padding: 5px 8px; }
   .stall.in-talk .act .t { font-size: 15px; }
   .stall.in-talk .act .s { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* the rug cards drop their small print on a phone so the picture can be taller */
+  @media (max-height: 820px) { .stall.in-talk .rugcard .meta { display: none; } }
   @media (max-height: 680px) {
     .stall.in-talk .act { min-height: 40px; }
     .stall.in-talk .act .s { display: none; }
-    .stall.in-talk .rugcard .meta { display: none; }
   }
   .stall.in-talk .band .plate-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; padding: 0; }
   .stall.in-talk .band .plate-row .buyer-face { width: 28px !important; height: 28px !important; }

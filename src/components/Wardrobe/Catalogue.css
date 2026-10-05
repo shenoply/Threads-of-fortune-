@@ -1,0 +1,69 @@
+/* A shop catalogue, in the manner of a period mail-order book: cream paper, black ink, red rules. */
+.overlay.catalogue { z-index: 88; background: #0f0905; display: flex; flex-direction: column; }
+.cat-top { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: #150e08; }
+.cat-cash { font-family: var(--label); color: var(--text-dim); font-size: 14.5px; }
+.cat-cash b { color: var(--brass-hi); font-size: 16.5px; }
+.cat-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 20px; -webkit-overflow-scrolling: touch; }
+.cat-paper {
+  position: relative; max-width: 880px; margin: 0 auto; padding: 22px 18px 16px; color: #2a1a0c;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(255, 244, 214, 0.55), transparent 55%),
+    radial-gradient(ellipse at 90% 100%, rgba(160, 110, 50, 0.22), transparent 60%),
+    #eadbb6;
+  border: 3px double #6d2a1c; outline: 1px solid #2a1a0c; outline-offset: 5px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7), inset 0 0 60px rgba(120, 80, 30, 0.28);
+}
+.cat-masthead { text-align: center; padding-bottom: 6px; }
+.cat-est { display: block; font-family: var(--label); letter-spacing: 0.24em; text-transform: uppercase; font-size: 12px; color: #7a2a1b; }
+.cat-masthead h1 { margin: 4px 0 2px; font-family: var(--display); font-weight: 700; font-size: clamp(26px, 6.4vw, 44px); line-height: 1.05; letter-spacing: 0.02em; color: #1d1209; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35); }
+.cat-rule { display: flex; align-items: center; gap: 10px; margin: 6px auto; max-width: 420px; color: #7a2a1b; }
+.cat-rule i { flex: 1; height: 0; border-top: 2px solid #7a2a1b; border-bottom: 1px solid #7a2a1b; padding-top: 2px; }
+.cat-tag { margin: 2px 0; font-style: italic; font-size: 17px; color: #3a2411; }
+.cat-addr { margin: 0; font-family: var(--label); letter-spacing: 0.1em; text-transform: uppercase; font-size: 12.5px; color: #5b4128; }
+.cat-blurb { margin: 8px auto 0; max-width: 560px; font-size: 15.5px; line-height: 1.35; color: #3a2411; }
+
+.cat-tabs { display: flex; gap: 4px; overflow-x: auto; margin: 12px -4px 0; padding: 0 4px 6px; border-bottom: 2px solid #7a2a1b; scrollbar-width: none; }
+.cat-tabs button { flex: none; font-family: var(--label); font-size: 14.5px; letter-spacing: 0.05em; padding: 6px 12px; background: transparent; color: #4a2e18; border: 1px solid #8a6a47; border-bottom: none; border-radius: 3px 3px 0 0; cursor: pointer; }
+.cat-tabs button em { font-style: normal; color: #7a2a1b; margin-right: 2px; }
+.cat-tabs button b { margin-left: 5px; background: #7a2a1b; color: #f3e6c4; border-radius: 9px; padding: 0 6px; font-size: 12px; }
+.cat-tabs button.on { background: #7a2a1b; color: #f3e6c4; border-color: #7a2a1b; }
+.cat-tabs button.on em { color: #f3e6c4; }
+.cat-tabs button.on b { background: #f3e6c4; color: #7a2a1b; }
+
+.cat-page h2 { margin: 14px 0 8px; text-align: center; font-family: var(--display); font-size: 22px; color: #1d1209; }
+.cat-page h2 span { display: block; font-family: var(--label); font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #7a2a1b; }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.cat-item { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 8px; background: rgba(255, 248, 228, 0.5); border: 1px solid #8a6a47; outline: 1px solid rgba(138, 106, 71, 0.5); outline-offset: -4px; }
+.cat-item.chosen { background: rgba(122, 42, 27, 0.12); border-color: #7a2a1b; }
+.cat-item.owned { opacity: 0.72; }
+.cat-no { font-family: var(--label); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #7a2a1b; }
+.cat-plate { position: relative; display: block; aspect-ratio: 3 / 4; background: #d9c9a2; overflow: hidden; border: 1px solid #5b4128; filter: sepia(0.25) saturate(0.9); }
+.cat-plate i { position: absolute; inset: 0; background-repeat: no-repeat; background-size: cover; background-position: 50% 12%; }
+.cat-name { font-family: var(--display); font-size: 16px; line-height: 1.12; color: #1d1209; }
+.cat-note { font-size: 13px; line-height: 1.25; color: #4a3220; flex: 1; }
+.cat-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.cat-price { font-family: var(--display); font-weight: 700; font-size: 19px; color: #7a2a1b; margin-right: auto; font-variant-numeric: tabular-nums; }
+.cat-foot em { font-style: normal; font-family: var(--label); font-size: 12px; color: #3d5a2c; }
+.cat-add { font-family: var(--label); font-size: 14px; padding: 4px 12px; background: #2a1a0c; color: #f3e6c4; border: 1px solid #2a1a0c; border-radius: 2px; cursor: pointer; min-height: 32px; }
+.cat-add.on { background: #7a2a1b; border-color: #7a2a1b; }
+
+.cat-item.locked { background: rgba(60, 40, 20, 0.12); border-style: dashed; }
+.cat-item.locked .cat-plate, .cat-item.locked .cat-name, .cat-item.locked .cat-note, .cat-item.locked .cat-price { filter: grayscale(1); opacity: 0.55; }
+.cat-lock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 34px; background: rgba(30, 20, 10, 0.35); }
+.cat-where { font-family: var(--label); font-size: 13px; line-height: 1.25; color: #7a2a1b; border-top: 1px dotted #8a6a47; padding-top: 4px; }
+.cat-colophon { margin-top: 14px; text-align: center; font-style: italic; font-size: 12.5px; color: #6a4e30; border-top: 1px solid #8a6a47; padding-top: 6px; }
+
+.cat-bar { border-top: 1px solid var(--line-strong); background: #150e08; padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); }
+.cat-note-line { margin: 0 0 6px; color: var(--parchment); font-size: 14.5px; }
+.cat-bar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cat-sum { flex: 1 1 160px; color: var(--parchment); font-size: 14.5px; }
+.cat-sum b { color: var(--brass-hi); }
+.cat-warn { color: #e07a5f; }
+.cat-mirror { display: none; }
+@media (min-width: 1100px) {
+  .cat-mirror { display: block; position: fixed; right: 18px; top: 70px; bottom: 78px; width: 16vw; max-width: 230px; text-align: center; color: var(--text-dim); font-family: var(--label); font-size: 12.5px; pointer-events: none; z-index: 1; }
+  .cat-mirror .hero-fig { height: calc(100% - 20px); width: auto; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6)); }
+}
+
+.cat-bar-row .btn { padding: 6px 12px; min-height: 40px; }
+@media (max-width: 460px) { .cat-paper { padding: 18px 12px 12px; } .cat-blurb { font-size: 14.5px; } .cat-bar-row { gap: 6px; } }

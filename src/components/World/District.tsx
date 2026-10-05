@@ -1,3 +1,4 @@
+import { Catalogue } from '../Wardrobe/Catalogue';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { streetRoute } from '../../game/systems/streets';
 import { createPortal } from 'react-dom';
@@ -31,6 +32,7 @@ export const POIS: Poi[] = [
   { id: 'station', name: 'Giza station', sub: 'Trains north to Cairo and south up the valley', x: 1275, y: 330, glyph: 'R' },
   { id: 'ferry', name: 'Nile ferry', sub: 'Across the river to Cairo · £0.01', x: 1385, y: 680, glyph: 'N' },
   { id: 'lab', name: "Arran's laboratory", sub: 'Textile tests: fibre, dyes, fastness', x: 553, y: 318, glyph: 'L' },
+  { id: 'clothes', name: "Haj Mahmoud's cloth shop", sub: 'Galabiyas, tarbooshes and slippers', x: 985, y: 365, glyph: 'H' },
   { id: 'malek', name: "Malek's grill", sub: 'Kofta, kebab, tea and road parcels', x: 690, y: 420, glyph: 'M' },
   { id: 'pyramids', name: 'The pyramids', sub: 'Tourists, guides and gossip', x: 225, y: 385, glyph: 'P' },
   { id: 'gate', name: 'Desert road', sub: 'Leave for the wider world', x: 90, y: 870, glyph: 'W' },
@@ -447,7 +449,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const st = useRef({
     x: d0?.x ?? 760, y: d0?.y ?? 468, tx: d0?.x ?? 760, ty: d0?.y ?? 468,
-    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek']),
+    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek', 'clothes']),
     target: null as string | null, route: [] as { x: number; y: number }[], dirty: true,
   });
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
@@ -461,6 +463,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [room, setRoom] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
+  const [clothes, setClothes] = useState(false);
   // the film over the lab or the coffee house: by itself the first time, then on request
   const [film, setFilm] = useState<FilmId | null>(null);
   // asked for from the stall or the evening strip ("Lunch at Malek's"): the app shows the map afresh
@@ -509,6 +512,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       case 'coffee': setRoom(true); if (unseen('abuhamid')) setFilm('abuhamid'); break;
       case 'lab': setLab(true); if (unseen('arran')) setFilm('arran'); break;
       case 'malek': setMalek(true); break;
+      case 'clothes': setClothes(true); break;
       case 'souk': setPanel('market'); break;
       case 'animals': setPanel('animals'); break;
       case 'guards': setPanel('guards'); break;
@@ -840,6 +844,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {lab && <Suspense fallback={null}><ArranLab onLeave={() => setLab(false)} onFilm={filmReady('arran') ? () => setFilm('arran') : undefined} /></Suspense>}
       {film && createPortal(<IntroFilm id={film} onDone={() => { useGame.getState().markIntroSeen(film); setFilm(null); }} />, document.body)}
       {/* at page level, so the evening ledger strip and the map chrome never sit on top of the shop */}
+      {clothes && <Catalogue shopId="haj-mahmoud" onClose={() => setClothes(false)} />}
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && !film && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
       {room && createPortal(<CafeRoom onTalk={() => setTalk(true)} onPlay={(g) => { setCafe(g); if (g === 'chess' && unseen('bilgin-chess')) setFilm('bilgin-chess'); }} onLeave={() => { setRoom(false); setTalk(false); setNote(''); }} onFilm={filmReady('abuhamid') ? () => setFilm('abuhamid') : undefined} note={note} onNote={() => setNote('')} />, document.body)}

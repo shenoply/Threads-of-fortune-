@@ -72,7 +72,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         if (getComputedStyle(c).position === 'absolute' || getComputedStyle(c).position === 'fixed') continue;
         rest += c.getBoundingClientRect().height;
       }
-      const natural = el.clientWidth * 380 / 780;
+      const natural = el.clientWidth * 470 / 780;
       const h = Math.max(96, Math.min(natural, el.clientHeight - rest));
       el.style.setProperty('--scene-h', `${Math.floor(h)}px`);
     };
