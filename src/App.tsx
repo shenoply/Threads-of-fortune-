@@ -352,6 +352,13 @@ export default function App() {
               <button className="ghost-btn" onClick={() => { enterGame(); setGuide(true); }} data-testid="take-tour">Take the quick tour</button>
             </div>
           )}
+          {!g.started && (
+            <label className={`iron-toggle ${g.ironman ? 'on' : ''}`} data-testid="ironman-toggle">
+              <input type="checkbox" checked={!!g.ironman} onChange={(e) => g.setIronman(e.target.checked)} />
+              <span><b>Ironman mode</b><small>One life. If Hassan dies, from sickness, a wound or a fight, the game is over. No save slots.</small></span>
+            </label>
+          )}
+          {g.started && g.ironman && <div className="iron-badge" data-testid="ironman-badge">⚔ Ironman · one life</div>}
           <div className="row">
             {g.started ? (
               <>
@@ -555,10 +562,11 @@ export default function App() {
             </div>
             <div className="save-row">
               <button className="btn primary" onClick={() => { forceSave(); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save now</button>
-              <button className="btn" onClick={downloadSave} data-testid="save-download">Download a save file</button>
+              <button className="btn" onClick={downloadSave} disabled={!!g.ironman} data-testid="save-download">Download a save file</button>
               <label className="btn" data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
             </div>
             <p className="dim">A save file keeps a copy you can bring back, or open on another phone or computer.</p>
+            {g.ironman && <p className="dim"><b>Ironman:</b> one life, one save. The game saves itself as you play. Save slots and save files are switched off, so a death cannot be undone.</p>}
             <h3>Save slots</h3>
             <p className="dim">Keep up to {SLOT_COUNT} games side by side on this phone or computer, without downloading a file.</p>
             <div className="slot-list" data-testid="slot-list">
@@ -568,7 +576,7 @@ export default function App() {
                   <div className="slot-row" key={n} data-testid={`slot-${n}`}>
                     <span className="slot-info">{info ? slotLabel(info) : 'Empty slot'}</span>
                     <span className="slot-btns">
-                      <button className="btn small" onClick={() => slotSave(n)} data-testid={`slot-save-${n}`}>{info ? 'Overwrite' : 'Save here'}</button>
+                      <button className="btn small" disabled={!!g.ironman} onClick={() => slotSave(n)} data-testid={`slot-save-${n}`}>{info ? 'Overwrite' : 'Save here'}</button>
                       {info && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
                       {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`}>Clear</button>}
                     </span>
@@ -627,10 +635,11 @@ export default function App() {
         <div className="overlay ending" data-testid="ending">
           <div className="modal-card ending-card">
             <small>THE EGYPTIAN GAZETTE · {dateFor(g.ended.day).long.toUpperCase()}</small>
-            <h2>A Giza carpet stall closes</h2>
+            <h2>{g.ended.cause === 'death' ? 'Hassan is dead' : 'A Giza carpet stall closes'}</h2>
             <p>{g.ended.text}</p>
             <p className="dim">You traded for {g.ended.day} days, sold {g.ledger.filter((l) => l.kind === 'sale').length} rugs and reached reputation {g.reputation}.</p>
-            <button className="btn primary" onClick={() => { audio.stopAll(); g.reset(); setPhase('title'); }} data-testid="ending-restart">Begin again</button>
+            {g.ended.cause === 'death' && <p className="dim">{g.ironman ? 'Ironman: there is no second life. The run is over.' : ''}</p>}
+            <button className="btn primary" onClick={() => { audio.stopAll(); g.reset(); setPhase('title'); }} data-testid="ending-restart">{g.ended.cause === 'death' ? 'Start a new life' : 'Begin again'}</button>
           </div>
         </div>
       )}

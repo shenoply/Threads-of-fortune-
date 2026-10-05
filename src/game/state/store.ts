@@ -177,7 +177,7 @@ export interface GameState {
   ruin?: Ruin;
   bankruptcies?: number;
   /** a second bankruptcy ends the run */
-  ended?: { day: number; text: string };
+  ended?: { day: number; text: string; cause?: 'death' | 'ruin' };
   /** diseases the merchant has now (src/game/systems/disease.ts) */
   illnesses?: Illness[];
   /** Ironman: a fatal illness (or fight) ends the run */
@@ -419,6 +419,10 @@ interface Actions {
   setAutosave: (on: boolean) => void;
   setVolume: (c: keyof Volumes, v: number) => void;
   reset: () => void;
+  /** Ironman is chosen before the first day and cannot be switched off */
+  setIronman: (on: boolean) => void;
+  /** Ironman: Hassan dies and the run is over */
+  dieNow: (text: string) => void;
 }
 
 const rng = () => Math.random();
@@ -1112,7 +1116,7 @@ export const useGame = create<GameState & Actions>()(
           let ruin: Ruin = { ...(s.ruin ?? { stage: 0, since: 0 }) };
           let bankruptcies = s.bankruptcies ?? 0;
           let ended = s.ended;
-          if (ill.died && !ended) ended = { day, text: `${DISEASE(ill.died.id)?.name ?? 'Illness'} took Hassan. The bazaar mourns a rug merchant who was never quite as clever as he thought.` };
+          if (ill.died && !ended) ended = { day, cause: 'death', text: `${DISEASE(ill.died.id)?.name ?? 'Illness'} took Hassan. The bazaar mourns a rug merchant who was never quite as clever as he thought.` };
           const owedNow = overdue(cash, bills.due, bills.due > 0 && day - bills.since >= 5, loans, day);
           if (owedNow < RUIN_THRESHOLD || day < (ruin.graceUntil ?? 0)) {
             if (ruin.stage > 0 && owedNow < RUIN_THRESHOLD) { notes.push('Your creditors are paid. The lane stops whispering.'); ruin = { stage: 0, since: 0, graceUntil: ruin.graceUntil }; }
@@ -1922,6 +1926,11 @@ export const useGame = create<GameState & Actions>()(
         hurt: (kind, injuryId) => {
           const s = get(); const id = injuryId ?? rollInjury(kind); const d = DISEASE(id);
           if (!d) return '';
+          // Ironman: a bad enough wound can kill outright, there and then
+          if (s.ironman && d.fatality > 0 && Math.random() < d.fatality * 0.4) {
+            get().dieNow(`${d.name} on the road. Hassan did not get up. The caravan carried his body home to Giza.`);
+            return `Fatal: ${d.name.toLowerCase()}.`;
+          }
           set({ illnesses: addIllness(s.illnesses, id, s.day), journal: [...s.journal, { day: s.day, text: `Injured: ${d.name.toLowerCase()}.`, kind: 'road' as const }] });
           return `Injury: ${d.name.toLowerCase()}. ${d.symptom}`;
         },
@@ -3196,6 +3205,8 @@ export const useGame = create<GameState & Actions>()(
           autosaveEnabled = on;
         },
 
+        setIronman: (on) => { const s = get(); if (s.started && !on) return; if (s.started && s.day > 1) return; set({ ironman: on }); },
+        dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
           set({ ...initial() });

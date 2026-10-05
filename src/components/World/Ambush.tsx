@@ -127,6 +127,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       settle({ cashLoss: Math.round(g.cash * 0.2), rugsLost: 1, troopsLost, delayHours: 6, enemyLost: killed, text: `You pull your caravan back and run for it, leaving a bale and a purse behind.${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
     } else {
       audio.sfx('chest');
+      if (g.ironman && Math.random() < 0.12) useGame.getState().dieNow('Cut down by raiders on the road. Hassan\'s men carried him back to Giza, but too late.');
       const wound = Math.random() < 0.7 ? ` ${useGame.getState().hurt('fight')}` : '';
       settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
     }
