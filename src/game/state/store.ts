@@ -3205,7 +3205,7 @@ export const useGame = create<GameState & Actions>()(
           autosaveEnabled = on;
         },
 
-        setIronman: (on) => { const s = get(); if (s.started && !on) return; if (s.started && s.day > 1) return; set({ ironman: on }); },
+        setIronman: (on) => { const s = get(); if (!on && s.started && s.day > 1) return; set({ ironman: on }); },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();

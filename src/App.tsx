@@ -125,6 +125,7 @@ export default function App() {
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
   useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
+  const [titleOpts, setTitleOpts] = useState(false);
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
@@ -324,6 +325,41 @@ export default function App() {
     }
   }, [g.cash]);
 
+  const soundOptions = (
+    <>
+            <h2>Sound</h2>
+            <p>Voices play only where recorded lines exist. Everything else is captioned.</p>
+            <div className="vol-sliders" data-testid="volume-sliders">
+              {([['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects and ambience'], ['dialogue', 'Dialogue']] as [keyof Volumes, string][]).map(([k, l]) => {
+                const v = (g.volumes ?? DEFAULT_VOLUMES)[k];
+                return (
+                  <label className="vol-row" key={k}>
+                    <span>{l}</span>
+                    <input type="range" min={0} max={100} step={5} value={Math.round(v * 100)} onChange={(e) => g.setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`vol-${k}`} />
+                    <b>{Math.round(v * 100)}</b>
+                  </label>
+                );
+              })}
+            </div>
+            {(
+              [
+                ['dialogue', 'Dialogue', 'Recorded character voices'],
+                ['music', 'Music', 'Oud and drone in maqam Hijaz'],
+                ['sfx', 'Effects', 'Rugs, coins, tea, Saffron'],
+                ['ambience', 'Ambience', 'Market crowd, birds, camels'],
+              ] as [Channel, string, string][]
+            ).map(([c, l, d]) => (
+              <div className="toggle-row" key={c}>
+                <span>
+                  {l}
+                  <small>{d}</small>
+                </span>
+                <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`} />
+              </div>
+            ))}
+    </>
+  );
+
   if (phase === 'documentary') return <Documentary canSkip onEnd={() => { markIntroSeen(); setPhase('dayone'); }} />;
   if (phase === 'dayone')
     return (
@@ -352,12 +388,12 @@ export default function App() {
               <button className="ghost-btn" onClick={() => { enterGame(); setGuide(true); }} data-testid="take-tour">Take the quick tour</button>
             </div>
           )}
-          {!g.started && (
-            <label className={`iron-toggle ${g.ironman ? 'on' : ''}`} data-testid="ironman-toggle">
-              <input type="checkbox" checked={!!g.ironman} onChange={(e) => g.setIronman(e.target.checked)} />
-              <span><b>Ironman mode</b><small>One life. If Hassan dies, from sickness, a wound or a fight, the game is over. No save slots.</small></span>
-            </label>
-          )}
+          <label className={`iron-toggle ${g.ironman ? 'on' : ''}`} data-testid="ironman-toggle">
+            <input type="checkbox" checked={!!g.ironman} disabled={!!g.ironman && g.started && g.day > 1} onChange={(e) => g.setIronman(e.target.checked)} />
+            <span><b>Ironman mode</b><small>One life. If Hassan dies, from sickness, a wound or a fight, the game is over. No save slots.{g.started && g.ironman && g.day > 1 ? ' Once begun it cannot be switched off.' : g.started ? ' You can switch it on now, but not off again after Day 1.' : ''}</small></span>
+          </label>
+          <button className="ghost-btn opt-toggle" onClick={() => setTitleOpts((o) => !o)} aria-expanded={titleOpts} data-testid="title-options">{titleOpts ? 'Hide options' : '⚙ Options · sound and volume'}</button>
+          {titleOpts && <div className="title-opts modal-card-like" data-testid="title-options-panel">{soundOptions}</div>}
           {g.started && g.ironman && <div className="iron-badge" data-testid="ironman-badge">⚔ Ironman · one life</div>}
           <div className="row">
             {g.started ? (
@@ -584,36 +620,7 @@ export default function App() {
                 );
               })}
             </div>
-            <h2>Sound</h2>
-            <p>Voices play only where recorded lines exist. Everything else is captioned.</p>
-            <div className="vol-sliders" data-testid="volume-sliders">
-              {([['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects and ambience'], ['dialogue', 'Dialogue']] as [keyof Volumes, string][]).map(([k, l]) => {
-                const v = (g.volumes ?? DEFAULT_VOLUMES)[k];
-                return (
-                  <label className="vol-row" key={k}>
-                    <span>{l}</span>
-                    <input type="range" min={0} max={100} step={5} value={Math.round(v * 100)} onChange={(e) => g.setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`vol-${k}`} />
-                    <b>{Math.round(v * 100)}</b>
-                  </label>
-                );
-              })}
-            </div>
-            {(
-              [
-                ['dialogue', 'Dialogue', 'Recorded character voices'],
-                ['music', 'Music', 'Oud and drone in maqam Hijaz'],
-                ['sfx', 'Effects', 'Rugs, coins, tea, Saffron'],
-                ['ambience', 'Ambience', 'Market crowd, birds, camels'],
-              ] as [Channel, string, string][]
-            ).map(([c, l, d]) => (
-              <div className="toggle-row" key={c}>
-                <span>
-                  {l}
-                  <small>{d}</small>
-                </span>
-                <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`} />
-              </div>
-            ))}
+            {soundOptions}
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">How to play</button>
               <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ How it plays</button>

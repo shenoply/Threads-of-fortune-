@@ -2453,3 +2453,16 @@ button.hud-chip { cursor: pointer; }
 [data-testid="settings"] .btn { font-size: 17px; min-height: 46px; padding: 10px 14px; }
 [data-testid="settings"] .btn.small { font-size: 16px; min-height: 42px; }
 [data-testid="settings"] .slot-info { font-size: 16px; }
+
+.title-opts { text-align: left; margin: 6px 0 12px; padding: 12px 14px; max-height: 42vh; overflow: auto; border: 1px solid rgba(201,151,74,0.3); border-radius: 4px; background: rgba(10,6,3,0.55); font-size: 17px; }
+.title-opts h2 { font-size: 22px; margin: 0 0 4px; color: var(--brass-hi); font-family: var(--display); font-weight: 500; }
+.title-opts p { font-size: 15.5px; color: var(--parchment-2); margin: 0 0 10px; }
+.title-opts .toggle-row { padding: 11px 0; font-size: 18px; color: var(--parchment); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(201,150,72,0.14); }
+.title-opts .toggle-row small { display: block; font-size: 15px; color: var(--parchment-2); }
+.title-opts .switch { width: 56px; height: 32px; border-radius: 16px; }
+.title-opts .switch::after { width: 26px; height: 26px; }
+.title-opts .switch[aria-checked='true']::after { left: 24px; }
+.title-opts .vol-row { display: grid; grid-template-columns: 110px 1fr 36px; gap: 8px; align-items: center; padding: 6px 0; font-size: 16px; }
+.opt-toggle { display: block; margin: 0 auto 12px; border: 1px solid rgba(234,219,189,0.25); border-radius: 999px; text-decoration: none !important; }
+.title-card { max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; }
+.title-opts { max-height: none; overflow: visible; }
