@@ -114,8 +114,9 @@ def main():
     # hand: inside the outline, pixels darker / redder than the paper around them
     lum = a.mean(2); paper = np.asarray(Image.fromarray(lum.astype(np.uint8)).filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.GaussianBlur(25))).astype(float)
     red = a[..., 0] - a[..., 2]
-    hand = ((lum < paper * 0.80) | (red > 95) | ((lum > 238) & (a[..., 2] > 225) & (np.arange(a.shape[1])[None, :] > 905 * k))) & (np.asarray(poly(Hq, base.size)) > 0)
-    hm = Image.fromarray((hand * 255).astype(np.uint8)).filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
+    # skin is far redder than the paper (green/red under .78; paper and its shadow sit at .84 and up)
+    hand = ((a[..., 1] / np.maximum(a[..., 0], 1) < 0.70) | ((lum > 238) & (a[..., 2] > 225) & (np.arange(a.shape[1])[None, :] > 905 * k) & (np.arange(a.shape[0])[:, None] > 735 * k))) & (np.asarray(poly(Hq, base.size)) > 0)
+    hm = Image.fromarray((hand * 255).astype(np.uint8)).filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(1.2))
     os.makedirs(OUT, exist_ok=True)
     for n, (cid, name, kind, cause, symptom, doctor) in enumerate(order, 1):
         img = base.copy()
