@@ -586,11 +586,11 @@ export default function App() {
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">How to play</button>
               <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ How it plays</button>
-              <button className="btn" onClick={() => { audio.stopAll(); setSettings(false); setPhase('title'); }}>Title screen</button>
               <InstallButton />
               <FullScreenButton />
               <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setSettings(false)}>Close</button>
             </div>
+            <button className="btn" style={{ width: '100%', marginTop: 12 }} onClick={() => { audio.stopAll(); setSettings(false); setPhase('title'); }} data-testid="menu-btn">⌂ Return to main menu <small style={{ opacity: 0.7 }}>(progress is saved)</small></button>
             <SecretCode />
           </div>
         </div>
