@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FAMILY_INSTALMENT, FAMILY_START } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
+import { openHowItPlays } from './HowItPlays';
 
 // How to play: short pages, plain words. Opens from Settings.
 const PAGES: { id?: string; img: string; pos?: string; title: string; lines: string[] }[] = [
@@ -88,6 +89,7 @@ export function Guide({ onClose, start = 0 }: { onClose: () => void; start?: num
           <small>HOW TO PLAY · {i + 1} OF {PAGES.length}</small>
           <h2>{p.title}</h2>
           {p.lines.map((l) => <p key={l}>{l}</p>)}
+          {i === 0 && <button className="linkish guide-how" onClick={() => { onClose(); openHowItPlays(); }} data-testid="guide-how">▶ Watch how it plays</button>}
         </div>
         <div className="guide-dots">{PAGES.map((_, k) => <button key={k} className={k === i ? 'on' : ''} onClick={() => setI(k)} aria-label={`Page ${k + 1}`} />)}</div>
         <div className="guide-foot">

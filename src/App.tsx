@@ -10,6 +10,7 @@ import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/war
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
+import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
 import { useGame, dateFor, clock, forceSave } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
@@ -118,6 +119,14 @@ export default function App() {
     window.addEventListener('tof-guide', on);
     return () => window.removeEventListener('tof-guide', on);
   }, []);
+  // How it plays: the feature clips
+  const [how, setHow] = useState<string | null>(null);
+  useEffect(() => {
+    const on = (e: Event) => setHow((e as CustomEvent<string | undefined>).detail ?? '');
+    window.addEventListener('tof-how', on);
+    return () => window.removeEventListener('tof-how', on);
+  }, []);
+  const howView = how !== null && <HowItPlays start={how || undefined} onClose={() => setHow(null)} />;
   const [cal, setCal] = useState(false);
   const [toastMsg, setToast] = useState('');
   const [paper, setPaperRaw] = useState<number | null>(null);
@@ -352,6 +361,7 @@ export default function App() {
                 )}
               </>
             )}
+            <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ How it plays</button>
             <InstallButton className="ghost-btn" />
             <FullScreenButton className="ghost-btn" />
             {slots.some((s) => s) && (
@@ -374,6 +384,7 @@ export default function App() {
           )}
         </div>
         <div className="title-foot">TRADE · PEOPLE · STORIES</div>
+        {howView}
       </div>
     );
   }
@@ -461,6 +472,7 @@ export default function App() {
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
         {tab === 'map' && <Campaign key={mapIntent?.n ?? 0} intent={mapIntent} onGo={chapterGo} frozen={frozen} clearIntent={() => setMapIntent(null)} />}
         {cal && <Suspense fallback={null}><Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} /></Suspense>}
+        {howView}
         {guide && <Guide start={guideAt} onClose={() => { setGuide(false); setGuideAt(0); g.markGuide(); }} />}
         <Tip id="rashid" when={tab === 'supplier'} />
         <Tip id="stock" when={tab === 'inventory'} />
@@ -573,6 +585,7 @@ export default function App() {
             ))}
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">How to play</button>
+              <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ How it plays</button>
               <button className="btn" onClick={() => { audio.stopAll(); setSettings(false); setPhase('title'); }}>Title screen</button>
               <InstallButton />
               <FullScreenButton />
