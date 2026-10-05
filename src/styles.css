@@ -2399,3 +2399,5 @@ button.hud-chip { cursor: pointer; }
 .evening-strip .es-text > b { font-size: 14px !important; line-height: 20px !important; white-space: nowrap; }
 .evening-strip .es-lines { font-size: 13.5px !important; line-height: 20px !important; column-gap: 9px !important; }
 .evening-strip .btn { flex: 1 1 0 !important; min-height: 32px !important; padding: 4px 8px !important; font-size: 12.5px !important; white-space: nowrap; }
+
+.amb-rob-art { width: 100%; max-height: 38vh; object-fit: cover; border-radius: 10px; margin-bottom: 8px; display: block; }

@@ -677,6 +677,10 @@ export function tutorialAllows(s: GameState, id: string) {
   return (TUTORIAL_ALLOWED[s.tutorial.step] ?? []).includes(id);
 }
 
+/** Picture for the last robBroke() fate (read by the Ambush screen right after). */
+let robArt: string | null = null;
+export const takeRobArt = () => { const a = robArt; robArt = null; return a; };
+
 export const useGame = create<GameState & Actions>()(
   persist(
     (set, get) => {
@@ -1908,28 +1912,28 @@ export const useGame = create<GameState & Actions>()(
           const carried = s.inventory.filter((i) => !i.stored && !keptBack(s, i));
           const c = s.condition ?? CONDITION_START;
           const journal = (text: string) => [...get().journal, { day: s.day, text, kind: 'road' as const }];
-          type Fate = { w: number; ok: boolean; go: () => string };
+          type Fate = { w: number; ok: boolean; art?: string; go: () => string };
           const fates: Fate[] = [
             // 1 your animals
-            { w: 3, ok: herdIds.length > 0, go: () => {
+            { art: 'rob-animal', w: 3, ok: herdIds.length > 0, go: () => {
               const id = herdIds[Math.floor(rng() * herdIds.length)];
               set({ world: { ...get().world, party: { ...party, animals: { ...party.animals, [id]: (party.animals[id] ?? 1) - 1 } } }, journal: journal(`Robbed on the road: they took a ${BREEDS[id]?.name.toLowerCase() ?? 'beast'}.`) });
               return `So they take a ${BREEDS[id]?.name.toLowerCase() ?? 'beast'} instead, and lead it away. You will carry less and go slower until you buy another.`;
             } },
             // 2 your clothes
-            { w: 3, ok: takeable.length > 0, go: () => {
+            { art: 'rob-clothes', w: 3, ok: takeable.length > 0, go: () => {
               const [slot, id] = takeable[Math.floor(rng() * takeable.length)];
               const outfit = { ...o, [slot]: null };
               set({ wardrobe: { ...w, outfit, owned: w.owned.filter((x) => x !== id) } });
               return `So the leader takes your ${PIECES[id!]?.name.toLowerCase() ?? 'clothes'} off your back. You ride on looking poorer, and buyers will notice.`;
             } },
             // 3 a beating
-            { w: 3, ok: true, go: () => {
+            { art: 'rob-beating', w: 3, ok: true, go: () => {
               set({ condition: { ...c, fatigue: Math.min(100, c.fatigue + 35) } });
               return 'So they give you a beating for wasting their morning. Fatigue +35: you will be slow for a few days.';
             } },
             // 4 held for ransom: Rashid pays, the debt grows
-            { w: 1, ok: true, go: () => {
+            { art: 'rob-ransom', w: 1, ok: true, go: () => {
               const days = 1 + Math.floor(rng() * 3);
               const ransom = 300 + Math.floor(rng() * 5) * 100;
               const fam = s.family ?? FAMILY_START;
@@ -1945,24 +1949,24 @@ export const useGame = create<GameState & Actions>()(
               return `So they put you to work loading their camels until sundown. You lose the day, but you hear something round their fire: "${tip}"`;
             } },
             // 6 an IOU in their book
-            { w: 2, ok: true, go: () => {
+            { art: 'rob-ledger', w: 2, ok: true, go: () => {
               set({ banditMark: (s.banditMark ?? 0) + 1 });
               return 'So they write your name in a greasy ledger. "Next time, double." Pay them in full next time and your name comes out of the book.';
             } },
             // 7 your papers
-            { w: 1, ok: (s.papers ?? []).length > 0, go: () => {
+            { art: 'rob-papers', w: 1, ok: (s.papers ?? []).length > 0, go: () => {
               const ps = s.papers ?? [];
               const lost = ps[Math.floor(rng() * ps.length)];
               set({ papers: ps.filter((x) => x.id !== lost.id) });
               return `So they take your satchel of papers: ${lost.title} is gone. It will have to be copied again.`;
             } },
             // 8 your food and water spoiled
-            { w: 2, ok: party.food > 0, go: () => {
+            { art: 'rob-spoiled', w: 2, ok: party.food > 0, go: () => {
               set({ world: { ...get().world, party: { ...party, food: 0 } }, condition: { ...c, water: Math.max(0, waterOf(c) - 50) } });
               return 'So they slit your waterskins and tip your food into the sand, laughing. Find a well and a town quickly.';
             } },
             // 9 the chief takes an interest
-            { w: 1, ok: true, go: () => {
+            { art: 'rob-chief', w: 1, ok: true, go: () => {
               set({ chiefTokenUntil: s.day + 30, reputation: get().reputation + 1 });
               return 'Their chief rides up, hears your name, and laughs. He gives you a knotted cord: "Show this and my men will let you pass." For a month, riders on this road leave you be.';
             } },
@@ -1972,7 +1976,7 @@ export const useGame = create<GameState & Actions>()(
               return 'So they take nothing but your dignity, and tell every caravan they meet. In the next town everyone knows Hassan was robbed. Reputation −2.';
             } },
             // and if you carry rugs, a rug
-            { w: 3, ok: carried.length > 0, go: () => {
+            { art: 'rob-rug', w: 3, ok: carried.length > 0, go: () => {
               const r = [...carried].sort((a, b) => (RUGS[b.typeId]?.tier ?? 1) - (RUGS[a.typeId]?.tier ?? 1))[0];
               set({ inventory: get().inventory.filter((i) => i.uid !== r.uid), journal: journal(`Robbed on the road: they took the ${RUGS[r.typeId].name}.`) });
               return `So they take the ${RUGS[r.typeId].name} off your animal instead.`;
@@ -1981,6 +1985,7 @@ export const useGame = create<GameState & Actions>()(
           const pool = fates.filter((f) => f.ok);
           let roll = rng() * pool.reduce((a, f) => a + f.w, 0);
           const pick = pool.find((f) => (roll -= f.w) <= 0) ?? pool[0];
+          robArt = pick.art ?? null;
           return pick.go();
         },
 
