@@ -6,7 +6,7 @@ import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
-import { START_WARDROBE, baseSrc, layerSrc, coverSrc, wornIds } from './data/wardrobe';
+import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
@@ -264,8 +264,8 @@ export default function App() {
   // the hero as he is dressed now, ready before the wardrobe or a mirror shows him
   useEffect(() => {
     if (phase !== 'game') return;
-    const o = (g.wardrobe ?? START_WARDROBE).outfit;
-    preload([baseSrc('wardrobe'), ...wornIds(o).map((id) => layerSrc('wardrobe', id)), ...(o.outer ? [coverSrc('wardrobe', o.outer)] : [])]);
+    const id = (g.wardrobe ?? START_WARDROBE).worn;
+    preload([fullSrc(id), stallSrc(id)]);
   }, [phase, g.wardrobe]);
 
   // the wireless stays at the stall: leaving Giza switches it off

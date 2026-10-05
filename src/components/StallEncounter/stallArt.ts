@@ -20,7 +20,7 @@ const asked = new Set<string>();
 /** Fetch the stall painting, the counter, the merchant, the next buyers and the props before they are needed. */
 export function preloadStall(buyerIds: string[]) {
   if (typeof Image === 'undefined') return;
-  for (const src of ['art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/hero-base-stall.webp', ...buyerIds.map((id) => stallFigure(id).src), ...EXTRAS]) {
+  for (const src of ['art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/outfits/classic-stall-stall.webp', ...buyerIds.map((id) => stallFigure(id).src), ...EXTRAS]) {
     if (asked.has(src)) continue;
     asked.add(src);
     const im = new Image(); im.decoding = 'async'; im.src = src;

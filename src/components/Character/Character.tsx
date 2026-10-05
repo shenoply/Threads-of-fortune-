@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER } from '../../data/character';
-import { PIECES, START_WARDROBE, heroCharisma } from '../../data/wardrobe';
+import { START_WARDROBE, heroCharisma, wornOutfit } from '../../data/wardrobe';
 import { HeroBadge } from '../Wardrobe/HeroFigure';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { rankOf, RANKS } from '../../game/economy/progress';
@@ -14,9 +14,9 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
   const m = g.manner ?? START_MANNER;
   const att = g.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 };
   const wr = g.wardrobe ?? START_WARDROBE;
-  const ch = heroCharisma(wr.outfit, att.clean);
+  const ch = heroCharisma(wr, att.clean);
   const [wardrobe, setWardrobe] = useState(false);
-  const dress = [wr.outfit.head, wr.outfit.outer ?? wr.outfit.top].filter((x): x is string => !!x).map((id) => PIECES[id]?.name.toLowerCase()).join(', ');
+  const dress = wornOutfit(wr).name.toLowerCase();
   const { rank, next, blockedByStory, blockingMission, blockedByWorth, worth } = rankOf(g);
   const repNext = next?.rep ?? 100;
   return (
@@ -55,7 +55,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
         <div className="cs-label"><b>Charisma {ch}</b><span>{dress} · {att.clean >= 70 ? 'clean' : att.clean >= 35 ? 'dusty' : 'filthy from the road'}</span></div>
         <i className="cs-bar clean"><em style={{ width: `${att.clean}%` }} /></i>
         {!hideDress && <div className="cs-dress">
-          <HeroBadge outfit={wr.outfit} size={64} />
+          <HeroBadge outfitId={wornOutfit(wr).id} size={64} />
           <button className="btn" onClick={() => setWardrobe(true)} data-testid="open-wardrobe">Open wardrobe</button>
         </div>}
         {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}

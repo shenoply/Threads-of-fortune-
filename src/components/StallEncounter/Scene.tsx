@@ -13,7 +13,7 @@ import { Atmosphere } from '../Atmosphere/Atmosphere';
 import { radio } from '../../game/radio/player';
 import { bulletin, loadArabic, newsStart, type Lang } from '../../game/radio/bulletin';
 import { useGame } from '../../game/state/store';
-import { START_WARDROBE } from '../../data/wardrobe';
+import { START_WARDROBE, wornOutfit } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { stallFigure } from './stallArt';
 import { BuyerCard } from '../Merchant/Customers';
@@ -104,7 +104,7 @@ export function Dust() {
 
 export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: SceneProps) {
   // the hero as the player dressed him, once every piece he wears is painted for the stall
-  const outfit = (useGame((st) => st.wardrobe) ?? START_WARDROBE).outfit;
+  const outfit = wornOutfit(useGame((st) => st.wardrobe) ?? START_WARDROBE).id;
   const box = useRef<HTMLDivElement>(null);
   const { w: W, h: H } = useSize(box);
   const buyer = enc ? BUYERS[enc.buyerId] : null;
@@ -182,7 +182,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
         {/* The base stall body is always painted, so he always shows dressed in whatever pieces
             already have a stall-pose layer; a piece without one yet just doesn't draw (see
             HeroFigure), rather than reverting the whole figure to a fixed picture. */}
-        <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfit={outfit} /></div>
+        <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfitId={outfit} /></div>
         {buyer && (
           <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
             <ScenePerson id={buyer.id} />

@@ -27,7 +27,7 @@ import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { auctionVenue } from '../../data/auctionVenues';
 import { dateLabel } from '../Auction/Auction';
 import { BOOKS, HAMMAMS, SKILLS } from '../../data/character';
-import { PIECES, PIECE_ORDER, soldIn } from '../../data/wardrobe';
+import { OUTFITS, soldIn } from '../../data/wardrobe';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { BUYERS } from '../../data/buyers';
 import { PortraitOrCameo } from '../People/Person';
@@ -195,7 +195,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </>
         )}
 
-        {(HAMMAMS[id] || PIECE_ORDER.some((pid) => soldIn(PIECES[pid], id)) || Object.values(BOOKS).some((b) => b.where.includes(id))) && (
+        {(HAMMAMS[id] || OUTFITS.some((o) => soldIn(o, id)) || Object.values(BOOKS).some((b) => b.where.includes(id))) && (
           <>
             <div className="section-label">BATHS, TAILORS AND BOOKS</div>
             <div className="mkt">
@@ -207,13 +207,13 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 </div>
               )}
               {(() => {
-                const special = PIECE_ORDER.filter((pid) => PIECES[pid].where.includes(id));
-                const all = PIECE_ORDER.filter((pid) => soldIn(PIECES[pid], id));
+                const special = OUTFITS.filter((o) => o.where.includes(id));
+                const all = OUTFITS.filter((o) => soldIn(o, id));
                 return (
                   <div className="mkt-row" data-testid="tailor">
                     <span className="svc-ico"><Icon name="needle" /></span>
-                    <span><b>Tailors and outfitters</b><small>{all.length} pieces for sale{special.length ? `, among them ${special.slice(0, 3).map((pid) => PIECES[pid].name.toLowerCase()).join(', ')}` : ''}. Try anything on before you pay.</small></span>
-                    <button className="btn primary" onClick={() => setWardrobe(true)} data-testid="open-tailor">Try on</button>
+                    <span><b>Tailors and outfitters</b><small>{all.length} outfits for sale{special.length ? `, among them ${special.slice(0, 3).map((o) => o.name.toLowerCase()).join(', ')}` : ''}. Look at each one before you pay.</small></span>
+                    <button className="btn primary" onClick={() => setWardrobe(true)} data-testid="open-tailor">Look</button>
                   </div>
                 );
               })()}

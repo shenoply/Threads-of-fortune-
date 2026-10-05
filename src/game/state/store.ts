@@ -16,7 +16,7 @@ import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
 import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
-import { PIECES, START_WARDROBE, LEGACY_SETS, heroCharisma, legacyWorn, wardrobeFromLegacy, wornIds, type Outfit, type SavedOutfit, type WardrobeState } from '../../data/wardrobe';
+import { OUTFIT, START_WARDROBE, heroCharisma, legacyWorn, soldIn as outfitSoldIn, wardrobeFromOld, type WardrobeState } from '../../data/wardrobe';
 import { dateFor, goalsFor, newUid, rashidStock, startingInventory } from '../economy/economy';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, type BookState, type Paper } from '../systems/arranBooks';
 import { SHOP } from '../systems/arranShop';
@@ -54,7 +54,7 @@ import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -345,14 +345,10 @@ interface Actions {
   seeTip: (id: string) => void;
   buyAttire: (id: string) => string;
   wear: (id: string) => void;
-  /** buy pieces of clothing at the current town; returns a line for the player */
-  buyPieces: (ids: string[]) => string;
-  /** change into an outfit made of pieces you own */
-  dressIn: (o: Outfit) => void;
-  /** keep the current combination of worn pieces under a name, to put back on later */
-  saveOutfit: (name: string, o: Outfit) => void;
-  /** forget a saved outfit (the pieces themselves stay owned) */
-  deleteSavedOutfit: (id: string) => void;
+  /** buy a ready outfit from a tailor in this town; returns a line for the player */
+  buyOutfit: (id: string) => string;
+  /** change into an outfit you own (the stall shows him in it too) */
+  wearOutfit: (id: string) => void;
   /** leave the first-sale lesson: everything unlocks, the current customer stays as an ordinary sale */
   skipTutorial: () => void;
   bathe: (sid: string) => string;
@@ -599,7 +595,7 @@ function initial(): Omit<GameState, keyof Actions> {
     skills: {},
     manner: { ...START_MANNER },
     attire: { owned: ['galabiya'], worn: 'galabiya', clean: 100 },
-    wardrobe: { owned: [...START_WARDROBE.owned], outfit: { ...START_WARDROBE.outfit, extras: [] } },
+    wardrobe: { owned: [...START_WARDROBE.owned], worn: START_WARDROBE.worn },
     books: [],
     levelUps: [],
     titles: [],
@@ -702,7 +698,7 @@ export const useGame = create<GameState & Actions>()(
         rng,
         skills: s.skills,
         manner: s.manner,
-        charisma: heroCharisma((s.wardrobe ?? START_WARDROBE).outfit, s.attire?.clean ?? 100),
+        charisma: heroCharisma(s.wardrobe ?? START_WARDROBE, s.attire?.clean ?? 100),
         eventBudget: s.world.at === 'giza' ? budgetMod(s.day) : 1,
         clean: s.attire?.clean ?? 100,
         attire: s.attire?.worn ?? 'galabiya',
@@ -1929,8 +1925,8 @@ export const useGame = create<GameState & Actions>()(
           const party = s.world.party;
           const herdIds = Object.entries(party.animals ?? {}).filter(([, n]) => n > 0).map(([id]) => id);
           const w = s.wardrobe ?? START_WARDROBE;
-          const o = w.outfit;
-          const takeable = ([['outer', o.outer], ['head', o.head], ['feet', o.feet], ['weapon', o.weapon], ['carry', o.carry]] as [keyof Outfit, string | null][]).filter(([, id]) => !!id);
+          // his best clothes are what a robber wants; the stall clothes are not worth the trouble
+          const takeable = w.owned.filter((id) => id !== 'classic-stall' && id !== 'market-work' && OUTFIT[id]).sort((a, b) => OUTFIT[b].price - OUTFIT[a].price);
           const carried = s.inventory.filter((i) => !i.stored && !keptBack(s, i));
           const c = s.condition ?? CONDITION_START;
           const journal = (text: string) => [...get().journal, { day: s.day, text, kind: 'road' as const }];
@@ -1944,10 +1940,10 @@ export const useGame = create<GameState & Actions>()(
             } },
             // 2 your clothes
             { art: 'rob-clothes', w: 3, ok: takeable.length > 0, go: () => {
-              const [slot, id] = takeable[Math.floor(rng() * takeable.length)];
-              const outfit = { ...o, [slot]: null };
-              set({ wardrobe: { ...w, outfit, owned: w.owned.filter((x) => x !== id) } });
-              return `So the leader takes your ${PIECES[id!]?.name.toLowerCase() ?? 'clothes'} off your back. You ride on looking poorer, and buyers will notice.`;
+              const id = takeable[0];
+              const worn = w.worn === id ? (w.owned.includes('classic-stall') ? 'classic-stall' : w.owned.find((x) => x !== id) ?? 'classic-stall') : w.worn;
+              set({ wardrobe: { owned: w.owned.filter((x) => x !== id), worn }, attire: { ...get().attire, worn: legacyWorn({ owned: w.owned, worn }) } });
+              return `So the leader takes your ${OUTFIT[id]?.name.toLowerCase() ?? 'clothes'}${w.worn === id ? ' off your back' : ' from your bags'}. You ride on looking poorer, and buyers will notice.`;
             } },
             // 3 a beating
             { art: 'rob-beating', w: 3, ok: true, go: () => {
@@ -2146,68 +2142,38 @@ export const useGame = create<GameState & Actions>()(
         popTitle: () => set({ titleNews: (get().titleNews ?? []).slice(1) }),
         markMerchantSeen: () => set({ merchantSeen: progressScore(get()) }),
         seeTip: (id) => set({ tipsSeen: [...new Set([...(get().tipsSeen ?? []), id])] }),
-        buyAttire: (id) => {
+        // the old whole-outfit actions, kept for anything that still calls them
+        buyAttire: (id) => get().buyOutfit(({ stambouli: 'cairo-effendi', kaftan: 'damascus-silk', frockcoat: 'court-formal', galabiya: 'market-work' } as Record<string, string>)[id] ?? id),
+        wear: (id) => get().wearOutfit(({ stambouli: 'cairo-effendi', kaftan: 'damascus-silk', frockcoat: 'court-formal', galabiya: 'classic-stall' } as Record<string, string>)[id] ?? id),
+        buyOutfit: (id) => {
           const s = get();
-          const a = ATTIRE[id];
-          if (!a || s.attire.owned.includes(id)) return '';
-          if (s.cash < a.cost) return 'Not enough cash.';
+          const o = OUTFIT[id];
           const w0 = s.wardrobe ?? START_WARDROBE;
-          const setPieces = Object.values(LEGACY_SETS[id] ?? {}).filter((v): v is string => typeof v === 'string');
-          const outfit = { ...w0.outfit, ...LEGACY_SETS[id], extras: w0.outfit.extras } as Outfit;
-          set({ cash: s.cash - a.cost, wardrobe: { owned: [...new Set([...w0.owned, ...setPieces])], outfit }, attire: { owned: [...s.attire.owned, id], worn: legacyWorn(outfit), clean: 100 }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: a.name, amount: -a.cost }], journal: [...s.journal, { day: s.day, text: `Bought ${a.name.toLowerCase()} from a tailor.` }] });
-          audio.sfx('coins');
-          return `The tailor brushes the shoulders and steps back. ${a.name}: charisma +${a.charisma}.`;
-        },
-        wear: (id) => {
-          const s = get();
-          if (!s.attire.owned.includes(id)) return;
-          const w0 = s.wardrobe ?? START_WARDROBE;
-          const outfit = id === 'galabiya' ? { ...START_WARDROBE.outfit, extras: [] } : ({ ...w0.outfit, ...LEGACY_SETS[id] } as Outfit);
-          set({ wardrobe: { ...w0, outfit }, attire: { ...s.attire, worn: legacyWorn(outfit) } });
-        },
-        buyPieces: (ids) => {
-          const s = get();
-          const w0 = s.wardrobe ?? START_WARDROBE;
-          const fresh = [...new Set(ids)].filter((id) => PIECES[id] && !w0.owned.includes(id));
-          if (!fresh.length) return '';
-          const total = fresh.reduce((n, id) => n + PIECES[id].price, 0);
-          if (s.cash < total) return `Not enough cash: that comes to ${fmt(total)}.`;
-          const PROPER = /^(Albanian|Pasha|Lee-Enfield|Ottoman|Mauser|Webley|Red Fez)/;
-          const names = fresh.map((id) => { const n = PIECES[id].name; return PROPER.test(n) ? n : n.charAt(0).toLowerCase() + n.slice(1); });
-          const said = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+          if (!o || w0.owned.includes(id)) return '';
+          if (!outfitSoldIn(o, s.world?.at)) return 'No tailor here sells that.';
+          if (s.cash < o.price) return `Not enough cash: it costs ${fmt(o.price)}.`;
+          const wardrobe = { owned: [...w0.owned, id], worn: id };
           set({
-            cash: s.cash - total,
-            wardrobe: { ...w0, owned: [...w0.owned, ...fresh] },
-            ledger: [...s.ledger, ...fresh.map((id) => ({ day: s.day, kind: 'expense' as const, label: PIECES[id].name, amount: -PIECES[id].price }))],
-            journal: [...s.journal, { day: s.day, text: `Bought ${said}.` }],
+            cash: s.cash - o.price,
+            wardrobe,
+            attire: { ...s.attire, worn: legacyWorn(wardrobe), clean: 100 },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: o.name, amount: -o.price }],
+            journal: [...s.journal, { day: s.day, text: `Bought ${o.name.toLowerCase()} from a tailor.` }],
           });
           audio.sfx('coins');
-          return `Wrapped in brown paper and tied with string: ${said}, ${fmt(total)}.`;
+          return `The tailor brushes the shoulders and steps back. You walk out in ${o.name.toLowerCase()}.`;
+        },
+        wearOutfit: (id) => {
+          const s = get();
+          const w0 = s.wardrobe ?? START_WARDROBE;
+          if (!w0.owned.includes(id) || !OUTFIT[id]) return;
+          const wardrobe = { ...w0, worn: id };
+          set({ wardrobe, attire: { ...s.attire, worn: legacyWorn(wardrobe) } });
         },
         skipTutorial: () => {
           const s = get();
           if (s.tutorial.done) return;
           set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false } : s.encounter });
-        },
-        dressIn: (o) => {
-          const s = get();
-          const w0 = s.wardrobe ?? START_WARDROBE;
-          if (!wornIds(o).every((id) => w0.owned.includes(id))) return;
-          set({ wardrobe: { ...w0, outfit: { ...o, extras: [...o.extras] } }, attire: { ...s.attire, worn: legacyWorn(o) } });
-        },
-        saveOutfit: (name, o) => {
-          const s = get();
-          const w0 = s.wardrobe ?? START_WARDROBE;
-          // only pieces already owned can go into a saved outfit — nothing to buy back later
-          if (!wornIds(o).every((id) => w0.owned.includes(id))) return;
-          const clean = name.trim().slice(0, 30) || 'Untitled outfit';
-          const entry: SavedOutfit = { id: newUid('outfit'), name: clean, outfit: { ...o, extras: [...o.extras] } };
-          set({ wardrobe: { ...w0, saved: [...(w0.saved ?? []), entry] } });
-        },
-        deleteSavedOutfit: (id) => {
-          const s = get();
-          const w0 = s.wardrobe ?? START_WARDROBE;
-          set({ wardrobe: { ...w0, saved: (w0.saved ?? []).filter((x) => x.id !== id) } });
         },
         bathe: (sid) => {
           const s = get();
@@ -2235,7 +2201,7 @@ export const useGame = create<GameState & Actions>()(
           const b = BUYERS[buyerId];
           if (!b?.royal) return '';
           if (s.reputation < b.royal.minRep) return `The chamberlain regrets that the ${b.name.startsWith('Queen') ? 'Queen' : b.name.includes('President') || b.name.includes('Kemal') ? 'President' : b.name.startsWith('Emir') ? 'Emir' : 'King'} receives merchants of greater standing. Come back with reputation ${b.royal.minRep} (you have ${s.reputation}).`;
-          const ch = heroCharisma((s.wardrobe ?? START_WARDROBE).outfit, s.attire?.clean ?? 100);
+          const ch = heroCharisma(s.wardrobe ?? START_WARDROBE, s.attire?.clean ?? 100);
           if (ch < 6) return (s.attire?.clean ?? 100) < 40 && (s.attire?.worn ?? 'galabiya') !== 'galabiya'
             ? 'The chamberlain looks at the road dust on your coat and does not write your name down. Wash at a hammam first.'
             : 'The chamberlain looks at your work galabiya and politely closes his book. Nobody enters the palace dressed for the bazaar. A tailor can fix that.';
@@ -3214,6 +3180,8 @@ export const useGame = create<GameState & Actions>()(
       },
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<GameState>;
+        // clothes are twenty ready outfits now: older saves get the outfits matching what they owned
+        p.wardrobe = wardrobeFromOld(p.wardrobe, p.attire);
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
         if (version < 18) {
@@ -3243,8 +3211,7 @@ export const useGame = create<GameState & Actions>()(
         }
         if (version < 13) {
           // clothes are sold piece by piece now; old whole outfits become their pieces
-          const a = p.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 };
-          p.wardrobe = wardrobeFromLegacy(a.owned, a.worn);
+          // (clothes were sold piece by piece from version 13; the ready outfits replace them, below)
         }
         if (version < 3) {
           p.world = initialWorld();
