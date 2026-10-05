@@ -28,6 +28,8 @@ import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabi
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
 import { stepIllness, DISEASE, healthEffects, addIllness, rollInjury, type Illness } from '../systems/disease';
+/** Dr Feras's fee for treating one condition, by how serious it is (piastres) */
+export const TREAT_FEE: Record<string, number> = { common: 30, uncommon: 80, rare: 200, extreme: 400 };
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
 import {
@@ -352,6 +354,8 @@ interface Actions {
   /** leave the first-sale lesson: everything unlocks, the current customer stays as an ordinary sale */
   skipTutorial: () => void;
   bathe: (sid: string) => string;
+  /** Dr Feras treats one illness or injury: a fee by how serious it is; the rest of it is halved */
+  treatIllness: (id: string) => string;
   readBook: (id: string) => string;
   buyOffer: (uid: string, credit: boolean) => string;
   haggle: (uid: string) => string;
@@ -2174,6 +2178,26 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           if (s.tutorial.done) return;
           set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false } : s.encounter });
+        },
+        treatIllness: (id) => {
+          const s = get();
+          const il = (s.illnesses ?? []).find((x) => x.id === id);
+          const d = DISEASE(id);
+          if (!il || !d) return '';
+          if (il.treated) return 'He has already treated it. "Now it is rest, and time."';
+          const fee = TREAT_FEE[d.tier];
+          if (s.cash < fee) return `"My fee is ${fmt(fee)}, effendi. Come back when you have it."`;
+          const left = Math.max(1, il.until - s.day);
+          const until = s.day + Math.max(1, Math.ceil(left / 2));
+          set({
+            cash: s.cash - fee,
+            illnesses: (s.illnesses ?? []).map((x) => (x.id === id ? { ...x, until, treated: true } : x)),
+            world: { ...s.world, hour: Math.min(23.5, s.world.hour + 1) },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Dr Feras: ${d.name.toLowerCase()}`, amount: -fee }],
+            journal: [...s.journal, { day: s.day, text: `Dr Feras treated ${d.name.toLowerCase()}.` }],
+          });
+          audio.sfx('coins');
+          return `Dr Feras treats the ${d.name.toLowerCase()}. About ${until - s.day} day${until - s.day === 1 ? '' : 's'} more, he says, if you do as you are told.`;
         },
         bathe: (sid) => {
           const s = get();

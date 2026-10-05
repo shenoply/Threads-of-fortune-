@@ -40,6 +40,9 @@ import { LibraryView } from '../ArranLab/Library';
 import { openMalek } from '../../game/nav';
 import { shopOpen as malekOpen } from '../../game/systems/malek';
 import { CairoPlace } from './CairoPlaces';
+import { Clinic } from './Clinic';
+import { IntroFilm } from '../IntroFilm/IntroFilm';
+import { createPortal } from 'react-dom';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
@@ -53,6 +56,9 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [finance, setFinance] = useState(false);
   const [library, setLibrary] = useState(false);
   const [cairoPlace, setCairoPlace] = useState<'chemist' | 'museum' | null>(null);
+  const [clinic, setClinic] = useState(false);
+  // the first time you arrive in Alexandria, its film plays once
+  const [cityFilm, setCityFilm] = useState(() => id === 'alexandria' && !(useGame.getState().introSeen ?? []).includes('alexandria'));
   // sit tight somewhere safe and let the clock run: raiders and other road danger drift and cool down
   // over time (see stepParties), so waiting here is a real way to let trouble on the road move on
   // before you set off again, instead of only ever being able to walk straight into it.
@@ -408,6 +414,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
           ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
           ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
+          ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
           ...(id === 'cairo' ? [['bag', 'A chemist in the Muski', 'Tonics over the counter; drugs only on prescription', () => setCairoPlace('chemist'), 'menu-chemist'] as [string, string, string, () => void, string]] : []),
           ...(id === 'cairo' && g.arranVisit?.permitStage ? [['scale', 'The museum store', g.arranVisit.permitStage === 'letter' ? 'Deliver Arran\'s letter to Hamza Effendi' : 'Hamza Effendi has given his permission', () => setCairoPlace('museum'), 'menu-museum'] as [string, string, string, () => void, string]] : []),
           ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),
@@ -456,6 +463,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </div>
       )}
       {cairoPlace && <CairoPlace place={cairoPlace} onClose={() => setCairoPlace(null)} />}
+      {clinic && <Clinic onClose={() => setClinic(false)} />}
+      {cityFilm && createPortal(<IntroFilm id="alexandria" onDone={() => { useGame.getState().markIntroSeen('alexandria'); setCityFilm(false); }} />, document.body)}
       <Tip id="town" when={!menu && !inCity && !inVenue && !talkTo && !inAuction} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
       {/* Walking the streets stays open underneath whatever shop or hall it leads to, so stepping back

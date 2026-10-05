@@ -50,6 +50,7 @@ const P: Record<string, string> = {
   down: 'M4 8l6 6 4-4 6 7M15 17h5v-5',
   calendar: 'M4 6h16v14H4V6Zm0 4h16M8 3v4M16 3v4',
   warn: 'M12 3 2 20h20L12 3Zm0 6v5m0 3v.1',
+  plus: 'M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z',
   dawn: 'M3 18h18M6 18a6 6 0 0 1 12 0M12 5v3M4.5 10.5l2 2M19.5 10.5l-2 2',
 };
 

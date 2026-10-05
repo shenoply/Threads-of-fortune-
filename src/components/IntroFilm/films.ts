@@ -3,7 +3,7 @@
 // (src/data/introFilms.ts).
 import { INTRO_FILMS } from '../../data/introFilms';
 
-export type FilmId = 'malek' | 'arran' | 'abuhamid' | 'bilgin-chess' | 'rashid' | 'nabil' | 'cohen';
+export type FilmId = 'malek' | 'arran' | 'abuhamid' | 'bilgin-chess' | 'rashid' | 'nabil' | 'cohen' | 'alexandria';
 /** one painting on screen: `cover` fills the frame, `contain` sits over a blurred copy of itself;
  *  the pan goes from `from` to `to` ([scale, x%, y%] of the focus point) */
 export interface Still { src: string; fit: 'cover' | 'contain'; from: [number, number, number]; to: [number, number, number] }
@@ -56,6 +56,14 @@ export const FILMS: Record<FilmId, Film> = {
       { src: 'art/cafe/bilgin-profile.webp', fit: 'cover', from: [1.3, 40, 35], to: [1.1, 45, 45] },
       { src: 'art/cafe/bilgin-chess.webp', fit: 'cover', from: [1.05, 55, 55], to: [1.3, 62, 50] },
     ],
+  },
+  // the first time you arrive in Alexandria: the tram square, with its own music and narrator
+  alexandria: {
+    title: 'Alexandria · 1925', name: 'Alexandria',
+    video: { mp4: 'video/alexandria-arrival.mp4', poster: 'art/cities/alexandria-arrival-poster.webp', last: 'art/cities/alexandria-arrival-poster.webp' },
+    ownSound: true,
+    stills: [{ src: 'art/cities/alexandria-arrival-poster.webp', fit: 'cover', from: [1.02, 50, 55], to: [1.15, 55, 50] }],
+    text: ['Alexandria, 1925. The pearl of the Mediterranean.'],
   },
   'bilgin-chess': {
     title: 'Bilgin · the chess corner', name: 'Bilgin at chess',

@@ -90,7 +90,7 @@ export function addIllness(list: Illness[] | undefined, id: string, day: number,
   return [...cur, { id, since: day, until: day + d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1)) }];
 }
 
-export interface Illness { id: string; since: number; until: number; peaked?: boolean }
+export interface Illness { id: string; since: number; until: number; peaked?: boolean; /** Dr Feras has treated it */ treated?: boolean }
 export interface ExposureCtx { day: number; onRoad: boolean; thirsty: boolean; fatigue: number }
 
 const GUT = ['bacillary', 'amoebic', 'typhoid'];

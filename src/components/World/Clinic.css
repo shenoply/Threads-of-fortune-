@@ -1,0 +1,51 @@
+/* Dr Feras's clinic: the room on top (its own 3:2 shape, never stretched), his desk work below */
+.clinic { position: fixed; inset: 0; z-index: 70; background: #120b06; display: flex; flex-direction: column; color: var(--text); }
+.cl-head { display: flex; align-items: center; gap: 10px; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; border-bottom: 1px solid var(--line); background: linear-gradient(#22170d, #150e07); }
+.cl-head > div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.cl-head strong { font-family: var(--display); font-size: 19px; color: var(--parchment); font-weight: 500; }
+.cl-head small { font-family: var(--label); font-size: 12px; color: var(--text-dim); letter-spacing: .08em; text-transform: uppercase; }
+.cl-cash { font-family: var(--label); color: var(--brass-hi, #e3bd6b); }
+.cl-scene { position: relative; flex: 0 0 auto; height: min(calc(100vw * 1024 / 1536), 44svh); background: #0b0704; display: flex; align-items: center; justify-content: center; }
+.cl-room { max-width: 100%; max-height: 100%; aspect-ratio: 1536 / 1024; object-fit: contain; display: block; }
+.cl-film { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.cl-film video { max-width: 100%; max-height: 100%; aspect-ratio: 16 / 9; object-fit: contain; display: block; }
+.cl-play { position: absolute; min-height: 48px; }
+.cl-caption { position: absolute; left: 8px; right: 8px; bottom: 8px; margin: 0 auto; max-width: 560px; text-align: center; font-size: 13.5px; line-height: 1.35; color: #fff8e8; background: rgba(10,6,3,.78); border-radius: 8px; padding: 5px 9px; }
+.cl-film-btns { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+.cl-film-btns .btn { min-width: 42px; min-height: 40px; background: rgba(20,13,7,.85); }
+.cl-panel { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; }
+.cl-panel.locked { opacity: .45; pointer-events: none; }
+.cl-doctor { display: flex; align-items: center; gap: 10px; }
+.cl-doctor img { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line-strong); flex: none; }
+.cl-doctor > div { flex: 1; display: flex; flex-direction: column; }
+.cl-doctor b { font-family: var(--display); color: var(--parchment); font-size: 17px; font-weight: 500; }
+.cl-doctor small { font-size: 14px; color: #e6d5b1; font-style: italic; line-height: 1.35; }
+.cl-tabs { display: flex; gap: 6px; }
+.cl-tabs button { flex: 1; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: #150e08; color: var(--text); font-family: var(--label); font-size: 14px; cursor: pointer; }
+.cl-tabs button.on { border-color: var(--brass-hi, #e3bd6b); color: var(--brass-hi, #e3bd6b); background: rgba(227,189,107,.1); }
+.cl-note { margin: 0; font-style: italic; color: #f3e6cc; background: rgba(227,189,107,.1); border-left: 3px solid var(--brass-hi, #e3bd6b); padding: 6px 10px; border-radius: 4px; }
+.cl-intro { margin: 0; color: #e6d5b1; font-size: 14.5px; }
+.cl-case { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: rgba(255,240,210,.03); display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.cl-case-head { display: flex; flex-direction: column; }
+.cl-case-head b { font-family: var(--display); font-size: 17px; color: var(--parchment); font-weight: 500; }
+.cl-case-head small { font-family: var(--label); font-size: 12.5px; color: var(--text-dim); }
+.cl-feras { margin: 0; font-size: 15px; line-height: 1.45; color: #f3e6cc; }
+.cl-case-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.cl-done { font-family: var(--label); color: #8fd18f; align-self: center; }
+.cl-book h4 { margin: 12px 0 6px; font-family: var(--label); letter-spacing: .1em; text-transform: uppercase; font-size: 12.5px; color: var(--brass); }
+.cl-book .cl-tabs { margin-top: 8px; }
+.cl-index { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.cl-entry { text-align: left; border: 1px solid var(--line); border-radius: 8px; background: #efe3c8; color: #2e1c0e; padding: 7px 9px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.cl-entry b { font-family: var(--display); font-weight: 500; font-size: 15px; }
+.cl-entry small { font-size: 12.5px; color: #5b4630; line-height: 1.3; }
+/* a page of the book: printed on cream paper */
+.cl-page { background: linear-gradient(#f2e7cf, #e7d7b4); color: #2b1a0c; border-radius: 6px; padding: 12px 14px 14px; box-shadow: inset 0 0 40px rgba(120,80,30,.18); }
+.cl-page h3 { margin: 4px 0 2px; font-family: var(--display); font-size: 22px; font-weight: 500; }
+.cl-back { color: #6d4a1e !important; font-weight: 700; }
+.cl-tier { font-family: var(--label); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #6d5234; }
+.cl-tier.t-rare, .cl-tier.t-extreme { color: #8a2a18; }
+.cl-plate { display: block; width: min(100%, 320px); margin: 10px auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.cl-page .cl-feras { color: #2b1a0c; font-style: italic; margin: 10px 0; }
+.cl-page dl { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.cl-page dt { font-family: var(--label); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #6d5234; }
+.cl-page dd { margin: 0; font-size: 15px; line-height: 1.4; }
