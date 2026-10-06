@@ -1,3 +1,4 @@
+import { SimOptions } from './components/Title/SimOptions';
 import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
@@ -15,7 +16,7 @@ import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
 import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
-import { useGame, dateFor, clock, forceSave } from './game/state/store';
+import { useGame, dateFor, clock, forceSave, FULL_SIM, type SimSettings } from './game/state/store';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
 import { voice } from './game/audio/voice';
@@ -135,12 +136,13 @@ export default function App() {
   // a Sandbox is always a new game: an existing save is kept in a free slot first
   // the new-game chooser: which mode was picked first ('any' opens it with none picked)
   const [chooser, setChooser] = useState<Mode | 'any' | null>(null);
-  const startMode = (mode: Mode, keepIn: number | null) => {
+  const startMode = (mode: Mode, keepIn: number | null, sim: SimSettings) => {
     audio.ensure();
     if (keepIn) { forceSave(); saveToSlot(keepIn); refreshSlots(); }
     if (useGame.getState().started) useGame.getState().reset();
     setChooser(null);
     if (mode === 'ironman') useGame.getState().setIronman(true);
+    useGame.getState().setSim(sim);
     if (mode === 'sandbox') setSbx('choose');
     else setPhase(introSeen() ? 'dayone' : 'documentary');
   };
@@ -654,6 +656,7 @@ export default function App() {
               })}
             </div>
             {soundOptions}
+            <SimOptions value={g.sim ?? FULL_SIM} onChange={g.setSim} locked={!!g.ironman} />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">Guided tour of the screens</button>
               <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ Gameplay videos</button>

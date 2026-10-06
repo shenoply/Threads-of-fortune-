@@ -83,6 +83,8 @@ export interface DaySummary {
   notes: string[];
 }
 
+export interface SimSettings { illness: boolean; injuries: boolean; needs: boolean }
+export const FULL_SIM: SimSettings = { illness: true, injuries: true, needs: true };
 export interface GameState {
   version: number;
   openingSeen: boolean;
@@ -183,6 +185,8 @@ export interface GameState {
   illnesses?: Illness[];
   /** Ironman: a fatal illness (or fight) ends the run */
   ironman?: boolean;
+  /** how much of the simulation is on; absent means all of it (older saves) */
+  sim?: SimSettings;
   /** set when Hassan has passed out in a town and a passer-by is taking him to Dr Feras */
   rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' | 'passerby'; clinic?: boolean };
   /** 'story' is Hassan's story; 'sandbox' is free play, where you may play as Hassan or as yourself */
@@ -430,6 +434,9 @@ interface Actions {
   reset: () => void;
   /** Ironman belongs to a new game: it can only be set before the game starts, never on a game in progress */
   setIronman: (on: boolean) => void;
+  setSim: (sim: SimSettings) => void;
+  /** stop at a well on the road: water to the top, an hour gone */
+  fillWater: () => void;
   /** start a Sandbox game: choose Hassan or your own pictures (only before the game has started) */
   startSandbox: (look: HeroLook) => void;
   /** Ironman: Hassan dies and the run is over */
@@ -937,9 +944,11 @@ export const useGame = create<GameState & Actions>()(
           // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
           const condBase = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
           // illness: new cases, the days of an old one, and the crisis that can kill
-          const ill = stepIllness(s.illnesses, { day: s.day + 1, onRoad: !s.world.at, thirsty: !!night.thirsty, fatigue: condBase.fatigue, at: s.world.at, mounted: Object.values(party.animals ?? {}).some((n) => (n ?? 0) > 0) }, { risk: s.illRisk ?? 1, deadly: !!s.ironman, resting: !!s.world.at });
+          const ill = stepIllness(s.illnesses, { day: s.day + 1, onRoad: !s.world.at, thirsty: !!night.thirsty, fatigue: condBase.fatigue, at: s.world.at, mounted: Object.values(party.animals ?? {}).some((n) => (n ?? 0) > 0) }, { risk: s.illRisk ?? 1, deadly: !!s.ironman, resting: !!s.world.at, noDisease: !!s.sim && !s.sim.illness && !s.ironman, noInjury: !!s.sim && !s.sim.injuries && !s.ironman });
           for (const n of ill.notes) notes.push(n);
-          const condition = { ...condBase, fatigue: Math.max(0, Math.min(100, condBase.fatigue + ill.fatigueAdd)) };
+          let condition = { ...condBase, fatigue: Math.max(0, Math.min(100, condBase.fatigue + ill.fatigueAdd)) };
+          // needs switched off: no tiredness, hunger or thirst to manage
+          if (s.sim && !s.sim.needs && !s.ironman) condition = { ...condition, fatigue: Math.min(condition.fatigue, 15), fed: Math.max(fedOf(condition), 60), water: Math.max(waterOf(condition), 60) };
           // rugs put aside for a buyer who never came go back on the stall
           // (heldFor ignores an expired hold, so the note fires once, on the night it ends)
           const lapsed = s.inventory.filter((i) => i.reservedFor && i.reservedUntil === s.day);
@@ -1955,7 +1964,7 @@ export const useGame = create<GameState & Actions>()(
 
         hurt: (kind, injuryId) => {
           const s = get(); const id = injuryId ?? rollInjury(kind); const d = DISEASE(id);
-          if (!d) return '';
+          if (!d || (s.sim && !s.sim.injuries && !s.ironman)) return '';
           // Ironman: a bad enough wound can kill outright, there and then
           if (s.ironman && d.fatality > 0 && Math.random() < d.fatality * 0.4) {
             get().dieNow(`${d.name} on the road. Hassan did not get up. The caravan carried his body home to Giza.`);
@@ -3254,6 +3263,21 @@ export const useGame = create<GameState & Actions>()(
         },
 
         startSandbox: (look) => { if (get().started) return; set({ playMode: 'sandbox', heroLook: look }); },
+        fillWater: () => {
+          const s = get(); const c = s.condition ?? CONDITION_START;
+          set({ condition: { ...c, water: 100 } });
+          get().travelStep({ x: s.world.x, y: s.world.y }, 1 / 24, true);
+        },
+        // switching a part off takes effect at once: its conditions clear and the meters are topped up
+        setSim: (sim) => {
+          const s0 = get(); const v = s0.ironman ? FULL_SIM : sim;
+          const patch: Partial<GameState> = { sim: v };
+          if (s0.started) {
+            if (!v.illness || !v.injuries) patch.illnesses = (s0.illnesses ?? []).filter((il) => { const k = DISEASE(il.id)?.kind; return !((k === 'disease' && !v.illness) || (k === 'injury' && !v.injuries)); });
+            if (!v.needs) { const c = s0.condition ?? CONDITION_START; patch.condition = { ...c, fatigue: Math.min(c.fatigue, 15), fed: Math.max(fedOf(c), 60), water: Math.max(waterOf(c), 60) }; }
+          }
+          set(patch);
+        },
         setIronman: (on) => { const s = get(); if (s.started) return; set({ ironman: on }); },
         // Passing out in a town: a stranger carries him to Dr Feras (from Giza by the ferry, from further by the next train to Cairo)
         collapse: (reason) => {
@@ -3506,7 +3530,7 @@ const syncHealth = (s: { illnesses?: Illness[] }) => { const h = healthEffects(s
 syncHealth(useGame.getState());
 useGame.subscribe((s) => syncHealth(s));
 // worn out to the bone in a town: he goes down in the street
-useGame.subscribe((s) => { if (s.started && !s.ended && !s.rescue && s.world.at && (s.condition?.fatigue ?? 0) >= 96) queueMicrotask(() => useGame.getState().collapse('exhaustion')); });
+useGame.subscribe((s) => { if (s.started && !s.ended && !s.rescue && (!s.sim || s.sim.needs || s.ironman) && s.world.at && (s.condition?.fatigue ?? 0) >= 96) queueMicrotask(() => useGame.getState().collapse('exhaustion')); });
 
 // Every rug that comes into stock is entered in the Carpet Register.
 useGame.subscribe((s) => {

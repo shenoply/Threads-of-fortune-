@@ -6,7 +6,8 @@ import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { SETTLEMENTS, type Settlement } from '../../data/world';
+import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
+import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger,
@@ -155,6 +156,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const [encounter, setEncounter] = useState<Party | null>(null);
   // camping is a choice: nightfall on the road pauses the walk and asks; a camp is full screen
   const [nightfall, setNightfall] = useState(false);
+  // a well or oasis beside the road: stop to fill the waterskins, or carry on
+  const [well, setWell] = useState<null | { id: string; name: string }>(null);
+  const wellsSeen = useRef<Set<string>>(new Set());
+  useEffect(() => { if (!moving) { wellsSeen.current = new Set(); setWell(null); } }, [moving]);
   const [camp, setCamp] = useState<{ dest?: string } | null>(null);
   const [partyOpen, setPartyOpen] = useState(false);
   const nightAsked = useRef(-1);
@@ -574,6 +579,22 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             return;
           }
         }
+        if (!moving.train && !moving.mode) {
+          const st = useGame.getState();
+          const needsOn = !st.sim || st.sim.needs || !!st.ironman;
+          const wl = needsOn && waterOf(st.condition) < 85 ? [...ROAD_WELLS, ...SETTLEMENTS.filter((x) => ['oasis', 'camp'].includes(x.kind))].find((x) => x.id !== moving.dest && !wellsSeen.current.has(x.id) && dist(x, pos) < 22) : undefined;
+          if (wl) {
+            wellsSeen.current.add(wl.id);
+            lastScale.current = scaleRef.current || lastScale.current;
+            setTimeScale(0);
+            setMoving({ ...moving, done });
+            setWell({ id: wl.id, name: wl.name });
+            setReport(`${wl.name}: there is a well beside the road.`);
+            audio.sfx('water');
+            raf = requestAnimationFrame(loop);
+            return;
+          }
+        }
         if (!moving.train) {
           const st = useGame.getState();
           // only raiders stop you; everyone else you can tap on the map if you want to talk
@@ -842,6 +863,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
       <div className="world-card" data-testid="world-card">
         {report && <p className="world-report" data-testid="world-report">{report}</p>}
+        {moving && well && !nightfall && (
+          <div className="wc-col nightfall" data-testid="well-stop">
+            <div className="wc-main">
+              <b>{well.name}: a well</b>
+              <span>Stop for an hour and fill every waterskin, or keep going. Water now: {Math.round(waterOf(useGame.getState().condition))} of 100.</span>
+            </div>
+            <div className="wc-btns">
+              <button className="btn primary" onClick={() => { useGame.getState().fillWater(); setWell(null); setTimeScale(lastScale.current || 1); audio.sfx('water'); }} data-testid="well-fill">Fill the waterskins · 1 hour</button>
+              <button className="btn" onClick={() => { setWell(null); setTimeScale(lastScale.current || 1); }} data-testid="well-skip">Carry on</button>
+            </div>
+          </div>
+        )}
         {moving && nightfall && (
           <div className="wc-col nightfall" data-testid="nightfall">
             <div className="wc-main">

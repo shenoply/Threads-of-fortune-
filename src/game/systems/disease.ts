@@ -156,7 +156,7 @@ export const dailyHazard = (annual: number) => 1 - Math.pow(1 - Math.min(0.95, a
 export interface IllnessStep { illnesses: Illness[]; fatigueAdd: number; notes: string[]; died?: { id: string } }
 
 /** One night. `deadly`: a fatal case really kills (Ironman); otherwise the man pulls through, much weaker. */
-export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { risk?: number; deadly?: boolean; rand?: () => number; resting?: boolean } = {}): IllnessStep {
+export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { risk?: number; deadly?: boolean; rand?: () => number; resting?: boolean; noDisease?: boolean; noInjury?: boolean } = {}): IllnessStep {
   const rand = o.rand ?? Math.random;
   const risk = o.risk ?? 1;
   const notes: string[] = [];
@@ -196,7 +196,7 @@ export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { ri
     }
     // accidents of the road and the camp
     for (const d of DISEASES) {
-      if (d.kind !== 'injury' || have.has(d.id)) continue;
+      if (d.kind !== 'injury' || have.has(d.id) || o.noInjury) continue;
       const q = injuryRisk(d.id, c) * risk;
       if (q > 0 && rand() < q) {
         const len = d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1));
@@ -205,7 +205,7 @@ export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { ri
       }
     }
     for (const d of DISEASES) {
-      if (have.has(d.id) || d.annual <= 0) continue;
+      if (have.has(d.id) || d.annual <= 0 || o.noDisease) continue;
       if (rand() < dailyHazard(d.annual * exposure(d.id, c) * risk)) {
         const len = d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1));
         out.push({ id: d.id, since: c.day, until: c.day + len });

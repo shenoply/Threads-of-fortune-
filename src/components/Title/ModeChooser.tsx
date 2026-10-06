@@ -6,6 +6,8 @@ import { createPortal } from 'react-dom';
 import { slotLabel, type SlotInfo } from '../../game/state/slots';
 import '../Sandbox/sandbox.css';
 
+import { SimOptions } from './SimOptions';
+import { FULL_SIM, type SimSettings } from '../../game/state/store';
 export type Mode = 'campaign' | 'ironman' | 'sandbox';
 
 export const MODES: { id: Mode; title: string; line: string; points: string[] }[] = [
@@ -22,13 +24,14 @@ interface Props {
   current?: { day: number } | null;
   slots: (SlotInfo | null)[];
   first?: Mode;
-  onStart: (mode: Mode, keepInSlot: number | null) => void;
+  onStart: (mode: Mode, keepInSlot: number | null, sim: SimSettings) => void;
   onClose: () => void;
 }
 
 export function ModeChooser({ current, slots, first, onStart, onClose }: Props) {
   const [mode, setMode] = useState<Mode | null>(first ?? null);
   const [asking, setAsking] = useState(false);
+  const [sim, setSim] = useState<SimSettings>(FULL_SIM);
   const m = MODES.find((x) => x.id === mode);
   const empty = slots.findIndex((s) => !s) + 1; // 0 when every slot is taken
   const choose = (id: Mode) => { setMode(id); if (current) setAsking(true); };
@@ -39,12 +42,14 @@ export function ModeChooser({ current, slots, first, onStart, onClose }: Props) 
           <>
             <h2>Start a new game</h2>
             <div className="mode-list">
+              <SimOptions value={sim} onChange={setSim} />
+              <small className="sbx-dim">Applies to the campaign and the sandbox. Ironman always uses the full simulation. You can change it later in Settings.</small>
               {MODES.map((x) => (
                 <div key={x.id} className={`mode-card ${mode === x.id ? 'on' : ''}`} data-testid={`mode-${x.id}`} ref={(el) => { if (el && first === x.id) el.scrollIntoView({ block: 'nearest' }); }}>
                   <b>{x.title}</b>
                   <small>{x.line}</small>
                   <ul>{x.points.map((p) => <li key={p}>{p}</li>)}</ul>
-                  <button className={`btn ${x.id === 'campaign' ? 'primary' : ''}`} onClick={() => (current ? choose(x.id) : onStart(x.id, null))} data-testid={`start-${x.id}`}>
+                  <button className={`btn ${x.id === 'campaign' ? 'primary' : ''}`} onClick={() => (current ? choose(x.id) : onStart(x.id, null, sim))} data-testid={`start-${x.id}`}>
                     {x.id === 'campaign' ? 'Play the campaign' : x.id === 'ironman' ? 'Play Ironman' : 'Play the sandbox'}
                   </button>
                 </div>
@@ -58,15 +63,15 @@ export function ModeChooser({ current, slots, first, onStart, onClose }: Props) 
             <p className="sbx-dim">You are on day {current?.day} of a game. Starting {mode === 'ironman' ? 'an Ironman campaign' : mode === 'sandbox' ? 'a sandbox game' : 'the campaign afresh'} replaces it in this browser.</p>
             <div className="mode-keep-btns">
               {empty > 0 ? (
-                <button className="btn primary" onClick={() => onStart(mode!, empty)} data-testid="keep-and-start">Keep it in save slot {empty}, then start</button>
+                <button className="btn primary" onClick={() => onStart(mode!, empty, sim)} data-testid="keep-and-start">Keep it in save slot {empty}, then start</button>
               ) : (
                 slots.map((s, i) => (
-                  <button key={i} className="btn" onClick={() => { if (window.confirm(`Slot ${i + 1} already holds: ${s ? slotLabel(s) : ''}. Replace it with your current game?`)) onStart(mode!, i + 1); }} data-testid={`keep-in-${i + 1}`}>
+                  <button key={i} className="btn" onClick={() => { if (window.confirm(`Slot ${i + 1} already holds: ${s ? slotLabel(s) : ''}. Replace it with your current game?`)) onStart(mode!, i + 1, sim); }} data-testid={`keep-in-${i + 1}`}>
                     Keep it in slot {i + 1} <small>(replaces {s ? `day ${s.day}` : 'it'})</small>
                   </button>
                 ))
               )}
-              <button className="btn danger" onClick={() => { if (window.confirm('Start without keeping your current game? It will be gone for good.')) onStart(mode!, null); }} data-testid="start-without-keeping">Start without keeping it</button>
+              <button className="btn danger" onClick={() => { if (window.confirm('Start without keeping your current game? It will be gone for good.')) onStart(mode!, null, sim); }} data-testid="start-without-keeping">Start without keeping it</button>
               <button className="ghost-btn" onClick={() => setAsking(false)} data-testid="mode-back">Back</button>
             </div>
           </div>

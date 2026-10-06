@@ -38,19 +38,20 @@ export function HealthStrip({ always = false }: { always?: boolean }) {
   const ills = useGame((s) => s.illnesses) ?? [];
   const day = useGame((s) => s.day);
   const at = useGame((s) => s.world.at);
+  const needsOn = useGame((s) => !s.sim || s.sim.needs || !!s.ironman);
   const [open, setOpen] = useState(false);
   const seen = useRef(ills.length);
   useEffect(() => { if (ills.length > seen.current) setOpen(true); seen.current = ills.length; }, [ills.length]);
   const w = wellness(c);
-  const notable = !!(w.tired || w.hungry || w.thirsty) || ills.length > 0;
-  if (!notable && !always) return null;
-  const tip = w.tired === 'bad' ? 'You are close to collapsing. Rest in a town.' : w.tired ? 'You are tired. Sleep in a town or at camp before you push on.' : w.hungry ? 'You are hungry. Eat at Malek’s grill or carry parcels.' : w.thirsty ? 'You are thirsty. Find a well or carry water.' : '';
+  const notable = (needsOn && !!(w.tired || w.hungry || w.thirsty)) || ills.length > 0;
+  if (!notable && !(always && (needsOn || ills.length))) return null;
+  const tip = !needsOn ? '' : w.tired === 'bad' ? 'You are close to collapsing. Rest in a town.' : w.tired ? 'You are tired. Sleep in a town or at camp before you push on.' : w.hungry ? 'You are hungry. Eat at Malek’s grill or carry parcels.' : w.thirsty ? 'You are thirsty. Find a well or carry water.' : '';
   return (
     <div className="hs" data-testid="health-strip">
       <button className="hs-row" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="health-toggle">
-        <Meter label="Tired" pct={w.fatigue} level={w.tired} />
-        <Meter label="Fed" pct={w.fed} level={w.hungry ? w.hungry : ''} />
-        <Meter label="Water" pct={w.water} level={w.thirsty} />
+        {needsOn && <Meter label="Tired" pct={w.fatigue} level={w.tired} />}
+        {needsOn && <Meter label="Fed" pct={w.fed} level={w.hungry ? w.hungry : ''} />}
+        {needsOn && <Meter label="Water" pct={w.water} level={w.thirsty} />}
         {ills.length > 0 && <span className="hs-ill" data-testid="ill-banner">{ills.length === 1 ? DISEASE(ills[0].id)?.name : `${ills.length} ailments`}</span>}
       </button>
       {(open || (!ills.length && tip && w.tired === 'bad')) && (

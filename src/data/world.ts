@@ -22,6 +22,15 @@ export interface Settlement {
   gateway?: string; // lies beyond the map edge; this is where the road leaves the map
 }
 
+/** Wells beside the long desert roads: the caravan can stop to fill the waterskins. Places on the old pilgrim and caravan routes. */
+export const ROAD_WELLS: { id: string; name: string; x: number; y: number }[] = [
+  { id: 'well-ajrud', name: 'Ajrud, the pilgrim fort', x: 276, y: 438 },
+  { id: 'well-ayun', name: 'Ayun Musa, the Springs of Moses', x: 365, y: 440 },
+  { id: 'well-feiran', name: 'Wadi Feiran', x: 454, y: 449 },
+  { id: 'well-abd', name: 'Bir el-Abd', x: 356, y: 359 },
+  { id: 'well-rutba', name: 'The Rutba wells', x: 658, y: 343 },
+];
+
 export const SETTLEMENTS: Settlement[] = [
   {
     id: 'giza', name: 'Giza', kind: 'home', x: 146.9, y: 443.7, region: 'Egypt', known: true, rail: true,
