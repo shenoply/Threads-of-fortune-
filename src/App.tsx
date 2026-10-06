@@ -7,6 +7,8 @@ import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
+import { lookFor } from './game/heroLook';
+import { PlayAsYourself, SandboxChoose } from './components/Sandbox/PlayAsYourself';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
@@ -128,6 +130,7 @@ export default function App() {
   const [phase, setPhase] = useState<Phase>('title');
   const [confirmIron, setConfirmIron] = useState(false);
   const [titleOpts, setTitleOpts] = useState(false);
+  const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
@@ -431,6 +434,7 @@ export default function App() {
                 <button className="big-btn" onClick={() => { audio.ensure(); setPhase('documentary'); }} data-testid="play-opening">
                   {introSeen() ? 'Play Opening' : 'Begin · watch the opening'}
                 </button>
+                <button className="ghost-btn" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox</button>
                 {introSeen() && (
                   <button className="ghost-btn" onClick={() => { audio.ensure(); setPhase('dayone'); }} data-testid="skip-to-day">
                     Skip to Day One
@@ -449,6 +453,8 @@ export default function App() {
             )}
             </div>
           </div>
+          {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
+          {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); g.startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
           {loadOpen && (
             <div className="slot-list" data-testid="title-slot-list">
               {slots.map((info, i) => info && (
@@ -593,7 +599,7 @@ export default function App() {
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
           <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id !== 'map'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
-            {icon === 'face' ? <img className="nav-face" src="art/hero/hero-face-reference.jpg" alt="" /> : <Icon name={icon} />}
+            {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook, 'portrait') ?? 'art/hero/hero-face-reference.jpg'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>
         ))}

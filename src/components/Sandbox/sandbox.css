@@ -1,0 +1,29 @@
+.sbx-back{position:fixed;inset:0;z-index:9999;background:rgba(10,6,3,.88);display:flex;align-items:center;justify-content:center;padding:10px}
+.sbx-card{background:#2a1c10;color:#f3e6cc;border:2px solid #b8893c;border-radius:12px;padding:18px;max-width:460px;width:100%;max-height:94dvh;display:flex;flex-direction:column;gap:12px;font-size:17px}
+.sbx-card.wide{max-width:640px}
+.sbx-card h2{margin:0;font-size:22px}
+.sbx-dim{opacity:.75;font-size:15px;margin:0}
+.sbx-choices{display:grid;gap:10px}
+.sbx-choice{display:flex;flex-direction:column;gap:4px;text-align:left;padding:14px;border-radius:10px;border:2px solid #b8893c;background:#3a2815;color:inherit;font-size:19px;cursor:pointer}
+.sbx-choice small{font-size:15px;opacity:.8}
+.sbx-steps{display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.sbx-steps span{padding:3px 8px;border-radius:99px;background:#3a2815;opacity:.6}
+.sbx-steps .on{opacity:1;background:#b8893c;color:#2a1c10}
+.sbx-steps .done{opacity:.9}
+.sbx-body{overflow-y:auto;display:flex;flex-direction:column;gap:12px;min-height:0}
+.sbx-ref{width:100%;border-radius:8px}
+.sbx-list{margin:0;padding-left:20px;display:grid;gap:8px}
+.sbx-prompt{background:#1b110a;border-radius:8px;padding:10px;display:grid;gap:6px;font-size:14px}
+.sbx-prompt p{margin:0;opacity:.85}
+.sbx-name{display:grid;gap:4px}
+.sbx-name input{font-size:18px;padding:8px;border-radius:6px;border:1px solid #b8893c;background:#1b110a;color:inherit}
+.sbx-up{display:flex;gap:12px;align-items:center}
+.sbx-thumb{width:84px;height:110px;flex:none;border-radius:8px;background:#1b110a;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;overflow:hidden}
+.sbx-thumb img{width:100%;height:100%;object-fit:contain}
+.sbx-up>div:last-child{display:grid;gap:4px;min-width:0}
+.sbx-up input[type=file]{font-size:14px;max-width:100%}
+.sbx-err{color:#ff9a8a}.sbx-note{color:#c9d89a}
+.sbx-prev{display:flex;gap:8px;justify-content:center;align-items:flex-end;flex-wrap:wrap}
+.sbx-prev img{max-height:34vh;max-width:30%;object-fit:contain;background:#d9c9a8;border-radius:8px}
+.sbx-foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:480px){.sbx-card{padding:12px;font-size:16px}.sbx-prev img{max-width:46%}}

@@ -436,7 +436,7 @@ export interface BandSpec { man: string; leader: string; mounted: number; melee:
 export const MOUNTED_TROOPS = ['bedouin', 'desertcaptain', 'arnaut', 'reformed'];
 export const RIFLE_TROOPS = ['guard', 'veteran', 'sentinel', 'harbour'];
 
-export function newBattle(o: { field: string; seed: string; mine: Roster[]; enemyMen: number; enemyStrength: number; band: BandSpec; bandName: string; cmd: number; scouted: boolean; maxTurns?: number }): Battle {
+export function newBattle(o: { field: string; seed: string; mine: Roster[]; enemyMen: number; enemyStrength: number; band: BandSpec; bandName: string; cmd: number; scouted: boolean; maxTurns?: number; heroImg?: string }): Battle {
   const cells = makeGround(o.field, o.seed);
   const squads: Squad[] = [];
   // my squads fill the two bottom rows, riders on the wings
@@ -445,7 +445,7 @@ export function newBattle(o: { field: string; seed: string; mine: Roster[]; enem
   const put = (s: Squad, prefer: [number, number][]) => { const p = prefer.find(([x, y]) => free(x, y)) ?? [[0, 8]].find(([x, y]) => free(x, y)) ?? [5, 8]; s.x = p[0]; s.y = p[1]; squads.push(s); };
   const mk = (p: Partial<Squad> & Pick<Squad, 'id' | 'side' | 'troop' | 'name' | 'img' | 'kind' | 'n' | 'per'>): Squad => ({ start: p.n, hp: p.n * p.per, maxHp: p.n * p.per, x: 0, y: 0, morale: 80, moved: false, acted: false, held: false, hit: false, ...p });
   // Hassan: weak, behind the line, the one who gives orders
-  put(mk({ id: 'hero', side: 'me', troop: 'you', name: 'Hassan', img: 'art/battle/hero.webp', kind: 'hero', n: 1, per: 8, morale: 100 }), [[2, 8], [3, 8]]);
+  put(mk({ id: 'hero', side: 'me', troop: 'you', name: 'Hassan', img: o.heroImg ?? 'art/battle/hero.webp', kind: 'hero', n: 1, per: 8, morale: 100 }), [[2, 8], [3, 8]]);
   let wing = 0;
   for (const r of o.mine.filter((m) => m.n > 0)) {
     const mounted = r.kind === 'mounted';

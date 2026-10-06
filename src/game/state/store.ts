@@ -7,6 +7,7 @@ import { NARRATOR, RASHID } from '../../data/dialogue';
 import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
 import { snap, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import type { HeroLook } from '../heroLook';
 import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
 import { applyAuctionObservation, type MarketIntelRecord } from '../auction/marketIntel';
 import { shouldReofferUnsoldLot, reducedReserveForReoffer, totalAuctionCost } from '../auction/auctionSystem';
@@ -182,6 +183,10 @@ export interface GameState {
   illnesses?: Illness[];
   /** Ironman: a fatal illness (or fight) ends the run */
   ironman?: boolean;
+  /** 'story' is Hassan's story; 'sandbox' is free play, where you may play as Hassan or as yourself */
+  playMode?: 'story' | 'sandbox';
+  /** whose face the game shows for the hero (Hassan unless a Sandbox player uploaded their own pictures) */
+  heroLook?: HeroLook;
   /** scales how often illness strikes: 1 = historical, 3 or 5 = harsher */
   illRisk?: number;
   /** cargo cover bought from a Lloyd's agent, and what the insurers owe you for rugs lost under it */
@@ -421,6 +426,8 @@ interface Actions {
   reset: () => void;
   /** Ironman belongs to a new game: it can only be set before the game starts, never on a game in progress */
   setIronman: (on: boolean) => void;
+  /** start a Sandbox game: choose Hassan or your own pictures (only before the game has started) */
+  startSandbox: (look: HeroLook) => void;
   /** Ironman: Hassan dies and the run is over */
   dieNow: (text: string) => void;
 }
@@ -3205,6 +3212,7 @@ export const useGame = create<GameState & Actions>()(
           autosaveEnabled = on;
         },
 
+        startSandbox: (look) => { if (get().started) return; set({ playMode: 'sandbox', heroLook: look }); },
         setIronman: (on) => { const s = get(); if (s.started) return; set({ ironman: on }); },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
