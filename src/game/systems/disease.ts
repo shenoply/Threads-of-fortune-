@@ -90,7 +90,7 @@ export function addIllness(list: Illness[] | undefined, id: string, day: number,
   return [...cur, { id, since: day, until: day + d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1)) }];
 }
 
-export interface Illness { id: string; since: number; until: number; peaked?: boolean; /** Dr Feras has treated it */ treated?: boolean }
+export interface Illness { id: string; since: number; until: number; peaked?: boolean; /** Dr Feras has treated it */ treated?: boolean; /** full treatment (not just a remedy) also lowers the fatal roll */ fullCare?: boolean }
 /** `at`: the settlement he sleeps in (null on the road). `mounted`: he rides or leads animals. `wounds`: open wounds he has. */
 export interface ExposureCtx { day: number; onRoad: boolean; thirsty: boolean; fatigue: number; at?: string | null; mounted?: boolean }
 
@@ -169,7 +169,7 @@ export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { ri
     if (c.day >= il.until) {
       // the crisis: nursing in a town helps, the road and exhaustion do not
       const care = o.resting ? 0.8 : 1.3;
-      const p = Math.min(0.9, d.fatality * care * (c.fatigue >= 80 ? 1.3 : 1));
+      const p = Math.min(0.9, d.fatality * care * (c.fatigue >= 80 ? 1.3 : 1) * (il.fullCare ? 0.7 : 1));
       if (d.fatality > 0 && rand() < p) {
         if (o.deadly) { died = { id: d.id }; break; }
         notes.push(`${d.name}: you came close to dying and pulled through. You are very weak.`);

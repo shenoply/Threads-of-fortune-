@@ -138,8 +138,8 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
         <div className="cl-treat" data-testid="consult-treat">
           {!treated && !note && (
             <div className="cl-opts">
-              <button className="cl-opt" disabled={g.cash < fullFee} onClick={() => buy('full')} data-testid={`treat-${id}`}><b>Full treatment · {fmt(fullFee)}</b><small>Speeds recovery by about a third. An hour of his time.</small></button>
-              <button className="cl-opt" disabled={g.cash < remedyFee} onClick={() => buy('remedy')} data-testid={`remedy-${id}`}><b>Simple remedy · {fmt(remedyFee)}</b><small>A bottle and advice. Speeds recovery a little.</small></button>
+              <button className="cl-opt" disabled={g.cash < fullFee} onClick={() => buy('full')} data-testid={`treat-${id}`}><b>Full treatment · {fmt(fullFee)}</b><small>Speeds recovery by about a third and lowers the risk of a bad end a little. An hour of his time.</small></button>
+              <button className="cl-opt" disabled={g.cash < remedyFee} onClick={() => buy('remedy')} data-testid={`remedy-${id}`}><b>Simple remedy · {fmt(remedyFee)}</b><small>A bottle and advice. Speeds recovery a little. It does not change the risk of dying.</small></button>
               <button className="cl-opt quiet" onClick={onDone} data-testid="treat-none"><b>No treatment</b><small>Rest and wait it out. Free.</small></button>
             </div>
           )}

@@ -1,3 +1,4 @@
+import { HealthStrip } from '../Health/HealthStrip';
 import { HERO_NAME } from '../../data/hero';
 import { useState } from 'react';
 import { useGame } from '../../game/state/store';
@@ -21,6 +22,7 @@ export function HeroHub() {
   const worth = w.owned.reduce((n, id) => n + (OUTFIT[id]?.price ?? 0), 0);
   return (
     <div className="screen hero-hub" data-testid="hero-hub">
+      <HealthStrip always />
       <section className="hh-top">
         <button className="hh-room" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} onClick={() => setOpen(true)} aria-label="Open the wardrobe" data-testid="hh-figure">
           <div className="hh-figure"><HeroFigure pose="wardrobe" outfitId={wornOutfit(w).id} /></div>

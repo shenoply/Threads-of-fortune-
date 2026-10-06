@@ -1,4 +1,4 @@
-import { DISEASE } from './game/systems/disease';
+import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, openMalek, planTrip } from './game/nav';
@@ -231,6 +231,12 @@ export default function App() {
   };
   const [loadOpen, setLoadOpen] = useState(false);
   const toastTimer = useRef<number>();
+  const illCount = useRef((g.illnesses ?? []).length);
+  useEffect(() => {
+    const n = (g.illnesses ?? []).length;
+    if (n > illCount.current) toast('You have fallen ill. Tap the strip under the header, or see Dr Feras in Cairo.');
+    illCount.current = n;
+  }, [(g.illnesses ?? []).length]); // eslint-disable-line react-hooks/exhaustive-deps
   const toast = (m: string) => {
     if (!m) return;
     setToast(m);
@@ -514,11 +520,7 @@ export default function App() {
         </button>
       )}
 
-      {g.started && (g.illnesses ?? []).length > 0 && !(tab === 'stall' && g.encounter) && (
-        <div className="ill-banner" data-testid="ill-banner">
-          {(g.illnesses ?? []).map((il) => { const d = DISEASE(il.id); return d ? <span key={il.id}><b>{d.name}</b> · about {Math.max(1, il.until - g.day)} day{il.until - g.day === 1 ? '' : 's'} left. {d.symptom}</span> : null; })}
-        </div>
-      )}
+      {g.started && phase === 'game' && !tutorialActive && tab !== 'hero' && !(tab === 'stall' && g.encounter) && <HealthStrip />}
 
       {phase === 'game' && <GuideFlash />}
       {phase === 'game' && !(tab === 'stall' && g.encounter) && (() => {

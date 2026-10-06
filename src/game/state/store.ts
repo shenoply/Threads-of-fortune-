@@ -2257,7 +2257,7 @@ export const useGame = create<GameState & Actions>()(
           const until = s.day + Math.max(1, Math.ceil(left * (mode === 'remedy' ? 0.85 : 0.65)));
           set({
             cash: s.cash - fee,
-            illnesses: (s.illnesses ?? []).map((x) => (x.id === id ? { ...x, until, treated: true } : x)),
+            illnesses: (s.illnesses ?? []).map((x) => (x.id === id ? { ...x, until, treated: true, fullCare: mode !== 'remedy' ? true : x.fullCare } : x)),
             world: { ...s.world, hour: Math.min(23.5, s.world.hour + 1) },
             ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Dr Feras: ${d.name.toLowerCase()}`, amount: -fee }],
             journal: [...s.journal, { day: s.day, text: `Dr Feras treated ${d.name.toLowerCase()}.` }],
@@ -3266,7 +3266,7 @@ export const useGame = create<GameState & Actions>()(
             rescue: { day: s.day, from: at, reason, fare, by: near ? 'carry' : 'train' },
             cash: s.cash - fare,
             world: { ...s.world, at: 'cairo', hour: Math.min(23, s.world.hour + (near ? 1 : 6)) },
-            condition: { ...c, fatigue: Math.min(c.fatigue, 60) },
+            condition: { ...c, fatigue: Math.min(c.fatigue, 60), fed: Math.max(fedOf(c), 45), water: Math.max(waterOf(c), 70) },
             ledger: fare ? [...s.ledger, { day: s.day, kind: 'expense' as const, label: 'Train to Cairo (a stranger paid you onto it)', amount: -fare }] : s.ledger,
             journal: [...s.journal, { day: s.day, text: `Passed out (${reason}). A passer-by took him to Dr Feras.`, kind: 'road' as const }],
           });
@@ -3292,7 +3292,7 @@ export const useGame = create<GameState & Actions>()(
           const clinic = near.id === 'cairo' || near.id === 'giza';
           set({
             rescue: { day: s.day, from: near.id, reason, fare: 0, by: 'passerby', clinic },
-            condition: { ...c, fatigue: Math.min(100, c.fatigue + 10) },
+            condition: { ...c, fatigue: Math.min(100, c.fatigue + 10), fed: Math.max(fedOf(c), 35), water: Math.max(waterOf(c), 60) },
             journey: undefined,
             world: { ...s.world, at: clinic ? 'cairo' : near.id, x: near.x, y: near.y, hour: Math.min(23, s.world.hour + 4) },
             journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). A passer-by took him to ${near.name}.`, kind: 'road' as const }],
