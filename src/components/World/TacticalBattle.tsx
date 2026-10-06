@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import {
-  COLS, ROWS, KIND_LABEL, RANGE, act, byId, cellAt, chargeCells, choose, dist, expectedKills, intents, live, newTurn, outcome, reach, sidePhase, simulate,
+  COLS, ROWS, KIND_LABEL, RANGE, act, byId, cellAt, chargeCells, choose, dist, squadAt, expectedKills, intents, live, newTurn, outcome, reach, sidePhase, simulate,
   type Battle, type Outcome, type Order, type Squad, type Step, type Style,
 } from '../../game/systems/tactics';
 import './TacticalBattle.css';
@@ -26,6 +26,9 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
   const [sheet, setSheet] = useState(false);
   const [flash, setFlash] = useState<{ id: string; kind: string; k: number } | null>(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
+  // scouts saw them first: place your squads before the first shot
+  const [deploying, setDeploying] = useState(battle.initiative === 'me');
+  const [odds, setOdds] = useState<number | null>(null);
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const timer = useRef<number | undefined>(undefined);
   const autoTimer = useRef<number | undefined>(undefined);
@@ -91,13 +94,19 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
     return () => window.clearTimeout(autoTimer.current);
   }, [auto, busy, b.turn, b.over]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!deploying) return;
+    const t = window.setTimeout(() => setOdds(simulatedOdds(bRef.current, 'steady', 30)), 150);
+    return () => window.clearTimeout(t);
+  }, [deploying, b.squads.map((q) => `${q.id}${q.x}${q.y}`).join()]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // finishing the fight
   const done = b.over;
   const res = useMemo(() => outcome(b), [b]);
 
   // ---- what the selected squad can do ----
   const s: Squad | undefined = sel ? byId(b, sel) : undefined;
-  const mineTurn = !busy && !auto && !done;
+  const mineTurn = !busy && !auto && !done && !deploying;
   const canAct = !!s && s.side === 'me' && !s.gone && !s.acted && mineTurn;
   const moves = useMemo(() => {
     if (!canAct || !s || s.moved || mode === 'focus') return new Map<string, number>();
@@ -128,12 +137,27 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
     const score = ([x, y]: [number, number]) => (sq.side === 'me' ? (y < f.y ? 6 : 0) : (y > f.y ? 6 : 0)) + (cellAt(b, x, y) === 'cover' ? 3 : 0) + (cellAt(b, x, y) === 'high' ? 3 : 0) - dist(sq, { x, y }) * 0.3 + (live(b, 'me').some((o) => o.id !== sq.id && dist(o, { x, y }) === 1 && dist(o, f) === 1) ? 0 : 0);
     return [...cells].sort((a, c) => score(c) - score(a))[0];
   };
+  const deployCells = useMemo(() => {
+    const m = new Set<string>();
+    if (!deploying) return m;
+    for (let y = ROWS - 3; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (cellAt(b, x, y) !== 'rock' && !squadAt(b, x, y)) m.add(`${x},${y}`);
+    return m;
+  }, [b, deploying]);
   const tapCell = (x: number, y: number) => {
+    if (deploying) {
+      const q = sel ? byId(b, sel) : undefined;
+      if (q && q.side === 'me' && deployCells.has(`${x},${y}`)) setB({ ...b, squads: b.squads.map((o) => (o.id === q.id ? { ...o, x, y } : o)) });
+      return;
+    }
     if (!canAct || !s) return;
     if (moves.has(`${x},${y}`)) run(s.id, { t: 'move', to: [x, y] });
   };
   const tapSquad = (q: Squad) => {
     if (busy || auto) return;
+    if (deploying && q.side === 'me' && sel && sel !== q.id) {
+      const a = byId(b, sel)!;
+      if (a.side === 'me' && Math.min(a.y, q.y) >= ROWS - 3) { setB({ ...b, squads: b.squads.map((o) => (o.id === a.id ? { ...o, x: q.x, y: q.y } : o.id === q.id ? { ...o, x: a.x, y: a.y } : o)) }); setSel(q.id); return; }
+    }
     if (q.side === 'me') { setSel(q.id); setMode('act'); return; }
     if (!canAct || !s) { setSel(q.id); return; }
     if (mode === 'focus') { run(s.id, { t: 'focus', target: q.id }); return; }
@@ -157,7 +181,7 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
   const mySt = live(b, 'me'), enSt = live(b, 'en');
   const frac = (side: 'me' | 'en') => { const all = b.squads.filter((q) => q.side === side); const max = all.reduce((a, q) => a + q.maxHp, 0); return max ? live(b, side).reduce((a, q) => a + q.hp, 0) / max : 0; };
   const avgMorale = (list: Squad[]) => (list.length ? Math.round(list.reduce((a, q) => a + Math.max(0, q.morale), 0) / list.length) : 0);
-  const hint = !s ? 'Tap one of your squads.' : s.side === 'en' ? `${s.name}: ${s.n} of ${s.start}, morale ${Math.max(0, Math.round(s.morale))}.` :
+  const hint = deploying ? 'Your scouts saw them first. Tap a squad, then a green square to place it. Put riflemen in cover, riders on the wings, and keep Hassan at the back.' : !s ? 'Tap one of your squads.' : s.side === 'en' ? `${s.name}: ${s.n} of ${s.start}, morale ${Math.max(0, Math.round(s.morale))}.` :
     s.acted ? `${s.name} have acted.` :
     mode === 'focus' ? 'Tap the enemy squad every rifle should fire on.' :
     s.kind === 'hero' ? 'Give an order, or tap a green square to move, or an enemy in range to fire.' :
@@ -188,7 +212,7 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
         <div className="tac-grid" style={{ width: gw, height: gh }} data-testid="tac-grid">
           {Array.from({ length: COLS * ROWS }, (_, i) => {
             const x = i % COLS, y = Math.floor(i / COLS), t = cellAt(b, x, y);
-            const can = moves.has(`${x},${y}`);
+            const can = moves.has(`${x},${y}`) || deployCells.has(`${x},${y}`);
             return (
               <div key={i} className={`tc ${t} ${can ? 'go' : ''} ${y <= 2 ? 'theirs' : y >= 6 ? 'ours' : ''}`} style={{ left: px(x), top: px(y), width: cell, height: cell }} onClick={() => tapCell(x, y)} title={CELL_NAME[t] ?? ''}>
                 {t !== 'open' && <span>{CELL_GLYPH[t]}</span>}
@@ -237,6 +261,11 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
             <h3>{done.result === 'win' ? 'The band breaks' : done.result === 'loss' ? 'Your line breaks' : 'Neither side gives way'}</h3>
             <p>{done.result === 'win' ? 'They scatter and leave the road.' : done.result === 'loss' ? 'You are driven back and they take what they want.' : 'The day ends; both sides pull back.'}</p>
             <button className="btn primary big" onClick={() => onEnd(res, false)} data-testid="tac-continue">Continue</button>
+          </div>
+        ) : deploying ? (
+          <div className="tac-main" style={{ marginTop: 'auto', flexDirection: 'column' }}>
+            {odds != null && <div className="tac-odds" data-testid="tac-odds">If your men fought it out from here: about <b>{odds}%</b> to win</div>}
+            <button className="btn primary" onClick={() => { setDeploying(false); setSel('hero'); }} data-testid="tac-begin">Begin the fight</button>
           </div>
         ) : (
           <>

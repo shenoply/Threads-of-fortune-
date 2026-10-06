@@ -72,3 +72,6 @@
 .tac-sheet-card p { margin: 0 0 4px; font-size: 15.5px; color: #e8d3ae; line-height: 1.4; }
 .tac-sheet-card .btn { display: flex; flex-direction: column; align-items: center; min-height: 52px; font-size: 17px; }
 @media (max-height: 640px) { .tac-info small { display: none; } }
+
+.tac-odds { font-size: 14px; color: #e8d3ae; text-align: center; padding: 2px 0; }
+.tac-odds b { color: #ffd27a; font-size: 17px; }

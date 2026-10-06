@@ -15,7 +15,9 @@ await p.waitForSelector('[data-testid=road-encounter]', { timeout: 5000 });
 await p.waitForTimeout(500); await p.screenshot({ path: S + 'f-1-standoff.png' });
 await p.click('[data-testid=amb-fight]');
 await p.waitForSelector('[data-testid=tactical-battle]', { timeout: 5000 });
-await p.waitForTimeout(1200); await p.screenshot({ path: S + 'f-2-tactical.png' });
+await p.waitForTimeout(1500); await p.screenshot({ path: S + 'f-2-tactical.png' });
+// scouts saw them first: place the squads, then begin
+if (await p.locator('[data-testid=tac-begin]').count()) { console.log('deploy odds:', await p.textContent('[data-testid=tac-odds]').catch(() => null)); await p.click('[data-testid=tac-begin]'); }
 // play a turn by hand: pick a rifle squad, move it, end the turn
 const first = await p.locator('.tk.s-me.k-rifle').first();
 if (await first.count()) { await first.click(); const go = p.locator('.tc.go'); if (await go.count()) await go.first().click(); }
