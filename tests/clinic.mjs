@@ -54,7 +54,7 @@ await p.screenshot({ path: `${S}/contents-${vp.width}.png` });
 await p.click('[data-testid=book-close]');
 await p.click('[data-testid=clinic-cases-tab]');
 await p.click('[data-testid=case-malaria]'); await p.waitForTimeout(600);
-check((await p.locator('[data-testid=case-desk]').getAttribute('src')) === 'art/clinic/desk/malaria.webp', 'he explains it over his book on the desk');
+check((await p.locator('[data-testid=case-desk]').getAttribute('src')) === 'art/clinic/both/malaria.webp', 'he explains it over his book on the desk');
 check((await has('case-run-malaria')) > 0 && (await p.locator('[data-testid=feras-voice]').getAttribute('src')) === 'audio/feras/malaria.mp3', 'Feras talks through any case on demand');
 await p.screenshot({ path: `${S}/case-${vp.width}.png` });
 await p.click('[data-testid=case-catch]'); await p.waitForTimeout(200);

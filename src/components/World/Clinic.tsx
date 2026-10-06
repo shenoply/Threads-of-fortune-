@@ -41,8 +41,8 @@ function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack
         <img src={PORTRAIT} alt="" />
         <div><b>{d.name}</b><small>{TIER_LABEL[d.tier]} {d.kind === 'injury' ? 'injury' : 'disease'} · Dr Feras explains</small></div>
       </div>
-      {/* his book open on the desk at that chapter, his finger on the plate (tools/feras-desk.py) */}
-      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} onClick={() => setBig(true)} style={{ cursor: 'zoom-in' }} data-testid="case-desk" />
+      {/* the two of them at his desk, the book open at this case (tools/feras-desk-both.py); tap for the page */}
+      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/both/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} onClick={() => setBig(true)} style={{ cursor: 'zoom-in' }} data-testid="case-desk" />
       {big && <BookPage id={d.id} onClose={() => setBig(false)} />}
       <p className="cl-feras">“{d.doctor}”</p>
       <audio ref={a} src={`audio/feras/${d.id}.mp3`} preload="auto" data-testid="feras-voice" />

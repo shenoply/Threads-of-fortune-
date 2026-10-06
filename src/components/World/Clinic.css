@@ -123,3 +123,6 @@
 .cl-stage-img.both { object-position: 47% 60%; }
 .cl-stage-img.book { object-position: 50% 62%; }
 @media (min-width: 700px) { .cl-stage { height: min(62svh, 56.25vw); max-width: 1100px; border-radius: 10px; } }
+.cl-stage-img.both { animation: clFade .45s ease, clDrift 14s ease-in-out infinite alternate; }
+@keyframes clDrift { from { transform: scale(1); } to { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .cl-stage-img.both { animation: none; } }

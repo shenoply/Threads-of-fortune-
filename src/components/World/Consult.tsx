@@ -13,8 +13,9 @@ import { voice } from '../../game/audio/voice';
 import { MedicalBook } from './MedicalBook';
 
 const DESK = 'art/clinic/feras-desk-pov.webp';
-/** the two of them at his desk, from the introduction film: a short loop, and its still */
-const BOTH = 'video/clinic/feras-desk-loop.mp4';
+/** the two of them at his desk (the introduction film's shot), his book open at this very case
+ *  (tools/feras-desk-both.py); the plain shot if that picture is missing */
+const bothWith = (id: string) => `art/clinic/both/${id}.webp`;
 const BOTH_STILL = 'art/clinic/feras-desk-both.webp';
 const deskWith = (id: string) => `art/clinic/desk/${id}.webp`;
 
@@ -74,6 +75,7 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
   const [n, setN] = useState(0);
   const [stage, setStage] = useState<Stage>('talk');
   const [deskPic, setDeskPic] = useState(true);
+  const [bothPic, setBothPic] = useState(true);
   const [note, setNote] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const a = useRef<HTMLAudioElement>(null);
@@ -115,7 +117,7 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
       <div className={`cl-stage st-${stage}`} onClick={tapStage} data-testid="consult-stage">
         {stage === 'desk'
           ? <img key="book" className="cl-stage-img book" src={pic} alt={`Dr Feras opens his book at ${d.name.toLowerCase()}`} onError={() => setDeskPic(false)} draggable={false} />
-          : <video key="both" className="cl-stage-img both" src={BOTH} poster={BOTH_STILL} autoPlay loop muted playsInline aria-label="Dr Feras and Hassan at his desk" data-testid="consult-both" />}
+          : <img key="both" className="cl-stage-img both" src={bothPic ? bothWith(d.id) : BOTH_STILL} onError={() => setBothPic(false)} alt={`Dr Feras and Hassan at his desk, the book open at ${d.name.toLowerCase()}`} draggable={false} data-testid="consult-both" />}
         <div className={`cl-say ${line.who}`} data-testid={`line-${line.who}-${stage === 'talk' ? n : stage}`}>
           <small>{line.who === 'feras' ? 'Dr Feras' : 'You'}</small>
           <p>{line.text}</p>
