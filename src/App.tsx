@@ -24,6 +24,7 @@ import { Inventory } from './components/Inventory/Inventory';
 import { Guide, guidePage } from './components/Guide/Guide';
 import { ObjectiveBar, SideTasks } from './components/Mission/Mission';
 import { firstHourStep } from './components/Tips/FirstHour';
+import { GuideFlash } from './components/Tips/GuideFlash';
 import { CaravanScreen } from './components/World/CaravanScreen';
 import { Campaign, openStallNext, type MapIntent, type Target } from './components/World/Campaign';
 import type { SetTab } from './components/World/Settlement';
@@ -513,6 +514,7 @@ export default function App() {
         </div>
       )}
 
+      {phase === 'game' && <GuideFlash />}
       {phase === 'game' && !(tab === 'stall' && g.encounter) && (() => {
         const fh = firstHourStep(g);
         return (

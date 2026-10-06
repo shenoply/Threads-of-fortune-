@@ -24,6 +24,7 @@ const pick = () => p.evaluate((ban) => {
     let s = 0;
     if (/tour-target|beckon/.test(c)) s += 50;
     if (/\bglow\b/.test(c)) s += 80; // the tutorial's own highlight
+    if (/guide-flash/.test(c)) s += 90; // the first-hour step's pulsing button
     if (/^[▶■❚]/.test(t) || /gramophone|record/i.test(c)) s -= 80;
     if (/\bact\b/.test(c)) s += 12;
     if (/big-btn|big\b/.test(c)) s += 30;

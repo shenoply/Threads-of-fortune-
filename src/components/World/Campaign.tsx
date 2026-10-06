@@ -35,7 +35,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
   // the first look at the wider world counts as having opened the map
   useEffect(() => {
     if (layer !== 'world' || useGame.getState().onboard?.map) return;
-    const t = setTimeout(() => useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), map: true } }), 3000);
+    const t = setTimeout(() => useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), map: true } }), 1200);
     return () => clearTimeout(t);
   }, [layer]);
   const hour = g.world.hour;
