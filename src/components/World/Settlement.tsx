@@ -53,6 +53,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // arriving in a town opens its menu first, Bannerlord-style: the town's picture and what there is
   // to do, each a big button into the part of the panel below that does it
   const [menu, setMenu] = useState(initialTab === 'town');
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (menu) rootRef.current?.scrollTo(0, 0); }, [menu]);
   const [finance, setFinance] = useState(false);
   const [library, setLibrary] = useState(false);
   const [cairoPlace, setCairoPlace] = useState<'chemist' | 'museum' | null>(null);
@@ -120,7 +122,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   }, [id]);
 
   return (
-    <div className={`overlay settlement${menu ? ' menu-open' : ''}`} role="dialog" aria-label={st.name} data-testid="settlement">
+    <div ref={rootRef} className={`overlay settlement${menu ? ' menu-open' : ''}`} role="dialog" aria-label={st.name} data-testid="settlement">
       {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
       {shop && <Catalogue shopId={shop} onClose={() => setShop(null)} />}
       <div className="set-head">

@@ -37,7 +37,7 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'alexandria',
     locks: 'Until then Rashid sells only Common rugs, gives no credit, and your rank cannot rise.',
     reward: { cash: 200, rep: 3, trust: 15, text: 'Rashid reads your receipt twice. "Not bad. Not good, but not bad." He pays you £2 for the errand, opens his back room and his credit book.' },
-    hint: (s) => (s.world.at === 'alexandria' ? 'You are in Alexandria: buy a rug in the market.' : 'Travel to Alexandria and buy a rug there.'),
+    hint: (s) => (s.world.at === 'alexandria' ? 'Buy one rug in the market.' : 'Travel to Alexandria and buy one rug.'),
   },
   beasts: {
     id: 'beasts', title: 'Beasts of burden', giver: 'Uncle Rashid',
@@ -46,7 +46,7 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'tanta',
     locks: 'Your rank cannot rise past Bazaar merchant until you can carry stock of your own.',
     reward: { cash: 300, rep: 3, trust: 10, text: 'Rashid counts the bale twice and pays you £3. "You look almost like a merchant now. Almost. The donkey looks more like one than you."' },
-    hint: (s) => ((s as unknown as { world: { party: { animals: Record<string, number> } } }).world.party ? 'Buy two pack animals, then fetch Rashid\'s bale from Tanta.' : 'Fetch Rashid\'s bale from Tanta.'),
+    hint: (s) => ((s as unknown as { world: { party: { animals: Record<string, number> } } }).world.party ? 'Buy two pack animals, then fetch the bale in Tanta.' : 'Fetch the bale in Tanta.'),
     check: (s) => ((s as unknown as { jobsDone?: string[] }).jobsDone ?? []).includes('tanta-bale'),
   },
   farid: {
@@ -56,7 +56,7 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'damascus',
     locks: 'Your rank cannot rise past Bazaar merchant until you know what your father bought.',
     reward: { cash: 0, rep: 4, trust: 5, text: 'Whatever Farid said, the story travels back to Giza before you do. For the first time, merchants in the Khan say your father\'s name with respect, and yours with curiosity.' },
-    hint: (s) => (s.world.at === 'damascus' ? 'You are in Damascus: talk to Farid al-Khatib in the Souq al-Hamidiyya.' : 'Take the Fayoum Hearth to Farid al-Khatib in Damascus.'),
+    hint: (s) => (s.world.at === 'damascus' ? 'Show Farid al-Khatib the rug.' : 'Take the Fayoum Hearth to Farid in Damascus.'),
     check: (s) => s.world.appraised.length > 0 || (s.world.at === 'damascus' && !s.inventory.some((i) => i.typeId === 'fayoum-hearth')),
   },
   rival: {
@@ -65,7 +65,7 @@ export const MISSIONS: Record<string, Mission> = {
     steps: [`Make ${RIVAL_SALES} sales at your own stall while Selim is there`, 'Every day he may lure one of your buyers away', 'Kindness, a good name and the right rug keep buyers loyal'],
     locks: 'Your rank cannot rise past Khan dealer while Selim Kassab takes your buyers.',
     reward: { cash: 0, rep: 5, trust: 10, text: 'One morning Selim\'s stall is bare. The coffee-house boy says he owed money to half of Cairo and left on the night train to Port Said. The lane is yours again, and everyone saw how you held it.' },
-    hint: (s) => `Sell at your stall: ${Math.min(RIVAL_SALES, s.stats?.rivalSales ?? 0)} of ${RIVAL_SALES} sales since Selim arrived.`,
+    hint: (s) => `Sell at your stall: ${Math.min(RIVAL_SALES, s.stats?.rivalSales ?? 0)} of ${RIVAL_SALES}.`,
     check: (s) => (s.stats?.rivalSales ?? 0) >= RIVAL_SALES,
   },
   ambush: {
@@ -75,7 +75,7 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'suez',
     locks: 'Your rank cannot rise past Khan dealer while Selim\'s cousins hunt your caravans.',
     reward: { cash: 500, rep: 5, trust: 5, text: 'Selim\'s cousins see your guards from the ridge and ride away. In Suez the coffee-house men already know. Nobody in the lane will cross you now.' },
-    hint: (s) => (s.world.at === 'suez' ? 'You made it to Suez.' : 'Hire guards (strength 10) and travel to Suez.'),
+    hint: (s) => (s.world.at === 'suez' ? 'You made it to Suez.' : 'Hire guards (strength 10), then go to Suez.'),
     check: (s) => s.world.at === 'suez' && ((s as unknown as { world: { party: { troops: Record<string, number> } } }).world.party ? strengthOf((s as unknown as { world: { party: { troops: Record<string, number> } } }).world.party.troops) >= 10 : false),
   },
   auction: {
@@ -84,7 +84,7 @@ export const MISSIONS: Record<string, Mission> = {
     steps: ['Find an auction house: Cairo, Alexandria, Jerusalem, Damascus, Amman, Baghdad and Istanbul each have two', 'Go on a sale day and take a seat', 'Inspect the lots, then bid, and win at least one'],
     locks: 'Your rank cannot rise past Merchant of the Levant until you have won at auction.',
     reward: { cash: 0, rep: 5, trust: 5, text: 'The auctioneer writes your name in his book, and the next sale\'s catalogue arrives at your stall addressed to "the merchant of Giza".' },
-    hint: () => 'Win a lot at auction. The Khan el-Khalili Dealer Room in Cairo sells every few days.',
+    hint: () => 'Win one lot at an auction.',
     check: (s) => (s.stats?.auctionsWon ?? 0) >= 1,
   },
   warrant: {
@@ -102,7 +102,7 @@ export const MISSIONS: Record<string, Mission> = {
     steps: ['See the Collection page on the Merchant tab for all four conditions'],
     locks: 'This is the last chapter.',
     reward: { cash: 0, rep: 10, trust: 0, text: 'Your name is painted over a door in Khan el-Khalili. Your father comes to see it on his stick, and laughs until he has to sit down.' },
-    hint: () => 'Complete the House of Fortune (Merchant tab, Collection).',
+    hint: () => 'Finish the House of Fortune (Merchant tab).',
   },
 };
 export const MAIN_ORDER = ['alexandria', 'beasts', 'farid', 'rival', 'ambush', 'auction', 'warrant', 'house'];

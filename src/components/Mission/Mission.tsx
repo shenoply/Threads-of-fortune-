@@ -125,7 +125,7 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
     return (
       <div className="objective-bar opening" data-testid="first-hour">
         <div className="ob-row">
-          <span className="ob-text"><small>{firstHour.n ? `Getting started · ${firstHour.n} of ${firstHour.of}` : 'Objective'}</small><b>{firstHour.text}</b></span>
+          <span className="ob-text"><small>{firstHour.n ? `Step ${firstHour.n} of ${firstHour.of}` : 'Objective'}</small><b>{firstHour.text}</b></span>
           {firstHour.btn && <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>}
           {firstHour.skip && <button className="ob-skip" onClick={firstHour.skip} data-testid="first-hour-skip" aria-label="Skip the opening">Skip</button>}
         </div>

@@ -1,4 +1,4 @@
-// The opening: a new game shows "Getting started · 1 of 9" with the needed button pulsing; cities
+// The opening: a new game shows "Getting started · 1 of 8" with the needed button pulsing; cities
 // beyond Giza and Cairo are locked (greyed, and tapping one says why); each step ticks itself off;
 // on the way to Alexandria a small band of robbers stops you once and costs you no rugs; a rug won
 // or bought in Alexandria finishes it; Skip unlocks everything; an older save that is under way skips it.
@@ -20,13 +20,13 @@ const bar = async () => (await p.locator('[data-testid=first-hour]').innerText()
 await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-fullscreen', 'off'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1200);
-check((await bar()).includes('1 of 9'), `a new game starts the opening: "${(await bar()).slice(0, 80)}"`);
+check((await bar()).includes('1 of 8'), `a new game starts the opening: "${(await bar()).slice(0, 80)}"`);
 check((await has('.guide-flash')) > 0, 'the button it needs is pulsing');
 await p.screenshot({ path: `${S}/1-start.png` });
 
 // past the first sale and Rashid: the third step
 await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek','arran','abuhamid','bilgin-chess','rashid','nabil','cohen']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.totalSales = 1; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 });`);
-check((await bar()).includes('3 of 9'), `after a sale and Rashid: "${(await bar()).slice(0, 90)}"`);
+check((await bar()).includes('3 of 8'), `after a sale and Rashid: "${(await bar()).slice(0, 90)}"`);
 
 // the map: Damascus is shut, Cairo is open
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(700);
@@ -39,9 +39,9 @@ await p.screenshot({ path: `${S}/2-map.png` });
 
 // Malek, Bilgin, the guard, Cairo
 await edit(`s.totalSales = 2; s.ledger.push({ day: s.day, kind: 'expense', label: "Malek's: kofta", amount: -3 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
-check((await bar()).includes('6 of 9') && /guard/i.test(await bar()), `then the guard yard: "${(await bar()).slice(0, 90)}"`);
+check((await bar()).includes('5 of 8') && /guard/i.test(await bar()), `then the guard yard: "${(await bar()).slice(0, 90)}"`);
 await edit(`s.world.party.troops = { watchman: 1 }; s.world.at = 'cairo'; s.whereabouts = { ...(s.whereabouts||{}), [s.day]: 'cairo' }; s.cash = 5000; s.world.hour = 9;`);
-check((await bar()).includes('8 of 9'), `in Cairo with a guard: "${(await bar()).slice(0, 90)}"`);
+check((await bar()).includes('7 of 8'), `in Cairo with a guard: "${(await bar()).slice(0, 90)}"`);
 
 // to Alexandria by train: the robbers stop it
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);

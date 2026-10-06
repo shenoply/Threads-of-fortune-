@@ -2541,3 +2541,24 @@ button.hud-chip { cursor: pointer; }
 .title-card .more-toggle { opacity: .8; border: 0; text-decoration: underline; }
 .title-card .iron-toggle { align-items: center; }
 .title-card .iron-toggle b { font-size: 15px; }
+/* everything on the title screen stays visible: small chips, no hidden menu */
+.title-card .title-links { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding-top: 6px; margin-top: 4px; border-top: 1px solid rgba(201,151,74,.2); }
+.title-card .title-links .ghost-btn { font-size: 13px; min-height: 32px; padding: 4px 10px; border: 1px solid rgba(234,219,189,.25); border-radius: 999px; text-decoration: none; }
+.title-card .install-offer small { display: none; }
+.title-card .install-offer .install-steps { display: block; }
+
+/* ---------- Objective bar: short, big, easy to read ---------- */
+.ob-text small { font-size: 12.5px; }
+.ob-text b { font-size: 18px; line-height: 1.2; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ob-btn { font-size: 16px !important; padding: 8px 14px !important; min-height: 40px; }
+.objective-bar.opening .ob-text b { font-size: 18.5px; line-height: 1.2; -webkit-line-clamp: 2; }
+.objective-bar.opening .ob-text small { font-size: 12.5px; }
+.ob-skip { font-size: 13px; }
+.ob-more { font-size: 16.5px; }
+/* toast: full readable width (left:50% had squeezed it to half the screen) */
+.toast { width: max-content; max-width: min(92vw, 440px); box-sizing: border-box; top: calc(env(safe-area-inset-top, 0px) + 56px); }
+/* the town menu always fills the screen, wherever the town page was scrolled to */
+.settlement.menu-open { overflow: hidden; }
+.town-menu { position: fixed; inset: 0; }
+@media (max-height: 860px) { .tm-blurb { display: none; } .tm-title h2 { font-size: 30px; } .tm-body { padding-top: 8px; } }
+body:has(.settlement) .toast { display: none; }

@@ -21,15 +21,14 @@ const troops = (s: S) => Object.values(s.world.party.troops ?? {}).reduce((a, n)
 export const BILGIN_TIP = 'Khan el-Khalili pays a third more';
 
 export const OPENING: OpeningStep[] = [
-  { id: 'stall', text: () => 'Walk to your stall in the Giza lane and serve your first customer.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
-  { id: 'rashid', text: () => 'Your shelves are thin. Buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
-  { id: 'profit', text: () => 'Sell again, and ask more than you paid Rashid. That difference is your living.', btn: 'Go to your stall', go: 'stall', done: (s) => (s.totalSales ?? 0) >= 2 },
-  { id: 'malek', text: () => 'On your feet since dawn and nothing eaten: a hungry seller gives discounts. Eat at Malek\'s grill.', btn: 'To Malek\'s', go: 'district', done: (s) => s.ledger.some((l) => l.label.startsWith("Malek's")) || !!s.condition?.wellFed },
-  { id: 'bilgin', text: () => 'Bilgin hears everything on the lane. Ask him where a new man can sell for more.', btn: 'To Bilgin\'s', go: 'district', done: (s) => (s.world.rumours ?? []).some((r) => r.includes(BILGIN_TIP)) },
-  { id: 'guards', text: () => 'The roads beyond Cairo are not safe. Hire a guard at the Giza guard yard.', btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
-  { id: 'cairo', text: () => 'Take the ferry across the Nile to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
-  { id: 'bandits', text: () => 'Set out for Alexandria with your guard. The train through Tanta is quickest.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
-  { id: 'auction', text: (s) => (s.world.at === 'alexandria' ? 'Buy one rug in Alexandria for Rashid: bid at the Attarine warehouse auction (every few days), or buy in the market.' : 'Rashid\'s errand: buy one rug in Alexandria, at auction or in the market.'), btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction },
+  { id: 'stall', text: () => 'Sell your first rug.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
+  { id: 'rashid', text: () => 'Restock: buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
+  { id: 'malek', text: () => 'Eat at Malek\'s grill.', btn: 'To Malek\'s', go: 'district', done: (s) => s.ledger.some((l) => l.label.startsWith("Malek's")) || !!s.condition?.wellFed },
+  { id: 'bilgin', text: () => 'Ask Bilgin where to sell for more.', btn: 'To Bilgin\'s', go: 'district', done: (s) => (s.world.rumours ?? []).some((r) => r.includes(BILGIN_TIP)) },
+  { id: 'guards', text: () => 'Hire a guard at the guard yard.', btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
+  { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
+  { id: 'bandits', text: () => 'Travel to Alexandria. The train is quickest.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
+  { id: 'auction', text: () => 'Buy one rug in Alexandria.', btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction },
 ];
 
 // test runs (and anyone who set the old developer switch) start with the opening skipped

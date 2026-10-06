@@ -131,7 +131,6 @@ export default function App() {
   const [confirmIron, setConfirmIron] = useState(false);
   const [titleOpts, setTitleOpts] = useState(false);
   const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
-  const [more, setMore] = useState(false);
   // a Sandbox is always a new game: an existing save is kept in a free slot first
   const freshForSandbox = () => { if (useGame.getState().started) { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); refreshSlots(); g.reset(); } };
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
@@ -440,8 +439,7 @@ export default function App() {
                 <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · new game</button>
               </>
             )}
-            <button className="ghost-btn more-toggle" onClick={() => setMore((m) => !m)} aria-expanded={more} data-testid="title-more">{more ? 'Less' : 'More'}</button>
-            {more && <div className="title-links">
+            <div className="title-links">
             {!g.started && introSeen() && (
               <button className="ghost-btn" onClick={() => { audio.ensure(); setPhase('dayone'); }} data-testid="skip-to-day">Skip to Day One</button>
             )}
@@ -453,7 +451,7 @@ export default function App() {
                 {loadOpen ? 'Hide saves' : 'Load a save'}
               </button>
             )}
-            </div>}
+            </div>
           </div>
           {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
           {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); freshForSandbox(); g.startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
