@@ -2507,3 +2507,17 @@ button.hud-chip { cursor: pointer; }
 [data-testid="settings"] .toggle-row span small { font-size: 13px; }
 [data-testid="settings"] .btn { font-size: 15px; min-height: 40px; }
 [data-testid="settings"] .btn.small, [data-testid="settings"] .slot-info { font-size: 14px; min-height: 38px; }
+
+/* title screen: everything fits one phone screen, no scrolling */
+@media (max-height: 860px) {
+  .whatsnew span { display: none; }
+  .whatsnew { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; margin: 6px auto; }
+  .title-card .tag { margin-bottom: 8px; font-size: 15px; }
+  .title-card h1 { font-size: clamp(28px, 7.5vw, 44px); }
+  .iron-toggle small { display: none; }
+  .iron-toggle { padding: 7px 10px; margin-bottom: 6px; }
+  .opt-toggle { margin-bottom: 6px; }
+  .title-card .big-btn { min-height: 44px; padding: 9px 16px; }
+  .title-links { margin-top: 2px; padding-top: 8px; gap: 6px; }
+  .title-card .ghost-btn { min-height: 36px; padding: 5px 12px; }
+}
