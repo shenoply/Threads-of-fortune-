@@ -2479,3 +2479,31 @@ button.hud-chip { cursor: pointer; }
 .objective-bar.opening .ob-text { flex-direction: column; align-items: flex-start; gap: 1px; padding: 4px 10px; }
 .objective-bar.opening .ob-text small { font-size: 11px; }
 .objective-bar.opening .ob-text b { white-space: normal; font-size: 14.5px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+
+/* ---------- Menu type: middle size (the first readable pass overshot on phones) ---------- */
+.title-card { width: min(92vw, 500px); }
+.title-card .eyebrow { font-size: 13px; }
+.title-card .tag { font-size: 17px; margin-bottom: 14px; }
+.title-card h1 { font-size: clamp(32px, 8.5vw, 54px); }
+.title-card .big-btn { font-size: 16.5px; padding: 12px 18px; min-height: 48px; }
+.title-links .ghost-btn, .title-card .ghost-btn, .title-card .row .ghost-btn { font-size: 14.5px; padding: 8px 13px; min-height: 40px; }
+.iron-toggle { font-size: 14.5px; padding: 9px 11px; margin-bottom: 10px; }
+.iron-toggle small { font-size: 12.5px; }
+.whatsnew { padding: 9px 12px; margin: 10px auto 6px; }
+.whatsnew span { font-size: 14px; line-height: 1.38; }
+.whatsnew b { font-size: 13px; }
+.title-place { font-size: 13px; padding: 6px 12px; }
+.title-foot { font-size: 12px; }
+.slot-row, .slot-row .slot-info { font-size: 14px; }
+.title-opts, .title-opts .toggle-row { font-size: 15px; }
+.title-opts h2 { font-size: 18px; }
+.title-opts p, .title-opts .toggle-row small { font-size: 13px; }
+.title-opts .vol-row { font-size: 14px; }
+[data-testid="settings"] { font-size: 15px; }
+[data-testid="settings"] h2 { font-size: 23px; }
+[data-testid="settings"] h3 { font-size: 17px; }
+[data-testid="settings"] p, [data-testid="settings"] .toggle-row { font-size: 15px; }
+[data-testid="settings"] .toggle-row span small { font-size: 13px; }
+[data-testid="settings"] .btn { font-size: 15px; min-height: 40px; }
+[data-testid="settings"] .btn.small, [data-testid="settings"] .slot-info { font-size: 14px; min-height: 38px; }
