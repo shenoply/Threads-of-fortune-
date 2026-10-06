@@ -419,7 +419,7 @@ interface Actions {
   setAutosave: (on: boolean) => void;
   setVolume: (c: keyof Volumes, v: number) => void;
   reset: () => void;
-  /** Ironman is chosen before the first day and cannot be switched off */
+  /** Ironman belongs to a new game: it can only be set before the game starts, never on a game in progress */
   setIronman: (on: boolean) => void;
   /** Ironman: Hassan dies and the run is over */
   dieNow: (text: string) => void;
@@ -3205,7 +3205,7 @@ export const useGame = create<GameState & Actions>()(
           autosaveEnabled = on;
         },
 
-        setIronman: (on) => { const s = get(); if (!on && s.started && s.day > 1) return; set({ ironman: on }); },
+        setIronman: (on) => { const s = get(); if (s.started) return; set({ ironman: on }); },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();

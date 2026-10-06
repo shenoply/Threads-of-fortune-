@@ -125,6 +125,7 @@ export default function App() {
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
   useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
+  const [confirmIron, setConfirmIron] = useState(false);
   const [titleOpts, setTitleOpts] = useState(false);
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
@@ -388,10 +389,12 @@ export default function App() {
               <button className="ghost-btn" onClick={() => { enterGame(); setGuide(true); }} data-testid="take-tour">Take the quick tour</button>
             </div>
           )}
-          <label className={`iron-toggle ${g.ironman ? 'on' : ''}`} data-testid="ironman-toggle">
-            <input type="checkbox" checked={!!g.ironman} disabled={!!g.ironman && g.started && g.day > 1} onChange={(e) => g.setIronman(e.target.checked)} />
-            <span><b>Ironman mode</b><small>One life. If Hassan dies, from sickness, a wound or a fight, the game is over. No save slots.{g.started && g.ironman && g.day > 1 ? ' Once begun it cannot be switched off.' : g.started ? ' You can switch it on now, but not off again after Day 1.' : ''}</small></span>
-          </label>
+          {!g.started && (
+            <label className={`iron-toggle ${g.ironman ? 'on' : ''}`} data-testid="ironman-toggle">
+              <input type="checkbox" checked={!!g.ironman} onChange={(e) => g.setIronman(e.target.checked)} />
+              <span><b>Ironman mode</b><small>A new game with one life. If Hassan dies, from sickness, a wound or a fight, the game is over. No save slots.</small></span>
+            </label>
+          )}
           <button className="ghost-btn opt-toggle" onClick={() => setTitleOpts((o) => !o)} aria-expanded={titleOpts} data-testid="title-options">{titleOpts ? 'Hide options' : '⚙ Options · sound and volume'}</button>
           {titleOpts && <div className="title-opts modal-card-like" data-testid="title-options-panel">{soundOptions}</div>}
           {g.started && g.ironman && <div className="iron-badge" data-testid="ironman-badge">⚔ Ironman · one life</div>}
@@ -410,6 +413,16 @@ export default function App() {
                   </span>
                 ) : (
                   <button className="ghost-btn" onClick={() => setConfirmReset(true)} data-testid="new-game">New game</button>
+                )}
+                {confirmIron ? (
+                  <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <span style={{ color: 'var(--parchment)', fontSize: 16 }}>Start a new Ironman game? This save will be erased.</span>
+                    <button className="btn" onClick={() => { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); g.reset(); g.setIronman(true); setConfirmIron(false); refreshSlots(); }} data-testid="confirm-iron-keep">Save it to a slot, then start</button>
+                    <button className="btn" onClick={() => { g.reset(); g.setIronman(true); setConfirmIron(false); }} data-testid="confirm-iron">Just erase and start</button>
+                    <button className="ghost-btn" onClick={() => setConfirmIron(false)}>Keep</button>
+                  </span>
+                ) : (
+                  <button className="ghost-btn" onClick={() => setConfirmIron(true)} data-testid="new-ironman">☠ New Ironman game</button>
                 )}
               </>
             ) : (
