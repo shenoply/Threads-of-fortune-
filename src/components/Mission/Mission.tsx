@@ -80,7 +80,7 @@ export function MissionCard({ onMap }: { onMap: () => void }) {
 }
 
 /** One objective at a time, in one line under the top bar: new mission news first, then the mission, then the first-hour step, then a job. */
-export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void } | null }) {
+export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; skip?: () => void } | null }) {
   const g = useGame();
   const [open, setOpen] = useState(false);
   const news = g.missionNews;
@@ -120,6 +120,18 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
       </div>
     );
   }
+  // the opening comes first: one step at a time, ahead of Rashid's errand (which it finishes)
+  if (firstHour) {
+    return (
+      <div className="objective-bar opening" data-testid="first-hour">
+        <div className="ob-row">
+          <span className="ob-text"><small>{firstHour.n ? `Getting started · ${firstHour.n} of ${firstHour.of}` : 'Objective'}</small><b>{firstHour.text}</b></span>
+          {firstHour.btn && <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>}
+          {firstHour.skip && <button className="ob-skip" onClick={firstHour.skip} data-testid="first-hour-skip" aria-label="Skip the opening">Skip</button>}
+        </div>
+      </div>
+    );
+  }
   if (activeId) {
     const m = MISSIONS[activeId];
     const hint = m.hint ? m.hint(g) : m.steps[0];
@@ -134,16 +146,6 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
           {m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
         {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>}
-      </div>
-    );
-  }
-  if (firstHour) {
-    return (
-      <div className="objective-bar" data-testid="first-hour">
-        <div className="ob-row">
-          <span className="ob-text"><small>Objective</small><b>{firstHour.text}</b></span>
-          {firstHour.btn && <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>}
-        </div>
       </div>
     );
   }

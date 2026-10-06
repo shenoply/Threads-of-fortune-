@@ -1,3 +1,4 @@
+import { openingStep } from '../../game/opening';
 import { createPortal } from 'react-dom';
 import { IntroFilm, filmDue, filmReady } from '../IntroFilm/IntroFilm';
 import { hasPerk } from '../../data/character';
@@ -52,6 +53,8 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
   };
   const [look, setLook] = useState<RugPreview | null>(null);
   useEffect(() => { if (!g.onboard?.rashid) useGame.setState({ onboard: { ...(g.onboard ?? {}), rashid: true } }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // a newcomer on the opening gets the short version: one line, then the rugs
+  const opening = !!openingStep(g);
   const exact = g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
   return (
     <div className="screen" data-testid="supplier">
@@ -60,7 +63,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
         <div>
           <div className="eyebrow">WIKALAT EL-GHURI · CAIRO</div>
           <h2>Uncle Rashid</h2>
-          <p>{RASHID_PROFILE.bio}</p>
+          <p>{opening ? 'Buy here cheap; sell dearer at your stall. What you pay him is what every sale must beat.' : RASHID_PROFILE.bio}</p>
           {filmReady('rashid') && !film && <button className="btn small" onClick={() => setFilm(true)} data-testid="rashid-film-again">▶ Watch the film again</button>}
         </div>
       </div>
@@ -89,7 +92,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
 
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
-      <p className="set-demand">Whatever you buy from him goes straight into your stall's stock in Giza, wherever you happen to be standing — pack it for the road next time you're there.</p>
+      {!opening && <p className="set-demand">Whatever you buy from him goes straight into your stall's stock in Giza, wherever you happen to be standing — pack it for the road next time you're there.</p>}
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}
       <div className="offer-list">
         {sup.offers.map((o) => {

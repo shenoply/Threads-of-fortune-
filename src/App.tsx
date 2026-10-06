@@ -25,7 +25,7 @@ import { Supplier } from './components/Supplier/Supplier';
 import { Inventory } from './components/Inventory/Inventory';
 import { Guide, guidePage } from './components/Guide/Guide';
 import { ObjectiveBar, SideTasks } from './components/Mission/Mission';
-import { firstHourStep } from './components/Tips/FirstHour';
+import { firstHourStep, FIRST_HOUR_TIP } from './components/Tips/FirstHour';
 import { GuideFlash } from './components/Tips/GuideFlash';
 import { CaravanScreen } from './components/World/CaravanScreen';
 import { Campaign, openStallNext, type MapIntent, type Target } from './components/World/Campaign';
@@ -526,7 +526,7 @@ export default function App() {
         return (
           <ObjectiveBar
             onGo={(t) => t && chapterGo(t as Target)}
-            firstHour={fh ? { text: fh.text, btn: fh.btn, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
+            firstHour={fh ? { text: fh.text, btn: fh.btn, n: fh.n, of: fh.of, skip: () => { if (window.confirm('Skip the opening? Every city opens now, and the step-by-step guide goes away.')) g.seeTip(FIRST_HOUR_TIP); }, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
           />
         );
       })()}

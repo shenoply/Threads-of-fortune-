@@ -215,6 +215,7 @@ export const NPCS: Record<string, Npc> = {
       start: {
         text: 'Sit, sit. You look like a man who sold something today, or a man who wants to. Coffee?',
         options: [
+          { label: 'Where can a new man sell for more?', next: 'sellmore', effects: ['rumour:Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'] },
           { label: 'What is the news on the lane?', next: 'news' },
           { label: 'Where can I find rugs cheaper than Rashid?', next: 'cheap' },
           { label: 'Tell me about the roads north.', next: 'roads' },
@@ -222,6 +223,10 @@ export const NPCS: Record<string, Npc> = {
           { label: 'They say you were a chess champion.', next: 'chess' },
           bye('Another time, Bilgin.'),
         ],
+      },
+      sellmore: {
+        text: 'Across the river, habibi. In the Khan el-Khalili the hotel buyers pay a third more than our lane does. And Rashid will send you to Alexandria before long: that road has robbers. Take a guard from the yard, even a cheap one. Robbers count heads before they count purses.',
+        options: [{ label: 'Where can I hire guards?', next: 'guards' }, bye('Thank you, Bilgin.')],
       },
       chess: {
         text: 'In Istanbul, once. I won more than I lost, and I lost to the right people. Now I play in the back corner for tea, or for a few piastres if you are brave. Come and sit when you have time.',

@@ -31,6 +31,7 @@ import { dateFor } from '../../game/economy/economy';
 import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
+import { cityLocked, lockedWhy, openingStep } from '../../game/opening';
 import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R } from '../../game/systems/mapNews';
 
 export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
@@ -295,6 +296,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   const planTo = (to: Pt, st?: Settlement, reroute = false): Plan | undefined => {
     if (moving && !reroute) return;
+    // the opening keeps the wider world shut until the first errand is done
+    if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(`${st.name}: ${lockedWhy(useGame.getState(), st.id)}`); audio.sfx('tap'); return; }
     const from = { x: w.x, y: w.y };
     const target = st ? { x: st.x, y: st.y } : to;
     const ships = here && st ? seaRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
@@ -558,6 +561,19 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           if (nightRuleRef.current === 'camp') { setTimeScale(0); setSleeping(true); }
           else if (nightRuleRef.current === 'ask') { setTimeScale(0); setNightfall(true); }
         }
+        // the opening's robbers: on the way to Alexandria, whatever the means, a small band stops you once
+        // (on the railway, a log across the line near Tanta). Sized to lose to you and your guard.
+        {
+          const st = useGame.getState();
+          if (openingStep(st)?.step.id === 'bandits' && moving.dest === 'alexandria' && !moving.mode && done >= pathLength(moving.path) * 0.4) {
+            const band = st.spawnOpeningBandits(pos);
+            setMoving({ ...moving, done });
+            setReport(moving.train ? 'The train jolts to a halt: robbers have dragged a log across the line near Tanta.' : 'Men step out onto the road ahead.');
+            setEncounter(band);
+            audio.sfx('chest');
+            return;
+          }
+        }
         if (!moving.train) {
           const st = useGame.getState();
           // only raiders stop you; everyone else you can tap on the map if you want to talk
@@ -697,7 +713,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => (
             <button
               key={st.id}
-              className={`place kind-${st.kind} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''}`}
+              className={`place kind-${st.kind} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''} ${cityLocked(g, st.id) ? 'locked' : ''}`}
+              title={cityLocked(g, st.id) ? lockedWhy(g, st.id) : undefined}
               style={{ left: st.x * s, top: st.y * s }}
               onPointerDown={(e) => e.stopPropagation()}
               onPointerUp={(e) => e.stopPropagation()}

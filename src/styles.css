@@ -2471,3 +2471,11 @@ button.hud-chip { cursor: pointer; }
 .guide-flash { position: relative; animation: guideFlash 1.3s ease-in-out infinite !important; border-color: #ffc85a !important; z-index: 2; }
 @keyframes guideFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,200,90,.0), 0 0 0 2px rgba(255,200,90,.55); } 50% { box-shadow: 0 0 0 6px rgba(255,200,90,.35), 0 0 16px 4px rgba(255,200,90,.55); } }
 @media (prefers-reduced-motion: reduce) { .guide-flash { animation: none !important; box-shadow: 0 0 0 3px #ffc85a !important; } }
+.ob-skip { all: unset; cursor: pointer; flex: none; padding: 6px 4px 6px 8px; font-size: 12px; color: #c9b48f; text-decoration: underline; text-underline-offset: 2px; }
+/* during the opening, cities not yet open: greyed, still tappable to say why */
+.place.locked { filter: grayscale(1) brightness(.7); opacity: .65; }
+.place.locked .pname::after, .place.locked .plabel::after { content: ' · locked'; font-size: .85em; opacity: .8; }
+/* the opening's step: the whole instruction shows, on up to three lines under the step count */
+.objective-bar.opening .ob-text { flex-direction: column; align-items: flex-start; gap: 1px; padding: 4px 10px; }
+.objective-bar.opening .ob-text small { font-size: 11px; }
+.objective-bar.opening .ob-text b { white-space: normal; font-size: 14.5px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }

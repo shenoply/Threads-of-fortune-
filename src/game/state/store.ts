@@ -57,7 +57,7 @@ import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -158,7 +158,7 @@ export interface GameState {
   satDay?: number;
   walkedDay?: number;
   /** first-time lessons already given */
-  onboard?: { news?: boolean; radio?: boolean; map?: boolean; buyers?: boolean; rashid?: boolean };
+  onboard?: { news?: boolean; radio?: boolean; map?: boolean; buyers?: boolean; rashid?: boolean; bandits?: boolean; auction?: boolean };
   /** buyers whose card you have opened in the Buyers book */
   buyersSeen?: string[];
   /** the last day whose paper you opened */
@@ -289,6 +289,8 @@ interface Actions {
   cargoAt: (id: string) => void;
   checkJobs: (id: string) => void;
   /** settle a stand-off or a battle on the road */
+  /** the opening's small band of robbers, put on the road where you are; returns it to meet */
+  spawnOpeningBandits: (at: { x: number; y: number }) => Party;
   ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; animalsGained?: { id: string; n: number }; text: string }) => string;
   setStallShut: (shut: boolean) => void;
   setDistrict: (d: DistrictState) => void;
@@ -1500,7 +1502,22 @@ export const useGame = create<GameState & Actions>()(
 
         setStallShut: (shut) => { set({ stallShut: shut }); audio.sfx('tap'); },
 
+        spawnOpeningBandits: (at) => {
+          const s = get();
+          const mine = strength(s.world.party);
+          const band: Party = { id: 'opening-bandits', kind: 'raiders', name: 'Highway robbers', size: 3, strength: Math.max(2, Math.round(mine * 0.6)), x: at.x, y: at.y, path: [at, at], travelled: 0, speed: 0, home: at };
+          set({ world: { ...s.world, parties: [...s.world.parties.filter((p) => p.id !== band.id), band] } });
+          return band;
+        },
+
         ambushOutcome: (partyId, o) => {
+          // the opening's robbers are a lesson, not a ruin: nothing packed or hired is lost to them
+          if (partyId === 'opening-bandits') {
+            o = { ...o, rugsLost: 0, troopsLost: {} };
+            const s0 = get();
+            set({ onboard: { ...(s0.onboard ?? {}), bandits: true } });
+            setTimeout(() => { const w = get().world; set({ world: { ...w, parties: w.parties.filter((p) => p.id !== 'opening-bandits') } }); }, 0);
+          }
           const s = get();
           let cash = Math.max(0, s.cash - (o.cashLoss ?? 0) + (o.cashGain ?? 0));
           const ledger = [...s.ledger];
@@ -1786,6 +1803,7 @@ export const useGame = create<GameState & Actions>()(
             ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${t.name} in ${settlementById(sid).name}`, amount: -o.price, cost: o.price }],
           });
           audio.sfx('coins');
+          if (sid === 'alexandria') set({ onboard: { ...(get().onboard ?? {}), auction: true } });
           const m = MISSIONS.alexandria;
           if (sid === m.target && s.missions?.alexandria === 'active') {
             const g2 = get();
@@ -2157,6 +2175,23 @@ export const useGame = create<GameState & Actions>()(
             ...growth(s, { haggling: 10, appraisal: 6 }),
           });
           audio.sfx('sold');
+          // a rug won in Alexandria is proof enough for Rashid's errand too (and finishes the opening)
+          if (h.city === 'alexandria') {
+            set({ onboard: { ...(get().onboard ?? {}), auction: true } });
+            const m = MISSIONS.alexandria;
+            if (get().missions?.alexandria === 'active') {
+              const g2 = get();
+              set({
+                missions: { ...g2.missions, alexandria: 'done' },
+                missionNews: 'alexandria-done',
+                cash: g2.cash + m.reward.cash,
+                reputation: g2.reputation + m.reward.rep,
+                supplier: { ...g2.supplier, trust: Math.min(100, g2.supplier.trust + m.reward.trust), offers: rashidStock(g2.day, rng, g2.reputation + m.reward.rep, false) },
+                ledger: [...g2.ledger, { day: g2.day, kind: 'bonus', label: `Mission: ${m.title}`, amount: m.reward.cash }],
+                journal: [...g2.journal, { day: g2.day, text: `Mission complete: ${m.title}. Rashid's back room and credit are open.`, kind: 'mission' }],
+              });
+            }
+          }
           return lot.bundle ? `The porters cut the rope: ${items.map((i) => `${RUGS[i.typeId].name} (${i.condition})`).join(', ')}.` : `${title} is yours for ${fmt(total)}${total > price ? `, with the ${Math.round(h.buyerPremiumPct * 100)}% premium` : ''}.`;
         },
         practise: (skill, xp) => set(growth(get(), { [skill]: xp })),
@@ -3238,6 +3273,13 @@ export const useGame = create<GameState & Actions>()(
         p.wardrobe = wardrobeFromOld(p.wardrobe, p.attire);
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
+        // the opening (game/opening.ts) arrived with save 21: a merchant already under way skips it, with
+        // every city open as before; one still on his first day or two starts it, steps already done ticked
+        if (version < 21 && p.started) {
+          const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };
+          const underway = pp.day >= 3 || (pp.totalSales ?? 0) >= 3 || pp.missions?.alexandria === 'done' || (!!pp.world && pp.world.at !== 'giza');
+          if (underway && !(pp.tipsSeen ?? []).includes('first-hour')) pp.tipsSeen = [...(pp.tipsSeen ?? []), 'first-hour'];
+        }
         if (version < 18) {
           // the old "colour fastness" result was a rub test: rename it and keep it, without a new charge
           const typeOf = (uid: string) => (p.inventory ?? []).find((i) => i.uid === uid)?.typeId;
