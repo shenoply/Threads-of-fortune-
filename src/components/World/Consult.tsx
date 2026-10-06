@@ -13,6 +13,9 @@ import { voice } from '../../game/audio/voice';
 import { MedicalBook } from './MedicalBook';
 
 const DESK = 'art/clinic/feras-desk-pov.webp';
+/** the two of them at his desk, from the introduction film: a short loop, and its still */
+const BOTH = 'video/clinic/feras-desk-loop.mp4';
+const BOTH_STILL = 'art/clinic/feras-desk-both.webp';
 const deskWith = (id: string) => `art/clinic/desk/${id}.webp`;
 
 /** Full-screen picture (kept for anything else that wants one). */
@@ -103,14 +106,16 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
   const line: Line = stage === 'talk' ? lines[n]
     : stage === 'treat' ? { who: 'feras', text: note ? 'Good. Rest now, and come back if it turns.' : treated ? 'I have treated it already. Now it is rest, and time.' : 'So. There are two things I can do for you. Choose, effendi.' }
     : { who: 'feras', text: `Here. ${d.name}: see the plate.` };
-  const pic = stage === 'desk' && deskPic ? deskWith(d.id) : DESK;
+  const pic = deskPic ? deskWith(d.id) : DESK;
 
   return (
     <div className="cl-consult-scene" data-testid={`consult-${id}`}>
       <div className="cl-cs-head"><b>{d.name}</b><small>{TIER_LABEL[d.tier]} · about {left} day{left === 1 ? '' : 's'} more</small></div>
       {/* the scene: across his desk, Hassan sitting opposite; words in a bubble over the picture */}
       <div className={`cl-stage st-${stage}`} onClick={tapStage} data-testid="consult-stage">
-        <img className="cl-stage-img" src={pic} alt={stage === 'desk' ? `Dr Feras opens his book at ${d.name.toLowerCase()}` : 'Across Dr Feras\'s desk'} onError={() => setDeskPic(false)} draggable={false} />
+        {stage === 'desk'
+          ? <img key="book" className="cl-stage-img book" src={pic} alt={`Dr Feras opens his book at ${d.name.toLowerCase()}`} onError={() => setDeskPic(false)} draggable={false} />
+          : <video key="both" className="cl-stage-img both" src={BOTH} poster={BOTH_STILL} autoPlay loop muted playsInline aria-label="Dr Feras and Hassan at his desk" data-testid="consult-both" />}
         <div className={`cl-say ${line.who}`} data-testid={`line-${line.who}-${stage === 'talk' ? n : stage}`}>
           <small>{line.who === 'feras' ? 'Dr Feras' : 'You'}</small>
           <p>{line.text}</p>

@@ -113,3 +113,13 @@
 /* while he opens the book, his words sit at the top so the pages show */
 .cl-stage.st-desk .cl-say { top: 8px; bottom: auto; right: 40%; }
 .cl-stage.st-desk .cl-zoom { top: auto; bottom: 8px; }
+
+/* stall-like: the scene fills the width and most of the screen; the two of them, then his book */
+.clinic.consulting .cl-panel { padding-left: 0; padding-right: 0; }
+.clinic.consulting .cl-panel > :not(.cl-consult-scene) { margin-left: 12px; margin-right: 12px; }
+.cl-consult-scene .cl-cs-head, .cl-consult-scene .cl-case-btns, .cl-consult-scene .cl-treat { margin-left: 12px; margin-right: 12px; }
+.cl-stage { aspect-ratio: auto; height: min(48svh, 104vw); max-width: none; border-radius: 0; }
+.cl-stage-img { object-fit: cover; }
+.cl-stage-img.both { object-position: 47% 60%; }
+.cl-stage-img.book { object-position: 50% 62%; }
+@media (min-width: 700px) { .cl-stage { height: min(62svh, 56.25vw); max-width: 1100px; border-radius: 10px; } }
