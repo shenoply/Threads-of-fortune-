@@ -541,7 +541,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
         const item = presentedItem(enc, ctx);
         const qp = item && canQuickSell(enc, item) ? quickPrice(enc, item) : undefined;
         const quickIsMore = qp !== undefined && qp > enc.buyerOffer;
-        out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: quickIsMore ? `Quick sale pays more: ${fmt(qp!)}` : last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
+        out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: quickIsMore ? `Quick sale pays more: ${fmt(qp!)}` : item && enc.buyerOffer < item.paid + (item.spent ?? 0) ? `Below what you paid (${fmt(item.paid + (item.spent ?? 0))}): a loss` : last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
       }
       if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10 && !last)
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference — they may take it on the spot', icon: 'scale' });

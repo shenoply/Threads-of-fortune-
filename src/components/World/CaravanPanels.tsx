@@ -73,7 +73,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
               return (
                 <div className="mkt-row troop-row" key={r.key} data-testid={`recruit-${r.troop}`}>
                   <img className="troop-pic tappable" src={`art/troops/${r.troop}.jpg`} alt={t.name} onClick={() => setPage(r.troop)} data-testid={`troop-info-${r.troop}`} />
-                  <span className="troop-name-btn" onClick={() => setPage(r.troop)}><b>{r.available} {r.available === 1 ? t.name.toLowerCase() : t.plural.toLowerCase()}</b><small>{t.blurb} Strength {t.strength}, wage {fmt(t.wage)} a day{t.scout ? ', scouts ahead' : ''}.</small></span>
+                  <span className="troop-name-btn" onClick={() => setPage(r.troop)}><b>{r.available} {r.available === 1 ? t.name : t.plural}</b><small>{t.blurb} Strength {t.strength}, wage {fmt(t.wage)} a day{t.scout ? ', scouts ahead' : ''}.</small></span>
                   <button className="btn primary" disabled={!r.available || g.cash < t.cost || full} onClick={() => setNote(g.recruit(r.troop, r.key, 1))} data-testid={`hire-${r.troop}`}>Hire {t.cost ? fmt(t.cost) : "free"}</button>
                 </div>
               );
@@ -121,7 +121,7 @@ export function CaravanRoster() {
           {troops.map(([id, n]) => (
             <div className="mkt-row" key={id}>
               <img className="troop-pic small tappable" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
-              <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name.toLowerCase() : TROOPS[id].plural.toLowerCase()}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each</small></span>
+              <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name : TROOPS[id].plural}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each</small></span>
               <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>Send one home</button>
             </div>
           ))}

@@ -2588,3 +2588,10 @@ body:has(.settlement) .toast { display: none; }
 .hud-mode { font-style: normal; color: #bfe0b4; }
 .hud-mode.iron { color: #f1b39f; }
 .mode-card.on { border-color: var(--brass-hi, #e3bd6b); box-shadow: 0 0 0 1px rgba(227,189,107,.4); }
+
+/* The ledger's figures are small cards, not the 124px town-menu tiles they inherited */
+[data-testid=ledger] .tiles { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+[data-testid=ledger] .tiles .tile { height: auto; min-height: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: #150e08; box-shadow: none; overflow: visible; }
+[data-testid=ledger] .tiles .tile::after { display: none; }
+[data-testid=ledger] .tiles .tile small { font-size: 12px; }
+[data-testid=ledger] .tiles .tile b { font-size: 20px; text-shadow: none; }

@@ -324,6 +324,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   };
   /** Tap and go: the caravan sets off at once. Faster ways (train, ferry, ship) stay offered on the card while you walk. */
   const goTo = (to: Pt, st?: Settlement) => {
+    // while the opening guides a new player, a stray tap on a city must not send the caravan off: ask first
+    if (st && !moving && openingStep(useGame.getState()) && !window.confirm(`Travel to ${st.name}?`)) return;
     // Giza and Cairo face each other across the river: the ferry takes an hour and a half, never days on foot
     if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza')) && !moving) {
       startFerry(st.id as 'giza' | 'cairo');

@@ -537,7 +537,7 @@ export default function App() {
       {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
         return <SideTasks onGo={(t) => planTrip(t)} />;
       })()}
-      {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && <UpgradeNudge />}
+      {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && !firstHourStep(g) && <UpgradeNudge />}
       {phase === 'game' && tutorialActive && tab !== 'map' && !(tab === 'stall' && g.encounter) && (
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
       )}

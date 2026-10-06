@@ -9,6 +9,7 @@ const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/opening'
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+p.on('dialog', (d) => d.accept());
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const out = []; let ok = true; const check = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) ok = false; };
 const has = (sel) => p.locator(sel).count();
@@ -76,7 +77,6 @@ void freed;
 // Skip
 await edit(`s.journey = undefined; s.onboard = {}; s.tipsSeen = []; s.missions = { ...(s.missions||{}), alexandria: 'active' }; s.world.at = 'giza'; s.world.party.troops = {};`);
 check((await has('[data-testid=first-hour]')) > 0, 'the opening is back when not done');
-p.once('dialog', (d) => d.accept());
 if (await has('[data-testid=first-hour-skip]')) await p.click('[data-testid=first-hour-skip]');
 await p.waitForTimeout(400);
 await p.screenshot({ path: `${S}/4-skip.png` });

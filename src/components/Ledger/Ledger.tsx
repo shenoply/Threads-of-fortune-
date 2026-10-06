@@ -114,7 +114,7 @@ export function Ledger() {
     <div className="screen" data-testid="ledger">
       <div className="screen-head">
         <div>
-          <div className="eyebrow">THE BOOK</div>
+          <div className="eyebrow">THE LEDGER</div>
           <h2>Ledger</h2>
           <p>Day {g.day}. Every piastre in and out.</p>
         </div>
@@ -124,7 +124,7 @@ export function Ledger() {
         <div className="tile"><small>STOCK AT COST</small><b>{fmt(stock)}</b></div>
         <div className="tile"><small>GROSS MARGIN</small><b className={margin > 0 ? 'pos' : ''}>{margin}%</b></div>
         <div className="tile"><small>EXPENSES</small><b className={expenses ? 'neg' : ''}>{fmt(expenses)}</b></div>
-        <div className="tile"><small>RASHID DEBT</small><b className={g.supplier.debt ? 'neg' : ''}>{fmt(g.supplier.debt)}</b></div>
+        <div className="tile"><small>OWED TO RASHID</small><b className={g.supplier.debt ? 'neg' : ''}>{fmt(g.supplier.debt)}</b></div>
         <div className="tile"><small>REPUTATION</small><b>{g.reputation}</b></div>
       </div>
 

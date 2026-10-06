@@ -14,7 +14,7 @@ export function TroopPage({ id, onClose, onHire, hireLabel, hireDisabled }: { id
   if (!t) return null;
   return createPortal(
     <div className="overlay troop-page" data-testid={`troop-page-${id}`}>
-      <div className="overlay-head"><h2>{t.name}</h2><span className="sub">{t.plural.toLowerCase()}</span><button className="btn small close" onClick={onClose} data-testid="troop-page-close">✕</button></div>
+      <div className="overlay-head"><h2>{t.name}</h2><span className="sub">{t.plural}</span><button className="btn small close" onClick={onClose} data-testid="troop-page-close">✕</button></div>
       <div className="troop-page__body">
         <img className="troop-page__pic" src={`art/troops/${id}.jpg`} alt={t.name} />
         {lore && <p className="troop-page__says">{lore.says}</p>}

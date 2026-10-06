@@ -14,7 +14,7 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
   return (
     <div className="screen merchant" data-testid="merchant">
       <div className="merchant-tabs" role="tablist">
-        {([['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Book']] as [MerchantSub, string][]).map(([k, label]) => (
+        {([['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Ledger']] as [MerchantSub, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)} data-testid={`msub-${k}`}>{label}</button>
         ))}
         <button className="merchant-help" onClick={() => openGuide()} data-testid="progress-how-to-play">How to play</button>

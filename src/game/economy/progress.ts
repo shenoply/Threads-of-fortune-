@@ -62,7 +62,7 @@ export function houseOfFortune(s: S) {
     { id: 'shop', label: 'Own a shop in Khan el-Khalili', done: s.upgrades.includes('khan'), prog: s.upgrades.includes('khan') ? 'bought' : `${fmtShort(UPGRADES.find((u) => u.id === 'khan')!.cost)}, reputation 60` },
     { id: 'warrants', label: 'Hold all five royal warrants', done: ROYAL_IDS.every((id) => s.court.warrants.includes(id)), prog: `${s.court.warrants.length}/${ROYAL_IDS.length}` },
     { id: 'register', label: 'Complete the Carpet Register, Baghdad Night included', done: RUG_IDS.every((id) => reg.includes(id)), prog: `${RUG_IDS.filter((id) => reg.includes(id)).length}/${RUG_IDS.length}` },
-    { id: 'worth', label: 'Reach a net worth of £5,000', done: netWorth(s) >= HOUSE_TARGET, prog: `${Math.min(100, Math.floor((netWorth(s) / HOUSE_TARGET) * 100))}%` },
+    { id: 'worth', label: 'Reach a net worth of £5,000', done: netWorth(s) >= HOUSE_TARGET, prog: `${Math.max(0, Math.min(100, Math.floor((netWorth(s) / HOUSE_TARGET) * 100)))}%` },
   ];
   return { parts, done: parts.every((p) => p.done) };
 }
