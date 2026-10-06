@@ -1,9 +1,9 @@
 import { chromium } from 'playwright';
-const S = '/tmp/claude-0/-home-user-Threads-of-fortune-/9c2490e9-b048-55d4-86ff-1073abb2ec3b/scratchpad/';
+const S = '/tmp/w/';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
+await p.goto('http://localhost:' + (process.env.PORT || 5199) + '/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
 await p.evaluate(() => { const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); const s=d.state; s.tutorial={done:true,step:'done',inspected:true}; s.missionNews=undefined; s.levelUps=[]; s.titleNews=[];
   Object.assign(s.world, { at: 'cairo', hour: 9, x: 214.3, y: 413.7 }); s.world.party.troops = { guard: 3, fellah: 2, bedouin: 1 }; s.world.party.animals = { falahi: 2, arabian: 1 }; s.world.party.food = 20; s.cash = 3000;
@@ -13,12 +13,20 @@ await p.click('[data-testid=nav-map]').catch(()=>{}); await p.waitForTimeout(500
 for (const el of await p.locator('[data-testid=party-raiders]').all()) { await el.dispatchEvent('pointerup'); if (await p.locator('[data-testid=road-encounter]').count()) break; }
 await p.waitForSelector('[data-testid=road-encounter]', { timeout: 5000 });
 await p.waitForTimeout(500); await p.screenshot({ path: S + 'f-1-standoff.png' });
-const t0 = Date.now(); await p.click('[data-testid=amb-fight]');
-const at = async (ms, name) => { const w = t0 + ms - Date.now(); if (w > 0) await p.waitForTimeout(w); await p.locator('.bf').screenshot({ path: S + name }); };
-await at(2330, 'f-3-volley.png'); await at(2650, 'f-4-smoke.png');
-await p.click('[data-testid=amb-charge]').catch(()=>{}); await at(4150, 'f-5-charge.png'); await at(6000, 'f-5b.png');
-console.log('log at 6s:', await p.textContent('[data-testid=amb-log]'));
-await p.waitForSelector('[data-testid=encounter-result]', { timeout: 40000 }); await p.screenshot({ path: S + 'f-6-result.png' });
+await p.click('[data-testid=amb-fight]');
+await p.waitForSelector('[data-testid=tactical-battle]', { timeout: 5000 });
+await p.waitForTimeout(1200); await p.screenshot({ path: S + 'f-2-tactical.png' });
+// play a turn by hand: pick a rifle squad, move it, end the turn
+const first = await p.locator('.tk.s-me.k-rifle').first();
+if (await first.count()) { await first.click(); const go = p.locator('.tc.go'); if (await go.count()) await go.first().click(); }
+await p.click('[data-testid=tac-endturn]').catch(() => {});
+await p.waitForTimeout(9000);
+// then let the men fight it out
+await p.click('[data-testid=tac-auto]').catch(() => {}); await p.click('[data-testid=auto-steady]').catch(() => {});
+await p.waitForSelector('[data-testid=tac-result]', { timeout: 90000 }); await p.screenshot({ path: S + 'f-3-over.png' });
+console.log('battle:', await p.textContent('.tac-end h3'));
+await p.click('[data-testid=tac-continue]');
+await p.waitForSelector('[data-testid=encounter-result]', { timeout: 10000 }); await p.screenshot({ path: S + 'f-6-result.png' });
 console.log('result:', await p.textContent('[data-testid=encounter-result]'));
 console.log('errors', errs);
 await b.close();

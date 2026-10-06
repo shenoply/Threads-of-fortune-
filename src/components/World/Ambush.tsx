@@ -9,10 +9,11 @@ import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
-import { BattleField, BATTLE_ART, fieldFor, type Volley } from './BattleField';
+import { BATTLE_ART, BAND_ART, fieldFor } from './BattleField';
+import { TacticalBattle } from './TacticalBattle';
+import { newBattle, MOUNTED_TROOPS, RIFLE_TROOPS, type Battle, type Outcome, type Roster } from '../../game/systems/tactics';
 
 type Stage = 'standoff' | 'demand' | 'battle' | 'result';
-type Stance = 'charge' | 'hold';
 interface Unit { id: string; name: string; img: string; str: number; n: number; start: number }
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
@@ -84,94 +85,59 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     return () => { live = false; voice.stop(); };
   }, [stage, leader, lines.demand]);
 
-  // ---- battle state ----
-  const myStart: Unit[] = useMemo(() => [
+  // ---- the fight: a tactical battle on the painted ground (see systems/tactics.ts) ----
+  const mySide: Unit[] = useMemo(() => [
     { id: 'you', name: 'You', img: 'art/stall-seller.jpg', str: 2, n: 1, start: 1 },
-    ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.jpg`, str: TROOPS[id].strength, n, start: n })),
+    ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.jpg`, str: TROOPS[id].strength, n: n ?? 0, start: n ?? 0 })),
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [mySide, setMySide] = useState<Unit[]>(myStart);
-  const [enemy, setEnemy] = useState({ n: size, str: theirs / size });
-  const [stance, setStance] = useState<Stance>('hold');
-  const [log, setLog] = useState<string[]>([]);
-  const [round, setRound] = useState(0);
-  const [volley, setVolley] = useState<Volley>();
-  const acc = useRef({ e: 0, m: 0 });
-  const over = useRef(false);
-
-  const endBattle = (win: boolean, retreat = false) => {
-    if (over.current) return;
-    over.current = true;
-    const troopsLost: Record<string, number> = {};
-    for (const u of mySide) if (u.id !== 'you' && u.start > u.n) troopsLost[u.id] = u.start - u.n;
-    const killed = size - enemy.n;
-    const lostList = Object.entries(troopsLost).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`).join(', ');
-    if (win) {
+  const enemy = { n: size, str: theirs / size };
+  const [tb, setTb] = useState<Battle | null>(null);
+  const fight = () => {
+    audio.sfx('chest');
+    const fieldId = /battle-(\w+)\.webp/.exec(field)?.[1] ?? 'road';
+    const art = BAND_ART[threat.id] ?? BAND_ART['egypt-rural-highway-robbers'];
+    const mine: Roster[] = Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({
+      id, name: TROOPS[id].name, plural: TROOPS[id].plural, n: n ?? 0, per: TROOPS[id].strength,
+      kind: MOUNTED_TROOPS.includes(id) ? 'mounted' : RIFLE_TROOPS.includes(id) ? 'rifle' : 'melee', img: `art/battle/${id}.webp`,
+    }));
+    const mounted = /raider|smuggler/.test(art.man) ? 0.6 : 0;
+    const melee = /robber|thief/.test(art.man) ? 0.4 : /rebel/.test(art.man) ? 0.25 : 0.2;
+    setTb(newBattle({
+      field: fieldId, seed: `${party.id}${g.day}`, mine, enemyMen: size, enemyStrength: theirs,
+      band: { man: art.man, leader: art.leader, mounted, melee }, bandName: threat.displayName.replace(/^The /, ''),
+      cmd: Math.min(1, (g.skills?.speech ?? 0) / 100 + guide * 0.2), scouted: guide > 0 || Object.keys(g.world.party.troops).some((id) => (TROOPS[id].scout ?? 0) > 0 && (g.world.party.troops[id] ?? 0) > 0),
+    }));
+    setStage('battle');
+  };
+  const finish = (o: Outcome, retreat: boolean) => {
+    const killed = o.enemyKilled;
+    const lostList = Object.entries(o.troopsLost).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`).join(', ');
+    const troopsLost = o.troopsLost;
+    const st = useGame.getState();
+    if (o.heroDown && st.ironman && Math.random() < 0.6) st.dieNow('Cut down at the head of the caravan. Hassan\'s men carried him back to Giza, but too late.');
+    if (o.result === 'win' && !retreat) {
       audio.sfx('coins');
       const joiners = !rebels && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0;
-      // a band riding into an ambush doesn't carry much, but it is mounted: beat enough of them and
-      // one of their animals is left behind rather than ridden off
       const mountId = BAND_MOUNT[threat.id] ?? 'baladi_d';
       const animalsGained = !rebels && Math.random() < Math.min(0.5, 0.12 + killed * 0.12) ? { id: mountId, n: 1 } : undefined;
+      const wound = o.heroHurt && Math.random() < 0.2 ? ` ${useGame.getState().hurt('fight')}` : '';
       settle({
-        cashGain: 10 + killed * 6,
-        rep: 2,
-        troopsLost,
-        joiners,
-        theyLeave: true,
-        enemyLost: killed,
-        animalsGained,
-        text: `The ${threat.displayName.toLowerCase()} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}${animalsGained ? ` You also catch ${withArticle(BREEDS[mountId].name)} they left behind.` : ''}`,
+        cashGain: 10 + killed * 6, rep: 2, troopsLost, joiners, theyLeave: true, enemyLost: killed, animalsGained,
+        text: `The ${threat.displayName.toLowerCase()} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}${animalsGained ? ` One of their ${BREEDS[animalsGained.id].name.toLowerCase()}s is left behind.` : ''}${wound}`,
       });
     } else if (retreat) {
       const wound = Math.random() < 0.25 ? ` ${useGame.getState().hurt('fight')}` : '';
       settle({ cashLoss: Math.round(g.cash * 0.2), rugsLost: 1, troopsLost, delayHours: 6, enemyLost: killed, text: `You pull your caravan back and run for it, leaving a bale and a purse behind.${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
+    } else if (o.result === 'draw') {
+      settle({ delayHours: 6, troopsLost, theyLeave: true, enemyLost: killed, text: `Neither side will give way, and as the light fails both pull back. You lose half a day.${lostList ? ` Lost: ${lostList}.` : ''}` });
     } else {
       audio.sfx('chest');
       if (g.ironman && Math.random() < 0.12) useGame.getState().dieNow('Cut down by raiders on the road. Hassan\'s men carried him back to Giza, but too late.');
-      const wound = Math.random() < 0.7 ? ` ${useGame.getState().hurt('fight')}` : '';
+      const wound = o.heroDown || Math.random() < 0.7 ? ` ${useGame.getState().hurt('fight')}` : '';
       settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
     }
   };
 
-  useEffect(() => {
-    if (stage !== 'battle' || over.current) return;
-    // the lines face each other for a moment before the first shots, then a volley every second and a half
-    const t = setTimeout(() => {
-      const standing = mySide.reduce((a, u) => a + u.n, 0);
-      setVolley({ round: round + 1, mine: Math.max(1, Math.round(standing * (stance === 'charge' ? 0.6 : 0.45))), theirs: Math.max(1, Math.round(enemy.n * 0.5)) });
-      const myPow = mySide.reduce((a, u) => a + u.n * u.str, 0);
-      const enPow = enemy.n * enemy.str;
-      const dealt = myPow * (stance === 'charge' ? 1.3 : 0.85) * rnd(0.7, 1.3) * 0.2;
-      const taken = enPow * (stance === 'charge' ? 1.2 : 0.75) * rnd(0.7, 1.3) * 0.2;
-      acc.current.e += dealt / enemy.str;
-      acc.current.m += taken / 3.5;
-      // no more than two men fall on a side in one exchange: a fight is watched, not settled in a flash
-      const kills = Math.min(enemy.n, 2, Math.floor(acc.current.e));
-      acc.current.e -= kills;
-      let losses = Math.min(2, Math.floor(acc.current.m));
-      acc.current.m -= losses;
-      const next = mySide.map((u) => ({ ...u }));
-      const hit: string[] = [];
-      while (losses > 0) {
-        const pool = next.filter((u) => u.id !== 'you' && u.n > 0);
-        if (!pool.length) break;
-        const u = pool[Math.floor(Math.random() * pool.length)];
-        u.n -= 1; losses -= 1; hit.push(u.id);
-      }
-      const en = { ...enemy, n: enemy.n - kills };
-      setMySide(next); setEnemy(en); setRound((r) => r + 1);
-      const line = kills && hit.length ? `Your men drop ${kills}; you lose ${hit.length === 1 ? `a ${TROOPS[hit[0]].name.toLowerCase()}` : `${hit.length} men`}.`
-        : kills ? `Your men drop ${kills} of them.` : hit.length ? `You lose ${hit.length === 1 ? `a ${TROOPS[hit[0]].name.toLowerCase()}` : `${hit.length} men`}.` : stance === 'charge' ? 'Shots, shouting, dust. Nobody falls.' : 'Your men hold behind the camels. Shots go wide.';
-      setLog((l) => [line, ...l].slice(0, 4));
-      audio.sfx('volley');
-      const myLeft = next.reduce((a, u) => a + u.n * u.str, 0);
-      // a fight lasts a few volleys at least, long enough to choose how to fight it
-      if (en.n <= Math.ceil(size * 0.4) && round >= 2) endBattle(true);
-      else if (myLeft <= 2 && en.n > 0 && next.every((u) => u.id === 'you' || u.n === 0) && round >= 4) endBattle(false);
-      else if (round >= 14) endBattle(myLeft / (myStart.reduce((a, u) => a + u.start * u.str, 0)) > en.n / size);
-    }, round === 0 ? 2200 : 1800);
-    return () => clearTimeout(t);
-  }, [stage, round, stance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const myPow = mySide.reduce((a, u) => a + u.n * u.str, 0);
   const enPow = Math.round(enemy.n * enemy.str);
@@ -179,6 +145,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
 
   return (
     <div className="ambush" data-testid="road-encounter">
+      {stage === 'battle' && tb && <TacticalBattle battle={tb} title={threat.displayName} fieldArt={field} onEnd={(o, retreat) => finish(o, retreat)} />}
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {threat.regions[0]}</small><b>{threat.displayName}</b></div>
@@ -202,13 +169,6 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
             <span>{enemy.n} men · strength {enPow}</span>
           </div>
         </div>}
-        {stage === 'battle' && (
-          <div className="amb-strip" data-testid="amb-strip">
-            <div><b>Your caravan</b>{mySide.reduce((a, u) => a + u.n, 0)} men · strength {myPow}</div>
-            <i>vs</i>
-            <div><b>{threat.displayName}</b>{enemy.n} of {size} men · strength {enPow}</div>
-          </div>
-        )}
         <div className="amb-bar" aria-label={`Your share of the fighting strength: ${share}%`}><i style={{ width: `${share}%` }} /></div>
 
         {stage === 'standoff' && (
@@ -221,7 +181,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
-              {!rebels && <button className="btn primary" onClick={() => { setStage('battle'); audio.sfx('chest'); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}% of the strength is yours</small></button>}
+              {!rebels && <button className="btn primary" onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}% of the strength is yours</small></button>}
               <button className="btn" onClick={() => { if (Math.random() < (rebels ? 0.9 : 0.55)) { g.ambushOutcome(party.id, { delayHours: 6, text: 'You turn your animals around and lose half a day going round.' }); onTurnBack(); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> Turn back <small>{rebels ? 'usually allowed' : 'they may chase you'}</small></button>
             </div>
           </>
@@ -234,23 +194,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(`You pay ${fmt(tax)}. They let you go.`)} data-testid="amb-pay"><Icon name="coin" /> Pay <small>{fmt(tax)}</small></button>}
-              <button className="btn" onClick={() => { if (ratio >= 2) settle({ cashLoss: Math.round(g.cash * 0.5), rugsLost: 2, rep: -1, text: lines.strip }); else { setStage('battle'); audio.sfx('chest'); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
-              {!rebels && <button className="btn primary" onClick={() => { setStage('battle'); audio.sfx('chest'); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}%</small></button>}
-            </div>
-          </>
-        )}
-
-        {(stage === 'battle' || (stage === 'result' && round > 0)) && (
-          <BattleField bandId={threat.id} field={field} mySide={mySide} enemyN={enemy.n} enemyStart={size} party={g.world.party} charging={stage === 'battle' && stance === 'charge'} volley={stage === 'battle' ? volley : undefined} />
-        )}
-
-        {stage === 'battle' && (
-          <>
-            <div className="amb-log" data-testid="amb-log">{log.length ? log.map((l, i) => <p key={i} style={{ opacity: 1 - i * 0.22 }}>{l}</p>) : <p>The two lines face each other across the ground. Choose how to fight.</p>}</div>
-            <div className="amb-opts row">
-              <button className={`btn ${stance === 'charge' ? 'primary' : ''}`} onClick={() => setStance('charge')} data-testid="amb-charge"><Icon name="sword" /> Charge</button>
-              <button className={`btn ${stance === 'hold' ? 'primary' : ''}`} onClick={() => setStance('hold')} data-testid="amb-hold"><Icon name="shield" /> Hold the line</button>
-              <button className="btn" onClick={() => endBattle(false, true)} data-testid="amb-retreat"><Icon name="run" /> Retreat</button>
+              <button className="btn" onClick={() => { if (ratio >= 2) settle({ cashLoss: Math.round(g.cash * 0.5), rugsLost: 2, rep: -1, text: lines.strip }); else { fight(); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
+              {!rebels && <button className="btn primary" onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}%</small></button>}
             </div>
           </>
         )}
