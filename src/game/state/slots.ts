@@ -8,7 +8,7 @@ export const SLOT_COUNT = 3;
 const AUTOSAVE_KEY = 'threads-of-fortune-save';
 const slotKey = (n: number) => `threads-of-fortune-slot-${n}`;
 
-export interface SlotInfo { day: number; cash: number; savedAt: string }
+export interface SlotInfo { day: number; cash: number; savedAt: string; mode?: string; hero?: string; place?: string }
 interface SlotFile { meta: SlotInfo; raw: string }
 
 function read(key: string): string | null {
@@ -35,8 +35,14 @@ export function saveToSlot(n: number): boolean {
   const raw = read(AUTOSAVE_KEY);
   if (!raw) return false;
   try {
-    const s = (JSON.parse(raw).state ?? {}) as { day?: number; cash?: number };
-    const meta: SlotInfo = { day: s.day ?? 1, cash: s.cash ?? 0, savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) };
+    const s = (JSON.parse(raw).state ?? {}) as { day?: number; cash?: number; ironman?: boolean; playMode?: string; heroLook?: { kind?: string; name?: string }; world?: { at?: string | null } };
+    const at = s.world?.at;
+    const meta: SlotInfo = {
+      day: s.day ?? 1, cash: s.cash ?? 0, savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      mode: s.ironman ? 'Ironman' : s.playMode === 'sandbox' ? 'Sandbox' : 'Campaign',
+      hero: s.heroLook?.kind === 'custom' ? (s.heroLook.name || 'Yourself') : 'Hassan',
+      place: at ? at.charAt(0).toUpperCase() + at.slice(1) : 'on the road',
+    };
     return write(slotKey(n), JSON.stringify({ meta, raw } satisfies SlotFile));
   } catch { return false; }
 }
@@ -57,4 +63,4 @@ export function clearSlot(n: number) {
   try { localStorage.removeItem(slotKey(n)); } catch { /* storage unavailable */ }
 }
 
-export const slotLabel = (info: SlotInfo) => `Day ${info.day} · ${fmt(info.cash)} · saved ${info.savedAt}`;
+export const slotLabel = (info: SlotInfo) => [info.mode, info.hero, info.place, `day ${info.day}`, fmt(info.cash), `saved ${info.savedAt}`].filter(Boolean).join(' · ');

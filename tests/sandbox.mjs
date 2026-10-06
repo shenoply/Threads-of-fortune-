@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 390, height: 780 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
-await p.goto('http://localhost:5199'); await p.evaluate(() => localStorage.clear()); await p.reload();
+await p.goto(`http://localhost:${process.env.PORT ?? 5199}`); await p.evaluate(() => localStorage.clear()); await p.reload();
 await p.click('[data-testid=open-sandbox]');
 await p.click('[data-testid=play-as-yourself]');
 await p.fill('[data-testid=sbx-name]', 'Sami');

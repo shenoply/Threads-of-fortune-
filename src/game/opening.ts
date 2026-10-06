@@ -33,7 +33,7 @@ export const OPENING: OpeningStep[] = [
 
 // test runs (and anyone who set the old developer switch) start with the opening skipped
 const devSkip = (() => { try { return typeof localStorage !== 'undefined' && localStorage.getItem('tof-skip-chapters') === '1'; } catch { return false; } })();
-export const openingSkipped = (s: S) => devSkip || (s.tipsSeen ?? []).includes(OPENING_TIP);
+export const openingSkipped = (s: S) => devSkip || s.playMode === 'sandbox' || (s.tipsSeen ?? []).includes(OPENING_TIP);
 /** the step in hand, or null once the opening is finished or skipped */
 export function openingStep(s: S): { step: OpeningStep; n: number } | null {
   if (!s.started || openingSkipped(s)) return null;

@@ -2562,3 +2562,29 @@ button.hud-chip { cursor: pointer; }
 .town-menu { position: fixed; inset: 0; }
 @media (max-height: 860px) { .tm-blurb { display: none; } .tm-title h2 { font-size: 30px; } .tm-body { padding-top: 8px; } }
 body:has(.settlement) .toast { display: none; }
+
+/* settings: the title and Close stay at the top while the rest scrolls */
+.settings-card { max-height: calc(100svh - 24px); overflow-y: auto; padding-top: 0 !important; }
+.settings-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 -2px 6px; padding: 12px 0 8px; background: inherit; background-color: var(--panel, #1e140b); border-bottom: 1px solid var(--line); }
+.settings-head h2 { margin: 0; }
+.settings-head h2 small { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass-hi, #e3bd6b); margin-left: 6px; }
+.save-where { margin: 10px 0 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,240,210,.03); font-size: 14px; }
+.save-where ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; color: var(--text-dim); }
+.btn.disabled { opacity: .45; pointer-events: none; }
+.switch:disabled { opacity: .6; cursor: not-allowed; }
+/* title: options scroll inside the card instead of spilling; the picture's caption hides meanwhile */
+.title-opts { max-height: 42svh; overflow-y: auto; }
+/* the new-game chooser */
+.mode-list { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 10px; max-height: 64svh; overflow-y: auto; }
+.mode-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: rgba(255,240,210,.03); display: flex; flex-direction: column; gap: 4px; }
+.mode-card b { font-family: var(--display); font-size: 18px; font-weight: 500; color: var(--parchment); }
+.mode-card > small { color: #e6d5b1; font-style: italic; font-size: 14px; }
+.mode-card ul { margin: 2px 0 6px; padding-left: 18px; color: var(--text-dim); font-size: 13.5px; display: flex; flex-direction: column; gap: 2px; }
+.mode-card .btn { align-self: flex-start; }
+.mode-keep-btns { display: flex; flex-direction: column; gap: 8px; align-items: stretch; margin-top: 10px; }
+.mode-keep-btns .btn small { opacity: .75; }
+.btn.danger { border-color: #a5432c; color: #f1b39f; }
+.sbx-badge { border-color: #6c8f6a !important; color: #bfe0b4 !important; }
+.hud-mode { font-style: normal; color: #bfe0b4; }
+.hud-mode.iron { color: #f1b39f; }
+.mode-card.on { border-color: var(--brass-hi, #e3bd6b); box-shadow: 0 0 0 1px rgba(227,189,107,.4); }

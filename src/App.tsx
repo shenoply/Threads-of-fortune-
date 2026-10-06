@@ -9,6 +9,7 @@ import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
 import { lookFor } from './game/heroLook';
 import { PlayAsYourself, SandboxChoose } from './components/Sandbox/PlayAsYourself';
+import { ModeChooser, type Mode } from './components/Title/ModeChooser';
 import { Rescue } from './components/World/Rescue';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
@@ -129,15 +130,36 @@ export default function App() {
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
   useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
   const [phase, setPhase] = useState<Phase>('title');
-  const [confirmIron, setConfirmIron] = useState(false);
   const [titleOpts, setTitleOpts] = useState(false);
   const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
   // a Sandbox is always a new game: an existing save is kept in a free slot first
+  // the new-game chooser: which mode was picked first ('any' opens it with none picked)
+  const [chooser, setChooser] = useState<Mode | 'any' | null>(null);
+  const startMode = (mode: Mode, keepIn: number | null) => {
+    audio.ensure();
+    if (keepIn) { forceSave(); saveToSlot(keepIn); refreshSlots(); }
+    if (useGame.getState().started) useGame.getState().reset();
+    setChooser(null);
+    if (mode === 'ironman') useGame.getState().setIronman(true);
+    if (mode === 'sandbox') setSbx('choose');
+    else setPhase(introSeen() ? 'dayone' : 'documentary');
+  };
   const freshForSandbox = () => { if (useGame.getState().started) { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); refreshSlots(); g.reset(); } };
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
   const [settings, setSettings] = useState(false);
+  // the settings panel keeps the keyboard inside it (Tab cycles, Esc closes) and takes focus when it opens
+  const settingsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (settings) setTimeout(() => settingsRef.current?.querySelector<HTMLElement>('[data-testid=settings-close]')?.focus(), 0); }, [settings]);
+  const trapSettings = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { e.stopPropagation(); setSettings(false); return; }
+    if (e.key !== 'Tab' || !settingsRef.current) return;
+    const f = [...settingsRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select, a[href], [tabindex]:not([tabindex="-1"])')].filter((x) => x.offsetParent !== null);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement as HTMLElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+  };
   useEffect(() => { if (settings) refreshSlots(); }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
   const [msub, setMsub] = useState<MerchantSub>('customers');
   const [guide, setGuide] = useState(false);
@@ -207,7 +229,6 @@ export default function App() {
       default: mapGo(at === t ? { view: 'world', panel: t } : { view: 'world', plan: t }); break;
     }
   };
-  const [confirmReset, setConfirmReset] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
   const toastTimer = useRef<number>();
   const toast = (m: string) => {
@@ -396,55 +417,32 @@ export default function App() {
               <button className="ghost-btn" onClick={() => { enterGame(); setGuide(true); }} data-testid="take-tour">Take the quick tour</button>
             </div>
           )}
-          {!g.started && (
-            <label className={`iron-toggle ${g.ironman ? 'on' : ''}`} data-testid="ironman-toggle">
-              <input type="checkbox" checked={!!g.ironman} onChange={(e) => g.setIronman(e.target.checked)} />
-              <span><b>Ironman mode</b><small>A new game with one life. If Hassan dies, from sickness, a wound or a fight, the game is over. No save slots.</small></span>
-            </label>
-          )}
           <button className="ghost-btn opt-toggle" onClick={() => setTitleOpts((o) => !o)} aria-expanded={titleOpts} data-testid="title-options">{titleOpts ? 'Hide options' : '⚙ Options · sound and volume'}</button>
           {titleOpts && <div className="title-opts modal-card-like" data-testid="title-options-panel">{soundOptions}</div>}
           {g.started && g.ironman && <div className="iron-badge" data-testid="ironman-badge">⚔ Ironman · one life</div>}
+          {g.started && g.playMode === 'sandbox' && <div className="iron-badge sbx-badge" data-testid="sandbox-badge">Sandbox · free play</div>}
           <div className="row">
             {g.started ? (
               <>
                 <button className="big-btn" onClick={enterGame} data-testid="continue">
                   Continue · Day {g.day}
                 </button>
-                {confirmReset ? (
-                  <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ color: 'var(--text-dim)', fontSize: 14 }}>Erase this save?</span>
-                    <button className="btn" onClick={() => { forceSave(); saveToSlot(slots.findIndex((s) => !s) + 1 || 1); g.reset(); setConfirmReset(false); refreshSlots(); }} data-testid="confirm-reset-keep">Save it to a slot, then erase</button>
-                    <button className="btn" onClick={() => { g.reset(); setConfirmReset(false); }} data-testid="confirm-reset">Just erase</button>
-                    <button className="ghost-btn" onClick={() => setConfirmReset(false)}>Keep</button>
-                  </span>
-                ) : (
-                  <button className="ghost-btn" onClick={() => setConfirmReset(true)} data-testid="new-game">New game</button>
-                )}
-                {confirmIron ? (
-                  <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <span style={{ color: 'var(--parchment)', fontSize: 16 }}>Start a new Ironman game? This save will be erased.</span>
-                    <button className="btn" onClick={() => { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); g.reset(); g.setIronman(true); setConfirmIron(false); refreshSlots(); }} data-testid="confirm-iron-keep">Save it to a slot, then start</button>
-                    <button className="btn" onClick={() => { g.reset(); g.setIronman(true); setConfirmIron(false); }} data-testid="confirm-iron">Just erase and start</button>
-                    <button className="ghost-btn" onClick={() => setConfirmIron(false)}>Keep</button>
-                  </span>
-                ) : (
-                  <button className="ghost-btn" onClick={() => setConfirmIron(true)} data-testid="new-ironman">☠ New Ironman game</button>
-                )}
+                <button className="ghost-btn" onClick={() => setChooser('any')} data-testid="new-game">New game…</button>
               </>
             ) : (
               <>
                 <button className="big-btn" onClick={() => { audio.ensure(); setPhase('documentary'); }} data-testid="play-opening">
                   Play Campaign
                 </button>
-                <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · new game</button>
+                <button className="ghost-btn iron-open" onClick={() => setChooser('ironman')} data-testid="open-ironman">☠ Ironman · one life</button>
+                <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · free play</button>
               </>
             )}
             <div className="title-links">
             {!g.started && introSeen() && (
               <button className="ghost-btn" onClick={() => { audio.ensure(); setPhase('dayone'); }} data-testid="skip-to-day">Skip to Day One</button>
             )}
-            <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ How it plays</button>
+            <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ Gameplay videos</button>
             <InstallButton className="ghost-btn" />
             <FullScreenButton className="ghost-btn" />
             {slots.some((s) => s) && (
@@ -454,6 +452,7 @@ export default function App() {
             )}
             </div>
           </div>
+          {chooser && <ModeChooser current={g.started ? { day: g.day } : null} slots={slots} first={chooser === 'any' ? undefined : chooser} onStart={startMode} onClose={() => setChooser(null)} />}
           {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
           {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); freshForSandbox(); g.startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
           {loadOpen && (
@@ -469,7 +468,7 @@ export default function App() {
             </div>
           )}
         </div>
-        <button className="title-place" onClick={() => setTitleBg((c) => { let n = c; while (n === c) n = TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]; return n; })} title="Show another picture" data-testid="title-shuffle">⟳ {titleBg.place}</button>
+        {!titleOpts && !chooser && <button className="title-place" onClick={() => setTitleBg((c) => { let n = c; while (n === c) n = TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]; return n; })} title="Show another picture" data-testid="title-shuffle">⟳ {titleBg.place}</button>}
         <div className="title-foot">TRADE · PEOPLE · STORIES</div>
         {howView}
       </div>
@@ -481,7 +480,7 @@ export default function App() {
       <header className="hud">
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
           <b>{g.world.at ? settlementById(g.world.at).name : 'Road'}</b>
-          <span data-testid="map-clock">{clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}</span>
+          <span data-testid="map-clock">{clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
         </button>
         <div className="hud-stats">
           <button className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
@@ -609,22 +608,31 @@ export default function App() {
       {g.rescue && <Rescue />}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="settings">
-            <h2>Your game</h2>
+          <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>
+            <div className="settings-head">
+              <h2>Your game <small>{g.ironman ? '☠ Ironman' : g.playMode === 'sandbox' ? 'Sandbox' : 'Campaign'}</small></h2>
+              <button className="btn" onClick={() => setSettings(false)} data-testid="settings-close" aria-label="Close">Close ×</button>
+            </div>
             <p data-testid="save-status">{g.autosaveOn === false ? 'Autosave is off — use Save now, or a save slot, to keep your progress.' : 'Your game saves itself after everything you do, in this browser on this device.'} {savedAt ? `Last saved ${savedAt}.` : ''}</p>
             <div className="toggle-row">
               <span>
                 Autosave
-                <small>Save after everything you do. Turn off to only save when you choose to.</small>
+                <small>{g.ironman ? 'Always on in Ironman: the game saves after everything you do.' : 'Save after everything you do. Turn off to only save when you choose to.'}</small>
               </span>
-              <button className="switch" role="switch" aria-checked={g.autosaveOn !== false} aria-label="Autosave" onClick={() => g.setAutosave(!(g.autosaveOn !== false))} data-testid="toggle-autosave" />
+              <button className="switch" role="switch" aria-checked={g.ironman ? true : g.autosaveOn !== false} aria-label="Autosave" disabled={!!g.ironman} title={g.ironman ? 'Always on in Ironman' : undefined} onClick={() => { if (!g.ironman) g.setAutosave(!(g.autosaveOn !== false)); }} data-testid="toggle-autosave" />
             </div>
             <div className="save-row">
               <button className="btn primary" onClick={() => { forceSave(); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save now</button>
               <button className="btn" onClick={downloadSave} disabled={!!g.ironman} data-testid="save-download">Download a save file</button>
-              <label className="btn" data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
+              <label className={`btn ${g.ironman ? 'disabled' : ''}`} aria-disabled={!!g.ironman} data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden disabled={!!g.ironman} onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
             </div>
-            <p className="dim">A save file keeps a copy you can bring back, or open on another phone or computer.</p>
+            <div className="save-where" data-testid="save-where">
+              <b>Where your saves are kept</b>
+              <ul>
+                <li><b>Autosave</b> and the <b>{SLOT_COUNT} save slots</b>: inside this browser, on this phone or computer. Another browser or device will not see them, and clearing this site's data deletes them.</li>
+                <li><b>Save file</b>: “Download a save file” puts a <i>.json</i> file in your Downloads folder (on iPhone, in Files › Downloads). Keep it anywhere; “Load a save file” opens it again here or on any other device.</li>
+              </ul>
+            </div>
             {g.ironman && <p className="dim"><b>Ironman:</b> one life, one save. The game saves itself as you play. Save slots and save files are switched off, so a death cannot be undone.</p>}
             <h3>Save slots</h3>
             <p className="dim">Keep up to {SLOT_COUNT} games side by side on this phone or computer, without downloading a file.</p>
@@ -635,8 +643,8 @@ export default function App() {
                   <div className="slot-row" key={n} data-testid={`slot-${n}`}>
                     <span className="slot-info">{info ? slotLabel(info) : 'Empty slot'}</span>
                     <span className="slot-btns">
-                      <button className="btn small" disabled={!!g.ironman} onClick={() => slotSave(n)} data-testid={`slot-save-${n}`}>{info ? 'Overwrite' : 'Save here'}</button>
-                      {info && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
+                      <button className="btn small" disabled={!!g.ironman} onClick={() => { if (info && !window.confirm(`Replace the save in slot ${n} (${slotLabel(info)}) with your game now? The old one will be gone.`)) return; slotSave(n); }} data-testid={`slot-save-${n}`}>{info ? 'Replace' : 'Save here'}</button>
+                      {info && <button className="btn small" disabled={!!g.ironman} onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
                       {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`}>Clear</button>}
                     </span>
                   </div>
@@ -645,8 +653,8 @@ export default function App() {
             </div>
             {soundOptions}
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-              <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">How to play</button>
-              <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ How it plays</button>
+              <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">Guided tour of the screens</button>
+              <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ Gameplay videos</button>
               <InstallButton />
               <FullScreenButton />
               <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setSettings(false)}>Close</button>
