@@ -111,7 +111,7 @@
 .cl-bp-caption { margin: 0; padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(10,6,3,.92); border-top: 1px solid rgba(227,189,107,.4); color: #f6ead2; font-size: 15px; line-height: 1.35; }
 .cl-bp-caption small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--brass-hi, #e3bd6b); }
 /* while he opens the book, his words sit at the top so the pages show */
-.cl-stage.st-desk .cl-say { top: 8px; bottom: auto; right: 40%; }
+.cl-stage.st-desk .cl-say { top: 8px; bottom: auto; right: 8px; }
 .cl-stage.st-desk .cl-zoom { top: auto; bottom: 8px; }
 
 /* stall-like: the scene fills the width and most of the screen; the two of them, then his book */
@@ -121,8 +121,19 @@
 .cl-stage { aspect-ratio: auto; height: min(48svh, 104vw); max-width: none; border-radius: 0; }
 .cl-stage-img { object-fit: cover; }
 .cl-stage-img.both { object-position: 47% 60%; }
-.cl-stage-img.book { object-position: 50% 62%; }
+/* phones: one 4:3 frame for every shot, which keeps both men whole in the desk picture and the whole
+   book, edge to edge, in the book shot (each sits inside the middle three quarters of its picture) */
+.cl-stage-img.book { object-position: 54% 100%; }
+@media (max-width: 699px) { .cl-stage { height: auto; aspect-ratio: 4 / 3; } .cl-stage-img.both { object-position: 50% 60%; } }
+
 @media (min-width: 700px) { .cl-stage { height: min(62svh, 56.25vw); max-width: 1100px; border-radius: 10px; } }
 .cl-stage-img.both { animation: clFade .45s ease, clDrift 14s ease-in-out infinite alternate; }
 @keyframes clDrift { from { transform: scale(1); } to { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .cl-stage-img.both { animation: none; } }
+
+/* the line being said: a dialogue box under the picture, his face beside his words */
+.cl-consult-scene .cl-say { position: static; display: flex; gap: 10px; align-items: flex-start; margin: 0 12px; min-height: 74px; animation: clFade .3s ease; cursor: pointer; }
+.cl-consult-scene .cl-say img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line-strong); flex: none; }
+.cl-consult-scene .cl-say > div { flex: 1; min-width: 0; }
+.cl-consult-scene .cl-say p { -webkit-line-clamp: unset; display: block; font-size: 16px; }
+.cl-consult-scene .cl-say.you { margin-left: 18%; background: rgba(58,38,16,.9); }

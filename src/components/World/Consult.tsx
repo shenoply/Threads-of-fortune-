@@ -113,17 +113,18 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
   return (
     <div className="cl-consult-scene" data-testid={`consult-${id}`}>
       <div className="cl-cs-head"><b>{d.name}</b><small>{TIER_LABEL[d.tier]} · about {left} day{left === 1 ? '' : 's'} more</small></div>
-      {/* the scene: across his desk, Hassan sitting opposite; words in a bubble over the picture */}
+      {/* the scene: the two of them at his desk, or his book open on it */}
       <div className={`cl-stage st-${stage}`} onClick={tapStage} data-testid="consult-stage">
         {stage === 'desk'
           ? <img key="book" className="cl-stage-img book" src={pic} alt={`Dr Feras opens his book at ${d.name.toLowerCase()}`} onError={() => setDeskPic(false)} draggable={false} />
           : <img key="both" className="cl-stage-img both" src={bothPic ? bothWith(d.id) : BOTH_STILL} onError={() => setBothPic(false)} alt={`Dr Feras and Hassan at his desk, the book open at ${d.name.toLowerCase()}`} draggable={false} data-testid="consult-both" />}
-        <div className={`cl-say ${line.who}`} data-testid={`line-${line.who}-${stage === 'talk' ? n : stage}`}>
-          <small>{line.who === 'feras' ? 'Dr Feras' : 'You'}</small>
-          <p>{line.text}</p>
-        </div>
         {stage === 'talk' && <button className="btn small cl-skip" onClick={(e) => { e.stopPropagation(); setStage('desk'); }} data-testid="consult-skip">Skip ▸</button>}
         {stage === 'desk' && <span className="cl-zoom">Tap to read the page</span>}
+      </div>
+      {/* what is said, under the picture so nothing in it is covered */}
+      <div className={`cl-say ${line.who}`} onClick={tapStage} data-testid={`line-${line.who}-${stage === 'talk' ? n : stage}`}>
+        {line.who === 'feras' && <img src="art/portraits/feras.webp" alt="" />}
+        <div><small>{line.who === 'feras' ? 'Dr Feras' : 'You · Hassan'}</small><p>{line.text}</p></div>
       </div>
       <audio ref={a} src={`audio/feras/${d.id}.mp3`} preload="auto" onEnded={() => { setSpeaking(false); setStage((s) => (s === 'page' || s === 'desk' ? 'treat' : s)); }} data-testid="feras-voice" />
       {(stage === 'desk' || stage === 'page') && (
