@@ -46,16 +46,14 @@ await p.click('[data-testid=consult-done]'); await p.waitForTimeout(300);
 check((await has('talk-cut')) > 0, 'afterwards the list lets you talk to him again');
 await p.click('[data-testid=clinic-leave]'); await p.waitForTimeout(400);
 
-// passing out in Giza: a passer-by carries him to the clinic
+// passing out in Giza: nobody carries him to Dr Feras; he comes to where he fell, hours later
 await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.world.at = 'giza'; d.state.illnesses = []; d.state.condition = { ...(d.state.condition || {}), fatigue: 99 }; localStorage.setItem(k, JSON.stringify(d)); });
 await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(1500);
-check((await has('rescue')) > 0, 'worn out to the bone in a town: you pass out and someone comes');
+check((await has('rescue')) > 0, 'worn out to the bone in a town: you pass out');
 await p.screenshot({ path: `${S}/7-rescue.png` });
 for (let i = 0; i < 2 && await has('rescue-next'); i++) { await p.click('[data-testid=rescue-next]'); await p.waitForTimeout(250); }
-await p.screenshot({ path: `${S}/8-rescue3.png` });
-await p.click('[data-testid=rescue-clinic]'); await p.waitForSelector('[data-testid=clinic]');
+await p.click('[data-testid=rescue-clinic]'); await p.waitForTimeout(500);
 const s2 = await st();
-check(s2.world.at === 'cairo' && s2.condition.fatigue <= 60, `he wakes in Cairo, rested (fatigue ${s2.condition.fatigue})`);
-await p.screenshot({ path: `${S}/9-clinic.png` });
+check(s2.world.at === 'giza' && s2.condition.fatigue <= 45 && !(await has('clinic')), `he comes to in Giza, not at the clinic (fatigue ${s2.condition.fatigue})`);
 console.log(out.join('\n')); console.log(ok && !errs.length ? 'PASS' : 'FAIL', errs);
 await b.close();

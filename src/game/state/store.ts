@@ -188,7 +188,7 @@ export interface GameState {
   /** how much of the simulation is on; absent means all of it (older saves) */
   sim?: SimSettings;
   /** set when Hassan has passed out in a town and a passer-by is taking him to Dr Feras */
-  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' | 'passerby'; clinic?: boolean };
+  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' | 'passerby' | 'alone'; clinic?: boolean };
   /** 'story' is Hassan's story; 'sandbox' is free play, where you may play as Hassan or as yourself */
   playMode?: 'story' | 'sandbox';
   /** whose face the game shows for the hero (Hassan unless a Sandbox player uploaded their own pictures) */
@@ -3283,16 +3283,13 @@ export const useGame = create<GameState & Actions>()(
         collapse: (reason) => {
           const s = get(); const at = s.world.at;
           if (s.ended || s.rescue || !at) return;
-          const near = at === 'cairo' || at === 'giza';
-          const fare = near ? 0 : Math.min(30, s.cash);
           const c = s.condition ?? CONDITION_START;
+          // to begin with nobody carries you to Dr Feras: you come to where you fell, some hours later, and see to yourself
           set({
-            rescue: { day: s.day, from: at, reason, fare, by: near ? 'carry' : 'train' },
-            cash: s.cash - fare,
-            world: { ...s.world, at: 'cairo', hour: Math.min(23, s.world.hour + (near ? 1 : 6)) },
-            condition: { ...c, fatigue: Math.min(c.fatigue, 60), fed: Math.max(fedOf(c), 45), water: Math.max(waterOf(c), 70) },
-            ledger: fare ? [...s.ledger, { day: s.day, kind: 'expense' as const, label: 'Train to Cairo (a stranger paid you onto it)', amount: -fare }] : s.ledger,
-            journal: [...s.journal, { day: s.day, text: `Passed out (${reason}). A passer-by took him to Dr Feras.`, kind: 'road' as const }],
+            rescue: { day: s.day, from: at, reason, fare: 0, by: 'alone' },
+            world: { ...s.world, hour: Math.min(23.9, s.world.hour + 5) },
+            condition: { ...c, fatigue: Math.min(c.fatigue, 45), fed: Math.max(fedOf(c), 30), water: Math.max(waterOf(c), 60) },
+            journal: [...s.journal, { day: s.day, text: `Passed out (${reason}) in ${settlementById(at).name}. Came to hours later.`, kind: 'road' as const }],
           });
         },
         clearRescue: () => set({ rescue: undefined }),
