@@ -986,7 +986,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       {encounter && encounter.kind === 'raiders' && (
         <Ambush
           party={encounter}
-          onDone={(msg) => { setReport(msg); setEncounter(null); }}
+          onDone={(msg) => { setReport(msg); setEncounter(null); if (useGame.getState().rescue) setMoving(null); }}
           onTurnBack={() => { setMoving(null); setEncounter(null); }}
         />
       )}

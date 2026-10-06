@@ -41,7 +41,7 @@ check((s1.introSeen ?? []).includes('feras'), 'marked as seen');
 await p.click('[data-testid=consult-skip]').catch(() => {}); await p.click('[data-testid=plate-skip]'); await p.click('[data-testid=treat-flu]'); await p.waitForTimeout(200); await p.click('[data-testid=consult-done]');
 const s2 = await st();
 const flu = s2.illnesses.find((i) => i.id === 'flu');
-check(s2.cash === 3000 - 30 && flu.treated && flu.until - s2.day === 4, `treated influenza (cash ${s2.cash}, ${flu.until - s2.day} days left)`);
+check(s2.cash === 3000 - 30 && flu.treated && flu.until - s2.day >= 4 && flu.until - s2.day <= 7, `treated influenza (cash ${s2.cash}, ${flu.until - s2.day} days left)`);
 await p.screenshot({ path: `${S}/consult-${vp.width}.png` });
 await p.click('[data-testid=clinic-book]');
 const n = await p.locator('.mb-toc li').count();

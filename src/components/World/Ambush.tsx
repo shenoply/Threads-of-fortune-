@@ -136,7 +136,9 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       audio.sfx('chest');
       if (g.ironman && Math.random() < 0.12) useGame.getState().dieNow('Cut down by raiders on the road. Hassan\'s men carried him back to Giza, but too late.');
       const wound = o.heroDown || Math.random() < 0.7 ? ` ${useGame.getState().hurt('fight')}` : '';
-      settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}${wound}` });
+      // a beaten hero goes down: he wakes alone hours later, or someone walking by finds him
+      const out = o.heroDown ? ` ${useGame.getState().knockedOut('beaten by raiders')}` : '';
+      settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}${wound}${out}` });
     }
   };
 

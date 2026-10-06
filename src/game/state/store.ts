@@ -184,7 +184,7 @@ export interface GameState {
   /** Ironman: a fatal illness (or fight) ends the run */
   ironman?: boolean;
   /** set when Hassan has passed out in a town and a passer-by is taking him to Dr Feras */
-  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' };
+  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' | 'passerby'; clinic?: boolean };
   /** 'story' is Hassan's story; 'sandbox' is free play, where you may play as Hassan or as yourself */
   playMode?: 'story' | 'sandbox';
   /** whose face the game shows for the hero (Hassan unless a Sandbox player uploaded their own pictures) */
@@ -435,6 +435,7 @@ interface Actions {
   /** Ironman: Hassan dies and the run is over */
   dieNow: (text: string) => void;
   collapse: (reason: string) => void;
+  knockedOut: (reason: string) => string;
   clearRescue: () => void;
 }
 
@@ -1993,7 +1994,7 @@ export const useGame = create<GameState & Actions>()(
             // 3 a beating
             { art: 'rob-beating', w: 3, ok: true, go: () => {
               set({ condition: { ...c, fatigue: Math.min(100, c.fatigue + 35) } });
-              return `So they give you a beating for wasting their morning. Fatigue +35: you will be slow for a few days. ${get().hurt('beating')}`;
+              return `So they give you a beating for wasting their morning. Fatigue +35: you will be slow for a few days. ${get().hurt('beating')} ${get().knockedOut('a beating')}`;
             } },
             // 4 held for ransom: Rashid pays, the debt grows
             { art: 'rob-ransom', w: 1, ok: true, go: () => {
@@ -2253,7 +2254,7 @@ export const useGame = create<GameState & Actions>()(
           const fee = mode === 'remedy' ? Math.max(5, Math.round(TREAT_FEE[d.tier] * 0.4)) : TREAT_FEE[d.tier];
           if (s.cash < fee) return `"My fee is ${fmt(fee)}, effendi. Come back when you have it."`;
           const left = Math.max(1, il.until - s.day);
-          const until = s.day + Math.max(1, Math.ceil(left * (mode === 'remedy' ? 0.67 : 0.5)));
+          const until = s.day + Math.max(1, Math.ceil(left * (mode === 'remedy' ? 0.85 : 0.65)));
           set({
             cash: s.cash - fee,
             illnesses: (s.illnesses ?? []).map((x) => (x.id === id ? { ...x, until, treated: true } : x)),
@@ -3271,6 +3272,33 @@ export const useGame = create<GameState & Actions>()(
           });
         },
         clearRescue: () => set({ rescue: undefined }),
+        // Beaten senseless on the road: half the time you wake alone a few hours later, half the time someone walking by finds you
+        knockedOut: (reason) => {
+          const s = get();
+          if (s.ended) return '';
+          const c = s.condition ?? CONDITION_START;
+          if (Math.random() < 0.5) {
+            const hrs = 3 + Math.floor(Math.random() * 5);
+            set({
+              condition: { ...c, fatigue: Math.min(100, c.fatigue + 15) },
+              world: { ...s.world, hour: Math.min(23.9, s.world.hour + hrs) },
+              journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). Woke alone ${hrs} hours later.`, kind: 'road' as const }],
+            });
+            return `You wake in the dust ${hrs} hours later, alone, head ringing. The sun has moved. Nobody came.`;
+          }
+          const here = s.world.at ? SETTLEMENTS.find((x) => x.id === s.world.at) : undefined;
+          const near = here ?? [...SETTLEMENTS].sort((a, b) => Math.hypot(a.x - s.world.x, a.y - s.world.y) - Math.hypot(b.x - s.world.x, b.y - s.world.y))[0];
+          if (!near) return '';
+          const clinic = near.id === 'cairo' || near.id === 'giza';
+          set({
+            rescue: { day: s.day, from: near.id, reason, fare: 0, by: 'passerby', clinic },
+            condition: { ...c, fatigue: Math.min(100, c.fatigue + 10) },
+            journey: undefined,
+            world: { ...s.world, at: clinic ? 'cairo' : near.id, x: near.x, y: near.y, hour: Math.min(23, s.world.hour + 4) },
+            journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). A passer-by took him to ${near.name}.`, kind: 'road' as const }],
+          });
+          return 'You black out. Someone is standing over you.';
+        },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
