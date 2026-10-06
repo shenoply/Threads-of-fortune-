@@ -91,6 +91,22 @@
 .cl-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .cl-lb-x { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 10px; min-height: 44px; font-size: 16px; background: rgba(20,13,7,.9); }
 /* while he is talking you through it, the room shrinks to a strip so the conversation has the screen */
-.clinic.consulting .cl-scene { height: 17svh; overflow: hidden; }
+.clinic.consulting .cl-scene { display: none; }
 .clinic.consulting .cl-room { width: 100%; max-height: none; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: 50% 45%; }
 .clinic.consulting .cl-tabs { display: none; }
+
+/* the consultation, like a buyer at the stall: one picture across his desk, the words over it */
+.cl-stage { position: relative; width: 100%; max-width: 760px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #0b0704; box-shadow: 0 6px 18px rgba(0,0,0,.55); cursor: pointer; }
+.cl-stage-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; animation: clFade .45s ease; }
+@keyframes clFade { from { opacity: .2; } to { opacity: 1; } }
+.cl-say { position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 7px 11px 8px; border-radius: 10px; background: rgba(18,11,6,.86); border: 1px solid rgba(227,189,107,.45); color: #f6ead2; animation: clFade .3s ease; }
+.cl-say.you { left: 22%; background: rgba(58,38,16,.9); border-color: rgba(227,189,107,.75); }
+.cl-say small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--brass-hi, #e3bd6b); margin-bottom: 1px; }
+.cl-say p { margin: 0; font-size: 15px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.cl-stage .cl-skip { position: absolute; top: 8px; right: 8px; background: rgba(20,13,7,.85); }
+.cl-stage .cl-zoom { position: absolute; bottom: auto; top: 8px; right: 8px; padding: 4px 9px; border-radius: 999px; background: rgba(10,6,3,.78); color: #f6ead2; font-size: 12.5px; }
+.cl-bookpage { z-index: 90; }
+.cl-bp-btns { display: flex; gap: 6px; }
+@media (min-width: 700px) { .cl-say p { font-size: 16px; } }
+.cl-bp-caption { margin: 0; padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(10,6,3,.92); border-top: 1px solid rgba(227,189,107,.4); color: #f6ead2; font-size: 15px; line-height: 1.35; }
+.cl-bp-caption small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--brass-hi, #e3bd6b); }

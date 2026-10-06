@@ -7,7 +7,7 @@ import { useGame, TREAT_FEE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { DISEASES, DISEASE, TIER_LABEL, type Disease } from '../../game/systems/disease';
 import { MedicalBook } from './MedicalBook';
-import { ConsultScene, Lightbox } from './Consult';
+import { ConsultScene, BookPage } from './Consult';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
 import { radio } from '../../game/radio/player';
@@ -43,7 +43,7 @@ function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack
       </div>
       {/* his book open on the desk at that chapter, his finger on the plate (tools/feras-desk.py) */}
       <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} onClick={() => setBig(true)} style={{ cursor: 'zoom-in' }} data-testid="case-desk" />
-      {big && <Lightbox src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={d.name} onClose={() => setBig(false)} />}
+      {big && <BookPage id={d.id} onClose={() => setBig(false)} />}
       <p className="cl-feras">“{d.doctor}”</p>
       <audio ref={a} src={`audio/feras/${d.id}.mp3`} preload="auto" data-testid="feras-voice" />
       <div className="cl-case-btns">
@@ -106,7 +106,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   }, [intro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className={`clinic${consulting && tab === 'consult' ? ' consulting' : ''}`} aria-label="Dr Feras's clinic" data-testid="clinic">
+    <section className={`clinic${consulting && tab === 'consult' && !intro ? ' consulting' : ''}`} aria-label="Dr Feras's clinic" data-testid="clinic">
       <header className="cl-head">
         <div><strong>Dr Feras’s clinic</strong><small>Cairo · 1925</small></div>
         <span className="cl-cash">{fmt(g.cash)}</span>
