@@ -93,4 +93,4 @@
 /* while he is talking you through it, the room shrinks to a strip so the conversation has the screen */
 .clinic.consulting .cl-scene { height: 17svh; overflow: hidden; }
 .clinic.consulting .cl-room { width: 100%; max-height: none; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: 50% 45%; }
-.clinic.consulting .cl-doctor, .clinic.consulting .cl-tabs { display: none; }
+.clinic.consulting .cl-tabs { display: none; }
