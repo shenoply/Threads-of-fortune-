@@ -10,7 +10,7 @@ import { fmt } from '../../game/economy/money';
 import { DISEASE, TIER_LABEL } from '../../game/systems/disease';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
-import { MedicalBook } from './MedicalBook';
+import { MedicalBook, roman, chapterOf } from './MedicalBook';
 
 const DESK = 'art/clinic/feras-desk-pov.webp';
 /** the two of them at his desk (the introduction film's shot), his book open at this very case
@@ -42,9 +42,9 @@ export function BookPage({ id, onClose, speaking, onReplay, caption }: { id: str
     return () => window.removeEventListener('keydown', key, true);
   }, [onClose]);
   return createPortal(
-    <div className="mb-reader cl-bookpage" role="dialog" aria-label="Dr Feras's book" data-testid="book-page-view">
+    <div className="mb-reader cl-bookpage" role="dialog" aria-label="Dr Feras's Handbook" data-testid="book-page-view">
       <div className="mb-reader-head">
-        <b>{speaking ? 'Dr Feras reads from his book…' : 'Dr Feras’s book'}</b>
+        <b>{speaking ? 'Dr Feras reads from his Handbook…' : 'Feras’s Handbook of Diseases'}</b>
         <span className="cl-bp-btns">
           {onReplay && <button className="btn small" onClick={onReplay} data-testid="plate-replay">▶ Again</button>}
           <button className="btn small primary" onClick={onClose} data-testid="plate-skip">{speaking ? 'Back to the desk ▸' : 'Close'}</button>
@@ -70,7 +70,7 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
   const lines: Line[] = [
     { who: 'feras', text: 'Sit down. Tell me where it hurts, and how long.' },
     { who: 'you', text: `Doctor, ${inFirstPerson(d.symptom).replace(/^./, (c) => c.toLowerCase())}` },
-    { who: 'feras', text: 'Hm. Let me show you what it is, in my book.' },
+    { who: 'feras', text: 'Hm. Let me show you what it is, in my Handbook.' },
   ];
   const [n, setN] = useState(0);
   const [stage, setStage] = useState<Stage>('talk');
@@ -107,7 +107,7 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
 
   const line: Line = stage === 'talk' ? lines[n]
     : stage === 'treat' ? { who: 'feras', text: note ? 'Good. Rest now, and come back if it turns.' : treated ? 'I have treated it already. Now it is rest, and time.' : 'So. There are two things I can do for you. Choose, effendi.' }
-    : { who: 'feras', text: `Here. ${d.name}: see the plate.` };
+    : { who: 'feras', text: `Here, chapter ${roman(chapterOf(d.id))}. ${d.name}: see the plate.` };
   const pic = deskPic ? deskWith(d.id) : DESK;
 
   return (
@@ -145,7 +145,7 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
           )}
           {note && <p className="cl-note" data-testid="clinic-note">{note}</p>}
           <div className="cl-case-btns">
-            <button className="btn" onClick={() => setStage('page')} data-testid="consult-reread">Read his page again</button>
+            <button className="btn" onClick={() => setStage('page')} data-testid="consult-reread">Read his chapter again</button>
             {(treated || note) && <button className="btn primary" onClick={onDone} data-testid="consult-done">Thank him and finish</button>}
           </div>
         </div>

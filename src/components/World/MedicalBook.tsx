@@ -11,7 +11,7 @@ export const roman = (n: number) => { let s = ''; for (const [v, r] of ROMAN) wh
 const plate = (id: string) => `art/clinic/plates/${id}.webp`;
 /** the book's order: diseases first, then injuries, as in the plates */
 const ORDER = [...DISEASES.filter((d) => d.kind === 'disease'), ...DISEASES.filter((d) => d.kind === 'injury')];
-const chapterOf = (id: string) => ORDER.findIndex((d) => d.id === id) + 1;
+export const chapterOf = (id: string) => ORDER.findIndex((d) => d.id === id) + 1;
 /** each chapter is two pages in the printed book; the contents give where it starts */
 const pageOf = (n: number) => 7 + (n - 1) * 2;
 

@@ -138,11 +138,11 @@ export function Clinic({ onClose }: { onClose: () => void }) {
         <div className="cl-tabs" role="tablist">
           <button role="tab" aria-selected={tab === 'consult'} className={tab === 'consult' ? 'on' : ''} onClick={() => setTab('consult')} data-testid="clinic-consult">Consultation{ill.length ? ` · ${ill.length}` : ''}</button>
           <button role="tab" aria-selected={tab === 'cases'} className={tab === 'cases' ? 'on' : ''} onClick={() => setTab('cases')} data-testid="clinic-cases-tab">Ask about any case</button>
-          <button className="cl-booktab" onClick={() => setBook('')} data-testid="clinic-book">His book</button>
+          <button className="cl-booktab" onClick={() => setBook('')} data-testid="clinic-book">His Handbook</button>
         </div>
         {tab === 'consult' ? (
           <div className="cl-consult">
-            {ill.length === 0 && <p className="cl-intro">Nothing ails you today. Read his book: it is cheaper than his fee.</p>}
+            {ill.length === 0 && <p className="cl-intro">Nothing ails you today. Read his Handbook: it is cheaper than his fee.</p>}
             {consulting && ill.some((x) => x.id === consulting)
               ? <ConsultScene key={consulting} id={consulting} onDone={() => setConsulting(null)} />
               : ill.map((il) => {
@@ -154,7 +154,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
                     <div className="cl-case-btns">
                       {il.treated ? <span className="cl-done">Treated</span> : null}
                       <button className="btn primary" onClick={() => setConsulting(il.id)} data-testid={`talk-${il.id}`}>{il.treated ? 'Talk to him again' : 'Talk it through with him'}</button>
-                      <button className="btn" onClick={() => setBook(il.id)} data-testid={`read-${il.id}`}>Read his page</button>
+                      <button className="btn" onClick={() => setBook(il.id)} data-testid={`read-${il.id}`}>Read his chapter</button>
                     </div>
                   </div>
                 );
@@ -163,8 +163,8 @@ export function Clinic({ onClose }: { onClose: () => void }) {
         ) : <Cases onBook={(id) => setBook(id)} />}
       </div>
       {book !== null && (
-        <div className="mb-reader" role="dialog" aria-label="Dr Feras's book" data-testid="book-reader">
-          <div className="mb-reader-head"><b>Dr Feras’s book</b><button className="btn small" onClick={() => setBook(null)} data-testid="book-close">Close the book</button></div>
+        <div className="mb-reader" role="dialog" aria-label="Dr Feras's Handbook" data-testid="book-reader">
+          <div className="mb-reader-head"><b>Feras’s Handbook of Diseases</b><button className="btn small" onClick={() => setBook(null)} data-testid="book-close">Close the Handbook</button></div>
           <div className="mb-reader-body"><MedicalBook key={book || 'contents'} start={book || undefined} /></div>
         </div>
       )}

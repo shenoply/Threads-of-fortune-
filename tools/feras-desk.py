@@ -58,47 +58,69 @@ def centre(d, y, s, f, W=PAGE[0]):
     d.text(((W - d.textlength(s, font=f)) / 2, y), s, font=f, fill=INK)
 
 
+M = 70  # page margin in the canvas: nothing printed runs to the paper's edge
+
+
+def wrap_px(d, text, f, width):
+    """break a paragraph into lines that fit `width` pixels in font `f`"""
+    out, cur = [], ''
+    for w in text.split():
+        t = (cur + ' ' + w).strip()
+        if d.textlength(t, font=f) <= width or not cur: cur = t
+        else: out.append(cur); cur = w
+    if cur: out.append(cur)
+    return out
+
+
+def head_rule(d, left, mid, right, W):
+    f = font(24)
+    d.text((M, 18), left, font=f, fill=INK)
+    centre(d, 18, mid, f)
+    d.text((W - M - d.textlength(right, font=f), 18), right, font=f, fill=INK)
+    d.line([(M, 56), (W - M, 56)], fill=INK, width=2)
+
+
 def plate_page(n, cid, name):
     W, H = PAGE
     pg = Image.new('RGB', PAGE, (255, 255, 255)); d = ImageDraw.Draw(pg)
-    d.text((20, 10), str(7 + (n - 1) * 2), font=font(26), fill=INK)
-    centre(d, 10, 'PLATE ' + roman(n), font(26))
-    d.line([(20, 50), (W - 20, 50)], fill=INK, width=2)
+    head_rule(d, str(7 + (n - 1) * 2), f'PLATE {roman(n)}', '', W)
     art = Image.open(os.path.join(ROOT, f'public/art/clinic/plates/{cid}.webp')).convert('RGB')
-    h = 780; w = round(art.width * h / art.height)
-    if w > W - 60: w = W - 60; h = round(art.height * w / art.width)
-    x0, y0 = (W - w) // 2, 80
+    # the whole plate, never cropped, inside the margins, with room under it for the caption
+    bw, bh = W - 2 * M, H - 90 - 110
+    sc = min(bw / art.width, bh / art.height)
+    w, h = round(art.width * sc), round(art.height * sc)
+    x0, y0 = (W - w) // 2, 90 + (bh - h) // 2
     pg.paste(art.resize((w, h), Image.LANCZOS), (x0, y0))
-    d.rectangle([x0 - 2, y0 - 2, x0 + w + 1, y0 + h + 1], outline=INK, width=2)
+    d.rectangle([x0 - 3, y0 - 3, x0 + w + 2, y0 + h + 2], outline=INK, width=2)
     cap = f'Plate {roman(n)}. — {name}.'; f = font(32)
-    while d.textlength(cap, font=f) > W - 60: f = font(f.size - 2)
-    centre(d, y0 + h + 22, cap, f)
+    while d.textlength(cap, font=f) > W - 2 * M: f = font(f.size - 2)
+    centre(d, y0 + h + 24, cap, f)
     return pg
 
 
 def text_page(n, name, kind, cause, symptom, doctor):
     W, H = PAGE
     pg = Image.new('RGB', PAGE, (255, 255, 255)); d = ImageDraw.Draw(pg)
-    run = 'INJURIES' if kind == 'injury' else 'DISEASES OF EGYPT'
-    centre(d, 10, run, font(24)); d.text((W - 60, 10), str(8 + (n - 1) * 2), font=font(26), fill=INK)
-    d.line([(20, 50), (W - 20, 50)], fill=INK, width=2)
-    centre(d, 78, f'CHAPTER {roman(n)}', font(30))
-    t = name.upper(); f = font(46)
-    while d.textlength(t, font=f) > W - 60: f = font(f.size - 2)
-    centre(d, 120, t, f)
-    d.line([(W / 2 - 50, 186), (W / 2 + 50, 186)], fill=INK, width=2)
-    y = 212; fb = font(36)
+    head_rule(d, '', 'INJURIES' if kind == 'injury' else 'DISEASES OF EGYPT', str(8 + (n - 1) * 2), W)
+    centre(d, 84, f'CHAPTER {roman(n)}', font(28))
+    t = name.upper(); f = font(48)
+    while d.textlength(t, font=f) > W - 2 * M: f = font(f.size - 2)
+    centre(d, 124, t, f)
+    d.line([(W / 2 - 50, 196), (W / 2 + 50, 196)], fill=INK, width=2)
+    fb, fh = font(33), font(33)
+    y, lh, width = 224, 43, W - 2 * M
     for head, body in [('Aetiology.', cause), ('Symptoms.', symptom), ('Treatment.', doctor)]:
-        lines = textwrap.wrap(f'{head} — {body}', width=34)
-        for i, ln in enumerate(lines):
-            if y > H - 50: return pg
-            if i == 0:
-                d.text((70, y), head, font=font(36), fill=INK, stroke_width=1, stroke_fill=INK)
-                d.text((70 + d.textlength(head + ' ', font=fb), y), ln[len(head) + 1:], font=fb, fill=INK)
-            else:
-                d.text((30, y), ln, font=fb, fill=INK)
-            y += 48
-        y += 10
+        hw = d.textlength(head + ' — ', font=fh)
+        first, *rest = wrap_px(d, body, fb, width - hw - 30) or ['']
+        rest = wrap_px(d, ' '.join(rest), fb, width) if rest else []
+        if y > H - 60: break
+        d.text((M + 30, y), head, font=fh, fill=INK, stroke_width=1, stroke_fill=INK)
+        d.text((M + 30 + d.textlength(head, font=fh), y), ' — ' + first, font=fb, fill=INK)
+        y += lh
+        for ln in rest:
+            if y > H - 60: return pg
+            d.text((M, y), ln, font=fb, fill=INK); y += lh
+        y += 12
     return pg
 
 
@@ -127,7 +149,7 @@ def main():
             printed = Image.fromarray((np.asarray(img).astype(float) * (0.08 + 0.92 * ink / 255)).astype(np.uint8))
             img.paste(printed, (0, 0), poly(q, base.size).filter(ImageFilter.GaussianBlur(1)))
         img.paste(base, (0, 0), hm)
-        img.resize((1280, round(1280 * base.height / base.width)), Image.LANCZOS).save(os.path.join(OUT, f'{cid}.webp'), 'WEBP', quality=82)
+        img.save(os.path.join(OUT, f'{cid}.webp'), 'WEBP', quality=84)
         print(cid, flush=True)
 
 
