@@ -3323,7 +3323,12 @@ export const useGame = create<GameState & Actions>()(
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
-          set({ ...initial(), playMode: undefined, heroLook: undefined });
+          // optional fields (a pending rescue, an old Ironman death, the sim switches...) are absent from initial(), so a plain
+          // merge would keep them from the game being left behind: clear every such key explicitly
+          const init = initial() as Record<string, unknown>;
+          const cleared: Record<string, undefined> = {};
+          for (const [k, v] of Object.entries(get() as unknown as Record<string, unknown>)) if (typeof v !== 'function' && !(k in init)) cleared[k] = undefined;
+          set({ ...cleared, ...init, playMode: undefined, heroLook: undefined } as Partial<GameState>);
         },
       };
     },
