@@ -183,6 +183,8 @@ export interface GameState {
   illnesses?: Illness[];
   /** Ironman: a fatal illness (or fight) ends the run */
   ironman?: boolean;
+  /** set when Hassan has passed out in a town and a passer-by is taking him to Dr Feras */
+  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' };
   /** 'story' is Hassan's story; 'sandbox' is free play, where you may play as Hassan or as yourself */
   playMode?: 'story' | 'sandbox';
   /** whose face the game shows for the hero (Hassan unless a Sandbox player uploaded their own pictures) */
@@ -362,7 +364,7 @@ interface Actions {
   skipTutorial: () => void;
   bathe: (sid: string) => string;
   /** Dr Feras treats one illness or injury: a fee by how serious it is; the rest of it is halved */
-  treatIllness: (id: string) => string;
+  treatIllness: (id: string, mode?: 'full' | 'remedy') => string;
   /** for trying the clinic out: come down with any illness or injury on demand */
   catchForTest: (id: string) => string;
   readBook: (id: string) => string;
@@ -432,6 +434,8 @@ interface Actions {
   startSandbox: (look: HeroLook) => void;
   /** Ironman: Hassan dies and the run is over */
   dieNow: (text: string) => void;
+  collapse: (reason: string) => void;
+  clearRescue: () => void;
 }
 
 const rng = () => Math.random();
@@ -1957,6 +1961,7 @@ export const useGame = create<GameState & Actions>()(
             return `Fatal: ${d.name.toLowerCase()}.`;
           }
           set({ illnesses: addIllness(s.illnesses, id, s.day), journal: [...s.journal, { day: s.day, text: `Injured: ${d.name.toLowerCase()}.`, kind: 'road' as const }] });
+          if (s.world.at && d.fatality >= 0.1) get().collapse(d.name.toLowerCase());
           return `Injury: ${d.name.toLowerCase()}. ${d.symptom}`;
         },
 
@@ -2239,16 +2244,16 @@ export const useGame = create<GameState & Actions>()(
           set({ illnesses: addIllness(s.illnesses, id, s.day) });
           return `You now have ${d.name.toLowerCase()}, for the test. See the Consultation tab.`;
         },
-        treatIllness: (id) => {
+        treatIllness: (id, mode = 'full') => {
           const s = get();
           const il = (s.illnesses ?? []).find((x) => x.id === id);
           const d = DISEASE(id);
           if (!il || !d) return '';
           if (il.treated) return 'He has already treated it. "Now it is rest, and time."';
-          const fee = TREAT_FEE[d.tier];
+          const fee = mode === 'remedy' ? Math.max(5, Math.round(TREAT_FEE[d.tier] * 0.4)) : TREAT_FEE[d.tier];
           if (s.cash < fee) return `"My fee is ${fmt(fee)}, effendi. Come back when you have it."`;
           const left = Math.max(1, il.until - s.day);
-          const until = s.day + Math.max(1, Math.ceil(left / 2));
+          const until = s.day + Math.max(1, Math.ceil(left * (mode === 'remedy' ? 0.67 : 0.5)));
           set({
             cash: s.cash - fee,
             illnesses: (s.illnesses ?? []).map((x) => (x.id === id ? { ...x, until, treated: true } : x)),
@@ -3249,6 +3254,23 @@ export const useGame = create<GameState & Actions>()(
 
         startSandbox: (look) => { if (get().started) return; set({ playMode: 'sandbox', heroLook: look }); },
         setIronman: (on) => { const s = get(); if (s.started) return; set({ ironman: on }); },
+        // Passing out in a town: a stranger carries him to Dr Feras (from Giza by the ferry, from further by the next train to Cairo)
+        collapse: (reason) => {
+          const s = get(); const at = s.world.at;
+          if (s.ended || s.rescue || !at) return;
+          const near = at === 'cairo' || at === 'giza';
+          const fare = near ? 0 : Math.min(30, s.cash);
+          const c = s.condition ?? CONDITION_START;
+          set({
+            rescue: { day: s.day, from: at, reason, fare, by: near ? 'carry' : 'train' },
+            cash: s.cash - fare,
+            world: { ...s.world, at: 'cairo', hour: Math.min(23, s.world.hour + (near ? 1 : 6)) },
+            condition: { ...c, fatigue: Math.min(c.fatigue, 60) },
+            ledger: fare ? [...s.ledger, { day: s.day, kind: 'expense' as const, label: 'Train to Cairo (a stranger paid you onto it)', amount: -fare }] : s.ledger,
+            journal: [...s.journal, { day: s.day, text: `Passed out (${reason}). A passer-by took him to Dr Feras.`, kind: 'road' as const }],
+          });
+        },
+        clearRescue: () => set({ rescue: undefined }),
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
@@ -3455,6 +3477,8 @@ useGame.subscribe((s) => {
 const syncHealth = (s: { illnesses?: Illness[] }) => { const h = healthEffects(s.illnesses); setHealthMods({ speed: h.speed, carry: h.carry }); };
 syncHealth(useGame.getState());
 useGame.subscribe((s) => syncHealth(s));
+// worn out to the bone in a town: he goes down in the street
+useGame.subscribe((s) => { if (s.started && !s.ended && !s.rescue && s.world.at && (s.condition?.fatigue ?? 0) >= 96) queueMicrotask(() => useGame.getState().collapse('exhaustion')); });
 
 // Every rug that comes into stock is entered in the Carpet Register.
 useGame.subscribe((s) => {

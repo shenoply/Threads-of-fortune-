@@ -9,6 +9,7 @@ import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
 import { lookFor } from './game/heroLook';
 import { PlayAsYourself, SandboxChoose } from './components/Sandbox/PlayAsYourself';
+import { Rescue } from './components/World/Rescue';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
@@ -605,6 +606,7 @@ export default function App() {
         ))}
       </nav>
 
+      {g.rescue && <Rescue />}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="settings">

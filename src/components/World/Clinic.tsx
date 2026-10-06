@@ -7,6 +7,7 @@ import { useGame, TREAT_FEE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { DISEASES, DISEASE, TIER_LABEL, type Disease } from '../../game/systems/disease';
 import { MedicalBook } from './MedicalBook';
+import { ConsultScene, Lightbox } from './Consult';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
 import { radio } from '../../game/radio/player';
@@ -24,6 +25,7 @@ function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack
   const g = useGame();
   const a = useRef<HTMLAudioElement>(null);
   const [pic, setPic] = useState(true);
+  const [big, setBig] = useState(false);
   const [note, setNote] = useState('');
   const has = (g.illnesses ?? []).some((x) => x.id === d.id);
   useEffect(() => {
@@ -40,7 +42,8 @@ function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack
         <div><b>{d.name}</b><small>{TIER_LABEL[d.tier]} {d.kind === 'injury' ? 'injury' : 'disease'} · Dr Feras explains</small></div>
       </div>
       {/* his book open on the desk at that chapter, his finger on the plate (tools/feras-desk.py) */}
-      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} data-testid="case-desk" />
+      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} onClick={() => setBig(true)} style={{ cursor: 'zoom-in' }} data-testid="case-desk" />
+      {big && <Lightbox src={pic ? `art/clinic/desk/${d.id}.webp` : plate(d.id)} alt={d.name} onClose={() => setBig(false)} />}
       <p className="cl-feras">“{d.doctor}”</p>
       <audio ref={a} src={`audio/feras/${d.id}.mp3`} preload="auto" data-testid="feras-voice" />
       <div className="cl-case-btns">
@@ -84,6 +87,10 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   const [note, setNote] = useState('');
   const v = useRef<HTMLVideoElement>(null);
   const ill = g.illnesses ?? [];
+  // with something wrong, the doctor starts talking as soon as you sit down (after his film, the first time)
+  const [consulting, setConsulting] = useState<string | null>(null);
+  const began = useRef(false);
+  useEffect(() => { if (!intro && !began.current && ill.length) { began.current = true; setConsulting((ill.find((x) => !x.treated) ?? ill[0]).id); } }, [intro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const endIntro = () => { v.current?.pause(); setIntro(false); setBlocked(false); g.markIntroSeen('feras'); };
   // the film has the stage while it plays: music down, radio and voices stop; Esc skips it
@@ -99,7 +106,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   }, [intro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="clinic" aria-label="Dr Feras's clinic" data-testid="clinic">
+    <section className={`clinic${consulting && tab === 'consult' ? ' consulting' : ''}`} aria-label="Dr Feras's clinic" data-testid="clinic">
       <header className="cl-head">
         <div><strong>Dr Feras’s clinic</strong><small>Cairo · 1925</small></div>
         <span className="cl-cash">{fmt(g.cash)}</span>
@@ -133,24 +140,25 @@ export function Clinic({ onClose }: { onClose: () => void }) {
           <button role="tab" aria-selected={tab === 'cases'} className={tab === 'cases' ? 'on' : ''} onClick={() => setTab('cases')} data-testid="clinic-cases-tab">Ask about any case</button>
           <button className="cl-booktab" onClick={() => setBook('')} data-testid="clinic-book">His book</button>
         </div>
-        {note && <p className="cl-note" data-testid="clinic-note">{note}</p>}
         {tab === 'consult' ? (
           <div className="cl-consult">
             {ill.length === 0 && <p className="cl-intro">Nothing ails you today. Read his book: it is cheaper than his fee.</p>}
-            {ill.map((il) => {
-              const d = DISEASE(il.id); if (!d) return null;
-              const left = Math.max(1, il.until - g.day);
-              return (
-                <div key={il.id} className="cl-case" data-testid={`case-${il.id}`}>
-                  <div className="cl-case-head"><b>{d.name}</b><small>{TIER_LABEL[d.tier]} · about {left} day{left === 1 ? '' : 's'} more</small></div>
-                  <p className="cl-feras">“{d.doctor}”</p>
-                  <div className="cl-case-btns">
-                    {il.treated ? <span className="cl-done">Treated</span> : <button className="btn primary" disabled={g.cash < TREAT_FEE[d.tier]} onClick={() => setNote(g.treatIllness(il.id))} data-testid={`treat-${il.id}`}>Treat it · {fmt(TREAT_FEE[d.tier])}</button>}
-                    <button className="btn" onClick={() => setBook(il.id)} data-testid={`read-${il.id}`}>Read his page</button>
+            {consulting && ill.some((x) => x.id === consulting)
+              ? <ConsultScene key={consulting} id={consulting} onDone={() => setConsulting(null)} />
+              : ill.map((il) => {
+                const d = DISEASE(il.id); if (!d) return null;
+                const left = Math.max(1, il.until - g.day);
+                return (
+                  <div key={il.id} className="cl-case" data-testid={`case-${il.id}`}>
+                    <div className="cl-case-head"><b>{d.name}</b><small>{TIER_LABEL[d.tier]} · about {left} day{left === 1 ? '' : 's'} more</small></div>
+                    <div className="cl-case-btns">
+                      {il.treated ? <span className="cl-done">Treated</span> : null}
+                      <button className="btn primary" onClick={() => setConsulting(il.id)} data-testid={`talk-${il.id}`}>{il.treated ? 'Talk to him again' : 'Talk it through with him'}</button>
+                      <button className="btn" onClick={() => setBook(il.id)} data-testid={`read-${il.id}`}>Read his page</button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         ) : <Cases onBook={(id) => setBook(id)} />}
       </div>

@@ -62,3 +62,35 @@
 
 .cl-booktab { flex: 1; min-height: 40px; border: 1px solid var(--brass-hi, #e3bd6b); border-radius: 8px; background: #efe3c8; color: #2e1c0e; font-family: var(--label); font-size: 13.5px; cursor: pointer; }
 .cl-desk { display: block; width: 100%; max-width: 760px; margin: 0 auto; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.55); }
+
+/* the consultation scene */
+.cl-consult-scene { display: flex; flex-direction: column; gap: 8px; position: relative; }
+.cl-cs-head { display: flex; flex-direction: column; }
+.cl-cs-head b { font-family: var(--display); font-size: 19px; color: var(--parchment); font-weight: 500; }
+.cl-cs-head small { font-family: var(--label); font-size: 12.5px; color: var(--text-dim); }
+.cl-chat { display: flex; flex-direction: column; gap: 8px; }
+.cl-bub { display: flex; gap: 8px; align-items: flex-end; max-width: 94%; animation: rise2 .3s ease; }
+.cl-bub img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line-strong); flex: none; }
+.cl-bub p { margin: 0; padding: 9px 12px; border-radius: 12px; font-size: 16px; line-height: 1.4; color: #f6ebd2; background: #2a1c10; border: 1px solid #6a4a22; }
+.cl-bub p small { display: block; font-family: var(--label); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass-hi, #e3bd6b); margin-bottom: 2px; }
+.cl-bub.you { align-self: flex-end; flex-direction: row-reverse; }
+.cl-bub.you p { background: #3b2a12; border-color: #b8893a; }
+.cl-plate-block { display: flex; flex-direction: column; gap: 8px; }
+.cl-plate-btn { position: relative; display: block; padding: 0; border: 2px solid #8c6232; border-radius: 8px; overflow: hidden; background: #000; cursor: zoom-in; }
+.cl-plate-btn img { display: block; width: 100%; max-height: 42vh; object-fit: cover; }
+.cl-zoom { position: absolute; right: 8px; bottom: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(10,6,3,.82); color: #ffe7c2; font-size: 14px; }
+.cl-treat { display: flex; flex-direction: column; gap: 8px; }
+.cl-opts { display: grid; gap: 8px; }
+.cl-opt { text-align: left; padding: 11px 14px; border-radius: 10px; border: 1px solid #b07a3f; background: linear-gradient(180deg, #3a2616, #24170c); color: #ffe7c2; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-height: 56px; }
+.cl-opt b { font-size: 17px; font-weight: 700; }
+.cl-opt small { font-size: 14px; color: #d9c49a; }
+.cl-opt:disabled { opacity: .45; }
+.cl-opt.quiet { border-style: dashed; background: transparent; }
+.cl-skip { align-self: flex-end; }
+.cl-lightbox { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.96); display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
+.cl-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.cl-lb-x { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 10px; min-height: 44px; font-size: 16px; background: rgba(20,13,7,.9); }
+/* while he is talking you through it, the room shrinks to a strip so the conversation has the screen */
+.clinic.consulting .cl-scene { height: 17svh; overflow: hidden; }
+.clinic.consulting .cl-room { width: 100%; max-height: none; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: 50% 45%; }
+.clinic.consulting .cl-doctor, .clinic.consulting .cl-tabs { display: none; }
