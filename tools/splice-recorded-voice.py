@@ -8,6 +8,7 @@ line out, cleans it (rumble filter, gentle fades, one gain per file so his own d
 writes it into voices/<speaker>.mp3 in place of the synthetic clip with the same id; every other
 clip in the sprite is kept as it is. Run after the recording or the script changes:
     python3 tools/splice-recorded-voice.py seller tools/voice-recordings/hassan
+    python3 tools/splice-recorded-voice.py rashid tools/voice-recordings/rashid   (one file per line)
 """
 import json, os, subprocess, sys
 import numpy as np
@@ -47,7 +48,14 @@ def main():
     old = decode(os.path.join(ROOT, os.path.basename(sprite['file'])))
     clips = json.load(open(os.path.join(folder, 'clips.json')))
     takes, gains = {}, {}
-    for sec in sorted({c['sec'] for c in clips} | {p['sec'] for c in clips for p in c.get('parts', [])}):
+    # a take is either one section of a long recording (sec A, B... as .m4a) or a single line in its own
+    # file (an ElevenLabs export, say: 'file' with no start/end, the whole file is the line)
+    for c in clips:
+        if 'file' in c:
+            f = os.path.join(folder, c['file'])
+            takes[c['file']] = decode(f)
+            gains[c['file']] = 10 ** ((TARGET - loudness(f)) / 20)
+    for sec in sorted({c['sec'] for c in clips if 'sec' in c} | {p['sec'] for c in clips for p in c.get('parts', [])}):
         f = os.path.join(folder, f'{sec}.m4a')
         takes[sec] = decode(f)
         gains[sec] = 10 ** ((TARGET - loudness(f)) / 20)
@@ -70,6 +78,14 @@ def main():
                 if k: pieces.append(gap)
                 pieces.append(cut(p['sec'], p['start'], p['end'], p.get('pad', (0.12, 0.22))))
             y = np.concatenate(pieces)
+        elif 'file' in c:
+            # the whole file, its leading and trailing silence trimmed to a natural breath
+            x = takes[c['file']]
+            loud = np.where(np.abs(x) > 0.02)[0]
+            a = max(0, loud[0] - int(0.08 * SR)) if len(loud) else 0
+            b = min(len(x), loud[-1] + int(0.25 * SR)) if len(loud) else len(x)
+            y = highpass(x[a:b]) * gains[c['file']]
+            y[:fade] *= np.linspace(0, 1, fade); y[-fade:] *= np.linspace(1, 0, fade)
         else:
             y = cut(c['sec'], c['start'], c['end'])
         peak = np.abs(y).max()
