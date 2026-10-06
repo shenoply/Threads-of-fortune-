@@ -2521,3 +2521,23 @@ button.hud-chip { cursor: pointer; }
   .title-links { margin-top: 2px; padding-top: 8px; gap: 6px; }
   .title-card .ghost-btn { min-height: 36px; padding: 5px 12px; }
 }
+
+/* ---------- Title screen: a low, light card so the painting shows ---------- */
+.title-screen { align-items: flex-end !important; padding-bottom: 84px; }
+.title-card, .title-card[class] { width: min(92vw, 440px); max-height: none; overflow: visible; padding: 14px 16px 12px; background: linear-gradient(180deg, rgba(14,8,4,0), rgba(14,8,4,.72) 28%, rgba(14,8,4,.82)); border: 0; border-radius: 10px; backdrop-filter: none; box-shadow: none; }
+.title-card::before { display: none; }
+.title-card .eyebrow { font-size: 12px; }
+.title-card h1 { font-size: clamp(28px, 8vw, 40px); margin: 4px 0 2px; }
+.title-card .tag { font-size: 14px; margin-bottom: 10px; }
+.title-card .row { gap: 8px; }
+.title-card .big-btn { font-size: 17px; min-height: 46px; padding: 10px 16px; }
+.title-card .sbx-open, .title-card .more-toggle { font-size: 15px; min-height: 38px; padding: 6px 14px; }
+.title-card .iron-toggle { font-size: 14px; padding: 6px 10px; margin: 0 0 6px; }
+.title-card .iron-toggle small { display: none; }
+.title-card .opt-toggle { font-size: 14px; min-height: 34px; margin: 0 auto 6px; }
+.title-card .whatsnew { display: none; }
+.title-card .title-links { border-top: 0; margin-top: 0; padding-top: 4px; }
+.title-card .title-links .ghost-btn { font-size: 14px; min-height: 36px; padding: 5px 12px; }
+.title-card .more-toggle { opacity: .8; border: 0; text-decoration: underline; }
+.title-card .iron-toggle { align-items: center; }
+.title-card .iron-toggle b { font-size: 15px; }

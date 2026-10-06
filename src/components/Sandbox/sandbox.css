@@ -27,3 +27,8 @@
 .sbx-prev img{max-height:34vh;max-width:30%;object-fit:contain;background:#d9c9a8;border-radius:8px}
 .sbx-foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:480px){.sbx-card{padding:12px;font-size:16px}.sbx-prev img{max-width:46%}}
+.sbx-step{display:grid;gap:8px;padding:10px;background:#1b110a;border-radius:8px}
+.sbx-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sbx-row .sbx-ref{width:90px;flex:none}
+.sbx-prev img{max-height:22vh;max-width:48%}
+.sbx-prev img.sq{border-radius:50%;width:90px;height:90px;object-fit:cover}

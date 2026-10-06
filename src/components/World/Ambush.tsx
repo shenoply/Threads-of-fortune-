@@ -88,7 +88,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
 
   // ---- the fight: a tactical battle on the painted ground (see systems/tactics.ts) ----
   const mySide: Unit[] = useMemo(() => [
-    { id: 'you', name: 'You', img: lookFor(g.heroLook, 'portrait') ?? 'art/stall-seller.jpg', str: 2, n: 1, start: 1 },
+    { id: 'you', name: 'You', img: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', str: 2, n: 1, start: 1 },
     ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.jpg`, str: TROOPS[id].strength, n: n ?? 0, start: n ?? 0 })),
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
   const enemy = { n: size, str: theirs / size };
@@ -106,7 +106,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     setTb(newBattle({
       field: fieldId, seed: `${party.id}${g.day}`, mine, enemyMen: size, enemyStrength: theirs,
       band: { man: art.man, leader: art.leader, mounted, melee }, bandName: threat.displayName.replace(/^The /, ''),
-      heroImg: lookFor(g.heroLook, 'portrait') ?? undefined,
+      heroImg: lookFor(g.heroLook) ?? undefined,
       cmd: Math.min(1, (g.skills?.speech ?? 0) / 100 + guide * 0.2), scouted: guide > 0 || Object.keys(g.world.party.troops).some((id) => (TROOPS[id].scout ?? 0) > 0 && (g.world.party.troops[id] ?? 0) > 0),
     }));
     setStage('battle');

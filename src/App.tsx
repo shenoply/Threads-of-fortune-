@@ -131,6 +131,9 @@ export default function App() {
   const [confirmIron, setConfirmIron] = useState(false);
   const [titleOpts, setTitleOpts] = useState(false);
   const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
+  const [more, setMore] = useState(false);
+  // a Sandbox is always a new game: an existing save is kept in a free slot first
+  const freshForSandbox = () => { if (useGame.getState().started) { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); refreshSlots(); g.reset(); } };
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
@@ -432,17 +435,16 @@ export default function App() {
             ) : (
               <>
                 <button className="big-btn" onClick={() => { audio.ensure(); setPhase('documentary'); }} data-testid="play-opening">
-                  {introSeen() ? 'Play Opening' : 'Begin · watch the opening'}
+                  Play Campaign
                 </button>
-                <button className="ghost-btn" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox</button>
-                {introSeen() && (
-                  <button className="ghost-btn" onClick={() => { audio.ensure(); setPhase('dayone'); }} data-testid="skip-to-day">
-                    Skip to Day One
-                  </button>
-                )}
+                <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · new game</button>
               </>
             )}
-            <div className="title-links">
+            <button className="ghost-btn more-toggle" onClick={() => setMore((m) => !m)} aria-expanded={more} data-testid="title-more">{more ? 'Less' : 'More'}</button>
+            {more && <div className="title-links">
+            {!g.started && introSeen() && (
+              <button className="ghost-btn" onClick={() => { audio.ensure(); setPhase('dayone'); }} data-testid="skip-to-day">Skip to Day One</button>
+            )}
             <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ How it plays</button>
             <InstallButton className="ghost-btn" />
             <FullScreenButton className="ghost-btn" />
@@ -451,10 +453,10 @@ export default function App() {
                 {loadOpen ? 'Hide saves' : 'Load a save'}
               </button>
             )}
-            </div>
+            </div>}
           </div>
-          {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
-          {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); g.startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
+          {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
+          {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); freshForSandbox(); g.startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
           {loadOpen && (
             <div className="slot-list" data-testid="title-slot-list">
               {slots.map((info, i) => info && (
@@ -599,7 +601,7 @@ export default function App() {
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
           <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id !== 'map'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
-            {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook, 'portrait') ?? 'art/hero/hero-face-reference.jpg'} alt="" /> : <Icon name={icon} />}
+            {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-reference.jpg'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>
         ))}

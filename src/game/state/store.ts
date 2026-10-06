@@ -3252,7 +3252,7 @@ export const useGame = create<GameState & Actions>()(
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
-          set({ ...initial() });
+          set({ ...initial(), playMode: undefined, heroLook: undefined });
         },
       };
     },
