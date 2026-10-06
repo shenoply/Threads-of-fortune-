@@ -110,3 +110,6 @@
 @media (min-width: 700px) { .cl-say p { font-size: 16px; } }
 .cl-bp-caption { margin: 0; padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(10,6,3,.92); border-top: 1px solid rgba(227,189,107,.4); color: #f6ead2; font-size: 15px; line-height: 1.35; }
 .cl-bp-caption small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--brass-hi, #e3bd6b); }
+/* while he opens the book, his words sit at the top so the pages show */
+.cl-stage.st-desk .cl-say { top: 8px; bottom: auto; right: 40%; }
+.cl-stage.st-desk .cl-zoom { top: auto; bottom: 8px; }
