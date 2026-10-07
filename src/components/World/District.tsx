@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { takeMalekRequest, travelTo } from '../../game/nav';
 import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
+import { guideTarget } from '../../game/guide';
 import { useGame, arrivalAt } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
@@ -437,6 +438,7 @@ interface Walker { x: number; y: number; vx: number; vy: number; robe: string; h
 const LOCAL_MIN_PER_SEC = 10;
 
 export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false }: { onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
+  const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
   const g = useGame();
   const box = useRef<HTMLDivElement>(null);
   const walked = useRef(0);
@@ -831,7 +833,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       <div className="district-sheet">
         <div className="district-places">
           {POIS.filter((p) => seen.includes(p.id)).map((p) => (
-            <button key={p.id} className="dplace" onClick={() => walkTo(p.x, p.y, p.id)} data-testid={`poi-${p.id}`}>
+            <button key={p.id} className={`dplace ${guidePoi === p.id ? 'guide' : ''}`} onClick={() => walkTo(p.x, p.y, p.id)} data-testid={`poi-${p.id}`}>
               <i>{p.glyph}</i>
               <span><b>{p.name}</b><small>{p.sub}</small></span>
             </button>

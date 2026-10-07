@@ -18,10 +18,12 @@ export function Rescue() {
   useEffect(() => { setBeat(0); setClinic(false); }, [r?.day, r?.from]);
   if (!r) return null;
   if (clinic) return <Clinic onClose={() => { g.clearRescue(); }} />;
-  const toClinic = r.by === 'alone' ? false : r.by !== 'passerby' || !!r.clinic;
+  const toClinic = r.by === 'alone' ? false : r.by === 'men' ? !!r.clinic : r.by !== 'passerby' || !!r.clinic;
   const from = settlementById(r.from).name;
   const why = r.reason === 'exhaustion' ? 'The world tilts. The street comes up to meet your face.' : `The pain of the ${r.reason} takes your legs. The street comes up to meet you.`;
-  const beats = r.by === 'alone'
+  const beats = r.by === 'men'
+    ? [r.reason === 'a beating' || r.reason.startsWith('beaten') ? 'The last blow lands and the road goes dark.' : why, r.clinic ? 'Your men lift you onto a cart, shouting for room in the lane. "Dr Feras, quickly. Our master is down."' : 'Your men drag you into the shade, loosen your collar and put a waterskin to your lips. One keeps the fire, one keeps the watch.', r.clinic ? 'You wake on Dr Feras\'s couch, your men standing at the door with their caps in their hands.' : 'You wake hours later with a cloth on your head. Your men have fed and watered you and kept the road behind you quiet.']
+    : r.by === 'alone'
     ? [why, `You come to on the ground in ${from}, hours later, with a pounding head. People stepped around you and nobody stopped.`, 'You are wrung out. Eat, drink and sleep before you push yourself again.']
     : r.by === 'passerby'
     ? [r.reason === 'a beating' ? 'The last kick lands and the lane goes dark.' : 'The blow lands and the road goes dark.', `A traveller leading a mule finds you in the dust. He turns you over, gives you water from his skin and heaves you across the saddle. "Not here, effendi. The crows are patient."`, toClinic ? 'He takes you all the way to Dr Feras\u2019s door in Cairo, leaves you on the step, and is gone before you can thank him.' : `You come round in ${from}, on a bench in a coffee-house yard, with a cloth on your face. Your rescuer has gone on his way. Hours have passed.`]
@@ -32,7 +34,7 @@ export function Rescue() {
     <div className="rescue" role="dialog" aria-label="You passed out" data-testid="rescue">
       <div className="rs-card">
         <small className="rs-tag">YOU PASSED OUT</small>
-        {r.by !== 'alone' && <div className="rs-who"><PersonCameo spec={CARTER} size={92} /></div>}
+        {r.by !== 'alone' && r.by !== 'men' && <div className="rs-who"><PersonCameo spec={CARTER} size={92} /></div>}
         <p className="rs-text" data-testid="rescue-text">{beats[beat]}</p>
         <div className="rs-btns">
           {beat < beats.length - 1

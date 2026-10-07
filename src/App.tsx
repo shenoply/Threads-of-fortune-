@@ -1,8 +1,9 @@
 import { SimOptions } from './components/Title/SimOptions';
+import { guideTarget } from './game/guide';
 import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
-import { MALEK_EVENT, PLAN_EVENT, openMalek, planTrip } from './game/nav';
+import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
 import { eventsStarting, laneDay } from './game/economy/life';
 import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
@@ -147,6 +148,7 @@ export default function App() {
     else setPhase(introSeen() ? 'dayone' : 'documentary');
   };
   const freshForSandbox = () => { if (useGame.getState().started) { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); refreshSlots(); g.reset(); } };
+  const guideNext = g.started ? guideTarget(g as unknown as Parameters<typeof guideTarget>[0]) : null;
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
@@ -203,6 +205,13 @@ export default function App() {
     const on = (e: Event) => { const d = (e as CustomEvent<string | { town: string; go?: boolean }>).detail; const t = typeof d === 'string' ? d : d?.town; const go = typeof d === 'object' && !!d?.go; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t, go }); };
     window.addEventListener(PLAN_EVENT, on);
     return () => window.removeEventListener(PLAN_EVENT, on);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // "See Dr Feras" while in Cairo: make sure Cairo's town is on screen; its panel opens the clinic when it sees the event
+  useEffect(() => {
+    const on = () => { window.setTimeout(() => { if (!document.querySelector('[data-testid=town-menu], [data-testid=settlement]')) { mapGo({ view: 'world', panel: 'cairo', tab: 'town' }); window.setTimeout(() => window.dispatchEvent(new CustomEvent(CLINIC_EVENT, { detail: 'now' })), 600); } }, 60); };
+    const h = (e: Event) => { if ((e as CustomEvent).detail !== 'now') on(); };
+    window.addEventListener(CLINIC_EVENT, h);
+    return () => window.removeEventListener(CLINIC_EVENT, h);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // "Lunch at Malek's": show the district; it opens his shop
   useEffect(() => {
@@ -537,7 +546,7 @@ export default function App() {
       {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
         return <SideTasks onGo={(t) => planTrip(t)} />;
       })()}
-      {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && !firstHourStep(g) && <UpgradeNudge />}
+      {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && !firstHourStep(g) && tab !== 'map' && <UpgradeNudge />}
       {phase === 'game' && tutorialActive && tab !== 'map' && !(tab === 'stall' && g.encounter) && (
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
       )}
@@ -602,7 +611,7 @@ export default function App() {
             ['ledger', 'Progress', 'star'],
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
-          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id !== 'map'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
+          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id !== 'map'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
             {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-reference.jpg'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>

@@ -188,7 +188,7 @@ export interface GameState {
   /** how much of the simulation is on; absent means all of it (older saves) */
   sim?: SimSettings;
   /** set when Hassan has passed out in a town and a passer-by is taking him to Dr Feras */
-  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' | 'passerby' | 'alone'; clinic?: boolean };
+  rescue?: { day: number; from: string; reason: string; fare: number; by: 'carry' | 'train' | 'passerby' | 'alone' | 'men'; clinic?: boolean };
   /** 'story' is Hassan's story; 'sandbox' is free play, where you may play as Hassan or as yourself */
   playMode?: 'story' | 'sandbox';
   /** whose face the game shows for the hero (Hassan unless a Sandbox player uploaded their own pictures) */
@@ -3284,6 +3284,18 @@ export const useGame = create<GameState & Actions>()(
           const s = get(); const at = s.world.at;
           if (s.ended || s.rescue || !at) return;
           const c = s.condition ?? CONDITION_START;
+          const men = Object.values(s.world.party.troops ?? {}).reduce((a, n) => a + (n ?? 0), 0);
+          if (men > 0) {
+            // your men look after you: near Cairo they carry you to Dr Feras, further off they make camp and tend you
+            const near = at === 'cairo' || at === 'giza';
+            set({
+              rescue: { day: s.day, from: at, reason, fare: 0, by: 'men', clinic: near },
+              world: { ...s.world, at: near ? 'cairo' : at, hour: Math.min(23.9, s.world.hour + (near ? 1 : 4)) },
+              condition: { ...c, fatigue: Math.min(c.fatigue, near ? 55 : 40), fed: Math.max(fedOf(c), 45), water: Math.max(waterOf(c), 70) },
+              journal: [...s.journal, { day: s.day, text: `Passed out (${reason}). His men ${near ? 'carried him to Dr Feras' : 'made camp and nursed him'}.`, kind: 'road' as const }],
+            });
+            return;
+          }
           // to begin with nobody carries you to Dr Feras: you come to where you fell, some hours later, and see to yourself
           set({
             rescue: { day: s.day, from: at, reason, fare: 0, by: 'alone' },
@@ -3298,7 +3310,8 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           if (s.ended) return '';
           const c = s.condition ?? CONDITION_START;
-          if (Math.random() < 0.5) {
+          const menHere = Object.values(s.world.party.troops ?? {}).reduce((a, n) => a + (n ?? 0), 0);
+          if (!menHere && Math.random() < 0.5) {
             const hrs = 3 + Math.floor(Math.random() * 5);
             set({
               condition: { ...c, fatigue: Math.min(100, c.fatigue + 15) },
@@ -3312,13 +3325,13 @@ export const useGame = create<GameState & Actions>()(
           if (!near) return '';
           const clinic = near.id === 'cairo' || near.id === 'giza';
           set({
-            rescue: { day: s.day, from: near.id, reason, fare: 0, by: 'passerby', clinic },
+            rescue: { day: s.day, from: near.id, reason, fare: 0, by: menHere ? 'men' : 'passerby', clinic },
             condition: { ...c, fatigue: Math.min(100, c.fatigue + 10), fed: Math.max(fedOf(c), 35), water: Math.max(waterOf(c), 60) },
             journey: undefined,
             world: { ...s.world, at: clinic ? 'cairo' : near.id, x: near.x, y: near.y, hour: Math.min(23, s.world.hour + 4) },
-            journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). A passer-by took him to ${near.name}.`, kind: 'road' as const }],
+            journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). ${menHere ? 'His men' : 'A passer-by'} took him to ${near.name}.`, kind: 'road' as const }],
           });
-          return 'You black out. Someone is standing over you.';
+          return menHere ? 'You black out. Your men are around you.' : 'You black out. Someone is standing over you.';
         },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {

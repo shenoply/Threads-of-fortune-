@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { streetRoute } from '../../game/systems/streets';
+import { guideTarget } from '../../game/guide';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { VENUES, VENUE_W as DW, VENUE_H as DH, type VenuePoi, type Venue as VenueDef } from '../../data/venues';
@@ -41,6 +42,7 @@ export function AudienceOverlay({ onDone }: { onDone: () => void }) {
 }
 
 export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { id?: string; def?: VenueDef; onLeave: () => void; onAction?: (a: string) => void; onExitCity?: () => void; exitLabel?: string }) {
+  const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
   const v = def ?? VENUES[id!];
   const g = useGame();
   const royal = v.royal ? BUYERS[v.royal] : undefined;
@@ -352,7 +354,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
       <div className="district-sheet">
         <div className="district-places">
           {v.pois.filter((p) => seen.includes(p.id)).map((p) => (
-            <button key={p.id} className={`dplace ${p.kind === 'audience' || p.kind === 'goto' ? 'royal' : ''}`} onClick={(e) => (p.kind === 'note' ? peek(p, e.currentTarget) : walkTo(p.x, p.y, p.id))} data-testid={`vpoi-${p.id}`}>
+            <button key={p.id} className={`dplace ${p.kind === 'audience' || p.kind === 'goto' ? 'royal' : ''} ${guidePoi === p.id ? 'guide' : ''}`} onClick={(e) => (p.kind === 'note' ? peek(p, e.currentTarget) : walkTo(p.x, p.y, p.id))} data-testid={`vpoi-${p.id}`}>
               <i>{ICON_FOR(p) ? <img src={iconSrc(ICON_FOR(p)!)} alt="" draggable={false} /> : p.glyph}</i>
               <span><b>{p.name}</b><small>{p.sub}</small></span>
             </button>

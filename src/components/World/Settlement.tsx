@@ -41,6 +41,8 @@ import { openMalek } from '../../game/nav';
 import { shopOpen as malekOpen } from '../../game/systems/malek';
 import { CairoPlace } from './CairoPlaces';
 import { Clinic } from './Clinic';
+import { CLINIC_EVENT } from '../../game/nav';
+import { guideTarget } from '../../game/guide';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { createPortal } from 'react-dom';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
@@ -54,7 +56,15 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // to do, each a big button into the part of the panel below that does it
   const [menu, setMenu] = useState(initialTab === 'town');
   const rootRef = useRef<HTMLDivElement>(null);
+  const guide = guideTarget(g);
   useEffect(() => { if (menu) rootRef.current?.scrollTo(0, 0); }, [menu]);
+  // the health strip's "See Dr Feras now" (only Cairo has him)
+  useEffect(() => {
+    if (id !== 'cairo') return;
+    const on = () => setClinic(true);
+    window.addEventListener(CLINIC_EVENT, on);
+    return () => window.removeEventListener(CLINIC_EVENT, on);
+  }, [id]);
   const [finance, setFinance] = useState(false);
   const [library, setLibrary] = useState(false);
   const [cairoPlace, setCairoPlace] = useState<'chemist' | 'museum' | null>(null);
@@ -434,8 +444,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               <p className="tm-blurb">{st.blurb}</p>
               {note && <p className="tm-note">{note}</p>}
               <div className="tm-list">
-                {items.map(([icon, label, sub, act, tid]) => (
-                  <button key={tid} className="tm-item" onClick={() => { act(); }} data-testid={tid}>
+                {[...items].sort((a, b) => Number(b[4] === guide?.tile) - Number(a[4] === guide?.tile)).map(([icon, label, sub, act, tid]) => (
+                  <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}`} onClick={() => { act(); }} data-testid={tid}>
                     <Icon name={icon} /><span><b>{label}</b>{sub && <small>{sub}</small>}</span>
                   </button>
                 ))}

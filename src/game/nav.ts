@@ -11,3 +11,7 @@ export const MALEK_EVENT = 'tof:open-malek';
 let malekWanted = false;
 export const openMalek = () => { malekWanted = true; window.dispatchEvent(new Event(MALEK_EVENT)); };
 export const takeMalekRequest = () => { const w = malekWanted; malekWanted = false; return w; };
+
+/** "See Dr Feras" from anywhere in Cairo: the app shows Cairo's town and the clinic opens (no travelling involved) */
+export const CLINIC_EVENT = 'tof:open-clinic';
+export const openClinic = () => window.dispatchEvent(new Event(CLINIC_EVENT));

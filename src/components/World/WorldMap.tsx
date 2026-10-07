@@ -33,6 +33,7 @@ import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
 import { cityLocked, lockedWhy, openingStep } from '../../game/opening';
+import { guideTarget } from '../../game/guide';
 import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R } from '../../game/systems/mapNews';
 
 export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
@@ -155,6 +156,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const setTimeScale = setScale ?? setOwnScale;
   const [encounter, setEncounter] = useState<Party | null>(null);
   // camping is a choice: nightfall on the road pauses the walk and asks; a camp is full screen
+  const guideCity = useGame((s) => (s.started ? guideTarget(s)?.city : undefined));
   const [nightfall, setNightfall] = useState(false);
   // a well or oasis beside the road: stop to fill the waterskins, or carry on
   const [well, setWell] = useState<null | { id: string; name: string }>(null);
@@ -565,7 +567,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         const nightOf = hr >= 20 ? today : hr < 5 ? today - 1 : -1;
         if (!moving.train && !moving.mode && !arrived && nightOf >= 0 && nightAsked.current !== nightOf) {
           nightAsked.current = nightOf;
-          if (nightRuleRef.current === 'camp') { setTimeScale(0); setSleeping(true); }
+          if (nightRuleRef.current === 'camp') { setTimeScale(0); setSleeping(true); setReport('Night: camping, as you set. Change it under "Nights" on the clock bar.'); }
           else if (nightRuleRef.current === 'ask') { setTimeScale(0); setNightfall(true); }
         }
         // the opening's robbers: on the way to Alexandria, whatever the means, a small band stops you once
@@ -736,7 +738,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => (
             <button
               key={st.id}
-              className={`place kind-${st.kind} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''} ${cityLocked(g, st.id) ? 'locked' : ''}`}
+              className={`place kind-${st.kind} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''} ${guideCity === st.id && w.at !== st.id ? 'guide-here' : ''} ${cityLocked(g, st.id) ? 'locked' : ''}`}
               title={cityLocked(g, st.id) ? lockedWhy(g, st.id) : undefined}
               style={{ left: st.x * s, top: st.y * s }}
               onPointerDown={(e) => e.stopPropagation()}
@@ -835,7 +837,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
-            <button className={`bl-night ${nightRule}`} onClick={() => setNightRule(nightRule === 'ask' ? 'camp' : nightRule === 'camp' ? 'march' : 'ask')} title="What to do when night falls on the road" data-testid="night-rule"><Icon name="moon" />{nightRule === 'ask' ? 'Ask' : nightRule === 'camp' ? 'Camp' : 'March'}</button>
+            <span className="bl-nights" role="group" aria-label="What to do when night falls on the road" data-testid="night-rule">
+              <small>Nights</small>
+              {(['ask', 'camp', 'march'] as const).map((r) => (
+                <button key={r} className={`bl-n ${r} ${nightRule === r ? 'on' : ''}`} aria-pressed={nightRule === r} onClick={() => { setNightRule(r); audio.sfx('tap'); }} data-testid={`night-${r}`}>{r === 'ask' ? 'Ask' : r === 'camp' ? 'Camp' : 'March'}</button>
+              ))}
+            </span>
             {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.mode === 'ferry' ? 'By ferry' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
           </div>
           {/* small on the map; a tap opens it larger, with each number named */}
@@ -887,7 +894,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               <button className="btn primary" onClick={() => { if (rememberNight) setNightRule('camp'); const dest = moving.dest; setNightfall(false); setMoving(null); setTimeScale(1); setAlt(null); setCamp({ dest }); audio.sfx('tap'); }} data-testid="make-camp">Make camp</button>
               <button className="btn" onClick={() => { if (rememberNight) setNightRule('march'); setNightfall(false); setTimeScale(lastScale.current || 1); }} data-testid="march-on">March on</button>
             </div>
-            <label className="nf-remember"><input type="checkbox" checked={rememberNight} onChange={(e) => setRememberNight(e.target.checked)} data-testid="night-remember" /> Do the same every night (change it with the moon button)</label>
+            <label className="nf-remember"><input type="checkbox" checked={rememberNight} onChange={(e) => setRememberNight(e.target.checked)} data-testid="night-remember" /> Do this every night. Change it any time under "Nights" on the clock bar.</label>
           </div>
         )}
         {moving ? (

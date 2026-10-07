@@ -2595,3 +2595,34 @@ body:has(.settlement) .toast { display: none; }
 [data-testid=ledger] .tiles .tile::after { display: none; }
 [data-testid=ledger] .tiles .tile small { font-size: 12px; }
 [data-testid=ledger] .tiles .tile b { font-size: 20px; text-shadow: none; }
+
+/* "Nights": what to do when night falls on the road, a visible three-way choice so nobody is stuck on one */
+.bl-nights { display: inline-flex; align-items: center; gap: 3px; }
+.bl-nights small { font-family: var(--label); font-size: 11px; color: #cfd6ff; margin-right: 2px; }
+.bl-n { height: 28px; padding: 0 8px; border-radius: 14px; border: 1px solid rgba(223,228,255,.3); background: transparent; color: #dfe4ff; font-family: var(--label); font-size: 11.5px; cursor: pointer; }
+.bl-n.on { background: #3b4682; border-color: #a9b4ff; color: #fff; font-weight: 700; }
+.bl-n.camp.on { background: #6a4520; border-color: #e0a85a; }
+.bl-n.march.on { background: #6a2a20; border-color: #e0806a; }
+
+/* smaller, calmer news and health notes on a phone */
+.mission-strip { top: calc(60px + env(safe-area-inset-top, 0px)); width: min(92vw, 420px); box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+.mission-strip .ms-row { padding: 2px 4px 2px 0; gap: 4px; }
+.mission-strip .ms-line { padding: 2px 8px; gap: 6px; }
+.mission-strip .ms-line small { display: none; }
+.mission-strip .ms-line b { font-size: 13.5px; }
+.mission-strip .btn { padding: 3px 9px; font-size: 12.5px; min-height: 30px; }
+.hs-row { padding: 3px 10px; gap: 6px; font-size: 12px; }
+.hs-m { height: 15px; }
+.hs-m b { font: 600 10px/15px var(--label, sans-serif); padding: 0 5px; }
+.hs-more { padding: 0 12px 6px; font-size: 12.5px; line-height: 1.3; }
+.hs-more p { margin: 2px 0; }
+.hs-doc { min-height: 32px; padding: 4px 10px; font-size: 12.5px; }
+
+/* "Go here next": the Map tab, the town on the map, the button in the town menu and the marker in the streets */
+.tm-item.guide, .dplace.guide { border-color: #ffd27a !important; box-shadow: 0 0 0 2px #ffd27a99; animation: tourRing 1.2s ease-out infinite; position: relative; }
+.tm-item.guide::after { content: 'Next'; position: absolute; right: 10px; top: 8px; font: 700 11px var(--label, sans-serif); letter-spacing: .08em; text-transform: uppercase; color: #1b1308; background: #ffd27a; padding: 1px 7px; border-radius: 9px; }
+.place.guide-here .pdot { animation: tourRing 1.2s ease-out infinite; box-shadow: 0 0 0 3px #ffd27a; }
+
+/* the map screen while travelling: only what you need to watch (the bars, the road, the clock) */
+body.travelling .hs-more, body.travelling .upgrade-nudge, body.travelling .objective-bar, body.travelling .objbar { display: none; }
+body.travelling .world-hud { display: none; }

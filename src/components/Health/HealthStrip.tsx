@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { DISEASE, type Effects } from '../../game/systems/disease';
 import { fedOf, waterOf } from '../../game/systems/malek';
-import { planTrip } from '../../game/nav';
+import { planTrip, openClinic } from '../../game/nav';
 import './HealthStrip.css';
 
 /** What a condition costs, in plain words. */
@@ -40,8 +40,6 @@ export function HealthStrip({ always = false }: { always?: boolean }) {
   const at = useGame((s) => s.world.at);
   const needsOn = useGame((s) => !s.sim || s.sim.needs || !!s.ironman);
   const [open, setOpen] = useState(false);
-  const seen = useRef(ills.length);
-  useEffect(() => { if (ills.length > seen.current) setOpen(true); seen.current = ills.length; }, [ills.length]);
   const w = wellness(c);
   const notable = (needsOn && !!(w.tired || w.hungry || w.thirsty)) || ills.length > 0;
   if (!notable && !(always && (needsOn || ills.length))) return null;
@@ -54,13 +52,13 @@ export function HealthStrip({ always = false }: { always?: boolean }) {
         {needsOn && <Meter label="Water" pct={w.water} level={w.thirsty} />}
         {ills.length > 0 && <span className="hs-ill" data-testid="ill-banner">{ills.length === 1 ? DISEASE(ills[0].id)?.name : `${ills.length} ailments`}</span>}
       </button>
-      {(open || (!ills.length && tip && w.tired === 'bad')) && (
+      {open && (
         <div className="hs-more">
           {tip && <p>{tip}</p>}
           {ills.map((il) => { const d = DISEASE(il.id); if (!d) return null; const left = Math.max(1, il.until - day); return (
             <p key={il.id}><b>{d.name}</b> · about {left} day{left === 1 ? '' : 's'} left. {d.symptom} <em>Costs you: {effectLine(d.effects)}.</em></p>
           ); })}
-          {ills.length > 0 && <button className="hs-doc" onClick={() => planTrip('cairo')} data-testid="hs-feras">{at === 'cairo' ? 'Dr Feras is in Cairo: open the town' : 'See Dr Feras in Cairo'}</button>}
+          {ills.length > 0 && <button className="hs-doc" onClick={() => (at === 'cairo' ? openClinic() : planTrip('cairo'))} data-testid="hs-feras">{at === 'cairo' ? 'See Dr Feras now' : 'Plan the trip to Dr Feras, Cairo'}</button>}
         </div>
       )}
     </div>
