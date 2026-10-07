@@ -8,7 +8,7 @@ line out, cleans it (rumble filter, gentle fades, one gain per file so his own d
 writes it into voices/<speaker>.mp3 in place of the synthetic clip with the same id; every other
 clip in the sprite is kept as it is. Run after the recording or the script changes:
     python3 tools/splice-recorded-voice.py seller tools/voice-recordings/hassan
-    python3 tools/splice-recorded-voice.py rashid tools/voice-recordings/rashid   (one file per line)
+    python3 tools/splice-recorded-voice.py rashid tools/voice-recordings/rashid --only-recorded   (one file per line; only these lines are voiced)
 """
 import json, os, subprocess, sys
 import numpy as np
@@ -92,7 +92,9 @@ def main():
         if peak > 0.95: y *= 0.95 / peak
         real[c['id']] = y.astype(np.float32)
     # the sprite again, clip by clip: the recorded take where there is one, the old clip otherwise
-    order = list(sprite['clips'].keys()) + [k for k in real if k not in sprite['clips']]
+    # --only-recorded: drop every synthetic clip, so a character with a new voice speaks only in it (captions carry the rest)
+    only = '--only-recorded' in sys.argv
+    order = list(real) if only else list(sprite['clips'].keys()) + [k for k in real if k not in sprite['clips']]
     silence = np.zeros(int(GAP * SR), dtype=np.float32)
     parts, new, t = [silence], {}, GAP
     for cid in order:
