@@ -9,7 +9,9 @@ import { INTRO_FILMS, type IntroCue } from '../../data/introFilms';
 import { FILMS, type FilmId, type Still } from './films';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
-import { voice } from '../../game/audio/voice';
+import { voice, filmLock } from '../../game/audio/voice';
+import { stopArranVoice } from '../../game/audio/arranVoice';
+import { stopMalekArabic } from '../../game/audio/malekArabic';
 import { radio } from '../../game/radio/player';
 import './IntroFilm.css';
 
@@ -75,10 +77,11 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
   // a film has the stage to itself: the score and the street step right back, the radio and anyone
   // talking stop, until it ends
   useEffect(() => {
-    voice.stop();
+    filmLock.on();
+    voice.stop(); stopArranVoice(); stopMalekArabic(); audio.stopVoice();
     if (radio.playing) radio.stop();
     audio.attenuate('film', true, 0.4, { music: 0, ambience: 0.2 });
-    return () => audio.attenuate('film', false, 1.2);
+    return () => { filmLock.off(); audio.attenuate('film', false, 1.2); };
   }, []);
   // a video that never starts (missing, or the network gave up) is a failure too
   useEffect(() => {

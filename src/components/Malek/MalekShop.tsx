@@ -19,7 +19,7 @@ import { MalekRoom2D, type Hotspot } from './MalekRoom2D';
 import { MALEK_TALK, MALEK_MENU_LINE, type RealLine, type Reply, type TalkNodeId } from '../../data/malekTalk';
 import { ARABIC_BY_ID, type ArabicPhrase } from '../../data/malekArabic';
 import { openGuide } from '../Guide/Guide';
-import { voice } from '../../game/audio/voice';
+import { voice, filmLock } from '../../game/audio/voice';
 import { sayMalekArabic, stopMalekArabic } from '../../game/audio/malekArabic';
 import { MalekMenuBook, piastres } from './MalekMenuBook';
 import { Cutscene } from './Cutscene';
@@ -103,7 +103,9 @@ function MalekBonusClip({ onDone }: { onDone: () => void }) {
   const done = useRef(false);
   const finish = () => { if (done.current) return; done.current = true; video.current?.pause(); onDone(); };
   useEffect(() => {
+    filmLock.on(); voice.stop(); stopMalekArabic();
     video.current?.play().catch(() => setNeedTap(true));
+    return () => filmLock.off();
   }, []);
   return (
     <div className="film" role="dialog" aria-label="Malek's grill" data-testid="malek-bonus-clip">
@@ -200,12 +202,13 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
 
   // he says it aloud: his English lines are recorded in his own (Egyptian-accented) voice
   const spoken = phase === 'door' ? visit?.line ?? '' : speech;
+  const onStage = film || bonus; // a film or his clip has the stage: he speaks once it is over
   useEffect(() => {
-    if (!spoken) return;
+    if (!spoken || onStage) return;
     let live = true;
     voice.whenReady('malek').then(() => { if (live && voice.has('malek', spoken)) { stopMalekArabic(); voice.say('malek', spoken); } });
     return () => { live = false; };
-  }, [spoken, sayN]);
+  }, [spoken, sayN, onStage]);
   useEffect(() => () => voice.stop(), []);
 
   const talkTurn = useRef(Math.floor(Math.random() * 6));

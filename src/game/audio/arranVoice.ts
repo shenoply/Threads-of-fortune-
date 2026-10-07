@@ -3,7 +3,7 @@
 // a subtitle alone, so the game never depends on sound and never requests a file that is absent.
 import { create } from 'zustand';
 import { ARRAN_LINE, ARRAN_VOICE_LINES, type ArranVoiceContext, type ArranVoiceLine } from '../../data/arranVoice';
-import { voice } from './voice';
+import { voice, filmLock } from './voice';
 import { audio } from './engine';
 
 /** what is on screen now: the speaker label and the exact words */
@@ -80,7 +80,7 @@ export function syncArranVolume() {
  */
 export function playArranVoice(what: ArranVoiceContext | { id: string; noSubtitle?: boolean }): ArranVoiceLine | null {
   const line = typeof what === 'string' ? pickArranLine(what) : ARRAN_LINE[what.id] ?? null;
-  if (!line) return null;
+  if (!line || filmLock.active) return null;
   stopArranVoice(false);
   voice.stop();
   audio.stopVoice();

@@ -7,7 +7,9 @@
 // once, when the player continues.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { audio } from '../../game/audio/engine';
-import { dialogueVolume } from '../../game/audio/arranVoice';
+import { dialogueVolume, stopArranVoice } from '../../game/audio/arranVoice';
+import { voice as charVoice, filmLock } from '../../game/audio/voice';
+import { stopMalekArabic } from '../../game/audio/malekArabic';
 import './Cutscene.css';
 
 export interface CutsceneCue { at: number; until: number; who?: string; text: string; voice?: string }
@@ -72,7 +74,7 @@ export function Cutscene({ shots, title, onEnd, skippable = true }: { shots: Cut
   const start = () => { fired.current.clear(); setShown(0); playShot(0); };
 
   // try to start on its own; a browser that wants a tap first gets a Play button
-  useEffect(() => { start(); return () => { stopSound(); audio.duckMusic(false); }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { filmLock.on(); charVoice.stop(); stopArranVoice(); stopMalekArabic(); audio.stopVoice(); start(); return () => { filmLock.off(); stopSound(); audio.duckMusic(false); }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // keep sound, subtitles and dialogue on the video's clock
   useEffect(() => {

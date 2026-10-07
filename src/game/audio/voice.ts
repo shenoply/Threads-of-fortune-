@@ -228,7 +228,7 @@ class Voice {
   /** Play a line. Resolves when it finishes (at once if there is no recording yet). */
   say(speaker: string, text: string): Promise<void> {
     this.stop();
-    if (!this.enabled) return Promise.resolve();
+    if (!this.enabled || filmLock.active) return Promise.resolve();
     const segs = this.segments(speaker, text);
     if (!segs) return Promise.resolve();
     const ctx = this.audioCtx();
@@ -280,6 +280,14 @@ class Voice {
     this.playing = false;
   }
 }
+
+/** A film or cutscene has the stage: while any is open, no character voice, Arabic phrase or narrator may start under it. */
+export const filmLock = {
+  n: 0,
+  get active() { return this.n > 0; },
+  on() { this.n += 1; },
+  off() { this.n = Math.max(0, this.n - 1); },
+};
 
 export const voice = new Voice();
 if (typeof window !== 'undefined') (window as unknown as { __tofVoice: Voice }).__tofVoice = voice;

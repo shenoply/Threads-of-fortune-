@@ -1,7 +1,7 @@
 // Audio: recorded ambience for each kind of place, recorded one-shot sounds, and rendered music themes
 // that change with the place and the hour and cross-fade into each other.
 // Dialogue plays recorded clips only. With no clip, captions carry the line.
-import { voice } from './voice';
+import { voice, filmLock } from './voice';
 import { fetchMedia } from './cdn';
 
 export type Channel = 'dialogue' | 'music' | 'sfx' | 'ambience';
@@ -781,7 +781,7 @@ class AudioEngine {
   // ---------- dialogue ----------
   playVoice(url?: string) {
     this.stopVoice();
-    if (!url || !this.toggles.dialogue) return;
+    if (!url || !this.toggles.dialogue || filmLock.active) return;
     const a = this.attach(new Audio(url), 'dialogue');
     this.voice = a;
     this.state.voicePlaying = true;

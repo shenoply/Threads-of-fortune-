@@ -3,6 +3,8 @@
 import { ARABIC_BY_ID } from '../../data/malekArabic';
 import { dialogueVolume } from './arranVoice';
 import { audio } from './engine';
+import { filmLock } from './voice';
+import { stopArranVoice } from './arranVoice';
 
 let current: HTMLAudioElement | null = null;
 /** for tests: the last clip asked for */
@@ -14,7 +16,7 @@ export function sayMalekArabic(phraseId: string, rnd = Math.random) {
   const clip = p.clips[Math.floor(rnd() * p.clips.length)] ?? p.clips[0];
   malekArabicDebug.last = clip;
   const vol = dialogueVolume();
-  if (vol <= 0 || typeof Audio === 'undefined') return;
+  if (vol <= 0 || typeof Audio === 'undefined' || filmLock.active) return;
   if (current) { const prev = current; current = null; prev.pause(); audio.detach(prev); }
   const a = audio.attach(new Audio(`audio/malek/ar-${clip}.mp3`), 'dialogue');
   current = a;
