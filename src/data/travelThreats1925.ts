@@ -250,6 +250,19 @@ export function resolveThreatNonCombat(
 
 // ---- Threads of Fortune wiring ----
 import type { Party } from '../game/systems/world';
+import { SETTLEMENTS } from './world';
+
+/** Where on the map an ambush happens, for its header: "Outside Tanta" close to a town, "Near Tanta" further out.
+ *  (A band's regions list says where it usually rides, not where this fight is.) */
+export function ambushPlace(x: number, y: number): string {
+  let best = SETTLEMENTS[0], bd = Infinity;
+  for (const st of SETTLEMENTS) {
+    if (st.gateway) continue;
+    const d = Math.hypot(st.x - x, st.y - y);
+    if (d < bd) { bd = d; best = st; }
+  }
+  return `${bd < 12 ? 'Outside' : 'Near'} ${best.name}`;
+}
 
 /** The 1925 month for a game day (day 1 is 10 March 1925). */
 export const monthOfDay = (day: number) => new Date(Date.UTC(1925, 2, 9 + day)).getUTCMonth() + 1;

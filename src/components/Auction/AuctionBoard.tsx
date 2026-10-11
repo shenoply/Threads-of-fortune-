@@ -7,6 +7,7 @@ import { settlementById, findPath, pathDays, railJourney, seaRoutesFrom, motorRo
 import { travelTo, planTrip } from '../../game/nav';
 import { fmt } from '../../game/economy/money';
 import { speedInfo } from '../../game/systems/caravan';
+import './AuctionBoard.css';
 
 type Way = { days: number; how: 'foot' | 'train' | 'ship' | 'motor' | 'ferry'; fare: number };
 /** The quickest way from where you are to a town that you can pay for (null: no way there; days 0: you are there). */
@@ -27,6 +28,8 @@ function bestWay(at: string | null, x: number, y: number, city: string, pxPerDay
   return ways.sort((p, q) => p.days - q.days)[0] ?? null;
 }
 const HOW: Record<Way['how'], string> = { foot: 'On foot', train: 'By train', ship: 'By ship', motor: 'By motor car', ferry: 'By the Nile ferry' };
+/** the same, mid-sentence ("Travel there · by the Nile ferry") */
+const HOW_MID: Record<Way['how'], string> = { foot: 'on foot', train: 'by train', ship: 'by ship', motor: 'by motor car', ferry: 'by the Nile ferry' };
 
 /** Every sale coming up across the region: the ones you can still reach in time first, and how long the trip is. */
 export function AuctionBoard({ onClose, onMap }: { onClose: () => void; onMap: () => void }) {
@@ -58,14 +61,13 @@ export function AuctionBoard({ onClose, onMap }: { onClose: () => void; onMap: (
             const away = !way ? '' : `${HOW[way.how]}${way.fare ? ` (${fmt(way.fare)})` : ''}, ${trip! < 1 ? 'a few hours' : `${Math.ceil(trip!)} day${Math.ceil(trip!) === 1 ? '' : 's'}`}`;
             const reach = trip === 0 ? 'You are in town' : !inTime ? (arrive == null ? 'No way to get there from here' : `Too far: you would arrive ${dateLabel(arrive)}, after it ends`) : `${away}: you arrive ${arrive! <= d ? 'in time for the first day' : arrive === day ? 'today' : dateLabel(arrive!)}`;
             return (
-              <div key={h.id} className={`board-row ${on ? 'today' : ''} ${inTime ? '' : 'is-far'}`} data-testid={`board-row-${h.id}`} data-in-time={inTime}>
+              <div key={h.id} className={`board-row ab-row ${on ? 'today' : ''} ${inTime ? '' : 'is-far'}`} data-testid={`board-row-${h.id}`} data-in-time={inTime}>
                 <img src={art(h.venueMap)} alt="" />
-                <span><b>{h.displayName}</b><small>{settlementById(h.city)?.name ?? h.city} · {h.tier === 'grand' ? 'Grand estate sale' : 'Dealers\' auction'}</small><small className="board-reach">{reach}</small></span>
-                <em>{when}</em>
+                <span className="ab-text"><b>{h.displayName}</b><em className="ab-when">{when}</em><small>{settlementById(h.city)?.name ?? h.city} · {h.tier === 'grand' ? 'Grand estate sale' : 'Dealers\' auction'}</small><small className="board-reach">{reach}</small></span>
                 {trip === 0 ? (
                   <button className="btn small board-go" onClick={() => { onClose(); planTrip(h.city); }} data-testid={`board-go-${h.id}`}>Go to the sale room</button>
                 ) : inTime && way ? (
-                  <button className="btn primary small board-go" onClick={() => { onClose(); travelTo(h.city); }} data-testid={`board-go-${h.id}`}>Travel there · {HOW[way.how].toLowerCase()}</button>
+                  <button className="btn primary small board-go" onClick={() => { onClose(); travelTo(h.city); }} data-testid={`board-go-${h.id}`}>Travel there · {HOW_MID[way.how]}</button>
                 ) : null}
               </div>
             );

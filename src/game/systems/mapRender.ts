@@ -9,36 +9,40 @@ import { MAP_W, MAP_H, paint, settlementById, routeLeg } from './world';
 type Ring = number[];
 
 // ---------- the painted travel map ----------
-// Two copies of the same painting: the small one (half a megabyte) arrives at once on a phone, so the
-// painted map is up straight away; the sharp one (4.5 MB, for zooming in) replaces it when it lands.
-// Until either has loaded, the engraved map is drawn.
+// Two copies of the same painting: a small soft one (768 px, under 100 KB) that arrives at once on a
+// phone, so the painted map is up straight away; the sharp one (for zooming in) is only asked for once
+// the small one is in, so the two never compete for a slow connection. Both are drawn stretched to
+// MAP_W x MAP_H, so any copy lines up with the map's coordinates. Until either has loaded, the
+// engraved map is drawn.
 let artImg: HTMLImageElement | null = null;
 let artSmall: HTMLImageElement | null = null;
 let artReady = false;
 let smallReady = false;
 let artFailed = false;
 const artListeners = new Set<() => void>();
+function loadSharp() {
+  if (artImg) return;
+  artImg = new Image();
+  artImg.decoding = 'async';
+  artImg.onload = () => {
+    // a phone that cannot hold the big picture decoded keeps the small one
+    artImg!.decode?.().then(() => { artReady = true; artListeners.forEach((f) => f()); }).catch(() => { artFailed = true; });
+    if (!artImg!.decode) { artReady = true; artListeners.forEach((f) => f()); }
+  };
+  artImg.onerror = () => { artFailed = true; artListeners.forEach((f) => f()); };
+  // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
+  const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+  artImg.src = phone ? 'art/world/travel-map-3k.webp' : 'art/world/travel-map.webp';
+}
 /** The painting, once it has loaded (the sharp copy when it is in, the small one before that). */
 export function paintedMap(): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
   if (!artSmall) {
     artSmall = new Image();
     artSmall.decoding = 'async';
-    artSmall.onload = () => { smallReady = true; if (!artReady) artListeners.forEach((f) => f()); };
-    artSmall.src = 'art/world/travel-map-original.webp';
-  }
-  if (!artImg) {
-    artImg = new Image();
-    artImg.decoding = 'async';
-    artImg.onload = () => {
-      // a phone that cannot hold the big picture decoded keeps the small one
-      artImg!.decode?.().then(() => { artReady = true; artListeners.forEach((f) => f()); }).catch(() => { artFailed = true; });
-      if (!artImg!.decode) { artReady = true; artListeners.forEach((f) => f()); }
-    };
-    artImg.onerror = () => { artFailed = true; artListeners.forEach((f) => f()); };
-    // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
-    const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
-    artImg.src = phone ? 'art/world/travel-map-3k.webp' : 'art/world/travel-map.webp';
+    artSmall.onload = () => { smallReady = true; if (!artReady) artListeners.forEach((f) => f()); loadSharp(); };
+    artSmall.onerror = () => loadSharp();
+    artSmall.src = 'art/world/travel-map-768.webp';
   }
   return artReady ? artImg : smallReady ? artSmall : null;
 }

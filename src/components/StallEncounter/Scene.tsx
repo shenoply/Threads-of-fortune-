@@ -5,7 +5,7 @@ import { STAGES, prefsFor } from '../../game/systems/negotiation';
 import type { RugItem } from '../../game/types';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugSrc, rugThumb } from '../RugViewer/rugArt';
 import type { PlaybackView } from '../BuyerDialogue/usePlayback';
 import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
@@ -293,9 +293,7 @@ export function InfoBand({ enc, presented, view, tierName, priorities }: BandPro
               );
             })}
             {enc.budgetKnown && <span className="value-chip">≈ {fmt(enc.budgetKnown[0])}–{fmt(enc.budgetKnown[1])}</span>}
-            {enc.buyerOffer && !enc.outcome && (enc.finalOffered
-              ? <span className="value-chip offer final" data-testid="final-offer">Final offer {fmt(enc.buyerOffer)} · take it or they go</span>
-              : <span className="value-chip offer">Offer {fmt(enc.buyerOffer)}</span>)}
+            {/* their offer is not repeated here: the offer bar over the buttons shows it */}
           </div>
         </div>
       )}
@@ -303,7 +301,7 @@ export function InfoBand({ enc, presented, view, tierName, priorities }: BandPro
         const t = RUGS[presented.typeId];
         return (
           <div className="on-table" data-testid="on-table">
-            <img src={rugSrc(t)} alt="" />
+            <img src={rugThumb(t)} alt="" />
             <span>
               <b>{t.name}</b> on the table · {presented.condition}{presented.restored ? ', restored' : ''} · <span className={`prov ${presented.provenance}`}>{presented.provenance}</span> · paid {fmt(presented.paid)}
             </span>
@@ -445,7 +443,7 @@ function StallRadio() {
   return (
     <>
       <button className={`stall-radio ${on ? 'on' : ''}`} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
-        <img src="art/radio-stall.webp" alt="" />
+        <img src="art/radio-stall-small.webp" alt="" />
       </button>
       {/* the greeting and the date first: straight to the news */}
       {on && line < news && <button className="stall-radio-skip" onClick={(e) => { e.stopPropagation(); play(lang, news); }} data-testid="stall-radio-skip">News ⏭</button>}

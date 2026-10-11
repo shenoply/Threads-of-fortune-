@@ -432,6 +432,15 @@ function paintDistrict(g: Ctx) {
   g.fillStyle = '#e6d8b8'; g.beginPath(); g.arc(833, 610, 9, 0, 7); g.fill(); g.fillStyle = '#5c7a78'; g.beginPath(); g.arc(833, 610, 5, 0, 7); g.fill();
 }
 
+// Built once per session and shared by every mount of the district: the drawn plan is ~26k fillRects
+// plus blurred shadows (a second or more on a slow phone), and the painting only needs decoding once.
+let planCache: HTMLCanvasElement | null = null;
+let paintingCache: HTMLImageElement | null = null;
+const drawnPlan = () => {
+  if (!planCache) { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); planCache = f; }
+  return planCache;
+};
+
 interface Walker { x: number; y: number; vx: number; vy: number; robe: string; head: string; t: number; lane: number }
 
 /** Game minutes that pass per real second at 1x while you are down in the district. */
@@ -457,6 +466,9 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
   const camRef = useRef(cam);
   camRef.current = cam;
+  // the map is drawn on demand: anything that changes what it shows calls this to wake the loop
+  const redraw = useRef<() => void>(() => {});
+  useEffect(() => { redraw.current(); }, [cam]);
   const [seen, setSeen] = useState<string[]>([...st.current.seen]);
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
@@ -548,6 +560,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     s.route = way;
     s.target = target;
     audio.sfx('step');
+    redraw.current();
   };
 
   // render loop
@@ -557,24 +570,25 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     // painted district map; the old procedural painter draws until it has loaded
     // the painted district; the drawn fallback is only used if the painting cannot load
-    let bg: HTMLCanvasElement | null = null;
-    let bgImg: HTMLImageElement | null = null;
+    let bg: HTMLCanvasElement | null = planCache;
+    let bgImg: HTMLImageElement | null = paintingCache;
     // a dropped download (patchy phone signal) must not leave the drawn plan up for good: keep trying,
     // and the painting replaces the plan the moment it arrives
-    let bgTries = 0, bgTimer = 0, alive = true;
-    // paint the drawn fallback right away, so a slow (but successful) fetch of the real painting
-    // shows something other than a blank screen while it's in flight, not just after it fails
-    { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); bg = f; }
+    let bgTries = 0, bgTimer = 0, planTimer = 0, alive = true;
+    // the drawn fallback shows while a slow (but successful) fetch of the real painting is in flight;
+    // it is painted shortly after mount (not inside it), and not at all if the painting is already here
+    if (!bgImg && !bg) planTimer = window.setTimeout(() => { if (alive && !bgImg) { bg = drawnPlan(); request(); } }, 700);
     const loadBg = () => {
       const im = new Image();
-      im.onload = () => { if (alive) bgImg = im; };
+      im.onload = () => { paintingCache = im; if (alive) { bgImg = im; clearTimeout(planTimer); request(); } };
       im.onerror = () => {
         if (!alive) return;
+        if (!bg) { clearTimeout(planTimer); bg = drawnPlan(); request(); }
         if (++bgTries < 8) bgTimer = window.setTimeout(loadBg, 1500 * bgTries);
       };
       im.src = bgTries ? `art/world/giza-district.jpg?r=${bgTries}` : 'art/world/giza-district.jpg';
     };
-    loadBg();
+    if (!bgImg) loadBg();
     const fogC = document.createElement('canvas');
     fogC.width = FW; fogC.height = FH;
     const fctx = fogC.getContext('2d')!;
@@ -608,11 +622,35 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     // the same painted walking figure used for "you" on the world map between towns, so the
     // merchant stays himself once you walk into one instead of shrinking to an abstract token.
     const meSprites: (HTMLImageElement | null)[] = [null, null];
-    [1, 2].forEach((k, i) => { const im = new Image(); im.onload = () => { meSprites[i] = im; }; im.src = `art/world/party-solo-${k}.webp`; });
+    [1, 2].forEach((k, i) => { const im = new Image(); im.onload = () => { meSprites[i] = im; request(); }; im.src = `art/world/party-solo-${k}.webp`; });
     let facing: 1 | -1 = 1;
     let raf = 0, last = performance.now(), saveT = 0;
+    // On-demand drawing: a frame is drawn only when something changed (walking, camera, the painting
+    // or a sprite arriving, fog, resize, fonts). The loop keeps itself going only while something moves,
+    // and does not run at all while the canvas is off screen / display:none or the tab is hidden.
+    let onScreen = true;
+    const paused = () => document.hidden || !onScreen;
+    function request() {
+      if (raf || !alive || paused()) return;
+      last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+    redraw.current = request;
+    const io = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver((es) => { const e = es[es.length - 1]; onScreen = e.isIntersecting; if (onScreen) request(); })
+      : null;
+    io?.observe(c);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => request()) : null;
+    ro?.observe(c);
+    const onVis = () => { if (!document.hidden) request(); };
+    document.addEventListener('visibilitychange', onVis);
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    fonts?.addEventListener?.('loadingdone', request);
+    fonts?.ready.then(() => request()).catch(() => {});
     const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      raf = 0;
+      if (paused()) return; // picked up again by the visibility / intersection observers
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
       const W = c.clientWidth, H = c.clientHeight;
       if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
@@ -717,10 +755,19 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         ctx.strokeStyle = 'rgba(90,61,32,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(X - tw / 2 + 0.5, Y + 16.5, tw - 1, 17);
         ctx.fillStyle = '#2b1b0d'; ctx.fillText(p.name, X, Y + 25.5);
       }
-      raf = requestAnimationFrame(loop);
+      // keep going only while something on the map is in motion: you walking (or a leg of the route,
+      // or an arrival, still to come), fog still to redraw, or the drawn plan's passers-by
+      const still = Math.hypot(s.tx - s.x, s.ty - s.y) <= 1.5 && !s.route.length && !s.target && !s.dirty;
+      if (!still || (!bgImg && bg)) raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); save(); alive = false; clearTimeout(bgTimer); };
+    request();
+    return () => {
+      cancelAnimationFrame(raf); raf = 0; save(); alive = false; clearTimeout(bgTimer); clearTimeout(planTimer);
+      redraw.current = () => {};
+      io?.disconnect(); ro?.disconnect();
+      document.removeEventListener('visibilitychange', onVis);
+      fonts?.removeEventListener?.('loadingdone', request);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 2600); return () => clearTimeout(t); }, [toast]);

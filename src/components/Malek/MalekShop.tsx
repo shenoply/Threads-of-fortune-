@@ -9,7 +9,7 @@ import { CONDITION_START } from '../../game/systems/fieldwork';
 import {
   MALEK_HOURS, MEAL_MINUTES, MORALE_PATIENCE, SCENE_ART, SCENE_TEXT, STORY, UNAVAILABLE_WORD,
   availability, eatServing, fedOf, parcelDays, parcelWeight, shopOpen, stockLeft, waterOf, wellFedNow,
-  TOPIC_LABEL, storyStageFor, tabCovers, topicsFor, type MalekScene, type StoryStage, type MealReport, type TalkTopic,
+  TOPIC_LABEL, dishLine, storyStageFor, tabCovers, topicsFor, type MalekScene, type StoryStage, type MealReport, type TalkTopic,
 } from '../../game/systems/malek';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
@@ -257,9 +257,11 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     const it = malekItem(confirm.id);
     const r = useGame.getState().malekBuy(confirm.id, confirm.order, useTab);
     setConfirm(null);
-    setResult({ msg: r.msg, report: r.report, title: r.ok ? (it.consumption === 'inventory' ? `${it.name}: in your pack` : it.name) : 'Not this time' });
+    // his reply fits the dish ordered (the store's line pools are shared between dishes)
+    const msg = r.ok ? dishLine(confirm.id, r.msg, useGame.getState().malek?.said ?? [], useGame.getState().day + (useGame.getState().malek?.said?.length ?? 0)) : r.msg;
+    setResult({ msg, report: r.report, title: r.ok ? (it.consumption === 'inventory' ? `${it.name}: in your pack` : it.name) : 'Not this time' });
     setArSaid(null);
-    setSpeech(r.msg);
+    setSpeech(msg);
   };
   const eat = (uid: string) => {
     const r = useGame.getState().eatParcel(uid);

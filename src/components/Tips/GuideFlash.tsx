@@ -32,6 +32,9 @@ export function GuideFlash() {
         else if (s.startsWith('has:')) { const [sel, text] = s.slice(4).split('|'); document.querySelectorAll(sel).forEach((el) => { if ((el.textContent ?? '').includes(text)) want.add(el); }); }
         else document.querySelectorAll(s).forEach((el) => want.add(el));
       }
+      // the place you are already travelling to: pulsing it only invites a tap that would turn you round
+      const dest = useGame.getState().journey?.dest;
+      if (dest) want.forEach((el) => { if (el.matches(`[data-testid="place-${dest}"]`)) want.delete(el); });
       document.querySelectorAll('.' + CLS).forEach((el) => { if (!want.has(el)) el.classList.remove(CLS); });
       want.forEach((el) => { el.classList.add(CLS); if (!el.closest('nav, .nav')) reveal(el); });
     };

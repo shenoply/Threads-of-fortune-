@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { RUGS } from '../../data/rugs';
 import { fmt, snap } from '../../game/economy/money';
 import { perceivedValue } from '../../game/systems/negotiation';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugThumb } from '../RugViewer/rugArt';
 import { openGuide } from '../Guide/Guide';
 import type { RugItem } from '../../game/types';
 
@@ -69,7 +69,7 @@ export function RugPicker({ rugs, names, presented, taste, onPick, onClose }: { 
             return (
               <li key={it.uid}>
                 <button className={`rugpick__row ${presented === it.uid ? 'is-on' : ''}`} onClick={() => onPick(it.uid)} data-testid={`rug-pick-${it.uid}`}>
-                  <img src={rugSrc(t)} alt="" />
+                  <img src={rugThumb(t)} alt="" />
                   <span className="rugpick__txt">
                     <b>{names[it.uid] ?? t.name}</b>
                     <small>{TIER[t.tier ?? 1]} · {it.condition} · {t.origin.split(',')[0].replace('Said to be ', '')}</small>

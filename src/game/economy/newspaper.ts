@@ -98,9 +98,13 @@ function glanceFor(day: number, next?: { when: string; text: string }): Paper['g
   if (shut.length) out.push({ icon: 'lock', text: `Shut: ${shut.map(cap).join(', ')}`, tone: 'bad' });
   const danger = [...new Set(on.flatMap((e) => e.danger ?? []))];
   if (danger.length) out.push({ icon: 'sword', text: `Soldiers: ${danger.slice(0, 2).map(cap).join(', ')}`, tone: 'bad' });
-  if (next) out.push({ icon: 'calendar', text: `${next.when}: ${next.text.split(/[:.,]/)[0].slice(0, 46)}`, tone: 'info' });
+  if (next) out.push({ icon: 'calendar', text: `${next.when}: ${clip(glanceLine(next.text), 52)}`, tone: 'info' });
   return out.slice(0, 5);
 }
+/** cut a line to n characters on a word boundary, with an ellipsis when anything is lost */
+const clip = (t: string, n: number) => (t.length <= n ? t : `${t.slice(0, n + 1).replace(/\s+\S*$/, '').replace(/[\s,;:–—-]+$/, '')}…`);
+/** a coming-up line made short for the glance strip, keeping what matters first (for a sale: the town) */
+const glanceLine = (t: string) => { const m = /^(.+) holds a sale in ([^.]+)\.?$/.exec(t); return m ? `${m[2]} · ${m[1]}` : t.split(/[:.,]/)[0]; };
 const NAMES: Record<string, string> = { portsaid: 'Port Said', giza: 'Giza' };
 const cap = (id: string) => NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
 

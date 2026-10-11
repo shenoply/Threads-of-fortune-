@@ -70,7 +70,7 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
           <div>
             <small>TODAY · DAY {g.day}</small>
             <b>{today.getUTCDate()} {MONTHS[today.getUTCMonth()]} {today.getUTCFullYear()} · {timeOfDay(g.world.hour)}</b>
-            <span>{hereNow}{g.world.at === 'giza' ? (g.dayOver ? ' · the stall is closed for the day' : ` · ${Math.max(0, g.queue.length - g.visitIdx)} buyer(s) still expected today`) : g.world.at ? ' · away from your stall' : ' · the stall is closed while you travel'}</span>
+            <span>{hereNow}{g.world.at === 'giza' ? (g.dayOver ? ' · the stall is closed for the day' : (() => { const n = Math.max(0, g.queue.length - g.visitIdx); return n === 0 ? ' · no more buyers expected today' : ` · ${n} buyer${n === 1 ? '' : 's'} still expected today`; })()) : g.world.at ? ' · away from your stall' : ' · the stall is closed while you travel'}</span>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {onPaper && <button className="btn" onClick={() => onPaper(g.day)} data-testid="calendar-paper"><Icon name="news" /> Today's paper</button>}

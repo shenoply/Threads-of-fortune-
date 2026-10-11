@@ -16,9 +16,10 @@ import { RUGS } from '../../data/rugs';
 import { Scene, InfoBand } from './Scene';
 import { usePlayback } from '../BuyerDialogue/usePlayback';
 import { Icon } from '../Icon';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { audio } from '../../game/audio/engine';
+import './stall-fixes.css';
 
 export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supplier') => void; onLeaveAudience?: () => void }) {
   const g = useGame();
@@ -90,6 +91,30 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const resetKey = `${g.day}-${enc?.id ?? 'none'}${filmFor ? '-film' : ''}`;
   const log = useMemo(() => (filmFor ? [] : enc?.log ?? []), [enc?.log, filmFor]);
   const { view, skip } = usePlayback(log, resetKey, enc?.buyerId ?? '');
+  // The narrator's line belongs to the moment it was said: once the talk moves to another stage, or
+  // ends, it is dropped rather than left standing over the bargaining, the sale or the walk-away.
+  // A line said at the new stage (the lesson's notes, the restock reminder after a sale) still shows.
+  const stageKey = enc ? `${enc.id}|${enc.stage}|${enc.outcome ?? ''}` : '';
+  // The same goes for a stage direction ("Yusuf comes in fast...").
+  const narrMark = useRef({ text: '', at: '' });
+  const capMark = useRef({ text: '', at: '' });
+  if (view.narrator !== narrMark.current.text) narrMark.current = { text: view.narrator, at: stageKey };
+  if (view.caption !== capMark.current.text) capMark.current = { text: view.caption, at: stageKey };
+  const staleNarr = !!view.narrator && narrMark.current.at !== stageKey;
+  const staleCap = !!view.caption && capMark.current.at !== stageKey;
+  const bandView = staleNarr || staleCap ? { ...view, narrator: staleNarr ? '' : view.narrator, caption: staleCap ? '' : view.caption } : view;
+  // A buyer who walks away says their last line first; the result card waits until it is written
+  // out (a tap on the picture hurries it), and never more than a few seconds.
+  const lastTalk = enc?.outcome === 'walked' ? [...log].reverse().find((l) => l.speaker === 'buyer' || l.speaker === 'seller') : undefined;
+  const lineDone = !lastTalk || ((lastTalk.speaker === 'buyer' ? view.buyer : view.seller) === lastTalk.text && (view.active?.text !== lastTalk.text || view.typed >= lastTalk.text.length));
+  const [lateFor, setLateFor] = useState('');
+  useEffect(() => {
+    if (enc?.outcome !== 'walked') return;
+    const id = enc.id;
+    const t = window.setTimeout(() => setLateFor(id), 4000);
+    return () => window.clearTimeout(t);
+  }, [enc?.outcome, enc?.id]);
+  const showResult = !!enc?.outcome && (lineDone || lateFor === enc.id);
   const rel = enc ? g.relationships[enc.buyerId] : undefined;
   const tier = rel ? tierOf(rel) : { idx: 0, name: 'New' as const };
   const buyer = enc ? BUYERS[enc.buyerId] : null;
@@ -98,7 +123,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // a customer who walks away: the next one comes on their own unless you are quicker (a plain
   // timer, so a phone with its sound off is not kept waiting). A sale waits for your tap, so the
   // receipt stays up as long as you want to read it.
-  const autoNext = !!enc?.outcome && enc.outcome !== 'sold' && !atCourt && !tut;
+  const autoNext = showResult && enc?.outcome !== 'sold' && !atCourt && !tut;
   useEffect(() => {
     if (!autoNext) return;
     const t = window.setTimeout(() => { setDial(null); useGame.getState().nextVisit(); }, 8000);
@@ -149,13 +174,16 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     const exact = g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
     const lo = exact ? t.valueBand[0] : snapDown(t.valueBand[0] * 0.85);
     const hi = exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
-    return `Paid ${fmt(it.paid)} · Est. ${fmt(lo)}–${fmt(hi)}`;
+    return <><span className="nw">Paid {fmt(it.paid)}</span> · <span className="nw">Est. {fmt(lo)}–{fmt(hi)}</span></>;
   };
 
   const isLast = g.visitIdx >= g.queue.length;
+  // the lesson's first sale ends with the narrator sending you to Uncle Rashid, so his is the big button
+  const restockFirst = !!enc?.tutorial && enc.outcome === 'sold' && !!onGoto && !atCourt && !isLast;
+  const net = enc?.saleCost !== undefined ? (enc.salePrice ?? 0) - enc.saleCost : null;
 
   return (
-    <div ref={root} className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}`} data-testid="stall">
+    <div ref={root} className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}${enc?.outcome ? ' has-result' : ''}`} data-testid="stall">
       {filmFor && createPortal(<IntroFilm id={filmFor} onDone={() => { useGame.getState().markIntroSeen(filmFor); setFilmDone(true); }} />, document.body)}
       {((enc && !enc.outcome && !enc.tutorial && !enc.venue) || (tut && enc && !enc.outcome)) && (
         <div className="stall-toolbar">
@@ -170,7 +198,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           )}
         </div>
       )}
-      <Scene enc={enc} presented={presented} view={view} onSkip={skip} onCat={g.pet} upgrades={g.upgrades} />
+      <Scene enc={enc} presented={presented} view={bandView} onSkip={skip} onCat={g.pet} upgrades={g.upgrades} />
       {enc && enc.buyerId === 'nabil' && !enc.outcome && !enc.presented && (rel?.visits ?? 0) === 0 && arrived !== enc.id && (
         <div className="arrival-card" role="dialog" aria-label={`${buyer?.name} arrives`} data-testid="arrival-card">
           <img src={stallFigure('nabil').src} alt="Nabil al-Khatib, a short, bald, bearded merchant in a grey three-piece suit, a leather portfolio under his arm" draggable={false} />
@@ -182,7 +210,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           </div>
         </div>
       )}
-      <InfoBand enc={enc} presented={presented} view={view} tierName={tier.name} priorities={priorities} />
+      <InfoBand enc={enc} presented={presented} view={bandView} tierName={tier.name} priorities={priorities} />
 
       {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work ?</button>}
       {talking && (
@@ -217,7 +245,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               aria-label={`${names[it.uid] ?? t.name}${isP ? ', on the table. Tap to inspect' : ''}`}
             >
               <div className="thumb">
-                <img src={rugSrc(t)} alt="" style={it.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                <img src={rugThumb(t)} alt="" style={it.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
               </div>
               {it.condition !== 'Good' && <span className="badge">{it.condition}</span>}
               {cat && (
@@ -252,15 +280,22 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         {enc && !enc.outcome && (enc.buyerOffer || enc.askPrice) ? (
           <div className={`offer-bar ${enc.finalOffered ? 'final' : ''}`} data-testid="offer-bar">
             {enc.askPrice ? <span>You ask <b>{fmt(enc.askPrice)}</b></span> : <span />}
-            {enc.buyerOffer ? <span className="theirs">{enc.finalOffered ? 'Final offer' : `${buyer?.name.split(' ')[0] ?? 'They'} offers`} <b data-testid="offer-amount">{fmt(enc.buyerOffer)}</b></span> : <span className="theirs dim">No offer yet</span>}
+            {enc.buyerOffer ? <span className="theirs" data-testid={enc.finalOffered ? 'final-offer' : undefined}>{enc.finalOffered ? 'Final offer' : `${buyer?.name.split(' ')[0] ?? 'They'} offers`} <b data-testid="offer-amount">{fmt(enc.buyerOffer)}</b></span> : <span className="theirs dim">No offer yet</span>}
           </div>
         ) : null}
-        {enc?.outcome ? (
+        {enc?.outcome && !showResult ? (
+          <div className="result-wait" aria-hidden="true" />
+        ) : enc?.outcome ? (
           <div className={`result ${enc.outcome}`} data-testid="result">
             <div className="r-main">
               {enc.outcome === 'sold' ? (
                 <>
-                  <b>Sold for {fmt(enc.salePrice ?? 0)}{enc.saleCost !== undefined ? ` · net profit ${fmt((enc.salePrice ?? 0) - enc.saleCost)}` : ''}</b>
+                  <b>
+                    Sold for <span className="nw">{fmt(enc.salePrice ?? 0)}</span>
+                    {net !== null && (net < 0
+                      ? <> · <span className="r-loss" data-testid="sale-loss">a loss of <span className="nw">{fmt(-net)}</span></span></>
+                      : <> · net profit <span className="nw">{fmt(net)}</span></>)}
+                  </b>
                   <span>
                     {buyer?.royal ? `${buyer.royal.warrant} · ` : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
                   </span>
@@ -290,19 +325,24 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 </>
               )}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div className="r-btns">
+              {restockFirst && (
+                <button className="btn primary" onClick={() => onGoto?.('supplier')} data-testid="goto-rashid">
+                  Restock at Rashid's
+                </button>
+              )}
               {atCourt ? (
                 <button className="btn primary" onClick={() => { setDial(null); g.endAudience(); onLeaveAudience?.(); }} data-testid="leave-audience">
                   Leave the audience
                 </button>
               ) : (
-                <button className={`btn primary${autoNext ? ' auto-next' : ''}`} onClick={() => { setDial(null); g.nextVisit(); }} data-testid="next-visit">
+                <button className={`btn${restockFirst ? '' : ' primary'}${autoNext ? ' auto-next' : ''}`} onClick={() => { setDial(null); g.nextVisit(); }} data-testid="next-visit">
                   {isLast ? 'End of day' : 'Next customer'}
                   {autoNext && <i className="auto-bar" aria-hidden="true" />}
                 </button>
               )}
               <ReserveAfter />
-              {onGoto && !atCourt && !isLast && avail.length <= 3 && (
+              {onGoto && !atCourt && !isLast && !restockFirst && avail.length <= 3 && (
                 <button className="btn" onClick={() => onGoto('supplier')} data-testid="goto-rashid">
                   Restock at Rashid's
                 </button>
@@ -313,15 +353,15 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <div className="dial" data-testid="price-dial">
             <div className="dial-btns">
               <button onClick={() => setDial((d) => ladderDown(d ?? 5, 4))} aria-label="Lower a lot">«</button>
-              <button onClick={() => setDial((d) => ladderDown(d ?? 5))} aria-label="Lower">−{fmt(dial - ladderDown(dial))}</button>
+              <button className="nw" onClick={() => setDial((d) => ladderDown(d ?? 5))} aria-label="Lower">−{fmt(dial - ladderDown(dial))}</button>
             </div>
             <div className="price">
               <b data-testid="dial-value" data-pt={dial}>{fmt(dial)}</b>
-              <small>{est(presented.uid)}{enc?.buyerOffer ? ` · ${enc.finalOffered ? 'Final offer' : 'Offer'} ${fmt(enc.buyerOffer)}` : ''}</small>
+              <small>{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
             </div>
             <div className="dial-btns">
-              <button onClick={() => setDial((d) => ladderUp(d ?? 5))} aria-label="Raise">+{fmt(ladderUp(dial) - dial)}</button>
+              <button className="nw" onClick={() => setDial((d) => ladderUp(d ?? 5))} aria-label="Raise">+{fmt(ladderUp(dial) - dial)}</button>
               <button onClick={() => setDial((d) => ladderUp(d ?? 5, 4))} aria-label="Raise a lot">»</button>
             </div>
             <div className="dial-foot">

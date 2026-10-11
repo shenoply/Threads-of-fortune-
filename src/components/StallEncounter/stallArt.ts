@@ -14,7 +14,10 @@ export function stallFigure(id: string): { src: string; framed: boolean } {
 // everything else the stall scene can show: the shelf props (a different pick each day), the cats,
 // the gramophone, the radio and the paper. Small files (~430 KB together), fetched once up front.
 const PROPS = ['prop-astrolabe', 'prop-birdcage', 'prop-books', 'prop-calligraphy', 'prop-camera', 'prop-cashbox', 'prop-clock', 'prop-copper', 'prop-gramophone', 'prop-herbs', 'prop-hookah', 'prop-incense', 'prop-lamp', 'prop-lanterns', 'prop-photo', 'prop-prayerrug', 'prop-swords', 'prop-tawla', 'prop-telephone', 'prop-vase', 'cat-counter', 'cat-doorway', 'cat-radio', 'cat-topshelf'];
-const EXTRAS = ['art/newspaper-stall.webp', 'art/radio-stall.webp', ...PROPS.map((p) => `art/stall2/props/${p}.webp`)];
+// the props come a few seconds later, so they never queue in front of the buyer's picture
+const EXTRAS = ['art/newspaper-stall.webp', 'art/radio-stall-small.webp'];
+const LATER = PROPS.map((p) => `art/stall2/props/${p}.webp`);
+let laterAsked = false;
 
 const asked = new Set<string>();
 /** Fetch the stall painting, the counter, the merchant, the next buyers and the props before they are needed. */
@@ -25,4 +28,5 @@ export function preloadStall(buyerIds: string[]) {
     asked.add(src);
     const im = new Image(); im.decoding = 'async'; im.src = src;
   }
+  if (!laterAsked) { laterAsked = true; window.setTimeout(() => LATER.forEach((src) => { const im = new Image(); im.decoding = 'async'; im.src = src; }), 6000); }
 }

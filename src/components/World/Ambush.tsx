@@ -4,7 +4,7 @@ import { useGame, takeRobArt } from '../../game/state/store';
 import { TROOPS } from '../../data/caravan';
 import { strength } from '../../game/systems/caravan';
 import { BREEDS, withArticle } from '../../data/animals';
-import { threatForParty, THREAT_LINES, THREAT_VOICE } from '../../data/travelThreats1925';
+import { threatForParty, THREAT_LINES, THREAT_VOICE, ambushPlace } from '../../data/travelThreats1925';
 import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
@@ -18,6 +18,8 @@ type Stage = 'standoff' | 'demand' | 'battle' | 'result';
 interface Unit { id: string; name: string; img: string; str: number; n: number; start: number }
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+/** a name mid-sentence: lower case, but places and peoples keep their capital ("2 Giza watchmen", "the Syrian rebel band") */
+const midName = (s: string) => s.toLowerCase().replace(/\b(syrian|giza|cairo|bedouin|arnaut|egyptian|alexandria)\b/g, (w) => w[0].toUpperCase() + w.slice(1));
 
 /** What a beaten band is likely to have been riding, by who they are - a village robber on a donkey
  *  is not mounted the same as a Sinai raider. Falls back to the common Egyptian donkey. */
@@ -33,6 +35,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const g = useGame();
   const threat = useMemo(() => threatForParty(party, g.day), [party, g.day]);
   const lines = THREAT_LINES[threat.id] ?? THREAT_LINES['egypt-rural-highway-robbers'];
+  // where this happens: the caravan's own position on the map (on the train too), not the band's home ground
+  const place = useMemo(() => ambushPlace(g.world.x, g.world.y), [party.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const rebels = threat.kind === 'rebel_guerrilla';
   const mine = strength(g.world.party);
   const theirs = party.strength ?? 8;
@@ -113,7 +117,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   };
   const finish = (o: Outcome, retreat: boolean) => {
     const killed = o.enemyKilled;
-    const lostList = Object.entries(o.troopsLost).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`).join(', ');
+    const lostList = Object.entries(o.troopsLost).map(([id, n]) => `${n} ${midName(n > 1 ? TROOPS[id].plural : TROOPS[id].name)}`).join(', ');
     const troopsLost = o.troopsLost;
     const st = useGame.getState();
     if (o.heroDown && st.ironman && Math.random() < 0.6) st.dieNow('Cut down at the head of the caravan. Hassan\'s men carried him back to Giza, but too late.');
@@ -125,7 +129,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       const wound = o.heroHurt && Math.random() < 0.2 ? ` ${useGame.getState().hurt('fight')}` : '';
       settle({
         cashGain: 10 + killed * 6, rep: 2, troopsLost, joiners, theyLeave: true, enemyLost: killed, animalsGained,
-        text: `The ${threat.displayName.toLowerCase()} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}${animalsGained ? ` One of their ${BREEDS[animalsGained.id].name.toLowerCase()}s is left behind.` : ''}${wound}`,
+        text: `The ${midName(threat.displayName)} break and scatter. You pick up what they dropped.${lostList ? ` Lost: ${lostList}.` : ' None of your men fell.'}${joiners ? ` ${joiners} of the beaten men ask to ride with you.` : ''}${animalsGained ? ` One of their ${BREEDS[animalsGained.id].name}s is left behind.` : ''}${wound}`,
       });
     } else if (retreat) {
       const wound = Math.random() < 0.25 ? ` ${useGame.getState().hurt('fight')}` : '';
@@ -152,7 +156,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       {stage === 'battle' && tb && <TacticalBattle battle={tb} title={threat.displayName} fieldArt={field} onEnd={(o, retreat) => finish(o, retreat)} />}
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
-        <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {threat.regions[0]}</small><b>{threat.displayName}</b></div>
+        <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {place}</small><b>{threat.displayName}</b></div>
         {stage !== 'battle' && <div className="amb-sides">
           <div className="amb-side amb-me">
             <img className="amb-face" src="art/troops/escort-road.jpg" alt="" />

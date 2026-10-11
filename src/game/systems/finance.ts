@@ -20,7 +20,7 @@ export interface Lender {
 
 export const LENDERS: Record<Lender['id'], Lender> = {
   khan: {
-    id: 'khan', name: 'Stavros the moneylender', who: 'A Greek moneylender behind the Khan el-Khalili',
+    id: 'khan', name: 'Stavros the moneylender', who: 'A Greek moneylender, with a back room behind the Khan el-Khalili in Cairo and another near the Alexandria docks',
     towns: ['cairo', 'alexandria'], max: (rep) => 1000 + rep * 50, owedPer100: 125, days: 30, minRep: 0,
     blurb: 'Money in your hand today, no questions, no papers. A quarter more to pay back in thirty days, and his nephews to see you if you do not.',
   },

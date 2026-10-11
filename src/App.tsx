@@ -263,7 +263,8 @@ export default function App() {
   const tutorialActive = !g.tutorial.done;
   const firstDays = !!openingStep(g);
   // the first-day tour points at the button to press next
-  const tourStep = g.tutorial.done ? (['buyers', 'news', 'radio', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
+  // (not while the opening runs: its own steps say what to do, and two guides glowing at once confused testers)
+  const tourStep = g.tutorial.done && !firstDays ? (['buyers', 'news', 'radio', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
   const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
   useEffect(() => {
     // the music follows where you are (in a town, or out on the road), not which screen is open:
@@ -310,7 +311,7 @@ export default function App() {
   // whatever the player just tapped (Map, another tab), which otherwise looks like the button
   // silently did nothing; the customer walking up in the stall scene says why, without a pop-up over it.
   useEffect(() => {
-    if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.world.at === 'giza') {
+    if (phase === 'game' && g.encounter && !g.encounter.outcome && !g.encounter.venue && tab === 'map' && g.world.at === 'giza') {
       setTab('stall');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -356,11 +357,49 @@ export default function App() {
     voice.load().then(() => voice.preload(['seller', 'samira'])); // a 4 KB read each: lines are fetched one by one
     // the travel map is big: fetch it once the stall and the first buyer are in, unless you open the world first
     window.setTimeout(() => paintedMap(), 8000);
-    if (g.settings.ambience) audio.startAmbience();
-    if (g.settings.music) setTimeout(() => audio.startMusic('stall'), 4000);
+    // the sounds wait a little: on a slow phone line they would otherwise download alongside (and hold up)
+    // the stall and the first buyer's pictures
+    if (g.settings.ambience) setTimeout(() => audio.startAmbience(), 5000);
+    if (g.settings.music) setTimeout(() => audio.startMusic('stall'), 12000);
     setPhase('game');
     setTab('map');
   };
+
+  // The phone's back gesture (and Escape) closes what is open, one thing at a time, and never leaves the
+  // game: it used to take the player out of the page altogether. Order: this screen's own panels first
+  // (they listen for Escape), then the game's overlays, then back to the map.
+  const backRef = useRef<() => boolean>(() => false);
+  backRef.current = () => {
+    if (settings) { setSettings(false); return true; }
+    if (paper !== null) { setPaper(null); return true; }
+    if (radioOpen) { setRadioOpen(false); return true; }
+    if (gramophoneOpen) { setGramophoneOpen(false); return true; }
+    if (cal) { setCal(false); return true; }
+    if (finance) { setFinance(false); return true; }
+    if (guide) { setGuide(false); return true; }
+    if (tab !== 'map' && !(tab === 'stall' && g.encounter && !g.encounter.outcome)) { setTab('map'); return true; }
+    return false;
+  };
+  useEffect(() => {
+    if (phase !== 'game') return;
+    const push = () => { try { history.pushState({ tof: Date.now() }, ''); } catch { /* not allowed */ } };
+    push();
+    const onPop = () => {
+      // a panel deeper in the page (a buyer's card, the wardrobe, a film) gets the first chance, as Escape
+      const open = () => document.querySelectorAll('[role=dialog], .overlay').length;
+      const before = open();
+      const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      const target = ([...document.querySelectorAll('[role=dialog]')].pop() as HTMLElement | undefined) ?? document.body;
+      target.dispatchEvent(ev);
+      push();
+      // nothing closed itself: the game steps back
+      window.setTimeout(() => { if (!ev.defaultPrevented && open() >= before) backRef.current(); }, 60);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented && e.isTrusted) { if (backRef.current()) e.preventDefault(); } };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('keydown', onKey); };
+  }, [phase]);
 
   const date = dateFor(g.day);
   const [cashFlash, setCashFlash] = useState(false);
@@ -378,34 +417,25 @@ export default function App() {
     <>
             <h2>Sound</h2>
             <p>Voices play only where recorded lines exist. Everything else is captioned.</p>
+            {/* one row per kind of sound: switch it on or off, and set how loud */}
             <div className="vol-sliders" data-testid="volume-sliders">
-              {([['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects and ambience'], ['dialogue', 'Dialogue']] as [keyof Volumes, string][]).map(([k, l]) => {
-                const v = (g.volumes ?? DEFAULT_VOLUMES)[k];
+              {([
+                ['master', null, 'All sound', ''],
+                ['music', 'music', 'Music', 'Oud and drone'],
+                ['dialogue', 'dialogue', 'Voices', 'Recorded characters'],
+                ['sfx', 'sfx', 'Effects', 'Rugs, coins, tea'],
+                [null, 'ambience', 'Background', 'Market crowd, birds (as loud as Effects)'],
+              ] as [keyof Volumes | null, Channel | null, string, string][]).map(([k, c, l, d]) => {
+                const v = k ? (g.volumes ?? DEFAULT_VOLUMES)[k] : 0;
                 return (
-                  <label className="vol-row" key={k}>
-                    <span>{l}</span>
-                    <input type="range" min={0} max={100} step={5} value={Math.round(v * 100)} onChange={(e) => g.setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`vol-${k}`} />
-                    <b>{Math.round(v * 100)}</b>
-                  </label>
+                  <div className="vol-row sound-row" key={l}>
+                    <span>{l}{d && <small>{d}</small>}</span>
+                    {k ? <input type="range" min={0} max={100} step={5} value={Math.round(v * 100)} disabled={!!c && !g.settings[c]} onChange={(e) => g.setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`vol-${k}`} /> : <i />}
+                    {c ? <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`}><i>Off</i><i>On</i></button> : <b>{Math.round(v * 100)}</b>}
+                  </div>
                 );
               })}
             </div>
-            {(
-              [
-                ['dialogue', 'Dialogue', 'Recorded character voices'],
-                ['music', 'Music', 'Oud and drone in maqam Hijaz'],
-                ['sfx', 'Effects', 'Rugs, coins, tea, Saffron'],
-                ['ambience', 'Ambience', 'Market crowd, birds, camels'],
-              ] as [Channel, string, string][]
-            ).map(([c, l, d]) => (
-              <div className="toggle-row" key={c}>
-                <span>
-                  {l}
-                  <small>{d}</small>
-                </span>
-                <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`}><i>Off</i><i>On</i></button>
-              </div>
-            ))}
     </>
   );
 
@@ -546,7 +576,7 @@ export default function App() {
         return (
           <ObjectiveBar
             onGo={(t) => t && chapterGo(t as Target)}
-            firstHour={fh ? { text: fh.text, btn: fh.btn, n: fh.n, of: fh.of, skip: () => { if (window.confirm('Skip the opening? Every city opens now, and the step-by-step guide goes away.')) g.seeTip(FIRST_HOUR_TIP); }, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
+            firstHour={fh ? { text: fh.text, btn: fh.btn, n: fh.n, of: fh.of, skip: () => { if (window.confirm('Skip the opening? Every city opens now, and the step-by-step guide goes away.')) { g.seeTip(FIRST_HOUR_TIP); g.skipTutorial(); } }, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
           />
         );
       })()}
@@ -619,7 +649,7 @@ export default function App() {
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
           <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
-            {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-reference.jpg'} alt="" /> : <Icon name={icon} />}
+            {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>
         ))}
@@ -691,7 +721,7 @@ export default function App() {
               <FullScreenButton />
               <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setSettings(false)}>Close</button>
             </div>
-            <button className="btn" style={{ width: '100%', marginTop: 12 }} onClick={() => { audio.stopAll(); setSettings(false); setPhase('title'); }} data-testid="menu-btn">⌂ Return to main menu <small style={{ opacity: 0.7 }}>(progress is saved)</small></button>
+            <button className="btn" style={{ width: '100%', marginTop: 12 }} onClick={() => { if (g.autosaveOn === false && !g.ironman && window.confirm('Save your game before going to the menu? (OK saves it; Cancel leaves without saving what you did since your last save.)')) forceSave(); audio.stopAll(); setSettings(false); setPhase('title'); }} data-testid="menu-btn">⌂ Return to main menu <small style={{ opacity: 0.7 }}>{g.autosaveOn === false && !g.ironman ? '(asks to save first)' : '(your game is saved)'}</small></button>
             <SecretCode />
           </div>
         </div>

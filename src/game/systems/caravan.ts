@@ -76,7 +76,7 @@ export function speedInfo(p: PartyState, inv: RugItem[]) {
   // the pace worsens the longer the caravan goes hungry, down to a crawl, rather than a flat penalty forever
   const hungry = p.food <= 0 ? Math.max(0.4, 0.75 - (p.hungryDays ?? 0) * 0.05) : 1;
   const mult = pace * over * hungry * SKILL_MODS.speed * Math.max(0.2, 1 + healthMods.speed / 100);
-  const slowest = walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name.toLowerCase() : 'nobody';
+  const slowest = walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name : 'nobody';
   return { pxPerDay: BASE_SPEED * mult, mult, mounted, over: l > cap, hungry: p.food <= 0, cap, load: l, slowest };
 }
 

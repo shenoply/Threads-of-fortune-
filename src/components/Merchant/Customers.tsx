@@ -49,7 +49,7 @@ export function Customers() {
               const t = BUYER_TIERS[id] ?? [3, 4];
               return (
                 <button key={id} className={`cust ${locked ? 'locked' : ''} ${open === id ? 'open' : ''}`} onClick={() => show(id)} data-testid={`cust-${id}`}>
-                  <img src={`art/portraits/${id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
+                  <img src={`art/portraits/small/${id}.webp`} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
                   <b>{b.name}</b>
                   <small>{rankShort ? RANKS[CELEB_IDS.includes(id) ? 2 : rankNeeded(id)].name : locked ? `Reputation ${need}` : r?.visits ? `${r.visits} visit${r.visits > 1 ? 's' : ''}` : 'Not met yet'}</small>
                 </button>

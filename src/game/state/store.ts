@@ -2123,9 +2123,9 @@ export const useGame = create<GameState & Actions>()(
           const cap = troopCap(s.reputation);
           if (troopCount(s.world.party) + k > cap) return `You can lead ${cap} men at most for now. A bigger name (reputation) brings more who will follow you.`;
           const party = { ...s.world.party, troops: { ...s.world.party.troops, [troop]: (s.world.party.troops[troop] ?? 0) + k } };
-          set({ cash: s.cash - cost, world: { ...s.world, party, hired: { ...s.world.hired, [key]: (s.world.hired[key] ?? 0) + k } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Recruited ${k} ${k > 1 ? t.plural.toLowerCase() : t.name.toLowerCase()}`, amount: -cost }] });
+          set({ cash: s.cash - cost, world: { ...s.world, party, hired: { ...s.world.hired, [key]: (s.world.hired[key] ?? 0) + k } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Recruited ${k} ${(k > 1 ? t.plural : t.name).replace(/^(?!Giza |Cairo |Bedouin |Arnaut )\w/, (c) => c.toLowerCase())}`, amount: -cost }] });
           audio.sfx('coins');
-          return `${k} ${k > 1 ? t.plural.toLowerCase() : t.name.toLowerCase()} join your caravan. Wages ${fmt(t.wage * k)} a day.`;
+          return `${k} ${(k > 1 ? t.plural : t.name).replace(/^(?!Giza |Cairo |Bedouin |Arnaut )\w/, (c) => c.toLowerCase())} ${k > 1 ? 'join' : 'joins'} your caravan. Wages ${fmt(t.wage * k)} a day.`;
         },
 
         dismiss: (troop, n) => {

@@ -31,7 +31,7 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
       <div className="screen-head"><div>
         <div className="eyebrow">YOUR CARAVAN</div>
         <h2>{town ? `In ${town.name}` : 'On the road'}</h2>
-        <p>Wages {fmt(wages(p))} a day · eats {dailyFood(p)} rations a day{sp.over ? ' · overloaded' : ''}{sp.hungry ? ' · out of food' : ''}</p>
+        <p>Wages {fmt(wages(p))} a day · eats {dailyFood(p)} ration{dailyFood(p) === 1 ? "" : "s"} a day{sp.over ? ' · overloaded' : ''}{sp.hungry ? ' · out of food' : ''}</p>
       </div></div>
       <div className="cv-tiles">
         {tiles.map((t) => (

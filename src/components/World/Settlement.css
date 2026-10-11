@@ -1,0 +1,9 @@
+/* Settlement panel: solid backdrop (the district's buttons must not show through), a backing plate for the
+   town menu's heading so markers painted in the city art never sit on the text, and tile labels that wrap. */
+.overlay.settlement { background: #120b06; }
+.town-menu .tm-title { position: relative; align-self: flex-start; display: inline-block; padding: 6px 12px 6px 10px; margin: 0 0 4px -10px; border-radius: 8px; background: linear-gradient(90deg, #120b06f2 0%, #120b06d9 75%, #120b0600 100%); }
+.town-menu .tm-item b, .town-menu .tm-item small { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: clip; overflow-wrap: anywhere; }
+.town-menu .tm-item b { font-size: 15px; }
+.town-menu .tm-item small { line-height: 1.25; }
+.town-menu .tm-note, .town-menu .tm-blurb { position: relative; background: #120b06d9; border-radius: 6px; padding: 4px 8px; }
+#sec-hire { scroll-margin-top: 64px; }

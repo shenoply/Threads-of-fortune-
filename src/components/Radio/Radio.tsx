@@ -54,7 +54,7 @@ export function Radio({ onClose }: { onClose: () => void }) {
           <div className="radio-face">
             <div className="radio-knobs">
               <button className={`knob ${lang === 'en' ? 'sel' : ''}`} onClick={() => tune('en')} data-testid="radio-en">Radio Giza<small>English</small></button>
-              <button className="knob power" onClick={() => (on ? stop() : start(lang))} data-testid="radio-power">{on ? '■' : '▶'}</button>
+              <button className="knob power" aria-label={on ? 'Stop the bulletin' : 'Play the bulletin'} title={on ? 'Stop' : 'Play'} onClick={() => (on ? stop() : start(lang))} data-testid="radio-power">{on ? '■' : '▶'}</button>
               <button className={`knob ${lang === 'ar' ? 'sel' : ''}`} onClick={() => tune('ar')} data-testid="radio-ar">إذاعة الجيزة<small>عربي</small></button>
             </div>
           </div>
@@ -66,8 +66,9 @@ export function Radio({ onClose }: { onClose: () => void }) {
           {paras.map((p, i) => <p key={i} className={`${line >= p.from && line <= p.to ? 'on' : line > p.to ? 'past' : ''} seekable`} onClick={() => start(lang, p.from)} title={lang === 'ar' ? 'استمع من هنا' : 'Play from here'} data-testid={`radio-line-${i}`}>{p.text}</p>)}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn help-q" onClick={() => openGuide('radio')} aria-label="How the radio works" data-testid="help-radio">?</button>
-          <button className="btn radio-close" style={{ flex: 1 }} onClick={() => { stop(); onClose(); }} data-testid="radio-close">Turn it off</button>
+          <button className="btn help-q" onClick={() => openGuide('radio')} aria-label="How the radio works" title="How the radio works" data-testid="help-radio">?</button>
+          {on && <button className="btn radio-stop" onClick={stop} data-testid="radio-stop">■ Stop</button>}
+          <button className="btn radio-close" style={{ flex: 1 }} onClick={() => { stop(); onClose(); }} data-testid="radio-close">Close</button>
         </div>
       </div>
     </div>

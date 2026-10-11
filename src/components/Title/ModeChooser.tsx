@@ -1,10 +1,11 @@
 // Starting a new game: the three ways to play side by side, each saying plainly what it changes, and,
 // when a game is already going, one clear question about keeping it before anything is replaced.
 // Choosing starts the game at once: nobody is sent back to the menu to press Play again.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { slotLabel, type SlotInfo } from '../../game/state/slots';
 import '../Sandbox/sandbox.css';
+import './ModeChooser.css';
 
 import { SimOptions } from './SimOptions';
 import { FULL_SIM, type SimSettings } from '../../game/state/store';
@@ -35,25 +36,36 @@ export function ModeChooser({ current, slots, first, onStart, onClose }: Props) 
   const m = MODES.find((x) => x.id === mode);
   const empty = slots.findIndex((s) => !s) + 1; // 0 when every slot is taken
   const choose = (id: Mode) => { setMode(id); if (current) setAsking(true); };
+  const dialog = useRef<HTMLDivElement>(null);
+  // focus the dialog so Escape reaches its onKeyDown straight away
+  useEffect(() => { dialog.current?.focus({ preventScroll: true }); }, []);
+  const primary: Mode = mode ?? 'campaign';
+  const label = (id: Mode) => (id === 'campaign' ? 'Play the campaign' : id === 'ironman' ? 'Play Ironman' : 'Play the sandbox');
   return createPortal(
-    <div className="sbx-back" role="dialog" aria-modal="true" aria-label="Start a new game" data-testid="mode-chooser" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className="sbx-card wide">
+    <div className="sbx-back" role="dialog" aria-modal="true" aria-label="Start a new game" data-testid="mode-chooser" tabIndex={-1} ref={dialog} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
+      <div className="sbx-card wide mc-card">
         {!asking ? (
           <>
             <h2>Start a new game</h2>
-            <div className="mode-list">
-              <SimOptions value={sim} onChange={setSim} />
-              <small className="sbx-dim">Applies to the campaign and the sandbox. Ironman always uses the full simulation. You can change it later in Settings.</small>
+            <div className="mode-list mc-list">
               {MODES.map((x) => (
-                <div key={x.id} className={`mode-card ${mode === x.id ? 'on' : ''}`} data-testid={`mode-${x.id}`} ref={(el) => { if (el && first === x.id) el.scrollIntoView({ block: 'nearest' }); }}>
+                <div key={x.id} className={`mode-card mc-mode ${mode === x.id ? 'on' : ''}`} data-testid={`mode-${x.id}`}>
                   <b>{x.title}</b>
                   <small>{x.line}</small>
-                  <ul>{x.points.map((p) => <li key={p}>{p}</li>)}</ul>
-                  <button className={`btn ${x.id === 'campaign' ? 'primary' : ''}`} onClick={() => (current ? choose(x.id) : onStart(x.id, null, sim))} data-testid={`start-${x.id}`}>
-                    {x.id === 'campaign' ? 'Play the campaign' : x.id === 'ironman' ? 'Play Ironman' : 'Play the sandbox'}
+                  <details className="mc-more" open={first === x.id}>
+                    <summary>What changes?</summary>
+                    <ul>{x.points.map((p) => <li key={p}>{p}</li>)}</ul>
+                  </details>
+                  <button className={`btn ${x.id === primary ? 'primary' : ''}`} onClick={() => (current ? choose(x.id) : onStart(x.id, null, sim))} data-testid={`start-${x.id}`}>
+                    {label(x.id)}
                   </button>
                 </div>
               ))}
+              <details className="mc-sim">
+                <summary>More options</summary>
+                <SimOptions value={sim} onChange={setSim} />
+                <small className="sbx-dim">Applies to the campaign and the sandbox. Ironman always uses the full simulation. You can change it later in Settings.</small>
+              </details>
             </div>
             <button className="ghost-btn" onClick={onClose} data-testid="mode-close">Back</button>
           </>

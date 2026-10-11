@@ -262,6 +262,15 @@ export function rugSrc(t: RugType): string {
   return t.art.kind === 'photo' ? t.art.src : wovenRug(t);
 }
 
+/** A 400-px copy of the rug photo, for rugs shown small (cards, lists, strips): a fifth of the bytes.
+ *  Photos live at art/rugs/<id>.jpg, their thumbnails at art/rugs/thumbs/<id>.webp. Use rugSrc for
+ *  the inspector and any view that zooms in. */
+export function rugThumb(t: RugType): string {
+  if (t.art.kind !== 'photo') return wovenRug(t);
+  const m = /^art\/rugs\/([^/]+)\.jpg$/.exec(t.art.src);
+  return m ? `art/rugs/thumbs/${m[1]}.webp` : t.art.src;
+}
+
 /** Simulated reverse: mirrored, flattened, desaturated, with a knot grid. Clearly labelled in the UI. */
 export async function simulatedBack(t: RugType): Promise<string> {
   const key = 'back-' + t.id;

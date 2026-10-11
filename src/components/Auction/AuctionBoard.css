@@ -1,0 +1,7 @@
+/* Auction board rows: the picture beside the text, the sale dates under the house name so the name keeps the full width. */
+.board-row.ab-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px 12px; align-items: start; }
+.board-row.ab-row > img { grid-column: 1; grid-row: 1; }
+.board-row.ab-row .ab-text { grid-column: 2; display: flex; flex-direction: column; min-width: 0; }
+.board-row.ab-row .ab-text b { overflow-wrap: break-word; line-height: 1.2; }
+.board-row.ab-row .ab-when { text-align: left; font-size: 14.5px; margin: 2px 0; }
+.board-row.ab-row .board-go { grid-column: 1 / -1; width: 100%; }

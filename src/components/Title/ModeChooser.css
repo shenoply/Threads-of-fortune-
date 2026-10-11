@@ -1,0 +1,19 @@
+/* New-game chooser: three compact mode cards that fit a 360x780 phone without scrolling. */
+.mc-card { outline: none; }
+.sbx-back:focus { outline: none; }
+.mode-list.mc-list { max-height: none; overflow-y: auto; min-height: 0; flex: 1 1 auto; margin: 4px 0 6px; gap: 8px; }
+.mc-mode { gap: 3px; padding: 8px 12px; }
+.mc-mode > b { font-size: 18px; }
+.mc-mode > small { font-size: 14px; }
+.mc-mode .btn { margin-top: 4px; min-height: 42px; }
+.mc-more summary, .mc-sim summary { cursor: pointer; font-family: var(--label, sans-serif); font-size: 13.5px; letter-spacing: .04em; color: var(--brass-hi, #e5c07b); min-height: 28px; display: flex; align-items: center; gap: 6px; list-style: none; }
+.mc-more summary::-webkit-details-marker, .mc-sim summary::-webkit-details-marker { display: none; }
+.mc-more summary::before, .mc-sim summary::before { content: '▸'; font-size: 12px; transition: transform .15s; }
+.mc-more[open] summary::before, .mc-sim[open] summary::before { transform: rotate(90deg); }
+.mc-more ul { margin: 2px 0 2px; }
+.mc-sim { border-top: 1px solid rgba(201,151,74,.25); padding-top: 6px; }
+.mc-sim[open] { display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 480px) {
+  .mc-card { padding: 12px; gap: 8px; }
+  .mc-card h2 { font-size: 20px; }
+}

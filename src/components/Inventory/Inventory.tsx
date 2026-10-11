@@ -8,7 +8,7 @@ import { BUYERS } from '../../data/buyers';
 import { dateFor } from '../../game/economy/economy';
 import { RUGS } from '../../data/rugs';
 import { RESTORATION, UPGRADES } from '../../data/suppliers';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { CaravanRoster } from '../World/CaravanPanels';
 import { StallUpgrades, affordableUpgrades, openUpgrades } from './StallUpgrades';
@@ -49,7 +49,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
           return (
             <div className="inv-item" key={i.uid} data-testid={`inv-${t.id}`} data-uid={i.uid}>
               <button className="img" onClick={() => setView(i.uid)} style={{ padding: 0, border: 0 }} aria-label={`Inspect ${t.name}`}>
-                <img src={rugSrc(t)} alt="" style={i.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                <img src={rugThumb(t)} alt="" style={i.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
               </button>
               <div>
                 <h3>{names[i.uid] ?? t.name}</h3>

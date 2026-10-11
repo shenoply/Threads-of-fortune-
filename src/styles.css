@@ -2643,3 +2643,28 @@ body.travelling .world-hud { display: none; }
    dark ink on a dark button made them look empty */
 .cafe-end .btn, .district-note .btn, .district-note .btn:not(.primary), .cafe-room__note .btn { background: #5a3d20; color: #fbeed2; border-color: #3a2412; }
 .cafe-end .btn:hover, .district-note .btn:hover, .cafe-room__note .btn:hover { background: #6e4b28; }
+
+/* bottom tabs: only the open one is lit (Map used to stay gold all the time, so two tabs looked open) */
+.nav button.nav-world:not([aria-current='page']):not(.beckon):not(.tour-target) { color: var(--text-dim); }
+.nav button.nav-world:not([aria-current='page']) svg { filter: none; }
+.nav button[aria-current='page'] { color: var(--brass-hi); background: linear-gradient(180deg, rgba(231,189,110,.16), rgba(231,189,110,0) 80%); box-shadow: inset 0 2px 0 var(--brass-hi); }
+
+/* top bar on a narrow phone: the place and the clock must stay readable, so the buttons get smaller
+   and the reputation star (also on the Me tab) steps aside */
+@media (max-width: 400px) {
+  .hud-stats { gap: 4px; }
+  .hud .icon-btn { width: 34px; height: 34px; min-width: 34px; }
+  .hud-chip { padding-left: 6px; padding-right: 6px; }
+  .hud-rep { display: none; }
+  .hud-cal span, .hud-place span { overflow: visible; text-overflow: clip; }
+  .hud-place { flex: 0 0 auto; }
+  .hud-mode { display: none; }
+}
+
+/* Sound: name, how loud, and On/Off, on one line each */
+.vol-row.sound-row, .title-opts .vol-row.sound-row { grid-template-columns: minmax(84px, 30%) 1fr auto; gap: 10px; padding: 4px 0; }
+.sound-row span small { display: block; font-size: 12.5px; color: var(--text-dim); line-height: 1.2; }
+.sound-row input:disabled { opacity: .35; }
+
+/* short notes appear just above the bottom tabs, so they never cover the objective bar or the place name */
+.toast { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }

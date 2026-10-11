@@ -395,6 +395,25 @@ export function malekLine(ctx: LineCtx, said: string[], salt: number): string {
   const options = fresh.length ? fresh : allowed.length ? allowed : pool;
   return options[Math.abs(salt) % options.length];
 }
+/** What he says to a particular dish. The 'grill' and 'cheap' lines each name one dish (liver, lamb, soup, ful),
+ *  and those pools serve several dishes, so an order's reply is checked against the dish actually ordered. */
+const DISH_LINES: Partial<Record<MalekItemId, string[]>> = {
+  malek_ful: ['Beans. The cheapest thing in Giza that is not advice.', 'Ful. Cheap, filling, and it will still be with you at sunset.'],
+  malek_lentils: ['Soup. It fills you up and it does not argue.'],
+  malek_kebab: ['Straight off the charcoal. Burn your mouth if you like; I do not give refunds for patience.', 'Eat it hot. Cold kebab is just an argument.', 'Lamb. I had four this morning. Now I have fewer. Life is like that.'],
+  malek_liver: ['Straight off the charcoal. Burn your mouth if you like; I do not give refunds for patience.', 'Liver. Hot, fast, honest. Like an argument with my supplier.'],
+  malek_stew: ['Beef and onions, and the pot does the rest. When it is empty, it is empty.', 'Today\'s pot. Do not ask what was in yesterday\'s.'],
+};
+/** the reply to an order, made to fit the dish: kept if it suits it (or names no dish), otherwise one of the dish's own lines */
+export function dishLine(item: MalekItemId, line: string, said: string[], salt: number): string {
+  const own = DISH_LINES[item];
+  if (!own || own.includes(line)) return line;
+  const named = [...MALEK_LINES.grill, ...MALEK_LINES.cheap].filter((l) => /^(Liver|Lamb|Soup|Ful|Beans)\b|kebab|charcoal/i.test(l));
+  if (!named.includes(line)) return line;
+  const fresh = own.filter((l) => !said.slice(-4).includes(l));
+  const pool = fresh.length ? fresh : own;
+  return pool[Math.abs(salt) % pool.length];
+}
 /** a talk topic's line: rugs depends on whether he has bought one of yours */
 export const topicCtx = (t: TalkTopic, m: MalekState | undefined): LineCtx =>
   t === 'rugs' ? (m?.rug ? 'rugsHave' : 'rugsWant') : t === 'storeroom' && m?.story.completed.includes(3) ? 'storeroomKnown' : t;

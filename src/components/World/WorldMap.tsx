@@ -1,4 +1,5 @@
 import { CROSSINGS } from '../../data/barriers';
+import './worldmap-fixes.css';
 import { venueFor } from '../../data/venues';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
 import { Tip } from '../Tips/Tip';
@@ -203,7 +204,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const lastScale = useRef(1);
   if (timeScale > 0) lastScale.current = timeScale;
 
+  // zoom 1 is the map filling the screen; on a tall phone that shows only the Delta, so you can zoom
+  // out further, down to the whole map fitted on screen with dark margins round it
   const base = Math.max(size.w / MAP_W, size.h / MAP_H);
+  const minZ = Math.min(1, Math.min(size.w / MAP_W, size.h / MAP_H) / base);
   const s = base * z;
   const sRef = useRef(s);
   sRef.current = s;
@@ -267,7 +271,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   }, []);
 
   const clampPan = useCallback(
-    (p: Pt, sc = s) => ({ x: Math.min(0, Math.max(size.w - MAP_W * sc, p.x)), y: Math.min(0, Math.max(size.h - MAP_H * sc, p.y)) }),
+    // a map narrower (or shorter) than the screen sits in the middle of it instead of sliding about
+    (p: Pt, sc = s) => ({
+      x: MAP_W * sc <= size.w ? (size.w - MAP_W * sc) / 2 : Math.min(0, Math.max(size.w - MAP_W * sc, p.x)),
+      y: MAP_H * sc <= size.h ? (size.h - MAP_H * sc) / 2 : Math.min(0, Math.max(size.h - MAP_H * sc, p.y)),
+    }),
     [s, size],
   );
   const clampRef = useRef(clampPan);
@@ -286,7 +294,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       const gx = gz.x * s + pan.x, gy = gz.y * s + pan.y;
       if (Math.abs(gx - size.w / 2) < size.w * 0.4 && Math.abs(gy - size.h / 2) < size.h * 0.4) { onZoomGiza(); return; }
     }
-    nz = Math.max(1, Math.min(4.5, nz));
+    nz = Math.max(minZ, Math.min(4.5, nz));
     const cx = size.w / 2, cy = size.h / 2;
     const ns = base * nz;
     const cur = panRef.current;
@@ -326,10 +334,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   };
   /** Tap and go: the caravan sets off at once. Faster ways (train, ferry, ship) stay offered on the card while you walk. */
   const goTo = (to: Pt, st?: Settlement) => {
-    // while the opening guides a new player, a stray tap on a city must not send the caravan off: ask first
-    if (st && !moving && openingStep(useGame.getState()) && !window.confirm(`Travel to ${st.name}?`)) return;
+    // a city the opening keeps shut: say why, and nothing more
+    if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(`${st.name}: ${lockedWhy(useGame.getState(), st.id)}`); audio.sfx('tap'); return; }
+    // already under way: a tap never turns the caravan by itself. Ask first, or say why it cannot turn.
+    if (moving) { askReroute(to, st); return; }
+    // while the opening guides a new player, a stray tap on a city must not send the caravan off:
+    // show the trip card, and let them choose how to go from there
+    if (st && openingStep(useGame.getState())) { planTo(to, st); return; }
     // Giza and Cairo face each other across the river: the ferry takes an hour and a half, never days on foot
-    if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza')) && !moving) {
+    if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza'))) {
       startFerry(st.id as 'giza' | 'cairo');
       return;
     }
@@ -340,6 +353,33 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // about to take by train (which has its own, usually much smaller, food needs)
     if (p.ships.length || p.motor.length || p.train) return;
     if (offerFoodShort(p)) return;
+    setOff(p);
+  };
+  // a tap on the map while travelling: on foot you may change course (after a look at the food);
+  // a train, ship, motor car or ferry keeps to its route, so that only tells you so
+  const [reroute, setReroute] = useState<null | { to: Pt; st?: Settlement; path: Pt[] | null; days: number; need: number; fixed: boolean }>(null);
+  useEffect(() => { if (!moving) setReroute(null); }, [moving]);
+  const askReroute = (to: Pt, st?: Settlement) => {
+    if (!moving) return;
+    if (st && st.id === moving.dest) { setReport(`You are already on your way to ${st.name}.`); audio.sfx('tap'); return; }
+    const fixed = !!(moving.train || moving.mode);
+    // a stray tap on open ground from a train or boat is not worth a question
+    if (fixed && !st) return;
+    const now = useGame.getState().world;
+    const from = live ?? { x: now.x, y: now.y };
+    const target = st ? { x: st.x, y: st.y } : to;
+    const path = fixed || (!st && isBlockedPx(to)) ? null : findPath(from, target);
+    const days = path ? pathDays(path, sp.pxPerDay) : 0;
+    const need = path ? Math.ceil(Math.max(1, days) * dailyFood(now.party)) : 0;
+    setReroute({ to, st, path, days, need, fixed });
+    audio.sfx('tap');
+  };
+  const changeCourse = () => {
+    const r = reroute;
+    setReroute(null);
+    if (!r || !r.path || !moving) return;
+    const p: Plan = { to: r.st ? { x: r.st.x, y: r.st.y } : r.to, settlement: r.st, path: r.path, days: r.days, ships: [], motor: [], risky: routeDanger(r.path, w.parties) > strength(w.party) };
+    setAlt(null);
     setOff(p);
   };
   // leaving a town short of food: offer to buy what the road needs, in one tap, before setting off.
@@ -648,7 +688,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (!d || d.moved) return;
     const now = performance.now();
     void now; void lastTap;
-    // tap anywhere to go there, even mid-journey: the caravan simply turns
+    // tap anywhere to go there; mid-journey, goTo asks before the caravan turns
     const r = wrap.current!.getBoundingClientRect();
     const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
     const st = SETTLEMENTS.filter((x) => w.known.includes(x.id)).map((x) => ({ x, d: dist(x, mp) })).filter((o) => o.d * s < 22).sort((a, b) => a.d - b.d)[0]?.x;
@@ -733,6 +773,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
             {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}
+            {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
             {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
           </svg>
           {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => (
@@ -908,6 +949,41 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
           </div>
         ) : null}
+        {moving && reroute && (() => {
+          const destName = moving.dest ? settlementById(moving.dest).name : '';
+          const name = reroute.st ? reroute.st.name : 'this spot';
+          if (reroute.fixed) {
+            const by = moving.mode === 'ferry' ? 'the ferry' : moving.mode === 'ship' ? 'a ship' : moving.mode === 'motor' ? 'the Nairn motor car' : 'the train';
+            const why = moving.mode === 'ferry' ? 'The ferry only crosses the river and back' : moving.mode === 'ship' ? 'A ship keeps to its course' : moving.mode === 'motor' ? 'The motor car keeps to its route' : 'A train keeps to its line';
+            return (
+              <div className="wc-col reroute" data-testid="reroute">
+                <div className="wc-main">
+                  <b>{name}</b>
+                  <span>You are on {by}{destName ? ` to ${destName}` : ''}. {why}: you cannot change course on the way. Plan the trip to {name} once you arrive.</span>
+                </div>
+                <div className="wc-btns">
+                  <button className="btn primary" onClick={() => setReroute(null)} data-testid="reroute-keep">Keep going</button>
+                </div>
+              </div>
+            );
+          }
+          const short = reroute.path && reroute.need > w.party.food;
+          return (
+            <div className="wc-col reroute" data-testid="reroute">
+              <div className="wc-main">
+                <b>{reroute.path ? `Change course to ${name}?` : name}</b>
+                <span>You are walking{destName ? ` to ${destName}` : ''}. {reroute.path
+                  ? `From here to ${name}: ${reroute.days < 0.1 ? 'a short walk' : `${reroute.days.toFixed(1)} days on foot`}, needing ${reroute.need} ration${reroute.need === 1 ? '' : 's'}. You carry ${Math.floor(w.party.food)}.`
+                  : `There is no way to ${name} on foot from here.`}</span>
+                {short && <span className="warn" data-testid="reroute-food">Not enough food for that journey, and no market out here to buy more.</span>}
+              </div>
+              <div className="wc-btns">
+                <button className="btn primary" onClick={() => setReroute(null)} data-testid="reroute-keep">Keep going{destName ? ` to ${destName}` : ''}</button>
+                {reroute.path && <button className="btn" onClick={changeCourse} data-testid="reroute-go">{short ? 'Change course anyway' : 'Change course'}</button>}
+              </div>
+            </div>
+          );
+        })()}
         {pass && <PassCard tripKey={pass.key} onCancel={() => { setPass(null); stop('You halt below the narrows. Turn back, or set off again when you are ready.'); }} onGo={() => { setPass(null); setTimeScale(lastScale.current || 1); }} />}
         {short && !moving && (
           <div className="wc-col" data-testid="food-short">
@@ -952,24 +1028,33 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
                 })()}
               </div>
-              <div className="wc-btns">
-                {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) ? (
-                  <button className="btn primary sail-btn faster" onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · £0.01 · 1½ h · fastest way there</button>
-                ) : (
-                  <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
-                )}
-                {((w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza')) && (
-                  <button className="btn" onClick={() => start(false)} data-testid="travel">Walk instead · {plan.days.toFixed(1)} d</button>
-                )}
-                {plan.train && <button className="btn" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}</button>}
-                {plan.ships.map((r) => (
-                  <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
-                ))}
-                {plan.motor.map((r) => (
-                  <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
-                ))}
-                <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
-              </div>
+              {(() => {
+                // the quickest way there you can pay for leads the card (the ferry, then the train, then a
+                // ship or motor car that beats walking); walking comes after it as the plain choice
+                const ferry = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
+                const trainOk = !!plan.train && g.cash >= plan.train.fare && plan.train.days < Math.max(plan.days, 0.1);
+                const quick = [...plan.ships.map((r) => ({ r, mode: 'ship' as const })), ...plan.motor.map((r) => ({ r, mode: 'motor' as const }))]
+                  .filter(({ r }) => r.days < plan.days && g.cash >= r.fare).sort((a, b) => a.r.days - b.r.days)[0];
+                const lead = ferry ? 'ferry' : trainOk ? 'train' : quick ? quick.mode + quick.r.to : 'walk';
+                return (
+                  <div className="wc-btns">
+                    {ferry && (
+                      <button className="btn primary sail-btn faster" onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · £0.01 · 1½ h · fastest way there</button>
+                    )}
+                    {plan.train && <button className={`btn${lead === 'train' ? ' primary' : ''}`} onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}</button>}
+                    {plan.ships.map((r) => (
+                      <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}${lead === 'ship' + r.to ? ' primary' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
+                    ))}
+                    {plan.motor.map((r) => (
+                      <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}${lead === 'motor' + r.to ? ' primary' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
+                    ))}
+                    {lead === 'walk'
+                      ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
+                      : <button className="btn" onClick={() => start(false)} data-testid="travel">{ferry ? 'Walk instead' : 'Walk'} · {plan.days.toFixed(1)} d</button>}
+                    <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <div className="wc-row">

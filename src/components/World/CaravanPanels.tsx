@@ -64,9 +64,8 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
       )}
       {show.includes('recruits') && pool.length > 0 && (
         <>
-          {YARD_ART[sid] && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
-          <div className="section-label">HIRE GUARDS</div>
-          <p className="set-demand">Guards fight off raiders on the road. Each is paid every morning and eats a ration a day; unpaid men go home. Tap a man to read about his kind. <b data-testid="troop-cap">{capLine(troopCount(p), g.reputation)}</b>.</p>
+          <div className="section-label" id="sec-hire">HIRE GUARDS</div>
+          <p className="set-demand">Guards fight off raiders on the road. Each is paid every morning and eats a ration a day; unpaid men go home. Tap a man to read about his kind. <b data-testid="troop-cap">{capLine(troopCount(p), g.reputation)}.</b></p>
           <div className="mkt">
             {pool.map((r) => {
               const t = TROOPS[r.troop];
@@ -80,6 +79,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
             })}
             {pool.every((r) => !r.available) && <p className="set-demand">Nobody else wants work today. Come back tomorrow.</p>}
           </div>
+          {YARD_ART[sid] && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
         </>
       )}
     </div>
@@ -102,7 +102,7 @@ export function CaravanRoster() {
       <CaravanStrip />
       <Herd />
       <p className="set-demand" style={{ marginTop: 6 }}>
-        Wages {fmt(wages(p))} a day · food {dailyFood(p)} rations a day · {sp.over ? 'overloaded, moving slowly' : `carrying ${Math.round(sp.load)} of ${sp.cap} loads`}
+        Wages {fmt(wages(p))} a day · food {dailyFood(p)} ration{dailyFood(p) === 1 ? '' : 's'} a day · {sp.over ? 'overloaded, moving slowly' : `carrying ${Math.round(sp.load)} of ${sp.cap} loads`}
         {sp.hungry ? ' · out of food' : ''}
       </p>
       {troops.length === 0 ? (
@@ -220,7 +220,7 @@ export function Herd() {
           <span><b>{n}× {BREEDS[id].name}</b><small>load {BREEDS[id].load} · pace {BREEDS[id].ride.toFixed(2)}×</small></span>
         </div>
       ))}
-      <p className="set-demand">The caravan moves at the pace of its slowest member: {sp.slowest}.</p>
+      <p className="set-demand">The caravan moves at the pace of its slowest member: {Object.values(BREEDS).find((b) => b.name.toLowerCase() === sp.slowest)?.name ?? sp.slowest}.</p>
     </div>
   );
 }

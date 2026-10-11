@@ -1,0 +1,46 @@
+/* Phone fixes for the stall. Kept beside the stall's own components; each rule is at least as
+   specific as the one in styles.css it corrects, so the order the two files load in does not matter. */
+
+/* amounts never break between the sign, the pound sign and the figure */
+.stall .nw { white-space: nowrap; }
+
+/* the result of a visit: what happened, full width, then the buttons in a row under it, so a long
+   reason is never squeezed into a narrow column beside them */
+.stall .actions .result { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 8px; }
+.stall .actions .result .r-main span { display: block; }
+.stall .actions .result .r-main span.nw, .stall .actions .result .r-main .r-loss { display: inline; }
+.stall .actions .result .r-main b .r-loss { color: var(--bad); }
+.stall .actions .result .r-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.stall .actions .result .r-btns > * { flex: 1 1 140px; min-width: 0; }
+.stall .actions .result .r-btns > .primary, .stall .actions .result .r-btns > .reserve-done { flex-basis: 100%; }
+.stall .actions .result .r-btns > .btn { white-space: normal; line-height: 1.2; }
+/* while the buyer finishes their last word, the space the result will take stays empty */
+.stall .actions .result-wait { grid-column: 1 / -1; min-height: 64px; }
+
+/* the buttons: the label and the line under it wrap to a second line rather than being cut, so a
+   warning such as a sale below what you paid can be read in full */
+.stall .actions .act > span { flex: 1; min-width: 0; }
+.stall .actions .act .t, .stall.in-talk .actions .act .t,
+.stall .actions .act .s, .stall.in-talk .actions .act .s {
+  white-space: normal; overflow: hidden; text-overflow: clip; overflow-wrap: break-word;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
+@media all and (max-height: 680px) { .stall.in-talk .actions .act .s { display: none; } }
+
+/* what you know of the buyer: each chip keeps its own width and the row wraps */
+.stall .band .plate-buyer .values, .stall.in-talk .band .plate-buyer .values { flex-wrap: wrap; overflow: visible; }
+.stall .band .plate-buyer .value-chip { flex: none; white-space: nowrap; }
+.stall .band .plate-buyer .value-chip.unknown { min-width: 24px; text-align: center; }
+
+/* once a visit is over the band keeps the buyer's chips in view above the rug strip: the stage
+   tracker, the buyer's role line and the rugs' small print give way to make the room */
+.stall.has-result .band .stages, .stall.has-result .band .plate-buyer .role, .stall.has-result .rugstrip .rugcard .meta { display: none; }
+
+/* rug names take two lines before they are cut */
+.stall .rugstrip .rugcard .nm { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+/* the price dial: the step buttons fit their amount, and the estimate breaks only between its parts */
+.stall .dial .dial-btns button { width: auto; min-width: 44px; padding: 0 6px; white-space: nowrap; }
+
+/* the rug inspector's header is solid, so the top bar does not show through behind the name */
+[data-testid="inspector"] > .overlay-head { position: relative; z-index: 2; background: #140d07; }

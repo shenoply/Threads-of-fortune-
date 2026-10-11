@@ -45,6 +45,7 @@ import { CLINIC_EVENT } from '../../game/nav';
 import { guideTarget } from '../../game/guide';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { createPortal } from 'react-dom';
+import './Settlement.css';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
@@ -55,6 +56,9 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // arriving in a town opens its menu first, Bannerlord-style: the town's picture and what there is
   // to do, each a big button into the part of the panel below that does it
   const [menu, setMenu] = useState(initialTab === 'town');
+  // opened from a yard in the Giza district (the souk, the animal market, the guard yard): it is that
+  // place, not the whole town, and closing it goes back to the district, not to the map
+  const yard = id === 'giza' && initialTab !== 'town' ? ({ market: 'Food souk', animals: 'Animal market', guards: 'Guard yard' } as Record<SetTab, string>)[initialTab] : null;
   const rootRef = useRef<HTMLDivElement>(null);
   const guide = guideTarget(g);
   useEffect(() => { if (menu) rootRef.current?.scrollTo(0, 0); }, [menu]);
@@ -139,14 +143,14 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {id === 'giza' ? <img className="thumb" src="art/world/giza-district.jpg" alt="" style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={walk.map} alt="" style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
         <div className="set-head-shade" />
         <div className="set-title">
-          <small>{st.region.toUpperCase()} · {st.kind === 'home' ? 'YOUR STALL' : st.kind.toUpperCase()}</small>
-          <h2>{st.name}</h2>
+          <small>{yard ? 'GIZA' : `${st.region.toUpperCase()} · ${st.kind === 'home' ? 'YOUR STALL' : st.kind.toUpperCase()}`}</small>
+          <h2>{yard ?? st.name}</h2>
         </div>
         <button className="btn set-close door-btn leave slim" onClick={onClose} data-testid="leave-settlement">⟵ Leave</button>
         <button className="btn set-menu slim" onClick={() => setMenu(true)} data-testid="town-menu-open">☰ Town</button>
         <span className="set-cash" title="Your money" data-testid="set-cash"><Icon name="coin" />{fmt(g.cash)}</span>
       </div>
-      {ships.length > 0 && (
+      {ships.length > 0 && tab === 'town' && (
         <div className="port-sail" id="sec-sail" data-testid="port-sail">
           <div className="section-label">SAIL FROM {st.name.toUpperCase()}</div>
           <div className="mkt">
@@ -402,7 +406,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {/* the way out, always in reach: the panel scrolls, so the button in the header goes off the top */}
       {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && !shop && !cabaret && (
         <div className="set-exit">
-          <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">⟵ Leave {st.name} · back to the map</button>
+          <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">{yard ? `⟵ Leave the ${yard.toLowerCase()}` : `⟵ Leave ${st.name} · back to the map`}</button>
         </div>
       )}
       {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && !shop && (() => {
@@ -419,7 +423,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           ...shopsIn(id).map((sh) => ['needle', sh.name, `Clothes catalogue · ${sh.tagline}`, () => setShop(sh.id), `menu-shop-${sh.id}`] as [string, string, string, () => void, string]),
           ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
           ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
-          ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards'), 'menu-guards'],
+          ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
           ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
           ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
           ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
