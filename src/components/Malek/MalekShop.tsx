@@ -20,6 +20,7 @@ import { MALEK_TALK, MALEK_MENU_LINE, type RealLine, type Reply, type TalkNodeId
 import { ARABIC_BY_ID, type ArabicPhrase } from '../../data/malekArabic';
 import { openGuide } from '../Guide/Guide';
 import { voice, filmLock } from '../../game/audio/voice';
+import { useFilmSound } from '../../game/audio/useFilmSound';
 import { sayMalekArabic, stopMalekArabic } from '../../game/audio/malekArabic';
 import { MalekMenuBook, piastres } from './MalekMenuBook';
 import { Cutscene } from './Cutscene';
@@ -100,28 +101,40 @@ function StillSound({ src }: { src: string }) {
 function MalekBonusClip({ onDone }: { onDone: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [needTap, setNeedTap] = useState(false);
+  const [muted, setMuted] = useState(false);
   const done = useRef(false);
   const finish = () => { if (done.current) return; done.current = true; video.current?.pause(); onDone(); };
+  // his voice carries the clip: it follows the voices' slider and switch in Settings > Sound
+  useFilmSound(video, 'dialogue');
+  // like the other films, it has the stage: nobody else talks, and the score and the street step
+  // right back (the clip has its own bit of music and market underneath) until it ends
   useEffect(() => {
-    filmLock.on(); voice.stop(); stopMalekArabic();
+    filmLock.on(); voice.stop(); stopMalekArabic(); audio.stopVoice();
+    audio.attenuate('malek-bonus', true, 0.4, { music: 0, ambience: 0.2 });
     video.current?.play().catch(() => setNeedTap(true));
-    return () => filmLock.off();
+    return () => { filmLock.off(); audio.attenuate('malek-bonus', false, 1.2); };
   }, []);
+  useEffect(() => { if (video.current) video.current.muted = muted; }, [muted]);
   return (
     <div className="film" role="dialog" aria-label="Malek's grill" data-testid="malek-bonus-clip">
       <div className="film__frame">
         <video
           ref={video}
           className="film__video"
-          src="video/malek-shawarma-bit.mp4"
+          poster="video/malek-shawarma-bit-poster.webp"
           playsInline
           preload="auto"
           onEnded={finish}
           onError={finish}
           data-testid="malek-bonus-video"
-        />
+        >
+          {/* WebM first for browsers without H.264; if the MP4 fails as well, the clip just ends */}
+          <source src="video/malek-shawarma-bit.webm" type="video/webm" />
+          <source src="video/malek-shawarma-bit.mp4" type="video/mp4" onError={finish} />
+        </video>
       </div>
       <div className="film__btns">
+        <button className="btn film__sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} data-testid="malek-bonus-sound">{muted ? '🔇' : '🔊'}</button>
         {needTap && <button className="btn primary" onClick={() => { void video.current?.play(); setNeedTap(false); }} data-testid="malek-bonus-play">▶ Play</button>}
         <button className="btn" onClick={finish} data-testid="malek-bonus-skip">Skip</button>
       </div>

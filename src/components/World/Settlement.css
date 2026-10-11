@@ -7,3 +7,17 @@
 .town-menu .tm-item small { line-height: 1.25; }
 .town-menu .tm-note, .town-menu .tm-blurb { position: relative; background: #120b06d9; border-radius: 6px; padding: 4px 8px; }
 #sec-hire { scroll-margin-top: 64px; }
+/* The tabs and the purse stick together as one bar; the purse used to stick at the same top and cover the tabs. */
+.settlement .set-sticky { position: sticky; top: 0; z-index: 4; background: var(--night); margin: 0 0 10px; }
+.settlement .set-sticky .set-tabs { position: static; margin: 0; }
+.settlement .set-sticky .set-purse { position: static; margin: 0 -2px; }
+/* room under the last row for the fixed "Leave" bar */
+.settlement .set-body { padding-bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+/* The objective, repeated at the top of the panel and of the town menu (both cover the objective bar). */
+.set-obj { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border: 1px solid #8c6232; border-left: 3px solid #d9a55a; border-radius: 6px; background: #1a1009f2; }
+.set-obj > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.set-obj small { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #d9a55a; }
+.set-obj b { font-size: 14.5px; line-height: 1.25; color: #fff1d6; font-weight: 600; }
+.set-obj .btn { flex: none; min-height: 38px; padding: 6px 12px; }
+.set-obj.panel { margin: 0 0 8px; }
+.town-menu .set-obj.menu { position: relative; z-index: 2; margin: calc(8px + env(safe-area-inset-top, 0px)) auto 0; width: calc(100% - 20px); max-width: 600px; }

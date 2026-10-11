@@ -6,7 +6,7 @@ import { HOUSES, art, catalogue, roomFor, ceilingFor, increment, saleOn, nextSal
 import { canAffordBid, totalAuctionCost } from '../../game/auction/auctionSystem';
 import { AUCTION_UI_RULES } from '../../game/auction/uiContract';
 import type { AuctionHouse } from '../../game/auction/types';
-import { RUGS } from '../../data/rugs';
+import { RUGS, CONDITION_FACTOR } from '../../data/rugs';
 import { fmt } from '../../game/economy/money';
 import { levelOf } from '../../data/character';
 import { rugSrc } from '../RugViewer/rugArt';
@@ -322,7 +322,7 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
       <div className="floor-lot">
         <b>{lotTitle(lot)}</b>
         <small>{lot.bundle ? 'Mixed village rugs, sold as one lot' : `${t.origin.split(',')[0]} · ${lot.conditions[0]} · ${lot.provenance[0]} provenance`}</small>
-        <small>Estimate {fmt(lot.estimate[0])}–{fmt(lot.estimate[1])}{intel ? ` · seen selling for about ${fmt(intel.movingAveragePt ?? 0)} (${intel.observations}×)` : ''}</small>
+        <small>Estimate {fmt(lot.estimate[0])}–{fmt(lot.estimate[1])}{intel ? ` · ${lot.bundle ? 'one in good condition has sold' : `in ${lot.conditions[0].toLowerCase()} condition, seen selling`} for about ${fmt(lot.bundle ? intel.movingAveragePt ?? 0 : Math.round((intel.movingAveragePt ?? 0) * (CONDITION_FACTOR[lot.conditions[0]] ?? 1)))} (${intel.observations}×)` : ''}</small>
         {inspect && <small className="floor-eye" data-testid="floor-eye">{appraise(lot, appr)}{!lot.bundle && appr >= 6 ? ` Look for: ${t.traits.slice(0, 3).join(', ')}.` : ''} The room waits.</small>}
       </div>
       <div className="floor-price">

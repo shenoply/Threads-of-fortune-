@@ -10,6 +10,7 @@ import { fmt } from '../../game/economy/money';
 import { DISEASE, TIER_LABEL } from '../../game/systems/disease';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
+import { useFilmSound } from '../../game/audio/useFilmSound';
 import { MedicalBook, roman, chapterOf } from './MedicalBook';
 
 const DESK = 'art/clinic/feras-desk-pov.webp';
@@ -79,6 +80,8 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
   const [note, setNote] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const a = useRef<HTMLAudioElement>(null);
+  // his recorded voice follows the voices' slider and switch (off: silent, the consultation goes on)
+  useFilmSound(a, 'dialogue');
 
   // the lines come one after the other; a tap on the picture moves on at once
   useEffect(() => {

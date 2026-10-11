@@ -5,19 +5,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame, TREAT_FEE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
-import { DISEASES, DISEASE, TIER_LABEL, type Disease } from '../../game/systems/disease';
+import { DISEASES, DISEASE, TIER_LABEL, ferasNothingLine, type Disease } from '../../game/systems/disease';
 import { MedicalBook } from './MedicalBook';
 import { ConsultScene, BookPage } from './Consult';
 import { audio } from '../../game/audio/engine';
-import { voice } from '../../game/audio/voice';
+import { voice, filmLock } from '../../game/audio/voice';
+import { useFilmSound } from '../../game/audio/useFilmSound';
 import { radio } from '../../game/radio/player';
 import './Clinic.css';
 
 const ROOM = 'art/clinic/feras-clinic-interior.webp';
 const FILM = 'video/clinic/feras-introduction.mp4';
+const FILM_WEBM = 'video/clinic/feras-introduction.webm';
 const PORTRAIT = 'art/portraits/feras.webp';
 const plate = (id: string) => `art/clinic/plates/${id}.webp`;
-const CAPTION = 'Doctor Feras runs this Cairo clinic. He treats illness and injury, explains your condition, and helps you get back to business.';
+// The film's one caption, split into the three parts he says them in, timed to the pauses in his
+// voice on the soundtrack (about 4.5 s and 9.7 s in; the film runs 13.7 s). Same words as before.
+const CAPTIONS: { start: number; text: string }[] = [
+  { start: 0, text: 'Doctor Feras runs this Cairo clinic.' },
+  { start: 4.6, text: 'He treats illness and injury, explains your condition,' },
+  { start: 9.8, text: 'and helps you get back to business.' },
+];
+const captionAt = (t: number) => [...CAPTIONS].reverse().find((c) => t >= c.start)?.text ?? CAPTIONS[0].text;
 
 /** A case on demand: Feras talks it through as if you had walked in with it (his voice and his words),
  *  with the plate from his book. For trying any of them out. */
@@ -28,6 +37,8 @@ function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack
   const [big, setBig] = useState(false);
   const [note, setNote] = useState('');
   const has = (g.illnesses ?? []).some((x) => x.id === d.id);
+  // his voice follows the voices' slider and switch
+  useFilmSound(a, 'dialogue');
   useEffect(() => {
     voice.stop();
     audio.attenuate('feras', true, 0.3, { music: 0.15, ambience: 0.3 });
@@ -86,6 +97,9 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   const [book, setBook] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const v = useRef<HTMLVideoElement>(null);
+  const [filmT, setFilmT] = useState(0);
+  // the film's voice follows the Settings > Sound sliders and the voices' switch
+  useFilmSound(v, 'dialogue', 1, [intro]);
   const ill = g.illnesses ?? [];
   // with something wrong, the doctor starts talking as soon as you sit down (after his film, the first time)
   const [consulting, setConsulting] = useState<string | null>(null);
@@ -96,13 +110,16 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   // the film has the stage while it plays: music down, radio and voices stop; Esc skips it
   useEffect(() => {
     if (!intro) return;
-    voice.stop(); if (radio.playing) radio.stop();
+    setFilmT(0);
+    // nobody else starts talking over the film while it is up
+    filmLock.on();
+    voice.stop(); audio.stopVoice(); if (radio.playing) radio.stop();
     audio.attenuate('clinic', true, 0.4, { music: 0, ambience: 0.15 });
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); endIntro(); } };
     window.addEventListener('keydown', key, true);
     const el = v.current;
     if (el) el.play().catch(() => setBlocked(true));
-    return () => { window.removeEventListener('keydown', key, true); audio.attenuate('clinic', false, 1.0); };
+    return () => { filmLock.off(); window.removeEventListener('keydown', key, true); audio.attenuate('clinic', false, 1.0); };
   }, [intro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -116,9 +133,13 @@ export function Clinic({ onClose }: { onClose: () => void }) {
         <img className="cl-room" src={ROOM} alt="Dr Feras's consulting room" draggable={false} />
         {intro && (
           <div className="cl-film" data-testid="clinic-intro">
-            <video ref={v} src={FILM} poster={ROOM} playsInline preload="metadata" muted={muted} onEnded={endIntro} onError={endIntro} data-testid="clinic-video" />
+            <video ref={v} poster={ROOM} playsInline preload="metadata" muted={muted} onEnded={endIntro} onTimeUpdate={(e) => setFilmT(e.currentTarget.currentTime)} data-testid="clinic-video">
+              {/* WebM first for browsers without H.264; the MP4 is the last try, and if it fails too the film ends */}
+              <source src={FILM_WEBM} type="video/webm" />
+              <source src={FILM} type="video/mp4" onError={endIntro} />
+            </video>
             {blocked && <button className="btn primary cl-play" onClick={() => { setBlocked(false); v.current?.play().catch(() => endIntro()); }} data-testid="clinic-play">▶ Play introduction</button>}
-            <p className="cl-caption">{CAPTION}</p>
+            <p className="cl-caption" data-testid="clinic-caption">{captionAt(filmT)}</p>
             <div className="cl-film-btns">
               <button className="btn small" onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} data-testid="clinic-sound">{muted ? '🔇' : '🔊'}</button>
               <button className="btn small" onClick={endIntro} data-testid="clinic-skip">Skip</button>
@@ -142,7 +163,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
         </div>
         {tab === 'consult' ? (
           <div className="cl-consult">
-            {ill.length === 0 && <p className="cl-intro">Nothing ails you today. Read his Handbook: it is cheaper than his fee.</p>}
+            {ill.length === 0 && <p className="cl-intro">{ferasNothingLine(g.condition?.fatigue ?? 0)}</p>}
             {consulting && ill.some((x) => x.id === consulting)
               ? <ConsultScene key={consulting} id={consulting} onDone={() => setConsulting(null)} />
               : ill.map((il) => {

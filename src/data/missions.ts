@@ -21,13 +21,25 @@ export interface Mission {
   reward: { cash: number; rep: number; trust: number; text: string };
   /** what the banner says, given where you are */
   hint: (s: MissionState) => string;
+  /** the objective button, when the next thing to do is not the trip to the target: 'stock', 'guards',
+   *  'animals', 'district' or a town id (see App's chapterGo); null keeps the plain Map / Go button */
+  next?: (s: MissionState) => { btn: string; go: string } | null;
   /** done? (the Alexandria errand is completed by the purchase itself) */
   check?: (s: MissionState) => boolean;
 }
 
 export const RIVAL_SALES = 8;
-import { TROOPS } from './caravan';
-const strengthOf = (troops: Record<string, number>) => 2 + Object.entries(troops ?? {}).reduce((a, [id, n]) => a + (TROOPS[id]?.strength ?? 0) * (n ?? 0), 0);
+import { strength as partyStrength, type PartyState } from '../game/systems/caravan';
+type Party = { world: { party?: PartyState } };
+/** the caravan's fighting strength, counted the same way the road counts it */
+export const strengthOf = (s: MissionState) => { const p = (s as unknown as Party).world.party; return p ? partyStrength(p) : 2; };
+export const AMBUSH_STRENGTH = 10;
+const animalsOf = (s: MissionState) => Object.values((s as unknown as Party).world.party?.animals ?? {}).reduce((a, n) => a + (n ?? 0), 0);
+/** your father's rug is in your stock but still left at the stall, so it would not travel */
+export const hearthUnpacked = (s: MissionState) => {
+  const fh = s.inventory.filter((i) => i.typeId === 'fayoum-hearth') as { stored?: boolean }[];
+  return fh.length > 0 && fh.every((i) => i.stored);
+};
 
 export const MISSIONS: Record<string, Mission> = {
   alexandria: {
@@ -41,12 +53,18 @@ export const MISSIONS: Record<string, Mission> = {
   },
   beasts: {
     id: 'beasts', title: 'Beasts of burden', giver: 'Uncle Rashid',
-    brief: 'Rashid has a bale of village rugs waiting at the Tanta market and no one to fetch it. "A merchant who carries everything on his own back is a porter, not a merchant. Buy two donkeys or camels, go to Tanta, bring my bale. Keep two rugs for your trouble."',
-    steps: ['Buy two pack animals at any animal market (tap the Animals place in a town, or open the Animals tab)', 'Travel to Tanta with both animals', 'Open the Tanta town panel to collect the bale — it happens as soon as you arrive with two animals, or the moment you buy the second one there'],
+    brief: 'Rashid has a bale of village rugs waiting at the Tanta market and no one to fetch it. "A merchant who carries everything on his own back is a porter, not a merchant. Buy two donkeys, go to Tanta, bring my bale. Keep two rugs for your trouble." The animal market in Giza sells Egyptian donkeys at about £2.50 a head, and the Tanta market a little cheaper.',
+    steps: ['Buy two Egyptian donkeys: at the Giza animal market, or at Tanta itself (Animals in the town menu)', 'Travel to Tanta with both animals', 'Open the Tanta town panel to collect the bale — it happens as soon as you arrive with two animals, or the moment you buy the second one there'],
     target: 'tanta',
     locks: 'Your rank cannot rise past Bazaar merchant until you can carry stock of your own.',
-    reward: { cash: 300, rep: 3, trust: 10, text: 'Rashid counts the bale twice and pays you £3. "You look almost like a merchant now. Almost. The donkey looks more like one than you."' },
-    hint: (s) => ((s as unknown as { world: { party: { animals: Record<string, number> } } }).world.party ? 'Buy two pack animals, then fetch the bale in Tanta.' : 'Fetch the bale in Tanta.'),
+    reward: { cash: 300, rep: 3, trust: 10, text: 'The Tanta dealer loads Rashid\'s bale onto your donkeys and wires Giza. Rashid\'s answer comes back with £3: "You look almost like a merchant now. Almost. The donkey looks more like one than you."' },
+    hint: (s) => {
+      const n = animalsOf(s);
+      if (n >= 2) return s.world.at === 'tanta' ? 'Collect Rashid\'s bale here in Tanta.' : 'Take your two animals to Tanta for the bale.';
+      const want = n === 1 ? 'one more donkey' : 'two donkeys';
+      return s.world.at === 'tanta' ? `Buy ${want} at the Tanta animal market.` : `Buy ${want} (Giza or Tanta), then go to Tanta.`;
+    },
+    next: (s) => (animalsOf(s) < 2 && (s.world.at === 'giza' || s.world.at === 'tanta') ? { btn: 'Animals', go: 'animals' } : null),
     check: (s) => ((s as unknown as { jobsDone?: string[] }).jobsDone ?? []).includes('tanta-bale'),
   },
   farid: {
@@ -56,7 +74,12 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'damascus',
     locks: 'Your rank cannot rise past Bazaar merchant until you know what your father bought.',
     reward: { cash: 0, rep: 4, trust: 5, text: 'Whatever Farid said, the story travels back to Giza before you do. For the first time, merchants in the Khan say your father\'s name with respect, and yours with curiosity.' },
-    hint: (s) => (s.world.at === 'damascus' ? 'Show Farid al-Khatib the rug.' : 'Take the Fayoum Hearth to Farid in Damascus.'),
+    hint: (s) => {
+      // only packed rugs travel, and packing is done at the Giza stall: say so before the long road, not after it
+      if (hearthUnpacked(s)) return s.world.at === 'giza' ? 'First pack the Fayoum Hearth in Stock: it is still at your stall.' : 'The Fayoum Hearth is still at your stall. Go back to Giza and pack it in Stock.';
+      return s.world.at === 'damascus' ? 'Show Farid al-Khatib the rug.' : 'Take the Fayoum Hearth to Farid in Damascus.';
+    },
+    next: (s) => (hearthUnpacked(s) ? (s.world.at === 'giza' ? { btn: 'Stock', go: 'stock' } : { btn: 'To Giza', go: 'district' }) : null),
     check: (s) => s.world.appraised.length > 0 || (s.world.at === 'damascus' && !s.inventory.some((i) => i.typeId === 'fayoum-hearth')),
   },
   rival: {
@@ -75,8 +98,13 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'suez',
     locks: 'Your rank cannot rise past Khan dealer while Selim\'s cousins hunt your caravans.',
     reward: { cash: 500, rep: 5, trust: 5, text: 'Selim\'s cousins see your guards from the ridge and ride away. In Suez the coffee-house men already know. Nobody in the lane will cross you now.' },
-    hint: (s) => (s.world.at === 'suez' ? 'You made it to Suez.' : 'Hire guards (strength 10), then go to Suez.'),
-    check: (s) => s.world.at === 'suez' && ((s as unknown as { world: { party: { troops: Record<string, number> } } }).world.party ? strengthOf((s as unknown as { world: { party: { troops: Record<string, number> } } }).world.party.troops) >= 10 : false),
+    hint: (s) => {
+      const have = strengthOf(s);
+      if (have < AMBUSH_STRENGTH) return `Hire guards first: strength ${have}, you need ${AMBUSH_STRENGTH}.${s.world.at === 'suez' ? ' Suez has men for hire.' : ''}`;
+      return s.world.at === 'suez' ? 'You made it to Suez.' : `Strength ${have}. Now go to Suez.`;
+    },
+    next: (s) => (strengthOf(s) < AMBUSH_STRENGTH && s.world.at ? { btn: 'Hire guards', go: 'guards' } : null),
+    check: (s) => s.world.at === 'suez' && !!(s as unknown as Party).world.party && strengthOf(s) >= AMBUSH_STRENGTH,
   },
   auction: {
     id: 'auction', title: 'Under the hammer', giver: 'Hagop Boyajian',

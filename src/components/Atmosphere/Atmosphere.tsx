@@ -97,7 +97,7 @@ function Lamps({ night }: { night: number }) {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     // paintings load and swap (a new buyer, a new pose), so look again now and then
-    const t = setInterval(update, 1000);
+    const t = setInterval(() => { if (!document.hidden) update(); }, 1000);
     update();
     return () => { ro.disconnect(); clearInterval(t); };
   }, []);
@@ -110,14 +110,16 @@ function Lamps({ night }: { night: number }) {
   );
 }
 
-const dpr = () => Math.min(2, window.devicePixelRatio || 1);
+// The dust is soft and small: drawn at one canvas pixel per CSS pixel even on sharp phone screens
+// (four times fewer pixels to clear and fill than at 2x), and nobody can tell.
+const dpr = () => 1;
 
-/** Keeps a canvas sized to its box at device resolution; returns a cleanup. */
+/** Keeps a canvas sized to its box; returns a cleanup. */
 function fit(c: HTMLCanvasElement, onSize: (w: number, h: number) => void) {
   const set = () => {
     const w = c.clientWidth, h = c.clientHeight, r = dpr();
-    c.width = Math.max(1, Math.round(w * r));
-    c.height = Math.max(1, Math.round(h * r));
+    const cw = Math.max(1, Math.round(w * r)), ch = Math.max(1, Math.round(h * r));
+    if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
     c.getContext('2d')!.setTransform(r, 0, 0, r, 0, 0);
     onSize(w, h);
   };
@@ -126,6 +128,24 @@ function fit(c: HTMLCanvasElement, onSize: (w: number, h: number) => void) {
   set();
   return () => ro.disconnect();
 }
+
+/** True when nothing of the scene under the canvas can be seen: a sheet, a panel or another screen
+ *  sits on top of it. A few points across the canvas are tested; one that lands on the scene is enough. */
+function covered(c: HTMLCanvasElement) {
+  const r = c.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return true;
+  const scene = c.closest('.atmo')?.parentElement;
+  if (!scene) return false;
+  for (const [fx, fy] of [[0.5, 0.5], [0.25, 0.3], [0.75, 0.3], [0.25, 0.75], [0.75, 0.75]]) {
+    const x = r.left + r.width * fx, y = r.top + r.height * fy;
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+    const hit = document.elementFromPoint(x, y);
+    if (hit && scene.contains(hit)) return false;
+  }
+  return true;
+}
+
+const FRAME_MS = 1000 / 24; // dust drifts slowly: 24 frames a second look the same as 60
 
 /** Motes of dust, brightest where the light comes from. */
 function Air({ hourRef, indoor }: { hourRef: React.MutableRefObject<number>; indoor: boolean }) {
@@ -137,14 +157,19 @@ function Air({ hourRef, indoor }: { hourRef: React.MutableRefObject<number>; ind
     let W = 1, H = 1;
     type Mote = { x: number; y: number; r: number; vx: number; vy: number; ph: number };
     let motes: Mote[] = [];
-    const spawn = (): Mote => ({ x: Math.random(), y: Math.random(), r: 0.5 + Math.random() * 1.3, vx: (Math.random() - 0.5) * 0.006, vy: -0.002 - Math.random() * 0.006, ph: Math.random() * 6.3 });
-    const unfit = fit(c, (w, h) => {
-      W = w; H = h;
-      const n = Math.round(Math.min(70, Math.max(24, (w * h) / 9000)) * (indoor ? 1.2 : 1));
-      motes = Array.from({ length: n }, spawn);
-    });
-    let raf = 0, last = performance.now();
+    const spawn = (): Mote => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.4, vx: (Math.random() - 0.5) * 0.006, vy: -0.002 - Math.random() * 0.006, ph: Math.random() * 6.3 });
+    const still = reduced();
+    let raf = 0, last = performance.now(), drawn = 0;
+    // the loop runs only while the dust can be seen: not in a hidden tab, not while the canvas is off
+    // screen or not displayed, and not while another screen covers the scene
+    let onScreen = true, hidden = false;
+    const paused = () => document.hidden || !onScreen || hidden;
     const draw = (now: number) => {
+      raf = 0;
+      if (paused()) return;
+      if (!still) raf = requestAnimationFrame(draw);
+      if (!still && now - drawn < FRAME_MS - 2) return;
+      drawn = now;
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const L = lightAt(hourRef.current);
@@ -164,10 +189,37 @@ function Air({ hourRef, indoor }: { hourRef: React.MutableRefObject<number>; ind
         g.arc(m.x * W, m.y * H, m.r, 0, 6.2832);
         g.fill();
       }
+    };
+    const start = () => {
+      if (raf || paused()) return;
+      last = performance.now();
       raf = requestAnimationFrame(draw);
     };
-    if (reduced()) draw(last); else raf = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(raf); unfit(); };
+    const unfit = fit(c, (w, h) => {
+      W = w; H = h;
+      // fewer, slightly larger motes: about 30 on a phone, never more than 44
+      const n = Math.round(Math.min(44, Math.max(16, (w * h) / 13000)) * (indoor ? 1.2 : 1));
+      motes = Array.from({ length: n }, spawn);
+      if (still) { cancelAnimationFrame(raf); raf = 0; start(); } // with reduced motion: one still frame, drawn afresh at each size
+    });
+    const io = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver((es) => { onScreen = es[es.length - 1].isIntersecting; if (onScreen && !still) start(); })
+      : null;
+    io?.observe(c);
+    const onVis = () => { if (!document.hidden && !still) start(); };
+    document.addEventListener('visibilitychange', onVis);
+    // now and then, look whether the scene is still in view or another screen has been laid over it
+    const look = window.setInterval(() => {
+      if (document.hidden || !onScreen) return;
+      const was = hidden;
+      hidden = covered(c);
+      if (was && !hidden && !still) start();
+    }, 1000);
+    start();
+    return () => {
+      cancelAnimationFrame(raf); raf = 0; unfit(); io?.disconnect(); clearInterval(look);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [hourRef, indoor]);
   return <canvas className="atmo-air" ref={ref} />;
 }

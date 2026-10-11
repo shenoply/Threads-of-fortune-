@@ -269,9 +269,9 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
   return (
     <section className="arran-lab" aria-label="Arran's textile laboratory" data-testid="arran-lab">
       <header className="arran-lab__header">
-        <div><strong>Arran's textile laboratory</strong><small>Giza · 1925 · {clock}</small></div>
+        <div><strong>Arran's <span className="arran-lab__long">textile laboratory</span><span className="arran-lab__short">lab</span></strong><small>Giza<span className="arran-lab__long"> · 1925</span> · {clock}</small></div>
         <span className="arran-lab__cash" data-testid="arran-cash">{fmt(g.cash)}</span>
-        {onFilm && <button type="button" className="btn" onClick={onFilm} data-testid="arran-film-again-in" title="Watch Arran's film again">▶ Film</button>}
+        {onFilm && <button type="button" className="btn" onClick={onFilm} data-testid="arran-film-again-in" title="Watch Arran's film again" aria-label="Watch Arran's film again">▶<span className="arran-lab__long"> Film</span></button>}
         <button className="btn help-q" onClick={() => openGuide('arran')} aria-label="How Arran's laboratory works" data-testid="help-arran">?</button>
         <button type="button" className="btn" onClick={onLeave} data-testid="arran-leave">Leave</button>
       </header>
@@ -327,7 +327,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
         </button>
       )}
       <nav className="arran-lab__tabs" role="tablist" aria-label="In the laboratory">
-        {([['test', 'Test a rug'], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['road', 'Supplies'], ['board', 'Board']] as [Tab, string][]).map(([id, label]) => (
+        {([['test', <>Test<span className="arran-lab__long"> a rug</span></>], ['notebook', errands.length ? `Notebook · ${errands.length}` : 'Notebook'], ['road', 'Supplies'], ['board', 'Board']] as [Tab, React.ReactNode][]).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`arran-lab__tab ${tab === id ? 'is-on' : ''}`} onClick={() => goTab(id)} data-testid={`arran-tab-${id}`}>{label}</button>
         ))}
         <button type="button" className="arran-lab__tab arran-lab__tab--book" onClick={() => { setCatalogue(true); audio.sfx('pen'); }} data-testid="arran-catalogue-open">

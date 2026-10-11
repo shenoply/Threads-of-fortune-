@@ -6,9 +6,9 @@
 // a Play button starts it from a tap.
 import { useEffect, useRef, useState } from 'react';
 import { INTRO_FILMS, type IntroCue } from '../../data/introFilms';
-import { FILMS, type FilmId, type Still } from './films';
-import { useGame } from '../../game/state/store';
+import { FILMS, filmVideo, type FilmId, type Still } from './films';
 import { audio } from '../../game/audio/engine';
+import { useFilmSound } from '../../game/audio/useFilmSound';
 import { voice, filmLock } from '../../game/audio/voice';
 import { stopArranVoice } from '../../game/audio/arranVoice';
 import { stopMalekArabic } from '../../game/audio/malekArabic';
@@ -21,11 +21,12 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
   const film = FILMS[id];
   const title = titleIn ?? film.title;
   const script = INTRO_FILMS[id] as { length: number; cues: IntroCue[] } | undefined;
-  const vol = useGame((s) => s.volumes);
   const video = useRef<HTMLVideoElement>(null);
   const voiceEl = useRef<HTMLAudioElement>(null);
   // 'video' while the film's own video is up; 'stills' for paintings (no video, or it could not play)
-  const [mode, setMode] = useState<'video' | 'stills'>(film.video ? 'video' : 'stills');
+  // (a video marked missing is never asked for: the stills start straight away)
+  const vid = filmVideo(film);
+  const [mode, setMode] = useState<'video' | 'stills'>(vid ? 'video' : 'stills');
   const [needTap, setNeedTap] = useState(false);
   const [held, setHeld] = useState(false);
   const [cue, setCue] = useState<IntroCue | null>(null);
@@ -37,12 +38,15 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
   const own = !!film.ownSound;
   const finish = () => { if (done.current) return; done.current = true; video.current?.pause(); voiceEl.current?.pause(); onDone(); };
 
-  const level = (k: 'dialogue' | 'sfx') => Math.max(0, Math.min(1, (vol?.master ?? 1) * ((k === 'dialogue' ? vol?.dialogue : vol?.sfx) ?? 1)));
+  // Sound levels come from Settings > Sound and follow it while the film plays: the narrator, and a
+  // video that speaks for itself, on the voices' slider and switch; a video under the narrator keeps
+  // its own sound low, on the effects slider.
+  useFilmSound(voiceEl, 'dialogue');
+  useFilmSound(video, own ? 'dialogue' : 'sfx', own ? 1 : 0.3, [mode]);
   // the narrator (or, with no script, the introduction as text over the thumbnail)
   const narrate = async () => {
     const a = voiceEl.current;
     if (!script || !a) { setTextAt((n) => Math.max(n, 0)); setNeedTap(false); return; }
-    a.volume = level('dialogue');
     try { await a.play(); setNeedTap(false); } catch { setNeedTap(true); }
   };
   // the video could not play: its paintings take over, never a black screen
@@ -59,15 +63,12 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
     if (own) {
       // the video speaks for itself, at the level of the voices
       v.muted = muted;
-      v.volume = level('dialogue');
       try { await v.play(); setNeedTap(false); } catch (e) {
         if ((e as Error)?.name === 'NotAllowedError') setNeedTap(true); else fail();
       }
       return;
     }
     if (!a) return;
-    a.volume = level('dialogue');
-    v.volume = level('sfx') * 0.3;
     // the voice carries the film: if it cannot start without a tap, ask for one. The video is a bonus:
     // if this browser cannot play it, its picture holds with the slow push-in instead
     try { await a.play(); setNeedTap(false); } catch { setNeedTap(true); return; }
@@ -117,22 +118,26 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
 
   const caption = cue?.text ?? (textAt >= 0 && textAt < lines.length ? lines[textAt] : '');
   const stillsLength = script?.length ?? Math.max(8, lines.reduce((n, l) => n + 2.5 + l.length * 0.045, 0));
-  const fallbackStills = film.stills?.length ? film.stills : film.video ? [{ src: film.video.poster, fit: 'cover' as const, from: [1.05, 50, 50] as [number, number, number], to: [1.25, 50, 40] as [number, number, number] }] : [];
+  const fallbackStills = film.stills?.length ? film.stills : vid ? [{ src: vid.poster, fit: 'cover' as const, from: [1.05, 50, 50] as [number, number, number], to: [1.25, 50, 40] as [number, number, number] }] : [];
 
   return (
     <div className="film" role="dialog" aria-label={title} data-testid={`film-${id}`} data-mode={mode}>
-      {mode === 'video' && film.video ? (
+      {mode === 'video' && vid ? (
         <div className="film__frame">
-          <img className="film__bg" src={film.video.poster} alt="" aria-hidden="true" />
+          <img className="film__bg" src={vid.poster} alt="" aria-hidden="true" />
           {own ? (
-            <video ref={video} className="film__video" src={film.video.mp4} poster={film.video.poster} playsInline preload="auto" onEnded={() => setOver(true)} onError={fail} data-testid="film-video" />
+            // WebM first (browsers without H.264), then the MP4; if the last one fails the stills take over
+            <video ref={video} className="film__video" poster={vid.poster} playsInline preload="auto" onEnded={() => setOver(true)} onError={fail} data-testid="film-video">
+              {vid.webm && <source src={vid.webm} type="video/webm" />}
+              <source src={vid.mp4} type="video/mp4" onError={fail} />
+            </video>
           ) : (
-            <video ref={video} className={`film__video ${held ? 'is-held' : ''}`} poster={film.video.poster} playsInline preload="auto" onEnded={() => setHeld(true)} onError={() => setHeld(true)} data-testid="film-video">
-              {film.video.webm && <source src={film.video.webm} type="video/webm" />}
-              <source src={film.video.mp4} type="video/mp4" />
+            <video ref={video} className={`film__video ${held ? 'is-held' : ''}`} poster={vid.poster} playsInline preload="auto" onEnded={() => setHeld(true)} onError={() => setHeld(true)} data-testid="film-video">
+              {vid.webm && <source src={vid.webm} type="video/webm" />}
+              <source src={vid.mp4} type="video/mp4" />
             </video>
           )}
-          {held && !film.after?.length && <img className="film__still" src={film.video.last} alt="" aria-hidden="true" />}
+          {held && !film.after?.length && <img className="film__still" src={vid.last} alt="" aria-hidden="true" />}
           {held && !!film.after?.length && script && <div className="film__after"><Stills stills={film.after} length={Math.max(4, script.length - (voiceEl.current?.currentTime ?? 0))} playing /></div>}
         </div>
       ) : (

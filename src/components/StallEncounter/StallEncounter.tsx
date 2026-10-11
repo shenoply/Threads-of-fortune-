@@ -78,11 +78,16 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       el.style.setProperty('--scene-h', `${Math.floor(h)}px`);
     };
     fit();
+    // Set up once per conversation (and when the rug tray folds), not on every render: the dialogue
+    // re-renders for each typed character. The observers catch everything else — the window or a row
+    // changing size, a row (the price dial, Cohen's help link) appearing or going.
     const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    for (const c of Array.from(el.children)) ro.observe(c);
-    return () => ro.disconnect();
-  });
+    const watch = () => { ro.disconnect(); ro.observe(el); for (const c of Array.from(el.children)) ro.observe(c); };
+    watch();
+    const mo = new MutationObserver(() => { watch(); fit(); });
+    mo.observe(el, { childList: true });
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, [talking, enc?.id, tray]);
   // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
   // closes (settle() runs inside act(), before the player has seen the result screen or clicked
   // "Next customer"), so keying the dialogue-playback reset on it replayed the whole conversation

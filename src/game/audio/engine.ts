@@ -17,6 +17,10 @@ export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | '
   | 'camp' | 'port' | 'levant' | 'desert' | 'cabaret' | 'rivalry';
 
 interface FxClip { file: string; dur: number }
+/** one piece of music as it plays: its streaming player, its own fader, and a way to stop it */
+interface MusicSrc { name: string; el: HTMLAudioElement; gain: GainNode; stop: (secs?: number) => void }
+// where a published build finds a piece missing from next to the page (the same copy src/game/audio/cdn.ts uses)
+const MUSIC_CDN = 'https://cdn.jsdelivr.net/gh/shenoply/Threads-of-fortune-@main/public/';
 interface Bank { fx: Record<string, FxClip[]>; beds: Record<string, { file: string; dur: number }> }
 
 const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.62, sfx: 0.7, ambience: 0.3 };
@@ -200,10 +204,10 @@ class AudioEngine {
     });
   }
 
-  // Plain <audio> players (the gramophone, Malek's recorded lines, film voices) are not on the
-  // Web Audio graph, so the engine keeps a list of them and sets their volume itself: the master,
-  // the channel's slider and its on/off all apply to a line that is already playing.
-  private els = new Map<HTMLAudioElement, { kind: 'dialogue' | 'music' | 'sfx'; f: number }>();
+  // Plain <audio> and <video> players (the gramophone, Malek's recorded lines, film voices, the films
+  // themselves) are not on the Web Audio graph, so the engine keeps a list of them and sets their
+  // volume itself: the master, the channel's slider and its on/off all apply to one already playing.
+  private els = new Map<HTMLMediaElement, { kind: 'dialogue' | 'music' | 'sfx'; f: number; film: boolean }>();
   /** what a plain player of this kind should be at, before its own level */
   elVolume(kind: 'dialogue' | 'music' | 'sfx') {
     const v = this.volumes;
@@ -211,28 +215,38 @@ class AudioEngine {
     return on ? Math.max(0, Math.min(1, v.master * (kind === 'dialogue' ? v.dialogue : kind === 'music' ? v.music : v.sfx))) : 0;
   }
   /** look after a plain player: its volume follows the sliders until it ends or is let go */
-  attach(el: HTMLAudioElement, kind: 'dialogue' | 'music' | 'sfx', f = 1) {
-    this.els.set(el, { kind, f });
+  attach<T extends HTMLMediaElement>(el: T, kind: 'dialogue' | 'music' | 'sfx', f = 1): T {
+    this.els.set(el, { kind, f, film: false });
     el.volume = Math.min(1, f * this.elVolume(kind));
-    const drop = () => this.els.delete(el);
+    const drop = () => { if (!this.els.get(el)?.film) this.els.delete(el); };
     el.addEventListener('ended', drop, { once: true });
     el.addEventListener('error', drop, { once: true });
     return el;
   }
+  /** Look after a film (a <video>, or a voice that carries a film): its sound follows the sliders
+   *  like any other player, but switching its channel off only silences it, the picture carries on,
+   *  and it stays on the list after it ends (it can be played again) until detach() lets it go.
+   *  Speech in a film goes on the dialogue channel. Returns a function that lets it go. */
+  attachFilm(el: HTMLMediaElement, kind: 'dialogue' | 'music' | 'sfx' = 'dialogue', f = 1) {
+    this.els.set(el, { kind, f, film: true });
+    el.volume = Math.max(0, Math.min(1, f * this.elVolume(kind)));
+    return () => this.detach(el);
+  }
   /** a player's own level (fades), 0..1, still under the sliders */
-  setElLevel(el: HTMLAudioElement, f: number) {
+  setElLevel(el: HTMLMediaElement, f: number) {
     const e = this.els.get(el);
     if (!e) return;
     e.f = f;
     el.volume = Math.max(0, Math.min(1, f * this.elVolume(e.kind)));
   }
-  detach(el: HTMLAudioElement) { this.els.delete(el); }
+  detach(el: HTMLMediaElement) { this.els.delete(el); }
   private applyEls() {
     for (const [el, e] of this.els) {
       const v = this.elVolume(e.kind);
       el.volume = Math.max(0, Math.min(1, e.f * v));
-      // dialogue switched off stops a line mid-word; a record only goes quiet (it keeps its place)
-      if (e.kind === 'dialogue' && !this.toggles.dialogue) { el.pause(); this.els.delete(el); }
+      // dialogue switched off stops a line mid-word; a record only goes quiet (it keeps its place),
+      // and so does a film: its picture goes on without its sound
+      if (e.kind === 'dialogue' && !this.toggles.dialogue && !e.film) { el.pause(); this.els.delete(el); }
     }
   }
 
@@ -267,10 +281,9 @@ class AudioEngine {
   private buffer(url: string): Promise<AudioBuffer | null> {
     if (!this.bufs.has(url)) {
       const c = this.ctx!;
-      this.bufs.set(url, fetchMedia(url).then((r) => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); }).then((b) => c.decodeAudioData(b)).catch(() => null));
-      // keep memory in check: forget the oldest music buffers
-      const music = [...this.bufs.keys()].filter((k) => k.includes('/music/'));
-      if (music.length > 5) this.bufs.delete(music[0]);
+      // a failed load is forgotten, so the next request tries again rather than staying silent
+      const p = fetchMedia(url).then((r) => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); }).then((b) => c.decodeAudioData(b)).catch(() => { this.bufs.delete(url); return null; });
+      this.bufs.set(url, p);
     }
     return this.bufs.get(url)!;
   }
@@ -521,6 +534,10 @@ class AudioEngine {
     const g = l.gain;
     setTimeout(() => { try { g.disconnect(); } catch { /* gone */ } }, 4000);
     this.bedLayers.delete(key);
+    // a street recording is a minute or more of decoded sound: let it go once no bed uses it (the
+    // slices still fading out keep their own hold on it until they end)
+    const file = this.bank?.beds[key]?.file;
+    if (file && ![...this.bedLayers.keys()].some((k) => this.bank?.beds[k]?.file === file)) this.bufs.delete(file);
   }
 
   /** Bring the beds in line with where we are and what hour it is. */
@@ -609,15 +626,19 @@ class AudioEngine {
   }
 
   // ---------- music ----------
+  // Each piece streams through its own <audio> player, fed into the music fader on the Web Audio
+  // graph, so the ducking, the fades and the crossfades all work as before, but only the few seconds
+  // around the playhead are ever held in memory (a whole piece decoded was 50 MB or more).
   private musicCtx: MusicCtx | null = null;
-  private track: { name: string; src: AudioBufferSourceNode; gain: GainNode } | null = null;
-  // every music source started and not yet ended, fading ones included, so Stop reaches them all
-  private live = new Set<AudioBufferSourceNode>();
+  private track: MusicSrc | null = null;
+  // every music player started and not yet let go, fading ones included, so Stop reaches them all
+  private live = new Set<MusicSrc>();
   // bumped by every new request: a load that finishes after a newer request was made is dropped
   private gen = 0;
-  private tails = new WeakMap<AudioBuffer, number>();
   private musicTimer: number | null = null;
   private recent: string[] = [];
+  // the piece lined up to follow this one, already loading in the last half-minute
+  private queued: { name: string; el: HTMLAudioElement } | null = null;
   // a context change doesn't cut the music the instant it happens: it waits here first, and a
   // change that reverts before the wait is up (a rival stepping off, a sheet opening and
   // closing) never touches the score at all
@@ -631,37 +652,64 @@ class AudioEngine {
     return (pool.length ? pool : list)[Math.floor(Math.random() * (pool.length || list.length))];
   }
 
+  /** a player for one piece, loading; if the copy next to the page is missing in a published build,
+   *  it tries the same file on the CDN once (as fetchMedia does for everything else) */
+  private musicEl(name: string) {
+    const path = `audio/music/${name}.mp3`;
+    const el = new Audio();
+    el.crossOrigin = 'anonymous'; // the CDN copy has to be readable by the Web Audio graph
+    el.preload = 'auto';
+    if (import.meta.env.PROD) {
+      el.addEventListener('error', () => { if (el.getAttribute('src') && !el.src.startsWith(MUSIC_CDN)) { el.src = MUSIC_CDN + path; el.load(); } }, { once: true });
+    }
+    el.src = path;
+    return el;
+  }
+  /** a player that is no longer wanted: stop it and drop what it had downloaded */
+  private dropEl(el: HTMLAudioElement) {
+    el.pause();
+    el.removeAttribute('src');
+    try { el.load(); } catch { /* already empty */ }
+  }
+  /** wait until a piece can start (true), or has failed to load (false); a slow line just starts late */
+  private ready(el: HTMLAudioElement) {
+    if (el.readyState >= 3) return Promise.resolve(true);
+    return new Promise<boolean>((res) => {
+      let fails = 0;
+      const ok = () => { clean(); res(true); };
+      // in a published build the first error swaps to the CDN copy; the second one is final
+      const bad = () => { if (++fails >= (import.meta.env.PROD ? 2 : 1)) { clean(); res(false); } };
+      const t = window.setTimeout(ok, 10000);
+      const clean = () => { clearTimeout(t); el.removeEventListener('canplay', ok); el.removeEventListener('error', bad); };
+      el.addEventListener('canplay', ok);
+      el.addEventListener('error', bad);
+    });
+  }
+
   /** A slow swell down, like a radio drifting out of range, not a cut. */
   private fadeOutTrack(secs = 4.5) {
     if (!this.track || !this.ctx) return;
-    const { src, gain } = this.track;
+    const { gain } = this.track;
     gain.gain.cancelScheduledValues(this.ctx.currentTime);
     gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + secs);
-    try { src.stop(this.ctx.currentTime + secs + 0.1); } catch { /* stopped */ }
+    this.track.stop(secs + 0.1);
     this.track = null;
     this.state.track = '';
-  }
-
-  /** seconds of near-silence (under -50 dB) at the end of a piece, worked out once per file */
-  private tail(buf: AudioBuffer) {
-    let t = this.tails.get(buf);
-    if (t != null) return t;
-    const floor = 10 ** (-50 / 20), sr = buf.sampleRate, chans = [...Array(buf.numberOfChannels)].map((_, i) => buf.getChannelData(i));
-    let i = buf.length - 1;
-    for (; i > 0; i -= 64) if (chans.some((d) => Math.abs(d[i]) > floor)) break;
-    t = Math.max(0, (buf.length - 1 - i) / sr);
-    this.tails.set(buf, t);
-    return t;
   }
 
   private async playTrack(name: string, fadeIn = 4.5) {
     if (!this.ctx || !this.musicOn) return;
     const want = this.musicCtx;
     const my = ++this.gen;
-    const buf = await this.buffer(`audio/music/${name}.mp3`);
-    if (!this.ctx || !this.musicOn || this.musicCtx !== want || my !== this.gen) return;
-    if (!buf) {
+    // the piece lined up in advance is already loading: use it rather than starting again
+    let el: HTMLAudioElement;
+    if (this.queued?.name === name) { el = this.queued.el; this.queued = null; } else el = this.musicEl(name);
+    if (this.queued) { this.dropEl(this.queued.el); this.queued = null; }
+    const ok = await this.ready(el);
+    if (!this.ctx || !this.musicOn || this.musicCtx !== want || my !== this.gen) { this.dropEl(el); return; }
+    if (!ok) {
+      this.dropEl(el);
       // a track that failed to load (missing file, bad network) must not just go silent until
       // something else happens to change the scene: try another piece from the same pool instead
       if (!want) return;
@@ -670,46 +718,93 @@ class AudioEngine {
       return;
     }
     const c = this.ctx;
-    const src = c.createBufferSource();
-    src.buffer = buf;
     // A full sung song stepping on the tail of another piece reads as two different songs playing
     // at once, not a cue melting into the next one, so a vocal piece on either side of the join
     // gets silence first instead of the usual rise-while-the-last-one-falls crossfade.
     const vocalJoin = VOCAL.has(name) || (!!this.track && VOCAL.has(this.track.name));
     const outSecs = vocalJoin ? 1.1 : 1.5;
     const inSecs = vocalJoin ? 1.3 : fadeIn;
-    const startAt = c.currentTime + (vocalJoin && this.track ? outSecs + 0.2 : 0);
+    const delay = vocalJoin && this.track ? outSecs + 0.2 : 0;
+    const startAt = c.currentTime + delay;
     // anything still sounding as the current piece (a race from an older request) goes now
     if (this.track) this.fadeOutTrack(outSecs);
+    const node = c.createMediaElementSource(el);
     const gain = c.createGain();
     const lvl = trackGain(name);
     gain.gain.setValueAtTime(0.0001, startAt);
     gain.gain.linearRampToValueAtTime(lvl, startAt + inSecs);
-    src.connect(gain).connect(this.gains.music);
-    src.start(startAt);
+    // a listener on the side, to hear when the piece has really finished (see below)
+    const ear = c.createAnalyser();
+    ear.fftSize = 2048;
+    node.connect(gain).connect(this.gains.music);
+    node.connect(ear);
+    let startTimer: number | null = null;
+    let watch: number | null = null;
+    let gone = false;
+    const release = () => {
+      if (gone) return;
+      gone = true;
+      if (startTimer) clearTimeout(startTimer);
+      if (watch) clearInterval(watch);
+      this.live.delete(src);
+      this.dropEl(el);
+      try { node.disconnect(); gain.disconnect(); } catch { /* gone */ }
+      if (this.track === src) { this.track = null; this.state.track = ''; }
+    };
+    let stopTimer: number | null = null;
+    const src: MusicSrc = {
+      name, el, gain,
+      // stop after `secs` (the fade); the soonest stop asked for wins
+      stop: (secs = 0) => {
+        if (gone) return;
+        if (stopTimer) clearTimeout(stopTimer);
+        stopTimer = window.setTimeout(release, secs * 1000);
+      },
+    };
+    const go = () => { startTimer = null; if (!gone) el.play().catch(() => { /* blocked: stays silent until the next piece */ }); };
+    if (delay > 0) startTimer = window.setTimeout(go, delay * 1000); else go();
     this.live.add(src);
-    this.track = { name, src, gain };
+    this.track = src;
     this.state.track = name;
     this.recent = [...this.recent.filter((n) => n !== name), name].slice(-3);
-    src.onended = () => {
-      this.live.delete(src);
-      try { gain.disconnect(); } catch { /* gone */ }
-      if (this.track?.src === src) { this.track = null; this.state.track = ''; }
-    };
-    // the next piece is timed from where this one's music actually ends, not from the silent
-    // padding after it: a short breath (shorter on the road and at a show, a longer quiet at camp)
+    // The next piece is timed from where this one's music actually ends, not from the silent
+    // padding after it: in the last stretch the side listener checks the level, and once it has
+    // stayed under -50 dB for most of a second (or the file runs out) the piece counts as finished,
+    // then a short breath (shorter on the road and at a show, a longer quiet at camp).
     const ctxNow = this.musicCtx;
     const breath = ctxNow === 'documentary' ? 0.8 : ctxNow === 'camp' ? 6 + Math.random() * 8 : ctxNow === 'road' || ctxNow === 'desert' || ctxNow === 'cabaret' ? 1 + Math.random() * 2 : 2 + Math.random() * 3;
-    const endsAt = Math.max(5, buf.duration - this.tail(buf));
-    if (this.musicTimer) clearTimeout(this.musicTimer);
-    this.musicTimer = window.setTimeout(() => {
+    const floor = 10 ** (-50 / 20), samples = new Float32Array(ear.fftSize);
+    let quietFor = 0, finished = false, lined = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (watch) { clearInterval(watch); watch = null; }
       if (my !== this.gen || !this.musicCtx) return;
-      this.playTrack(this.chooseTrack(this.musicCtx));
-    }, (endsAt + breath) * 1000);
-    // fetch the likely next piece now, so it starts on time
-    // fetch the likely next piece in the last half-minute of this one (not at once: on a slow phone line
-    // a second track downloading alongside everything else at the start held up the pictures)
-    if (want) { const next = PLAYLISTS[want].filter((n) => n !== name); if (next.length) { const url = `audio/music/${next[Math.floor(Math.random() * next.length)]}.mp3`; window.setTimeout(() => { if (my === this.gen) this.buffer(url); }, Math.max(0, endsAt - 30) * 1000); } }
+      if (this.musicTimer) clearTimeout(this.musicTimer);
+      this.musicTimer = window.setTimeout(() => {
+        if (my !== this.gen || !this.musicCtx) return;
+        const q = this.queued?.name;
+        this.playTrack(q && PLAYLISTS[this.musicCtx].includes(q) ? q : this.chooseTrack(this.musicCtx));
+      }, breath * 1000);
+    };
+    el.addEventListener('ended', () => { finish(); src.stop(0.2); }, { once: true });
+    watch = window.setInterval(() => {
+      const left = el.duration - el.currentTime;
+      if (!isFinite(left) || el.paused) return;
+      // fetch the likely next piece in the last half-minute of this one (not at once: on a slow phone
+      // line a second track downloading alongside everything else at the start held up the pictures)
+      if (!lined && left < 30 && want && my === this.gen) {
+        lined = true;
+        const next = PLAYLISTS[want].filter((n) => n !== name);
+        if (next.length && !this.queued) { const n = this.chooseTrack(want); const pick = n !== name ? n : next[0]; this.queued = { name: pick, el: this.musicEl(pick) }; }
+      }
+      if (left > 25 || el.currentTime < 5) return;
+      ear.getFloatTimeDomainData(samples);
+      let peak = 0;
+      for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+      quietFor = peak < floor ? quietFor + 0.25 : 0;
+      if (quietFor >= 0.75) finish();
+    }, 250);
   }
 
   /** Actually commit to a new musical context: cross-fade, don't cut-then-silence-then-start.
@@ -774,7 +869,8 @@ class AudioEngine {
     this.pendingMusicCtx = null;
     this.gen++; // a piece still loading must not start after Stop
     this.fadeOutTrack(1.2);
-    if (this.ctx) { const t = this.ctx.currentTime; for (const s of this.live) try { s.stop(t + 1.3); } catch { /* stopped */ } }
+    for (const s of this.live) s.stop(1.3);
+    if (this.queued) { this.dropEl(this.queued.el); this.queued = null; }
     this.musicCtx = null;
     this.state.music = '';
   }

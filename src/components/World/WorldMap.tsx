@@ -186,7 +186,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const k = `${g.day}:${why}`;
     if (stopSeen.current === k) return;
     stopSeen.current = k;
-    setMoving(null);
+    // a halt, not the end of the journey: the clock stops while you talk, and "Carry on" walks on
+    setTimeScale(0);
     setMenStop(true);
   }, [pfood, pmor, pmen, moving, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   // a town's own screen opens only where you actually are; a shortcut to anywhere else plans the route instead
@@ -847,7 +848,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           </span>
         </div>
 
-        {menStop && <MenTalk stopped onClose={() => setMenStop(false)} />}
+        {menStop && <MenTalk stopped onClose={() => { setMenStop(false); if (moving && !nightfall && !sleeping && !camp) setTimeScale(lastScale.current || 1); }} />}
         {showOverhead && (
           <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 100, Math.max(100, gizaScreen.x)), top: Math.max(100, gizaScreen.y - 110) }} data-testid="overhead-pin">
             <StallOverhead compact onOpen={() => (w.at === 'giza' ? onStall() : planTo(giza, giza))} />
@@ -1021,8 +1022,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   const job = w.at === 'giza' && plan.settlement ? openJobs(g.jobsDone, g.reputation).find((j) => j.target === plan.settlement!.id && j.need?.packedTier) : undefined;
                   const tier = job?.need?.packedTier ?? 0;
                   const unpacked = job && !g.inventory.some((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 1) >= tier);
+                  // the food warning is about walking: a ferry, train or boat that the card leads with
+                  // gets you there in hours, so it is left out then
+                  const ferryHere = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
+                  const faster = ferryHere || (!!plan.train && g.cash >= plan.train.fare && plan.train.days < plan.days)
+                    || [...plan.ships, ...plan.motor].some((r) => r.days < plan.days && g.cash >= r.fare);
                   const lines = [
-                    plan.days >= 1 && left >= 0 && left < need ? (left === 0 ? 'You would arrive with no food for the way back.' : `You would arrive with only ${left} ration${left === 1 ? '' : 's'} for the way back.`) : '',
+                    !faster && plan.days >= 1 && left >= 0 && left < need ? (left === 0 ? 'You would arrive with no food for the way back.' : `You would arrive with only ${left} ration${left === 1 ? '' : 's'} for the way back.`) : '',
                     unpacked ? `${job!.title} needs a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][tier]} packed for the road. Pack it in Stock before you leave: rugs can only be packed at your Giza stall.` : '',
                   ].filter(Boolean);
                   return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
@@ -1107,7 +1113,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         <CampScreen
           dest={camp.dest}
           onClose={() => setCamp(null)}
-          onResume={(dest) => { setCamp(null); const st = settlementById(dest); planTo(st, st); }}
+          onResume={(dest) => {
+            setCamp(null);
+            // the same journey goes on from where you slept, straight away, not back to the trip card
+            const st = settlementById(dest);
+            const p = st ? planTo(st, st, true) : undefined;
+            if (p?.path) { setOff(p); setTimeScale(lastScale.current || 1); }
+          }}
         />
       )}
       {encounter && encounter.kind === 'raiders' && (

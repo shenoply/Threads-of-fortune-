@@ -70,13 +70,14 @@ export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
       return;
     }
     // Malek's Arabic opener ("Ha?", "Bah!", "Who said so?"...) first, then the rest of the line in his English
-    if (next.ar) sayMalekArabic(next.ar);
+    const arDone = next.ar ? sayMalekArabic(next.ar) : null;
     const words = next.ar ? withoutArabic(next.text, next.ar) : next.text;
     let voiced = voice.has(speaker, words);
     let waiting = false;
-    if (voiced && next.ar) {
+    if (voiced && arDone) {
+      // the English waits until the Arabic clip has finished, so the two never overlap
       waiting = true;
-      window.setTimeout(() => { waiting = false; voice.say(speaker, words).then(() => { voiced = false; }); }, 650);
+      void arDone.then(() => window.setTimeout(() => { waiting = false; voice.say(speaker, words).then(() => { voiced = false; }); }, 150));
     } else if (voiced) voice.say(speaker, words).then(() => { voiced = false; });
     const waitVoice = (then: () => void) => {
       const poll = () => {

@@ -15,7 +15,9 @@ export const GUIDE_TARGETS: Record<string, string[]> = {
   guards: ['[data-testid="poi-guards"]', 'first:[data-testid^="hire-"]:not(:disabled)'],
   cairo: ['[data-testid="poi-ferry"]', '[data-testid="place-cairo"]', '[data-testid="ferry"]'],
   bandits: ['[data-testid="place-alexandria"]', '[data-testid="train"]', '[data-testid="nav-map"]'],
-  auction: ['[data-testid="place-alexandria"]', '[data-testid="house-alexandria-attarine"]', '[data-testid="auction-sit"]', '[data-testid="bid-raise"]'],
+  // the market, not an auction house (whose next sale may be days off): the town menu's tile, the souq in
+  // the streets, the Market tab, then the first rug you can afford
+  auction: ['[data-testid="place-alexandria"]', '[data-testid="menu-market"]', '[data-testid="vpoi-souq"]', '[data-testid="tab-market"][aria-selected="false"]', 'first:[data-testid="settlement"] .mkt-row[data-testid^="buy-"] button:not(:disabled)'],
 };
 const CLS = 'guide-flash';
 

@@ -124,7 +124,19 @@ export function Ledger() {
         <div className="tile"><small>STOCK AT COST</small><b>{fmt(stock)}</b></div>
         <div className="tile"><small>GROSS MARGIN</small><b className={margin > 0 ? 'pos' : ''}>{margin}%</b></div>
         <div className="tile"><small>EXPENSES</small><b className={expenses ? 'neg' : ''}>{fmt(expenses)}</b></div>
-        <div className="tile"><small>OWED TO RASHID</small><b className={g.supplier.debt ? 'neg' : ''}>{fmt(g.supplier.debt)}</b></div>
+        {(() => {
+          // everything owed, not only Rashid's stock credit: the month's bill, your father's debt (with
+          // any instalment now due), loans, and a purse run below nothing
+          const total = liabilities(g) + Math.max(0, -g.cash);
+          const dueNow = (g.bills?.due ?? 0) + (g.family?.due ?? 0) + (g.loans ?? []).filter((l) => g.day > l.due).reduce((a, l) => a + l.owed, 0);
+          return (
+            <div className="tile" data-testid="ledger-owed" data-pt={total}>
+              <small>WHAT YOU OWE</small>
+              <b className={total ? 'neg' : ''}>{fmt(total)}</b>
+              {total > 0 && <small>{owedParts(g)}{dueNow > 0 ? ` · ${fmt(dueNow)} due now` : ''}</small>}
+            </div>
+          );
+        })()}
         <div className="tile"><small>REPUTATION</small><b>{g.reputation}</b></div>
       </div>
 

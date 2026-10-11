@@ -18,11 +18,11 @@ export const stockValue = (inv: RugItem[]) =>
 
 /** Everything you owe, each counted once: Rashid's credit, lenders' loans (with their interest),
  *  what is left of your father's debt (the instalment now due is part of it) and unpaid bills. */
-export function liabilities(s: S) {
+export function liabilities(s: Pick<S, 'supplier' | 'loans' | 'family' | 'bills'>) {
   return s.supplier.debt + (s.loans ?? []).reduce((a, l) => a + l.owed, 0) + Math.max(0, s.family?.left ?? 0) + Math.max(0, s.bills?.due ?? 0);
 }
 /** what the "owed" figure is made of, in words: "your father's debt £100 · Rashid £20" */
-export function owedParts(s: S): string {
+export function owedParts(s: Pick<S, 'supplier' | 'loans' | 'family' | 'bills'>): string {
   const parts: [string, number][] = [["Rashid", s.supplier.debt], ['loans', (s.loans ?? []).reduce((a, l) => a + l.owed, 0)], ["your father's debt", Math.max(0, s.family?.left ?? 0)], ['bills', Math.max(0, s.bills?.due ?? 0)]];
   return parts.filter(([, v]) => v > 0).map(([k, v]) => `${k} ${fmt(v)}`).join(' · ');
 }

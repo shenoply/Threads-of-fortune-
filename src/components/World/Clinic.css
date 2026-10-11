@@ -137,3 +137,7 @@
 .cl-consult-scene .cl-say > div { flex: 1; min-width: 0; }
 .cl-consult-scene .cl-say p { -webkit-line-clamp: unset; display: block; font-size: 16px; }
 .cl-consult-scene .cl-say.you { margin-left: 18%; background: rgba(58,38,16,.9); }
+
+/* "All cases" above a case sits on the dark room, not on the cream page: light ink there, and a
+   thumb-sized target */
+.cl-run > .cl-back { color: var(--brass-hi, #e7bd6e) !important; align-self: flex-start; min-height: 40px; padding: 8px 2px; }

@@ -42,7 +42,8 @@ import { shopOpen as malekOpen } from '../../game/systems/malek';
 import { CairoPlace } from './CairoPlaces';
 import { Clinic } from './Clinic';
 import { CLINIC_EVENT } from '../../game/nav';
-import { guideTarget } from '../../game/guide';
+import { guideTarget, objectiveLine } from '../../game/guide';
+import { goObjective } from '../Mission/Mission';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { createPortal } from 'react-dom';
 import './Settlement.css';
@@ -50,6 +51,11 @@ import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
+
+/** The small copy of a picture shown at card size (art/x/y.jpg -> art/x/thumbs/y.webp, 320 wide; 640 wide
+ *  for the full-width ones). The full maps are 1448px and only the walk itself needs them. */
+export const thumb = (src: string, w: 320 | 640 = 320) => src.replace(/^\/?(.*\/)([^/]+)\.(jpe?g|webp|png)$/, `$1thumbs/$2${w === 640 ? '-640' : ''}.webp`);
+const LAZY = { loading: 'lazy', decoding: 'async' } as const;
 export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town' }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab }) {
   const g = useGame();
   const [tab, setTab] = useState<SetTab>(initialTab);
@@ -61,6 +67,27 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const yard = id === 'giza' && initialTab !== 'town' ? ({ market: 'Food souk', animals: 'Animal market', guards: 'Guard yard' } as Record<SetTab, string>)[initialTab] : null;
   const rootRef = useRef<HTMLDivElement>(null);
   const guide = guideTarget(g);
+  // the objective bar sits under this panel, so the panel says it again at its top, with the step's button
+  const obj = objectiveLine(g);
+  // pictures in the panel wait until the town menu over it is closed: nobody sees them before that
+  const lazy = menu ? { ...LAZY, src: undefined } : LAZY;
+  const objGo = () => {
+    if (!obj) return;
+    const local = guide?.tile && (!guide.city || guide.city === id) ? menuItems.find((it) => it[4] === guide.tile) : undefined;
+    if (local) { local[3](); return; }
+    if (obj.go === 'stall' && id === 'giza') { onClose(); onStall(); return; }
+    if (obj.go === 'market' || obj.go === 'animals' || obj.go === 'guards') { goTo(obj.go, obj.go === 'guards' ? 'sec-hire' : undefined); return; }
+    if (obj.go === 'stock') { goObjective('stock', () => {}); return; }
+    // anywhere else: the objective bar's own button knows the way (App's chapterGo); this panel closes with it
+    const bar = document.querySelector<HTMLElement>('[data-testid="first-hour-go"], [data-testid="objective-go"]');
+    if (bar) bar.click(); else onClose();
+  };
+  const objLine = (where: string) => obj && (
+    <div className={`set-obj ${where}`} data-testid={`set-objective-${where}`}>
+      <span><small>{obj.n ? `Step ${obj.n} of ${obj.of}` : 'Objective'}</small><b>{obj.text}</b></span>
+      {obj.btn && !(where === 'panel' && obj.go === tab) && <button className="btn slim" onClick={objGo} data-testid={`set-objective-go-${where}`}>{obj.btn}</button>}
+    </div>
+  );
   useEffect(() => { if (menu) rootRef.current?.scrollTo(0, 0); }, [menu]);
   // the health strip's "See Dr Feras now" (only Cairo has him)
   useEffect(() => {
@@ -135,12 +162,37 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // the town menu's buttons: each is a big way into a part of this panel (or a screen of its own)
+  const people = st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival);
+  const venues = venuesIn(id);
+  const menuItems: [string, string, string, () => void, string][] = [
+    ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s customers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
+    ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
+    ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
+    ['hourglass', 'Wait here', 'Let time pass — trouble on the road may move on before you set off again', () => setWaitOpen(true), 'menu-wait'],
+    ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
+    ...shopsIn(id).map((sh) => ['needle', sh.name, `Clothes catalogue · ${sh.tagline}`, () => setShop(sh.id), `menu-shop-${sh.id}`] as [string, string, string, () => void, string]),
+    ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
+    ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
+    ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
+    ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
+    ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
+    ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
+    ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
+    ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
+    ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
+    ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
+    ...(id === 'cairo' ? [['bag', 'A chemist in the Muski', 'Tonics over the counter; drugs only on prescription', () => setCairoPlace('chemist'), 'menu-chemist'] as [string, string, string, () => void, string]] : []),
+    ...(id === 'cairo' && g.arranVisit?.permitStage ? [['scale', 'The museum store', g.arranVisit.permitStage === 'letter' ? 'Deliver Arran\'s letter to Hamza Effendi' : 'Hamza Effendi has given his permission', () => setCairoPlace('museum'), 'menu-museum'] as [string, string, string, () => void, string]] : []),
+    ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),
+  ];
+
   return (
     <div ref={rootRef} className={`overlay settlement${menu ? ' menu-open' : ''}`} role="dialog" aria-label={st.name} data-testid="settlement">
       {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
       {shop && <Catalogue shopId={shop} onClose={() => setShop(null)} />}
       <div className="set-head">
-        {id === 'giza' ? <img className="thumb" src="art/world/giza-district.jpg" alt="" style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={walk.map} alt="" style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
+        {id === 'giza' ? <img className="thumb" src={thumb('art/world/giza-district.jpg', 640)} alt="" {...lazy} style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={thumb(walk.map, 640)} alt="" {...lazy} style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
         <div className="set-head-shade" />
         <div className="set-title">
           <small>{yard ? 'GIZA' : `${st.region.toUpperCase()} · ${st.kind === 'home' ? 'YOUR STALL' : st.kind.toUpperCase()}`}</small>
@@ -164,13 +216,17 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </div>
       )}
       <div className="set-body">
+        {!menu && objLine('panel')}
+        <div className="set-sticky">
         <div className="set-tabs" role="tablist">
           {([['town', 'Town'], ['market', 'Market'], ['animals', 'Animals'], ['guards', 'Guards']] as [SetTab, string][]).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)} data-testid={`tab-${k}`}>{label}</button>
           ))}
         </div>
-        {note && <p className="set-note" data-testid="set-note">{note}</p>}
+        {/* the purse rides with the tabs: two separate sticky bars ended up on top of each other */}
         {tab !== 'town' && <div className="set-purse" data-testid="set-purse"><Icon name="coin" />You have <b>{fmt(g.cash)}</b></div>}
+        </div>
+        {note && <p className="set-note" data-testid="set-note">{note}</p>}
         {tab === 'town' && (<>
         <p className="set-blurb">{st.blurb}</p>
         {houses.length > 0 && (
@@ -181,7 +237,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               const nd = nextSale(h.id, g.day + (on ? 0 : 0));
               return (
                 <button key={h.id} className={`house-card ${on ? 'on' : ''} ${!Object.keys(g.world.walks ?? {}).some((k) => k.startsWith('auction-')) ? 'feature-new' : ''}`} onClick={() => setHouseWalk(h.id)} data-testid={`house-${h.id}`}>
-                  <img src={art(h.venueMap)} alt="" />
+                  <img src={thumb(art(h.venueMap))} alt="" {...lazy} />
                   <span><b>{h.displayName}</b><small>{h.tier === 'grand' ? 'Grand estate sale' : 'Dealers\' auction'} · {h.district}</small><small className="when">{on ? 'Sale today. Anyone may attend.' : `Next sale ${dateLabel(nd)} (day ${nd})`}</small></span>
                   <em className="enter-pill">Enter ⟶</em>
                 </button>
@@ -191,7 +247,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         )}
         {walk && (
           <button className="city-walk" onClick={() => setInCity(true)} data-testid="walk-city">
-            <img src={walk.map} alt="" />
+            <img src={walk.map ? thumb(walk.map) : undefined} alt="" {...lazy} />
             <span><b>Walk the streets of {st.name}</b><small>{walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 4).join(' · ')}</small></span>
           </button>
         )}
@@ -269,7 +325,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               return (
                 <div key={v.id} className={`court-card venue-card${open ? '' : ' locked'}`} data-testid={`venue-${v.id}`}>
                   <div className="venue-pic">
-                    <img className="court-img" src={open ? venueArt(v, 'exterior') : CLOSED_DOOR} alt={v.name} />
+                    <img className="court-img" src={thumb(open ? venueArt(v, 'exterior') : CLOSED_DOOR, 640)} alt={v.name} {...lazy} />
                     {v.opens && !open && <span className="venue-badge"><Icon name="lock" /> {v.opens.label}</span>}
                     {v.since && open && <span className="venue-badge since">{v.since}</span>}
                   </div>
@@ -293,7 +349,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           <>
             <div className="section-label" id="sec-court">ROYAL COURT</div>
             <div className="court-card" data-testid="court-card">
-              {venue.exterior || venue.map ? <img className="court-img" src={venue.exterior ?? venue.map} alt={venue.name} /> : null}
+              {venue.exterior || venue.map ? <img className="court-img" src={thumb((venue.exterior ?? venue.map)!, 640)} alt={venue.name} {...lazy} /> : null}
               <div className="court-body">
                 <div className="court-who">
                   <PortraitOrCameo id={royal.id} spec={personFor(royal.id)} size={54} />
@@ -410,35 +466,14 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         </div>
       )}
       {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && !shop && (() => {
-        const people = st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival);
-        const venues = venuesIn(id);
+        const items = menuItems;
         const pic = id === 'giza' ? 'art/world/giza-district.jpg' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.jpg` : null);
         const hh = Math.floor(g.world.hour), mm = Math.floor((g.world.hour % 1) * 60);
-        const items: [string, string, string, () => void, string][] = [
-          ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s customers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
-          ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
-          ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
-          ['hourglass', 'Wait here', 'Let time pass — trouble on the road may move on before you set off again', () => setWaitOpen(true), 'menu-wait'],
-          ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
-          ...shopsIn(id).map((sh) => ['needle', sh.name, `Clothes catalogue · ${sh.tagline}`, () => setShop(sh.id), `menu-shop-${sh.id}`] as [string, string, string, () => void, string]),
-          ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
-          ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
-          ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
-          ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
-          ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
-          ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
-          ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
-          ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
-          ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
-          ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
-          ...(id === 'cairo' ? [['bag', 'A chemist in the Muski', 'Tonics over the counter; drugs only on prescription', () => setCairoPlace('chemist'), 'menu-chemist'] as [string, string, string, () => void, string]] : []),
-          ...(id === 'cairo' && g.arranVisit?.permitStage ? [['scale', 'The museum store', g.arranVisit.permitStage === 'letter' ? 'Deliver Arran\'s letter to Hamza Effendi' : 'Hamza Effendi has given his permission', () => setCairoPlace('museum'), 'menu-museum'] as [string, string, string, () => void, string]] : []),
-          ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),
-        ];
         return (
           <div className="town-menu" role="dialog" aria-label={`${st.name}: what to do`} data-testid="town-menu">
             {pic ? <img className="tm-art" src={pic} alt="" draggable={false} /> : <div className="tm-art tm-map"><MapThumb x={st.x} y={st.y} zoom={zoom} /></div>}
             <div className="tm-shade" />
+            {objLine('menu')}
             <div className="tm-body">
               <div className="tm-title">
                 <small>{st.region.toUpperCase()} · {st.kind === 'home' ? 'YOUR STALL' : st.kind.toUpperCase()}</small>

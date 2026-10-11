@@ -11,7 +11,10 @@ export interface Film {
   title: string;
   /** who it introduces, for the shelf of films you have seen */
   name: string;
-  video?: { mp4: string; webm?: string; poster: string; last: string };
+  /** `missing`: the file is not in public/ yet, so the game never asks for it (the server would send
+   *  back the page itself, not a 404) and goes straight to the stills and the narrator. Take the flag
+   *  off once the video is added. */
+  video?: { mp4: string; webm?: string; poster: string; last: string; missing?: boolean };
   /** after the video ends: their main paintings, panned until the narration finishes (never a frozen frame) */
   after?: Still[];
   stills?: Still[];
@@ -47,7 +50,7 @@ export const FILMS: Record<FilmId, Film> = {
   // Both videos carry their own narration. Ids stay 'abuhamid' so old saves keep what they have seen.
   abuhamid: {
     title: "Bilgin's coffee house · Giza", name: 'Bilgin',
-    video: { mp4: 'video/bilgin-intro-cafe.mp4', poster: 'art/cafe/bilgin-cafe-working.webp', last: 'art/cafe/bilgin-cafe-working.webp' },
+    video: { mp4: 'video/bilgin-intro-cafe.mp4', poster: 'art/cafe/bilgin-cafe-working.webp', last: 'art/cafe/bilgin-cafe-working.webp', missing: true },
     ownSound: true,
     // if the video cannot play: the paintings under the narrator
     stills: [
@@ -60,14 +63,14 @@ export const FILMS: Record<FilmId, Film> = {
   // the first time you arrive in Alexandria: the tram square, with its own music and narrator
   alexandria: {
     title: 'Alexandria · 1925', name: 'Alexandria',
-    video: { mp4: 'video/alexandria-arrival.mp4', poster: 'art/cities/alexandria-arrival-poster.webp', last: 'art/cities/alexandria-arrival-poster.webp' },
+    video: { mp4: 'video/alexandria-arrival.mp4', webm: 'video/alexandria-arrival.webm', poster: 'art/cities/alexandria-arrival-poster.webp', last: 'art/cities/alexandria-arrival-poster.webp' },
     ownSound: true,
     stills: [{ src: 'art/cities/alexandria-arrival-poster.webp', fit: 'cover', from: [1.02, 50, 55], to: [1.15, 55, 50] }],
     text: ['Alexandria, 1925. The pearl of the Mediterranean.'],
   },
   'bilgin-chess': {
     title: 'Bilgin · the chess corner', name: 'Bilgin at chess',
-    video: { mp4: 'video/bilgin-intro-chess.mp4', poster: 'art/cafe/bilgin-chess.webp', last: 'art/cafe/bilgin-chess.webp' },
+    video: { mp4: 'video/bilgin-intro-chess.mp4', poster: 'art/cafe/bilgin-chess.webp', last: 'art/cafe/bilgin-chess.webp', missing: true },
     ownSound: true,
     stills: [{ src: 'art/cafe/bilgin-chess.webp', fit: 'cover', from: [1.05, 55, 55], to: [1.35, 60, 42] }],
     text: [
@@ -100,7 +103,9 @@ export const FILMS: Record<FilmId, Film> = {
     ],
   },
 };
-export const filmReady = (id: FilmId) => (!!INTRO_FILMS[id] || !!FILMS[id].text?.length) && (!!FILMS[id].video || !!FILMS[id].stills?.length);
+/** the film's video, if it is there to play (not one marked missing) */
+export const filmVideo = (f: Film) => (f.video && !f.video.missing ? f.video : undefined);
+export const filmReady = (id: FilmId) => (!!INTRO_FILMS[id] || !!FILMS[id].text?.length) && (!!filmVideo(FILMS[id]) || !!FILMS[id].stills?.length);
 /** the buyers whose film plays when they first come to your stall */
 export const STALL_FILMS: FilmId[] = ['nabil', 'cohen'];
 export const FILM_ORDER: FilmId[] = ['rashid', 'abuhamid', 'bilgin-chess', 'arran', 'malek', 'nabil', 'cohen'];

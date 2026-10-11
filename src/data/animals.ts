@@ -84,7 +84,7 @@ export const BREEDS: Record<string, Breed> = {
   },
   baladi_d: {
     id: 'baladi_d', kind: 'donkey', name: 'Egyptian donkey', arabic: 'حمار بلدي', origin: 'Every village in Egypt', role: 'Pack and riding donkey',
-    load: 3, ride: 1.1, food: 0.5, price: 300, coat: ['#8d857a', '#5e574e'],
+    load: 3, ride: 1.1, food: 0.5, price: 250, coat: ['#8d857a', '#5e574e'],
     notes: [
       'The small grey donkey that carries water, clover, vegetables and passengers all over Egypt.',
       'Patient, cheap to feed and to buy. Slow, and stubborn when it has decided to be.',

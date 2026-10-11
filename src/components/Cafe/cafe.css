@@ -200,3 +200,50 @@
 .tawla-table .tw-info--you { justify-content: flex-end; }
 .chess-body .cafe-actions { align-items: center; }
 .chess-body .cafe-actions .cafe-say { margin: 0; }
+
+/* ── a phone-sized board: the table painting is drawn larger than the space and only its middle (the
+   board and a strip of the inlaid frame round it) shows, so the squares and points fill the width
+   instead of a small board floating in a wide frame. The board is 71% of the painting across and
+   25.5%-72.5% down; the tawla board 75.5% across and 24.3%-74.7% down, its Bear off button below it. */
+.chess-body { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+.chess-table { --tw: min(calc((100cqw - 8px) / 0.71), calc((100cqh - 4px) / 0.81)); margin: calc(var(--tw) * -0.33) 0 calc(var(--tw) * -0.36); }
+.chess-body .cafe-end { top: calc(50% - 30px); }
+.tawla-table { --tw: min(calc((100cqw - 8px) / 0.7549), calc((100cqh - 96px) / 1.035)); margin: calc(var(--tw) * -0.315) 0 calc(var(--tw) * -0.15); }
+/* "Bear off" reads as a button even while it waits for its turn */
+.tawla-table .tw-off { background: rgba(20,12,6,.9); color: #f6e7c8; border-color: rgba(227,189,107,.65); min-height: 40px; }
+.tawla-table .tw-off:disabled { opacity: 1; color: #d8c49c; border-color: rgba(227,189,107,.35); }
+.tawla-table .tw-off.dest { background: #2f7d55; color: #fff; border-color: #8fe0b4; }
+/* leaving the room or the table: a full thumb-sized button */
+.cafe-room__head .btn, .cafe-overlay .overlay-head .close { min-width: 44px; min-height: 44px; }
+.cafe-room__head .btn { white-space: nowrap; }
+
+/* ── a phone on its side: the head and the buttons become a column on the right and the painting or
+   the board gets the whole height ── */
+@media (orientation: landscape) and (max-height: 599px) {
+  .cafe-room { display: grid; grid-template-columns: minmax(0, 1fr) 230px; grid-template-rows: auto minmax(0, 1fr); }
+  .cafe-room__head { grid-column: 2; grid-row: 1; padding-left: 10px; }
+  .cafe-room__head b { font-size: 16px; }
+  .cafe-room__pic { grid-column: 1; grid-row: 1 / span 2; }
+  .cafe-room__acts { grid-column: 2; grid-row: 2; grid-template-columns: 1fr; align-content: start; padding: 4px 10px 10px; background: none; }
+  .cafe-act { flex-direction: row; justify-content: flex-start; gap: 10px; min-height: 52px; padding: 6px 12px; }
+  .cafe-act b { font-size: 20px; }
+  .cafe-room__note { right: 242px; bottom: 12px; }
+  .cafe-spot span { font-size: 12px; padding: 2px 8px; }
+  /* Bilgin's label goes above him, clear of the chess table just below */
+  .cafe-spot[data-testid="cafe-spot-bilgin"] { flex-direction: column-reverse; }
+  .cafe-spot[data-testid="cafe-spot-bilgin"] span { margin: 0 0 4px; }
+
+  .cafe-overlay.at-chess, .cafe-overlay.at-tawla { flex-direction: row; }
+  .cafe-overlay .cafe-head { flex: 0 0 236px; width: 236px; overflow-y: auto; border-bottom: 0; border-right: 1px solid rgba(201,162,74,.35); }
+  .cafe-head__top { flex-wrap: wrap; }
+  .cafe-head__top h2 { flex: 1 1 100%; order: -1; font-size: 17px; }
+  .cafe-scores { grid-template-columns: 1fr; }
+  .chess-body, .tawla-body { flex: 1 1 auto; min-width: 0; padding-bottom: 8px; }
+  .chess-table { --tw: min(calc((100cqw - 330px) / 0.71), calc((100cqh - 4px) / 0.81)); }
+  .tawla-table { --tw: min(calc((100cqw - 330px) / 0.7549), calc((100cqh - 4px) / 1.035)); }
+  /* what to do next sits beside the board, not under it */
+  .chess-body .cafe-actions { left: auto; right: 10px; bottom: 12px; width: 150px; flex-direction: column; align-items: stretch; }
+  .tawla-body .cafe-say { position: absolute; right: 10px; bottom: 12px; width: 150px; margin: 0; z-index: 2; }
+  .tawla-body .cafe-actions { position: absolute; left: 10px; bottom: 12px; z-index: 2; }
+}
+@media (pointer: coarse) { .cafe-spot::after { content: ''; position: absolute; inset: -4px; } }

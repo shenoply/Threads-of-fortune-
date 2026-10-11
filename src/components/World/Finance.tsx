@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
-import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, overdue, premiumFor, ruinRisk } from '../../game/systems/finance';
+import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, overdue, premiumFor, ruinRisk, rugValue } from '../../game/systems/finance';
 import { settlementById } from '../../game/systems/world';
 
 /**
@@ -42,6 +42,7 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
               {ruin.stage === 1
                 ? `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} days, or the bailiff comes to the stall.`
                 : `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.court - (g.day - ruin.since))} days, or the Mixed Court will declare you bankrupt.`}
+              {totalOwed > owed ? ` In all you owe ${fmt(totalOwed)}.` : ''}
               {' '}Sell rugs, borrow, or cut your costs.
               {(g.bankruptcies ?? 0) > 0 && <><br /><b>A second bankruptcy ends your father&rsquo;s business for good.</b></>}
               <div className="ruin-meter" data-testid="ruin-risk"><i style={{ width: `${risk}%` }} /></div>
@@ -76,18 +77,27 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
         {lendersHere.map((L) => {
           const max = L.max(g.reputation);
           const has = loans.some((l) => l.lender === L.id);
+          // the same checks the lender makes, shown before you ask rather than after
+          const stock = g.inventory.reduce((a, i) => a + rugValue(i), 0);
+          const shut = g.reputation < L.minRep ? `They lend from reputation ${L.minRep}. Yours is ${g.reputation}.`
+            : (g.bankruptcies ?? 0) > 0 && L.id === 'misr' ? 'The bank has your name on its list of bankrupts.' : '';
           return (
             <div className="fin-lender" key={L.id} data-testid={`lender-${L.id}`}>
               <b>{L.name}</b><small>{L.who}</small>
               <p>{L.blurb}</p>
               <p className="dim">Up to {fmt(max)} · repay {L.owedPer100 - 100}% more within {L.days} days{L.minRep ? ` · needs reputation ${L.minRep}` : ''}.</p>
+              {!has && shut && <p className="fin-line warn" data-testid={`borrow-${L.id}-why`}>{shut}</p>}
               {!has && (
                 <div className="save-row">
-                  {[500, 1000, max].filter((v, i, a) => v <= max && a.indexOf(v) === i).map((v) => (
-                    <button key={v} className="btn" onClick={() => setNote(g.borrow(L.id, v))} data-testid={`borrow-${L.id}-${v}`}>Borrow {fmt(v)}</button>
-                  ))}
+                  {[500, 1000, max].filter((v, i, a) => v <= max && a.indexOf(v) === i).map((v) => {
+                    const short = L.id === 'misr' && stock < v;
+                    return (
+                      <button key={v} className="btn" disabled={!!shut || short} title={shut || (short ? `They want stock worth ${fmt(v)}. Yours is worth ${fmt(stock)}.` : undefined)} onClick={() => setNote(g.borrow(L.id, v))} data-testid={`borrow-${L.id}-${v}`}>Borrow {fmt(v)}</button>
+                    );
+                  })}
                 </div>
               )}
+              {!has && !shut && L.id === 'misr' && stock < 500 && <p className="dim">The bank wants stock worth at least the loan. Yours is worth {fmt(stock)}.</p>}
             </div>
           );
         })}

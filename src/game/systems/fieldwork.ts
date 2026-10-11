@@ -46,10 +46,13 @@ export function fatigueEffect(c: Condition1925 | undefined, day: number) {
 }
 
 /** One day passes: rest in a town, march on the road. Food and the road diet act slowly. */
-export function dayCondition(c: Condition1925 | undefined, o: { day: number; onRoad: boolean; hungry: boolean }): Condition1925 {
+export function dayCondition(c: Condition1925 | undefined, o: { day: number; onRoad: boolean; hungry: boolean; camped?: boolean }): Condition1925 {
   const s = { ...(c ?? CONDITION_START) };
   const diet = (s.dietUntil ?? 0) >= o.day;
-  if (o.onRoad) s.fatigue += 12 - (diet ? 4 : 0);
+  // a night asleep in camp (or on a train) mends some of the day's wear, though less than a bed in
+  // town; only a night spent marching through the dark adds to it
+  if (o.onRoad && o.camped) s.fatigue -= 14 + (diet ? 4 : 0);
+  else if (o.onRoad) s.fatigue += 12 - (diet ? 4 : 0);
   else s.fatigue -= 22 + (diet ? 6 : 0);
   if (o.hungry) s.fatigue += 15;
   if (s.crashDay === o.day) s.fatigue += 40;
@@ -118,7 +121,7 @@ export function resolvePass(risk: number, roll: number, strength: number, cash: 
   // raiders: your strength against theirs
   const theirs = 4 + Math.round(risk / 10);
   if (strength >= theirs) return { kind: 'raiders_driven_off', text: `Raiders come down at the narrows, about ${theirs} strong. Your men hold, and they ride off. Nobody is badly hurt.`, fatigue: 22, foodLost: 1, cashLost: 0, cargoLost: false, extraDays: 0 };
-  return { kind: 'raiders_robbed', text: `Raiders come down at the narrows, about ${theirs} strong, more than you can hold. They take a share of your money and whatever cargo they can carry, and leave you your camels.`, fatigue: 28, foodLost: Math.min(food, 3), cashLost: Math.round(cash * 0.2), cargoLost: true, extraDays: 1 };
+  return { kind: 'raiders_robbed', text: `Raiders come down at the narrows, about ${theirs} strong, more than you can hold. They take a share of your money and whatever cargo they can carry, and leave you the rest.`, fatigue: 28, foodLost: Math.min(food, 3), cashLost: Math.round(cash * 0.2), cargoLost: true, extraDays: 1 };
 }
 
 // ---------------- cargo and the law of 1925 ----------------

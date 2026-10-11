@@ -27,7 +27,7 @@ export const OPENING: OpeningStep[] = [
   { id: 'bilgin', text: () => 'Ask Bilgin where to sell for more.', btn: 'To Bilgin\'s', go: 'district', done: (s) => (s.world.rumours ?? []).some((r) => r.includes(BILGIN_TIP)) },
   { id: 'guards', text: () => 'Hire a guard at the guard yard.', btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
   { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
-  { id: 'bandits', text: () => 'Travel to Alexandria. The train is quickest.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
+  { id: 'bandits', text: () => 'Take the train to Alexandria.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
   { id: 'auction', text: () => 'Buy one rug in Alexandria.', btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction },
 ];
 

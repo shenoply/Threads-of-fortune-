@@ -34,7 +34,9 @@ function syncFrom(b: Uint8Array, i: number): number {
   return Math.max(0, i);
 }
 
-const CLIP_CACHE = 40; // recent lines kept decoded; a few seconds each
+const CLIP_CACHE = 40;
+/** every recording is 32 kbit/s MP3 (4,000 bytes a second); a file made at another rate is caught by clip() */
+const RATE_GUESS = 4000; // recent lines kept decoded; a few seconds each
 
 /** speakers whose price lines are voiced without the number (it stays on screen) */
 const SILENT_NUMBERS = new Set(['seller']);
@@ -73,8 +75,8 @@ interface Sprite { file: string; clips: Record<string, [number, number]> }
 class Voice {
   private sprites: Record<string, Sprite> = {};
   private files: Record<string, Uint8Array | 'loading' | 'failed'> = {};
-  /** bytes per second of each character's file, read from its first frame */
-  private rates: Record<string, Promise<number>> = {};
+  /** bytes per second of each character's file, once a fetched line has shown it differs from RATE_GUESS */
+  private rates: Record<string, number> = {};
   private clips = new Map<string, Promise<{ buf: AudioBuffer; lead: number } | null>>();
   private loading: Promise<void> | null = null;
   private ctx: AudioContext | null = null;
@@ -139,17 +141,15 @@ class Voice {
     }
   }
 
-  /** The file's byte rate, from a small read of its first frames. */
+  /** The file's byte rate: what its fetched lines have shown, or the rate all the recordings are made at. */
   private rateOf(sp: string) {
-    if (!this.rates[sp]) {
-      this.rates[sp] = this.range(sp, 0, 4096).then((r) => (r ? frameAt(r.bytes, syncFrom(r.bytes, 0))?.bytesPerSec ?? 4000 : 4000));
-    }
-    return this.rates[sp];
+    return this.rates[sp] ?? RATE_GUESS;
   }
 
-  /** Warm a character's voice: a 4 KB read, not the whole file. */
-  preload(speakers: string[]) {
-    for (const sp of speakers) if (this.sprites[sp]) void this.rateOf(sp);
+  /** Nothing to fetch ahead any more: the byte rate is no longer read from the file before the first
+   *  line (every line's own bytes carry it), so a character's first line is a single request. */
+  preload(_speakers: string[]) {
+    void this.load();
   }
 
   isLoading(_speaker: string) {
@@ -159,10 +159,8 @@ class Voice {
   loadedOnce = false;
 
   /** Resolves once a character's voice file is ready (or cannot be loaded). */
-  async whenReady(speaker: string, timeoutMs = 4000) {
+  async whenReady(_speaker: string, _timeoutMs = 4000) {
     await this.load();
-    if (!this.sprites[speaker]) return;
-    await Promise.race([this.rateOf(speaker), new Promise((r) => setTimeout(r, timeoutMs))]);
   }
 
   private segments(speaker: string, text: string): [number, number][] | null {
@@ -200,13 +198,22 @@ class Voice {
     const hit = this.clips.get(key);
     if (hit) return hit;
     const p = (async () => {
-      const rate = await this.rateOf(speaker);
       const margin = 0.3;
-      const want = Math.max(0, Math.floor((seg[0] - margin) * rate));
-      const got = await this.range(speaker, want, Math.ceil((seg[0] + seg[1] + margin) * rate));
+      const fetchAt = (rate: number) => this.range(speaker, Math.max(0, Math.floor((seg[0] - margin) * rate)), Math.ceil((seg[0] + seg[1] + margin) * rate));
+      let rate = this.rateOf(speaker);
+      let got = await fetchAt(rate);
       if (!got || !got.bytes.length) return null;
       // cut at a frame boundary so the decoder starts cleanly
-      const cut = syncFrom(got.bytes, 0);
+      let cut = syncFrom(got.bytes, 0);
+      // the frame there says what the file's byte rate really is; a file recorded at another rate
+      // is fetched again at the right place (once: the rate is then known for that character)
+      const real = frameAt(got.bytes, cut)?.bytesPerSec;
+      if (real && real !== rate) {
+        this.rates[speaker] = rate = real;
+        got = await fetchAt(rate);
+        if (!got || !got.bytes.length) return null;
+        cut = syncFrom(got.bytes, 0);
+      }
       const from = got.offset + cut;
       try {
         const buf = await this.audioCtx().decodeAudioData(got.bytes.slice(cut).buffer);

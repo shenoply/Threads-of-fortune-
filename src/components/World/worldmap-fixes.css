@@ -24,3 +24,17 @@
   .world .bl-party:not(.open) small { display: none; }
   .world .bl-date small { font-size: 9.5px; }
 }
+
+/* thumb-sized controls on the clock bar and the caravan strip: the speed and Nights buttons keep
+   their slim look and answer a tap over a taller area; the strip itself is a full 40px */
+.world .bl-speeds button, .world .bl-n { position: relative; }
+.world .bl-speeds button { min-width: 40px; }
+.world .bl-speeds button::after { content: ''; position: absolute; inset: -6px 0; }
+.world .bl-n { min-width: 40px; }
+.world .bl-n::after { content: ''; position: absolute; inset: -8px -1px; }
+.world .bl-party { min-height: 40px; }
+@media (max-width: 520px) {
+  .world .bl-speeds button { min-width: 38px; height: 32px; }
+  .world .bl-n { height: 30px; }
+  .world .bl-party:not(.open) { min-height: 40px; }
+}

@@ -335,7 +335,7 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
     const cnt = Math.abs(n);
     const isDest = dests.some((s) => s.to === i);
     return (
-      <button className={`tw-pt ${top ? 'top' : 'bot'} ${i % 2 ? 'odd' : 'even'}${sel === i ? ' sel' : ''}${isDest ? ' dest' : ''}${turn === 1 && fromOk(i) ? ' can' : ''}`} onClick={() => tapPoint(i)} data-pt={i + 1}>
+      <button className={`tw-pt ${top ? 'top' : 'bot'} ${i % 2 ? 'odd' : 'even'}${sel === i ? ' sel' : ''}${isDest ? ' dest' : ''}${turn === 1 && fromOk(i) ? ' can' : ''}`} onClick={() => tapPoint(i)} data-pt={i + 1} aria-label={`Point ${i + 1}${cnt ? `, ${cnt} ${n > 0 ? 'of yours' : 'of Bilgin\'s'}` : ', empty'}`}>
         <span className="tri" />
         <span className="stack">
           {Array.from({ length: Math.min(cnt, 5) }, (_, k) => <span key={k} className={`ck ${n > 0 ? 'you' : 'him'}`}>{k === 4 && cnt > 5 ? cnt : ''}</span>)}
@@ -345,7 +345,7 @@ function TawlaTable({ strength, stake, onEnd, onQuit }: TableProps) {
     );
   };
   const Bar = ({ side }: { side: Side }) => (
-    <button className={`tw-bar${side === 1 && sel === 'bar' ? ' sel' : ''}${side === 1 && turn === 1 && fromOk('bar') ? ' can' : ''}`} onClick={() => side === 1 && tapPoint('bar')} data-testid={side === 1 ? 'tw-bar-you' : undefined}>
+    <button className={`tw-bar${side === 1 && sel === 'bar' ? ' sel' : ''}${side === 1 && turn === 1 && fromOk('bar') ? ' can' : ''}`} onClick={() => side === 1 && tapPoint('bar')} data-testid={side === 1 ? 'tw-bar-you' : undefined} aria-label={`${side === 1 ? 'Your' : 'Bilgin\'s'} checkers on the bar: ${board.bar[side]}`}>
       {Array.from({ length: board.bar[side] }, (_, k) => <span key={k} className={`ck ${side === 1 ? 'you' : 'him'}`} />)}
     </button>
   );

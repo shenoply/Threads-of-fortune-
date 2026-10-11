@@ -12,7 +12,7 @@ import type { HeroLook } from '../heroLook';
 import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
 import { applyAuctionObservation, type MarketIntelRecord } from '../auction/marketIntel';
 import { shouldReofferUnsoldLot, reducedReserveForReoffer, totalAuctionCost } from '../auction/auctionSystem';
-import { houseOfFortune } from '../economy/progress';
+import { houseOfFortune, liabilities, owedParts } from '../economy/progress';
 import { laneDay, isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
 import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
@@ -56,7 +56,7 @@ import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
-import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
+import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 export const SAVE_VERSION = 21;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
@@ -82,6 +82,8 @@ export interface DaySummary {
   gross: number;
   expenses: number;
   notes: string[];
+  /** the evening's notes have been read (or were already shown on the road) */
+  seen?: boolean;
 }
 
 export interface SimSettings { illness: boolean; injuries: boolean; needs: boolean }
@@ -157,6 +159,8 @@ export interface GameState {
   stallShut?: boolean;
   /** a note from a job, shown once */
   jobNote?: string;
+  /** a sale or job waiting on the player's yes: who wants what, and for how much */
+  jobOffer?: { kind: 'visit' | 'job'; city: string; title: string; text: string; yes: string };
   /** days on which you sat in on an auction or walked a city's streets */
   satDay?: number;
   walkedDay?: number;
@@ -294,7 +298,13 @@ interface Actions {
   arriveAt: (id: string | null) => void;
   /** collect, inspect and deliver cargo on arriving somewhere */
   cargoAt: (id: string) => void;
-  checkJobs: (id: string) => void;
+  /** arriving somewhere: a visitor who wants a rug, or a job that is ready, is offered (never done
+   *  without asking). `confirm` carries it out, once the player has said yes. */
+  checkJobs: (id: string, confirm?: 'visit' | 'job') => void;
+  /** yes to the offer waiting in jobOffer */
+  acceptJobOffer: () => void;
+  /** no thank you: the offer goes, the rug stays packed */
+  declineJobOffer: () => void;
   /** settle a stand-off or a battle on the road */
   /** the opening's small band of robbers, put on the road where you are; returns it to meet */
   spawnOpeningBandits: (at: { x: number; y: number }) => Party;
@@ -351,6 +361,8 @@ interface Actions {
   inspectorUsed: () => void;
   inspectorClosed: () => void;
   endDay: () => void;
+  /** put away the evening's notes once they have been read */
+  dismissSummary: () => void;
   clearMissionNews: () => void;
   /** Close a lot: winner 'you', a bidder id, or null when it is bought in. */
   lotResult: (houseId: string, lot: Lot, winner: string | null, price: number, winnerName?: string) => string;
@@ -921,7 +933,7 @@ export const useGame = create<GameState & Actions>()(
       };
 
       /** Close one day: upkeep, restoration, Rashid's new stock, tomorrow's visitors. */
-      const rollover = (s: GameState): { patch: Partial<GameState>; summary: DaySummary } => {
+      const rollover = (s: GameState, o: { camped?: boolean } = {}): { patch: Partial<GameState>; summary: DaySummary } => {
           const notes: string[] = [];
           const ledger = [...s.ledger];
           const journal = [...s.journal];
@@ -943,7 +955,7 @@ export const useGame = create<GameState & Actions>()(
             cash -= foodCost;
           }
           // the merchant's tiredness: rest in a town, wear on the road, the road diet and any stimulant
-          const condBase = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0 });
+          const condBase = dayCondition(night.c, { day: s.day + 1, onRoad: !s.world.at, hungry: (party.hungryDays ?? 0) > 0, camped: !!o.camped });
           // illness: new cases, the days of an old one, and the crisis that can kill
           const ill = stepIllness(s.illnesses, { day: s.day + 1, onRoad: !s.world.at, thirsty: !!night.thirsty, fatigue: condBase.fatigue, at: s.world.at, mounted: Object.values(party.animals ?? {}).some((n) => (n ?? 0) > 0) }, { risk: s.illRisk ?? 1, deadly: !!s.ironman, resting: !!s.world.at, noDisease: !!s.sim && !s.sim.illness && !s.ironman, noInjury: !!s.sim && !s.sim.injuries && !s.ironman });
           for (const n of ill.notes) notes.push(n);
@@ -969,6 +981,8 @@ export const useGame = create<GameState & Actions>()(
           const aGuard = (ids: string[]) => ids[Math.floor(rng() * ids.length)];
           if (party.food >= need) {
             party.food -= need; party.hungryDays = 0;
+            // on the road your own supper comes out of the same sacks: it fills you, if not as well as Malek
+            if (!s.world.at) condition = eatRation(condition);
             if (troopIds().length) moraleV = Math.min(100, moraleV + 3);
           } else {
             party.food = 0;
@@ -1147,7 +1161,11 @@ export const useGame = create<GameState & Actions>()(
           } else {
             if (ruin.stage === 0) {
               ruin = { stage: 1, since: day };
-              const text = `A lawyer's letter: you owe ${fmt(owedNow)} that is overdue. Pay within ${RUIN_STEPS.bailiff} days, or the bailiff comes to the stall.`;
+              // the letter names the overdue sum it acts on, and everything else you owe besides
+              const all = { cash, supplier: sup, loans, family, bills };
+              const total = liabilities(all) + Math.max(0, -cash);
+              const parts = owedParts(all);
+              const text = `A lawyer's letter: ${fmt(owedNow)} of what you owe is overdue${total > owedNow ? `, out of ${fmt(total)} in all (${parts}${cash < 0 ? `, and ${fmt(-cash)} short in the purse` : ''})` : ''}. Pay the overdue sum within ${RUIN_STEPS.bailiff} days, or the bailiff comes to the stall.`;
               notes.push(text); journal.push({ day, text, kind: 'due' });
             }
             const late = day - ruin.since;
@@ -1352,8 +1370,8 @@ export const useGame = create<GameState & Actions>()(
           let patch: Partial<GameState> = {};
           while (hour >= 24) {
             hour -= 24;
-            const r = rollover({ ...s, ...patch } as GameState);
-            patch = { ...patch, ...r.patch, lastSummary: r.summary };
+            const r = rollover({ ...s, ...patch } as GameState, { camped: !!safe });
+            patch = { ...patch, ...r.patch, lastSummary: { ...r.summary, seen: true } };
             const roadNotes = r.summary.notes.filter((n) => !/buyers are likely|Only one of your/.test(n));
             notes.push(`Day ${r.summary.day + 1} on the road.`, ...roadNotes);
             roadNotes.forEach((text) => roadJournal.push({ day: r.summary.day, text, kind: 'road' }));
@@ -1405,7 +1423,7 @@ export const useGame = create<GameState & Actions>()(
           while (hour >= 24) {
             hour -= 24;
             const r = rollover({ ...s, ...patch } as GameState);
-            patch = { ...patch, ...r.patch, lastSummary: r.summary };
+            patch = { ...patch, ...r.patch, lastSummary: { ...r.summary, seen: true } };
             notes.push(...r.summary.notes.filter((n) => !/buyers are likely|Only one of your/.test(n)));
           }
           s = { ...s, ...patch } as GameState;
@@ -1571,10 +1589,10 @@ export const useGame = create<GameState & Actions>()(
           return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.${claim ? ` You are insured: the agent in the next town will pay ${fmt(claim)}.` : ''}` : o.text;
         },
 
-        checkJobs: (id) => {
+        checkJobs: (id, confirm) => {
           const s = get();
           // a visitor in this town first
-          const visit = (s.visits ?? []).find((v) => v.city === id && v.until >= s.day);
+          const visit = confirm === 'job' ? undefined : (s.visits ?? []).find((v) => v.city === id && v.until >= s.day);
           if (visit) {
             const tierOfV = (i: RugItem) => RUGS[i.typeId]?.tier ?? 1;
             const rug = s.inventory.filter((i) => !i.stored && !keptBack(s, i) && tierOfV(i) >= visit.tier).sort((a, b) => tierOfV(a) - tierOfV(b))[0];
@@ -1585,7 +1603,13 @@ export const useGame = create<GameState & Actions>()(
               // visit.who reads as a sentence subject ("A Tanta cotton merchant is...") capital and all,
               // but these two lines drop it into the middle of a sentence instead
               const midWho = visit.who.charAt(0).toLowerCase() + visit.who.slice(1);
+              // ask first: the rug only changes hands once you say so
+              if (confirm !== 'visit') {
+                set({ jobOffer: { kind: 'visit', city: id, title: `A buyer in ${settlementById(id).name}`, text: `${visit.who} would buy your ${t.name} (${rug.condition.toLowerCase()}) for ${fmt(pay)}.`, yes: `Sell it for ${fmt(pay)}` } });
+                return;
+              }
               set({
+                jobOffer: undefined,
                 cash: s.cash + pay,
                 reputation: s.reputation + visit.rep,
                 inventory: s.inventory.filter((i) => i.uid !== rug.uid),
@@ -1610,6 +1634,15 @@ export const useGame = create<GameState & Actions>()(
           // during the opening a side job's demands (a Fine rug, a trip home) would read as the step's own
           // instructions and contradict it: it waits until the opening is done
           if (missing) { if (!openingStep(s)) set({ jobNote: `${job.title}: you need to ${missing}.` }); return; }
+          // a job that takes one of your rugs or a fee is put to you first, and done only on your yes
+          const sells = !!(packed && job.reward.sellPacked);
+          if (confirm !== 'job' && (sells || job.reward.fee)) {
+            const t = packed ? RUGS[packed.typeId] : undefined;
+            const pay = sells && t ? snap(((t.valueBand[0] + t.valueBand[1]) / 2) * CONDITION_FACTOR[packed!.condition] * job.reward.sellPacked!) : 0;
+            const terms = [sells && t ? `They would take your ${t.name} (${packed!.condition.toLowerCase()}) for ${fmt(pay)}` : '', job.reward.fee ? `It costs ${fmt(job.reward.fee)}` : ''].filter(Boolean).join('. ');
+            set({ jobOffer: { kind: 'job', city: id, title: job.title, text: `${job.text} ${terms}.`, yes: sells ? `Sell it for ${fmt(pay)}` : `Pay ${fmt(job.reward.fee ?? 0)}` } });
+            return;
+          }
           let cash = s.cash - (job.reward.fee ?? 0) + (job.reward.cash ?? 0);
           let inventory = s.inventory;
           const ledger = [...s.ledger];
@@ -1637,9 +1670,19 @@ export const useGame = create<GameState & Actions>()(
             jobsDone: [...(s.jobsDone ?? []), job.id],
             journal: [...s.journal, { day: s.day, text: `${job.title}: ${job.done}`, kind: 'arrive' }],
             jobNote: `Job done: ${job.title} (${net >= 0 ? '+' : ''}${fmt(net)}). ${job.done}`,
+            jobOffer: undefined,
           });
           audio.sfx('coins');
         },
+
+        acceptJobOffer: () => {
+          const o = get().jobOffer;
+          set({ jobOffer: undefined });
+          // only where you stand: an offer left over from another town lapses
+          if (o && get().world.at === o.city) get().checkJobs(o.city, o.kind);
+        },
+
+        declineJobOffer: () => set({ jobOffer: undefined }),
 
         sail: (to, mode = 'sea', fromOverride) => {
           const s = get();
@@ -2330,7 +2373,13 @@ export const useGame = create<GameState & Actions>()(
         },
 
         waitForCustomer: () => {
-          const s = get();
+          let s = get();
+          // a customer who has already gone (sold, walked, or left on arrival) is cleared first, the
+          // same as "Next customer", so the stall sheet's button never sits there doing nothing
+          if (s.encounter?.outcome) {
+            set({ encounter: null });
+            s = get();
+          }
           if (s.encounter || s.dayOver) return;
           if (s.held) { get().nextVisit(); return; }
           if (s.visitIdx >= s.queue.length) { set({ dayOver: true, world: { ...s.world, hour: Math.max(s.world.hour, 19) } }); return; }
@@ -2654,6 +2703,11 @@ export const useGame = create<GameState & Actions>()(
           const lost = Math.min(8, healthEffects((patch.illnesses ?? get().illnesses) as Illness[] | undefined).hours);
           set({ ...patch, lastSummary: summary, world: { ...(patch.world ?? get().world), hour: 7 + lost } });
           audio.sfx('pen');
+        },
+
+        dismissSummary: () => {
+          const ls = get().lastSummary;
+          if (ls && !ls.seen) set({ lastSummary: { ...ls, seen: true } });
         },
 
         buyOffer: (uid, credit) => {

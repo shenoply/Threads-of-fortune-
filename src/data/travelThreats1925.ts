@@ -289,7 +289,7 @@ export const THREAT_LINES: Record<string, { open: string; demand: string; strip:
   'egypt-rural-highway-robbers': {
     open: 'Men with cudgels and one old rifle step out from the sugar cane and block the track.',
     demand: 'Their leader spits. "A merchant pays for the road. Everyone pays for the road."',
-    strip: 'They pull the bales off your animals, empty your purse into a cloth and leave you standing in the dust.',
+    strip: 'They go through your packs, empty your purse into a cloth and leave you standing in the dust.',
     talkOk: 'You talk about the price of cotton and the Tanta mawlid. Someone knows your father. They wave you on.',
     talkBad: 'They laugh at your jokes and then name their price.',
   },
@@ -310,14 +310,14 @@ export const THREAT_LINES: Record<string, { open: string; demand: string; strip:
   'syria-1925-rebels': {
     open: 'Armed men in keffiyehs stop you at a stone wall across the road. This is the revolt\'s country now.',
     demand: 'Their commander asks for a contribution to the cause. It is not really a question. "Every merchant on this road gives something for Syria. What will you give?"',
-    strip: 'They requisition your animals\' loads "for the fighters" and give you a signed paper that no one will honour.',
+    strip: 'They requisition your goods "for the fighters" and give you a signed paper that no one will honour.',
     talkOk: 'You show your papers and say you are only a merchant from Giza. The commander lets you pass, and warns you off the Ghouta.',
     talkBad: 'The commander listens, then asks again for the contribution.',
   },
   'iraq-border-smuggler-brigands': {
     open: 'A string of loaded camels and armed men comes out of a dry wadi. Smugglers, and not friendly ones.',
     demand: '"This is our road. You pay the road, or you trade with us, or you go home."',
-    strip: 'They strip your bales for anything worth carrying across the frontier and leave the rest in the sand.',
+    strip: 'They go through your packs for anything worth carrying across the frontier and leave the rest in the sand.',
     talkOk: 'You trade news of French patrols for a safe passage. Everyone leaves happy.',
     talkBad: 'They listen to your news and then name their price anyway.',
   },

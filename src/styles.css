@@ -82,7 +82,7 @@ img { max-width: 100%; }
 .hud-chip.flash { animation: chipflash 0.9s ease; }
 @keyframes chipflash { 0% { background: rgba(231,189,110,0.55); } 100% { background: rgba(0,0,0,0.25); } }
 .icon-btn {
-  width: 34px; height: 34px; display: grid; place-items: center;
+  width: 42px; height: 42px; display: grid; place-items: center; flex: none;
   border: 1px solid var(--line); border-radius: 50%; background: rgba(0,0,0,0.25);
 }
 .icon-btn svg { width: 17px; height: 17px; color: var(--brass); }
@@ -546,7 +546,7 @@ table.ledger .neg { color: var(--bad); }
 @keyframes rise2 { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ---------- Wide / landscape ---------- */
-@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (min-height: 600px) {
   .stall { grid-template-rows: auto minmax(260px, 1fr) auto auto; grid-template-columns: 1.35fr 1fr; }
   .stall-toolbar { grid-column: 1 / -1; }
   .scene { grid-column: 1 / -1; aspect-ratio: auto; max-height: none; height: 100%; }
@@ -872,7 +872,7 @@ table.ledger .neg { color: var(--bad); }
 .audience-overlay .stall { grid-template-rows: minmax(0, 1fr) auto auto auto; }
 .audience-overlay .scene.audience { aspect-ratio: auto; max-height: none; height: 100%; min-height: 300px; }
 .audience .plate-row .name, .plate-row .name { white-space: nowrap; }
-@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (min-height: 600px) {
   .audience-overlay .stall { grid-template-rows: minmax(300px, 1fr) auto auto; }
 }
 .pcrown { position: absolute; left: 50%; top: -17px; transform: translateX(-50%); font-size: 16.5px; color: #f2c96a; text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 6px rgba(154,51,38,.9); pointer-events: none; }
@@ -2349,8 +2349,8 @@ button.hud-chip { cursor: pointer; }
   .stall.in-talk > .stall-toolbar > * { pointer-events: auto; }
   .stall.in-talk > .stall-toolbar > [data-testid="let-go"] { margin-left: auto; }
   /* keep clear of the toolbar's own bottom-right corner, now that Let them go sits there too */
-  .stall.in-talk .skip-hint { bottom: 46px; }
-  .stall.in-talk .step-away { min-height: 34px; padding: 4px 10px; font-size: 13px; border-width: 1px; border-radius: 16px; background: rgba(32,20,12,.86); backdrop-filter: blur(2px); }
+  .stall.in-talk .skip-hint { bottom: 56px; }
+  .stall.in-talk .step-away { min-height: 44px; padding: 4px 14px; font-size: 13.5px; border-width: 1px; border-radius: 22px; background: rgba(32,20,12,.86); backdrop-filter: blur(2px); }
   .stall.in-talk .step-away small { display: none; }
   .stall.in-talk > .scene { aspect-ratio: auto; height: 100%; max-height: none; min-height: 96px; }
   .stall.in-talk > .band { overflow: visible; min-height: min-content; gap: 4px; padding: 6px 10px 4px; }
@@ -2364,12 +2364,12 @@ button.hud-chip { cursor: pointer; }
   .stall.in-talk .band .plate-buyer .meter { min-width: 0; }
   .stall.in-talk .band .plate-buyer .values { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .stall.in-talk .band .plate-buyer .role { display: none; }
-  .stall.in-talk > .tray-handle { grid-area: tray; display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%; min-height: 32px; padding: 4px 10px; border: 0; border-top: 1px solid var(--line); background: #150e08; color: var(--text-dim); font-family: var(--label); font-size: 13px; touch-action: none; }
-  .stall.in-talk > .tray-handle i { width: 34px; height: 4px; border-radius: 2px; background: rgba(231,189,110,.45); position: absolute; margin-top: -22px; }
+  .stall.in-talk > .tray-handle { grid-area: tray; display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%; min-height: 40px; padding: 2px 10px; border: 0; border-top: 1px solid var(--line); background: #150e08; color: var(--text-dim); font-family: var(--label); font-size: 13px; touch-action: none; }
+  .stall.in-talk > .tray-handle i { width: 34px; height: 4px; border-radius: 2px; background: rgba(231,189,110,.45); position: absolute; margin-top: -26px; }
   .stall.in-talk > .tray-handle b { color: var(--parchment); font-weight: 500; }
   .stall.in-talk > .tray-handle span { color: var(--brass-hi); }
   .stall.in-talk.tray-shut > .rugstrip { display: none; }
-  .stall.in-talk > .rugstrip, .stall.in-talk > .tray-handle, .stall.in-talk > .help-link { min-height: min-content; }
+  .stall.in-talk > .rugstrip, .stall.in-talk > .help-link { min-height: min-content; }
   .stall.in-talk > .actions { min-height: min-content; padding: 5px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
   .stall.in-talk .act { min-height: 46px; padding: 5px 8px; }
   .stall.in-talk .act .t { font-size: 15px; }
@@ -2386,7 +2386,7 @@ button.hud-chip { cursor: pointer; }
   .stall.in-talk .band .plate-row .tier { font-size: 11px; padding: 0 5px; }
   .stall.in-talk .band .plate-buyer .values:empty { display: none; }
 }
-@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (min-height: 600px) {
   .app:has(.stall.in-talk) .nav { display: flex; }
   .stall.in-talk > .stall-toolbar, .stall.in-talk > .scene, .stall.in-talk > .band, .stall.in-talk > .rugstrip, .stall.in-talk > .actions { grid-column: 1; }
   .stall.in-talk > .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -2408,7 +2408,7 @@ button.hud-chip { cursor: pointer; }
 .evening-strip .es-text { flex: 1 1 100% !important; flex-direction: row !important; flex-wrap: wrap; align-items: baseline; column-gap: 10px; }
 .evening-strip .es-text > b { font-size: 14px !important; line-height: 20px !important; white-space: nowrap; }
 .evening-strip .es-lines { font-size: 13.5px !important; line-height: 20px !important; column-gap: 9px !important; }
-.evening-strip .btn { flex: 1 1 0 !important; min-height: 32px !important; padding: 4px 8px !important; font-size: 12.5px !important; white-space: nowrap; }
+.evening-strip .btn { flex: 1 1 0 !important; min-height: 44px !important; padding: 4px 8px !important; font-size: 13.5px !important; white-space: nowrap; }
 
 .amb-rob-art { width: 100%; max-height: 38vh; object-fit: cover; border-radius: 10px; margin-bottom: 8px; display: block; }
 
@@ -2503,7 +2503,7 @@ button.hud-chip { cursor: pointer; }
 [data-testid="settings"] p, [data-testid="settings"] .toggle-row { font-size: 15px; }
 [data-testid="settings"] .toggle-row span small { font-size: 13px; }
 [data-testid="settings"] .btn { font-size: 15px; min-height: 40px; }
-[data-testid="settings"] .btn.small, [data-testid="settings"] .slot-info { font-size: 14px; min-height: 38px; }
+[data-testid="settings"] .btn.small, [data-testid="settings"] .slot-info { font-size: 14px; min-height: 40px; }
 
 /* title screen: everything fits one phone screen, no scrolling */
 @media (max-height: 860px) {
@@ -2531,7 +2531,7 @@ button.hud-chip { cursor: pointer; }
 .title-card .sbx-open, .title-card .more-toggle { font-size: 15px; min-height: 38px; padding: 6px 14px; }
 .title-card .iron-toggle { font-size: 14px; padding: 6px 10px; margin: 0 0 6px; }
 .title-card .iron-toggle small { display: none; }
-.title-card .opt-toggle { font-size: 14px; min-height: 34px; margin: 0 auto 6px; }
+.title-card .opt-toggle { font-size: 14px; min-height: 40px; margin: 0 auto 6px; }
 .title-card .whatsnew { display: none; }
 .title-card .title-links { border-top: 0; margin-top: 0; padding-top: 4px; }
 .title-card .title-links .ghost-btn { font-size: 14px; min-height: 36px; padding: 5px 12px; }
@@ -2540,7 +2540,7 @@ button.hud-chip { cursor: pointer; }
 .title-card .iron-toggle b { font-size: 15px; }
 /* everything on the title screen stays visible: small chips, no hidden menu */
 .title-card .title-links { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding-top: 6px; margin-top: 4px; border-top: 1px solid rgba(201,151,74,.2); }
-.title-card .title-links .ghost-btn { font-size: 13px; min-height: 32px; padding: 4px 10px; border: 1px solid rgba(234,219,189,.25); border-radius: 999px; text-decoration: none; }
+.title-card .title-links .ghost-btn { font-size: 13px; min-height: 40px; padding: 4px 12px; border: 1px solid rgba(234,219,189,.25); border-radius: 999px; text-decoration: none; }
 .title-card .install-offer small { display: none; }
 .title-card .install-offer .install-steps { display: block; }
 
@@ -2649,12 +2649,23 @@ body.travelling .world-hud { display: none; }
 .nav button.nav-world:not([aria-current='page']) svg { filter: none; }
 .nav button[aria-current='page'] { color: var(--brass-hi); background: linear-gradient(180deg, rgba(231,189,110,.16), rgba(231,189,110,0) 80%); box-shadow: inset 0 2px 0 var(--brass-hi); }
 
-/* top bar on a narrow phone: the place and the clock must stay readable, so the buttons get smaller
-   and the reputation star (also on the Me tab) steps aside */
-@media (max-width: 400px) {
+/* top bar on an ordinary phone (401-480px): 40px buttons on tighter gaps, so the clock beside the
+   place name is not cut short */
+@media (min-width: 401px) and (max-width: 480px) {
+  .hud { gap: 8px; padding-left: 10px; padding-right: 8px; }
   .hud-stats { gap: 4px; }
-  .hud .icon-btn { width: 34px; height: 34px; min-width: 34px; }
-  .hud-chip { padding-left: 6px; padding-right: 6px; }
+  .hud .icon-btn { width: 40px; height: 40px; }
+}
+/* top bar on a narrow phone: the place and the clock must stay readable, so the gaps and the side
+   padding get tighter (the buttons keep a thumb-sized 40px) and the reputation star (also on the Me
+   tab) steps aside */
+@media (max-width: 400px) {
+  .hud { gap: 6px; padding-left: 8px; padding-right: 6px; }
+  .hud-stats { gap: 3px; }
+  .hud .icon-btn { width: 40px; height: 40px; min-width: 40px; }
+  .hud .icon-btn svg { width: 20px; height: 20px; }
+  .hud-chip { padding-left: 5px; padding-right: 5px; gap: 4px; }
+  .hud-chip svg { display: none; } /* the £ says what it is; the room goes to the place and clock */
   .hud-rep { display: none; }
   .hud-cal span, .hud-place span { overflow: visible; text-overflow: clip; }
   .hud-place { flex: 0 0 auto; }
@@ -2668,3 +2679,109 @@ body.travelling .world-hud { display: none; }
 
 /* short notes appear just above the bottom tabs, so they never cover the objective bar or the place name */
 .toast { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }
+
+/* ================= phone layout pass: thumb-sized controls, a phone held sideways, nothing over anything ================= */
+
+/* once a visit is over on a phone, the rug strip steps aside: the buyer's last line and their plate
+   (name, tier, what you learned) need the room more than three rug cards nobody is choosing between */
+@media (max-width: 899px) {
+  .stall.has-result:not(.in-talk) > .rugstrip { display: none; }
+}
+
+/* a phone on its side (wide but short): the stall in two columns. The picture on the left with the
+   talk under it; the rugs and the things you can do on the right, scrolling if they must. The
+   desktop layout above is kept for screens at least 600px tall. */
+@media (orientation: landscape) and (max-height: 599px) and (min-width: 600px) {
+  .stall, .stall.in-talk {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "scene tray" "scene rugstrip" "scene actions" "band actions" "help actions";
+    align-content: stretch; width: 100%; margin: 0;
+  }
+  .stall > .stall-toolbar { grid-area: scene; }
+  .stall > .scene, .stall.in-talk > .scene { aspect-ratio: auto; height: 100%; max-height: none; min-height: 0; }
+  .stall > .band, .stall.in-talk > .band { min-height: 0; max-height: 46vh; overflow-y: auto; padding: 5px 10px; }
+  .stall > .actions, .stall.in-talk > .actions { min-height: 0; overflow-y: auto; align-content: start; border-left: 1px solid var(--line); border-top: 0; padding: 6px 8px 8px; }
+  .stall > .rugstrip, .stall.in-talk > .tray-handle { border-left: 1px solid var(--line); border-right: 0; padding: 6px 8px 4px; }
+  .stall .rugstrip .rugcard .meta { display: none; }
+  .stall .rugstrip .rugcard .thumb { aspect-ratio: 3 / 1; }
+  .stall.in-talk .act { min-height: 44px; }
+  .stall.in-talk .act .s { display: none; }
+  .stall.has-result:not(.in-talk) > .rugstrip { display: grid; }
+  /* the stall sheet: the picture on the left, the day's choices beside it */
+  .sheet-body .screen.idle { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); column-gap: 14px; row-gap: 6px; }
+  .sheet-body .screen.idle > :empty { display: none; }
+  .stall-sheet .sheet-head { padding-top: 6px; padding-bottom: 2px; }
+  .sheet-body .screen.idle > * { grid-column: 2; }
+  .sheet-body .screen.idle > .idle-scene { grid-column: 1; grid-row: 1 / span 8; max-height: none; align-self: start; }
+}
+
+/* the radio sits on the shelf above the cat's (picture-wide) button, so a tap on it reaches it */
+.scene.stall .stall-radio { z-index: 5; }
+@media (pointer: coarse) {
+  .scene.stall .stall-radio::after, .scene.stall .stall-gramophone-hit::after { content: ''; position: absolute; inset: -5px; }
+}
+.upgrade-nudge__go { min-height: 40px; }
+
+/* the bottom sheet over the lane is only as tall as the stall's card needs, and grows up to nearly the
+   whole map on a short screen (or when the evening slip takes room under it) instead of cutting off
+   the last row of buttons */
+.stall-sheet { top: max(3%, calc(100% - 460px)) !important; }
+
+/* the guided tour's pulse on a bottom tab stays inside the tab (an outer ring was cut off by the edge
+   of the screen on Progress, the last tab) */
+@keyframes tourRingNav { 0%, 100% { box-shadow: inset 0 0 0 2px rgba(255,200,90,.95); } 50% { box-shadow: inset 0 0 0 2px rgba(255,200,90,.95), inset 0 0 16px 3px rgba(255,200,90,.6); } }
+.nav button.tour-target { animation: tourRingNav 1.2s ease-in-out infinite !important; }
+
+/* ---- thumb-sized controls ---- */
+.merchant-tabs button { min-height: 44px; }
+.sheet-x { width: 44px; height: 44px; }
+.map-tools button { width: 40px; height: 40px; }
+.map-tools .jobs-btn { width: 40px; height: 40px; }
+.cal-month .ghost-btn { min-width: 44px; min-height: 44px; padding: 0 12px; text-decoration: none; }
+.cal-where .cal-paper { display: inline-flex; align-items: center; min-height: 40px; padding: 0 2px; }
+.switch { min-height: 40px; align-items: stretch; }
+.switch i { display: flex; align-items: center; justify-content: center; }
+.hs-row { min-height: 40px; }
+.poi-hint button { min-width: 40px; min-height: 40px; margin: -10px -10px -10px 0; }
+[data-testid="wait-cancel"], [data-testid="mode-close"], [data-testid="sandbox-close"] { min-height: 40px; padding: 8px 14px; }
+.paper-close { min-width: 40px; min-height: 40px; }
+.upgrade-nudge__x { min-width: 40px; min-height: 40px; }
+[data-testid="inspector"] .tabs button { min-height: 40px; }
+@media (max-width: 480px) {
+  /* six inspector tabs in two rows of three, so Provenance is not cut off the edge */
+  [data-testid="inspector"] .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+  [data-testid="inspector"] .tabs button { padding: 4px 6px; }
+}
+@media (pointer: coarse) {
+  /* the buyer's name row in the talk keeps its slim look; the area that answers a tap is taller */
+  .plate-row-btn { position: relative; }
+  .plate-row-btn::after { content: ''; position: absolute; inset: -6px 0; }
+  .title-place { position: relative; }
+  .title-place::after { content: ''; position: absolute; inset: -6px 0; }
+  .hud .icon-btn { position: relative; }
+  .hud .icon-btn::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; }
+}
+
+/* ---- title screen: with Options open the card scrolls inside the screen and the tagline steps
+   aside, so neither runs into the links at the foot ---- */
+.title-screen:has(.title-opts) { padding-bottom: 12px; }
+.title-screen:has(.title-opts) .title-foot { display: none; }
+.title-card:has(.title-opts), .title-card[class]:has(.title-opts) { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+
+/* ---- the evening slip: the date and figures on one line where they fit, three 44px buttons under ---- */
+.evening-strip { padding-top: 3px !important; }
+
+/* ---- an ambush on a short phone: smaller portraits and one-line choices, so Fight and Turn back
+   are on screen without scrolling ---- */
+@media (max-height: 760px) {
+  .amb-body { gap: 8px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+  .amb-head b { font-size: 22px; }
+  .amb-face { width: 60px; height: 60px; }
+  .amb-side { padding: 8px 6px; }
+  .amb-unit, .amb-unit img { width: 32px; height: 32px; }
+  .amb-text { font-size: 15.5px; line-height: 1.4; margin: 0; }
+  .amb-opts { gap: 6px; }
+  .amb-opts .btn { flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 44px; padding: 6px 12px; font-size: 15.5px; text-align: left; }
+  .amb-opts .btn small { margin-left: auto; text-align: right; }
+}

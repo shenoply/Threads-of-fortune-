@@ -6,6 +6,7 @@ import type { Target } from '../World/Campaign';
 import { BUYERS } from '../../data/buyers';
 import { useGame, arrivalAt, clock } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
+import { useFilmSound } from '../../game/audio/useFilmSound';
 import { laneDay } from '../../game/economy/life';
 import { affordableUpgrades, openUpgrades } from '../Inventory/StallUpgrades';
 import { openMalek } from '../../game/nav';
@@ -77,6 +78,8 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
 function TidyFilm({ onClose }: { onClose: () => void }) {
   const v = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
+  // its sound (the cloth and the street, no speech) follows the effects slider and switch
+  useFilmSound(v, 'sfx');
   useEffect(() => {
     const el = v.current; if (!el) return;
     el.play().catch(() => { el.muted = true; el.play().catch(onClose); });

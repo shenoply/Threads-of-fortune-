@@ -137,11 +137,14 @@ export const SETTLEMENTS: Settlement[] = [
 ];
 
 // Transport links other than walking. Rail days are worked out from distance unless given.
-export const RAIL_LINKS: { a: string; b: string; days?: number }[] = [
-  { a: 'giza', b: 'cairo' }, { a: 'cairo', b: 'tanta' }, { a: 'tanta', b: 'alexandria' }, { a: 'giza', b: 'fayoum' },
-  { a: 'cairo', b: 'suez' }, { a: 'cairo', b: 'portsaid' },
-  { a: 'portsaid', b: 'jaffa' }, // across the canal at Kantara, then the Sinai line through El Arish and Gaza
-  { a: 'jaffa', b: 'jerusalem' }, { a: 'jaffa', b: 'damascus' }, // via Lydda, Haifa and the Hejaz branch through Deraa
+// `hours`: the time on the train by the timetables of the day (the Cairo to Alexandria express ran in
+// about three and a half hours, stopping at Tanta). Without it the time is worked out from the distance
+// on the map. The fare is always worked out from the distance.
+export const RAIL_LINKS: { a: string; b: string; days?: number; hours?: number }[] = [
+  { a: 'giza', b: 'cairo', hours: 0.5 }, { a: 'cairo', b: 'tanta', hours: 1.5 }, { a: 'tanta', b: 'alexandria', hours: 2 }, { a: 'giza', b: 'fayoum', hours: 3 },
+  { a: 'cairo', b: 'suez', hours: 4 }, { a: 'cairo', b: 'portsaid', hours: 5 },
+  { a: 'portsaid', b: 'jaffa', hours: 12 }, // across the canal at Kantara, then the Sinai line through El Arish and Gaza (overnight)
+  { a: 'jaffa', b: 'jerusalem', hours: 3.5 }, { a: 'jaffa', b: 'damascus' }, // via Lydda, Haifa and the Hejaz branch through Deraa
   { a: 'beirut', b: 'damascus' }, { a: 'damascus', b: 'aleppo' }, // Rayak, Homs, Hama
   { a: 'aleppo', b: 'konya', days: 2 }, { a: 'konya', b: 'istanbul', days: 2 },
   { a: 'damascus', b: 'amman', days: 1 }, // the Hejaz Railway through Deraa

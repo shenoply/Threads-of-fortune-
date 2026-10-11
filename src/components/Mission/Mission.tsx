@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
-import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import { MISSIONS, MAIN_ORDER, type MissionState } from '../../data/missions';
 import { useEffect } from 'react';
 import { GIVER_VOICE } from '../../data/jobs';
 import { BOOKS, BOOK_ORDER, LIBRARIES, bookPhase } from '../../game/systems/arranBooks';
@@ -79,6 +79,12 @@ export function MissionCard({ onMap }: { onMap: () => void }) {
   );
 }
 
+/** Follow an objective's button. Stock is a screen of its own, not a place: its tab is in the bottom bar. */
+export function goObjective(go: string, onGo: (target?: string) => void) {
+  if (go === 'stock') document.querySelector<HTMLElement>('[data-testid="nav-inventory"]')?.click();
+  else if (go) onGo(go);
+}
+
 /** One objective at a time, in one line under the top bar: new mission news first, then the mission, then the first-hour step, then a job. */
 export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; skip?: () => void } | null }) {
   const g = useGame();
@@ -135,6 +141,8 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
   if (activeId) {
     const m = MISSIONS[activeId];
     const hint = m.hint ? m.hint(g) : m.steps[0];
+    // a step that has to come first (pack the rug, hire the guards) gets its own button instead of the Map
+    const nx = m.next?.(g as unknown as MissionState);
     return (
       <div ref={barRef} className={`objective-bar ${open ? 'open' : ''}`} data-testid="mission-banner">
         <div className="ob-row">
@@ -143,7 +151,8 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
             <b>{hint}</b>
             <Icon name={open ? 'up' : 'down'} />
           </button>
-          {m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
+          {nx ? <button className="btn ob-btn" onClick={() => goObjective(nx.go, onGo)} data-testid="objective-go">{nx.btn}</button>
+            : m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
         {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>}
       </div>

@@ -18,6 +18,8 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
   // fed when the fire was lit: supper is eaten from what you carry, so "cold" is decided on arrival
   const [fed] = useState(() => foodDaysLeft(w.party) >= 1);
   const destName = dest ? settlementById(dest).name : '';
+  // the camel only comes into it if you have one (or a mule, or a horse)
+  const beasts = Object.values(w.party.animals ?? {}).some((n) => (n ?? 0) > 0);
 
   // the fire crackles over the crickets; a cold camp has only the night; at dawn the open road again
   useEffect(() => {
@@ -38,7 +40,7 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
   const food = foodDaysLeft(w.party);
   return (
     <div className={`camp-screen ${dawn ? 'dawn' : ''}`} role="dialog" aria-label="Camp for the night" data-testid="camp-screen">
-      <img className="camp-art" src={`art/events/camp-${fed ? 'night' : 'cold'}.webp`} alt={fed ? 'Your camp: the camel couched by a small fire under the stars' : 'A cold camp: no fire, the camel a dark shape under the moon'} draggable={false} />
+      <img className="camp-art" src={`art/events/camp-${fed ? 'night' : 'cold'}.webp`} alt={fed ? 'Your camp: a small fire under the stars' : 'A cold camp: no fire, only the moon'} draggable={false} />
       {fed && !dawn && <video className="camp-art camp-video" src="video/camp-fire.mp4" poster="art/events/camp-night.webp" autoPlay loop muted playsInline preload="auto" aria-hidden="true" />}
       <div className="camp-panel">
         <small className="camp-when">{dateLine(g.day)} · {String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</small>
@@ -47,7 +49,7 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
             <h2>{fed ? 'Camp for the night' : 'A cold camp'}</h2>
             <p>
               {fed
-                ? `You couch the camel, gather tamarisk twigs and light a small fire. Bread, dates and sweet tea. Food left: ${food} day${food === 1 ? '' : 's'}.`
+                ? `${beasts ? 'You see to the animals, gather' : 'You gather'} tamarisk twigs and light a small fire. Bread, dates and sweet tea. Food left: ${food} day${food === 1 ? '' : 's'}.`
                 : 'Nothing to cook, and no fire worth lighting. You wrap yourself in your coat and listen to the dogs a long way off. Buy food in the next town.'}
             </p>
             <div className="camp-btns">
@@ -58,7 +60,7 @@ export function CampScreen({ dest, onClose, onResume }: { dest?: string; onClose
         ) : (
           <>
             <h2>Dawn</h2>
-            <p>{notes.length ? notes.join(' ') : 'You wake stiff and cold. The fire is ash; the camel is already chewing.'}</p>
+            <p>{notes.length ? notes.join(' ') : beasts ? 'You wake stiff and cold. The fire is ash; the animals are already chewing.' : 'You wake stiff and cold. The fire is ash, and the road is waiting.'}</p>
             <div className="camp-btns">
               {dest && <button className="btn primary" onClick={() => onResume(dest)} data-testid="camp-resume">On to {destName}</button>}
               <button className={`btn ${dest ? '' : 'primary'}`} onClick={onClose} data-testid="camp-done">Break camp</button>

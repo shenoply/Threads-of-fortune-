@@ -75,3 +75,7 @@
 
 .tac-odds { font-size: 14px; color: #e8d3ae; text-align: center; padding: 2px 0; }
 .tac-odds b { color: #ffd27a; font-size: 17px; }
+
+/* a token answers a tap a little beyond its picture (a 34px token on a phone is under a thumb's width) */
+.tk::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; }
+.tac-sheet-card .ghost-btn { min-height: 40px; padding: 8px 14px; }

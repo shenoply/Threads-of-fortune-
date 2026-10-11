@@ -304,12 +304,14 @@ export const motorRoutesFrom = (id: string) =>
 /** Cheapest railway journey between two stations (Dijkstra over the 1925 network). */
 export function railJourney(from: string, to: string): { days: number; fare: number; stops: string[] } | null {
   if (from === to) return null;
-  const edges = new Map<string, { to: string; days: number }[]>();
+  const edges = new Map<string, { to: string; days: number; fareDays: number }[]>();
   for (const l of RAIL_LINKS) {
     const A = settlementById(l.a), B = settlementById(l.b);
-    const days = l.days ?? Math.max(0.1, (dist(A, B) * 1.25) / TRAIN_PX_PER_DAY);
-    edges.set(l.a, [...(edges.get(l.a) ?? []), { to: l.b, days }]);
-    edges.set(l.b, [...(edges.get(l.b) ?? []), { to: l.a, days }]);
+    // the fare goes by distance; the time by the timetable where we have one
+    const fareDays = l.days ?? Math.max(0.1, (dist(A, B) * 1.25) / TRAIN_PX_PER_DAY);
+    const days = l.hours != null ? l.hours / 24 : fareDays;
+    edges.set(l.a, [...(edges.get(l.a) ?? []), { to: l.b, days, fareDays }]);
+    edges.set(l.b, [...(edges.get(l.b) ?? []), { to: l.a, days, fareDays }]);
   }
   if (!edges.has(from) || !edges.has(to)) return null;
   const best = new Map<string, number>([[from, 0]]);
@@ -330,7 +332,9 @@ export function railJourney(from: string, to: string): { days: number; fare: num
   const stops = [to];
   while (stops[0] !== from) stops.unshift(prev.get(stops[0])!);
   const days = best.get(to)!;
-  return { days, fare: Math.max(15, Math.round((days * 120) / 5) * 5), stops };
+  let fareDays = 0;
+  for (let i = 1; i < stops.length; i++) fareDays += edges.get(stops[i - 1])!.find((e) => e.to === stops[i])!.fareDays;
+  return { days, fare: Math.max(15, Math.round((fareDays * 120) / 5) * 5), stops };
 }
 
 // ---------- Fog of war ----------

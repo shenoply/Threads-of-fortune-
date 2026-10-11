@@ -43,10 +43,20 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
   });
   const first = useRef(true);
   useEffect(() => { if (first.current) { first.current = false; return; } setLine(sup.lastLine); }, [sup.lastLine]);
+  // His line is spoken when it changes. While his film is up nobody may talk over it, so a line
+  // that comes up then (his greeting, the first time you visit) is held and said once the film ends.
+  const missed = useRef(false);
   useEffect(() => {
+    if (film) { missed.current = true; return; }
     voice.say('rashid', line);
     return () => voice.stop();
-  }, [line]);
+  }, [line]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (film || !missed.current) return;
+    missed.current = false;
+    voice.say('rashid', line);
+    return () => voice.stop();
+  }, [film]); // eslint-disable-line react-hooks/exhaustive-deps
   const poke = () => {
     const r = Math.random();
     setLine(r < 0.08 ? pickOne(RASHID.soft) : r < 0.25 ? pickOne(RASHID.cat) : pickOne(RASHID.poke.filter((l) => l !== line)));

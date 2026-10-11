@@ -1,4 +1,7 @@
 import { SimOptions } from './components/Title/SimOptions';
+import { DaySummary } from './components/Ledger/DaySummary';
+import { JobOffer } from './components/World/JobOffer';
+import { afterFirstSale } from './game/preload';
 import { openingStep } from './game/opening';
 import { guideTarget } from './game/guide';
 import { HealthStrip } from './components/Health/HealthStrip';
@@ -353,17 +356,23 @@ export default function App() {
     preload(coming.slice(1).flatMap(buyerArt));
   }, [phase, g.day, g.visitIdx, g.queue]);
 
+  const soundTimers = useRef<number[]>([]);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
   const enterGame = () => {
     audio.ensure();
     // warm the cache for the paintings shown first, so nothing pops in; a city's painting loads when you go there
     preload([...STALL_ART, ...g.queue.slice(g.visitIdx).flatMap(buyerArt)], true);
     voice.load().then(() => voice.preload(['seller', 'samira'])); // a 4 KB read each: lines are fetched one by one
     // the travel map is big: fetch it once the stall and the first buyer are in, unless you open the world first
-    window.setTimeout(() => paintedMap(), 8000);
+    afterFirstSale(() => paintedMap());
     // the sounds wait a little: on a slow phone line they would otherwise download alongside (and hold up)
     // the stall and the first buyer's pictures
-    if (g.settings.ambience) setTimeout(() => audio.startAmbience(), 5000);
-    if (g.settings.music) setTimeout(() => audio.startMusic('stall'), 12000);
+    // (cancelled if the player goes back to the menu before they fire: music must not start on the title)
+    soundTimers.current.forEach((t) => clearTimeout(t));
+    soundTimers.current = [];
+    if (g.settings.ambience) soundTimers.current.push(window.setTimeout(() => { if (phaseRef.current === 'game') audio.startAmbience(); }, 5000));
+    if (g.settings.music) soundTimers.current.push(window.setTimeout(() => { if (phaseRef.current === 'game') audio.startMusic('stall'); }, 12000));
     setPhase('game');
     setTab('map');
   };
@@ -659,6 +668,7 @@ export default function App() {
       </nav>
 
       {g.rescue && <Rescue />}
+      {phase === 'game' && !g.rescue && <><DaySummary /><JobOffer /></>}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>

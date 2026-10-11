@@ -60,19 +60,25 @@ function rr(g: Ctx, x: number, y: number, w: number, h: number, r: number) {
   g.arcTo(x, y, x + w, y, r);
   g.closePath();
 }
-function shadow(g: Ctx, blur: number, a: number, dx: number, dy: number, draw: () => void) {
+// A cast shadow: the shape again, offset and faint. No blur filter: a blurred fill costs a phone
+// far more than everything else on the plan put together, and the plan is only a stand-in.
+function shadow(g: Ctx, _blur: number, a: number, dx: number, dy: number, draw: () => void) {
   g.save();
-  g.filter = `blur(${blur}px)`;
-  g.fillStyle = `rgba(38,20,6,${a})`;
+  g.globalAlpha = a * 0.7;
+  g.fillStyle = 'rgb(38,20,6)';
   g.translate(dx, dy);
   draw();
   g.restore();
 }
+// Grain: specks in three shades, each shade gathered into one path and filled once (a fill per speck
+// with its own colour was some 26,000 separate draws for the ground alone)
 function noise(g: Ctx, r: () => number, x: number, y: number, w: number, h: number, n: number, rgb: [number, number, number], a: number) {
+  const shades = [-1, 0, 1].map((k) => `rgba(${rgb[0] + k * 14},${rgb[1] + k * 11},${rgb[2] + k * 8},${a})`);
+  const paths = shades.map(() => new Path2D());
   for (let i = 0; i < n; i++) {
-    g.fillStyle = `rgba(${rgb[0] + (r() - 0.5) * 50},${rgb[1] + (r() - 0.5) * 40},${rgb[2] + (r() - 0.5) * 30},${a * (0.5 + r())})`;
-    g.fillRect(x + r() * w, y + r() * h, 1 + r() * 1.8, 1 + r() * 1.8);
+    paths[Math.floor(r() * 3)].rect(x + r() * w, y + r() * h, 1 + r() * 1.8, 1 + r() * 1.8);
   }
+  paths.forEach((pa, i) => { g.fillStyle = shades[i]; g.fill(pa); });
 }
 function palm(g: Ctx, x: number, y: number, s = 1) {
   shadow(g, 5, 0.3, 16 * s, 12 * s, () => { g.beginPath(); g.arc(x, y, 30 * s, 0, 7); g.fill(); });
@@ -432,10 +438,12 @@ function paintDistrict(g: Ctx) {
   g.fillStyle = '#e6d8b8'; g.beginPath(); g.arc(833, 610, 9, 0, 7); g.fill(); g.fillStyle = '#5c7a78'; g.beginPath(); g.arc(833, 610, 5, 0, 7); g.fill();
 }
 
-// Built once per session and shared by every mount of the district: the drawn plan is ~26k fillRects
-// plus blurred shadows (a second or more on a slow phone), and the painting only needs decoding once.
+// Built once per session and shared by every mount of the district: the drawn plan (only ever drawn
+// if the painting cannot be had) and the painting, which only needs decoding once.
 let planCache: HTMLCanvasElement | null = null;
 let paintingCache: HTMLImageElement | null = null;
+// a 320-wide copy of the painting (19 KB) shown, softly enlarged, while the full one comes down
+let smallCache: HTMLImageElement | null = null;
 const drawnPlan = () => {
   if (!planCache) { const f = document.createElement('canvas'); f.width = DW; f.height = DH; paintDistrict(f.getContext('2d')!); planCache = f; }
   return planCache;
@@ -568,27 +576,36 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     const c = cvs.current!;
     const ctx = c.getContext('2d')!;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    // painted district map; the old procedural painter draws until it has loaded
-    // the painted district; the drawn fallback is only used if the painting cannot load
+    // The painted district. While it comes down a small copy of it is shown enlarged (soft, but the
+    // right place); the drawn plan is a last resort, for when neither picture can be had: it is only
+    // drawn if the painting fails to load, or nothing at all has arrived after 20 seconds.
     let bg: HTMLCanvasElement | null = planCache;
     let bgImg: HTMLImageElement | null = paintingCache;
-    // a dropped download (patchy phone signal) must not leave the drawn plan up for good: keep trying,
-    // and the painting replaces the plan the moment it arrives
+    let small: HTMLImageElement | null = smallCache;
+    // a dropped download (patchy phone signal) must not leave a stand-in up for good: keep trying,
+    // and the painting replaces it the moment it arrives
     let bgTries = 0, bgTimer = 0, planTimer = 0, alive = true;
-    // the drawn fallback shows while a slow (but successful) fetch of the real painting is in flight;
-    // it is painted shortly after mount (not inside it), and not at all if the painting is already here
-    if (!bgImg && !bg) planTimer = window.setTimeout(() => { if (alive && !bgImg) { bg = drawnPlan(); request(); } }, 700);
+    const fallBack = () => { if (alive && !bgImg && !small && !bg) { bg = drawnPlan(); request(); } };
+    if (!bgImg && !small && !bg) planTimer = window.setTimeout(fallBack, 20000);
     const loadBg = () => {
       const im = new Image();
+      im.decoding = 'async';
       im.onload = () => { paintingCache = im; if (alive) { bgImg = im; clearTimeout(planTimer); request(); } };
       im.onerror = () => {
         if (!alive) return;
-        if (!bg) { clearTimeout(planTimer); bg = drawnPlan(); request(); }
+        fallBack();
         if (++bgTries < 8) bgTimer = window.setTimeout(loadBg, 1500 * bgTries);
       };
       im.src = bgTries ? `art/world/giza-district.jpg?r=${bgTries}` : 'art/world/giza-district.jpg';
     };
-    if (!bgImg) loadBg();
+    if (!bgImg && !small) {
+      // the small copy first, then the full painting, so the two do not share a slow line
+      const sm = new Image();
+      sm.decoding = 'async';
+      sm.onload = () => { smallCache = sm; if (alive) { small = sm; clearTimeout(planTimer); request(); loadBg(); } };
+      sm.onerror = () => { if (alive) loadBg(); };
+      sm.src = 'art/world/giza-district-small.webp';
+    } else if (!bgImg) loadBg();
     const fogC = document.createElement('canvas');
     fogC.width = FW; fogC.height = FH;
     const fctx = fogC.getContext('2d')!;
@@ -691,9 +708,11 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       ctx.fillStyle = '#120c07'; ctx.fillRect(0, 0, W, H);
       ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy);
       ctx.imageSmoothingEnabled = true;
-      if (bgImg || bg) ctx.drawImage((bgImg ?? bg)!, 0, 0, DW, DH);
-      // passers-by are painted into the map; only the fallback needs moving figures
-      if (!bgImg && bg) for (const w of walkers) {
+      const pic = bgImg ?? small ?? bg;
+      if (pic) ctx.drawImage(pic, 0, 0, DW, DH);
+      // passers-by are painted into the map; only the drawn plan needs moving figures
+      const plan = !bgImg && !small && !!bg;
+      if (plan) for (const w of walkers) {
         w.x += w.vx * dt; w.y += w.vy * dt; w.t += dt;
         if (w.lane !== 1) { if (w.x < 565) w.x = 1085; if (w.x > 1088) w.x = 566; } else { if (w.y < 365) w.y = 995; if (w.y > 998) w.y = 366; }
         const a = w.vx ? (w.vx > 0 ? 0 : Math.PI) : w.vy > 0 ? Math.PI / 2 : -Math.PI / 2;
@@ -758,7 +777,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       // keep going only while something on the map is in motion: you walking (or a leg of the route,
       // or an arrival, still to come), fog still to redraw, or the drawn plan's passers-by
       const still = Math.hypot(s.tx - s.x, s.ty - s.y) <= 1.5 && !s.route.length && !s.target && !s.dirty;
-      if (!still || (!bgImg && bg)) raf = requestAnimationFrame(loop);
+      if (!still || plan) raf = requestAnimationFrame(loop);
     };
     request();
     return () => {

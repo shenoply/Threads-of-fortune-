@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { HOW_FILMS } from '../../data/howFilms';
 import { audio } from '../../game/audio/engine';
+import { useFilmSound } from '../../game/audio/useFilmSound';
 import { voice } from '../../game/audio/voice';
 import { radio } from '../../game/radio/player';
 import './howItPlays.css';
@@ -52,6 +53,8 @@ function Player({ at, all, onPick, onClose }: { at: number; all: boolean; onPick
   const [failed, setFailed] = useState(false);
   const next = at + 1 < FEATURES.length ? at + 1 : null;
   useEffect(() => { setT(0); setEnded(false); setPaused(false); setFailed(false); }, [at]);
+  // the narration follows the voices' slider and switch (a new <video> for each film, hence `at`)
+  useFilmSound(v, 'dialogue', 1, [at, failed]);
   // the film has the stage: the music steps back, the radio and anyone talking stop
   useEffect(() => {
     voice.stop();

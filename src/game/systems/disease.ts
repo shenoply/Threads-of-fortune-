@@ -227,3 +227,11 @@ export function rollInjury(kind: keyof typeof HURT | string, rand: () => number 
   const t = HURT[kind] ?? HURT.fight; let r = rand() * t.reduce((a, [, w]) => a + w, 0);
   return (t.find(([, w]) => (r -= w) <= 0) ?? t[0])[0];
 }
+
+/** What Dr Feras says when you come in with no illness or injury on the books. A man worn to the bone
+ *  is not well, whatever the list says: then he prescribes rest rather than waving you off. */
+export function ferasNothingLine(fatigue: number): string {
+  if (fatigue >= 70) return 'No fever, no wound. You are worn out, and that is enough to put a man on the floor. Sleep in a proper bed for a night or two before you go anywhere.';
+  if (fatigue >= 45) return 'Nothing he can treat. You are tired, though: rest tonight, and do not take the road tired.';
+  return 'Nothing ails you today. Read his Handbook: it is cheaper than his fee.';
+}

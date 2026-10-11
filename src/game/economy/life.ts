@@ -6,6 +6,8 @@ import { SURPRISES } from '../../data/news';
 import { SETTLEMENTS } from '../../data/world';
 
 export const dateOfDay = (day: number) => new Date(Date.UTC(1925, 2, 9 + day));
+/** "Wednesday 18 March": a sale named by its date, which still reads right when repeated later */
+const saleDate = (day: number) => { const d = dateOfDay(day); return `${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getUTCDay()]} ${d.getUTCDate()} ${monthName(day)}`; };
 export const isFirstOfMonth = (day: number) => dateOfDay(day).getUTCDate() === 1;
 export const monthName = (day: number) => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][dateOfDay(day).getUTCMonth()];
 
@@ -185,7 +187,7 @@ export function rumoursOn(day: number): Rumour[] {
   for (let d = Math.max(1, day - 6); d <= day; d++) for (const r of rumoursStarting(d)) if (r.until >= day) out.push(r);
   for (const { h, d } of upcomingGrandSales(day)) {
     const town = TOWN_NAME[h.city] ?? h.city;
-    out.push({ id: `a-${h.id}-${d}`, kind: 'event', sid: h.city, until: d, text: d === day ? `The ${h.displayName} is selling today in ${town}. Anyone may sit and watch.` : `The ${h.displayName} in ${town} holds a sale on day ${d}. The dealers are already talking.` });
+    out.push({ id: `a-${h.id}-${d}`, kind: 'event', sid: h.city, until: d, text: d === day ? `The ${h.displayName} is selling today in ${town}. Anyone may sit and watch.` : `The ${h.displayName} in ${town} holds a sale ${d === day + 1 ? 'tomorrow' : `on ${saleDate(d)}`}. The dealers are already talking.` });
   }
   for (const e of eventsOn(day)) out.push({ id: `e-${e.id}`, kind: 'event', until: e.to, text: `${e.name}: ${e.text}` });
   return out;

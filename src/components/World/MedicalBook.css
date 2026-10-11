@@ -2,7 +2,7 @@
    hyphenation, small capitals for heads, running heads and folios, numbered plates with captions */
 .mb { display: flex; flex-direction: column; gap: 8px; }
 .mb-nav { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
-.mb-nav .btn { min-height: 38px; min-width: 40px; }
+.mb-nav .btn { min-height: 44px; min-width: 44px; }
 .mb-where { flex: 1; text-align: center; font-family: var(--label); font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
 .mb-page {
   --ink: #241608;
@@ -36,7 +36,7 @@
 /* contents */
 .mb-part { text-align: center; font-size: 12.5px; letter-spacing: .14em; margin: 18px 0 8px; }
 .mb-toc { list-style: none; margin: 0; padding: 0; }
-.mb-toc li button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; width: 100%; padding: 3px 0; color: var(--ink); font-family: 'Alegreya', serif; font-size: 15px; }
+.mb-toc li button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; width: 100%; min-height: 44px; padding: 11px 0; color: var(--ink); font-family: 'Alegreya', serif; font-size: 15px; }
 .mb-toc li button:hover .mb-name, .mb-toc li button:focus-visible .mb-name { text-decoration: underline; }
 .mb-num { width: 3.2em; flex: none; font-variant: small-caps; color: #5a4128; }
 .mb-name { flex: none; max-width: 70%; }
