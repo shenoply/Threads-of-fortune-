@@ -144,6 +144,9 @@ function effectChips(it: MalekItem) {
 type Panel = 'menu' | 'food' | 'talk' | null;
 
 /** Every three turns of talk the shop moves on to another painting of him at work (the night one only after dark). */
+/** how far across each painting Malek stands (MalekRoom2D's spots): a tall phone screen shows only a
+ *  slice of the picture, and it is centred on him rather than on the middle of the room */
+const MALEK_X: Record<string, number> = { grilling: 33, preparing: 64, serving: 37, closing: 56 };
 const DAY_SCENES: MalekScene[] = ['preparing', 'grilling', 'serving'];
 function talkScene(base: MalekScene, turns: number, hour: number): MalekScene {
   const step = Math.floor(turns / 3);
@@ -277,7 +280,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     return (
       <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
         <div className="malek-door" data-testid="malek-closed">
-          <img src={SCENE_ART.closing} alt="" aria-hidden="true" className="malek-door__bg" />
+          <img src={SCENE_ART.closing} alt="" aria-hidden="true" className="malek-door__bg" style={{ objectPosition: `${MALEK_X.closing}% 40%` }} />
           <div className="malek-door__card">
             <h2>Malek's grill</h2>
             <p>The shutters are down. Malek opens at {clock(MALEK_HOURS[0])} and the grill goes cold at 20:00; he locks up at {clock(MALEK_HOURS[1])}.</p>
@@ -303,7 +306,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     return (
       <div className="malek" role="dialog" aria-label="The story so far" data-testid="malek-shop">
         <div className="malek-door" data-testid="malek-story-list">
-          <img src={SCENE_ART[visit.scene]} alt="" aria-hidden="true" className="malek-door__bg" />
+          <img src={SCENE_ART[visit.scene]} alt="" aria-hidden="true" className="malek-door__bg" style={{ objectPosition: `${MALEK_X[visit.scene] ?? 50}% 40%` }} />
           <div className="malek-door__card">
             <h2>The story so far</h2>
             <div className="malek-row malek-row--col">
@@ -320,7 +323,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     return (
       <div className="malek" role="dialog" aria-label="Malek's grill" data-testid="malek-shop">
         <div className="malek-door" data-testid="malek-door" data-scene={visit.scene}>
-          <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} className="malek-door__bg" />
+          <img src={SCENE_ART[visit.scene]} alt={SCENE_TEXT[visit.scene]} className="malek-door__bg" style={{ objectPosition: `${MALEK_X[visit.scene] ?? 50}% 40%` }} />
           <div className="malek-door__card">
             <p className="malek-door__scene">{SCENE_TEXT[visit.scene]}</p>
             <p className="malek-say"><b>MALEK</b> {visit.line}</p>

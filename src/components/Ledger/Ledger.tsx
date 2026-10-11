@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { RUG_IDS, TIERS } from '../../data/rugs';
 import { RASHID_POOL } from '../../data/suppliers';
 import { SETTLEMENTS } from '../../data/world';
-import { houseOfFortune, rankOf, RANKS, netWorth, liabilities } from '../../game/economy/progress';
+import { houseOfFortune, rankOf, RANKS, netWorth, liabilities, owedParts } from '../../game/economy/progress';
 import { rugSrc } from '../RugViewer/rugArt';
 
 /** Where a rug can be found, for the Register. */
@@ -33,7 +33,7 @@ export function Fortune() {
       <div className="fortune" data-testid="fortune">
         <div className="rank-row">
           <div><small>RANK {idx + 1} OF {RANKS.length}</small><b data-testid="rank">{rank.name}</b></div>
-          <div className="worth"><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b>{liabilities(g) > 0 && <small data-testid="net-worth-debts">after {fmt(liabilities(g))} owed</small>}</div>
+          <div className="worth"><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b>{liabilities(g) > 0 && <small data-testid="net-worth-debts">after what you owe: {owedParts(g)}</small>}</div>
         </div>
         {next && (
           <div className="rank-next">

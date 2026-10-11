@@ -187,7 +187,9 @@ export default function App() {
   const [toastMsg, setToast] = useState('');
   const [paper, setPaperRaw] = useState<number | null>(null);
   const setPaper = (d: number | null) => { setPaperRaw(d); if (d !== null && !useGame.getState().onboard?.news) useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), news: true } }); };
-  const openPaper = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) { useGame.setState({ paperSeen: st.day }); st.passTime(15); } };
+  const toastRef = useRef<((m: string) => void) | null>(null);
+  // reading the day's paper takes a quarter of an hour, and the player is told so rather than finding the clock moved
+  const openPaper = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) { useGame.setState({ paperSeen: st.day }); st.passTime(15); toastRef.current?.('You read the paper over a glass of tea: a quarter of an hour passes.'); } };
   const [radioOpen, setRadioOpen] = useState(false);
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
@@ -259,7 +261,8 @@ export default function App() {
     // so anything naming an amount gets extra time on screen, not just the "buys" sale wording
     const money = /£/.test(m);
     toastTimer.current = window.setTimeout(() => setToast(''), Math.max(money ? 5000 : 2600, m.length * (money ? 85 : 55)));
-  };
+  };  toastRef.current = toast;
+
   const tutorialActive = !g.tutorial.done;
   const firstDays = !!openingStep(g);
   // the first-day tour points at the button to press next
@@ -545,7 +548,7 @@ export default function App() {
           {(!firstDays || tourStep) && <>
           <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
           <button className={`icon-btn radio-btn ${(g.radioHeard ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'radio' ? 'tour-target' : ''}`} onClick={() => setRadioOpen(true)} aria-label="The radio" data-testid="radio-btn"><Icon name="radio" /></button>
-          <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={() => { setPaper(g.day); if ((g.paperSeen ?? 0) < g.day) { useGame.setState({ paperSeen: g.day }); g.passTime(15); } }} aria-label="Today's newspaper" data-testid="paper-btn"><Icon name="news" /></button>
+          <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={openPaper} aria-label="Today's newspaper (a quarter of an hour)" data-testid="paper-btn"><Icon name="news" /></button>
           </>}
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />

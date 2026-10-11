@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { openingStep } from '../opening';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { Goal, LedgerEntry, Relationship, RugItem, SupplierOffer } from '../types';
 import { BUYERS, BUYER_ORDER, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, celebUnlock } from '../../data/buyers';
@@ -1606,7 +1607,9 @@ export const useGame = create<GameState & Actions>()(
             job.need?.animals && animalCount(s.world.party) < job.need.animals ? `bring at least ${job.need.animals} animals` :
             job.need?.guards && !Object.values(s.world.party.troops ?? {}).some((n) => (n ?? 0) > 0) ? 'hire at least one guard' :
             job.reward.fee && s.cash < job.reward.fee ? `bring ${fmt(job.reward.fee)}` : '';
-          if (missing) { set({ jobNote: `${job.title}: you need to ${missing}.` }); return; }
+          // during the opening a side job's demands (a Fine rug, a trip home) would read as the step's own
+          // instructions and contradict it: it waits until the opening is done
+          if (missing) { if (!openingStep(s)) set({ jobNote: `${job.title}: you need to ${missing}.` }); return; }
           let cash = s.cash - (job.reward.fee ?? 0) + (job.reward.cash ?? 0);
           let inventory = s.inventory;
           const ledger = [...s.ledger];

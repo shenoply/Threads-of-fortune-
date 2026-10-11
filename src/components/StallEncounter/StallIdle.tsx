@@ -83,7 +83,11 @@ function TidyFilm({ onClose }: { onClose: () => void }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return createPortal(
     <div className="tidy-film" role="dialog" aria-label="Tidying the stall" onClick={onClose} data-testid="tidy-film">
-      <video ref={v} src="video/stall-tidy.mp4" poster="video/stall-tidy-poster.webp" playsInline preload="auto" onPlaying={() => setReady(true)} onEnded={onClose} onError={onClose} />
+      <video ref={v} poster="video/stall-tidy-poster.webp" playsInline preload="auto" onPlaying={() => setReady(true)} onEnded={onClose}>
+        {/* WebM first for browsers without the H.264 licence (some Chromium builds); MP4 for Safari */}
+        <source src="video/stall-tidy.webm" type="video/webm" />
+        <source src="video/stall-tidy.mp4" type="video/mp4" onError={onClose} />
+      </video>
       <small>{ready ? 'Tap to close' : 'Loading…'}</small>
     </div>,
     document.body,

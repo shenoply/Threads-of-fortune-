@@ -1,3 +1,4 @@
+import { fmt } from './money';
 // The long game: net worth, merchant rank, the Carpet Register and the House of Fortune.
 import { RUGS, RUG_IDS, CONDITION_FACTOR } from '../../data/rugs';
 import { UPGRADES } from '../../data/suppliers';
@@ -19,6 +20,11 @@ export const stockValue = (inv: RugItem[]) =>
  *  what is left of your father's debt (the instalment now due is part of it) and unpaid bills. */
 export function liabilities(s: S) {
   return s.supplier.debt + (s.loans ?? []).reduce((a, l) => a + l.owed, 0) + Math.max(0, s.family?.left ?? 0) + Math.max(0, s.bills?.due ?? 0);
+}
+/** what the "owed" figure is made of, in words: "your father's debt £100 · Rashid £20" */
+export function owedParts(s: S): string {
+  const parts: [string, number][] = [["Rashid", s.supplier.debt], ['loans', (s.loans ?? []).reduce((a, l) => a + l.owed, 0)], ["your father's debt", Math.max(0, s.family?.left ?? 0)], ['bills', Math.max(0, s.bills?.due ?? 0)]];
+  return parts.filter(([, v]) => v > 0).map(([k, v]) => `${k} ${fmt(v)}`).join(' · ');
 }
 export function netWorth(s: S) {
   const property = s.upgrades.reduce((a, u) => a + (PROPERTY[u] ?? 0), 0);
