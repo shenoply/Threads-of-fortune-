@@ -92,7 +92,8 @@ class Voice {
 
   load() {
     if (this.loading) return this.loading;
-    this.loading = fetch(`voices/manifest.json?t=${Date.now()}`, { cache: 'no-store' })
+    // revalidated each time (a 304 when unchanged) rather than downloaded afresh: it is a quarter of a megabyte
+    this.loading = fetch('voices/manifest.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : {}))
       .then((j: { sprites?: Record<string, Sprite> }) => {
         this.sprites = j.sprites ?? {};

@@ -1,4 +1,5 @@
 import { SimOptions } from './components/Title/SimOptions';
+import { openingStep } from './game/opening';
 import { guideTarget } from './game/guide';
 import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
@@ -260,6 +261,7 @@ export default function App() {
     toastTimer.current = window.setTimeout(() => setToast(''), Math.max(money ? 5000 : 2600, m.length * (money ? 85 : 55)));
   };
   const tutorialActive = !g.tutorial.done;
+  const firstDays = !!openingStep(g);
   // the first-day tour points at the button to press next
   const tourStep = g.tutorial.done ? (['buyers', 'news', 'radio', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
   const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
@@ -352,7 +354,8 @@ export default function App() {
     // warm the cache for the paintings shown first, so nothing pops in; a city's painting loads when you go there
     preload([...STALL_ART, ...g.queue.slice(g.visitIdx).flatMap(buyerArt)], true);
     voice.load().then(() => voice.preload(['seller', 'samira'])); // a 4 KB read each: lines are fetched one by one
-    paintedMap(); // start loading the travel map so the World tab opens on it
+    // the travel map is big: fetch it once the stall and the first buyer are in, unless you open the world first
+    window.setTimeout(() => paintedMap(), 8000);
     if (g.settings.ambience) audio.startAmbience();
     if (g.settings.music) setTimeout(() => audio.startMusic('stall'), 4000);
     setPhase('game');
@@ -400,7 +403,7 @@ export default function App() {
                   {l}
                   <small>{d}</small>
                 </span>
-                <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`} />
+                <button className="switch" role="switch" aria-checked={g.settings[c]} aria-label={l} onClick={() => g.setSetting(c, !g.settings[c])} data-testid={`toggle-${c}`}><i>Off</i><i>On</i></button>
               </div>
             ))}
     </>
@@ -507,9 +510,13 @@ export default function App() {
           <button className="hud-chip hud-rep" title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep">
             <Icon name="star" />{g.reputation}
           </button>
+          {/* while the opening runs the radio, the paper and the buyers' book wait (fewer things calling
+              for attention on a phone); they appear once it is done or skipped */}
+          {(!firstDays || tourStep) && <>
           <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
           <button className={`icon-btn radio-btn ${(g.radioHeard ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'radio' ? 'tour-target' : ''}`} onClick={() => setRadioOpen(true)} aria-label="The radio" data-testid="radio-btn"><Icon name="radio" /></button>
           <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={() => { setPaper(g.day); if ((g.paperSeen ?? 0) < g.day) { useGame.setState({ paperSeen: g.day }); g.passTime(15); } }} aria-label="Today's newspaper" data-testid="paper-btn"><Icon name="news" /></button>
+          </>}
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />
           </button>
@@ -611,7 +618,7 @@ export default function App() {
             ['ledger', 'Progress', 'star'],
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
-          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id !== 'map'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
+          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
             {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-reference.jpg'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>
@@ -626,44 +633,55 @@ export default function App() {
               <h2>Your game <small>{g.ironman ? '☠ Ironman' : g.playMode === 'sandbox' ? 'Sandbox' : 'Campaign'}</small></h2>
               <button className="btn" onClick={() => setSettings(false)} data-testid="settings-close" aria-label="Close">Close ×</button>
             </div>
-            <p data-testid="save-status">{g.autosaveOn === false ? 'Autosave is off — use Save now, or a save slot, to keep your progress.' : 'Your game saves itself after everything you do, in this browser on this device.'} {savedAt ? `Last saved ${savedAt}.` : ''}</p>
+            {/* saving, in plain words: what happens on its own, one Save button, separate games in slots,
+                and a backup file for moving to another phone (folded away: most people never need it) */}
+            <h3 className="set-h">Saving</h3>
+            <p className="save-status" data-testid="save-status">
+              {g.ironman ? 'Ironman: the game saves itself after every move. There is one save, and no going back.'
+                : g.autosaveOn === false ? 'Saving on its own is off. Tap Save before you stop, or you lose what you did.'
+                : 'Your game saves itself as you play.'}
+              {savedAt ? <> <b>Saved at {savedAt}.</b></> : null}
+            </p>
+            <div className="save-row">
+              <button className="btn primary" onClick={() => { forceSave(); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save</button>
+            </div>
             <div className="toggle-row">
               <span>
-                Autosave
-                <small>{g.ironman ? 'Always on in Ironman: the game saves after everything you do.' : 'Save after everything you do. Turn off to only save when you choose to.'}</small>
+                Save on its own
+                <small>{g.ironman ? 'Always on in Ironman.' : 'After everything you do.'}</small>
               </span>
-              <button className="switch" role="switch" aria-checked={g.ironman ? true : g.autosaveOn !== false} aria-label="Autosave" disabled={!!g.ironman} title={g.ironman ? 'Always on in Ironman' : undefined} onClick={() => { if (!g.ironman) g.setAutosave(!(g.autosaveOn !== false)); }} data-testid="toggle-autosave" />
+              <button className="switch" role="switch" aria-checked={g.ironman ? true : g.autosaveOn !== false} aria-label="Save on its own" disabled={!!g.ironman} onClick={() => { if (!g.ironman) g.setAutosave(!(g.autosaveOn !== false)); }} data-testid="toggle-autosave"><i>Off</i><i>On</i></button>
             </div>
-            <div className="save-row">
-              <button className="btn primary" onClick={() => { forceSave(); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save now</button>
-              <button className="btn" onClick={downloadSave} disabled={!!g.ironman} data-testid="save-download">Download a save file</button>
-              <label className={`btn ${g.ironman ? 'disabled' : ''}`} aria-disabled={!!g.ironman} data-testid="save-load">Load a save file<input type="file" accept="application/json,.json" hidden disabled={!!g.ironman} onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
-            </div>
-            <div className="save-where" data-testid="save-where">
-              <b>Where your saves are kept</b>
-              <ul>
-                <li><b>Autosave</b> and the <b>{SLOT_COUNT} save slots</b>: inside this browser, on this phone or computer. Another browser or device will not see them, and clearing this site's data deletes them.</li>
-                <li><b>Save file</b>: “Download a save file” puts a <i>.json</i> file in your Downloads folder (on iPhone, in Files › Downloads). Keep it anywhere; “Load a save file” opens it again here or on any other device.</li>
-              </ul>
-            </div>
-            {g.ironman && <p className="dim"><b>Ironman:</b> one life, one save. The game saves itself as you play. Save slots and save files are switched off, so a death cannot be undone.</p>}
-            <h3>Save slots</h3>
-            <p className="dim">Keep up to {SLOT_COUNT} games side by side on this phone or computer, without downloading a file.</p>
-            <div className="slot-list" data-testid="slot-list">
-              {slots.map((info, i) => {
-                const n = i + 1;
-                return (
-                  <div className="slot-row" key={n} data-testid={`slot-${n}`}>
-                    <span className="slot-info">{info ? slotLabel(info) : 'Empty slot'}</span>
-                    <span className="slot-btns">
-                      <button className="btn small" disabled={!!g.ironman} onClick={() => { if (info && !window.confirm(`Replace the save in slot ${n} (${slotLabel(info)}) with your game now? The old one will be gone.`)) return; slotSave(n); }} data-testid={`slot-save-${n}`}>{info ? 'Replace' : 'Save here'}</button>
-                      {info && <button className="btn small" disabled={!!g.ironman} onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
-                      {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`}>Clear</button>}
-                    </span>
+            {!g.ironman && (
+              <>
+                <h3 className="set-h">Other games ({SLOT_COUNT} slots)</h3>
+                <p className="dim">To keep this game and try something else: <b>Save here</b> copies it into a slot. <b>Load</b> goes back to it later.</p>
+                <div className="slot-list" data-testid="slot-list">
+                  {slots.map((info, i) => {
+                    const n = i + 1;
+                    return (
+                      <div className="slot-row" key={n} data-testid={`slot-${n}`}>
+                        <span className="slot-info">{info ? slotLabel(info) : `Slot ${n}: empty`}</span>
+                        <span className="slot-btns">
+                          <button className="btn small" onClick={() => { if (info && !window.confirm(`Slot ${n} has ${slotLabel(info)}. Put your game in its place? The old one is lost.`)) return; slotSave(n); }} data-testid={`slot-save-${n}`}>{info ? 'Save over' : 'Save here'}</button>
+                          {info && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
+                          {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`} aria-label={`Empty slot ${n}`}>Empty</button>}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <details className="save-where" data-testid="save-where">
+                  <summary>Move your game to another phone or computer</summary>
+                  <p className="dim">Saves stay in this browser only. To carry a game elsewhere, make a backup file, send it to the other device, and open it there.</p>
+                  <div className="save-row">
+                    <button className="btn" onClick={downloadSave} data-testid="save-download">Make a backup file</button>
+                    <label className="btn" data-testid="save-load">Open a backup file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
                   </div>
-                );
-              })}
-            </div>
+                  <p className="dim">Clearing this site's data in the browser deletes every save here, so keep a backup file of a game you care about.</p>
+                </details>
+              </>
+            )}
             {soundOptions}
             <SimOptions value={g.sim ?? FULL_SIM} onChange={g.setSim} locked={!!g.ironman} />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>

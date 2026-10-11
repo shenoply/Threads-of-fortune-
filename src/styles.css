@@ -534,10 +534,13 @@ table.ledger .neg { color: var(--bad); }
 .modal-card p { color: var(--text-dim); margin: 0 0 12px; font-size: 15.5px; }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(201,150,72,0.14); }
 .toggle-row span small { display: block; color: var(--text-dim); font-size: 13.5px; }
-.switch { width: 46px; height: 26px; border-radius: 13px; border: 1px solid var(--line-strong); background: #2a1c10; position: relative; padding: 0; }
-.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--text-dim); transition: left 0.2s, background 0.2s; }
-.switch[aria-checked='true'] { background: #6b4b1e; }
-.switch[aria-checked='true']::after { left: 22px; background: var(--brass-hi); }
+/* On / Off: two words side by side, the one in force lit, so it reads at a glance (a sliding knob
+   left testers guessing which way was on) */
+.switch { display: inline-flex; padding: 2px; gap: 2px; border-radius: 8px; border: 1px solid var(--line-strong); background: #1a120a; flex: none; }
+.switch i { font-style: normal; font-family: var(--label); font-size: 13.5px; min-width: 40px; padding: 6px 8px; border-radius: 6px; color: var(--text-dim); text-align: center; }
+.switch[aria-checked='false'] i:first-child { background: #3a2a18; color: #f1e3c4; }
+.switch[aria-checked='true'] i:last-child { background: var(--brass, #b8862f); color: #1a1006; font-weight: 600; }
+.switch:disabled { opacity: .6; }
 
 .toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 6px); pointer-events: none; transform: translateX(-50%); z-index: 90; background: rgba(20,12,6,0.96); border: 1px solid var(--line-strong); color: var(--parchment); padding: 8px 14px; border-radius: 4px; font-size: 15.5px; max-width: 90%; text-align: center; animation: rise2 0.3s ease; }
 @keyframes rise2 { from { opacity: 0; transform: translate(-50%, 8px); } }
@@ -2268,8 +2271,8 @@ button.hud-chip { cursor: pointer; }
    switches keep their look but get a larger invisible hit area around them */
 @media (pointer: coarse) {
   .btn { min-height: 40px; }
-  .switch, .hud-chip, .hud-place, .linkish, .stall-paper, .help-link, .merchant-help { position: relative; }
-  .switch::after, .hud-chip::after, .hud-place::after, .linkish::after, .skip-hint::after, .stall-paper::after, .help-link::after, .merchant-help::after { content: ''; position: absolute; inset: -8px -6px; }
+  .hud-chip, .hud-place, .linkish, .stall-paper, .help-link, .merchant-help { position: relative; }
+  .hud-chip::after, .hud-place::after, .linkish::after, .skip-hint::after, .stall-paper::after, .help-link::after, .merchant-help::after { content: ''; position: absolute; inset: -8px -6px; }
 }
 /* "How to play" on Progress stays on one line */
 .merchant-help { white-space: nowrap; font-size: 12.5px; }
@@ -2447,9 +2450,6 @@ button.hud-chip { cursor: pointer; }
 [data-testid="settings"] p { font-size: 17px; line-height: 1.45; color: var(--parchment-2); }
 [data-testid="settings"] .toggle-row { padding: 12px 0; font-size: 18px; color: var(--parchment); }
 [data-testid="settings"] .toggle-row span small { font-size: 15.5px; color: var(--parchment-2); margin-top: 2px; }
-[data-testid="settings"] .switch { width: 56px; height: 32px; border-radius: 16px; }
-[data-testid="settings"] .switch::after { width: 26px; height: 26px; }
-[data-testid="settings"] .switch[aria-checked='true']::after { left: 24px; }
 [data-testid="settings"] .btn { font-size: 17px; min-height: 46px; padding: 10px 14px; }
 [data-testid="settings"] .btn.small { font-size: 16px; min-height: 42px; }
 [data-testid="settings"] .slot-info { font-size: 16px; }
@@ -2459,9 +2459,6 @@ button.hud-chip { cursor: pointer; }
 .title-opts p { font-size: 15.5px; color: var(--parchment-2); margin: 0 0 10px; }
 .title-opts .toggle-row { padding: 11px 0; font-size: 18px; color: var(--parchment); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(201,150,72,0.14); }
 .title-opts .toggle-row small { display: block; font-size: 15px; color: var(--parchment-2); }
-.title-opts .switch { width: 56px; height: 32px; border-radius: 16px; }
-.title-opts .switch::after { width: 26px; height: 26px; }
-.title-opts .switch[aria-checked='true']::after { left: 24px; }
 .title-opts .vol-row { display: grid; grid-template-columns: 110px 1fr 36px; gap: 8px; align-items: center; padding: 6px 0; font-size: 16px; }
 .opt-toggle { display: block; margin: 0 auto 12px; border: 1px solid rgba(234,219,189,0.25); border-radius: 999px; text-decoration: none !important; }
 .title-card { max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; }
@@ -2626,3 +2623,23 @@ body:has(.settlement) .toast { display: none; }
 /* the map screen while travelling: only what you need to watch (the bars, the road, the clock) */
 body.travelling .hs-more, body.travelling .upgrade-nudge, body.travelling .objective-bar, body.travelling .objbar { display: none; }
 body.travelling .world-hud { display: none; }
+
+/* saving, in Settings */
+[data-testid="settings"] .set-h { margin: 16px 0 4px; font-size: 17px; }
+.save-status { margin: 4px 0; }
+.save-where { margin: 12px 0 4px; }
+.save-where summary { cursor: pointer; color: var(--brass-hi); font-family: var(--label); padding: 6px 0; }
+
+/* the stall between customers: one big button, the rest small, two by two */
+.idle-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.idle-more .btn { justify-content: center; margin: 0; }
+
+/* a buyer walking away: the figure goes (whatever kind of picture it is), after their last words */
+.scene.stall .buyer-figure.leaving { animation: buyer-leave 1.6s ease-in 1.8s forwards; }
+.left-banner { position: absolute; left: 50%; top: 50%; translate: -50% -50%; z-index: 6; padding: 8px 16px; border-radius: 8px; background: rgba(20,10,6,.86); border: 1px solid #c4543488; color: #ffd9c4; font-family: var(--display); font-size: 18px; white-space: nowrap; opacity: 0; animation: left-banner .5s ease-out 2.6s forwards; pointer-events: none; }
+@keyframes left-banner { to { opacity: 1; } }
+
+/* buttons on the light paper cards (the end of a game at Bilgin's table, a note in the street):
+   dark ink on a dark button made them look empty */
+.cafe-end .btn, .district-note .btn, .district-note .btn:not(.primary), .cafe-room__note .btn { background: #5a3d20; color: #fbeed2; border-color: #3a2412; }
+.cafe-end .btn:hover, .district-note .btn:hover, .cafe-room__note .btn:hover { background: #6e4b28; }

@@ -46,14 +46,20 @@ export function InstallButton({ className = 'btn' }: { className?: string }) {
   );
 }
 
-// Browsers only allow full screen from a tap, so the game goes full screen on your first tap (and again
-// after the phone's back gesture drops out of it), unless you turned it off with the button.
+// Full screen only when you ask for it (the button in Settings or on the title). In a plain browser tab
+// going full screen on its own showed the browser's "press Esc / swipe to exit" notice again and again;
+// once you leave full screen yourself, it stays off until you ask again.
 const PREF = 'tof-fullscreen';
-const wantAuto = () => { try { return localStorage.getItem(PREF) !== 'off'; } catch { return true; } };
+const wantAuto = () => { try { return localStorage.getItem(PREF) === 'on'; } catch { return false; } };
 const setPref = (v: 'on' | 'off') => { try { localStorage.setItem(PREF, v); } catch { /* private mode */ } };
 const enter = () => { try { const r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen?.(); (r as Promise<void> | undefined)?.catch?.(() => {}); } catch { /* not allowed here */ } };
 if (canApi && !installed()) {
+  // after a tap left it (the film's own full screen, say), put it back only if you chose full screen
   window.addEventListener('pointerup', () => { if (wantAuto() && !isFull()) enter(); }, { capture: true });
+  // leaving it with Esc or the back gesture means you don't want it: stop going back into it
+  let was = isFull();
+  const onChange = () => { const now = isFull(); if (was && !now) setPref('off'); was = now; };
+  document.addEventListener('fullscreenchange', onChange); document.addEventListener('webkitfullscreenchange', onChange);
 }
 
 export function toggleFullScreen() {

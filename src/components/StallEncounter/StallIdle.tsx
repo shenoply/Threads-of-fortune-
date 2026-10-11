@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../Icon';
 import { AuctionBoard } from '../Auction/AuctionBoard';
 import type { Target } from '../World/Campaign';
@@ -35,13 +36,11 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       </div>
       <div className="idle-next" data-testid="idle-next">
         {g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
-        {canBuy.length > 0 && <p className="idle-upgrade" data-testid="idle-upgrade-note">You can afford {canBuy[0].name.toLowerCase()} now: {canBuy[0].effect.split('.')[0].toLowerCase()}.</p>}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
         )}
       </div>
       <button className="btn primary big" onClick={() => { audio.sfx('tap'); g.waitForCustomer(); }} data-testid="stall-wait">{g.held ? 'Go back to them' : next === null ? 'Close up for the evening' : mins === 0 ? 'Serve them' : `Wait for the customer (${clock(next)})`}</button>
-      <button className="btn idle-auctions" onClick={() => setBoard(true)} data-testid="idle-auctions"><Icon name="calendar" /> Auctions</button>
       <div className="idle-next idle-next--after">
         {!g.held && next !== null && mins >= 60 && (
           <div className="idle-wait" data-testid="idle-wait">
@@ -57,20 +56,36 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}
       </div>
 
-      <div className="idle-row">
-        <button className="btn" onClick={() => useGame.setState({ dayOver: true })} data-testid="stall-close-early"><Icon name="lock" /> Shut the stall</button>
+      {/* the other things to do at the stall, small and side by side, so the one big button stands out */}
+      <div className="idle-more">
+        <button className="btn small" onClick={() => setBoard(true)} data-testid="idle-auctions"><Icon name="calendar" /> Auctions</button>
+        <button className={`btn small idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve" title={canBuy.length ? `You can afford: ${canBuy[0].name}` : undefined}>
+          <Icon name="star" /> Improve{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}
+        </button>
+        <button className="btn small idle-tidy" onClick={() => { audio.sfx('tap'); setTidy(true); }} data-testid="idle-tidy">Tidy up</button>
+        <button className="btn small" onClick={() => useGame.setState({ dayOver: true })} data-testid="stall-close-early"><Icon name="lock" /> Shut the stall</button>
       </div>
-      <button className={`btn idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve">
-        <Icon name="star" /> Improve your stall{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}
-      </button>
-      <button className="btn idle-tidy" onClick={() => { audio.sfx('tap'); setTidy(true); }} data-testid="idle-tidy">Tidy the stall</button>
-      {tidy && (
-        <div className="tidy-film" role="dialog" aria-label="Tidying the stall" onClick={() => setTidy(false)} data-testid="tidy-film">
-          <video src="video/stall-tidy.mp4" autoPlay playsInline onEnded={() => setTidy(false)} onError={() => setTidy(false)} />
-          <small>Tap to close</small>
-        </div>
-      )}
+      {tidy && <TidyFilm onClose={() => setTidy(false)} />}
       {board && <AuctionBoard onClose={() => setBoard(false)} onMap={() => { setBoard(false); onGo('map'); }} />}
     </div>
+  );
+}
+
+/** The tidying film, over the whole screen (not inside the stall sheet, which clipped it to a black
+ *  box), with its first frame showing while it loads; if the phone will not play it with sound it
+ *  plays silent, and if it will not play at all it closes rather than leaving a black screen. */
+function TidyFilm({ onClose }: { onClose: () => void }) {
+  const v = useRef<HTMLVideoElement>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const el = v.current; if (!el) return;
+    el.play().catch(() => { el.muted = true; el.play().catch(onClose); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return createPortal(
+    <div className="tidy-film" role="dialog" aria-label="Tidying the stall" onClick={onClose} data-testid="tidy-film">
+      <video ref={v} src="video/stall-tidy.mp4" poster="video/stall-tidy-poster.webp" playsInline preload="auto" onPlaying={() => setReady(true)} onEnded={onClose} onError={onClose} />
+      <small>{ready ? 'Tap to close' : 'Loading…'}</small>
+    </div>,
+    document.body,
   );
 }

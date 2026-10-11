@@ -14,7 +14,7 @@
 .cafe-actions { display: flex; gap: 8px; justify-content: center; }
 .cafe-end { background: var(--parchment, #efe0bf); color: var(--ink); border-radius: 10px; padding: 14px 16px; max-width: 460px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
 .cafe-end p { margin: 0 0 10px; font-size: 15.5px; line-height: 1.45; }
-.cafe-end .btn { color: var(--ink); border-color: rgba(90,61,32,.5); }
+
 
 /* chess */
 .chess-board { --s: min(calc((100vw - 28px) / 8), calc((100svh - 220px) / 8), 64px); display: grid; grid-template-columns: repeat(8, var(--s)); grid-template-rows: repeat(8, var(--s)); border: 6px solid #4a2e16; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.6), inset 0 0 0 1px #7a5230; }

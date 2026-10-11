@@ -25,7 +25,7 @@ export function paintedMap(): HTMLImageElement | null {
     artSmall = new Image();
     artSmall.decoding = 'async';
     artSmall.onload = () => { smallReady = true; if (!artReady) artListeners.forEach((f) => f()); };
-    artSmall.src = 'art/world/travel-map-original.jpg';
+    artSmall.src = 'art/world/travel-map-original.webp';
   }
   if (!artImg) {
     artImg = new Image();
@@ -38,7 +38,7 @@ export function paintedMap(): HTMLImageElement | null {
     artImg.onerror = () => { artFailed = true; artListeners.forEach((f) => f()); };
     // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
     const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
-    artImg.src = phone ? 'art/world/travel-map-3k.jpg' : 'art/world/travel-map.jpg';
+    artImg.src = phone ? 'art/world/travel-map-3k.webp' : 'art/world/travel-map.webp';
   }
   return artReady ? artImg : smallReady ? artSmall : null;
 }

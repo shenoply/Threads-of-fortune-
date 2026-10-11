@@ -707,7 +707,9 @@ class AudioEngine {
       this.playTrack(this.chooseTrack(this.musicCtx));
     }, (endsAt + breath) * 1000);
     // fetch the likely next piece now, so it starts on time
-    if (want) { const next = PLAYLISTS[want].filter((n) => n !== name); if (next.length) this.buffer(`audio/music/${next[Math.floor(Math.random() * next.length)]}.mp3`); }
+    // fetch the likely next piece in the last half-minute of this one (not at once: on a slow phone line
+    // a second track downloading alongside everything else at the start held up the pictures)
+    if (want) { const next = PLAYLISTS[want].filter((n) => n !== name); if (next.length) { const url = `audio/music/${next[Math.floor(Math.random() * next.length)]}.mp3`; window.setTimeout(() => { if (my === this.gen) this.buffer(url); }, Math.max(0, endsAt - 30) * 1000); } }
   }
 
   /** Actually commit to a new musical context: cross-fade, don't cut-then-silence-then-start.

@@ -199,6 +199,8 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
         <StallCat onCat={onCat} rugOnCounter={!!(rugT && presented)} />
       </div>
       {upgrades.includes('bazaar') && <div className="awning" aria-hidden="true" />}
+      {/* a buyer who gives up gets up and goes, and the picture says so in words too */}
+      {enc?.outcome === 'walked' && buyer && !enc.mocked && <div className="left-banner" data-testid="left-banner">{buyer.name.split(' ')[0]} {enc.letGo ? 'has gone' : 'walked away'}</div>}
       <Atmosphere />
       {text && (
         <div
