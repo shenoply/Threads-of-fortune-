@@ -58,7 +58,7 @@ import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -3421,6 +3421,8 @@ export const useGame = create<GameState & Actions>()(
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
         // the opening (game/opening.ts) arrived with save 21: a merchant already under way skips it, with
         // every city open as before; one still on his first day or two starts it, steps already done ticked
+        // the music default came down from full to under half: a save still at the old full level follows it
+        if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
           const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };
           const underway = pp.day >= 3 || (pp.totalSales ?? 0) >= 3 || pp.missions?.alexandria === 'done' || (!!pp.world && pp.world.at !== 'giza');

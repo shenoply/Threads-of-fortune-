@@ -8,7 +8,8 @@ export type Channel = 'dialogue' | 'music' | 'sfx' | 'ambience';
 type Toggles = Record<Channel, boolean>;
 /** the player's volume sliders, 0..1; ambience follows the effects slider */
 export interface Volumes { master: number; music: number; sfx: number; dialogue: number }
-export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 1, sfx: 1, dialogue: 1 };
+// music starts at under half: at full it drowned the voices and the market (testers turned it down first thing)
+export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.45, sfx: 1, dialogue: 1 };
 
 /** Where the player is, as far as the ears are concerned. */
 export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
