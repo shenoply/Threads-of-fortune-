@@ -12,6 +12,7 @@ const r = await p.evaluate(async () => {
   a.ensure(); await a.ctx.resume();
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const g = () => +a.gains.music.gain.value.toFixed(3);
+  a.setVolumes({ master: 1, music: 1, sfx: 1, dialogue: 1 }); // measured against full (the default music level is lower)
   const full = a.level('music');
   a.duckForVoice(true); await wait(900); out.ducked = g() / full;
   a.setVolumes({ master: 1, music: 1, sfx: 1, dialogue: 1 }); await wait(600); out.duckAfterSlider = g() / full;
