@@ -4,7 +4,8 @@
 // slot asks first; save labels say mode, character and place; settings close from the top and Esc.
 //   PORT=5173 node tests/menu.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '5173';
+import { PORT as __PORT } from './_env.mjs';
+const PORT = __PORT;
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
@@ -17,7 +18,7 @@ await p.click('[data-testid=open-ironman]');
 const txt = await p.locator('[data-testid=mode-ironman]').innerText();
 check(/run is over/i.test(txt) && /cannot be turned off/i.test(txt), 'Ironman is explained before starting');
 await p.click('[data-testid=mode-close]');
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(900);
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(900);
 // a campaign game exists; back to the menu
 await p.evaluate(() => localStorage.setItem('tof-intro-seen-v2', '1')); await p.reload(); await p.waitForTimeout(900);
 check((await has('[data-testid=continue]')) > 0 && (await has('[data-testid=new-game]')) > 0, 'returning menu: Continue and New game');
@@ -30,7 +31,7 @@ check((await has('[data-testid=sandbox-choose]')) > 0, 'and goes straight on to 
 const slots = await p.evaluate(() => Object.keys(localStorage).filter((k) => k.includes('slot')).map((k) => JSON.parse(localStorage.getItem(k)).meta));
 check(slots.length === 1 && slots[0].mode === 'Campaign' && slots[0].hero === 'Hassan', `the old game was kept in a slot, labelled (${JSON.stringify(slots[0])})`);
 await p.click('[data-testid=play-as-hassan]'); await p.waitForTimeout(400);
-if (await has('[data-testid=begin-day-one]')) await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1000);
+if (await has('[data-testid=begin-day-one]')) await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(1000);
 check((await has('[data-testid=hud-sandbox]')) > 0, 'Sandbox badge in the game');
 check((await has('[data-testid=first-hour]')) === 0, 'no guided opening in the sandbox');
 // settings: close at the top, Esc, storage note, replace asks
@@ -45,7 +46,7 @@ if (await has('[data-testid=settings]')) {
   check((await has('[data-testid=settings]')) === 0, 'Esc closes the settings');
 } else check(false, 'settings opened');
 // Ironman: autosave locked on
-await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.ironman = true; d.state.playMode = undefined; localStorage.setItem(k, JSON.stringify(d)); });
+await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.ironman = true; d.state.playMode = undefined; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
 await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
 await p.click('[aria-label="Settings"], [data-testid=settings-btn], [data-testid=hud-settings]').catch(() => {}); await p.waitForTimeout(300);
 check(await p.locator('[data-testid=toggle-autosave]').isDisabled(), 'Ironman: autosave cannot be switched off');

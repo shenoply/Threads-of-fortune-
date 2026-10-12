@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { useGame } from '../../game/state/store';
 import { NPCS, type DialogueOption } from '../../data/world';
 import { RUGS } from '../../data/rugs';
@@ -11,7 +12,14 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
   const [node, setNode] = useState('start');
   const [typed, setTyped] = useState(0);
   const [feedback, setFeedback] = useState<string[]>([]);
+  // a choice that ends the talk with an outcome (Farid's appraisal, a deal struck): the outcome is read
+  // here, in the talk, before the panel underneath gets it as its note
+  const [done, setDone] = useState<string | null>(null);
   const n = npc.nodes[node];
+  const box = useRef<HTMLDivElement>(null);
+  useDialogEscape(box, () => onClose(feedback.join(' ') || undefined));
+  const fbRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (feedback.length) fbRef.current?.scrollIntoView({ block: 'nearest' }); }, [feedback.length]);
 
   useEffect(() => {
     setTyped(0);
@@ -49,11 +57,12 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
     setFeedback(fb);
     voice.stop();
     if (o.next) setNode(o.next);
+    else if (msg) setDone(fb.join(' '));
     else onClose(fb.join(' '));
   };
 
   return (
-    <div className="overlay dialogue" role="dialog" aria-label={`Talking to ${npc.name}`} data-testid="dialogue" onClick={() => setTyped(n.text.length)}>
+    <div className="overlay dialogue" role="dialog" aria-label={`Talking to ${npc.name}`} data-testid="dialogue" onClick={() => setTyped(n.text.length)} ref={box}>
       <div className="dlg">
         <div className="dlg-who">
           <Portrait id={npc.id} look={npc.look} accent={npc.accent} size={72} />
@@ -66,9 +75,13 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
           {n.text.slice(0, typed)}
           {typed < n.text.length && <span className="cursor" />}
         </p>
-        {feedback.length > 0 && <p className="dlg-fb" data-testid="dlg-feedback">{feedback[feedback.length - 1]}</p>}
+        {feedback.length > 0 && <p className="dlg-fb" data-testid="dlg-feedback" ref={fbRef}>{feedback[feedback.length - 1]}</p>}
         <div className="dlg-opts">
-          {n.options.filter(ok).map((o, i) => (
+          {done !== null ? (
+            <button className="act" onClick={(e) => { e.stopPropagation(); onClose(done); }} data-testid="dlg-done">
+              <span className="t">Go on</span>
+            </button>
+          ) : n.options.filter(ok).map((o, i) => (
             // a tap while the line is still being written finishes the line first, so nothing is skipped unread
             <button key={i} className={`act${typed < n.text.length ? ' is-early' : ''}`} onClick={(e) => { e.stopPropagation(); if (typed < n.text.length) { setTyped(n.text.length); return; } choose(o); }} data-testid={`opt-${i}`}>
               <span className="t">{o.label}</span>

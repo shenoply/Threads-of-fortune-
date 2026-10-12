@@ -6,7 +6,7 @@ import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGame } from '../../game/state/store';
+import { useGame, ferryFare } from '../../game/state/store';
 import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
@@ -30,7 +30,8 @@ import { PASS_CHOICES } from '../../game/systems/fieldwork';
 import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
 import { CampScreen, NightPasses } from './Camp';
-import { dateLine } from '../../game/economy/newspaper';
+import { dateLine } from '../../game/economy/dateLine';
+import { warmOdds } from '../../game/systems/odds';
 import { dateFor } from '../../game/economy/economy';
 import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
@@ -59,7 +60,7 @@ const bandName = (p: Party, day: number) => (p.kind === 'raiders' ? threatForPar
 const billLine = (bill: FareLine[]) => bill.map((l) => `${l.n} ${l.label} × ${fmt(l.each)}`).join(' + ');
 
 /** The Nile ferry between Giza and Cairo: an hour and a half, a piastre (the fare is the store's ferry()). */
-const FERRY_DAYS = 1.5 / 24, FERRY_FARE = 1;
+const FERRY_DAYS = 1.5 / 24;
 
 const kindIcon: Record<string, string> = { home: 'store', city: 'star', town: 'room', village: 'room', oasis: 'sun', port: 'anchor', monastery: 'book', camp: 'camel' };
 
@@ -268,23 +269,58 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
   useEffect(() => { paintedMap(); return onPaintedMap(() => setArtTick((t) => t + 1)); }, []);
-  /** Paint the map at the live camera (panRef), not the last committed one; the travel loop calls this every frame. */
-  const paintRef = useRef<() => void>(() => {});
-  paintRef.current = () => {
+  // bands wait on the roads: have the fight-odds worker loaded (12 KB, idle) before the first ambush card opens
+  useEffect(() => { const t = window.setTimeout(warmOdds, 4000); return () => window.clearTimeout(t); }, []);
+  /** Paint the map at the live camera (panRef), not the last committed one; the travel loop calls this every frame.
+   *  On the move the map is drawn once at 1x with a margin round the screen and slid under CSS (a GPU move,
+   *  no repaint) until the camera nears the margin; whole-canvas redraws at 2x every frame cost ~100 ms a frame on
+   *  a phone. A moment after the camera stops it is drawn again, sharp. */
+  const paintRef = useRef<(travel?: boolean) => void>(() => {});
+  const drawn = useRef({ x: 0, y: 0, s: 0, m: 0, w: 0, h: 0, fog: null as unknown, art: -1, at: 0 });
+  const travelAt = useRef(0);
+  const lastTravelPan = useRef({ x: NaN, y: NaN });
+  const sharpTimer = useRef<number | undefined>(undefined);
+  const artTickRef = useRef(artTick);
+  artTickRef.current = artTick;
+  useEffect(() => () => window.clearTimeout(sharpTimer.current), []);
+  paintRef.current = (travel = false) => {
     const c = canvasRef.current;
     if (!c) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
     const sz = sizeRef.current;
     const W = Math.max(1, sz.w), H = Math.max(1, sz.h);
-    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) {
-      c.width = Math.round(W * dpr);
-      c.height = Math.round(H * dpr);
+    const p = panRef.current, sc = sRef.current, now = performance.now();
+    const d = drawn.current;
+    if (travel) {
+      const lp = lastTravelPan.current;
+      // the camera has not moved (a halt with the loop still running): leave the sharp map as it is
+      if (Math.abs(lp.x - p.x) < 0.05 && Math.abs(lp.y - p.y) < 0.05 && d.s === sc) return;
+      lastTravelPan.current = { x: p.x, y: p.y };
+      travelAt.current = now;
+      window.clearTimeout(sharpTimer.current);
+      sharpTimer.current = window.setTimeout(() => { lastTravelPan.current = { x: NaN, y: NaN }; travelAt.current = 0; paintRef.current(false); }, 300);
+      const ox = p.x - d.x, oy = p.y - d.y;
+      // newly seen country may wait a little over a second for the next redraw
+      const fresh = (d.fog === fogImg || now - d.at < 1200) && d.art === artTickRef.current;
+      if (d.m > 0 && fresh && d.s === sc && d.w === W && d.h === H && Math.abs(ox) <= d.m - 4 && Math.abs(oy) <= d.m - 4) {
+        c.style.transform = `translate(${ox}px, ${oy}px)`;
+        return;
+      }
     }
-    const p = panRef.current;
-    drawWorld(c.getContext('2d')!, { w: W, h: H, s: sRef.current, tx: p.x, ty: p.y, dpr }, { fog: fogImg, roads });
+    const dpr = travel ? 1 : Math.min(2, window.devicePixelRatio || 1);
+    const M = travel ? 160 : 0;
+    const cw = W + 2 * M, ch = H + 2 * M;
+    if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) {
+      c.width = Math.round(cw * dpr);
+      c.height = Math.round(ch * dpr);
+    }
+    if (M) Object.assign(c.style, { left: `${-M}px`, top: `${-M}px`, width: `${cw}px`, height: `${ch}px`, transform: 'translate(0px, 0px)', willChange: 'transform' });
+    else Object.assign(c.style, { left: '', top: '', width: '', height: '', transform: '', willChange: '' });
+    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads });
+    drawn.current = { x: p.x, y: p.y, s: sc, m: M, w: W, h: H, fog: fogImg, art: artTickRef.current, at: now };
   };
   useEffect(() => {
-    const raf = requestAnimationFrame(() => paintRef.current());
+    // while the travel loop is drawing, a React update (the view synced a few times a second) slides the map too
+    const raf = requestAnimationFrame(() => paintRef.current(performance.now() - travelAt.current < 250));
     return () => cancelAnimationFrame(raf);
   }, [pan.x, pan.y, s, size.w, size.h, fogImg, roads, artTick]);
 
@@ -639,7 +675,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         const k = Math.min(1, dt * 4);
         panRef.current = clampRef.current({ x: cur.x + (target.x - cur.x) * k, y: cur.y + (target.y - cur.y) * k });
         if (innerRef.current) innerRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px)`;
-        paintRef.current();
+        paintRef.current(true);
       }
       if (meRef.current) {
         // the figure faces the way you are walking
@@ -1067,7 +1103,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <div className="wc-alt" data-testid="alt-routes">
             <span>Faster:</span>
             {altFerry && alt.settlement && (
-              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · {fmt(FERRY_FARE)} · {durationLabel(FERRY_DAYS)}</button>
+              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(FERRY_DAYS)}</button>
             )}
             {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)} · {durationLabel(alt.train.days)}</button>}
             {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {durationLabel(r.days)}</button>)}
@@ -1082,7 +1118,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const camping = nightRule !== 'march';
             const ferry = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
             const ways = [
-              ...(ferry ? [{ key: 'ferry', days: FERRY_DAYS, ok: g.cash >= FERRY_FARE }] : []),
+              ...(ferry ? [{ key: 'ferry', days: FERRY_DAYS, ok: g.cash >= ferryFare(g).total }] : []),
               ...(plan.train ? [{ key: 'train', days: plan.train.days, ok: g.cash >= plan.train.fare }] : []),
               ...plan.ships.map((r) => ({ key: 'ship' + r.to, days: r.days, ok: g.cash >= r.fare })),
               ...plan.motor.map((r) => ({ key: 'motor' + r.to, days: r.days, ok: g.cash >= r.fare })),
@@ -1125,7 +1161,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </div>
               <div className="wc-btns">
                 {ferry && (
-                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · {fmt(FERRY_FARE)} · {durationLabel(FERRY_DAYS)}{fast('ferry')}</button>
+                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(FERRY_DAYS)}{fast('ferry')}</button>
                 )}
                 {plan.train && <button className={`btn${lead === 'train' ? ' primary' : ''}`} onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}{fast('train')}</button>}
                 {plan.ships.map((r) => (

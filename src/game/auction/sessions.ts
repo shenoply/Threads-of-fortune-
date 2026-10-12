@@ -82,7 +82,7 @@ export function catalogue(houseId: string, day: number, reoffers: Reoffer[] = []
   const priceLot = (key: string, typeIds: string[], cs: Condition[], ps: Provenance[], bundle: boolean, reserveOverride?: number, reoffered?: number): Lot => {
     const value = Math.round(typeIds.reduce((s, id, j) => s + worth(id, cs[j], ps[j]), 0));
     const estimate: [number, number] = [snap5(value * 0.8), snap5(value * 1.2)];
-    const reserve = reserveOverride ?? snap5(value * (small ? 0.5 : 0.7));
+    const reserve = reserveOverride ?? snap5(value * (small ? 0.38 : 0.7));
     // the opening call sits on the price ladder, so the auctioneer can say every price that follows
     const opening = snapDown(Math.min(reserve, value * (small ? 0.4 : 0.55)));
     return { key, bundle, typeIds, conditions: cs, provenance: ps, value, estimate, reserve, opening, reoffered };
@@ -159,7 +159,8 @@ export function roomFor(houseId: string, day: number, you: { cash: number; rep: 
 /** How far a bidder will go on this lot. */
 export function ceilingFor(b: RoomBidder, l: Lot, roll: number) {
   const keen = b.wants(l);
-  const interest = keen ? 1 + b.aggression * 0.22 : 0.72 + b.aggression * 0.12;
+  // a bidder who does not want this lot stops well short of its worth, leaving room to buy for resale
+  const interest = keen ? 1 + b.aggression * 0.22 : 0.58 + b.aggression * 0.1;
   const jitter = 0.9 + roll * 0.2;
   return Math.round(Math.min(b.budget, l.value * interest * jitter));
 }

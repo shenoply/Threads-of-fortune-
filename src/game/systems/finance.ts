@@ -65,9 +65,10 @@ export const RUIN_THRESHOLD = 200;
 /** after the court, a month's grace to find your feet before any creditor can start again */
 export const RUIN_GRACE = 30;
 
-/** What you owe that is already overdue: an empty purse, the landlord's late bill, loans past due. */
-export function overdue(cash: number, billsDue: number, billsLate: boolean, loans: Loan[], day: number) {
-  return Math.max(0, -cash) + (billsLate ? billsDue : 0) + loans.filter((l) => day > l.due).reduce((s, l) => s + l.owed, 0);
+/** What you owe that is already overdue: an empty purse, the landlord's late bill, loans past due, and
+ *  an instalment of your father's debt that Rashid has waited for too long (familyLate: that sum). */
+export function overdue(cash: number, billsDue: number, billsLate: boolean, loans: Loan[], day: number, familyLate = 0) {
+  return Math.max(0, -cash) + (billsLate ? billsDue : 0) + loans.filter((l) => day > l.due).reduce((s, l) => s + l.owed, 0) + Math.max(0, familyLate);
 }
 
 /** How close to the court and bankruptcy you are right now, 0-100: 0 at the lawyer's first letter,

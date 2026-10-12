@@ -35,10 +35,10 @@ export const HOUSE_TARGET = 500000; // £5,000: a rich man's fortune in 1925
 
 export const RANKS = [
   { id: 'stall', name: 'Stall keeper', worth: 0, rep: 0, warrants: 0, note: 'A borrowed corner and a cat.' },
-  { id: 'bazaar', name: 'Bazaar merchant', worth: 15000, rep: 10, warrants: 0, note: 'Net worth £150 and reputation 10.' },
-  { id: 'khan', name: 'Khan dealer', worth: 50000, rep: 30, warrants: 0, note: 'Net worth £500 and reputation 30.' },
-  { id: 'levant', name: 'Merchant of the Levant', worth: 150000, rep: 45, warrants: 1, note: 'Net worth £1,500, reputation 45 and one royal warrant.' },
-  { id: 'kings', name: 'Purveyor to Kings', worth: 300000, rep: 60, warrants: 3, note: 'Net worth £3,000, reputation 60 and three royal warrants.' },
+  { id: 'bazaar', name: 'Bazaar merchant', worth: 6000, rep: 10, warrants: 0, note: 'Net worth £60 and reputation 10.' },
+  { id: 'khan', name: 'Khan dealer', worth: 17500, rep: 25, warrants: 0, note: 'Net worth £175 and reputation 25.' },
+  { id: 'levant', name: 'Merchant of the Levant', worth: 30000, rep: 40, warrants: 1, note: 'Net worth £300, reputation 40 and one royal warrant.' },
+  { id: 'kings', name: 'Purveyor to Kings', worth: 90000, rep: 55, warrants: 3, note: 'Net worth £900, reputation 55 and three royal warrants.' },
 ] as const;
 
 export function rankOf(s: S) {

@@ -1,11 +1,12 @@
 import { chromium } from 'playwright';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 });
-await p.goto('http://localhost:4173/');
+await p.goto(`http://localhost:${__PORT}/`);
 await p.evaluate(() => { localStorage.clear(); localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'); });
 await p.reload(); await p.waitForTimeout(500);
 await p.click('[data-testid=skip-to-day]'); await p.waitForTimeout(500);
 const btn = p.locator('.dayone button, [data-testid=begin-day]').first(); await btn.click();
-await p.waitForTimeout(1500); await p.screenshot({ path: '/home/claude/shots/new-1.png' });
-await p.waitForTimeout(4000); await p.screenshot({ path: '/home/claude/shots/new-2.png' });
+await p.waitForTimeout(1500); await p.screenshot({ path: `${__SHOTS}/new-1.png` });
+await p.waitForTimeout(4000); await p.screenshot({ path: `${__SHOTS}/new-2.png` });
 await b.close();

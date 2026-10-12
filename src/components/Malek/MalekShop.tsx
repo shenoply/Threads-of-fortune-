@@ -201,11 +201,30 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     setVisit(v);
     if (v.stage != null) setPhase('story');
   }, [open]);
+  // Escape (and the phone's Back, which App sends as an Escape) steps back one thing at a time: a sheet,
+  // a panel, a story card, and only then out of the door. While a film has the stage, the film's own
+  // Escape ends it and the shop stays open. Marked as handled so App does not step back as well.
+  const keys = useRef({ confirm, result, panel, replay, storyList, film, bonus, phase, onLeave });
+  keys.current = { confirm, result, panel, replay, storyList, film, bonus, phase, onLeave };
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (confirm) setConfirm(null); else onLeave(); } };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const k = keys.current;
+      e.preventDefault();
+      // the film's own Escape ends it; his bonus clip after it is skipped too, so one Back is enough
+      if (k.film) { window.setTimeout(() => setBonus(false), 0); return; }
+      if (k.bonus) setBonus(false);
+      else if (k.confirm) setConfirm(null);
+      else if (k.result) setResult(null);
+      else if (k.replay != null) setReplay(null);
+      else if (k.storyList) setStoryList(false);
+      else if (k.phase === 'story') setPhase('room');
+      else if (k.panel) setPanel(null);
+      else k.onLeave();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onLeave, confirm]);
+  }, []);
 
   const now = g.day * 24 + g.world.hour;
   const cond = g.condition ?? CONDITION_START;

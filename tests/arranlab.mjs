@@ -4,15 +4,16 @@
 // charged once, cut consent, closed at night, lost copy, duplicate return, v13/v14 save migration.
 //   PORT=5173 node tests/arranlab.mjs   (W/H/TAG set the viewport and screenshot names)
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '4173';
-const S = process.env.SHOTS ?? '/tmp';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT;
+const S = __SHOTS;
 const W = +(process.env.W ?? 390), H = +(process.env.H ?? 844), tag = process.env.TAG ?? 'phone';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
 const st = async () => JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).state;
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(700); };
 const toLab = async () => {
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(400);
@@ -28,7 +29,7 @@ const toTown = async (town) => {
 };
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
     Object.assign(s.world, { at: 'giza', hour: 2 }); s.cash = 800; s.queue = []; s.visitIdx = 0;
     s.inventory = s.inventory.slice(0, 3); s.inventory[0].condition = 'Excellent'; s.inventory[1].condition = 'Worn';
@@ -47,7 +48,7 @@ try {
   await p.click(`[data-testid=arran-rug-${worn}]`); await p.waitForTimeout(500);
   await p.screenshot({ path: `${S}/lab-${tag}-tests.png` });
   console.log('fibre locked:', await has(`arran-locked-fibre-${worn}`), '| rub open:', await has(`arran-test-fastness-${worn}`));
-  const direct = await p.evaluate(async (uid) => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranExamine(uid, 'fibre'); }, worn);
+  const direct = await p.evaluate(async (uid) => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().arranExamine(uid, 'fibre'); }, worn);
   console.log('store refuses locked fibre:', JSON.stringify(direct));
   await p.click('[data-testid=arran-rug-kilim-t]'); await p.click('[data-testid=arran-test-fastness-kilim-t]'); await p.waitForSelector('[data-testid=arran-confirm]');
   console.log('confirm card before paying:', (await p.locator('[data-testid=arran-confirm]').innerText()).replace(/\n+/g, ' | ').slice(0, 260));
@@ -75,7 +76,7 @@ try {
   await p.click('[data-testid=library-copy-fibres]'); await p.waitForTimeout(300);
   const c1 = await st();
   console.log('copy: cash', c0.cash, '->', c1.cash, '| hour ->', c1.world.hour.toFixed(2), '| papers', c1.papers.length, c1.papers[0]?.kind, '| phase', c1.arranBooks.fibres.phase);
-  const again = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().libraryAcquire('fibres', 'duplicate'); });
+  const again = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().libraryAcquire('fibres', 'duplicate'); });
   console.log('second purchase refused:', again);
   await p.click('[data-testid=library-read-fibres]'); await p.waitForSelector('[data-testid=book-reader]'); await p.waitForTimeout(500);
   await p.screenshot({ path: `${S}/lab-${tag}-book.png` });
@@ -89,7 +90,7 @@ try {
   await p.click('[data-testid=arran-tab-notebook]'); await p.click('[data-testid=arran-return-fibres]'); await p.waitForTimeout(400);
   const r1 = await st();
   console.log('returned:', r1.arranBooks.fibres.phase, '| unlocked', JSON.stringify(r1.labUnlocked), '| papers', r1.papers.length, '|', (await p.locator('[data-testid=arran-say]').textContent()).slice(0, 40));
-  const dup = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('fibres'); });
+  const dup = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('fibres'); });
   console.log('duplicate return:', JSON.stringify(dup), '| unlocked still', JSON.stringify((await st()).labUnlocked));
   await p.click('[data-testid=arran-tab-test]'); await p.click(`[data-testid=arran-rug-${worn}]`);
   await p.click(`[data-testid=arran-test-fibre-${worn}]`); await p.click('[data-testid=arran-confirm-pay]'); await p.waitForSelector('[data-testid=arran-finding]');
@@ -113,7 +114,7 @@ try {
   await p.screenshot({ path: `${S}/lab-${tag}-cat-report.png` });
   const rr = (await st()).inventory.find((i) => i.uid === worn);
   console.log('report on rug:', JSON.stringify(rr.labReports), '| offered again?', await has(`cat-report-${worn}:fibre`));
-  const again2 = await p.evaluate(async (id) => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranBuy('report', id); }, `${worn}:fibre`);
+  const again2 = await p.evaluate(async (id) => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().arranBuy('report', id); }, `${worn}:fibre`);
   console.log('second report refused:', again2);
   const bonus = await p.evaluate(async () => { const m = await import('/src/game/systems/arranShop.ts'); return [m.labArgBonus('craft', ['fibre'], ['loupe'], ['fineWeave']), m.labArgBonus('durability', ['fibre'], [], []), m.labArgBonus('durability', ['fastness'], ['cloths'], ['washable'])]; });
   console.log('argument bonus craft(report+loupe), durability(no rub report), durability(rub report):', bonus.join(', '));
@@ -121,14 +122,14 @@ try {
   console.log('service -> test tab:', await has('arran-catalogue'), '(0 = closed) |', await p.locator('[data-testid=arran-msg]').textContent());
   // lost copy: dyes errand, copy vanishes, return fails, the archive can make another
   await edit(`s.arranBooks.dyes = { phase: 'copy_acquired', copyId: 'gone', day: s.day }; s.papers = [];`); await reload();
-  const lost = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('dyes'); });
+  const lost = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().arranReturnBook('dyes'); });
   console.log('return with lost copy:', JSON.stringify(lost), '| still locked dye:', !(await st()).labUnlocked.includes('dye'));
   await edit(`Object.assign(s.world, { at: 'alexandria', hour: 9 }); s.cash = 2000;`); await reload();
-  const re = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); return m.useGame.getState().libraryAcquire('dyes', 'copy'); });
+  const re = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().libraryAcquire('dyes', 'copy'); });
   console.log('archive makes another:', re.slice(0, 50), '| papers', (await st()).papers.length);
   // v14 save with a fibre finding keeps the fibre test
   await edit(`d.version = 14; delete s.labUnlocked; delete s.arranBooks; delete s.papers; s.arranFindings = [{ id: 'x:fibre', subjectId: 'x', service: 'fibre', verdict: 'consistent', confidence: 'strong', claim: 'Wool', evidence: [], limitations: [], day: 1 }];`); await reload();
   console.log('v14 migration unlocked:', JSON.stringify((await st()).labUnlocked), '| version', JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).version);
   console.log('errors', errs);
-} catch (e) { console.log('FAIL', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/lab-${tag}-fail.png` }); }
+} catch (e) { console.log('FAIL', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')); await p.screenshot({ path: `${S}/lab-${tag}-fail.png` }); }
 await b.close();

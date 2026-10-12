@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
 import { Rumours } from '../Rumours/Rumours';
 import { cityClosed, closedNote, dangerAt } from '../../game/economy/life';
@@ -34,7 +35,7 @@ import { shopsIn } from '../../data/clothingShops';
 import { BUYERS } from '../../data/buyers';
 import { PortraitOrCameo } from '../People/Person';
 import { personFor } from '../../data/people';
-import { dateLine } from '../../game/economy/newspaper';
+import { dateLine } from '../../game/economy/dateLine';
 import { FinancePanel } from './Finance';
 import { LibraryView } from '../ArranLab/Library';
 import { openMalek } from '../../game/nav';
@@ -149,6 +150,20 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const royal = venue?.royal ? BUYERS[venue.royal] : undefined;
   const [note, setNote] = useState('');
   const [sailing, setSailing] = useState<{ to: string } | null>(null);
+  // Escape and the phone's Back: the wait card closes, otherwise the panel is left as its Leave button
+  // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
+  const busy = wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
+  // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
+  useEffect(() => {
+    if (!note || menu) return;
+    const t = window.setTimeout(() => rootRef.current?.querySelector('[data-testid=set-note]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50);
+    return () => window.clearTimeout(t);
+  }, [note, menu]);
+  useDialogEscape(rootRef, () => {
+    if (busy) return false;
+    if (waitOpen) { setWaitOpen(false); return; }
+    onClose();
+  });
   const offers = localOffers(id, g.day, g.world.boughtLocal, g.world.friends, g.reputation);
   const hasMarket = st.sells.length > 0 || Object.keys(st.demand).length > 0;
   const ships = seaRoutesFrom(id);

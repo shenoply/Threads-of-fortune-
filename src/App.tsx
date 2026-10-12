@@ -21,7 +21,7 @@ import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
 import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
-import { useGame, dateFor, clock, forceSave, FULL_SIM, SAVE_VERSION, type SimSettings } from './game/state/store';
+import { useGame, dateFor, clock, forceSave, FULL_SIM, SAVE_VERSION, FAMILY_GRACE, type SimSettings } from './game/state/store';
 import * as storeModule from './game/state/store';
 import { SAVE_KEY, BEFORE_LOAD_KEY, SAVE_FAILED_EVENT, SAVE_OK_EVENT, OTHER_TAB_EVENT, saveFailedNow, otherTabActive, blockSaves, memorySave, checkSave, readKey, writeKey } from './game/state/saveGuard';
 import './components/SaveGuard.css';
@@ -53,6 +53,7 @@ import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
 import { FinancePanel } from './components/World/Finance';
 import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
+import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlot';
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
@@ -91,7 +92,7 @@ export default function App() {
   const [savedAt, setSavedAt] = useState('');
   const [finance, setFinance] = useState(false);
   // money trouble shows in the top bar: an empty purse, a late bill, a loan past due, the creditors
-  const inDebt = g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day) > 0);
+  const inDebt = g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day, (g.family?.due ?? 0) > 0 && g.day - (g.family?.since ?? 0) >= FAMILY_GRACE ? g.family!.due : 0) > 0);
   // the creditors' road, once a lawyer's letter has gone out: 0 at the letter, 100 the moment the
   // court would declare you bankrupt. A second bankruptcy ends the game for good, so that one gets
   // the starkest framing.
@@ -176,7 +177,10 @@ export default function App() {
     if (ok) audio.sfx('tap');
     else { toast(`Slot ${n} could not be kept: the storage on this phone is full. Make a backup file instead.`); setSaveWarn(true); }
   };
+  // the game that stopped the page, kept by the crash screen: a backup file, never loaded from here
+  const slotDownload = (n: number, info: SlotInfo) => { const raw = slotSaveText(n); if (raw) saveFile(raw, info.day); };
   const slotLoad = (n: number, info: SlotInfo) => {
+    if (slotCrashed(info)) { window.alert('This slot holds a game that stopped the page. Loading it would most likely stop it again, so it can only be downloaded as a backup file.'); return; }
     if (useGame.getState().started && useGame.getState().ironman) { window.alert('An Ironman run cannot be swapped for a saved game.'); return; }
     if (info.mode === 'Ironman' || slotIsIronman(n)) { window.alert('This slot holds an Ironman run. An Ironman game has one life and cannot be loaded from a slot.'); return; }
     if (!window.confirm(`Load the save from day ${info.day}? Your current game will be replaced.`)) return;
@@ -482,6 +486,16 @@ export default function App() {
     // panels kept inside other screens (the rug inspector, the Objectives and Jobs panel): press their own close button
     const inner = [...document.querySelectorAll<HTMLButtonElement>('[data-testid=inspector-close]:not([disabled]), [data-testid=obj-close]')].filter((b) => b.offsetParent !== null).pop();
     if (inner) { inner.click(); return true; }
+    // the world map's trip card (a planned route) and its change-of-course card: Cancel / Keep going.
+    // They are not dialogs and the map does not listen for Escape, so their own button is pressed.
+    if (tab === 'map') {
+      const vis = (b: Element | null | undefined): b is HTMLButtonElement => !!b && (b as HTMLElement).offsetParent !== null && !(b as HTMLButtonElement).disabled;
+      const keep = document.querySelector('[data-testid=reroute-keep]');
+      if (vis(keep)) { keep.click(); return true; }
+      const card = document.querySelector('[data-testid=travel]')?.closest('.wc-col, .wc-row');
+      const cancel = card && [...card.querySelectorAll('button')].find((b) => /^(Cancel|OK)$/.test((b.textContent ?? '').trim()));
+      if (vis(cancel)) { cancel.click(); return true; }
+    }
     if (tab !== 'map' && !(tab === 'stall' && g.encounter && !g.encounter.outcome)) { setTab('map'); return true; }
     return false;
   };
@@ -509,6 +523,8 @@ export default function App() {
   }, [phase]);
 
   const date = dateFor(g.day);
+  // the night's summary card is up (the same test DaySummary makes before it shows itself)
+  const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
   const [cashFlash, setCashFlash] = useState(false);
   const prevCash = useRef(g.cash);
   useEffect(() => {
@@ -648,9 +664,11 @@ export default function App() {
             <div className="slot-list" data-testid="title-slot-list">
               {slots.map((info, i) => info && (
                 <div className="slot-row" key={i} data-testid={`title-slot-${i + 1}`}>
-                  <span className="slot-info">{slotLabel(info)}</span>
+                  <span className="slot-info">{slotCrashed(info) ? crashedLabel(info) : slotLabel(info)}</span>
                   <span className="slot-btns">
-                    {info.mode === 'Ironman'
+                    {slotCrashed(info)
+                      ? <button className="btn small" onClick={() => slotDownload(i + 1, info)} data-testid={`title-slot-download-${i + 1}`}>Download</button>
+                      : info.mode === 'Ironman'
                       ? <small className="dim" data-testid={`title-slot-iron-${i + 1}`}>Ironman runs cannot be loaded</small>
                       : <button className="btn small" onClick={() => slotLoad(i + 1, info)} data-testid={`title-slot-load-${i + 1}`}>Load</button>}
                   </span>
@@ -795,7 +813,8 @@ export default function App() {
       </nav>
 
       {g.rescue && <Rescue />}
-      {phase === 'game' && !g.rescue && <><DaySummary /><JobOffer /></>}
+      {/* one card at a time: the night's summary first, then a job offer waiting from before */}
+      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && <JobOffer />}</>}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>
@@ -838,10 +857,11 @@ export default function App() {
                     const n = i + 1;
                     return (
                       <div className="slot-row" key={n} data-testid={`slot-${n}`}>
-                        <span className="slot-info">{info ? slotLabel(info) : `Slot ${n}: empty`}</span>
+                        <span className="slot-info">{info ? (slotCrashed(info) ? crashedLabel(info) : slotLabel(info)) : `Slot ${n}: empty`}</span>
                         <span className="slot-btns">
                           <button className="btn small" onClick={() => { if (info && !window.confirm(`Slot ${n} has ${slotLabel(info)}. Put your game in its place? The old one is lost.`)) return; slotSave(n); }} data-testid={`slot-save-${n}`}>{info ? 'Save over' : 'Save here'}</button>
-                          {info && info.mode !== 'Ironman' && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
+                          {info && slotCrashed(info) && <button className="btn small" onClick={() => slotDownload(n, info)} data-testid={`slot-download-${n}`}>Download</button>}
+                          {info && info.mode !== 'Ironman' && !slotCrashed(info) && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
                           {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`} aria-label={`Empty slot ${n}`}>Empty</button>}
                         </span>
                       </div>

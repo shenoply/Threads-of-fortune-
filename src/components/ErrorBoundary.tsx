@@ -4,6 +4,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { SAVE_KEY, BEFORE_LOAD_KEY, CRASHED_KEY, blockSaves, readKey, writeKey } from '../game/state/saveGuard';
 import { SLOT_COUNT, readSlots, saveToSlot } from '../game/state/slots';
+import { markSlotCrashed } from '../game/state/crashedSlot';
 import './SaveGuard.css';
 
 interface State { error: Error | null; note: string; downloaded: boolean }
@@ -22,7 +23,9 @@ function keepCurrent(): string {
   let ironman = false;
   try { ironman = !!JSON.parse(raw)?.state?.ironman; } catch { /* unreadable: still keep it */ }
   const free = readSlots().findIndex((s) => !s) + 1;
-  if (!ironman && free > 0 && free <= SLOT_COUNT && saveToSlot(free, raw)) return `was kept in save slot ${free}.`;
+  // marked as the game that crashed: the slot offers it as a backup file, and will not load it (it
+  // would most likely stop the game again)
+  if (!ironman && free > 0 && free <= SLOT_COUNT && saveToSlot(free, raw)) { markSlotCrashed(free); return `was kept in save slot ${free}, marked "Crashed game". It can be downloaded from there as a backup file.`; }
   return writeKey(CRASHED_KEY, raw) ? 'was kept in this browser.' : '';
 }
 

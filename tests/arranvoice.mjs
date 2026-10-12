@@ -3,8 +3,9 @@
 // No recordings exist in the repo: the test serves a generated test tone (not anyone's voice) for
 // the clip files through request interception.   PORT=5173 node tests/arranvoice.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '4173';
-const S = process.env.SHOTS ?? '/tmp';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT;
+const S = __SHOTS;
 const W = +(process.env.W ?? 390), H = +(process.env.H ?? 844), tag = process.env.TAG ?? 'phone';
 // a 2.5 s 440 Hz tone as WAV
 const tone = (() => { const sr = 8000, n = sr * 2.5, b = Buffer.alloc(44 + n * 2); b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(sr, 24); b.writeUInt32LE(sr * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40); for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(Math.sin(i / sr * 2 * Math.PI * 440) * 3000), 44 + i * 2); return b; })();
@@ -17,7 +18,7 @@ const ids = await (async () => { const src = (await import('node:fs')).readFileS
 await p.route('**/audio/arran/manifest.json', (r) => { manifestHits++; r.fulfill({ contentType: 'application/json', body: JSON.stringify({ lines: Object.fromEntries(ids.filter((i) => i !== 'arran-lab-explain-03').map((i) => [i, ['mp3']])) }) }); });
 await p.route('**/audio/arran/**/*.mp3', (r) => (r.request().url().includes('arran-lab-explain-03') ? r.fulfill({ status: 404, body: '' }) : r.fulfill({ contentType: 'audio/wav', body: tone })));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(700); };
 const V = () => p.evaluate(() => ({ playing: window.__arranVoice.playing(), vol: window.__arranVoice.volume(), src: (window.__arranVoice.src() || '').split('/').pop() }));
 const sub = async () => ({ line: await p.locator('[data-testid=arran-subtitle]').last().getAttribute('data-line').catch(() => null), text: await p.locator('[data-testid=arran-subtitle]').last().textContent().catch(() => null) });
@@ -29,7 +30,7 @@ const toLab = async () => {
 };
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['arran']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.cash = 800; s.queue = []; s.visitIdx = 0; s.inventory = s.inventory.slice(0, 3); s.inventory[1].condition = 'Worn'; delete s.volumes; delete s.arranVisit; d.version = 16; localStorage.setItem('tof-skip-chapters', '1');`);
   await reload();
   const st0 = JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save')));
@@ -46,14 +47,14 @@ try {
   console.log('15 rapid taps: most clips playing at once =', count);
   // volume mid-line, music untouched
   await p.click('[data-testid=arran-talk]'); await p.waitForTimeout(300);
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); m.useGame.getState().setVolume('dialogue', 0.3); });
+  await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); m.useGame.getState().setVolume('dialogue', 0.3); });
   console.log('7-8 dialogue 30% mid-line:', JSON.stringify(await V()), '| engine volumes', JSON.stringify(await p.evaluate(() => window.__tofAudio.volumes)));
   // dialogue off: subtitles only
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); m.useGame.getState().setSetting('dialogue', false); });
+  await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); m.useGame.getState().setSetting('dialogue', false); });
   console.log('   switch off mid-line: audio', JSON.stringify(await V()));
   await p.click('[data-testid=arran-talk]'); await p.waitForTimeout(400);
   console.log('9-10 dialogue off, tap: subtitle', (await sub()).line, '| audio', JSON.stringify(await V()));
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); m.useGame.getState().setSetting('dialogue', true); m.useGame.getState().setVolume('dialogue', 0.8); m.useGame.getState().setVolume('master', 0.5); });
+  await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); m.useGame.getState().setSetting('dialogue', true); m.useGame.getState().setVolume('dialogue', 0.8); m.useGame.getState().setVolume('master', 0.5); });
   // inspection: hand him a rug
   const worn = st0.state.inventory[1].uid;
   await p.click(`[data-testid=arran-rug-${worn}]`); await p.waitForTimeout(400);
@@ -93,5 +94,5 @@ try {
   await p.click('[data-testid=settings-btn]'); await p.waitForTimeout(300);
   await p.screenshot({ path: `${S}/voice-${tag}-settings.png` });
   console.log('errors', errs, '| console warnings', warns.filter((w) => /arran/i.test(w)));
-} catch (e) { console.log('FAIL', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/voice-${tag}-fail.png` }); }
+} catch (e) { console.log('FAIL', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')); await p.screenshot({ path: `${S}/voice-${tag}-fail.png` }); }
 await b.close();

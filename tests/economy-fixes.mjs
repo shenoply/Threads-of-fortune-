@@ -2,14 +2,15 @@
 // the receipt counts repairs and delivery, wages count only when paid.
 //   PORT=5173 node tests/economy-fixes.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '5173';
+import { PORT as __PORT } from './_env.mjs';
+const PORT = __PORT;
 const b = await chromium.launch();
 const p = await b.newPage();
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(800);
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(800);
 const r = await p.evaluate(async () => {
-  const { useGame, keptBack } = await import('/src/game/state/store.ts');
+  const { useGame, keptBack } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts');
   const { netWorth, liabilities } = await import('/src/game/economy/progress.ts');
   const out = {};
   const g = () => useGame.getState();

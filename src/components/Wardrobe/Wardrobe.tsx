@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { SETTLEMENTS } from '../../data/world';
@@ -15,6 +16,8 @@ const ROOM = 'art/hero/wardrobe-room.jpg';
  *  Whatever he wears here is what he wears at the stall. */
 export function Wardrobe({ onClose }: { onClose: () => void; startSlot?: string }) {
   const g = useGame();
+  const box = useRef<HTMLDivElement>(null);
+  useDialogEscape(box, onClose);
   const w = g.wardrobe ?? START_WARDROBE;
   const at = g.world?.at ?? null;
   const here = at && at !== 'road' ? placeName(at) : null;
@@ -38,7 +41,7 @@ export function Wardrobe({ onClose }: { onClose: () => void; startSlot?: string 
   const wear = () => { g.wearOutfit(o.id); setNote(`You change into ${lowerName(o.name)}. The stall will see you in it.`); };
 
   return (
-    <div className="overlay wardrobe" role="dialog" aria-label="Wardrobe" data-testid="wardrobe">
+    <div className="overlay wardrobe" role="dialog" aria-label="Wardrobe" data-testid="wardrobe" ref={box}>
       <div className="overlay-head">
         <div>
           <h2>Wardrobe</h2>

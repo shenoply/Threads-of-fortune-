@@ -38,6 +38,8 @@ export function guideTarget(s: GameState): GuideTarget | null {
   // Farid is in Damascus's People; the palace is the town menu's court tile
   if (activeId === 'farid') return { city: 'damascus', tile: 'menu-people' };
   if (activeId === 'warrant') return { city: 'alexandria', tile: 'menu-court' };
+  // the second court: Amman's Emir from reputation 20, King Fuad in Cairo from 25
+  if (activeId === 'warrant2') return { city: (s.reputation ?? 0) >= 25 ? 'cairo' : 'amman', tile: 'menu-court' };
   // any town's sale rooms will do: the one you are in if it has them, else Cairo's
   if (activeId === 'auction') return { city: s.world.at && housesIn(s.world.at).length ? s.world.at : 'cairo', tile: 'menu-houses' };
   const target = activeId ? MISSIONS[activeId]?.target : undefined;

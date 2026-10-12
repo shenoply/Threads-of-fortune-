@@ -44,13 +44,14 @@ import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from '../audio/eng
 import { stopArranVoice, syncArranVolume } from '../audio/arranVoice';
 import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
 import {
-  blankFog, revealFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom,
+  blankFog, revealFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom, partyFare, railJourney,
   type Party, type Pt,
 } from '../systems/world';
 import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
+import { capacity } from '../systems/caravan';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
@@ -83,6 +84,9 @@ export interface DaySummary {
   revenue: number;
   gross: number;
   expenses: number;
+  /** of the expenses: the men's wages and the bread bought at night, after the stall closed */
+  wages?: number;
+  food?: number;
   notes: string[];
   /** the evening's notes have been read (or were already shown on the road) */
   seen?: boolean;
@@ -256,6 +260,8 @@ export interface GameState {
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
+  /** rugs sold to each town's dealers today: each one lowers the next bid there (localBid) */
+  dealerSold?: { day: number; by: Record<string, number> };
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -500,6 +506,51 @@ function nightThieves(s: GameState, day: number, hour: number): { patch: Partial
   return { patch: { journal: log(text), world: { ...s.world, party: { ...s.world.party, food: food - lost } } }, note: text, night };
 }
 
+/** a rail leg's risk of a carriage thief: grows with what you carry and the hours on the train, falls
+ *  with every guard. A short hop across to Cairo is a quarter of a four-hour run; a day and more is half
+ *  as much again. */
+export function railRobRisk(s: Pick<GameState, 'inventory' | 'world' | 'missions'>, hours = 6) {
+  const worth = s.inventory.filter((i) => !i.stored && !keptBack(s, i)).reduce((a, i) => a + rugValue(i), 0);
+  if (worth <= 0) return 0;
+  const guards = troopCount(s.world.party);
+  const base = Math.min(0.08, 0.01 + (0.4 * worth) / 100000);
+  return (base * Math.max(0.25, Math.min(1.5, hours / 6))) / (1 + guards * 0.75);
+}
+/** what the luggage van charges for each bale over what the caravan can carry, per leg */
+export const LUGGAGE_VAN = 5;
+/** One rail leg begins: the luggage van for an overload, then the carriage thief's chance. */
+function railLeg(s: GameState, hours: number): { patch: Partial<GameState>; notes: string[] } | null {
+  const notes: string[] = [];
+  const patch: Partial<GameState> = {};
+  const packed = s.inventory.filter((i) => !i.stored);
+  const over = packed.length - Math.floor(capacity(s.world.party) + 0.001);
+  let cash = s.cash;
+  const ledger = [...s.ledger], journal = [...s.journal];
+  if (over > 0) {
+    const fee = over * LUGGAGE_VAN;
+    cash -= fee;
+    ledger.push({ day: s.day, kind: 'expense', label: `Luggage van: ${count(over, 'bale')} over what you can carry`, amount: -fee });
+    notes.push(`You carry more than your caravan can manage. The guard puts ${count(over, 'bale')} in the luggage van, at ${fmt(LUGGAGE_VAN)} each.`);
+  }
+  let inventory = s.inventory;
+  let claims = s.claims ?? 0;
+  // (never during the opening: its train has bandits of its own to teach with)
+  if (!openingStep(s) && rng() < railRobRisk(s, hours)) {
+    const pool = packed.filter((i) => !keptBack(s, i));
+    const r = pool[Math.floor(rng() * pool.length)];
+    if (r) {
+      const claim = (s.insurance?.until ?? 0) >= s.day ? claimFor([r]) : 0;
+      inventory = inventory.filter((i) => i.uid !== r.uid);
+      claims += claim;
+      const text = `A thief worked the third-class carriage. At the next station the ${RUGS[r.typeId].name} was gone from your bales.${claim ? ` You are insured: the Lloyd's agent in ${CLAIM_TOWNS} will pay ${fmt(claim)}.` : troopCount(s.world.party) ? '' : ' A man to watch the bales would have stopped him.'}`;
+      notes.push(text);
+      journal.push({ day: s.day, text, kind: 'road' });
+    }
+  }
+  if (!notes.length) return null;
+  return { patch: { ...patch, cash, ledger, journal, inventory, claims }, notes };
+}
+
 /** When customer number i turns up today. */
 export const arrivalAt = (s: { arrivals?: number[]; day: number }, i: number) => s.arrivals?.[i] ?? ([8, 10.5, 15.5, 17.5, 19][i] ?? 19.5);
 export const clock = (h: number) => `${String(Math.floor(h) % 24).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
@@ -591,10 +642,37 @@ export function restorePrice(item: RugItem) {
   return restoreCost((lo + hi) / 2, item.condition);
 }
 /** Your father's rug, while Farid has still to see it: it is not for sale. */
-export function keptBack(s: Pick<GameState, 'missions' | 'world'>, item: RugItem) {
-  return item.typeId === 'fayoum-hearth' && s.missions?.farid === 'active' && !s.world.appraised.length;
+/** days Rashid waits for an instalment of your father's debt before it counts as overdue */
+export const FAMILY_GRACE = 5;
+/** hours a customer waits at an empty stall before going elsewhere */
+export const AWAY_PATIENCE = 2;
+/** the Nile ferry: a piastre a head, and the same again for each animal (freight, as on the railway) */
+export const FERRY_FARE = 1;
+export function ferryFare(s: Pick<GameState, 'world'>) {
+  const p = s.world.party;
+  const f = partyFare(FERRY_FARE, { people: 1 + troopCount(p), animals: p.animals ?? {} });
+  const label = f.lines.map((l) => `${l.n} ${l.label} × ${fmt(l.each)}`).join(' + ');
+  return { total: f.total, label, solo: f.total === FERRY_FARE };
 }
-export const KEPT_BACK_NOTE = 'That is your father\'s rug. It stays with you until Farid has seen it in Damascus.';
+/** reputation counts slowly once a name is known: at REP_EASE a sale's worth of talk is halved */
+export const REP_EASE = 25;
+/** What a stall sale adds to your name: a point for a sale while you are unknown, otherwise only for a
+ *  good fit; one more for a fine piece that truly fits, more for the rare ones; a poor fit costs one.
+ *  The gain shrinks as reputation grows (roll: 0-1, rounds the fraction up or down). */
+export function repForSale(rep: number, fit: number, tier: number, roll: number) {
+  // a poor fit is talked about too, though not every time
+  if (fit < 40) return roll < 0.4 ? -1 : 0;
+  const raw = (fit >= 65 || rep < 10 ? 1 : 0) + (fit >= 80 && tier >= 2 ? 1 : 0) + (tier === 4 ? 2 : tier === 3 ? 1 : 0);
+  return Math.floor(raw * (REP_EASE / (REP_EASE + Math.max(0, rep))) + roll);
+}
+/** your father's own Fayoum Hearth (the one he handed over, or the one Rashid bought back), not a
+ *  Fayoum rug bought at a market */
+export const fathersRug = (item: RugItem) => item.typeId === 'fayoum-hearth' && (item.uid === 'start-fh' || !item.paid || item.notes?.some((n) => /father/i.test(n)));
+/** Your father's rug is not for sale until Farid has seen it: before his mission as well as during it. */
+export function keptBack(s: Pick<GameState, 'missions' | 'world'>, item: RugItem) {
+  return fathersRug(item) && s.missions?.farid !== 'done' && !s.world.appraised.length;
+}
+export const KEPT_BACK_NOTE = 'That is your father\'s rug. It is not for sale, not until someone who knows the looms has seen it.';
 
 /** what a wash or repair actually costs you, with your craft skill and perks */
 export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
@@ -607,13 +685,21 @@ export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
  *  back at a profit. The friends' discount on buying is not counted, so the figure is the same
  *  whoever asks, and it always sits below what the dealer would charge you. */
 export const DEALER_BUYBACK = 0.8;
+/** a dealer pays this share of what a rug is worth to a buyer, before local demand */
+export const DEALER_SHARE = 0.48;
+/** and each rug he has already taken from you today lowers the next bid by a tenth */
+export const DEALER_GLUT = 0.9;
+/** rugs sold to dealers today, town by town: kept in step with the store (dealerSold) */
+export const DEALER_SAT: { day: number; by: Record<string, number> } = { day: 0, by: {} };
 export function localBid(sid: string, item: RugItem, day = 1): number {
   const st = settlementById(sid);
   const t = RUGS[item.typeId];
   let m = rumourBid(day, sid, item.typeId, t.traits);
   for (const tr of t.traits) m += st.demand[tr] ?? 0;
   if (item.provenance === 'Documented' && (st.demand.story ?? 0) > 0) m += 0.1;
-  const bid = snap(perceivedValue(t, item) * 0.62 * m);
+  // each rug already sold to this town's dealers today knocks a tenth off the next one
+  const sold = DEALER_SAT.day === day ? DEALER_SAT.by[sid] ?? 0 : 0;
+  const bid = snap(perceivedValue(t, item) * DEALER_SHARE * m * Math.pow(DEALER_GLUT, sold));
   const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
   return ask === undefined ? bid : Math.min(bid, snapDown(ask * DEALER_BUYBACK));
 }
@@ -671,6 +757,8 @@ let autosaveEnabled = true;
 export const troopRoom = (s: Pick<GameState, 'reputation' | 'world'>) => Math.max(0, troopCap(s.reputation) - troopCount(s.world.party));
 /** a royal warrant needs a sale at no less than this share of the rug's worth (finance.ts rugValue) */
 export const WARRANT_FAIR = 0.7;
+/** days before a court receives the same merchant again */
+export const COURT_GAP = 14;
 /** where Lloyd's keeps an agent who pays claims (finance.ts INSURERS) */
 const CLAIM_TOWNS = 'Cairo, Alexandria or Port Said';
 // Whether the last write to the save slot failed (storage full or blocked).
@@ -731,9 +819,11 @@ export const heldFor = (i: RugItem, day: number) => (i.reservedFor && (i.reserve
 export const RESERVE_DAYS = 7;
 /** Rugs you can show: not at the restorer, and not put aside for someone else. A rug kept for this
  *  buyer comes first. */
-export function availableRugs(s: Pick<GameState, 'inventory'> & { day?: number }, buyerId?: string) {
+export function availableRugs(s: Pick<GameState, 'inventory'> & { day?: number } & Partial<Pick<GameState, 'missions' | 'world'>>, buyerId?: string) {
   const day = s.day ?? 0;
-  const ok = s.inventory.filter((i) => !i.restoringUntil && (!heldFor(i, day) || heldFor(i, day) === buyerId));
+  // your father's rug is never laid out for a buyer while it is kept back
+  const kept = (i: RugItem) => !!s.world && keptBack({ missions: s.missions ?? {}, world: s.world }, i);
+  const ok = s.inventory.filter((i) => !i.restoringUntil && !kept(i) && (!heldFor(i, day) || heldFor(i, day) === buyerId));
   return buyerId ? [...ok.filter((i) => heldFor(i, day) === buyerId), ...ok.filter((i) => heldFor(i, day) !== buyerId)] : ok;
 }
 
@@ -836,7 +926,9 @@ export const useGame = create<GameState & Actions>()(
           rel.affinity = Math.min(100, rel.affinity + (good ? 15 : enc.presentedFit < 40 ? -5 : 6) + (enc.honestCount ? 5 : 0));
           // a name is built slowly: one for a sale, a second only for a fine piece that truly fits the
           // buyer, more for the rare ones; a poor fit costs you
-          rep += 1 + (enc.presentedFit >= 80 && (t.tier ?? 1) >= 2 ? 1 : 0) - (enc.presentedFit < 40 ? 1 : 0) + ((t.tier ?? 1) === 4 ? 2 : (t.tier ?? 1) === 3 ? 1 : 0);
+          // and the better known you are, the less one more sale adds: past the first few, only a rug
+          // that truly suits the buyer is talked about at all
+          rep += repForSale(rep, enc.presentedFit, t.tier ?? 1, rng());
           rel.lastPurchaseDay = s.day;
           if (enc.embellished && !enc.embellishCaught) rel.embellishedSale = true;
           journal.push({ day: s.day, text: `Sold ${t.name} to ${b.name} for ${fmt(enc.salePrice)} (paid ${fmt(item.paid)}).` });
@@ -1101,7 +1193,7 @@ export const useGame = create<GameState & Actions>()(
             }
           }
           party.morale = Math.max(0, Math.min(100, moraleV));
-          const summary: DaySummary = { day: s.day, ...s.dayStats, expenses: s.dayStats.expenses + rent + foodCost + paidWages, notes };
+          const summary: DaySummary = { day: s.day, ...s.dayStats, expenses: s.dayStats.expenses + rent + foodCost + paidWages, wages: paidWages, food: foodCost, notes };
           const day = s.day + 1;
           // The first of the month: rent, dues, household. Unpaid bills grow and cost you your pitch.
           let bills = { ...(s.bills ?? { due: 0, since: 0, warned: 0 }) };
@@ -1219,7 +1311,7 @@ export const useGame = create<GameState & Actions>()(
           let bankruptcies = s.bankruptcies ?? 0;
           let ended = s.ended;
           if (ill.died && !ended) ended = { day, cause: 'death', text: `${DISEASE(ill.died.id)?.name ?? 'Illness'} took Hassan. The bazaar mourns a rug merchant who was never quite as clever as he thought.` };
-          const owedNow = overdue(cash, bills.due, bills.due > 0 && day - bills.since >= 5, loans, day);
+          const owedNow = overdue(cash, bills.due, bills.due > 0 && day - bills.since >= 5, loans, day, family.due > 0 && day - family.since >= FAMILY_GRACE ? family.due : 0);
           if (owedNow < RUIN_THRESHOLD || day < (ruin.graceUntil ?? 0)) {
             if (ruin.stage > 0 && owedNow < RUIN_THRESHOLD) { notes.push('Your creditors are paid. The lane stops whispering.'); ruin = { stage: 0, since: 0, graceUntil: ruin.graceUntil }; }
           } else {
@@ -1419,6 +1511,19 @@ export const useGame = create<GameState & Actions>()(
         return idx === st.visitIdx ? {} : { visitIdx: idx, journal: [...st.journal, ...notes] };
       };
 
+      /** Back at the stall after time away: a customer waits about two hours, then goes elsewhere. */
+      const gaveUp = () => {
+        const s = get();
+        if (s.world.at !== 'giza' || s.held || s.encounter || s.dayOver || !s.tutorial.done || openingStep(s)) return;
+        let idx = s.visitIdx;
+        const names: string[] = [];
+        while (idx < s.queue.length && s.world.hour > arrivalAt(s, idx) + AWAY_PATIENCE) { names.push(BUYERS[s.queue[idx]]?.name ?? 'A customer'); idx++; }
+        if (!names.length) return;
+        const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+        const text = `${who} came to the stall while you were away, waited a couple of hours and went elsewhere.`;
+        set({ visitIdx: idx, journal: [...s.journal, { day: s.day, text }], jobNote: s.jobNote ?? text });
+      };
+
       /** A delay (a fight, a faint, a detention) that runs past midnight carries into the next day: the
        *  clock was set to the last minute of today, and this rolls the rest of the hours over properly
        *  (upkeep, the night, a new date). In Giza the day closes the usual way first. */
@@ -1468,6 +1573,14 @@ export const useGame = create<GameState & Actions>()(
             roadNotes.forEach((text) => roadJournal.push({ day: r.summary.day, text, kind: 'road' }));
           }
           s = { ...s, ...patch } as GameState;
+          // boarding a train: bales over what the caravan can carry ride in the luggage van, and a
+          // carriage thief may go for the packed rugs (less likely the more men stand over them)
+          if (safe && leaving && (!s.journey || s.journey.train)) {
+            const dest = s.journey?.dest ?? SETTLEMENTS.find((x) => x.x === pos.x && x.y === pos.y)?.id;
+            const leg = dest ? railJourney(leaving, dest) : null;
+            const rp = railLeg(s, leg ? leg.days * 24 : 6);
+            if (rp) { s = { ...s, ...rp.patch } as GameState; patch = { ...patch, ...rp.patch }; notes.push(...rp.notes); }
+          }
           const thief = safe ? null : nightThieves(s, s.day, hour);
           if (thief) {
             const tp = thief.patch;
@@ -1537,9 +1650,12 @@ export const useGame = create<GameState & Actions>()(
         ferry: (to, skipHour) => {
           if (to === 'cairo') return get().ferryToCairo(skipHour);
           const s = get();
-          if (s.cash < 1) return 'The ferryman wants a piastre.';
+          const fare = ferryFare(s);
+          if (s.cash < fare.total) return fare.total > FERRY_FARE ? `The ferryman wants ${fmt(fare.total)} for ${fare.label}.` : 'The ferryman wants a piastre.';
           const st = settlementById('giza');
-          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'giza' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry back to Giza.', kind: 'arrive' }], cash: s.cash - 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Nile ferry to Giza', amount: -1 }], world: { ...s.world, at: 'giza', x: st.x, y: st.y, hour: Math.min(s.world.hour + (skipHour ? 0 : 1.5), 23.5) } });
+          const wasAway = s.world.at !== 'giza';
+          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'giza' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry back to Giza.', kind: 'arrive' }], cash: s.cash - fare.total, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: fare.solo ? 'Nile ferry to Giza' : `Nile ferry to Giza (${fare.label})`, amount: -fare.total }], world: { ...s.world, at: 'giza', x: st.x, y: st.y, hour: Math.min(s.world.hour + (skipHour ? 0 : 1.5), 23.5) } });
+          if (wasAway) gaveUp();
           audio.sfx('arrive');
           get().checkJobs('giza');
           return 'The ferry drifts back across the river. You step off at Giza with the pyramids behind the palms.';
@@ -1547,10 +1663,11 @@ export const useGame = create<GameState & Actions>()(
 
         ferryToCairo: (skipHour) => {
           const s = get();
-          if (s.cash < 1) return 'The ferryman wants a piastre.';
+          const fare = ferryFare(s);
+          if (s.cash < fare.total) return fare.total > FERRY_FARE ? `The ferryman wants ${fmt(fare.total)} for ${fare.label}.` : 'The ferryman wants a piastre.';
           const st = settlementById('cairo');
           const hour = s.world.hour + (skipHour ? 0 : 1.5);
-          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'cairo' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry to Cairo.', kind: 'arrive' }], cash: s.cash - 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Nile ferry to Cairo', amount: -1 }], world: { ...s.world, at: 'cairo', x: st.x, y: st.y, hour: Math.min(hour, 23.5), known: s.world.known.includes('cairo') ? s.world.known : [...s.world.known, 'cairo'] } });
+          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'cairo' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry to Cairo.', kind: 'arrive' }], cash: s.cash - fare.total, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: fare.solo ? 'Nile ferry to Cairo' : `Nile ferry to Cairo (${fare.label})`, amount: -fare.total }], world: { ...s.world, at: 'cairo', x: st.x, y: st.y, hour: Math.min(hour, 23.5), known: s.world.known.includes('cairo') ? s.world.known : [...s.world.known, 'cairo'] } });
           audio.sfx('arrive');
           payClaims('cairo');
           get().checkJobs('cairo');
@@ -1573,6 +1690,7 @@ export const useGame = create<GameState & Actions>()(
           const known = id && !s.world.known.includes(id) ? [...s.world.known, id] : s.world.known;
           const st = id ? settlementById(id) : null;
           set({ world: { ...s.world, at: id, known, ...(st ? { x: st.x, y: st.y } : {}) } });
+          if (id === 'giza' && s.world.at !== 'giza') gaveUp();
           if (id) audio.sfx('arrive');
           if (id) get().checkJobs(id);
           if (id) get().cargoAt(id);
@@ -1770,7 +1888,7 @@ export const useGame = create<GameState & Actions>()(
             register: [...new Set([...(s.register ?? []), ...(job.reward.rugs ?? [])])],
             jobsDone: [...(s.jobsDone ?? []), job.id],
             journal: [...s.journal, { day: s.day, text: `${job.title}: ${job.done}`, kind: 'arrive' }],
-            jobNote: `Job done: ${job.title} (${net >= 0 ? '+' : ''}${fmt(net)}). ${job.done}`,
+            jobNote: `Job done: ${job.title}${net ? ` (${net > 0 ? '+' : ''}${fmt(net)})` : ''}. ${job.done}`,
             jobOffer: undefined,
           });
           audio.sfx('coins');
@@ -1943,7 +2061,9 @@ export const useGame = create<GameState & Actions>()(
           // the asking price under it)
           const askToday = localAskPrice(sid, s.day, it.typeId, it.condition, s.world.friends, s.reputation);
           if (askToday !== undefined && bid >= askToday) bid = snapDown(askToday * DEALER_BUYBACK);
+          const ds = s.dealerSold?.day === s.day ? s.dealerSold.by : {};
           set({
+            dealerSold: { day: s.day, by: { ...ds, [sid]: (ds[sid] ?? 0) + 1 } },
             cash: s.cash + bid,
             inventory: s.inventory.filter((i) => i.uid !== uid),
             ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `${RUGS[it.typeId].name} to a dealer in ${settlementById(sid).name}`, amount: bid, cost: it.paid }],
@@ -1958,6 +2078,9 @@ export const useGame = create<GameState & Actions>()(
           const o = localOffers(sid, s.day, s.world.boughtLocal, s.world.friends, s.reputation).find((x) => x.key === key);
           if (!o) return '';
           if (s.cash < o.price) return 'Not enough cash.';
+          const cap = Math.floor(capacity(s.world.party) + 0.001);
+          const onBack = s.inventory.filter((i) => !i.stored).length;
+          if (onBack + 1 > cap) return `You cannot carry another rug: ${onBack} packed, and your caravan carries ${cap}. A donkey or a hired man carries more.`;
           const t = RUGS[o.typeId];
           const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [`Bought in ${settlementById(sid).name}.`], stored: false };
           set({
@@ -1968,9 +2091,11 @@ export const useGame = create<GameState & Actions>()(
             ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${t.name} in ${settlementById(sid).name}`, amount: -o.price, cost: o.price }],
           });
           audio.sfx('coins');
-          if (sid === 'alexandria') set({ onboard: { ...(get().onboard ?? {}), auction: true } });
           const m = MISSIONS.alexandria;
-          if (sid === m.target && get().missions?.alexandria === 'active') {
+          const errand = sid === m.target && get().missions?.alexandria !== 'done' && (get().missions?.alexandria === 'active' || !!openingStep(get()));
+          // the errand is finished here, with its card; the subscriber below only catches older saves
+          if (sid === 'alexandria' && !errand) set({ onboard: { ...(get().onboard ?? {}), auction: true } });
+          if (errand) {
             const g2 = get();
             set({
               missions: { ...g2.missions, alexandria: 'done' },
@@ -1978,6 +2103,8 @@ export const useGame = create<GameState & Actions>()(
               cash: g2.cash + m.reward.cash,
               reputation: g2.reputation + m.reward.rep,
               supplier: { ...g2.supplier, trust: Math.min(100, g2.supplier.trust + m.reward.trust), offers: rashidStock(g2.day, rng, g2.reputation + m.reward.rep, false) },
+              missionStart: { ...(g2.missionStart ?? {}), alexandria: g2.missionStart?.alexandria ?? g2.day },
+              onboard: { ...(g2.onboard ?? {}), auction: true },
               ledger: [...g2.ledger, { day: g2.day, kind: 'bonus', label: `Mission: ${m.title}`, amount: m.reward.cash }],
               journal: [...g2.journal, { day: g2.day, text: `Mission complete: ${m.title}. Rashid's back room and credit are open.`, kind: 'mission' }],
             });
@@ -2463,7 +2590,7 @@ export const useGame = create<GameState & Actions>()(
             ? 'The chamberlain looks at the road dust on your coat and does not write your name down. Wash at a hammam first.'
             : 'The chamberlain looks at your work galabiya and politely closes his book. Nobody enters the palace dressed for the bazaar. A tailor can fix that.';
           const last = s.court.last[buyerId];
-          if (last !== undefined && s.day - last < 7) return `You were received ${s.day - last === 0 ? 'today' : s.day - last === 1 ? 'yesterday' : `${s.day - last} days ago`}. The court will not see you again before day ${last + 7}.`;
+          if (last !== undefined && s.day - last < COURT_GAP) return `You were received ${s.day - last === 0 ? 'today' : s.day - last === 1 ? 'yesterday' : `${s.day - last} days ago`}. The court will not see you again before day ${last + COURT_GAP}.`;
           const enc = startEncounter(buyerId, ctxFor(s, buyerId), [], false);
           enc.venue = b.royal.venue;
           enc.saffronOn = undefined;
@@ -2858,7 +2985,7 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const o = s.supplier.offers.find((x) => x.uid === uid);
           if (!o || o.haggled) return '';
-          const win = rng() < 0.35 + s.supplier.trust / 200;
+          const win = rng() < Math.min(0.6, 0.35 + s.supplier.trust / 200);
           const line = win ? pick(RASHID.haggleWin, rng) : pick(RASHID.haggleLose, rng);
           set({
             supplier: {
@@ -3681,8 +3808,25 @@ const syncSkillMods = (s: GameState) => {
 syncSkillMods(useGame.getState());
 useGame.subscribe(syncSkillMods);
 
+// (registered before the missions' own check, so a rug lost in Damascus is replaced before that
+// check can take its absence as the end of the mission)
+// "Your father's rug" cannot be done without the Fayoum Hearth. If it was sold or lost before
+// Rashid sent you to Damascus with it, he tracks it down and buys it back: it waits at the stall.
+// Once only: lose it a second time and the mission has to be done without it (or not at all).
+useGame.subscribe(() => {
+  const s = useGame.getState();
+  if (!s.started || s.missions?.farid !== 'active' || s.world.appraised.length || s.faridRecovered) return;
+  if (s.inventory.some((i) => i.typeId === 'fayoum-hearth')) return;
+  const t = RUGS['fayoum-hearth'];
+  const item: RugItem = { uid: newUid('r'), typeId: 'fayoum-hearth', condition: 'Worn', restored: false, provenance: t.provenance, paid: 0, notes: ['Your father\'s rug. Rashid bought it back for you.'], stored: true };
+  const text = 'Rashid found your father\'s Fayoum rug and bought it back. "Some things are not for sale." He is sending it on to you: it travels with you to Damascus.';
+  useGame.setState({ inventory: [...s.inventory, item], faridRecovered: true, journal: [...s.journal, { day: s.day, text, kind: 'mission' }], jobNote: text });
+});
+
 // Main missions finish themselves when their condition is met.
-useGame.subscribe((s) => {
+useGame.subscribe(() => {
+  // read the store afresh: an earlier subscriber (Rashid replacing the rug) may have changed it already
+  const s = useGame.getState();
   if (!s.started) return;
   const id = MAIN_ORDER.find((m) => s.missions?.[m] === 'active');
   if (!id || id === 'alexandria') return;
@@ -3705,6 +3849,10 @@ useGame.subscribe((s) => {
 // morning), so a rug bought there during the opening counts. A purchase made in Alexandria before the
 // errand was on the books (an older save) is taken as proof all the same.
 const alexandriaErrand = (s: GameState) => {
+  // a "new mission" banner for a mission already finished (an older save) is stale: put it away
+  // and so is a "mission done" banner for a mission that is not done
+  const newsId = s.missionNews?.replace(/-done$/, '');
+  if (newsId && newsId !== 'house' && (s.missionNews!.endsWith('-done') ? s.missions?.[newsId] !== 'done' : s.missions?.[newsId] === 'done')) { useGame.setState({ missionNews: undefined }); return; }
   if (!s.started || !s.tutorial.done || s.missions?.alexandria === 'done') return;
   const state = s.missions?.alexandria;
   const cur = openingStep(s);
@@ -3715,6 +3863,7 @@ const alexandriaErrand = (s: GameState) => {
   if (s.onboard?.auction) {
     useGame.setState({
       missions: { ...s.missions, alexandria: 'done' },
+      missionNews: 'alexandria-done',
       missionStart: { ...(s.missionStart ?? {}), alexandria: s.missionStart?.alexandria ?? s.day },
       cash: s.cash + m.reward.cash,
       reputation: s.reputation + m.reward.rep,
@@ -3738,18 +3887,6 @@ const alexandriaErrand = (s: GameState) => {
 alexandriaErrand(useGame.getState());
 useGame.subscribe(alexandriaErrand);
 
-// "Your father's rug" cannot be done without the Fayoum Hearth. If it was sold or lost before
-// Rashid sent you to Damascus with it, he tracks it down and buys it back: it waits at the stall.
-// Once only: lose it a second time and the mission has to be done without it (or not at all).
-useGame.subscribe((s) => {
-  if (!s.started || s.missions?.farid !== 'active' || s.world.appraised.length || s.faridRecovered) return;
-  if (s.inventory.some((i) => i.typeId === 'fayoum-hearth')) return;
-  const t = RUGS['fayoum-hearth'];
-  const item: RugItem = { uid: newUid('r'), typeId: 'fayoum-hearth', condition: 'Worn', restored: false, provenance: t.provenance, paid: 0, notes: ['Your father\'s rug. Rashid bought it back for you.'], stored: true };
-  const text = 'Rashid found your father\'s Fayoum rug and bought it back. "Some things are not for sale." He is sending it on to you: it travels with you to Damascus.';
-  useGame.setState({ inventory: [...s.inventory, item], faridRecovered: true, journal: [...s.journal, { day: s.day, text, kind: 'mission' }], jobNote: text });
-});
-
 // Titles are checked whenever the state changes, and announced once.
 useGame.subscribe((s) => {
   if (!s.started) return;
@@ -3763,6 +3900,10 @@ useGame.subscribe((s) => {
 const syncHealth = (s: { illnesses?: Illness[] }) => { const h = healthEffects(s.illnesses); setHealthMods({ speed: h.speed, carry: h.carry }); };
 syncHealth(useGame.getState());
 useGame.subscribe((s) => syncHealth(s));
+// the dealers' glut: localBid reads today's sales town by town
+const syncGlut = (s: GameState) => { DEALER_SAT.day = s.dealerSold?.day ?? 0; DEALER_SAT.by = s.dealerSold?.by ?? {}; };
+syncGlut(useGame.getState());
+useGame.subscribe(syncGlut);
 // lenders' limits follow what the business is worth (finance.ts LEND_CTX)
 const syncWorth = (s: GameState) => setLendWorth(netWorth(s));
 syncWorth(useGame.getState());

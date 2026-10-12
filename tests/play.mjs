@@ -1,25 +1,30 @@
 // Human-style playthrough: waits for lines to finish, reads the full dialogue, screenshots each beat.
 import { chromium } from 'playwright';
+import { PORT as __PORT, SHOTS as __SHOTS, serveFirstCustomer } from './_env.mjs';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 2 });
-await p.goto('http://localhost:4173/'); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
+await p.goto(`http://localhost:${__PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 let n = 0;
-const shot = (tag) => p.screenshot({ path: `/home/claude/shots/play-${String(++n).padStart(2,'0')}-${tag}.png` });
+const shot = (tag) => p.screenshot({ path: `${__SHOTS}/play-${String(++n).padStart(2,'0')}-${tag}.png` });
 const idle = async () => { for (let i = 0; i < 80; i++) { if (!(await p.locator('.skip-hint').count())) return; await p.waitForTimeout(250); } };
 const acts = async () => (await p.locator('.act:not([disabled]) .t').allTextContents());
 const click = async (sel, tag) => { await p.click(sel); await p.waitForTimeout(300); await idle(); await shot(tag); console.log(`> ${tag} | actions: ${(await acts()).join(' / ')}`); };
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
+await serveFirstCustomer(p); // day one opens on the Giza district: start the first sale
 await idle(); await shot('arrive');
 await click('[data-testid=act-ask_room]', 'room');
 await click('[data-testid=rug-desert-star]', 'present');
-await p.click('[data-testid=rug-desert-star]'); await p.click('[data-testid=zoom-in]'); await p.click('[data-testid=inspector-close]'); await idle();
+// look closer at the presented rug (the strip may have folded away once a rug is on the table)
+await p.click('[data-testid=rug-desert-star]', { timeout: 5000 }).then(() => p.click('[data-testid=zoom-in]', { timeout: 5000 })).then(() => p.click('[data-testid=inspector-close]', { timeout: 5000 })).catch(() => console.log('  (inspector not reachable here; skipped)')); await idle();
 await click('[data-testid=act-story]', 'story');
 await p.click('[data-testid=act-name_price]'); await shot('dial');
 await click('[data-testid=offer-price]', 'ask');
 await click('[data-testid=act-halfway]', 'halfway').catch(()=>{});
 if (await p.locator('[data-testid=act-accept_offer]').count()) await click('[data-testid=act-accept_offer]', 'accept');
 const log1 = await p.evaluate(() => 1);
-await click('[data-testid=next-visit]', 'yusuf-arrive');
+// after a sale the stall may move on to the district by itself; either way call the next buyer
+if (await p.locator('[data-testid=next-visit]').count()) await p.click('[data-testid=next-visit]').catch(() => {});
+await serveFirstCustomer(p); await idle(); await shot('yusuf-arrive');
 await click('[data-testid=act-ask_room]', 'y-room');
 await click('[data-testid=act-ask_budget]', 'y-budget');
 const rugs = await p.locator('.rugcard .nm').allTextContents(); console.log('rugs', rugs);

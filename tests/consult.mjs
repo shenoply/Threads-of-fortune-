@@ -1,9 +1,10 @@
 // Dr Feras's consultation: he speaks, you answer, the plate (tap = full screen, Skip works), then treatment options
 // that you pay for; and passing out in a town brings a passer-by who carries you to the clinic.
-//   PORT=5199 SHOTS=/tmp/w/c node tests/consult.mjs
+//   node tests/consult.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5199', S = process.env.SHOTS ?? '/tmp/w/c'; mkdirSync(S, { recursive: true });
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS; mkdirSync(S, { recursive: true });
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 } }); p.setDefaultTimeout(8000);
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
@@ -12,8 +13,8 @@ const has = (id) => p.locator(`[data-testid="${id}"]`).count();
 const st = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state);
 await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-fullscreen', 'off'))); await p.reload();
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(800);
-await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.guideSeen = true; s.tipsSeen = ['first-hour']; s.introSeen = [...(s.introSeen || []), 'feras', 'malek', 'arran', 'abuhamid', 'bilgin-chess', 'rashid', 'nabil', 'cohen']; s.world.at = 'cairo'; s.cash = 950; s.illnesses = [{ id: 'cut', since: s.day, until: s.day + 3 }]; localStorage.setItem(k, JSON.stringify(d)); });
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(800);
+await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.guideSeen = true; s.tipsSeen = ['first-hour']; s.introSeen = [...(s.introSeen || []), 'feras', 'malek', 'arran', 'abuhamid', 'bilgin-chess', 'rashid', 'nabil', 'cohen']; s.world.at = 'cairo'; s.cash = 950; s.illnesses = [{ id: 'cut', since: s.day, until: s.day + 3 }]; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
 await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(700);
 if (await has('enter')) await p.click('[data-testid=enter]'); await p.waitForTimeout(900);
@@ -47,7 +48,7 @@ check((await has('talk-cut')) > 0, 'afterwards the list lets you talk to him aga
 await p.click('[data-testid=clinic-leave]'); await p.waitForTimeout(400);
 
 // passing out in Giza: nobody carries him to Dr Feras; he comes to where he fell, hours later
-await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.world.at = 'giza'; d.state.illnesses = []; d.state.condition = { ...(d.state.condition || {}), fatigue: 99 }; localStorage.setItem(k, JSON.stringify(d)); });
+await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.world.at = 'giza'; d.state.illnesses = []; d.state.condition = { ...(d.state.condition || {}), fatigue: 99 }; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
 await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(1500);
 check((await has('rescue')) > 0, 'worn out to the bone in a town: you pass out');
 await p.screenshot({ path: `${S}/7-rescue.png` });

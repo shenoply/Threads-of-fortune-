@@ -2,7 +2,8 @@
 // through buildings or across water.
 //   PORT=5173 node tests/streets.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '5173';
+import { PORT as __PORT } from './_env.mjs';
+const PORT = __PORT;
 const b = await chromium.launch();
 const p = await b.newPage();
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));

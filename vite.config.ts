@@ -13,7 +13,8 @@ export default defineConfig({
       // libraries and the game's data change far less often than its code: in their own files a phone
       // keeps them cached across updates and only fetches the code again
       manualChunks(id) {
-        if (id.includes('node_modules')) return 'vendor';
+        // chess.js is only for the café's chess table: it goes with that lazy chunk, not the opening download
+        if (id.includes('node_modules')) return /[\\/]node_modules[\\/]chess\.js[\\/]/.test(id) ? undefined : 'vendor';
         if (/[\\/]src[\\/]data[\\/]/.test(id) && !/radioArabic|radioAr[12]|ar-wires/.test(id)) return 'data';
         return undefined;
       },

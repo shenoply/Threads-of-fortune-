@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useGame } from '../../game/state/store';
+import { useGame, FAMILY_GRACE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, overdue, premiumFor, ruinRisk, rugValue } from '../../game/systems/finance';
@@ -19,7 +19,7 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
   const at = g.world.at;
   const loans = g.loans ?? [];
   const bills = g.bills ?? { due: 0, since: 0, warned: 0 };
-  const owed = overdue(g.cash, bills.due, bills.due > 0 && g.day - bills.since >= 5, loans, g.day);
+  const owed = overdue(g.cash, bills.due, bills.due > 0 && g.day - bills.since >= 5, loans, g.day, (g.family?.due ?? 0) > 0 && g.day - (g.family?.since ?? 0) >= FAMILY_GRACE ? g.family!.due : 0);
   const ruin = g.ruin ?? { stage: 0, since: 0 };
   const lendersHere = Object.values(LENDERS).filter((l) => at && l.towns.includes(at));
   const insurerHere = !!at && INSURERS.includes(at);

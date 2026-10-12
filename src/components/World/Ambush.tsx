@@ -10,7 +10,8 @@ import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { BATTLE_ART, BAND_ART, fieldFor } from './BattleField';
-import { TacticalBattle, simulatedOdds } from './TacticalBattle';
+import { TacticalBattle } from './TacticalBattle';
+import { winChanceAsync, warmOdds } from '../../game/systems/odds';
 import { lookFor } from '../../game/heroLook';
 import { newBattle, MOUNTED_TROOPS, RIFLE_TROOPS, type Battle, type Outcome, type Roster } from '../../game/systems/tactics';
 
@@ -123,10 +124,18 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     if (hero && arms > 0) { const per = hero.per * (2 + arms) / 2; Object.assign(hero, { per, hp: per * hero.n, maxHp: per * hero.n }); }
     return b;
   };
+  // the odds worker is asked for before the battle pictures below queue up on a slow connection
+  useState(() => { if (!rebels) warmOdds(); });
   const planned = useMemo(makeBattle, []); // eslint-disable-line react-hooks/exhaustive-deps
   // the chance of winning if the men fight it out: the same simulation the deployment screen shows
   const [winPct, setWinPct] = useState<number | null>(null);
-  useEffect(() => { if (rebels) return; const t = window.setTimeout(() => setWinPct(simulatedOdds(planned, 'steady')), 120); return () => window.clearTimeout(t); }, [planned, rebels]);
+  // worked out off the main thread (odds.ts): the card opens at once and the number follows
+  useEffect(() => {
+    if (rebels) return;
+    let on = true;
+    winChanceAsync(planned, 'steady').then((p) => { if (on) setWinPct(p); });
+    return () => { on = false; };
+  }, [planned, rebels]);
   const fight = () => {
     audio.sfx('chest');
     setTb(planned);
@@ -171,11 +180,11 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const enPow = theirs;
   const share = odds;
   // the chance itself, plainly: the same simulation the fight runs on (never a bare share of strength)
-  const fightNote = winPct == null ? 'weighing the odds' : `about ${winPct}% to win${winPct < 35 ? ': poor odds' : ''}`;
+  const fightNote = winPct == null ? 'working out the odds…' : `about ${winPct}% to win${winPct < 35 ? ': poor odds' : ''}`;
 
   return (
     <div className="ambush" data-testid="road-encounter">
-      {stage === 'battle' && tb && <TacticalBattle battle={tb} title={threat.displayName} fieldArt={field} onEnd={(o, retreat) => finish(o, retreat)} />}
+      {stage === 'battle' && tb && <TacticalBattle battle={tb} odds={winPct} title={threat.displayName} fieldArt={field} onEnd={(o, retreat) => finish(o, retreat)} />}
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {place}</small><b>{threat.displayName}</b></div>
@@ -211,7 +220,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
-              {!rebels && <button className={`btn ${winPct != null && winPct < 35 ? "" : "primary"}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
+              {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
               <button className="btn" onClick={() => { if (Math.random() < (rebels ? 0.9 : 0.55)) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> Turn back <small>{rebels ? 'usually allowed' : 'they may chase you'}</small></button>
             </div>
           </>
@@ -225,7 +234,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(`You pay ${fmt(tax)}. They let you go.`)} data-testid="amb-pay"><Icon name="coin" /> Pay <small>{fmt(tax)}</small></button>}
               <button className="btn" onClick={() => { if (ratio >= 2) { const loss = Math.round(g.cash * 0.5); settle({ cashLoss: loss, rugsLost: 2, rep: -1, text: `${lines.strip}${takenLine(loss)}` }); } else { fight(); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
-              {!rebels && <button className={`btn ${winPct != null && winPct < 35 ? "" : "primary"}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
+              {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
             </div>
           </>
         )}

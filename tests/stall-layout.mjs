@@ -4,7 +4,8 @@
 //   PORT=5173 SHOTS=/tmp/stall node tests/stall-layout.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/stall';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch();
 let allOk = true;
@@ -13,8 +14,8 @@ for (const [w, h] of [[412, 760], [390, 700], [360, 640], [1280, 800]]) {
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   const has = (id) => p.locator(`[data-testid="${id}"]`).count();
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek', 'arran', 'abuhamid', 'bilgin-chess', 'rashid', 'nabil', 'cohen']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem(k, JSON.stringify(d)); localStorage.setItem('tof-skip-chapters', '1'); });
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
+  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek', 'arran', 'abuhamid', 'bilgin-chess', 'rashid', 'nabil', 'cohen']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); localStorage.setItem('tof-skip-chapters', '1'); });
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(1000);
   await p.click('[data-testid=nav-stall]');
   await p.waitForSelector('[data-testid=stall-wait]', { timeout: 20000 }).catch(() => {});
@@ -24,6 +25,11 @@ for (const [w, h] of [[412, 760], [390, 700], [360, 640], [1280, 800]]) {
   // lay a rug on the table and say something, so the speech line is up
   const rug = p.locator('[data-testid=rugstrip] .rugcard:not(.empty)').first();
   if (await rug.count()) { await rug.click(); await p.waitForTimeout(2500); }
+  // Saffron the cat sometimes jumps on the rug (two cat actions, no speech yet): settle her and say something
+  for (let i = 0; i < 2 && ((await has('act-saffron_move')) || (await has('act-saffron_stay'))); i++) {
+    await p.click((await has('act-saffron_move')) ? '[data-testid=act-saffron_move]' : '[data-testid=act-saffron_stay]').catch(() => {}); await p.waitForTimeout(2500);
+  }
+  if (!(await has('speech'))) { const a = p.locator('[data-testid=actions] .act:not([disabled])').first(); if (await a.count()) { await a.click().catch(() => {}); await p.waitForTimeout(2500); } }
   const measure = () => p.evaluate(() => {
     const vis = (sel) => { const e = document.querySelector(sel); if (!e) return 'none'; const r = e.getBoundingClientRect(); let cut = r.bottom > innerHeight + 1 || r.top < -1 || r.height < 2; for (let a = e.parentElement; a; a = a.parentElement) { const st = getComputedStyle(a); if (/(auto|scroll|hidden)/.test(st.overflowY)) { const q = a.getBoundingClientRect(); if (r.top < q.top - 1 || r.bottom > q.bottom + 1) cut = true; } } return `${Math.round(r.top)}-${Math.round(r.bottom)}${cut ? ' CUT' : ''}`; };
     const acts = [...document.querySelectorAll('[data-testid=actions] .act')].map((e) => e.getBoundingClientRect()).filter((r) => r.height > 0);

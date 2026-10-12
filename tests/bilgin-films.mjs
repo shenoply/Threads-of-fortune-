@@ -6,7 +6,8 @@
 //   PORT=5173 SHOTS=/tmp/bilgin node tests/bilgin-films.mjs
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/bilgin';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const vp = process.env.DESKTOP ? { width: 1280, height: 800 } : { width: 390, height: 844 };
@@ -27,8 +28,8 @@ const check = (cond, msg) => { out.push(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
 try {
   await p.goto(`http://localhost:${PORT}/`);
   await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 10 }); localStorage.setItem(k, JSON.stringify(d)); localStorage.setItem('tof-skip-chapters', '1'); });
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
+  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 10 }); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); localStorage.setItem('tof-skip-chapters', '1'); });
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
 
   // 1. the café film
@@ -89,8 +90,8 @@ try {
   check((await has('film-abuhamid')) > 0, 'café film replay button');
   await p.click('[data-testid=film-skip]'); await p.waitForTimeout(400);
   await p.click('[data-testid=cafe-hot-bilgin]'); await p.waitForTimeout(500);
-  check((await p.locator('.dlg-who img').getAttribute('src')) === 'art/portraits/abuhamid.jpg', 'dialogue card uses the new portrait');
+  check((await p.locator('.dlg-who img').getAttribute('src')) ?.includes('art/portraits/small/abuhamid.webp'), 'dialogue card uses the new portrait (small webp)');
   console.log(out.join('\n'));
   console.log(ok && !errs.length ? 'PASS' : 'FAIL', 'errors', JSON.stringify(errs.slice(0, 3)));
-} catch (e) { console.log(out.join('\n')); console.log('FAIL', e.message.split('\n')[0], JSON.stringify(errs.slice(0, 3))); }
+} catch (e) { console.log(out.join('\n')); console.log('FAIL', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / '), JSON.stringify(errs.slice(0, 3))); }
 await b.close();

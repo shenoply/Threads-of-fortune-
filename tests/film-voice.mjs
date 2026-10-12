@@ -1,6 +1,7 @@
 // While a film is open no character voice may start under it; afterwards voices work again
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '5173';
+import { PORT as __PORT } from './_env.mjs';
+const PORT = __PORT;
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 390, height: 844 } });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const out = []; let ok = true; const check = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) ok = false; };

@@ -14,35 +14,47 @@ type Ring = number[];
 // the small one is in, so the two never compete for a slow connection. Both are drawn stretched to
 // MAP_W x MAP_H, so any copy lines up with the map's coordinates. Until either has loaded, the
 // engraved map is drawn.
-let artImg: HTMLImageElement | null = null;
-let artSmall: HTMLImageElement | null = null;
+// Each copy is drawn from an ImageBitmap decoded off the main thread (createImageBitmap on the file's bytes):
+// drawing a big <img> straight onto the canvas decoded it there and then, a quarter of a second on a phone.
+let artImg: CanvasImageSource | null = null;
+let artSmall: CanvasImageSource | null = null;
+let sharpAsked = false, smallAsked = false;
 let artReady = false;
 let smallReady = false;
 let artFailed = false;
 const artListeners = new Set<() => void>();
+/** the picture, decoded and ready to draw: an ImageBitmap where the browser can make one, else a decoded <img> */
+async function loadPicture(src: string): Promise<CanvasImageSource> {
+  if (typeof createImageBitmap === 'function' && typeof fetch === 'function') {
+    try {
+      const r = await fetch(src);
+      if (r.ok) return await createImageBitmap(await r.blob());
+    } catch { /* fall back to an <img> below */ }
+  }
+  const img = new Image();
+  img.decoding = 'async';
+  await new Promise<void>((ok, fail) => { img.onload = () => ok(); img.onerror = () => fail(new Error(src)); img.src = src; });
+  if (img.decode) await img.decode();
+  return img;
+}
 function loadSharp() {
-  if (artImg) return;
-  artImg = new Image();
-  artImg.decoding = 'async';
-  artImg.onload = () => {
-    // a phone that cannot hold the big picture decoded keeps the small one
-    artImg!.decode?.().then(() => { artReady = true; artListeners.forEach((f) => f()); }).catch(() => { artFailed = true; });
-    if (!artImg!.decode) { artReady = true; artListeners.forEach((f) => f()); }
-  };
-  artImg.onerror = () => { artFailed = true; artListeners.forEach((f) => f()); };
+  if (sharpAsked) return;
+  sharpAsked = true;
   // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
-  artImg.src = phone ? 'art/world/travel-map-3k.webp' : 'art/world/travel-map.webp';
+  // a phone that cannot hold the big picture decoded keeps the small one
+  loadPicture(phone ? 'art/world/travel-map-3k.webp' : 'art/world/travel-map.webp')
+    .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
+    .catch(() => { artFailed = true; artListeners.forEach((f) => f()); });
 }
 /** The painting, once it has loaded (the sharp copy when it is in, the small one before that). */
-export function paintedMap(): HTMLImageElement | null {
+export function paintedMap(): CanvasImageSource | null {
   if (typeof Image === 'undefined') return null;
-  if (!artSmall) {
-    artSmall = new Image();
-    artSmall.decoding = 'async';
-    artSmall.onload = () => { smallReady = true; if (!artReady) artListeners.forEach((f) => f()); loadSharp(); };
-    artSmall.onerror = () => loadSharp();
-    artSmall.src = 'art/world/travel-map-768.webp';
+  if (!smallAsked) {
+    smallAsked = true;
+    loadPicture('art/world/travel-map-768.webp')
+      .then((p) => { artSmall = p; smallReady = true; if (!artReady) artListeners.forEach((f) => f()); loadSharp(); })
+      .catch(() => loadSharp());
   }
   return artReady ? artImg : smallReady ? artSmall : null;
 }
@@ -170,7 +182,6 @@ const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
 export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean } = {}) {
-  const c = build();
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const world = () => ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
@@ -196,6 +207,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     ctx.drawImage(art, 0, 0, MAP_W, MAP_H);
     screen();
   } else {
+  // the engraved map's coastlines, grain and stipple are only built when it is drawn (the painting needs none of it)
+  const c = build();
   // sea
   screen();
   const sg = ctx.createLinearGradient(0, 0, w, h);
@@ -382,7 +395,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     ctx.setLineDash([]);
   }
   // railways: the classic black-and-white line
-  for (const line of art ? paintedRails() : c.rails) {
+  for (const line of art ? paintedRails() : build().rails) {
     ctx.beginPath();
     line.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y))));
     ctx.strokeStyle = '#2a1d12';

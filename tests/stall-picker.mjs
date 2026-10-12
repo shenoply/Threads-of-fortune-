@@ -3,17 +3,18 @@
 // usually sells for, and any of them goes on the table; each rug shows that value, at the stall and in Stock.
 //   PORT=5173 SHOTS=/tmp/malek node tests/stall-picker.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '4173', S = process.env.SHOTS ?? '/tmp/malek';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(900); };
-const game = (fn) => p.evaluate(async (src) => { const m = await import('/src/game/state/store.ts'); return new Function('get', src)(m.useGame.getState); }, fn);
+const game = (fn) => p.evaluate(async (src) => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return new Function('get', src)(m.useGame.getState); }, fn);
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['nabil', 'cohen', 'malek']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1');
     Object.assign(s.world, { at: 'giza', hour: 10 }); s.reputation = 33;
     const types = ['desert-star', 'cairo-garden', 'fayoum-hearth', 'delta-house', 'red-medina', 'village-kilim-canal'];
@@ -44,10 +45,12 @@ try {
   const pres = await game(`return get().encounter?.presented`);
   console.log('   picked', last.replace('rug-pick-', ''), '-> on the table', pres, '| front of the counter:', (await p.locator('.rugcard').first().getAttribute('class')).includes('presented'));
   // 3. Stock
-  await p.click('[data-testid=nav-inventory]').catch(() => {}); await p.waitForTimeout(600);
+  // on a phone the nav bar hides during a sale: step away from the counter first
+  if (await has('step-away')) { await p.click('[data-testid=step-away]'); await p.waitForTimeout(400); }
+  await p.click('[data-testid=nav-inventory]'); await p.waitForTimeout(600);
   const nm = await p.evaluate(() => [...document.querySelectorAll('h3')].map((h) => h.textContent).filter((t) => /Fayoum Hearth/.test(t)));
   console.log('   repeated rugs numbered in Stock:', nm.join(' | '));
   console.log('3. Stock values:', await p.locator('[data-testid=stock-value]').count(), '|', (await p.locator('[data-testid=stock-value]').first().textContent()));
-} catch (e) { console.log('FAILED', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/picker-fail.png` }); }
+} catch (e) { console.log('FAILED', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')); await p.screenshot({ path: `${S}/picker-fail.png` }); }
 console.log('errors', JSON.stringify(errs));
 await b.close();

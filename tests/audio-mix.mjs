@@ -2,7 +2,8 @@
 // music requests leave one source, Stop reaches every source, plain players follow the sliders.
 //   PORT=5173 node tests/audio-mix.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '5173';
+import { PORT as __PORT } from './_env.mjs';
+const PORT = __PORT;
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage();
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));

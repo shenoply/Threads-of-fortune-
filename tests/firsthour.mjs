@@ -5,8 +5,9 @@
 //   PORT=5173 SHOTS=/tmp/fh STEPS=60 W=390 H=844 node tests/firsthour.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '4173';
-const S = process.env.SHOTS ?? '/tmp/fh';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT;
+const S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const W = +(process.env.W ?? 390), H = +(process.env.H ?? 844);
 const b = await chromium.launch();
@@ -35,6 +36,9 @@ const pick = () => p.evaluate((ban) => {
     if (e.getBoundingClientRect().top < 48) s -= 60; // the header strip: clock, paper, radio, settings
     if (/paper|radio|Courier|calendar/i.test(t)) s -= 60;
     if (ban.includes(t)) s -= 200;
+    // a newcomer in a film moves it on (Skip / Continue); the sound toggle is not a way forward
+    const tid = e.dataset.testid || '';
+    if (tid === 'film-continue') s += 140; else if (tid === 'film-skip' || tid === 'malek-bonus-skip') s += 120; else if (/(^|-)sound$/.test(tid)) s -= 150;
     return s;
   };
   all.sort((a, b2) => score(b2) - score(a));
@@ -60,9 +64,9 @@ try {
     const key = `${c.text}|${st}`;
     if (key === last) { console.log('   (same button again: the newcomer is stuck here; trying something else next)'); banned.add(c.raw); }
     last = key;
-    await p.click(`[data-fh="${c.id}"]`, { timeout: 5000 }).catch((e) => console.log('   click failed:', e.message.split('\n')[0]));
+    await p.click(`[data-fh="${c.id}"]`, { timeout: 5000 }).catch((e) => console.log('   click failed:', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')));
     await p.waitForTimeout(1600);
   }
-} catch (e) { console.log('FAILED', e.message.split('\n')[0]); }
+} catch (e) { console.log('FAILED', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')); }
 console.log('errors', JSON.stringify(errs));
 await b.close();

@@ -35,44 +35,44 @@ export const SETTLEMENTS: Settlement[] = [
   {
     id: 'giza', name: 'Giza', kind: 'home', x: 146.9, y: 443.7, region: 'Egypt', known: true, rail: true,
     blurb: 'Your borrowed corner in the lane below the pyramids. Tourists by day, dealers by night.',
-    demand: {}, sells: [{ typeId: 'nile-reed', factor: 0.8 }], people: ['abuhamid', 'kassab'],
+    demand: {}, sells: [{ typeId: 'nile-reed', factor: 1.05 }], people: ['abuhamid', 'kassab'],
   },
   {
     id: 'saqqara', name: 'Saqqara', kind: 'village', x: 172.9, y: 472.5, region: 'Egypt',
     blurb: 'Mud-brick houses beside the step pyramid. Half the men dig for the Antiquities Service; the other half sell what the first half find.',
-    demand: { antique: 0.15 }, sells: [{ typeId: 'delta-house', factor: 0.6 }], people: ['mansour'],
+    demand: { antique: 0.15 }, sells: [{ typeId: 'delta-house', factor: 0.8 }], people: ['mansour'],
   },
   {
     id: 'fayoum', name: 'Medinet el-Fayoum', kind: 'oasis', x: 135.4, y: 490.9, region: 'Egypt', rail: true,
     blurb: 'An oasis town of water-wheels and canals. The women here weave flat reed-stripe rugs on ground looms.',
-    demand: { warm: 0.1, soft: 0.1 }, sells: [{ typeId: 'fayoum-hearth', factor: 0.7 }, { typeId: 'nile-reed', factor: 0.6 }], people: ['ummsalah'],
+    demand: { warm: 0.1, soft: 0.1 }, sells: [{ typeId: 'fayoum-hearth', factor: 0.9 }, { typeId: 'nile-reed', factor: 0.8 }], people: ['ummsalah'],
   },
   {
     id: 'cairo', name: 'Cairo', kind: 'city', x: 214.3, y: 413.7, region: 'Egypt', known: true, rail: true,
     blurb: 'The largest city in Africa. The Khan el-Khalili, the Wikala where Rashid keeps his bales, and houses with money to spend.',
-    demand: { fineWeave: 0.15, story: 0.1, ornate: 0.1 }, sells: [{ typeId: 'cairo-garden', factor: 0.9 }, { typeId: 'desert-star', factor: 0.9 }, { typeId: 'golden-palm', factor: 0.9, minRep: 20 }],
+    demand: { fineWeave: 0.15, story: 0.1, ornate: 0.1 }, sells: [{ typeId: 'cairo-garden', factor: 1.15 }, { typeId: 'desert-star', factor: 1.15 }, { typeId: 'golden-palm', factor: 1.15, minRep: 20, chance: 0.5 }],
     people: ['rashid', 'hagop'],
   },
   {
     id: 'tanta', name: 'Tanta', kind: 'town', x: 227.6, y: 371.6, region: 'Egypt', rail: true,
     blurb: 'A Delta cotton town. Three times a year the moulid of Sayyid al-Badawi fills it with a million pilgrims and every trader in Egypt.',
-    demand: { warm: 0.15, hardwearing: 0.1, humble: 0.1 }, sells: [{ typeId: 'tanta-courtyard', factor: 0.7 }, { typeId: 'delta-house', factor: 0.75 }], people: ['sheikhomar'],
+    demand: { warm: 0.15, hardwearing: 0.1, humble: 0.1 }, sells: [{ typeId: 'tanta-courtyard', factor: 0.9 }, { typeId: 'delta-house', factor: 1 }], people: ['sheikhomar'],
   },
   {
     id: 'alexandria', name: 'Alexandria', kind: 'port', x: 86.4, y: 387.2, region: 'Egypt', port: true, rail: true,
     blurb: 'Greek cafés, cotton brokers and grand hotels along the Corniche. Ships leave for Jaffa, Beirut and Constantinople every week.',
-    demand: { hardwearing: 0.15, bold: 0.1, washable: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 0.85 }, { typeId: 'jaffa-citrus', factor: 0.95 }, { typeId: 'moroccan-ember', factor: 0.85, minRep: 10 }],
+    demand: { hardwearing: 0.15, bold: 0.1, washable: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 1.1 }, { typeId: 'jaffa-citrus', factor: 1.25 }, { typeId: 'moroccan-ember', factor: 1.1, minRep: 10, chance: 0.5 }],
     people: ['pericles'],
   },
   {
     id: 'portsaid', name: 'Port Said', kind: 'port', x: 327.3, y: 381.4, region: 'Egypt', port: true, rail: true,
     blurb: 'The mouth of the Suez Canal. Liners stop for a day and their passengers buy anything that looks Oriental.',
-    demand: { bold: 0.2, story: 0.15, ornate: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 0.7 }, { typeId: 'village-kilim-canal', factor: 0.7 }], people: ['captainreed'],
+    demand: { bold: 0.2, story: 0.15, ornate: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 0.9 }, { typeId: 'village-kilim-canal', factor: 0.9 }], people: ['captainreed'],
   },
   {
     id: 'suez', name: 'Suez', kind: 'town', x: 341.1, y: 440.8, region: 'Egypt', rail: true,
     blurb: 'Hot, quiet and full of shipping clerks. Pilgrim boats leave from here for the Hijaz.',
-    demand: { washable: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 0.75 }, { typeId: 'village-kilim-canal', factor: 0.65 }], people: [],
+    demand: { washable: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 1 }, { typeId: 'village-kilim-canal', factor: 0.85 }], people: [],
   },
   {
     id: 'sinai', name: "St Catherine's", kind: 'monastery', x: 489.7, y: 460.9, region: 'Sinai',
@@ -82,57 +82,57 @@ export const SETTLEMENTS: Settlement[] = [
   {
     id: 'bedouin', name: 'Tarabin camp', kind: 'camp', x: 423.5, y: 391.8, region: 'Sinai',
     blurb: 'Black goat-hair tents in a wadi. The Tarabin weave kilims on narrow looms and trade them for sugar, cloth and news.',
-    demand: { silk: -0.3 }, sells: [{ typeId: 'village-kilim-canal', factor: 0.6 }, { typeId: 'date-palm-runner', factor: 0.7 }], people: ['salim'],
+    demand: { silk: -0.3 }, sells: [{ typeId: 'village-kilim-canal', factor: 0.8 }, { typeId: 'date-palm-runner', factor: 0.9 }], people: ['salim'],
   },
   {
     id: 'jaffa', rail: true, name: 'Jaffa', kind: 'port', x: 357.2, y: 315.7, region: 'Palestine', port: true,
     blurb: 'Orange groves, a crowded harbour and the road up to Jerusalem.',
-    demand: { warm: 0.1, bold: 0.05 }, sells: [{ typeId: 'jaffa-citrus', factor: 0.75 }, { typeId: 'date-palm-runner', factor: 0.8 }], people: ['abuyusef'],
+    demand: { warm: 0.1, bold: 0.05 }, sells: [{ typeId: 'jaffa-citrus', factor: 1 }, { typeId: 'date-palm-runner', factor: 1.05 }], people: ['abuyusef'],
   },
   {
     id: 'jerusalem', rail: true, name: 'Jerusalem', kind: 'city', x: 403.3, y: 341.1, region: 'Palestine',
     blurb: 'Pilgrims, scholars, consuls and Armenian dealers in the Old City. Documented pieces sell here for more than anywhere south of Damascus.',
-    demand: { story: 0.2, antique: 0.1, restrained: 0.1 }, sells: [{ typeId: 'jerusalem-stone', factor: 0.75 }, { typeId: 'cedar-caravan', factor: 0.85 }], people: ['boulos'],
+    demand: { story: 0.2, antique: 0.1, restrained: 0.1 }, sells: [{ typeId: 'jerusalem-stone', factor: 1 }, { typeId: 'cedar-caravan', factor: 1.1 }], people: ['boulos'],
   },
   {
     id: 'beirut', rail: true, name: 'Beirut', kind: 'port', x: 381.4, y: 266.2, region: 'Lebanon', port: true,
     blurb: 'A French Mandate port of silk merchants and new banks. The road over the mountains leads to Damascus.',
-    demand: { silk: 0.2, fineWeave: 0.1 }, sells: [{ typeId: 'cedar-caravan', factor: 0.75 }, { typeId: 'damascus-blue', factor: 0.9, minRep: 8 }], people: ['nadia'],
+    demand: { silk: 0.2, fineWeave: 0.1 }, sells: [{ typeId: 'cedar-caravan', factor: 1 }, { typeId: 'damascus-blue', factor: 1.15, minRep: 8 }], people: ['nadia'],
   },
   {
     id: 'damascus', rail: true, name: 'Damascus', kind: 'city', x: 486.9, y: 291.0, region: 'Syria',
     blurb: 'The oldest living city. Expert dealers in the Souq al-Hamidiyya can tell a Damascus weave from a Kayseri copy across the room.',
-    demand: { silk: 0.2, antique: 0.2, fineWeave: 0.15 }, sells: [{ typeId: 'damascus-blue', factor: 0.75 }, { typeId: 'aleppo-courtyard', factor: 0.9 }, { typeId: 'damascus-rose', factor: 0.85, minRep: 45, chance: 0.15 }], people: ['farid'],
+    demand: { silk: 0.2, antique: 0.2, fineWeave: 0.15 }, sells: [{ typeId: 'damascus-blue', factor: 1 }, { typeId: 'aleppo-courtyard', factor: 1.15 }, { typeId: 'damascus-rose', factor: 1.1, minRep: 45, chance: 0.15 }], people: ['farid'],
   },
   {
     id: 'amman', rail: true, name: 'Amman', kind: 'town', x: 452.3, y: 339.9, region: 'Transjordan',
     blurb: 'A small town of Circassian farmers on the Hejaz Railway, now the seat of the Emir of Transjordan. His new palace is rising on the hill of Raghadan.',
-    demand: { wool: 0.15, warm: 0.1, hardwearing: 0.1 }, sells: [{ typeId: 'cedar-caravan', factor: 0.8 }, { typeId: 'date-palm-runner', factor: 0.75 }], people: [],
+    demand: { wool: 0.15, warm: 0.1, hardwearing: 0.1 }, sells: [{ typeId: 'cedar-caravan', factor: 1.05 }, { typeId: 'date-palm-runner', factor: 1 }], people: [],
   },
   {
     id: 'aleppo', rail: true, name: 'Aleppo', kind: 'city', x: 521.4, y: 187.3, region: 'Syria',
     blurb: 'The great covered souq of the north, where Anatolian, Persian and Arab caravans meet.',
-    demand: { wool: 0.1, story: 0.1 }, sells: [{ typeId: 'aleppo-courtyard', factor: 0.75 }, { typeId: 'anatolian-hearth', factor: 0.85 }, { typeId: 'caucasus-eagle', factor: 0.85, minRep: 15 }], people: ['kevork'],
+    demand: { wool: 0.1, story: 0.1 }, sells: [{ typeId: 'aleppo-courtyard', factor: 1 }, { typeId: 'anatolian-hearth', factor: 1.1 }, { typeId: 'caucasus-eagle', factor: 1.1, minRep: 15, chance: 0.5 }], people: ['kevork'],
   },
   {
     id: 'konya', name: 'Konya', kind: 'town', rail: true, x: 305.4, y: 146.9, region: 'Anatolia',
     blurb: 'The city of Rumi on the Anatolian plateau. Village women bring rugs in on donkeys every market day.',
-    demand: { silk: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 0.7 }, { typeId: 'konya-prayer-rug', factor: 0.8, minRep: 12 }], people: ['ayse'],
+    demand: { silk: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 0.9 }, { typeId: 'konya-prayer-rug', factor: 1.05, minRep: 12, chance: 0.5 }], people: ['ayse'],
   },
   {
     id: 'istanbul', name: 'Constantinople', kind: 'city', rail: true, x: 167.1, y: 49.0, region: 'Anatolia', port: true,
     blurb: 'The old capital, emptied of its sultan last year. Palace households are quietly selling their carpets.',
-    demand: { ornate: 0.2, silk: 0.15, antique: 0.15 }, sells: [{ typeId: 'konya-prayer-rug', factor: 0.9, minRep: 12 }, { typeId: 'golden-palm', factor: 0.85, minRep: 20 }, { typeId: 'istanbul-tulip', factor: 0.85, minRep: 50, chance: 0.2 }], people: ['selim'],
+    demand: { ornate: 0.2, silk: 0.15, antique: 0.15 }, sells: [{ typeId: 'konya-prayer-rug', factor: 1.15, minRep: 12, chance: 0.5 }, { typeId: 'golden-palm', factor: 1.1, minRep: 20, chance: 0.5 }, { typeId: 'istanbul-tulip', factor: 1.1, minRep: 50, chance: 0.2 }], people: ['selim'],
   },
   {
     id: 'ankara', name: 'Angora', kind: 'city', rail: true, x: 345.7, y: 95.1, region: 'Anatolia',
     blurb: 'Capital of the Republic since 1923. A dusty town full of builders, ministries in borrowed houses, and the President\'s residence at Çankaya.',
-    demand: { wool: 0.1, restrained: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 0.75 }, { typeId: 'caucasus-eagle', factor: 0.8, minRep: 15 }], people: [],
+    demand: { wool: 0.1, restrained: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 1 }, { typeId: 'caucasus-eagle', factor: 1.05, minRep: 15, chance: 0.5 }], people: [],
   },
   {
     id: 'baghdad', name: 'Baghdad', kind: 'city', x: 823.9, y: 266.2, region: 'Iraq',
     blurb: 'A long desert crossing east. Persian carpets come through here on their way west, cheaper than anywhere else.',
-    demand: { hardwearing: 0.1 }, sells: [{ typeId: 'sapphire-night', factor: 0.8, minRep: 20 }, { typeId: 'moroccan-ember', factor: 0.9, minRep: 15 }, { typeId: 'baghdad-night', factor: 0.85, minRep: 55, chance: 0.12 }], people: ['haji'],
+    demand: { hardwearing: 0.1 }, sells: [{ typeId: 'sapphire-night', factor: 1.05, minRep: 20, chance: 0.5 }, { typeId: 'moroccan-ember', factor: 1.15, minRep: 15, chance: 0.5 }, { typeId: 'baghdad-night', factor: 1.1, minRep: 55, chance: 0.12 }], people: ['haji'],
   },
 ];
 

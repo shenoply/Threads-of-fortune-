@@ -3,7 +3,9 @@
 //   good    - ask about the shop and what draws him, show the best rug for him, argue durability and fit, a fair price
 //   return  - the good way, on a rug he came back for
 // His purse is rolled per visit (tight, usual, flush), so what he pays swings widely.
-// He should rarely buy from a naive seller, sometimes from a good one, and more easily on a return.
+// He should rarely buy from a naive seller and usually from a good one: since f19fc52 (malekBalks in
+// negotiation.ts) Malek nearly convinced is convinced enough to pay, and he only walks off after agreeing a
+// price when the rug is plainly wrong for him (low interest, low trust or a poor fit). A return is easy.
 //   npx tsx tests/malek-haggle.ts
 import * as N from '../src/game/systems/negotiation';
 import { RUGS } from '../src/data/rugs';
@@ -39,12 +41,13 @@ function play(style: 'naive' | 'good' | 'return') {
   return { sold: e.outcome === 'sold', unsure: !!e.malekUnsure, interest: e.interest, trust: e.trust, fit: e.presentedFit, purse: e.malekPurse, price: e.salePrice ?? 0 };
 }
 
-const want = { naive: [0, 5], good: [15, 45], return: [70, 100] } as const;
+const want = { naive: [0, 10], good: [55, 100], return: [70, 100] } as const;
+const soldPct: Record<string, number> = {};
 let fails = 0;
 for (const style of ['naive', 'good', 'return'] as const) {
   const runs = Array.from({ length: 300 }, () => play(style));
   const sold = runs.filter((r) => r.sold).length, unsure = runs.filter((r) => r.unsure).length;
-  const pct = Math.round((sold / runs.length) * 100);
+  const pct = Math.round((sold / runs.length) * 100); soldPct[style] = pct;
   if (pct < want[style][0] || pct > want[style][1]) { fails++; console.log(`FAIL ${style}: sold ${pct}%, wanted ${want[style][0]}-${want[style][1]}%`); }
   const avg = (k: 'interest' | 'trust' | 'fit') => Math.round(runs.reduce((s, r) => s + r[k], 0) / runs.length);
   console.log(`${style.padEnd(6)} sold ${Math.round((sold / runs.length) * 100)}% · agreed a price but not convinced ${Math.round((unsure / runs.length) * 100)}% · avg interest ${avg('interest')} trust ${avg('trust')} fit ${avg('fit')}`);
@@ -56,5 +59,7 @@ for (const style of ['naive', 'good', 'return'] as const) {
   const lo = by('tight'), hi = by('flush');
   if (lo.length && hi.length && Math.max(...lo) >= Math.min(...hi) * 1.5) { fails++; console.log(`FAIL ${style}: a tight purse paid as much as a flush one`); }
 }
+// how you sell must matter: a good seller does far better than a naive one
+if (soldPct.good - soldPct.naive < 40) { fails++; console.log(`FAIL good selling (${soldPct.good}%) is not clearly better than naive (${soldPct.naive}%)`); }
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

@@ -4,7 +4,8 @@
 //   PORT=5173 SHOTS=/tmp/how node tests/how-it-plays.mjs
 import { chromium } from 'playwright';
 import { mkdirSync, existsSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/how';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });

@@ -20,7 +20,9 @@ const STALL_BILL: Record<string, { rent: number; dues: number; licence: number; 
   khan: { name: 'shop in Khan el-Khalili', rent: 1200, dues: 0, licence: 25, watch: 5, lamp: 30, tax: 120 },
 };
 export const stallKey = (up: string[]) => (up.includes('khan') ? 'khan' : up.includes('bazaar') ? 'bazaar' : up.includes('mat') ? 'mat' : 'corner');
-const HOUSEHOLD = [150, 220, 300, 450, 600];
+// a merchant who rises keeps a better house, and the lane expects more of his dues
+const HOUSEHOLD = [200, 400, 650, 1000, 1500];
+const DUES_BY_RANK = [1, 1.5, 2, 3, 4];
 
 export interface BillLine { label: string; amount: number }
 /** What falls due on the first of the month. */
@@ -28,7 +30,7 @@ export function monthlyBill(up: string[], rankIdx: number, stored: number): Bill
   const b = STALL_BILL[stallKey(up)];
   const lines: BillLine[] = [
     { label: `Rent (${b.name})`, amount: b.rent },
-    { label: 'Market dues', amount: b.dues },
+    { label: 'Market dues', amount: Math.round(b.dues * DUES_BY_RANK[Math.min(DUES_BY_RANK.length - 1, Math.max(0, rankIdx))]) },
     { label: 'Shop licence', amount: b.licence },
     { label: 'Watchman', amount: b.watch },
     { label: 'Lamp oil', amount: b.lamp },

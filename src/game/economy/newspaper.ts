@@ -3,6 +3,8 @@ import { EVENTS, eventsOn, eventsStarting, dateOfDay, rumoursOn, type GameEvent 
 import { EVENT_NEWS, FILLER, ADS, WEATHER, KHAMSIN, SHIPPING, SHIPS, PORTS, type Story } from '../../data/news';
 import { upcomingGrandSales } from '../auction/sessions';
 import { wiresOn } from '../../data/daily1925';
+import { SETTLEMENTS } from '../../data/world';
+import { dateLine } from './dateLine';
 
 export interface Article extends Story { kind: 'event' | 'surprise' | 'filler' | 'wire'; eg?: boolean; advice?: string; id: string; img?: string; caption?: string }
 export interface Paper {
@@ -21,8 +23,6 @@ export interface Paper {
   ad2: { title: string; body: string };
 }
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const r = (n: number) => Math.abs(Math.sin(n * 12.9898 + 4.1414) * 43758.5453) % 1;
 const pick = <T,>(a: T[], seed: number) => a[Math.floor(r(seed) * a.length)];
 
@@ -62,10 +62,7 @@ const article = (e: GameEvent): Article => {
 };
 const weight = (e: GameEvent) => (e.surprise ? 1 : 2) + (e.closed ? 1 : 0) + (e.danger ? 0.5 : 0);
 
-export function dateLine(day: number) {
-  const d = dateOfDay(day);
-  return `${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
+export { dateLine };
 
 /** What the trade needs to know today: the effects of everything on, in plain words. */
 function tradeNotes(day: number): string[] {
@@ -106,7 +103,8 @@ const clip = (t: string, n: number) => (t.length <= n ? t : `${t.slice(0, n + 1)
 /** a coming-up line made short for the glance strip, keeping what matters first (for a sale: the town) */
 const glanceLine = (t: string) => { const m = /^(.+) holds a sale in ([^.]+)\.?$/.exec(t); return m ? `${m[2]} · ${m[1]}` : t.split(/[:.,]/)[0]; };
 const NAMES: Record<string, string> = { portsaid: 'Port Said', giza: 'Giza' };
-const cap = (id: string) => NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
+/** a town as the paper names it: the settlement's own name (istanbul is "Constantinople" in 1925), not its id */
+const cap = (id: string) => NAMES[id] ?? SETTLEMENTS.find((x) => x.id === id)?.name ?? id.charAt(0).toUpperCase() + id.slice(1);
 
 export function paperFor(day: number, extras: { bills?: boolean; commissions?: { label: string; until?: number }[] } = {}): Paper {
   const starting = eventsStarting(day).sort((a, b) => weight(b) - weight(a));

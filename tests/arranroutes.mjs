@@ -5,8 +5,9 @@
 // walk back → give it to Arran → the follow-up unlocks and is visible (pass risk, papers for cargo).
 //   PORT=5173 node tests/arranroutes.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '4173';
-const S = process.env.SHOTS ?? '/tmp';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT;
+const S = __SHOTS;
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
@@ -14,11 +15,14 @@ const has = (id) => p.locator(`[data-testid="${id}"]`).count();
 const st = async () => JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).state;
 // read the saved state (the app writes it on every change), not a module import that hot reload can split
 const live = () => p.evaluate(() => { const s = JSON.parse(localStorage.getItem('threads-of-fortune-save')).state; return { at: s.world.at, hour: s.world.hour, day: s.day, food: s.world.party.food, cash: s.cash }; });
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
 const toLab = async () => {
   // the caravan can come home at night, when the lab is shut: call in the next morning
-  { const h = (await live()).hour; if (h < 7 || h >= 20) { await edit(`s.world.hour = 10;`); await reload(); } }
+  // and home from a long road the hero may be starving or spent (they matter now: he can pass out);
+  // this test is about the routes, so he comes back fed and rested
+  for (let i = 0; i < 6 && (await has('rescue')); i++) { await p.click('[data-testid=rescue] .btn.primary').catch(() => {}); await p.waitForTimeout(500); }
+  await edit(`s.condition = { ...(s.condition ?? {}), fatigue: 0, fed: 100, water: 100 }; if (s.world.hour < 7 || s.world.hour >= 20) s.world.hour = 10;`); await reload();
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(400);
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
   await p.locator('[data-testid=poi-lab]').scrollIntoViewIfNeeded(); await p.click('[data-testid=poi-lab]');
@@ -48,7 +52,7 @@ const walkTo = async (town, label) => {
 };
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-night-rule', 'march'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   // the playtester's save: Giza, 15:30, little money, 10 days of food, three errands asked for
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
     Object.assign(s.world, { at: 'giza', hour: 15.5 }); s.cash = 900; s.reputation = 2; s.world.party.food = 10; s.world.parties = []; s.world.party.animals = { falahi: 1 };
@@ -72,7 +76,7 @@ try {
 
   if (process.env.START === 'sinai') {
     await edit(`s.world.at = 'sinai'; const t = { x: 489.7, y: 460.9 }; s.world.x = t.x; s.world.y = t.y; s.day = 16; s.world.hour = 6.5; s.crossings = { 'giza>sinai:1': { choice: 'escort', risk: 40, outcome: { kind: 'hard', text: '', fatigue: 18, foodLost: 2, cashLost: 0, cargoLost: false, extraDays: 0 } } };`);
-    await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
+    await reload(); await p.waitForTimeout(800); if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); }
     console.log('   (resumed at St Catherine\'s; the outward walk was verified in a full run: arrived day 16, 25 March)');
   } else {
   // travel: a route preview, not the remote town
@@ -86,7 +90,8 @@ try {
   }
 
   // the institution: open the town, go to the records room; wait for the doors if early
-  await edit(`s.world.hour = 6.5;`); await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
+  await edit(`s.world.hour = 6.5;`); await reload(); await p.waitForTimeout(800);
+  if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); } // the town menu covers the nav bar
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-sinai]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }
   await p.waitForSelector('[data-testid=town-menu]'); await p.waitForTimeout(1200); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   console.log('3. at 06:30:', await p.locator('[data-testid=library-closed]').innerText().then((t) => t.replace(/\n+/g, ' | ')));
@@ -122,14 +127,17 @@ try {
   console.log('5. Port Said route preview:', await has('travel'), '| remote panel?', await has('town-menu'));
   const ok2 = await walkTo('portsaid', 'portsaid');
   console.log('   arrived at Port Said:', ok2, '| hour', (await live()).hour.toFixed(1));
-  await edit(`s.world.hour = 9;`); await reload(); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
+  await edit(`s.world.hour = 9;`); await reload(); await p.waitForTimeout(800);
+  // arriving (or reloading) in a town can open its full-screen menu, which covers the nav bar
+  if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); }
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-portsaid]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }
-  await p.waitForTimeout(1200); await p.screenshot({ path: '/tmp/claude-0/ps.png' }); console.log('   town menu items:', (await p.evaluate(() => [...document.querySelectorAll('[data-testid^=menu-]')].map((e) => e.dataset.testid))).join(' ')); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
+  await p.waitForTimeout(1200); await p.screenshot({ path: `${__SHOTS}/ps.png` }); console.log('   town menu items:', (await p.evaluate(() => [...document.querySelectorAll('[data-testid^=menu-]')].map((e) => e.dataset.testid))).join(' ')); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   await p.click('[data-testid=library-search-restricted_records]'); await p.click('[data-testid=library-copy-restricted_records]'); await p.waitForTimeout(200);
-  console.log('   extract bought:', (await st()).arranBooks.restricted_records.phase);
-  await p.click('[data-testid=library-leave]');
-  await p.click('[data-testid=nav-map]'); await p.waitForTimeout(600);
-  if (await has('menu-leave')) await p.click('[data-testid=menu-leave]');
+  console.log('   extract bought:', (await st()).arranBooks.restricted_records.phase, '|', await p.locator('[data-testid=library-note]').textContent({ timeout: 1000 }).catch(() => ''));
+  await p.click('[data-testid=library-leave]'); await p.waitForTimeout(400);
+  // leaving the library returns to the full-screen town menu, which covers the nav bar: leave the town from it
+  if (await has('menu-leave')) await p.click('[data-testid=menu-leave]'); else await p.click('[data-testid=nav-map]');
+  await p.waitForTimeout(600);
   await p.locator('[data-testid=place-giza]').dispatchEvent('click'); await p.waitForTimeout(800);
   console.log('   back in Giza:', await walkTo('giza', 'home2'));
   await toLab(); await p.click('[data-testid=arran-tab-notebook]'); await p.click('[data-testid=arran-return-restricted_records]'); await p.waitForTimeout(200);
@@ -139,9 +147,11 @@ try {
   await p.click('[data-testid=arran-cargo-licensed-powder]'); await p.waitForTimeout(150);
   await p.click('[data-testid=arran-cargo-take-sheep_dip]'); await p.waitForTimeout(150);
   await p.click('[data-testid=arran-leave]');
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); const g = m.useGame; g.setState((s) => ({ cargo: s.cargo.map((c) => ({ ...c, collected: true, to: c.jobId === 'sheep_dip' ? 'bedouin' : c.to })) })); g.getState().arriveAt('suez'); });
-  const pat = await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); const s = m.useGame.getState(); return { note: s.jobNote, patrols: s.patrols }; });
-  console.log('6. patrol at Suez:', pat.note);
+  await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const g = m.useGame; g.setState((s) => ({ cargo: s.cargo.map((c) => ({ ...c, collected: true, to: c.jobId === 'sheep_dip' ? 'bedouin' : c.to })) })); g.getState().arriveAt('suez'); });
+  const pat = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const s = m.useGame.getState(); return { note: s.jobNote, patrols: s.patrols }; });
+  console.log('6. patrol at Suez:', pat.note ?? '(no note)', '| patrols', JSON.stringify(pat.patrols ?? {}).slice(0, 240));
+  // the lab is in Giza: come home (the stall button only opens the district there)
+  await edit(`Object.assign(s.world, { at: 'giza', x: 146.9, y: 443.7 }); s.journey = null;`); await reload();
   await toLab(); await p.click('[data-testid=arran-tab-road]'); await p.waitForTimeout(200);
   await p.locator('[data-testid=arran-patrols]').scrollIntoViewIfNeeded().catch(() => {});
   console.log('   in the lab:', await p.locator('[data-testid=arran-patrols]').innerText().then((t) => t.replace(/\n+/g, ' | ')).catch(() => 'none'), '| watch:', await p.locator('[data-testid=arran-attention]').textContent());

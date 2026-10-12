@@ -31,7 +31,7 @@ export const POIS: Poi[] = [
   { id: 'animals', name: 'Animal market', sub: 'Camels, horses, donkeys and mules', x: 565, y: 745, glyph: 'A' },
   { id: 'guards', name: 'Guard yard', sub: 'Hire men to guard your caravan', x: 930, y: 740, glyph: 'G' },
   { id: 'station', name: 'Giza station', sub: 'Trains north to Cairo and south up the valley', x: 1275, y: 330, glyph: 'R' },
-  { id: 'ferry', name: 'Nile ferry', sub: 'Across the river to Cairo · £0.01', x: 1385, y: 680, glyph: 'N' },
+  { id: 'ferry', name: 'Nile ferry', sub: 'Across the river to Cairo · a piastre a head', x: 1385, y: 680, glyph: 'N' },
   { id: 'lab', name: "Arran's laboratory", sub: 'Textile tests: fibre, dyes, fastness', x: 553, y: 318, glyph: 'L' },
   { id: 'clothes', name: "Haj Mahmoud's cloth shop", sub: 'Galabiyas, tarbooshes and slippers', x: 985, y: 365, glyph: 'H' },
   { id: 'malek', name: "Malek's grill", sub: 'Kofta, kebab, tea and road parcels', x: 690, y: 420, glyph: 'M' },

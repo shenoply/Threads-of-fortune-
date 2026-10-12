@@ -61,6 +61,8 @@ img { max-width: 100%; }
   gap: 10px;
   padding: 6px 12px;
   padding-top: calc(6px + env(safe-area-inset-top, 0px));
+  padding-left: calc(12px + env(safe-area-inset-left, 0px));
+  padding-right: calc(12px + env(safe-area-inset-right, 0px));
   background: linear-gradient(180deg, #1a1009 0%, #140d07 100%);
   border-bottom: 1px solid var(--line);
   min-height: 44px;
@@ -93,6 +95,8 @@ img { max-width: 100%; }
   border-top: 1px solid var(--line);
   background: #140d07;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 .nav button {
   background: none; border: 0; padding: 6px 2px 7px;
@@ -313,9 +317,12 @@ canvas.dust { position: absolute; left: 0; top: 0; width: 1312px; height: 380px;
 .act .t { display: block; font-family: var(--body); font-weight: 700; font-size: 16px; line-height: 1.1; color: var(--parchment); }
 .act .s { display: block; font-size: 13.5px; color: var(--text-dim); line-height: 1.15; margin-top: 1px; }
 .act:disabled { opacity: 0.32; cursor: not-allowed; }
-.act.glow { border-color: var(--brass-hi); animation: glow 1.4s ease-in-out infinite; }
-@keyframes glow { 0%,100% { box-shadow: 0 0 0 1px var(--brass-hi), 0 0 8px rgba(231,189,110,0.35); } 50% { box-shadow: 0 0 0 2px var(--brass-hi), 0 0 22px rgba(231,189,110,0.65); } }
-.rugcard.glow { animation: glow 1.4s ease-in-out infinite; border-color: var(--brass-hi); }
+.act.glow { position: relative; border-color: var(--brass-hi); }
+/* the ring is drawn once on a layer of its own and only its opacity pulses: animating box-shadow (or the
+   filter and text-shadow of the old second "glow") repainted the screen every frame */
+.act.glow::after, .rugcard.glow::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 2px var(--brass-hi), 0 0 22px rgba(231,189,110,0.65); opacity: 0.4; animation: glowRing 1.4s ease-in-out infinite; }
+@keyframes glowRing { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+.rugcard.glow { border-color: var(--brass-hi); }
 .act-note { grid-column: 1 / -1; display: grid; place-items: center; text-align: center; color: var(--text-dim); font-style: italic; font-size: 15px; padding: 8px; border: 1px dashed var(--line); border-radius: 4px; }
 
 .dial { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
@@ -517,7 +524,7 @@ table.ledger .neg { color: var(--bad); }
 .pin { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; padding: 0; }
 .pin .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--parchment); background: #2a1a0c; box-shadow: 0 3px 8px rgba(0,0,0,0.6); }
 .pin .dot svg { width: 13px; height: 13px; color: var(--parchment); }
-.pin.here .dot { background: var(--crimson); animation: glow 1.8s infinite; }
+.pin.here .dot { background: var(--crimson); animation: glowLift 1.8s infinite; }
 .pin .lbl { font-family: var(--label); font-size: 13.5px; color: #1a1006; background: rgba(239,224,191,0.92); padding: 0 6px; border-radius: 2px; white-space: nowrap; display: none; }
 .pin.sel .lbl { display: block; }
 .map-tools { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
@@ -1010,13 +1017,19 @@ table.ledger .neg { color: var(--bad); }
 /* World tab: second in the bar, and it calls for attention until the map has been opened */
 .nav button.nav-world { color: #e8c877; }
 .nav button.nav-world svg { filter: drop-shadow(0 0 4px rgba(231,189,110,0.45)); }
-.nav button.nav-world.beckon { animation: glow 1.8s ease-in-out infinite; }
-@keyframes glow { 0%, 100% { text-shadow: none; filter: none; } 50% { text-shadow: 0 0 10px rgba(231,189,110,0.9); filter: brightness(1.25); } }
-@keyframes beckon { 0%, 100% { transform: translateY(0); text-shadow: none; } 50% { transform: translateY(-2px); text-shadow: 0 0 10px rgba(231,189,110,0.8); } }
+.nav button.nav-world.beckon { position: relative; isolation: isolate; animation: glowLift 1.8s ease-in-out infinite; }
+/* the text glow, as a soft halo behind the tab whose opacity pulses with the brightening */
+.nav button.nav-world.beckon::before { content: ''; position: absolute; inset: 2px 8%; z-index: -1; border-radius: 50%; pointer-events: none; background: radial-gradient(closest-side, rgba(231,189,110,0.42), rgba(231,189,110,0.12) 60%, transparent); opacity: 0; animation: glowHalo 1.8s ease-in-out infinite; }
+/* brightness alone (no text-shadow) runs on the compositor; this used to be a second "@keyframes glow"
+   that silently replaced the brass ring above */
+@keyframes glowLift { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
+@keyframes glowHalo { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+/* bob and brighten with transform and opacity only (compositor); the hint keeps its own glow */
+@keyframes beckon { 0%, 100% { transform: translateY(0); opacity: 0.7; } 50% { transform: translateY(-2px); opacity: 1; } }
 
 /* Main mission */
 .mission-banner { display: flex; align-items: center; gap: 10px; width: calc(100% - 16px); margin: 6px 8px 0; padding: 7px 10px; border: 1px solid #b8893a; border-radius: 6px; background: linear-gradient(90deg, #3a2410, #24170c); color: var(--text); text-align: left; cursor: pointer; box-shadow: 0 0 0 1px rgba(231,189,110,0.15), 0 4px 14px rgba(0,0,0,0.35); position: relative; z-index: 5; }
-.mission-banner i { font-style: normal; color: #f0c86a; font-size: 18px; animation: glow 2.4s ease-in-out infinite; }
+.mission-banner i { font-style: normal; color: #f0c86a; font-size: 18px; text-shadow: 0 0 8px rgba(231,189,110,0.5); animation: glowLift 2.4s ease-in-out infinite; }
 .mission-banner span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .mission-banner small { font-family: var(--label); font-size: 12px; letter-spacing: 0.1em; color: #e8b85a; }
 .mission-banner b { font-family: var(--display); font-size: 15.5px; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1029,7 +1042,7 @@ table.ledger .neg { color: var(--bad); }
 .mission-lock { font-size: 14.5px; color: var(--warn); font-style: italic; }
 .mission-reward { color: var(--good); font-family: var(--label); }
 .mission-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-.place.mission .pdot { box-shadow: 0 0 0 3px #f0c86a, 0 0 16px 4px rgba(240,200,106,0.7); animation: glow 1.8s ease-in-out infinite; }
+.place.mission .pdot { box-shadow: 0 0 0 3px #f0c86a, 0 0 16px 4px rgba(240,200,106,0.7); animation: glowLift 1.8s ease-in-out infinite; }
 .pmission { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--label); font-size: 12.5px; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 3px; background: #9a3326; color: #fbe9c4; border: 1px solid #f0c86a; pointer-events: none; }
 
 /* Character sheet */
@@ -1822,7 +1835,7 @@ body.travelling .mission-strip{display:none}
 .screen-head .btn.primary { align-self: center; white-space: nowrap; }
 .nav button { font-size: 12.5px; }
 .party .pring { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; border: 1.5px dashed rgba(220,80,55,.55); background: radial-gradient(circle, rgba(200,60,40,.10), rgba(200,60,40,0) 70%); pointer-events: none; z-index: -1; }
-.party.hunting .pring { border-style: solid; border-color: rgba(240,90,60,.9); animation: glow 1.4s ease-in-out infinite; }
+.party.hunting .pring { border-style: solid; border-color: rgba(240,90,60,.9); animation: glowLift 1.4s ease-in-out infinite; }
 .party.threat-weak .pring { border-color: rgba(230,200,120,.45); background: none; }
 .party-raiders .pname { display: block !important; font-size: 12px; white-space: nowrap; }
 .party.threat-strong .pname { background: rgba(150,30,20,.95); color: #fff1d6; }
@@ -2387,7 +2400,7 @@ button.hud-chip { cursor: pointer; }
   .stall.in-talk .band .plate-buyer .values:empty { display: none; }
 }
 @media (min-width: 900px) and (min-aspect-ratio: 5/4) and (min-height: 600px) {
-  .app:has(.stall.in-talk) .nav { display: flex; }
+  .app:has(.stall.in-talk) .nav { display: grid; }
   .stall.in-talk > .stall-toolbar, .stall.in-talk > .scene, .stall.in-talk > .band, .stall.in-talk > .rugstrip, .stall.in-talk > .actions { grid-column: 1; }
   .stall.in-talk > .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .stall.in-talk > .band { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
@@ -2465,7 +2478,13 @@ button.hud-chip { cursor: pointer; }
 .title-opts { max-height: none; overflow: visible; }
 
 /* the button the current first-hour step needs: a warm pulsing ring (GuideFlash) */
-.guide-flash { position: relative; animation: guideFlash 1.3s ease-in-out infinite !important; border-color: #ffc85a !important; z-index: 2; }
+.guide-flash { position: relative; border-color: #ffc85a !important; z-index: 2; }
+.guide-flash:not(:is(.nav-new, .tile, .tk, .hud-chip, .hud-place, .linkish, .skip-hint, .stall-paper, .help-link, .merchant-help, .stall-radio, .stall-gramophone-hit, .title-place, .icon-btn, .plate-row-btn, .tm-item, .bubble)) { animation: none !important; box-shadow: 0 0 0 2px rgba(255,200,90,.55) !important; }
+/* the pulse is a ::after layer whose opacity changes (compositor only; the box-shadow pulse repainted the
+   page every frame). Elements that already use ::after keep the old box-shadow pulse. */
+.guide-flash:not(:is(.nav-new, .tile, .tk, .hud-chip, .hud-place, .linkish, .skip-hint, .stall-paper, .help-link, .merchant-help, .stall-radio, .stall-gramophone-hit, .title-place, .icon-btn, .plate-row-btn, .tm-item, .bubble))::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 6px rgba(255,200,90,.35), 0 0 16px 4px rgba(255,200,90,.55); opacity: 0; animation: guideFlashRing 1.3s ease-in-out infinite; }
+@keyframes guideFlashRing { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+.guide-flash:is(.nav-new, .tile, .tk, .hud-chip, .hud-place, .linkish, .skip-hint, .stall-paper, .help-link, .merchant-help, .stall-radio, .stall-gramophone-hit, .title-place, .icon-btn, .plate-row-btn, .tm-item, .bubble) { animation: guideFlash 1.3s ease-in-out infinite !important; }
 @keyframes guideFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,200,90,.0), 0 0 0 2px rgba(255,200,90,.55); } 50% { box-shadow: 0 0 0 6px rgba(255,200,90,.35), 0 0 16px 4px rgba(255,200,90,.55); } }
 @media (prefers-reduced-motion: reduce) { .guide-flash { animation: none !important; box-shadow: 0 0 0 3px #ffc85a !important; } }
 .ob-skip { all: unset; cursor: pointer; flex: none; padding: 6px 4px 6px 8px; font-size: 12px; color: #c9b48f; text-decoration: underline; text-underline-offset: 2px; }
@@ -2784,4 +2803,71 @@ body.travelling .world-hud { display: none; }
   .amb-opts { gap: 6px; }
   .amb-opts .btn { flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 44px; padding: 6px 12px; font-size: 15.5px; text-align: left; }
   .amb-opts .btn small { margin-left: auto; text-align: right; }
+}
+
+/* ================= UI pass: a phone on its side, short desktop screens, hover ================= */
+
+/* a phone on its side: the notch and the rounded corners take the left and right edges. The top bar
+   and the tabs pad themselves (above); the screens between them, and the panels laid over the whole
+   page, keep their content clear of the edges. env() is 0 everywhere else, so nothing else moves. */
+.app > main { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.overlay, .film, .malek, .malek-sheet, .cafe-room, .clinic, .mummy-study, .arran-lab, .pass-card, .cabaret,
+.camp-screen, .town-menu, .rugpick, .radio-wrap, .auction-overlay, .mb-reader, .doc, .dayone {
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+}
+@media (max-width: 480px) {
+  .hud { padding-left: calc(8px + env(safe-area-inset-left, 0px)); padding-right: calc(6px + env(safe-area-inset-right, 0px)); }
+}
+.title-screen { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.toast, .evening-strip, .morning-strip, .mission-strip { max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
+
+/* the picture-change button on the title screen stays where it is placed (centred near the foot): the
+   bigger touch area is its ::after, which needs no change of position (position: relative had pushed
+   it half off the right edge on a phone) */
+@media (pointer: coarse) { .title-place { position: absolute; } }
+.title-place { max-width: calc(100vw - 24px); overflow: hidden; text-overflow: ellipsis; }
+
+/* the title screen on a phone held sideways (short): a compact card that fits, scrolling if it must,
+   the picture-change button in the top corner and the tagline left out, so nothing overlaps */
+@media (max-height: 500px) and (orientation: landscape) {
+  .title-screen { align-items: center !important; padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .title-card, .title-card[class] { width: min(calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 560px); max-height: calc(100dvh - 12px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; padding: 6px 14px 8px; background: rgba(14,8,4,.78); }
+  .title-card .eyebrow { display: none; }
+  .title-card h1 { font-size: 28px; margin: 0 0 2px; }
+  .title-card .tag { font-size: 13px; margin-bottom: 6px; }
+  .title-card .opt-toggle { min-height: 36px; margin-bottom: 4px; font-size: 13px; padding: 4px 12px; }
+  .title-card .row { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px 10px; }
+  .title-card .row > .big-btn { flex: 1 1 100%; min-height: 42px; padding: 6px 14px; }
+  .title-card .row > .ghost-btn { min-height: 36px; padding: 4px 10px; font-size: 14px; }
+  .title-card .title-links { flex: 1 1 100%; padding-top: 4px; margin-top: 0; }
+  .title-card .title-links .ghost-btn { min-height: 36px; padding: 3px 11px; }
+  .title-foot { display: none; }
+  .title-place { left: auto; transform: none; bottom: auto; top: 6px; right: calc(8px + env(safe-area-inset-right, 0px)); z-index: 2; font-size: 12px; padding: 4px 10px; max-width: 30vw; }
+}
+
+/* a tablet or laptop with a short screen (1024x768, 1280x800): the rug cards, the talk and the buttons
+   get slimmer so the stall picture keeps enough height to show the people whole */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (min-height: 600px) and (max-height: 900px) {
+  .stall.in-talk .rugcard .thumb { max-height: 54px; }
+  .stall.in-talk .rugcard .meta { display: none; }
+  .stall.in-talk > .actions { grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 4px; }
+  .stall.in-talk .act { min-height: 44px; }
+  /* room kept for the line, the narrator and the buyer's plate, so a line arriving after the picture
+     was sized does not run under the rug tray */
+  .stall.in-talk > .band { min-height: 132px; }
+}
+
+/* the stall sheet over the lane: a readable card in the middle on a wide screen, not a strip the width
+   of the window */
+@media (min-width: 900px) {
+  .stall-sheet { left: max(0px, calc(50% - 360px)); right: max(0px, calc(50% - 360px)); }
+}
+
+/* a mouse: buttons answer the pointer with a slight brightening (touch screens skip this, where a
+   hover state would stick after a tap) */
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(:disabled):hover { filter: brightness(1.15); border-color: var(--brass-hi); }
+  .act:not(:disabled):hover { filter: brightness(1.12); border-color: rgba(231,189,110,0.7); }
+  .nav button:not(:disabled):not([aria-current='page']):hover { color: var(--parchment); background: rgba(231,189,110,0.07); }
+  .big-btn:hover, .icon-btn:hover, .hud-chip:not(:disabled):hover { filter: brightness(1.12); }
 }

@@ -14,13 +14,20 @@ export function DaySummary() {
   // a quiet night with nothing to report needs no card
   if (!notes.length && !traded) return null;
   const net = sum.gross - sum.expenses;
+  // the evening strip closed the books before the night's wages and bread: say so, so the two agree
+  const night = (sum.wages ?? 0) + (sum.food ?? 0);
+  const atClose = net + night;
+  const nightParts = [sum.wages ? `${fmt(sum.wages)} in wages` : '', sum.food ? `${fmt(sum.food)} for bread` : ''].filter(Boolean).join(' and ');
   return (
     <div className="overlay" onClick={dismiss} data-testid="day-summary">
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <h2>{dateFor(sum.day + 1).long}</h2>
         {traded && (
           <p>
-            Yesterday: {sum.sales} {sum.sales === 1 ? 'sale' : 'sales'}, {fmt(sum.revenue)} taken, {net >= 0 ? `${fmt(net)} to the good` : `${fmt(-net)} down`} after costs.
+            Yesterday: {sum.sales} {sum.sales === 1 ? 'sale' : 'sales'}, {fmt(sum.revenue)} taken
+            {night > 0
+              ? <>, {atClose >= 0 ? `${fmt(atClose)} to the good` : `${fmt(-atClose)} down`} at the close. The night cost {nightParts}: {net >= 0 ? `${fmt(net)} to the good` : `${fmt(-net)} down`} in all.</>
+              : <>, {net >= 0 ? `${fmt(net)} to the good` : `${fmt(-net)} down`} after costs.</>}
           </p>
         )}
         {notes.length > 0 && (

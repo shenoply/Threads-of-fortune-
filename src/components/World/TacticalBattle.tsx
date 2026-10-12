@@ -4,6 +4,7 @@ import {
   COLS, ROWS, KIND_LABEL, RANGE, act, byId, cellAt, chargeCells, choose, dist, squadAt, expectedKills, intents, live, newTurn, outcome, reach, rollLuck, sidePhase, simulate, winChance,
   type Battle, type Outcome, type Order, type Squad, type Step, type Style,
 } from '../../game/systems/tactics';
+import { winChanceAsync } from '../../game/systems/odds';
 import './TacticalBattle.css';
 
 const CELL_GLYPH: Record<string, string> = { cover: '▥', rock: '◆', water: '≈', high: '▲' };
@@ -13,11 +14,13 @@ interface Props {
   battle: Battle;
   title: string;
   fieldArt: string;
+  /** the odds already worked out for this fight as it opens (the ambush card), so they are not run again */
+  odds?: number | null;
   onEnd: (o: Outcome, retreat: boolean) => void;
 }
 
 /** The fight as a map: your squads at the bottom, theirs at the top, painted ground behind, full screen. */
-export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
+export function TacticalBattle({ battle, title, fieldArt, odds: knownOdds, onEnd }: Props) {
   // the day's fortune is rolled once, when the fight opens; the odds shown average over every fortune
   const [b, setB] = useState<Battle>(() => (battle.luck == null ? { ...battle, luck: rollLuck() } : battle));
   const [sel, setSel] = useState<string | null>('hero');
@@ -29,7 +32,7 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
   const [confirmRetreat, setConfirmRetreat] = useState(false);
   // scouts saw them first: place your squads before the first shot
   const [deploying, setDeploying] = useState(battle.initiative === 'me');
-  const [odds, setOdds] = useState<number | null>(null);
+  const [odds, setOdds] = useState<number | null>(knownOdds ?? null);
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const timer = useRef<number | undefined>(undefined);
   const autoTimer = useRef<number | undefined>(undefined);
@@ -95,11 +98,17 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
     return () => window.clearTimeout(autoTimer.current);
   }, [auto, busy, b.turn, b.over]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // the odds for the squads as placed: off the main thread, and not at all for the opening placement when the
+  // ambush card already worked them out (winChanceAsync also keeps the answer for any placement seen before)
+  const placed = b.squads.map((q) => `${q.id}${q.x}${q.y}`).join();
+  const openingPlacement = useRef(placed);
   useEffect(() => {
     if (!deploying) return;
-    const t = window.setTimeout(() => setOdds(simulatedOdds(bRef.current, 'steady')), 150);
-    return () => window.clearTimeout(t);
-  }, [deploying, b.squads.map((q) => `${q.id}${q.x}${q.y}`).join()]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (placed === openingPlacement.current && knownOdds != null) { setOdds(knownOdds); return; }
+    let on = true;
+    const t = window.setTimeout(() => { winChanceAsync(bRef.current, 'steady').then((p) => { if (on) setOdds(p); }); }, 150);
+    return () => { on = false; window.clearTimeout(t); };
+  }, [deploying, placed, knownOdds]);
 
   // finishing the fight
   const done = b.over;
@@ -265,7 +274,7 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
           </div>
         ) : deploying ? (
           <div className="tac-main" style={{ marginTop: 'auto', flexDirection: 'column' }}>
-            {odds != null && <div className="tac-odds" data-testid="tac-odds">If your men fought it out from here: about <b>{odds}%</b> to win</div>}
+            <div className="tac-odds" data-testid="tac-odds">{odds != null ? <>If your men fought it out from here: about <b>{odds}%</b> to win</> : 'Working out the odds…'}</div>
             <button className="btn primary" onClick={() => { setDeploying(false); setSel('hero'); }} data-testid="tac-begin">Begin the fight</button>
           </div>
         ) : (
@@ -319,7 +328,8 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
   );
 }
 
-// the pre-fight screens: the chance to win if the men fight it out (see winChance in systems/tactics)
+// the pre-fight screens: the chance to win if the men fight it out (see winChance in systems/tactics;
+// the screens themselves use winChanceAsync in systems/odds so the page never stalls on it)
 export function simulatedOdds(b: Battle, style: Style = 'steady', runs = 60): number {
   return winChance(b, style, runs);
 }

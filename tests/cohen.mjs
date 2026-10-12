@@ -2,8 +2,9 @@
 // a hand rub vs Arran's rub, a pair that does not match, delivery of a matching pair, a missed date,
 // and a real stall visit for the composition and the pinned side task.   PORT=5173 node tests/cohen.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '4173';
-const S = process.env.SHOTS ?? '/tmp';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT;
+const S = __SHOTS;
 const W = +(process.env.W ?? 390), H = +(process.env.H ?? 844), tag = process.env.TAG ?? 'phone';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
@@ -62,8 +63,8 @@ try {
 
   // a real visit at the stall
   await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.totalSales = 4; s.queue = ['cohen']; s.visitIdx = 0; s.inventory.unshift({ uid: 'p1', typeId: 'red-medina', condition: 'Good', restored: false, provenance: 'Likely', paid: 200, notes: [] }, { uid: 'p2', typeId: 'delta-house', condition: 'Good', restored: false, provenance: 'Likely', paid: 200, notes: [] }); localStorage.setItem(k, JSON.stringify(d)); localStorage.setItem('tof-skip-chapters', '1'); });
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
+  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 9 }); s.totalSales = 4; s.queue = ['cohen']; s.visitIdx = 0; s.inventory.unshift({ uid: 'p1', typeId: 'red-medina', condition: 'Good', restored: false, provenance: 'Likely', paid: 200, notes: [] }, { uid: 'p2', typeId: 'delta-house', condition: 'Good', restored: false, provenance: 'Likely', paid: 200, notes: [] }); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); localStorage.setItem('tof-skip-chapters', '1'); });
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
   await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(700);
   if (await has('stall-wait')) await p.click('[data-testid=stall-wait]');
@@ -84,12 +85,12 @@ try {
   console.log('side task:', await p.locator('[data-testid=side-task-cohen]').textContent().catch(() => 'none'));
   await p.screenshot({ path: `${S}/cohen-${tag}-sidetask.png` });
   // miss the date: move the due day into the past, close the day
-  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.cohen.order.dueDay = d.state.day - 1; d.state.dayOver = false; localStorage.setItem(k, JSON.stringify(d)); });
+  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.cohen.order.dueDay = d.state.day - 1; d.state.dayOver = false; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
-  await p.evaluate(async () => { const m = await import('/src/game/state/store.ts'); m.useGame.getState().endDay(); });
+  await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); m.useGame.getState().endDay(); });
   await p.waitForTimeout(500);
   st = await state();
   console.log('after the day closes with the date passed:', JSON.stringify(st.cohen?.order?.status), '| trust', st.cohen?.trust, '| missed', st.cohen?.ordersMissed);
   console.log('errors', errs);
-} catch (e) { console.log('FAIL', e.message.split('\n')[0]); await p.screenshot({ path: `${S}/cohen-${tag}-fail.png` }); }
+} catch (e) { console.log('FAIL', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')); await p.screenshot({ path: `${S}/cohen-${tag}-fail.png` }); }
 await b.close();

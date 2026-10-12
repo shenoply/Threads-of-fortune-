@@ -2,16 +2,17 @@
 // screen, and no control smaller than 32px to the thumb (counting the invisible hit area).
 //   PORT=5173 node tests/phone-ux.mjs   (screenshots in /tmp/claude-0/ux)
 import { chromium } from 'playwright';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
-const shot = (n) => p.screenshot({ path: `/tmp/phone-ux-${n}.png` });
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
+const shot = (n) => p.screenshot({ path: `${__SHOTS}/phone-ux-${n}.png` });
 // small tap targets on screen right now
 const small = () => p.evaluate(() => [...document.querySelectorAll('button, a, [role=button]')].filter((e) => { const r = e.getBoundingClientRect(); const a = getComputedStyle(e, '::after'); const grow = a.content !== 'none' && a.position === 'absolute' ? 16 : 0; return r.width > 0 && r.height > 0 && r.top < innerHeight && r.bottom > 0 && (r.height + grow < 32 || r.width + grow < 32); }).map((e) => (e.dataset.testid || e.getAttribute('aria-label') || e.textContent.trim()).slice(0, 24) + ` ${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`));
 const overflow = () => p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
-await p.goto(`http://localhost:${process.env.PORT ?? 4173}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+await p.goto(`http://localhost:${__PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
 await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek','arran','abuhamid','rashid','nabil','cohen']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1'); Object.assign(s.world, { at: 'giza', hour: 11 }); s.queue = ['yusuf']; s.arrivals = [11.05]; s.visitIdx = 0;`);
 await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(1200);
 const report = async (n) => { await shot(n); console.log(n, '| page wider than screen:', await overflow(), '| small taps:', (await small()).join(', ')); };

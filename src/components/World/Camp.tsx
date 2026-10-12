@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { foodDaysLeft } from '../../game/systems/caravan';
-import { dateLine } from '../../game/economy/newspaper';
+import { dateLine } from '../../game/economy/dateLine';
 import { settlementById } from '../../game/systems/world';
 
 /**

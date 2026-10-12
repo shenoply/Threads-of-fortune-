@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
 import { useGame, clock, arrivalAt } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
@@ -43,6 +44,9 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
   const waiting = at === 'giza' && !g.encounter && !g.dayOver && !g.stallShut ? (g.held ? g.held.encounter.buyerId : g.visitIdx < g.queue.length && hour >= arrivalAt(g, g.visitIdx) ? g.queue[g.visitIdx] : null) : null;
   const night = hour >= 20 || hour < 5;
   const icon = night ? 'moon' : hour < 7 || hour >= 18 ? 'dawn' : 'sun';
+  // Escape and the phone's Back fold the stall sheet away, back to the lane
+  const sheet = useRef<HTMLDivElement>(null);
+  useDialogEscape(sheet, () => setStall(false), stall && layer === 'giza');
 
   return (
     <div className="campaign" data-testid="campaign" data-layer={layer}>
@@ -76,7 +80,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
         )}
       </div>
       {stall && layer === 'giza' && (
-        <div className="stall-sheet" data-testid="stall-sheet">
+        <div className="stall-sheet" role="dialog" aria-label="Your stall" data-testid="stall-sheet" ref={sheet}>
           <div className="sheet-head"><b>Your stall</b><button className="sheet-x" onClick={() => setStall(false)} aria-label="Back to the lane" data-testid="stall-sheet-close"><Icon name="x" /></button></div>
           <div className="sheet-body"><StallIdle onGo={onGo} /></div>
         </div>

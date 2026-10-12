@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { useGame, rankNeeded } from '../../game/state/store';
 import { rankOf, RANKS } from '../../game/economy/progress';
 import { BUYERS, LISTED_BUYERS as BUYER_ORDER, SPECIAL_BUYERS, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, CELEB_INFO, celebUnlock } from '../../data/buyers';
@@ -76,6 +77,9 @@ export function Customers() {
 export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose: () => void; onPrev?: () => void; onNext?: () => void }) {
   const g = useGame();
   const b = BUYERS[id];
+  // Escape and the phone's Back close the card only, not the screen under it
+  const box = useRef<HTMLDivElement>(null);
+  useDialogEscape(box, onClose, !!b);
   if (!b) return null;
   const need = id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? b.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0;
   const locked = g.reputation < need;
@@ -83,7 +87,7 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
   const t = BUYER_TIERS[id] ?? [3, 4];
   // drawn at the top of the page, so nothing from the stall (the rug on the counter) shows through it
   return createPortal(
-    <div className="overlay buyer-card-overlay" onClick={onClose}>
+    <div className="overlay buyer-card-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={b.name} ref={box}>
       <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card">
         <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="buyer-card-close">⟵ Back</button></div>
         <img className="buyer-big" src={`art/portraits/${id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -114,6 +118,8 @@ function FilmShelf() {
   // Malek's story on film, once you have seen it in his shop
   const backRoom = useGame((st) => !!st.malek?.story?.completed?.includes(3));
   const [cut, setCut] = useState(false);
+  const cutBox = useRef<HTMLDivElement>(null);
+  useDialogEscape(cutBox, () => setCut(false), cut);
   if (!films.length && !backRoom) return null;
   return (
     <div className="film-shelf" data-testid="film-shelf">
@@ -122,7 +128,7 @@ function FilmShelf() {
       {backRoom && <button className="btn small" onClick={() => setCut(true)} data-testid="film-again-backroom">▶ The Back Room (Malek)</button>}
       {play && createPortal(<IntroFilm id={play} onDone={() => setPlay(null)} />, document.body)}
       {cut && createPortal(
-        <div className="film-cut" role="dialog" aria-label="The Back Room Opens" data-testid="film-cut">
+        <div className="film-cut" role="dialog" aria-label="The Back Room Opens" data-testid="film-cut" ref={cutBox}>
           <Cutscene shots={STORY_FILM[3]} title="The Back Room Opens" />
           <button className="btn" onClick={() => setCut(false)} data-testid="film-cut-close">Close</button>
         </div>, document.body)}

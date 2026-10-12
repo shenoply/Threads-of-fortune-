@@ -4,7 +4,8 @@
 //   PORT=5173 SHOTS=/tmp/troops node tests/troops.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/troops';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -14,8 +15,8 @@ const out = []; let ok = true;
 const check = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) ok = false; };
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
-  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.cash = 50000; s.reputation = 0; Object.assign(s.world, { at: 'cairo', x: 214.3, y: 413.7, hour: 7, known: [...new Set([...(s.world.known ?? []), 'cairo', 'tanta', 'saqqara'])] }); s.world.party = { ...s.world.party, food: 200, troops: { veteran: 1, sentinel: 3, reformed: 2 }, animals: { falahi: 2, baladi_d: 3 } }; localStorage.setItem(k, JSON.stringify(d)); localStorage.setItem('tof-skip-chapters', '1'); });
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
+  await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.cash = 50000; s.reputation = 0; Object.assign(s.world, { at: 'cairo', x: 214.3, y: 413.7, hour: 7, known: [...new Set([...(s.world.known ?? []), 'cairo', 'tanta', 'saqqara'])] }); s.world.party = { ...s.world.party, food: 200, troops: { veteran: 1, sentinel: 3, reformed: 2 }, animals: { falahi: 2, baladi_d: 3 } }; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); localStorage.setItem('tof-skip-chapters', '1'); });
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
   // the train on the map
   await p.click('[data-testid=nav-map]'); await p.waitForTimeout(1200);
@@ -25,13 +26,13 @@ try {
   check(toks === 11, `train shows ${toks} tokens (6 men + 5 animals)`);
   await p.screenshot({ path: `${S}/map.png` });
   // the limit (reputation 0 → 6 men): store refuses a 7th
-  const r = await p.evaluate(async () => { const { useGame } = await import('/src/game/state/store.ts'); const { recruitPool } = await import('/src/game/systems/caravan.ts'); const s = useGame.getState(); const pool = recruitPool('cairo', s.day, s.world.hired).find((x) => x.available); return pool ? useGame.getState().recruit(pool.troop, pool.key, 1) : 'no pool'; });
+  const r = await p.evaluate(async () => { const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const { recruitPool } = await import('/src/game/systems/caravan.ts'); const s = useGame.getState(); const pool = recruitPool('cairo', s.day, s.world.hired).find((x) => x.available); return pool ? useGame.getState().recruit(pool.troop, pool.key, 1) : 'no pool'; });
   check(/at most/.test(r), `7th man refused: "${r.slice(0, 60)}"`);
   // talk to your men
-  const t = await p.evaluate(async () => { const { useGame } = await import('/src/game/state/store.ts'); const m0 = useGame.getState().world.party.morale ?? 70; const msg = useGame.getState().talkToMen('rations'); return [m0, useGame.getState().world.party.morale, msg]; });
+  const t = await p.evaluate(async () => { const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const m0 = useGame.getState().world.party.morale ?? 70; const msg = useGame.getState().talkToMen('rations'); return [m0, useGame.getState().world.party.morale, msg]; });
   check(t[1] === Math.min(100, t[0] + 10), `extra rations: patience ${t[0]} → ${t[1]}`);
   // stopped on the road when food is short
-  await p.evaluate(async () => { const { useGame } = await import('/src/game/state/store.ts'); const s = useGame.getState(); useGame.setState({ world: { ...s.world, party: { ...s.world.party, food: 12 } } }); });
+  await p.evaluate(async () => { const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const s = useGame.getState(); useGame.setState({ world: { ...s.world, party: { ...s.world.party, food: 12 } } }); });
   if (await has('district-world')) { await p.click('[data-testid=district-world]'); await p.waitForTimeout(900); }
   await p.locator('[data-testid=place-saqqara]').dispatchEvent('click'); await p.waitForTimeout(600);
   if (await has('food-go')) { await p.click('[data-testid=food-go]'); await p.waitForTimeout(400); }
@@ -45,11 +46,11 @@ try {
   check(stopped > 0, 'the men stop you when food runs short');
   if (stopped) { await p.screenshot({ path: `${S}/stopped.png` }); await p.click('[data-testid=men-close]'); }
   // the full page on a kind of guard, from the caravan screen
-  await p.evaluate(async () => { const { useGame } = await import('/src/game/state/store.ts'); const s = useGame.getState(); useGame.setState({ world: { ...s.world, at: 'cairo' } }); });
+  await p.evaluate(async () => { const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const s = useGame.getState(); useGame.setState({ world: { ...s.world, at: 'cairo' } }); });
   await p.click('[data-testid=nav-caravan]').catch(() => {}); await p.waitForTimeout(800);
   if (await has('roster-info-veteran')) { await p.click('[data-testid=roster-info-veteran]'); await p.waitForTimeout(400); }
   check((await has('troop-page-veteran')) > 0, 'troop page opens from the roster');
   await p.screenshot({ path: `${S}/troop-page.png` });
   console.log(out.join('\n')); console.log(ok && !errs.length ? 'PASS' : 'FAIL', JSON.stringify(errs.slice(0, 3)));
-} catch (e) { console.log(out.join('\n')); console.log('FAIL', e.message.split('\n')[0], JSON.stringify(errs.slice(0, 3))); }
+} catch (e) { console.log(out.join('\n')); console.log('FAIL', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / '), JSON.stringify(errs.slice(0, 3))); }
 await b.close();

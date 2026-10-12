@@ -1112,7 +1112,9 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
     return;
   }
   const acceptLine = price <= w * 0.85 ? L.priceLow : L.priceFair;
-  if (price <= w * 0.93 || (mode !== 'name' && price <= w && ctx.rng() < 0.55 + enc.trust / 200) || (enc.rounds >= 3 && price <= w)) {
+  // a court does not pay a merchant's first figure: the chamberlain answers it with one of his own
+  const court = !!b.royal && enc.rounds <= 1;
+  if (price <= w * (court ? 0.8 : 0.93) || (!court && mode !== 'name' && price <= w && ctx.rng() < 0.55 + enc.trust / 200) || (enc.rounds >= 3 && price <= w)) {
     buyerSay(enc, pick(acceptLine, ctx.rng), 'pleased');
     if (mode === 'hold' && enc.buyerOffer) say(enc, 'buyer', pick(L.holdGive, ctx.rng).replace('{price}', fmt(price)));
     closeSale(enc, ctx, price);

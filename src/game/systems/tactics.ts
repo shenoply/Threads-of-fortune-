@@ -23,6 +23,8 @@ export interface Squad {
 }
 export interface Battle {
   field: string; cells: CellType[];
+  /** the ambush it came from: seeds the band's make-up and the odds runs */
+  seed?: string;
   squads: Squad[];
   turn: number; maxTurns: number;
   /** who moves first: the side that spotted the other */
@@ -59,9 +61,13 @@ const idx = (x: number, y: number) => y * COLS + x;
 const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < COLS && y < ROWS;
 export const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 export const cellAt = (b: Battle, x: number, y: number): CellType => b.cells[idx(x, y)] ?? 'open';
-export const live = (b: Battle, side?: Side) => b.squads.filter((s) => !s.gone && (!side || s.side === side));
-export const squadAt = (b: Battle, x: number, y: number) => live(b).find((s) => s.x === x && s.y === y);
-export const byId = (b: Battle, id: string) => b.squads.find((s) => s.id === id);
+export const live = (b: Battle, side?: Side) => { const out: Squad[] = []; for (const s of b.squads) if (!s.gone && (!side || s.side === side)) out.push(s); return out; };
+export const squadAt = (b: Battle, x: number, y: number) => { for (const s of b.squads) if (!s.gone && s.x === x && s.y === y) return s; return undefined; };
+export const byId = (b: Battle, id: string) => { for (const s of b.squads) if (s.id === id) return s; return undefined; };
+/** cell keys and their coordinates, made once: reach() and the AI look these up thousands of times a fight */
+const KEY: string[] = [], XY = new Map<string, [number, number]>();
+for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const k = `${x},${y}`; KEY[y * COLS + x] = k; XY.set(k, [x, y]); }
+const xyOf = (k: string): [number, number] => XY.get(k) ?? (k.split(',').map(Number) as [number, number]);
 
 const SPEED: Record<Kind, number> = { melee: 2, rifle: 2, hero: 2, leader: 1, mounted: 4 };
 export const RANGE: Record<Kind, number> = { rifle: 4, hero: 3, leader: 3, melee: 0, mounted: 0 };
@@ -74,9 +80,9 @@ const GROUND: Record<string, Partial<Record<CellType, number>>> = {
   road: { cover: 4 }, dunes: { cover: 2 }, oasis: { cover: 5, water: 2 }, pass: { cover: 4, rock: 4 }, nile: { cover: 6, water: 3 },
   ford: { water: 9, cover: 2 }, hills: { cover: 3, high: 4 }, basalt: { cover: 5, rock: 3 }, ruins: { cover: 7 }, mountain: { rock: 5, cover: 3, high: 2 },
 };
+const hashSeed = (seed: string) => { let h = 7; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
 export function makeGround(field: string, seed: string): CellType[] {
-  let h = 7; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const r = mulberry(h);
+  const r = mulberry(hashSeed(seed));
   const cells: CellType[] = Array(COLS * ROWS).fill('open');
   const spec = GROUND[field] ?? GROUND.road;
   const place = (type: CellType, count: number, y0: number, y1: number) => {
@@ -101,30 +107,40 @@ export function makeGround(field: string, seed: string): CellType[] {
 // ---------- movement ----------
 /** Cells a squad can reach this turn, with the move points spent. Other squads and rocks block. */
 export function reach(b: Battle, s: Squad): Map<string, number> {
-  const out = new Map<string, number>([[`${s.x},${s.y}`, 0]]);
-  const q: [number, number, number][] = [[s.x, s.y, 0]];
+  const out = new Map<string, number>([[KEY[idx(s.x, s.y)] ?? `${s.x},${s.y}`, 0]]);
   const max = speedOf(b, s);
-  while (q.length) {
-    q.sort((a, c) => a[2] - c[2]);
-    const [x, y, c] = q.shift()!;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-      const nx = x + dx, ny = y + dy;
-      if (!inside(nx, ny)) continue;
-      const t = cellAt(b, nx, ny);
-      if (t === 'rock' || squadAt(b, nx, ny)) continue;
-      const nc = c + (t === 'water' ? 2 : 1);
-      if (nc > max) continue;
-      const k = `${nx},${ny}`;
-      if ((out.get(k) ?? 99) <= nc) continue;
-      out.set(k, nc); q.push([nx, ny, nc]);
+  // who stands where, looked up once instead of per neighbour
+  const occ = new Uint8Array(COLS * ROWS);
+  for (const o of b.squads) if (!o.gone && inside(o.x, o.y)) occ[idx(o.x, o.y)] = 1;
+  const best = new Uint8Array(COLS * ROWS).fill(99);
+  if (inside(s.x, s.y)) best[idx(s.x, s.y)] = 0;
+  // a queue per cost (0..max): the same order as a stable sort by cost, first come first served within a cost
+  const buckets: number[][] = Array.from({ length: max + 1 }, () => []);
+  buckets[0].push(s.x, s.y);
+  for (let c = 0; c <= max; c++) {
+    const q = buckets[c];
+    for (let i = 0; i < q.length; i += 2) {
+      const x = q[i], y = q[i + 1];
+      for (let d = 0; d < 8; d++) {
+        const nx = x + DX[d], ny = y + DY[d];
+        if (!inside(nx, ny)) continue;
+        const j = idx(nx, ny);
+        const t = b.cells[j] ?? 'open';
+        if (t === 'rock' || occ[j]) continue;
+        const nc = c + (t === 'water' ? 2 : 1);
+        if (nc > max || best[j] <= nc) continue;
+        best[j] = nc; out.set(KEY[j], nc); buckets[nc].push(nx, ny);
+      }
     }
   }
   return out;
 }
+const DX = [1, -1, 0, 0, 1, 1, -1, -1], DY = [0, 0, 1, -1, 1, -1, 1, -1];
 const adjacent = (a: { x: number; y: number }, c: { x: number; y: number }) => dist(a, c) === 1;
-export function chargeCells(b: Battle, s: Squad, t: Squad): [number, number][] {
-  const r = reach(b, s);
-  return [...r.keys()].map((k) => k.split(',').map(Number) as [number, number]).filter(([x, y]) => adjacent({ x, y }, t));
+export function chargeCells(b: Battle, s: Squad, t: Squad, r: Map<string, number> = reach(b, s)): [number, number][] {
+  const out: [number, number][] = [];
+  for (const k of r.keys()) { const [x, y] = xyOf(k); if (Math.max(Math.abs(x - t.x), Math.abs(y - t.y)) === 1) out.push([x, y]); }
+  return out;
 }
 
 // ---------- combat numbers ----------
@@ -141,7 +157,8 @@ export function rollLuck(): number {
 const fortune = (b: Battle, a: Squad) => { const l = b.luck ?? 1; return a.side === 'me' ? l : 1 / l; };
 const strengthNow = (s: Squad) => s.hp;
 function flanked(b: Battle, t: Squad, attacker: Squad) {
-  return live(b, attacker.side).some((o) => o.id !== attacker.id && adjacent(o, t));
+  for (const o of b.squads) if (!o.gone && o.side === attacker.side && o.id !== attacker.id && adjacent(o, t)) return true;
+  return false;
 }
 export function shootPower(b: Battle, a: Squad, t: Squad, preview = false): number {
   const k = a.kind === 'rifle' ? 0.3 : a.kind === 'hero' ? 0.2 : a.kind === 'leader' ? 0.16 : 0;
@@ -177,7 +194,9 @@ export function expectedKills(b: Battle, a: Squad, t: Squad, melee: boolean) {
 }
 
 // ---------- applying things ----------
-const clone = (b: Battle): Battle => structuredClone(b);
+/** A copy to change: the squads and the leader flags are copied; the ground, the log and the result are only ever
+ *  replaced, never changed in place, so they are shared (a structuredClone per action was most of a fight's cost). */
+const clone = (b: Battle): Battle => ({ ...b, squads: b.squads.map((s) => ({ ...s })), leaderDown: { ...b.leaderDown } });
 /** verb agreement: a lone leader or Hassan, against a squad of men */
 const V = (s: Squad, plural: string, single: string) => (s.kind === 'leader' || s.kind === 'hero' ? single : plural);
 function lose(b: Battle, s: Squad, dmg: number, how: 'shot' | 'melee', notes: string[]) {
@@ -225,7 +244,9 @@ function checkOver(b: Battle) {
   // the same rule for your side as for theirs: a line that has lost two thirds of its strength gives way
   const meHp = me.filter((s) => s.kind !== 'hero').reduce((a, s) => a + s.hp, 0);
   const meMax = b.squads.filter((s) => s.side === 'me' && s.kind !== 'hero').reduce((a, s) => a + s.maxHp, 0);
-  if (b.heroDown || !me.some((s) => s.kind !== 'hero') || (meMax > 0 && meHp / meMax <= 0.35)) { b.over = { result: 'loss' }; return; }
+  // Hassan on the road with no men at all fights alone: then only his own fall (or flight) ends it
+  const alone = meMax === 0;
+  if (b.heroDown || !me.length || (!alone && (!me.some((s) => s.kind !== 'hero') || meHp / meMax <= 0.35))) { b.over = { result: 'loss' }; return; }
 }
 
 /** Run one order for one squad. Returns the new battle and a line for the log. */
@@ -301,7 +322,7 @@ function targetScore(b: Battle, s: Squad, t: Squad) {
 function bestCellToward(b: Battle, s: Squad, goal: Squad, keep: number, r: Map<string, number>): [number, number] | null {
   let best: [number, number] | null = null, bs = -1e9;
   for (const [k] of r) {
-    const [x, y] = k.split(',').map(Number);
+    const [x, y] = xyOf(k);
     if ((x !== s.x || y !== s.y) && squadAt(b, x, y)) continue;
     const d = dist({ x, y }, goal);
     let sc = -Math.abs(d - keep) * 3 - (d < keep ? 4 : 0);
@@ -311,6 +332,14 @@ function bestCellToward(b: Battle, s: Squad, goal: Squad, keep: number, r: Map<s
     if (sc > bs) { bs = sc; best = [x, y]; }
   }
   return best;
+}
+/** the last man of a side (Hassan with no escort, a leader whose men are gone) */
+const alone = (b: Battle, s: Squad) => !b.squads.some((o) => !o.gone && o.side === s.side && o.id !== s.id);
+/** a lone shooter walks up to firing range, and fires if he gets there, instead of waiting out the day */
+function closeIn(b: Battle, s: Squad, goal: Squad, range: number, r: Map<string, number>): Order {
+  const to = bestCellToward(b, s, goal, range, r);
+  if (!to || (to[0] === s.x && to[1] === s.y)) return { t: 'hold' };
+  return dist({ x: to[0], y: to[1] }, goal) <= range ? { t: 'shoot', to, target: goal.id } : { t: 'move', to };
 }
 export function choose(b: Battle, s: Squad, style: Style): Order {
   const foes = live(b, s.side === 'me' ? 'en' : 'me').filter((f) => s.side === 'en' || f.kind !== 'hero' || true);
@@ -323,7 +352,7 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
   // shaky squads fall back toward their own edge
   if (s.morale < 32 && s.kind !== 'leader' && s.kind !== 'hero') {
     let best: [number, number] | null = null, bd = -1;
-    for (const [k] of r) { const [x, y] = k.split(',').map(Number); const d = dist({ x, y }, nearest) + Math.abs(y - front) * -0.2; if (d > bd && !(squadAt(b, x, y) && (x !== s.x || y !== s.y))) { bd = d; best = [x, y]; } }
+    for (const [k] of r) { const [x, y] = xyOf(k); const d = dist({ x, y }, nearest) + Math.abs(y - front) * -0.2; if (d > bd && !(squadAt(b, x, y) && (x !== s.x || y !== s.y))) { bd = d; best = [x, y]; } }
     return best && (best[0] !== s.x || best[1] !== s.y) ? { t: 'move', to: best } : { t: 'hold' };
   }
   if (s.kind === 'hero') {
@@ -332,14 +361,14 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
     if (wavering >= 1 && !b.commanded) return { t: 'rally' };
     const targets = foes.filter((f) => dist(s, f) <= RANGE.hero);
     if (targets.length) return { t: 'shoot', target: [...targets].sort((a, c) => targetScore(b, s, c) - targetScore(b, s, a))[0].id };
-    return { t: 'hold' };
+    return alone(b, s) ? closeIn(b, s, nearest, RANGE.hero, r) : { t: 'hold' };
   }
   if (s.kind === 'leader') {
     const weak = live(b, s.side).filter((a) => a.id !== s.id && a.morale < 60 && dist(a, s) <= 3).length;
     if (weak && !s.held) return { t: 'rally' };
     const inRange = foes.filter((f) => dist(s, f) <= RANGE.leader);
     if (inRange.length) return { t: 'shoot', target: [...inRange].sort((a, c) => targetScore(b, s, c) - targetScore(b, s, a))[0].id };
-    return { t: 'hold' };
+    return alone(b, s) ? closeIn(b, s, nearest, RANGE.leader, r) : { t: 'hold' };
   }
   if (s.kind === 'rifle') {
     const range = RANGE.rifle;
@@ -347,7 +376,7 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
     // a better firing position that keeps a target in range: cover first
     if (here.length && cellAt(b, s.x, s.y) !== 'cover' && style === 'steady') {
       for (const [k] of r) {
-        const [x, y] = k.split(',').map(Number);
+        const [x, y] = xyOf(k);
         if (cellAt(b, x, y) === 'cover' && !squadAt(b, x, y)) {
           const ts = foes.filter((f) => dist({ x, y }, f) <= range);
           if (ts.length) return { t: 'shoot', to: [x, y], target: [...ts].sort((a, c) => targetScore(b, s, c) - targetScore(b, s, a))[0].id };
@@ -367,7 +396,7 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
   // melee and mounted: pick the charge that does the most good
   let bestCharge: { t: Squad; to: [number, number]; sc: number } | null = null;
   for (const f of foes) {
-        for (const to of chargeCells(b, s, f)) {
+        for (const to of chargeCells(b, s, f, r)) {
       let sc = targetScore(b, s, f);
       // coming in from the side or the back
       const behind = s.side === 'me' ? to[1] < f.y : to[1] > f.y;
@@ -459,6 +488,8 @@ export const RIFLE_TROOPS = ['guard', 'veteran', 'sentinel', 'harbour'];
 
 export function newBattle(o: { field: string; seed: string; mine: Roster[]; enemyMen: number; enemyStrength: number; band: BandSpec; bandName: string; cmd: number; scouted: boolean; maxTurns?: number; heroImg?: string }): Battle {
   const cells = makeGround(o.field, o.seed);
+  // the band's make-up comes from the ambush itself, so the same ambush is the same fight after a reload
+  const roll = mulberry(hashSeed(`${o.seed}:band`));
   const squads: Squad[] = [];
   // my squads fill the two bottom rows, riders on the wings
   const slots: [number, number][] = [[2, 8], [3, 8], [1, 8], [4, 8], [0, 8], [5, 8], [1, 7], [4, 7], [2, 7], [3, 7], [0, 7], [5, 7]];
@@ -466,7 +497,9 @@ export function newBattle(o: { field: string; seed: string; mine: Roster[]; enem
   const put = (s: Squad, prefer: [number, number][]) => { const p = prefer.find(([x, y]) => free(x, y)) ?? [[0, 8]].find(([x, y]) => free(x, y)) ?? [5, 8]; s.x = p[0]; s.y = p[1]; squads.push(s); };
   const mk = (p: Partial<Squad> & Pick<Squad, 'id' | 'side' | 'troop' | 'name' | 'img' | 'kind' | 'n' | 'per'>): Squad => ({ start: p.n, hp: p.n * p.per, maxHp: p.n * p.per, x: 0, y: 0, morale: 80, moved: false, acted: false, held: false, hit: false, ...p });
   // Hassan: weak, behind the line, the one who gives orders
-  put(mk({ id: 'hero', side: 'me', troop: 'you', name: 'Hassan', img: o.heroImg ?? 'art/battle/hero.webp', kind: 'hero', n: 1, per: 8, morale: 100 }), [[2, 8], [3, 8]]);
+  // with no men he stands on the band's own scale (his strength 2), so an even fight reads as even
+  const escorted = o.mine.some((m) => m.n > 0);
+  put(mk({ id: 'hero', side: 'me', troop: 'you', name: 'Hassan', img: o.heroImg ?? 'art/battle/hero.webp', kind: 'hero', n: 1, per: escorted ? 8 : 2, morale: 100 }), [[2, 8], [3, 8]]);
   let wing = 0;
   for (const r of o.mine.filter((m) => m.n > 0)) {
     const mounted = r.kind === 'mounted';
@@ -491,11 +524,11 @@ export function newBattle(o: { field: string; seed: string; mine: Roster[]; enem
   const front: [number, number][] = [[1, 1], [4, 1], [2, 1], [3, 1], [0, 1], [5, 1], [0, 2], [5, 2], [2, 2], [3, 2]];
   for (let i = 0; i < parts && men > 0; i++) {
     const n = Math.floor(men / parts) + (i < men % parts ? 1 : 0);
-    const r = rnd();
+    const r = roll();
     const kind: Kind = r < o.band.mounted ? 'mounted' : r < o.band.mounted + o.band.melee ? 'melee' : 'rifle';
     put(mk({ id: `e${i}`, side: 'en', troop: o.band.man, name: `${o.bandName} ${String.fromCharCode(65 + i)}`, img: `art/battle/${o.band.man}.webp`, kind, n, per }), front);
   }
-  const b: Battle = { field: o.field, cells, squads, turn: 1, maxTurns: o.maxTurns ?? 12, initiative: o.scouted ? 'me' : 'en', commanded: false, holdLine: false, cmd: o.cmd, leaderDown: {}, log: [], heroDown: false, autoMine: false };
+  const b: Battle = { field: o.field, seed: o.seed, cells, squads, turn: 1, maxTurns: o.maxTurns ?? 12, initiative: o.scouted ? 'me' : 'en', commanded: false, holdLine: false, cmd: o.cmd, leaderDown: {}, log: [], heroDown: false, autoMine: false };
   b.log = [o.scouted ? 'Your scouts saw them first. You have the first move.' : 'They were waiting. They move first.'];
   return b;
 }
@@ -549,17 +582,28 @@ function probit(p: number): number {
  *  with the day's luck spread evenly over its range and a fixed dice sequence, so the number is honest and does
  *  not jump about between looks. Shown between 5% and 95%; 0% or 100% only when one side has nobody left. */
 export function winChance(b: Battle, style: Style = 'steady', runs = 60): number {
-  if (!live(b, 'me').some((s) => s.kind !== 'hero')) return 0;
+  const g = winChanceSteps(b, style, runs);
+  let r = g.next();
+  while (!r.done) r = g.next();
+  return r.value;
+}
+/** winChance one run at a time, for running it in slices between frames (the dice are put back between slices) */
+export function* winChanceSteps(b: Battle, style: Style = 'steady', runs = 60): Generator<void, number, unknown> {
+  const me = live(b, 'me');
+  const hadMen = b.squads.some((s) => s.side === 'me' && s.kind !== 'hero');
+  if (!me.length || (hadMen && !me.some((s) => s.kind !== 'hero'))) return 0;
   if (!live(b, 'en').length) return 100;
-  const saved = rnd;
+  const dice = mulberry(b.seed ? hashSeed(b.seed) ^ 0x5eed : 0x5eed);
   let w = 0;
-  try {
-    setTacticsRng(mulberry(0x5eed));
-    for (let i = 0; i < runs; i++) {
+  for (let i = 0; i < runs; i++) {
+    const saved = rnd;
+    try {
+      setTacticsRng(dice);
       // a different dice sequence per run, luck taken from its share of the curve
       const z = probit((i + 0.5) / runs);
       if (simulate({ ...b, luck: luckAt(z) }, style).b.over?.result === 'win') w++;
-    }
-  } finally { setTacticsRng(saved); }
+    } finally { setTacticsRng(saved); }
+    if (i < runs - 1) yield;
+  }
   return Math.max(5, Math.min(95, Math.round((w / runs) * 100)));
 }

@@ -3,19 +3,20 @@
 //   PORT=5173 SHOTS=/tmp/cafe node tests/cafe-games.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/cafe';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch();
 const vp = process.env.DESKTOP ? { width: 1280, height: 800 } : { width: 390, height: 844 };
 const p = await b.newPage({ viewport: vp, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
 const cash = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.cash);
 const out = [];
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; Object.assign(s.world, { at: 'giza', hour: 10 }); s.cash = 500; s.introSeen = [...(s.introSeen ?? []), 'abuhamid']; localStorage.setItem('tof-skip-chapters', '1');`);
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(300);

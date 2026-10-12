@@ -66,6 +66,49 @@ function tidy() {
   return tidying;
 }
 
+// Music is streamed: the player asks for it in pieces (Range requests), which the cache cannot answer
+// as they come, so every session downloaded each track again (4-6 MB). The first time a track is
+// played, the whole file is fetched once in the background and kept; after that the pieces the player
+// asks for are cut from the kept file (206 Partial Content), and the file is re-checked once a day.
+const STREAMED = /\/audio\/music\//;
+const wholeAsked = new Set();
+function fetchWhole(c, url) {
+  if (wholeAsked.has(url)) return Promise.resolve();
+  wholeAsked.add(url);
+  return fetch(url)
+    .then(async (res) => { if (res.ok && res.status === 200) { await c.put(url, res); await loadStamps(c); await stamp(c, url); } })
+    .catch(() => {})
+    .finally(() => wholeAsked.delete(url));
+}
+async function rangeOf(res, range) {
+  const blob = await res.blob();
+  const size = blob.size;
+  const type = res.headers.get('Content-Type') || 'audio/mpeg';
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(range).trim());
+  if (!m || (m[1] === '' && m[2] === '')) return new Response(blob, { status: 200, headers: { 'Content-Type': type, 'Content-Length': String(size), 'Accept-Ranges': 'bytes' } });
+  let start, end;
+  if (m[1] === '') { start = Math.max(0, size - Number(m[2])); end = size - 1; } // the last n bytes
+  else { start = Number(m[1]); end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1); }
+  if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+  return new Response(blob.slice(start, end + 1, type), {
+    status: 206, statusText: 'Partial Content',
+    headers: { 'Content-Type': type, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes' },
+  });
+}
+function streamed(e, url) {
+  const key = url.href;
+  e.respondWith(caches.open(CACHE).then(async (c) => {
+    const [hit] = await Promise.all([c.match(key), loadStamps(c)]);
+    if (!hit) {
+      // this time the network plays it as it comes; the whole file is kept for next time
+      e.waitUntil(fetchWhole(c, key));
+      return fetch(e.request);
+    }
+    if (!(Date.now() - (stamps[key] || 0) < DAY)) { stamps[key] = Date.now(); e.waitUntil(fetchWhole(c, key)); }
+    return rangeOf(hit, e.request.headers.get('range'));
+  }).catch(() => fetch(e.request)));
+}
+
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim().then(() => tidy())));
 
@@ -73,8 +116,13 @@ self.addEventListener('fetch', (e) => {
   const r = e.request;
   // the page itself is left to the browser (it always comes fresh); a new copy may name new code files
   if (r.mode === 'navigate') { e.waitUntil(new Promise((ok) => setTimeout(ok, 3000)).then(tidy)); return; }
-  if (r.method !== 'GET' || r.headers.has('range')) return; // voice lines and films are read in pieces: leave those to the browser
+  if (r.method !== 'GET') return;
   const url = new URL(r.url);
+  if (r.headers.has('range')) {
+    // music is kept whole and cut to the piece asked for; voice lines and films are left to the browser
+    if (url.origin === location.origin && STREAMED.test(url.pathname) && !url.search.includes('r=')) streamed(e, url);
+    return;
+  }
   if (url.origin !== location.origin || !KEEP.test(url.pathname) || url.search.includes('r=')) return;
   const hashed = /\/assets\//.test(url.pathname);
   e.respondWith(caches.open(CACHE).then(async (c) => {

@@ -31,3 +31,6 @@
 .town-menu .tm-item.slim.guide small { display: -webkit-box; }
 .town-menu .tm-list.tm-next { grid-template-columns: 1fr; }
 .town-menu .tm-list.tm-next .tm-item { padding-right: 64px; }
+/* the NEXT tile's pulsing ring reaches about 8px out: the first group's heading keeps clear of it */
+.town-menu .tm-groups > .tm-next { margin-bottom: 8px; }
+.town-menu .tm-groups > .tm-next + .tm-group h3 { margin-top: 2px; }

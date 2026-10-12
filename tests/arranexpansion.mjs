@@ -8,17 +8,18 @@
 // 6. mummy: book returned → letter → museum store in Cairo → permission → linen study next day, replay
 // Every step checks tap targets ≥44px in the lab and that nothing overflows the phone width.
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '4173';
-const S = process.env.SHOTS ?? '/tmp';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT;
+const S = __SHOTS;
 const W = +(process.env.W ?? 390), H = +(process.env.H ?? 844), tag = process.env.TAG ?? 'phone';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const has = (id) => p.locator(`[data-testid="${id}"]`).count();
 const st = async () => JSON.parse(await p.evaluate(() => localStorage.getItem('threads-of-fortune-save'))).state;
-const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); localStorage.setItem(k, JSON.stringify(d)); }, fn);
+const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); new Function('s', 'd', src)(d.state, d); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, fn);
 const reload = async () => { await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800); };
-const store = (fn, arg) => p.evaluate(async ([src, a]) => { const m = await import('/src/game/state/store.ts'); return new Function('g', 'a', src)(m.useGame.getState(), a); }, [fn, arg]);
+const store = (fn, arg) => p.evaluate(async ([src, a]) => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return new Function('g', 'a', src)(m.useGame.getState(), a); }, [fn, arg]);
 const toLab = async () => {
   await p.click('[data-testid=nav-stall]'); await p.waitForSelector('[data-testid=district]'); await p.waitForTimeout(400);
   if (await has('stall-sheet-close')) await p.click('[data-testid=stall-sheet-close]');
@@ -45,7 +46,7 @@ const phone = async (where) => {
 };
 try {
   await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
+  await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   // a v17 save with an old "fastness" result on the canal kilim, which really does lose colour
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
     Object.assign(s.world, { at: 'giza', hour: 9 }); s.cash = 5000; s.queue = []; s.visitIdx = 0; s.world.party.food = 4;
@@ -119,9 +120,16 @@ try {
   for (const id of ['khamsin', 'rockets', 'cartridges', 'revolver', 'moth', 'restorative']) {
     await p.click(`[data-testid=cabinet-buy-${id}]`); await p.waitForSelector('[data-testid=arran-confirm]');
     if (id === 'moth') { console.log('   moth card:', (await p.locator('[data-testid=arran-confirm]').innerText()).replace(/\n+/g, ' | ').slice(0, 260)); await p.screenshot({ path: `${S}/x-${tag}-cabinet-confirm.png` }); }
+    const fat0 = id === 'restorative' ? (await st()).condition?.fatigue ?? 0 : 0;
     await p.click('[data-testid=arran-confirm-pay]'); await p.waitForTimeout(200);
+    if (id === 'restorative') {
+      // bought while tired, the tonic comes with its first dose taken on the spot (RoadPanel)
+      const fat1 = (await st()).condition?.fatigue ?? 0;
+      console.log('   restorative bought at fatigue', fat0, '->', fat1);
+      if (fat0 > 0 && !(fat1 < fat0)) console.log('FAIL buying the tonic while tired did not take the first dose');
+      if (fat0 === 0 && (await has('cabinet-use-restorative'))) { await p.click('[data-testid=cabinet-use-restorative]'); await p.waitForTimeout(150); }
+    }
   }
-  await p.click('[data-testid=cabinet-use-restorative]'); await p.waitForTimeout(150);
   s = await st();
   console.log('   held', JSON.stringify(s.cabinet), '| khamsin until', s.khamsinUntil, '| arms', s.world.party.arms, '| mothproof', s.inventory.every((i) => i.mothproof), '| fatigue', s.condition.fatigue);
   await p.locator('[data-testid=cabinet-moth]').scrollIntoViewIfNeeded();
@@ -198,7 +206,7 @@ try {
   console.log('   replay in notebook:', await has('arran-mummy-replay'));
   await phone('notebook');
 } catch (e) {
-  console.log('FAILED', e.message.split('\n')[0]);
+  console.log('FAILED', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / '));
   await p.screenshot({ path: `${S}/x-${tag}-fail.png` });
 }
 console.log('errors', JSON.stringify(errs));

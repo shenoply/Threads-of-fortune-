@@ -1,16 +1,17 @@
 // Beaten senseless on the road: either you wake alone hours later, or a passer-by takes you to the nearest town
-// (to Dr Feras if that is Cairo or Giza).   PORT=5199 SHOTS=/tmp/w/k node tests/knockout.mjs
+// (to Dr Feras if that is Cairo or Giza).   node tests/knockout.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5199', S = process.env.SHOTS ?? '/tmp/w/k'; mkdirSync(S, { recursive: true });
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS; mkdirSync(S, { recursive: true });
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 390, height: 844 } }); p.setDefaultTimeout(8000);
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const out = []; let ok = true; const check = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) ok = false; };
 await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-fullscreen', 'off'))); await p.reload();
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(800);
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(800);
 const run = (rnd, at, x, y) => p.evaluate(async ([rnd, at, x, y]) => {
-  const { useGame } = await import('/src/game/state/store.ts');
+  const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts');
   useGame.setState({ rescue: undefined, tutorial: { done: true, step: 'done', inspected: true }, world: { ...useGame.getState().world, at, x, y, hour: 10 } });
   const was = { hour: 10, fatigue: useGame.getState().condition?.fatigue ?? 0 };
   const orig = Math.random; Math.random = () => rnd;

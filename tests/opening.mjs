@@ -5,7 +5,8 @@
 //   PORT=5173 SHOTS=/tmp/opening node tests/opening.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-const PORT = process.env.PORT ?? '5173', S = process.env.SHOTS ?? '/tmp/opening';
+import { PORT as __PORT, SHOTS as __SHOTS } from './_env.mjs';
+const PORT = __PORT, S = __SHOTS;
 mkdirSync(S, { recursive: true });
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -15,12 +16,12 @@ const out = []; let ok = true; const check = (c, m) => { out.push(`${c ? 'ok  ' 
 const has = (sel) => p.locator(sel).count();
 const K = 'threads-of-fortune-save';
 const st = () => p.evaluate((k) => JSON.parse(localStorage.getItem(k)).state, K);
-const edit = async (fn) => { await p.evaluate(([k, f]) => { const d = JSON.parse(localStorage.getItem(k)); new Function('s', f)(d.state); localStorage.setItem(k, JSON.stringify(d)); }, [K, fn]); await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]'); await p.waitForTimeout(900); };
+const edit = async (fn) => { await p.evaluate(([k, f]) => { const d = JSON.parse(localStorage.getItem(k)); new Function('s', f)(d.state); (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, [K, fn]); await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]'); await p.waitForTimeout(900); };
 const bar = async () => (await p.locator('[data-testid=first-hour]').innerText().catch(() => '')).replace(/\s+/g, ' ').toLowerCase();
 
 await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-fullscreen', 'off'))); await p.reload();
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1200);
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(1200);
 check((await bar()).includes('1 of 8'), `a new game starts the opening: "${(await bar()).slice(0, 80)}"`);
 check((await has('.guide-flash')) > 0, 'the button it needs is pulsing');
 await p.screenshot({ path: `${S}/1-start.png` });
@@ -83,7 +84,7 @@ await p.screenshot({ path: `${S}/4-skip.png` });
 check((await has('[data-testid=first-hour]')) === 0 && ((await st()).tipsSeen || []).includes('first-hour'), 'Skip ends the opening');
 
 // an older save under way skips it
-await p.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k)); d.version = 20; d.state.day = 9; d.state.tipsSeen = []; localStorage.setItem(k, JSON.stringify(d)); }, K);
+await p.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k)); d.version = 20; d.state.day = 9; d.state.tipsSeen = []; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, K);
 await p.reload(); await p.waitForTimeout(1200);
 check(((await st()).tipsSeen || []).includes('first-hour'), 'a tester\'s save already under way skips the opening');
 

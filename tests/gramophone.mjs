@@ -2,15 +2,18 @@
 // and gives the score back, and an old record ending does not stop the new one.
 //   PORT=5173 node tests/gramophone.mjs
 import { chromium } from 'playwright';
-const PORT = process.env.PORT ?? '5173';
+import { PORT as __PORT } from './_env.mjs';
+const PORT = __PORT;
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 390, height: 844 } });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
-await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1200);
+await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(1200);
 await p.evaluate(() => window.dispatchEvent(new Event('tof:gramophone')));
 await p.waitForTimeout(1500); await p.waitForSelector('[data-testid=gramophone-list] .gramo-track', { timeout: 8000 });
 const ids = await p.locator('.gramo-track').evaluateAll((els) => els.map((e) => e.dataset.testid));
+// measured against full volume (music now defaults to 45%), as audio-mix does
+await p.evaluate(() => window.__tofAudio.setVolumes({ master: 1, music: 1, sfx: 1, dialogue: 1 }));
 await p.click(`[data-testid=${ids[0]}]`); await p.waitForTimeout(1700);
 const out = {};
 out.recordVol = await p.evaluate(() => { const a = window.__tofAudio; return [...a.els].find(([, e]) => e.kind === 'music')?.[0].volume; });

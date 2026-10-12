@@ -59,9 +59,11 @@ const charismaOf = (s: MissionState) => {
   const x = s as unknown as { wardrobe?: WardrobeState; attire?: { clean?: number } };
   return heroCharisma(x.wardrobe ?? START_WARDROBE, x.attire?.clean ?? 100);
 };
-/** a Fine rug or better, in good order, packed for the road: what a palace will look at */
+/** an Exceptional rug or better, in good order, packed for the road: what a palace will look at (the
+ *  courts consider nothing below Exceptional, and a warrant needs one) */
 const courtRug = (s: MissionState) => (s.inventory as { typeId: string; stored?: boolean; condition?: string }[])
-  .some((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 1) >= 2 && !['Worn', 'Dirty', 'Damaged'].includes(i.condition ?? ''));
+  .some((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 1) >= 3 && !['Worn', 'Dirty', 'Damaged'].includes(i.condition ?? ''));
+const repOf = (s: MissionState) => (s as unknown as { reputation?: number }).reputation ?? 0;
 
 export const MISSIONS: Record<string, Mission> = {
   alexandria: {
@@ -86,7 +88,7 @@ export const MISSIONS: Record<string, Mission> = {
       const want = n === 1 ? 'one more donkey' : 'two donkeys';
       return s.world.at === 'tanta' ? `Buy ${want} at the Tanta animal market.` : `Buy ${want}, then go to Tanta.`;
     },
-    next: (s) => (animalsOf(s) < 2 && (s.world.at === 'giza' || s.world.at === 'tanta') ? { btn: 'Animals', go: 'animals' } : null),
+    next: (s) => (animalsOf(s) < 2 && (s.world.at === 'giza' || s.world.at === 'tanta') ? { btn: 'Animals', go: 'animals' } : s.world.at === 'giza' && packedCount(s) === 0 ? { btn: 'Stock', go: 'stock' } : null),
     check: (s) => ((s as unknown as { jobsDone?: string[] }).jobsDone ?? []).includes('tanta-bale'),
   },
   farid: {
@@ -100,7 +102,8 @@ export const MISSIONS: Record<string, Mission> = {
       if (!hasHearth(s)) return s.world.at === 'damascus' ? 'Tell Farid what became of the rug.' : 'Rug lost: go and tell Farid in Damascus.';
       return s.world.at === 'damascus' ? 'Show Farid al-Khatib the rug (People).' : 'Show Farid the rug: Damascus, 1½ days.';
     },
-    check: (s) => s.world.appraised.length > 0 || (s.world.at === 'damascus' && !hasHearth(s)),
+    // lost for good (Rashid already bought it back once): telling Farid in Damascus is the end of it
+    check: (s) => s.world.appraised.length > 0 || (s.world.at === 'damascus' && !hasHearth(s) && !!(s as unknown as { faridRecovered?: boolean }).faridRecovered),
   },
   rival: {
     id: 'rival', title: 'The stall next door', giver: 'Selim Kassab',
@@ -116,7 +119,7 @@ export const MISSIONS: Record<string, Mission> = {
   ambush: {
     id: 'ambush', title: 'Selim\'s cousins', giver: 'Bilgin',
     brief: 'Bilgin lowers his voice. Selim Kassab left owing half of Cairo, and he blames you. "His cousins are waiting on the Suez road for your next caravan. Do not go alone. Hire men who have fought before, and show them your caravan is not worth the trouble."',
-    steps: [`Hire guards until your caravan's strength is ${AMBUSH_STRENGTH} or more: three or four Giza watchmen will do, at £0.30 each`, 'Go to Suez: about four and a half hours by train from Giza', 'Arrive with your guards still with you (pay their wages)'],
+    steps: [`Hire guards until your caravan's strength is ${AMBUSH_STRENGTH} or more: four Giza watchmen will do (each adds 2 to your own 2), at £0.30 each`, 'Go to Suez: about four and a half hours by train from Giza', 'Arrive with your guards still with you (pay their wages)'],
     target: 'suez',
     locks: 'Bilgin will not send you further until Selim\'s cousins are dealt with.',
     reward: { cash: 500, rep: 5, trust: 5, text: 'Selim\'s cousins see your guards from the ridge and ride away. In Suez the coffee-house men already know. Nobody in the lane will cross you now.' },
@@ -147,8 +150,8 @@ export const MISSIONS: Record<string, Mission> = {
   },
   warrant: {
     id: 'warrant', title: 'By royal appointment', giver: 'Your own ambition',
-    brief: 'Kings, queens and emirs buy carpets too. A royal warrant would put your name above every dealer in the lane. Dress for court, bring your finest pieces, and win a royal sale. Queen Nazli at Ras el-Tin palace in Alexandria receives merchants first, from reputation 15.',
-    steps: [`Reach reputation ${FIRST_COURT_REP}: Queen Nazli at Ras el-Tin, Alexandria. Other courts ask 20 to 35`, 'Buy court dress from a tailor in Cairo or Alexandria, and keep it clean', 'Pack a Fine rug or better, in good condition, and make the sale at the palace'],
+    brief: 'Kings, queens and emirs buy carpets too. A royal warrant would put your name above every dealer in the lane. Dress for court, bring an Exceptional rug, and win a royal sale. Queen Nazli at Ras el-Tin palace in Alexandria receives merchants first, from reputation 15.',
+    steps: [`Reach reputation ${FIRST_COURT_REP}: Queen Nazli at Ras el-Tin, Alexandria. Other courts ask 20 to 35`, 'Buy court dress from a tailor in Cairo or Alexandria, and keep it clean', 'Pack an Exceptional rug or better, in good condition, and sell it at the palace for a fair price. Courts do not look at Common or Fine rugs'],
     target: 'alexandria',
     locks: 'Purveyor to Kings asks for three royal warrants. This is the first.',
     reward: { cash: 0, rep: 5, trust: 10, text: 'The warrant hangs above your stall in a gilt frame. Buyers read it before they read your prices.' },
@@ -156,12 +159,44 @@ export const MISSIONS: Record<string, Mission> = {
       const rep = (s as unknown as { reputation?: number }).reputation ?? 0;
       if (rep < FIRST_COURT_REP) return `Reach reputation ${FIRST_COURT_REP} (you have ${rep}).`;
       if (charismaOf(s) < 6) return 'Buy court dress (Cairo or Alexandria).';
-      if (!courtRug(s)) return 'Pack a Fine rug for the palace.';
+      if (!courtRug(s)) return 'Pack an Exceptional rug for the palace.';
       return s.world.at === 'alexandria' ? 'Sell to Queen Nazli at Ras el-Tin.' : 'Sell to Queen Nazli in Alexandria.';
     },
     // only packed rugs reach a palace, and packing is done at the Giza stall
     next: (s) => (!courtRug(s) && ((s as unknown as { reputation?: number }).reputation ?? 0) >= FIRST_COURT_REP && charismaOf(s) >= 6 ? { btn: s.world.at === 'giza' ? 'Stock' : 'To Giza', go: s.world.at === 'giza' ? 'stock' : 'district' } : null),
     check: (s) => s.court.warrants.length >= 1,
+  },
+  canopy: {
+    id: 'canopy', title: 'A stall with a roof', giver: 'Uncle Rashid',
+    brief: 'Rashid stands under your borrowed corner in the noon sun and fans himself with his hat. "A merchant with a royal warrant, sitting on the ground like a melon seller. Put down a mat of your own, then take a proper stall with a canopy. The lane respects shade."',
+    steps: ['Buy a rug mat of your own: Improve, at your Giza stall (£10)', 'Reach reputation 20, then buy the bazaar stall with canopy (£50)', 'Both raise the monthly rent. They also bring buyers who stay longer and spend more'],
+    target: 'giza',
+    locks: 'The Khan el-Khalili shop is let only to a merchant who already keeps a proper stall.',
+    reward: { cash: 500, rep: 3, trust: 10, text: 'Rashid walks the length of your new counter, taps the canopy pole twice and nods. "Now you look like your father did." He leaves £5 on the counter for the first month\'s lamp oil.' },
+    hint: (s) => {
+      if (!s.upgrades.includes('mat')) return 'Buy a rug mat of your own (Improve, at the stall): £10.';
+      if (repOf(s) < 20) return `Reach reputation 20 for the bazaar stall (you have ${repOf(s)}).`;
+      return 'Buy the bazaar stall with canopy (Improve, at the stall): £50.';
+    },
+    next: (s) => ({ btn: s.world.at === 'giza' ? 'Your stall' : 'To Giza', go: 'district' }),
+    check: (s) => s.upgrades.includes('bazaar'),
+  },
+  warrant2: {
+    id: 'warrant2', title: 'A second court', giver: 'Your own ambition',
+    brief: 'One warrant hangs above your stall. The great dealers of the Levant hold several. King Fuad at Abdeen palace in Cairo receives merchants from reputation 25, and the Emir Abdullah at Raghadan in Amman from 20. Each court wants an Exceptional rug, at a fair price.',
+    steps: ['Reach reputation 20 for the Emir in Amman, or 25 for King Fuad in Cairo', 'Keep your court dress clean', 'Pack an Exceptional rug in good condition and sell it to a court that has not yet given you a warrant'],
+    target: 'cairo',
+    locks: 'Purveyor to Kings asks for three royal warrants. This is the second.',
+    reward: { cash: 0, rep: 5, trust: 5, text: 'A second warrant goes up beside the first. Hagop writes from the Khan: "Two courts. Now they will start to ask you for things."' },
+    hint: (s) => {
+      const rep = repOf(s);
+      if (rep < 20) return `Reach reputation 20: the Emir in Amman (you have ${rep}).`;
+      if (charismaOf(s) < 6) return 'Court dress first (Cairo or Alexandria).';
+      if (!courtRug(s)) return 'Pack an Exceptional rug for a second court.';
+      return rep >= 25 ? 'Sell to King Fuad (Cairo) or the Emir (Amman).' : 'Sell to the Emir Abdullah in Amman.';
+    },
+    next: (s) => (!courtRug(s) && charismaOf(s) >= 6 && repOf(s) >= 20 ? { btn: s.world.at === 'giza' ? 'Stock' : 'To Giza', go: s.world.at === 'giza' ? 'stock' : 'district' } : null),
+    check: (s) => s.court.warrants.length >= 2,
   },
   house: {
     id: 'house', title: 'The House of Fortune', giver: 'Your father',
@@ -172,5 +207,5 @@ export const MISSIONS: Record<string, Mission> = {
     hint: () => 'Finish the House of Fortune (Progress tab).',
   },
 };
-export const MAIN_ORDER = ['alexandria', 'beasts', 'farid', 'rival', 'ambush', 'auction', 'warrant', 'house'];
+export const MAIN_ORDER = ['alexandria', 'beasts', 'farid', 'rival', 'ambush', 'auction', 'warrant', 'canopy', 'warrant2', 'house'];
 export const missionsDone = (m?: Record<string, string>) => MAIN_ORDER.filter((id) => m?.[id] === 'done').length;

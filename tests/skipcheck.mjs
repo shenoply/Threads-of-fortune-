@@ -1,7 +1,8 @@
 import { chromium } from 'playwright';
+import { PORT as __PORT } from './_env.mjs';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 390, height: 780 } });
-await p.goto('http://localhost:4173/'); await p.evaluate(() => localStorage.clear()); await p.reload();
+await p.goto(`http://localhost:${__PORT}/`); await p.evaluate(() => localStorage.clear()); await p.reload();
 await p.waitForTimeout(800);
 await p.click('[data-testid=play-opening]');
 await p.waitForTimeout(1500);

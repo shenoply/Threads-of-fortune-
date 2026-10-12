@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -22,6 +23,8 @@ const PAGES: { id: string; label: string; test: (o: ReadyOutfit) => boolean }[] 
 export function Catalogue({ shopId, onClose }: { shopId: string; onClose: () => void }) {
   const shop = shopById(shopId)!;
   const g = useGame();
+  const box = useRef<HTMLDivElement>(null);
+  useDialogEscape(box, onClose);
   const w = g.wardrobe ?? START_WARDROBE;
   const at = g.world?.at ?? null;
   const clean = g.attire?.clean ?? 100;
@@ -68,7 +71,7 @@ export function Catalogue({ shopId, onClose }: { shopId: string; onClose: () => 
   };
 
   return createPortal(
-    <div className="overlay catalogue" role="dialog" aria-label={`${shop.name} catalogue`} data-testid="catalogue">
+    <div className="overlay catalogue" role="dialog" aria-label={`${shop.name} catalogue`} data-testid="catalogue" ref={box}>
       <div className="cat-top">
         <button className="btn" onClick={onClose} data-testid="cat-close">Leave the shop</button>
         <span className="cat-cash">Cash <b>{fmt(g.cash)}</b> · Charisma <b>{chNow}</b></span>

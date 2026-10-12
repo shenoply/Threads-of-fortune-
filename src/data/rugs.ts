@@ -24,7 +24,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('nile-reed', {
     name: 'Nile Reed', tier: 1, origin: 'Egypt / Nile trade', material: 'Wool, woven like a flatweave', age: 'New work', size: '170 × 105 cm',
     colourFamily: 'mixed', colourWords: 'red and sand bands, a row of small indigo lozenges across the middle', provenance: 'Likely',
-    dealerCost: 45, valueBand: [80, 140], asking: 130,
+    dealerCost: 65, valueBand: [80, 140], asking: 130,
     traits: ['flatweave', 'washable', 'humble', 'restrained', 'lightField', 'hardwearing'],
     history: 'Striped floor-cloths like this are sold by the bale along the Nile. Every village house has one by the door.',
     storyLine: 'This comes up the river with the grain boats. Every house on the Nile has one like it, and every house is right to.',
@@ -35,7 +35,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('village-kilim-canal', {
     name: 'Village Kilim of the Canal', tier: 1, origin: 'Canal trade route', material: 'Wool flatweave', age: 'c.1900–1925', size: '180 × 110 cm',
     colourFamily: 'mixed', colourWords: 'red, indigo and gold bands with hooked lozenges', provenance: 'Uncertain',
-    dealerCost: 75, valueBand: [120, 240], asking: 225,
+    dealerCost: 110, valueBand: [120, 240], asking: 225,
     traits: ['flatweave', 'hardwearing', 'bold', 'humble', 'washable'],
     history: 'Kilims came down to the Canal towns with the Bedouin and the pilgrims, and the ship chandlers sold them on to sailors.',
     storyLine: 'A sailor\'s rug. They buy these at Ismailia and carry them round the world rolled in a sea chest.',
@@ -46,7 +46,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('delta-house', {
     name: 'Delta House', tier: 1, origin: 'Egypt / Delta market', material: 'Wool', age: 'c.1910–1925', size: '190 × 125 cm',
     colourFamily: 'crimson', colourWords: 'red field, three stepped indigo medallions, ivory border', provenance: 'Likely',
-    dealerCost: 80, valueBand: [130, 230], asking: 215,
+    dealerCost: 110, valueBand: [130, 230], asking: 215,
     traits: ['wool', 'warm', 'hardwearing', 'darkField', 'humble'],
     history: 'Sold at the weekly markets of the Delta towns to families furnishing a first proper room.',
     storyLine: 'A family rug from the Delta. The kind a man buys when he marries and keeps until his grandchildren sit on it.',
@@ -57,7 +57,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('fayoum-hearth', {
     name: 'Fayoum Hearth', tier: 1, origin: 'Fayoum trade', material: 'Coarse wool', age: 'c.1900–1920', size: '185 × 120 cm',
     colourFamily: 'crimson', colourWords: 'brick-red field, three lozenges and small animals, brown border', provenance: 'Uncertain',
-    dealerCost: 110, valueBand: [180, 300], asking: 275,
+    dealerCost: 145, valueBand: [180, 300], asking: 275,
     traits: ['wool', 'warm', 'story', 'humble', 'hardwearing'],
     history: 'A provincial rug with the colour changes (abrash) and irregular drawing of small looms around the Fayoum oasis.',
     storyLine: 'Your father kept this one back. He said it was woven by a family in the Fayoum who put a little camel in every rug they made. There, in the corner.',
@@ -68,7 +68,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('red-medina', {
     name: 'Red Medina', tier: 1, origin: 'Levant or Egypt, a bazaar name', material: 'Wool', age: 'c.1910–1925', size: '200 × 130 cm',
     colourFamily: 'crimson', colourWords: 'deep red field, indigo and ivory medallion, ivory border', provenance: 'Likely',
-    dealerCost: 125, valueBand: [200, 380], asking: 350,
+    dealerCost: 175, valueBand: [200, 380], asking: 350,
     traits: ['wool', 'hardwearing', 'darkField', 'bold', 'warm', 'soft'],
     history: '"Red Medina" is a bazaar trade name for bold red-ground rugs of Anatolian and Caucasian design.',
     storyLine: 'The dealers call these Red Medina. It is a market name, not a town. The red is what people come back for.',
@@ -79,7 +79,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('date-palm-runner', {
     name: 'Date Palm Runner', tier: 1, origin: 'Levant / Egypt trade', material: 'Wool', age: 'c.1900–1920', size: '300 × 80 cm',
     colourFamily: 'gold', colourWords: 'sand field, a column of green and russet palms', provenance: 'Likely',
-    dealerCost: 160, valueBand: [250, 450], asking: 420,
+    dealerCost: 210, valueBand: [250, 450], asking: 420,
     traits: ['wool', 'lightField', 'story', 'restrained', 'warm'],
     history: 'A narrow runner for a hallway or a stair, with stylised palms in place of the usual palmettes.',
     storyLine: 'For a corridor. You walk in along a line of palm trees, like the road to Saqqara.',
@@ -90,7 +90,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('canal-ferry-rug', {
     name: 'Canal Ferry Rug', tier: 1, origin: 'Port Said / Suez trade', material: 'Wool on cotton', age: 'c.1910–1925', size: '200 × 130 cm',
     colourFamily: 'indigo', colourWords: 'indigo field of small octagons, ivory border', provenance: 'Likely',
-    dealerCost: 200, valueBand: [300, 550], asking: 510,
+    dealerCost: 255, valueBand: [300, 550], asking: 510,
     traits: ['wool', 'darkField', 'cool', 'restrained', 'hardwearing'],
     history: 'Blue trade rugs of this kind were sold to passengers on the Canal and to the offices of the shipping lines.',
     storyLine: 'The shipping agents at Port Said put these in their offices. A French captain tried to buy this one off the quay.',
@@ -101,7 +101,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('tanta-courtyard', {
     name: 'Tanta Courtyard', tier: 1, origin: 'Egypt / Tanta market', material: 'Wool on cotton', age: 'c.1910–1925', size: '200 × 135 cm',
     colourFamily: 'ivory', colourWords: 'ivory field with red and blue flower sprays, red border', provenance: 'Likely',
-    dealerCost: 180, valueBand: [280, 480], asking: 445,
+    dealerCost: 230, valueBand: [280, 480], asking: 445,
     traits: ['wool', 'lightField', 'ornate', 'soft', 'story'],
     history: 'Light floral rugs in the late Ottoman town taste, sold at the great market of the Tanta moulid.',
     storyLine: 'From the moulid at Tanta. The women there buy light rugs for their receiving rooms and fight over the good ones.',
@@ -114,7 +114,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('desert-star', {
     name: 'Desert Star', tier: 2, origin: 'Cairo / Mamluk-inspired revival', material: 'Fine wool', age: 'c.1900–1925', size: '190 × 125 cm',
     colourFamily: 'mixed', colourWords: 'red, sand and brown bands, a central band of red and indigo stars', provenance: 'Likely',
-    dealerCost: 420, valueBand: [600, 1000], asking: 940,
+    dealerCost: 450, valueBand: [600, 1000], asking: 940,
     traits: ['wool', 'humble', 'restrained', 'story', 'warm', 'darkField', 'hardwearing'],
     history: 'Cairo workshops revived the star geometry and small jewel palette of the old Mamluk carpets for modern rooms.',
     storyLine: 'Cairo work. The old Mamluk weavers used stars like these five hundred years ago, and a few workshops near the Khan still do.',
@@ -125,7 +125,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('jaffa-citrus', {
     name: 'Jaffa Citrus', tier: 2, origin: 'Jaffa trade market', material: 'Wool on cotton', age: 'c.1905–1920', size: '210 × 140 cm',
     colourFamily: 'crimson', colourWords: 'red field, three stacked medallions, indigo border with rosettes', provenance: 'Likely',
-    dealerCost: 430, valueBand: [600, 1100], asking: 1020,
+    dealerCost: 475, valueBand: [600, 1100], asking: 1020,
     traits: ['wool', 'bold', 'warm', 'ornate', 'soft'],
     history: 'Sold in the Jaffa market to orange merchants furnishing their new houses outside the old town.',
     storyLine: 'The orange growers of Jaffa buy these for their new houses. The rosettes in the border, they say, are oranges.',
@@ -136,7 +136,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('cairo-garden', {
     name: 'Cairo Garden', tier: 2, origin: 'Cairo market', material: 'Wool on cotton', age: 'c.1910', size: '240 × 160 cm',
     colourFamily: 'crimson', colourWords: 'red field, indigo medallion, a dark border of flowers', provenance: 'Documented',
-    dealerCost: 480, valueBand: [700, 1200], asking: 1120,
+    dealerCost: 530, valueBand: [700, 1200], asking: 1120,
     traits: ['wool', 'fineWeave', 'ornate', 'story', 'warm'],
     history: 'An urban Cairo rug in the Ottoman garden taste, with the workshop\'s receipt of 1910 still kept with it.',
     storyLine: 'Woven in Cairo in 1910. We still have the workshop\'s receipt, with the stamp. That is rare for a rug this age.',
@@ -147,7 +147,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('cedar-caravan', {
     name: 'Cedar Caravan', tier: 2, origin: 'Levant trade route', material: 'Durable wool', age: 'c.1895–1915', size: '220 × 140 cm',
     colourFamily: 'crimson', colourWords: 'red and sand bands, a central band of stars and small trees', provenance: 'Uncertain',
-    dealerCost: 470, valueBand: [700, 1300], asking: 1190,
+    dealerCost: 560, valueBand: [700, 1300], asking: 1190,
     traits: ['wool', 'hardwearing', 'story', 'warm', 'antique'],
     history: 'A caravan-trade rug mixing northern Syrian and Anatolian patterns, repaired along the way.',
     storyLine: 'This one has travelled. It crossed the Lebanon on a mule, and someone mended it in Damascus. See the new wool at the edge.',
@@ -158,7 +158,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('jerusalem-stone', {
     name: 'Jerusalem Stone', tier: 2, origin: 'Jerusalem market', material: 'Wool', age: 'c.1900–1920', size: '160 × 105 cm',
     colourFamily: 'mixed', colourWords: 'sand and red bands with small lozenges, quiet colours', provenance: 'Likely',
-    dealerCost: 560, valueBand: [800, 1400], asking: 1320,
+    dealerCost: 615, valueBand: [800, 1400], asking: 1320,
     traits: ['wool', 'restrained', 'story', 'soft', 'lightField'],
     history: 'A prayer-rug size piece sold in the Old City souq to pilgrims and to the Mandate offices.',
     storyLine: 'Bought in the Old City. The seller said it was made for a house near the Damascus Gate, and prayed on for twenty years.',
@@ -169,7 +169,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('anatolian-hearth', {
     name: 'Anatolian Hearth', tier: 2, origin: 'Central Anatolia', material: 'Wool', age: 'late 19th–early 20th c.', size: '210 × 135 cm',
     colourFamily: 'crimson', colourWords: 'red, sand and indigo bands with angular lozenges', provenance: 'Likely',
-    dealerCost: 590, valueBand: [800, 1500], asking: 1410,
+    dealerCost: 645, valueBand: [800, 1500], asking: 1410,
     traits: ['wool', 'warm', 'hardwearing', 'story', 'bold'],
     history: 'A central Anatolian village rug with the angular drawing and long wool of the plateau.',
     storyLine: 'From the plateau near Konya. The villages there weave through the winter, when the snow shuts the roads.',
@@ -180,7 +180,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('aleppo-courtyard', {
     name: 'Aleppo Courtyard', tier: 2, origin: 'Aleppo market', material: 'Wool on cotton', age: 'c.1900–1920', size: '230 × 150 cm',
     colourFamily: 'mixed', colourWords: 'dark frame around red and sand bands, a band of lozenges', provenance: 'Likely',
-    dealerCost: 650, valueBand: [900, 1600], asking: 1500,
+    dealerCost: 700, valueBand: [900, 1600], asking: 1500,
     traits: ['wool', 'restrained', 'hardwearing', 'story', 'darkField'],
     history: 'A northern Syrian trade rug laid out in compartments, like the courtyard of an Aleppo merchant\'s house.',
     storyLine: 'Aleppo merchants lay these in their courtyards in summer. The frame is the wall, the bands are the paths.',
@@ -191,7 +191,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('damascus-blue', {
     name: 'Damascus Blue', tier: 2, origin: 'Damascus market', material: 'Fine wool on cotton', age: 'c.1900–1920', size: '240 × 160 cm',
     colourFamily: 'mixed', colourWords: 'red and sand bands, a central band of blue and red lozenges', provenance: 'Likely',
-    dealerCost: 720, valueBand: [1000, 1800], asking: 1690,
+    dealerCost: 785, valueBand: [1000, 1800], asking: 1690,
     traits: ['wool', 'fineWeave', 'restrained', 'cool', 'story'],
     history: 'A Syrian urban-market rug from the Hamidiyya souq, where the blues are the dealers\' pride.',
     storyLine: 'From the Hamidiyya in Damascus. The dealer swore the blue came from the last indigo dyer in the city.',
@@ -204,7 +204,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('konya-prayer-rug', {
     name: 'Konya Prayer Rug', tier: 3, origin: 'Central Anatolia / Konya tradition', material: 'Fine wool', age: '19th c.', size: '170 × 115 cm',
     colourFamily: 'crimson', colourWords: 'red and indigo bands inside a patterned border', provenance: 'Likely',
-    dealerCost: 1500, valueBand: [2200, 3800], asking: 3550,
+    dealerCost: 1650, valueBand: [2200, 3800], asking: 3550,
     traits: ['wool', 'antique', 'story', 'restrained', 'fineWeave', 'rare'],
     history: 'A nineteenth-century Ottoman Anatolian prayer rug in the Konya tradition: arches, columns and tulips.',
     storyLine: 'A hundred years old at least, from the Konya weavers. The dervishes there say a good prayer rug keeps the prayers in.',
@@ -215,7 +215,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('moroccan-ember', {
     name: 'Moroccan Ember', tier: 3, origin: 'North African import', material: 'Wool', age: 'late 19th–early 20th c.', size: '230 × 150 cm',
     colourFamily: 'crimson', colourWords: 'ember red and sand, hooked tribal motifs', provenance: 'Likely',
-    dealerCost: 1700, valueBand: [2500, 4500], asking: 4200,
+    dealerCost: 1925, valueBand: [2500, 4500], asking: 4200,
     traits: ['wool', 'bold', 'warm', 'rare', 'story'],
     history: 'A North African piece brought east by a French officer, unusual in the Cairo market.',
     storyLine: 'This came from the Maghreb with a French officer. Nobody in Cairo has another one like it, and collectors know it.',
@@ -226,7 +226,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('golden-palm', {
     name: 'Golden Palm', tier: 3, origin: 'Ottoman trade / Cairo elite market', material: 'Fine wool', age: 'late 19th c.', size: '260 × 175 cm',
     colourFamily: 'gold', colourWords: 'red and sand bands with a band of golden lozenges', provenance: 'Likely',
-    dealerCost: 1900, valueBand: [2800, 5000], asking: 4650,
+    dealerCost: 2145, valueBand: [2800, 5000], asking: 4650,
     traits: ['wool', 'ornate', 'fineWeave', 'warm', 'rare'],
     history: 'A luxury Ottoman trade rug from a pasha\'s salon in Garden City, sold when the estate was divided.',
     storyLine: 'This lay in a pasha\'s salon in Garden City. His heirs divided the house and sold the carpets before the ink was dry.',
@@ -237,7 +237,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('caucasus-eagle', {
     name: 'Caucasus Eagle', tier: 3, origin: 'Trans-Caucasia', material: 'Wool', age: '19th c.', size: '240 × 150 cm',
     colourFamily: 'crimson', colourWords: 'red and sand bands with stylised birds and trees', provenance: 'Likely',
-    dealerCost: 2200, valueBand: [3200, 6500], asking: 6100,
+    dealerCost: 2670, valueBand: [3200, 6500], asking: 6100,
     traits: ['wool', 'bold', 'antique', 'rare', 'story'],
     history: 'A Caucasian village rug with abstract bird forms that the Armenian dealers call "eagles".',
     storyLine: 'The Armenian dealers call these eagle rugs. They came out of the Caucasus before the war, and no more are coming.',
@@ -248,7 +248,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
   rug('sapphire-night', {
     name: 'Sapphire Night', tier: 3, origin: 'Persian trade', material: 'Fine wool on cotton', age: 'late 19th c.', size: '250 × 165 cm',
     colourFamily: 'crimson', colourWords: 'red and sand bands with indigo lozenges, patterned borders', provenance: 'Documented',
-    dealerCost: 2800, valueBand: [4000, 8000], asking: 7450,
+    dealerCost: 3300, valueBand: [4000, 8000], asking: 7450,
     traits: ['wool', 'fineWeave', 'restrained', 'antique', 'rare', 'story'],
     history: 'A documented late nineteenth-century Persian trade rug, carried to Cairo by an Armenian dealer.',
     storyLine: 'Persian, around the turn of the century. An Armenian dealer carried it to Cairo and would not sell it for ten years. His widow sold it to Rashid, with his papers.',
