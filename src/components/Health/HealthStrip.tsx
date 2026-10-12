@@ -58,7 +58,7 @@ export function HealthStrip({ always = false }: { always?: boolean }) {
           {ills.map((il) => { const d = DISEASE(il.id); if (!d) return null; const left = Math.max(1, il.until - day); return (
             <p key={il.id}><b>{d.name}</b> · about {left} day{left === 1 ? '' : 's'} left. {d.symptom} <em>Costs you: {effectLine(d.effects)}.</em></p>
           ); })}
-          {ills.length > 0 && <button className="hs-doc" onClick={() => (at === 'cairo' ? openClinic() : planTrip('cairo'))} data-testid="hs-feras">{at === 'cairo' ? 'See Dr Feras now' : 'Plan the trip to Dr Feras, Cairo'}</button>}
+          {ills.length > 0 && <button className="hs-doc" onClick={() => (at === 'cairo' ? openClinic() : planTrip('cairo'))} data-testid="hs-feras">{at === 'cairo' ? 'See Dr Feras now' : 'To Dr Feras'}</button>}
         </div>
       )}
     </div>

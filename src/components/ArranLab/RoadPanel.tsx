@@ -8,6 +8,7 @@ import { BOOKS } from '../../game/systems/arranBooks';
 import { CARGO_JOBS, DIET, PATROL_GUIDE, attentionWord, midSentence, TONIC, fatigueEffect, provisionReport, type CargoJob } from '../../game/systems/fieldwork';
 import { dateFor } from '../../game/economy/economy';
 import { journey } from '../../game/systems/errands';
+import { count } from '../../game/text';
 import { CABINET, KIND_WORD, cabinetItem, type CabinetId } from '../../game/systems/arranCabinet';
 
 /**
@@ -140,11 +141,11 @@ export function RoadPanel({ onBook, onSpot }: { onBook: () => void; onSpot: (s: 
       ) : report ? (
         <div className="arran-report" data-testid="arran-provisions-report">
           <ul>{report.lines.map((l) => <li key={l}>{l}</li>)}</ul>
-          <ul className="arran-routes">{report.routes.map((r) => <li key={r.to} className={r.ok ? 'ok' : 'short'}>{r.to}: about {r.days} days · {r.ok ? 'enough' : 'not enough'}</li>)}</ul>
+          <ul className="arran-routes">{report.routes.map((r) => <li key={r.to} className={r.ok ? 'ok' : 'short'}>{r.to}: about {count(r.days, 'day')} · {r.ok ? 'enough' : 'not enough'}</li>)}</ul>
         </div>
       ) : (
         <div className="arran-errand">
-          <div><b>Provisions assessment</b><small>{LAB_SERVICES.provisions.question} {party.food} rations carried, {dailyFood(party)} a day.</small></div>
+          <div><b>Provisions assessment</b><small>{LAB_SERVICES.provisions.question} {count(party.food, 'ration')} carried, {dailyFood(party)} a day.</small></div>
           <button type="button" className="btn primary" onClick={() => { setConfirm({ kind: 'provisions' }); onSpot('notebook'); }} data-testid="arran-provisions">{fmt(LAB_SERVICES.provisions.price)} · 1 h</button>
         </div>
       )}

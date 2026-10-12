@@ -14,6 +14,7 @@ import { useFilmSound } from '../../game/audio/useFilmSound';
 import { radio } from '../../game/radio/player';
 import './Clinic.css';
 
+import { lowerName } from '../../game/text';
 const ROOM = 'art/clinic/feras-clinic-interior.webp';
 const FILM = 'video/clinic/feras-introduction.mp4';
 const FILM_WEBM = 'video/clinic/feras-introduction.webm';
@@ -53,7 +54,7 @@ function CaseRun({ d, onBook, onBack }: { d: Disease; onBook: () => void; onBack
         <div><b>{d.name}</b><small>{TIER_LABEL[d.tier]} {d.kind === 'injury' ? 'injury' : 'disease'} · Dr Feras explains</small></div>
       </div>
       {/* the two of them at his desk, the book open at this case (tools/feras-desk-both.py); tap for the page */}
-      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/both/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${d.name.toLowerCase()} in his book`} onError={() => setPic(false)} onClick={() => setBig(true)} style={{ cursor: 'zoom-in' }} data-testid="case-desk" />
+      <img className={pic ? 'cl-desk' : 'cl-run-plate'} src={pic ? `art/clinic/both/${d.id}.webp` : plate(d.id)} alt={`Dr Feras points to the plate of ${lowerName(d.name)} in his book`} onError={() => setPic(false)} onClick={() => setBig(true)} style={{ cursor: 'zoom-in' }} data-testid="case-desk" />
       {big && <BookPage id={d.id} onClose={() => setBig(false)} />}
       <p className="cl-feras">“{d.doctor}”</p>
       <audio ref={a} src={`audio/feras/${d.id}.mp3`} preload="auto" data-testid="feras-voice" />

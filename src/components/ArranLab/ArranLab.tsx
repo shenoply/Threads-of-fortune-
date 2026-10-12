@@ -322,8 +322,8 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
       )}
       {mummyPermitted(g.arranVisit, g.day) && scene?.scene.n !== 7 && (
         <button type="button" className="arran-casefile" onClick={() => setMummy(true)} data-testid="arran-mummy-open">
-          <b>{g.arranVisit?.mummyIntroductionSeen ? 'Case file: the museum linen thread' : 'New case file: the museum linen thread'}</b>
-          <small>{g.arranVisit?.mummyIntroductionSeen ? 'Read the study again' : 'Hamza Effendi has brought one detached thread. Open when you are ready.'}</small>
+          <b>{g.arranVisit?.mummyIntroductionSeen ? 'Case file' : 'New case file'}</b>
+          <small>{g.arranVisit?.mummyIntroductionSeen ? 'The museum linen thread. Read the study again.' : 'Hamza Effendi has brought one detached thread from the museum linen. Open when you are ready.'}</small>
         </button>
       )}
       <nav className="arran-lab__tabs" role="tablist" aria-label="In the laboratory">

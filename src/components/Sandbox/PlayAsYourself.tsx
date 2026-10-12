@@ -25,7 +25,7 @@ export function SandboxChoose({ onHassan, onYourself, onClose }: { onHassan: () 
         <p className="sbx-dim">Free play: no guided start, and every city is open from the first day. The trade, roads, dangers and saving are the same as the campaign, and the story missions still come to you if you want them. Who are you in it?</p>
         <div className="sbx-choices">
           <button className="sbx-choice" onClick={onHassan} data-testid="play-as-hassan"><b>Play as Hassan</b><small>The rug merchant from the story.</small></button>
-          <button className="sbx-choice" onClick={onYourself} data-testid="play-as-yourself"><b>Play as Yourself</b><small>Paint your own head with ChatGPT and put it on Hassan's body.</small></button>
+          <button className="sbx-choice" onClick={onYourself} data-testid="play-as-yourself"><b>Play as Yourself</b><small>Use a portrait of your own on Hassan's body.</small></button>
         </div>
         <button className="ghost-btn" onClick={onClose} data-testid="sandbox-close">Back</button>
       </div>

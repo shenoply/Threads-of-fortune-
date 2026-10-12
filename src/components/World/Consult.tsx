@@ -13,6 +13,7 @@ import { voice } from '../../game/audio/voice';
 import { useFilmSound } from '../../game/audio/useFilmSound';
 import { MedicalBook, roman, chapterOf } from './MedicalBook';
 
+import { lowerName } from '../../game/text';
 const DESK = 'art/clinic/feras-desk-pov.webp';
 /** the two of them at his desk (the introduction film's shot), his book open at this very case
  *  (tools/feras-desk-both.py); the plain shot if that picture is missing */
@@ -119,8 +120,8 @@ export function ConsultScene({ id, onDone }: { id: string; onDone: () => void })
       {/* the scene: the two of them at his desk, or his book open on it */}
       <div className={`cl-stage st-${stage}`} onClick={tapStage} data-testid="consult-stage">
         {stage === 'desk'
-          ? <img key="book" className="cl-stage-img book" src={pic} alt={`Dr Feras opens his book at ${d.name.toLowerCase()}`} onError={() => setDeskPic(false)} draggable={false} />
-          : <img key="both" className="cl-stage-img both" src={bothPic ? bothWith(d.id) : BOTH_STILL} onError={() => setBothPic(false)} alt={`Dr Feras and Hassan at his desk, the book open at ${d.name.toLowerCase()}`} draggable={false} data-testid="consult-both" />}
+          ? <img key="book" className="cl-stage-img book" src={pic} alt={`Dr Feras opens his book at ${lowerName(d.name)}`} onError={() => setDeskPic(false)} draggable={false} />
+          : <img key="both" className="cl-stage-img both" src={bothPic ? bothWith(d.id) : BOTH_STILL} onError={() => setBothPic(false)} alt={`Dr Feras and Hassan at his desk, the book open at ${lowerName(d.name)}`} draggable={false} data-testid="consult-both" />}
         {stage === 'talk' && <button className="btn small cl-skip" onClick={(e) => { e.stopPropagation(); setStage('desk'); }} data-testid="consult-skip">Skip ▸</button>}
         {stage === 'desk' && <span className="cl-zoom">Tap to read the page</span>}
       </div>

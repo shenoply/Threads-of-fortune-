@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FOLIO_RISK, passRisk, useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { PASS_CHOICES, CONDITION_START, passWeather, riskWord, type PassChoice } from '../../game/systems/fieldwork';
+import { lowerName } from '../../game/text';
 import '../ArranLab/ArranLab.css';
 
 /**
@@ -61,7 +62,7 @@ export function PassCard({ tripKey, onGo, onCancel }: { tripKey: string; onGo: (
           <>
             <p className="pass-outcome" data-testid="pass-outcome" data-kind={done.outcome.kind}>{done.outcome.text}</p>
             <ul className="dim small">
-              <li>You chose: {PASS_CHOICES[done.choice].label.toLowerCase()}.</li>
+              <li>You chose: {lowerName(PASS_CHOICES[done.choice].label)}.</li>
               {done.outcome.cashLost > 0 && <li>Lost {fmt(done.outcome.cashLost)}.</li>}
               {done.outcome.foodLost > 0 && <li>Lost {done.outcome.foodLost} ration{done.outcome.foodLost > 1 ? 's' : ''}.</li>}
               {done.outcome.cargoLost && <li>The cargo you carried is gone.</li>}

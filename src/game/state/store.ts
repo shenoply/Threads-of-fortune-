@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
-import { midName, count } from '../text';
+import { midName, count, lowerName } from '../text';
 import { auctionable } from '../storyRugs';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { Goal, LedgerEntry, Relationship, RugItem, SupplierOffer } from '../types';
@@ -1003,7 +1003,7 @@ export const useGame = create<GameState & Actions>()(
           // parcels past their (game) freshness are thrown away
           const parcels = (s.parcels ?? []).filter((pc) => {
             if (parcelFresh(pc, s.day + 1)) return true;
-            notes.push(`Your ${malekItem(pc.item).name.toLowerCase()} has gone off. You throw it away.`);
+            notes.push(`Your ${lowerName(malekItem(pc.item).name)} has gone off. You throw it away.`);
             return false;
           });
           let repBill = 0;
@@ -1070,8 +1070,8 @@ export const useGame = create<GameState & Actions>()(
                 if (price > 0) {
                   cash -= price;
                   ledger.push({ day: s.day, kind: 'expense', label: 'Bread and dates from herders on the road', amount: -price });
-                  notes.push(`Herders driving goats along the track found you and sold you ${sacks} rations for ${fmt(price)}.`);
-                } else notes.push(`Herders driving goats along the track found you. Seeing your empty purse, they left you ${sacks} rations and asked nothing.`);
+                  notes.push(`Herders driving goats along the track found you and sold you ${count(sacks, 'ration')} for ${fmt(price)}.`);
+                } else notes.push(`Herders driving goats along the track found you. Seeing your empty purse, they left you ${count(sacks, 'ration')} and asked nothing.`);
               }
               journal.push({ day: s.day, text: `Went down on the road (${starving ? 'hunger' : 'exhaustion'}).`, kind: 'road' as const });
             }
@@ -1703,7 +1703,7 @@ export const useGame = create<GameState & Actions>()(
               const pay = snap(((t.valueBand[0] + t.valueBand[1]) / 2) * CONDITION_FACTOR[rug.condition] * visit.mult);
               // visit.who reads as a sentence subject ("A Tanta cotton merchant is...") capital and all,
               // but these two lines drop it into the middle of a sentence instead
-              const midWho = visit.who.charAt(0).toLowerCase() + visit.who.slice(1);
+              const midWho = visit.who.replace(/^(A|An|The) /, (w) => w.toLowerCase());
               // ask first: the rug only changes hands once you say so
               if (confirm !== 'visit') {
                 set({ jobOffer: { kind: 'visit', city: id, title: `A buyer in ${settlementById(id).name}`, text: `${visit.who} would buy your ${t.name} (${rug.condition.toLowerCase()}) for ${fmt(pay)}.`, yes: `Sell it for ${fmt(pay)}` } });
@@ -2126,11 +2126,11 @@ export const useGame = create<GameState & Actions>()(
           // Ironman: a bad enough wound can kill outright, there and then
           if (s.ironman && d.fatality > 0 && Math.random() < d.fatality * 0.4) {
             get().dieNow(`${d.name} on the road. Hassan did not get up. The caravan carried his body home to Giza.`);
-            return `Fatal: ${d.name.toLowerCase()}.`;
+            return `Fatal: ${lowerName(d.name)}.`;
           }
-          set({ illnesses: addIllness(s.illnesses, id, s.day), journal: [...s.journal, { day: s.day, text: `Injured: ${d.name.toLowerCase()}.`, kind: 'road' as const }] });
-          if (s.world.at && d.fatality >= 0.1) get().collapse(d.name.toLowerCase());
-          return `Injury: ${d.name.toLowerCase()}. ${d.symptom}`;
+          set({ illnesses: addIllness(s.illnesses, id, s.day), journal: [...s.journal, { day: s.day, text: `Injured: ${lowerName(d.name)}.`, kind: 'road' as const }] });
+          if (s.world.at && d.fatality >= 0.1) get().collapse(lowerName(d.name));
+          return `Injury: ${lowerName(d.name)}. ${d.symptom}`;
         },
 
         robBroke: () => {
@@ -2156,7 +2156,7 @@ export const useGame = create<GameState & Actions>()(
               const id = takeable[0];
               const worn = w.worn === id ? (w.owned.includes('classic-stall') ? 'classic-stall' : w.owned.find((x) => x !== id) ?? 'classic-stall') : w.worn;
               set({ wardrobe: { owned: w.owned.filter((x) => x !== id), worn }, attire: { ...get().attire, worn: legacyWorn({ owned: w.owned, worn }) } });
-              return `So the leader takes your ${OUTFIT[id]?.name.toLowerCase() ?? 'clothes'}${w.worn === id ? ' off your back' : ' from your bags'}. You ride on looking poorer, and buyers will notice.`;
+              return `So the leader takes your ${(OUTFIT[id] ? lowerName(OUTFIT[id].name) : 'clothes')}${w.worn === id ? ' off your back' : ' from your bags'}. You ride on looking poorer, and buyers will notice.`;
             } },
             // 3 a beating
             { art: 'rob-beating', w: 3, ok: true, go: () => {
@@ -2244,7 +2244,7 @@ export const useGame = create<GameState & Actions>()(
             journal: [...s.journal, { day: s.day, text: `Butchered your ${b.name} for meat. Grim, but it will feed everyone for days.`, kind: 'road' }],
           });
           audio.sfx('step');
-          return `You butcher the ${b.name}. Hard, but it buys you ${rations} days of food.`;
+          return `You butcher the ${b.name}. Hard, but it buys you ${rations} rations of food.`;
         },
 
         trade: (breed, delta) => {
@@ -2388,10 +2388,10 @@ export const useGame = create<GameState & Actions>()(
             wardrobe,
             attire: { ...s.attire, worn: legacyWorn(wardrobe), clean: 100 },
             ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: o.name, amount: -o.price }],
-            journal: [...s.journal, { day: s.day, text: `Bought ${o.name.toLowerCase()} from a tailor.` }],
+            journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(o.name)} from a tailor.` }],
           });
           audio.sfx('coins');
-          return `The tailor brushes the shoulders and steps back. You walk out in ${o.name.toLowerCase()}.`;
+          return `The tailor brushes the shoulders and steps back. You walk out in ${lowerName(o.name)}.`;
         },
         wearOutfit: (id) => {
           const s = get();
@@ -2410,7 +2410,7 @@ export const useGame = create<GameState & Actions>()(
           const d = DISEASE(id);
           if (!d || (s.illnesses ?? []).some((x) => x.id === id)) return '';
           set({ illnesses: addIllness(s.illnesses, id, s.day) });
-          return `You now have ${d.name.toLowerCase()}, for the test. See the Consultation tab.`;
+          return `You now have ${lowerName(d.name)}, for the test. See the Consultation tab.`;
         },
         treatIllness: (id, mode = 'full') => {
           const s = get();
@@ -2426,11 +2426,11 @@ export const useGame = create<GameState & Actions>()(
             cash: s.cash - fee,
             illnesses: (s.illnesses ?? []).map((x) => (x.id === id ? { ...x, until, treated: true, fullCare: mode !== 'remedy' ? true : x.fullCare } : x)),
             world: { ...s.world, hour: Math.min(23.5, s.world.hour + 1) },
-            ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Dr Feras: ${d.name.toLowerCase()}`, amount: -fee }],
-            journal: [...s.journal, { day: s.day, text: `Dr Feras treated ${d.name.toLowerCase()}.` }],
+            ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Dr Feras: ${lowerName(d.name)}`, amount: -fee }],
+            journal: [...s.journal, { day: s.day, text: `Dr Feras treated ${lowerName(d.name)}.` }],
           });
           audio.sfx('coins');
-          return `Dr Feras treats the ${d.name.toLowerCase()}. About ${until - s.day} day${until - s.day === 1 ? '' : 's'} more, he says, if you do as you are told.`;
+          return `Dr Feras treats the ${lowerName(d.name)}. About ${until - s.day} day${until - s.day === 1 ? '' : 's'} more, he says, if you do as you are told.`;
         },
         bathe: (sid) => {
           const s = get();
@@ -2951,8 +2951,8 @@ export const useGame = create<GameState & Actions>()(
             set({
               cash: s.cash - it.price,
               arranTools: [...(s.arranTools ?? []), it.id],
-              ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: ${it.name.toLowerCase()}`, amount: -it.price }],
-              journal: [...s.journal, { day: s.day, text: `Bought ${it.name.toLowerCase()} from Arran.` }],
+              ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: ${lowerName(it.name)}`, amount: -it.price }],
+              journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(it.name)} from Arran.` }],
             });
             audio.sfx('coins');
             return it.id === 'loupe' ? 'Arran wraps the loupe in a square of chamois. "Hold it close to the eye, and the rug close to the loupe."' : `Arran wraps the ${it.name.split(',')[0].split(':')[0].toLowerCase()} in brown paper and string. "Use it in front of the buyer, not behind the curtain."`;
@@ -2968,7 +2968,7 @@ export const useGame = create<GameState & Actions>()(
             if (s.cash < it.price) return `A report costs ${fmt(it.price)}. You have ${fmt(s.cash)}.`;
             set({
               cash: s.cash - it.price,
-              inventory: s.inventory.map((i) => (i.uid === rug.uid ? { ...i, labReports: [...(i.labReports ?? []), f.service], notes: [...i.notes, `Signed report from Arran: ${LAB_SERVICES[f.service].label.toLowerCase()}.`] } : i)),
+              inventory: s.inventory.map((i) => (i.uid === rug.uid ? { ...i, labReports: [...(i.labReports ?? []), f.service], notes: [...i.notes, `Signed report from Arran: ${lowerName(LAB_SERVICES[f.service].label)}.`] } : i)),
               ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Arran: signed report', amount: -it.price }],
             });
             get().passTime(10);
@@ -3090,7 +3090,7 @@ export const useGame = create<GameState & Actions>()(
           if (!onTab && s.cash < it.price) return { ok: false, msg: malekLine('broke', m.said, day + m.said.length) };
           const sold = { ...m.sold, [id]: (m.sold[id] ?? 0) + 1 };
           const price = onTab ? 0 : it.price;
-          const ledger = onTab ? s.ledger : [...s.ledger, { day, kind: 'expense' as const, label: `Malek's: ${it.name.toLowerCase()}`, amount: -it.price }];
+          const ledger = onTab ? s.ledger : [...s.ledger, { day, kind: 'expense' as const, label: `Malek's: ${lowerName(it.name)}`, amount: -it.price }];
           const orders = [...m.orders, order].slice(-30);
           const tab = onTab ? (m.tab ?? 0) - 1 : m.tab;
           const ctx: LineCtx = onTab ? 'tab' : id === 'malek_kofta' ? 'kofta' : id === 'malek_tea' ? 'tea' : it.consumption === 'inventory' ? 'parcel' : id === 'malek_ful' || id === 'malek_lentils' ? 'cheap' : 'grill';
@@ -3120,7 +3120,7 @@ export const useGame = create<GameState & Actions>()(
           const left = pc.servings - 1;
           // eaten on the move: no time passes, so a journey is never interrupted
           set({ condition: c, parcels: (s.parcels ?? []).flatMap((x) => (x.uid !== uid ? [x] : left > 0 ? [{ ...x, servings: left }] : [])) });
-          return { ok: true, msg: `You eat a serving of ${it.name.toLowerCase()}.${left ? ` ${left} left.` : ''}`, report };
+          return { ok: true, msg: `You eat a serving of ${lowerName(it.name)}.${left ? ` ${left} left.` : ''}`, report };
         },
 
         malekStoryDone: (stage) => {
@@ -3243,7 +3243,7 @@ export const useGame = create<GameState & Actions>()(
             cargo: outcome.cargoLost ? (s.cargo ?? []).filter((c) => !c.collected) : s.cargo,
             world: { ...s.world, party: { ...s.world.party, food: Math.max(0, s.world.party.food - outcome.foodLost) } },
             ledger: [...s.ledger, ...(opt.cost ? [{ day: s.day, kind: 'expense' as const, label: 'A Bedouin guide through the Sinai passes', amount: -opt.cost }] : []), ...(outcome.cashLost ? [{ day: s.day, kind: 'expense' as const, label: 'Taken by raiders in the Sinai passes', amount: -outcome.cashLost }] : [])],
-            journal: [...s.journal, { day: s.day, text: `The Sinai passes (${opt.label.toLowerCase()}): ${outcome.text}`, kind: 'road' }],
+            journal: [...s.journal, { day: s.day, text: `The Sinai passes (${lowerName(opt.label)}): ${outcome.text}`, kind: 'road' }],
           });
           const days = opt.extraDays + outcome.extraDays;
           if (days > 0) get().worldTick(days);
@@ -3317,7 +3317,7 @@ export const useGame = create<GameState & Actions>()(
             arranBooks: { ...(s.arranBooks ?? {}), [id]: { phase: 'returned', copyId: paper.id, day: s.day } },
             labUnlocked: [...new Set([...(s.labUnlocked ?? []), b.unlock, ...(b.unlock === 'dye' ? ['wash' as const] : [])])],
             arranVisit: s.arranVisit?.permitStage ? s.arranVisit : { ...(s.arranVisit ?? { visitCount: 0 }), permitStage: 'letter' },
-            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${b.unlockLabel.toLowerCase()}.${s.arranVisit?.permitStage ? '' : ' He gives you a letter for Hamza Effendi, conservator at the museum store in Cairo, asking permission to examine one detached linen thread.'}` }],
+            journal: [...s.journal, { day: s.day, text: `You gave Arran ${b.title}. He can now do: ${lowerName(b.unlockLabel)}.${s.arranVisit?.permitStage ? '' : ' He gives you a letter for Hamza Effendi, conservator at the museum store in Cairo, asking permission to examine one detached linen thread.'}` }],
             reputation: s.reputation + 1,
           });
           audio.sfx('pen');
@@ -3345,13 +3345,13 @@ export const useGame = create<GameState & Actions>()(
           const finding = resolveFinding(item, service, s.day, svc.needsThread && !loose);
           const rug = RUGS[item.typeId];
           const after = finding.cut ? conditionAfterCut(item.condition) : item.condition;
-          const note = `Arran: ${svc.label.toLowerCase()}, ${finding.verdict}.`;
+          const note = `Arran: ${lowerName(svc.label)}, ${finding.verdict}.`;
           set({
             cash: s.cash - svc.price,
             arranFindings: [...(s.arranFindings ?? []), finding],
             inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, condition: after, notes: [...i.notes, note] } : i)),
-            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: ${svc.label.toLowerCase()}`, amount: -svc.price }],
-            journal: [...s.journal, { day: s.day, text: `Arran tested your ${rug?.name ?? 'rug'} (${svc.label.toLowerCase()}): ${finding.verdict}.${finding.cut ? ` A sample was cut from the back; it is now ${after}.` : ''}` }],
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Arran: ${lowerName(svc.label)}`, amount: -svc.price }],
+            journal: [...s.journal, { day: s.day, text: `Arran tested your ${rug?.name ?? 'rug'} (${lowerName(svc.label)}): ${finding.verdict}.${finding.cut ? ` A sample was cut from the back; it is now ${after}.` : ''}` }],
           });
           get().passTime(svc.minutes);
           audio.sfx('pen');
@@ -3399,7 +3399,7 @@ export const useGame = create<GameState & Actions>()(
             cash: s.cash - u.cost,
             upgrades: [...s.upgrades, id],
             ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: u.name, amount: -u.cost }],
-            journal: [...s.journal, { day: s.day, text: `Bought ${u.name.toLowerCase()} for the stall.` }],
+            journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(u.name)} for the stall.` }],
           });
           audio.sfx('chest');
         },

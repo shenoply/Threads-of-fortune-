@@ -8,6 +8,7 @@ import { CLOTHING_SHOPS, otherShopsFor, shopById } from '../../data/clothingShop
 import { Wardrobe } from './Wardrobe';
 import './Catalogue.css';
 
+import { lowerName } from '../../game/text';
 const townName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
 const roman = (n: number) => ['', 'I', 'II', 'III', 'IV', 'V'][n] ?? String(n);
 
@@ -38,7 +39,7 @@ export function Catalogue({ shopId, onClose }: { shopId: string; onClose: () => 
   const chNow = heroCharisma(w, clean);
 
   const buy = (o: ReadyOutfit) => setNote(g.buyOutfit(o.id) || 'Done.');
-  const wear = (o: ReadyOutfit) => { g.wearOutfit(o.id); setNote(`You change into ${o.name.toLowerCase()}.`); };
+  const wear = (o: ReadyOutfit) => { g.wearOutfit(o.id); setNote(`You change into ${lowerName(o.name)}.`); };
 
   const card = (o: ReadyOutfit, i: number, locked: boolean) => {
     const owned = w.owned.includes(o.id);

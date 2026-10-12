@@ -22,7 +22,7 @@ const knots = {
 export const RUGS: Record<string, RugType> = Object.fromEntries([
   // ---------- COMMON · £0.80 – £5.50 ----------
   rug('nile-reed', {
-    name: 'Nile Reed', tier: 1, origin: 'Egypt / Nile trade', material: 'Wool / flatweave-inspired', age: 'Contemporary to 1925', size: '170 × 105 cm',
+    name: 'Nile Reed', tier: 1, origin: 'Egypt / Nile trade', material: 'Wool, woven like a flatweave', age: 'New work', size: '170 × 105 cm',
     colourFamily: 'mixed', colourWords: 'red and sand bands, a row of small indigo lozenges across the middle', provenance: 'Likely',
     dealerCost: 45, valueBand: [80, 140], asking: 130,
     traits: ['flatweave', 'washable', 'humble', 'restrained', 'lightField', 'hardwearing'],
@@ -66,7 +66,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     weave: knots.village, fringe: 'Worn at one end', backNote: 'Irregular rows; one old side-cord repair.',
   }),
   rug('red-medina', {
-    name: 'Red Medina', tier: 1, origin: 'Levant / Egyptian market name', material: 'Wool', age: 'c.1910–1925', size: '200 × 130 cm',
+    name: 'Red Medina', tier: 1, origin: 'Levant or Egypt, a bazaar name', material: 'Wool', age: 'c.1910–1925', size: '200 × 130 cm',
     colourFamily: 'crimson', colourWords: 'deep red field, indigo and ivory medallion, ivory border', provenance: 'Likely',
     dealerCost: 125, valueBand: [200, 380], asking: 350,
     traits: ['wool', 'hardwearing', 'darkField', 'bold', 'warm', 'soft'],
@@ -259,7 +259,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
 
   // ---------- LEGENDARY · £140 – £450 ----------
   rug('damascus-rose', {
-    name: 'Damascus Rose', tier: 4, origin: 'Persianate court luxury via Damascus trade', material: 'Very fine wool with silk-like highlights', age: '18th–19th c. styled piece', size: '280 × 185 cm',
+    name: 'Damascus Rose', tier: 4, origin: 'Persianate court luxury via Damascus trade', material: 'Very fine wool with silk-like highlights', age: 'After an 18th–19th c. design', size: '280 × 185 cm',
     colourFamily: 'mixed', colourWords: 'sand and red bands, columns of red and indigo medallions, a sheen in the wool', provenance: 'Documented',
     dealerCost: 9000, valueBand: [14000, 26000], asking: 24500,
     traits: ['wool', 'silk', 'ornate', 'fineWeave', 'antique', 'rare', 'story'],
@@ -270,7 +270,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     weave: knots.court, fringe: 'Original, bound', backNote: 'Extremely fine; family seal on the back.',
   }),
   rug('istanbul-tulip', {
-    name: 'Istanbul Tulip', tier: 4, origin: 'Ottoman elite trade', material: 'Very fine wool / silk-style highlights', age: '18th–19th c. styled piece', size: '290 × 190 cm',
+    name: 'Istanbul Tulip', tier: 4, origin: 'Ottoman elite trade', material: 'Very fine wool, cotton highlights bright as silk', age: 'After an 18th–19th c. design', size: '290 × 190 cm',
     colourFamily: 'mixed', colourWords: 'bordered red and sand bands, a central band of tulip medallions', provenance: 'Documented',
     dealerCost: 12000, valueBand: [18000, 32000], asking: 30000,
     traits: ['wool', 'silk', 'ornate', 'fineWeave', 'antique', 'rare', 'story'],
@@ -281,7 +281,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     weave: knots.court, fringe: 'Original', backNote: 'Palace inventory number stitched on the back.',
   }),
   rug('baghdad-night', {
-    name: 'Baghdad Night', tier: 4, origin: 'Persianate luxury trade through Baghdad', material: 'Very fine wool on fine foundation', age: '18th–19th c. styled piece', size: '320 × 210 cm',
+    name: 'Baghdad Night', tier: 4, origin: 'Persianate luxury trade through Baghdad', material: 'Very fine wool on fine foundation', age: 'After an 18th–19th c. design', size: '320 × 210 cm',
     colourFamily: 'mixed', colourWords: 'bordered bands of red, sand and olive, a column of jewelled medallions', provenance: 'Documented',
     dealerCost: 16500, valueBand: [25000, 45000], asking: 42000,
     traits: ['wool', 'ornate', 'fineWeave', 'antique', 'rare', 'story', 'restrained'],

@@ -4,6 +4,10 @@ import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, overdue, premiumFor, ruinRisk, rugValue } from '../../game/systems/finance';
 import { settlementById } from '../../game/systems/world';
+import { count } from '../../game/text';
+
+/** "within 3 days", "within 1 day", or "today" when no time is left */
+const within = (n: number) => (n <= 0 ? 'today' : `within ${count(n, 'day')}`);
 
 /**
  * Money matters: what you owe and how late, the lenders in this town, and cargo cover from the
@@ -31,7 +35,7 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="overlay" onClick={onClose}>
       <div className="modal-card finance" onClick={(e) => e.stopPropagation()} data-testid="finance">
-        <h2>Money matters</h2>
+        <h2>Debts and loans</h2>
         {note && <p className="set-note" data-testid="finance-note">{note}</p>}
 
         {ruin.stage > 0 && (() => {
@@ -40,8 +44,8 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
             <div className="fin-line ruin" data-testid="ruin">
               <b>{ruin.stage === 1 ? 'A lawyer has written.' : 'The bailiff has been.'}</b>{' '}
               {ruin.stage === 1
-                ? `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} days, or the bailiff comes to the stall.`
-                : `Pay the ${fmt(owed)} that is overdue within ${Math.max(0, RUIN_STEPS.court - (g.day - ruin.since))} days, or the Mixed Court will declare you bankrupt.`}
+                ? `Pay the ${fmt(owed)} that is overdue ${within(RUIN_STEPS.bailiff - (g.day - ruin.since))}, or the bailiff comes to the stall.`
+                : `Pay the ${fmt(owed)} that is overdue ${within(RUIN_STEPS.court - (g.day - ruin.since))}, or the Mixed Court will declare you bankrupt.`}
               {totalOwed > owed ? ` In all you owe ${fmt(totalOwed)}.` : ''}
               {' '}Sell rugs, borrow, or cut your costs.
               {(g.bankruptcies ?? 0) > 0 && <><br /><b>A second bankruptcy ends your father&rsquo;s business for good.</b></>}
@@ -63,10 +67,10 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
           </p>
         )}
         {g.cash < 0 && <p className="fin-line warn">Your purse is empty: you owe the landlord {fmt(-g.cash)}.</p>}
-        {bills.due > 0 && <p className={`fin-line ${g.day - bills.since >= 5 ? 'warn' : ''}`}>The month's bill: {fmt(bills.due)}{g.day - bills.since > 0 ? `, ${g.day - bills.since} days late` : ''}. It is paid from your cash when you have it.</p>}
+        {bills.due > 0 && <p className={`fin-line ${g.day - bills.since >= 5 ? 'warn' : ''}`}>The month's bill: {fmt(bills.due)}{g.day - bills.since > 0 ? `, ${count(g.day - bills.since, 'day')} late` : ''}. It is paid from your cash when you have it.</p>}
         {loans.map((l) => (
           <div className={`fin-line loan ${g.day > l.due ? 'warn' : ''}`} key={l.id} data-testid={`loan-${l.lender}`}>
-            <span><b>{LENDERS[l.lender].name}</b> · {fmt(l.owed)} by {dateFor(l.due).short}{g.day > l.due ? ` · ${g.day - l.due} days late` : ` · ${l.due - g.day} days left`}</span>
+            <span><b>{LENDERS[l.lender].name}</b> · {fmt(l.owed)} by {dateFor(l.due).short}{g.day > l.due ? ` · ${count(g.day - l.due, 'day')} late` : l.due === g.day ? ' · due today' : ` · ${count(l.due - g.day, 'day')} left`}</span>
             {at && LENDERS[l.lender].towns.includes(at) && <button className="btn primary" onClick={() => setNote(g.repay(l.id))} data-testid={`repay-${l.lender}`}>Repay {fmt(l.owed)}</button>}
           </div>
         ))}

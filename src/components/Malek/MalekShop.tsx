@@ -482,7 +482,7 @@ function ReportLines({ r }: { r: MealReport }) {
       {r.water.gain !== 0 || r.water.wasted ? line('Water', r.water.gain, r.water.wasted) : null}
       <li>{r.wellFed.note === 'new' ? `Well fed: buyers +${r.wellFed.value * MORALE_PATIENCE} patience until ${clock(r.wellFed.until % 24)}`
         : r.wellFed.note === 'raised' ? `Well fed raised to +${r.wellFed.value * MORALE_PATIENCE} patience (still until ${clock(r.wellFed.until % 24)})`
-        : r.wellFed.note === 'kept' ? 'Well fed: no extra (a better meal already counts)' : 'No well-fed bonus'}</li>
+        : r.wellFed.note === 'kept' ? 'Well fed: no extra (a better meal already counts)' : 'Not enough to keep you well fed'}</li>
     </ul>
   );
 }

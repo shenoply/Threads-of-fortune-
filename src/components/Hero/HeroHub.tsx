@@ -11,6 +11,7 @@ import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { MeSection, SkillsSection } from '../Character/Character';
 import './HeroHub.css';
 
+import { lowerName } from '../../game/text';
 /** Everything about the merchant himself: how he looks, what he has, how he is growing. */
 export function HeroHub() {
   const g = useGame();
@@ -42,7 +43,7 @@ export function HeroHub() {
             <div><dt>Wardrobe</dt><dd>{w.owned.length} outfits <small>{fmt(worth)}</small></dd></div>
           </dl>
           <button className="btn primary" onClick={() => setOpen(true)} data-testid="hh-wardrobe">Wardrobe</button>
-          <small className="hh-wearing">Wearing {wornOutfit(w).name.toLowerCase()}.</small>
+          <small className="hh-wearing">Wearing {lowerName(wornOutfit(w).name)}.</small>
         </div>
       </section>
       <MeSection hideDress />

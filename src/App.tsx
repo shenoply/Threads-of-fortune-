@@ -630,7 +630,7 @@ export default function App() {
             {!g.started && introSeen() && (
               <button className="ghost-btn" onClick={() => { audio.ensure(); setPhase('dayone'); }} data-testid="skip-to-day">Skip to Day One</button>
             )}
-            <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ Gameplay videos</button>
+            <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ How it plays</button>
             <InstallButton className="ghost-btn" />
             <FullScreenButton className="ghost-btn" />
             {/* an Ironman run has one save: nothing can be loaded in its place */}
@@ -695,7 +695,7 @@ export default function App() {
       {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (
         <button className={`ruin-banner ${finalStrike ? 'final' : ''}`} onClick={() => setFinance(true)} data-testid="ruin-banner">
           <div className="ruin-banner-text">
-            <b>{finalStrike ? 'FINAL WARNING — ' : ''}{ruin.stage === 1 ? 'A lawyer has written' : 'The bailiff has been'}</b>
+            <b>{finalStrike ? 'FINAL WARNING: ' : ''}{ruin.stage === 1 ? 'A lawyer has written' : 'The bailiff has been'}</b>
             <span>
               {ruin.stage === 1
                 ? `The bailiff comes to the stall in ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} day${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since)) === 1 ? '' : 's'} unless you pay.`
@@ -724,7 +724,7 @@ export default function App() {
       })()}
       {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && !firstHourStep(g) && tab !== 'map' && <UpgradeNudge />}
       {phase === 'game' && tutorialActive && tab !== 'map' && !(tab === 'stall' && g.encounter) && (
-        <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the first-sale lesson and unlock everything</button>
+        <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the lesson</button>
       )}
       {upgradesOpen && <UpgradesSheet onClose={() => setUpgradesOpen(false)} />}
       <main style={{ minHeight: 0, display: 'grid' }}>
@@ -863,7 +863,7 @@ export default function App() {
             <SimOptions value={g.sim ?? FULL_SIM} onChange={g.setSim} locked={!!g.ironman} />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">Guided tour of the screens</button>
-              <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ Gameplay videos</button>
+              <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ How it plays</button>
               <InstallButton />
               <FullScreenButton />
               <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setSettings(false)}>Close</button>

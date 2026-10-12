@@ -220,7 +220,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       )}
       <InfoBand enc={enc} presented={presented} view={bandView} tierName={tier.name} priorities={priorities} onSkip={skip} />
 
-      {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work ?</button>}
+      {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work?</button>}
       {talking && (
         <button
           className="tray-handle"

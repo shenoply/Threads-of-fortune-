@@ -5,6 +5,7 @@ import { BOOKS, LIBRARIES, bookPhase, hasDuplicate, type BookId } from '../../ga
 import { settlementById } from '../../game/systems/world';
 import { daysWord, foodFor, journey } from '../../game/systems/errands';
 import { planTrip } from '../../game/nav';
+import { lowerName, count } from '../../game/text';
 
 /**
  * One of Arran's book errands, laid out so the whole route is readable: where, which institution,
@@ -32,7 +33,7 @@ export function ErrandCard({ id, onAsk, onReturn, onRead }: { id: BookId; onAsk:
   if (ph === 'returned') {
     return (
       <div className="arran-errand ph-returned" data-testid={`arran-errand-${id}`}>
-        <div><b>{b.author}, <i>{b.title}</i></b><small>On his shelf. Unlocked: {b.unlockLabel.toLowerCase()}.</small></div>
+        <div><b>{b.author}, <i>{b.title}</i></b><small>On his shelf. Unlocked: {lowerName(b.unlockLabel)}.</small></div>
         <button type="button" className="btn" onClick={onRead} data-testid={`arran-read-${id}`}>Read</button>
       </div>
     );
@@ -54,14 +55,14 @@ export function ErrandCard({ id, onAsk, onReturn, onRead }: { id: BookId; onAsk:
         <>
           <dt>Food</dt>
           <dd data-testid={`errand-food-${id}`}>
-            {food.have} rations, {food.perDay} a day: {food.daysCovered} days. There and back on foot needs about {food.needRound}.
+            {count(food.have, 'ration')}, {food.perDay} a day: {count(food.daysCovered, 'day')}. There and back on foot needs about {count(food.needRound, 'ration')}.
             {food.short > 0 ? ` You are ${food.short} short.` : ' Enough.'}
             {food.short > 0 && food.overload ? ' That much is more than you can carry on foot: it would slow you. A donkey or camel from the Giza market carries it.' : ''}
           </dd>
         </>
       )}
       <dt>A copy</dt>
-      <dd>{b.copy.label}: {fmt(b.copy.price)}, {b.copy.minutes >= 60 ? `${b.copy.minutes / 60} hours` : `${b.copy.minutes} minutes`}{hasDuplicate(id) ? `. Or ${b.duplicate.label.toLowerCase()}: ${fmt(b.duplicate.price)}` : ''}</dd>
+      <dd>{b.copy.label}: {fmt(b.copy.price)}, {b.copy.minutes >= 60 ? count(b.copy.minutes / 60, 'hour') : `${b.copy.minutes} minutes`}{hasDuplicate(id) ? `. Or ${b.duplicate.label.toLowerCase()}: ${fmt(b.duplicate.price)}` : ''}</dd>
       <dt>Unlocks</dt><dd>{b.unlockLabel}</dd>
     </dl>
   );

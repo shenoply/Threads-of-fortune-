@@ -8,6 +8,7 @@ import { rankOf, RANKS } from '../../game/economy/progress';
 import { fmt } from '../../game/economy/money';
 import { TITLES } from '../../data/titles';
 
+import { lowerName } from '../../game/text';
 // The merchant's character sheet: reputation, how the bazaar sees you, charisma and skills.
 export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
   const g = useGame();
@@ -16,7 +17,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
   const wr = g.wardrobe ?? START_WARDROBE;
   const ch = heroCharisma(wr, att.clean);
   const [wardrobe, setWardrobe] = useState(false);
-  const dress = wornOutfit(wr).name.toLowerCase();
+  const dress = lowerName(wornOutfit(wr).name);
   const { rank, next, blockedByStory, blockingMission, blockedByWorth, worth } = rankOf(g);
   const repNext = next?.rep ?? 100;
   return (

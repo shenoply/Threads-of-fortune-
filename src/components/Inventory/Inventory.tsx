@@ -25,7 +25,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
       <div className="screen-head">
         <div>
           <div className="eyebrow">STOCK AND STALL</div>
-          <h2>Inventory</h2>
+          <h2>Stock</h2>
           <p>{g.inventory.length} rug{g.inventory.length === 1 ? '' : 's'}, {g.inventory.filter((i) => !i.stored).length} packed for the road. Rugs left at the stall do not slow the caravan. Packing and unpacking can only be done at the Giza stall.</p>
         </div>
         <div className="stock-head-btns">

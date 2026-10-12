@@ -1,6 +1,7 @@
 // Illness for a 33-year-old male merchant, 1925. Every figure is an ESTIMATE from general
 // medical-history sources (pre-antibiotic case fatality is well documented; incidence for a Cairo
 // trader is a judgement scaled down from rural Egyptian data). Keep `estimate` until a dated source is attached.
+import { lowerName } from '../text';
 export type Tier = 'common' | 'uncommon' | 'rare' | 'extreme';
 export const TIER_LABEL: Record<Tier, string> = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', extreme: 'Extremely rare' };
 /** What an illness or injury does while it lasts. Fatigue is per day; the rest are points or percentages. */
@@ -201,7 +202,7 @@ export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { ri
       if (q > 0 && rand() < q) {
         const len = d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1));
         out.push({ id: d.id, since: c.day, until: c.day + len }); have.add(d.id);
-        notes.push(`Hurt: ${d.name.toLowerCase()}. ${d.symptom}`);
+        notes.push(`Hurt: ${lowerName(d.name)}. ${d.symptom}`);
       }
     }
     for (const d of DISEASES) {
@@ -209,7 +210,7 @@ export function stepIllness(list: Illness[] | undefined, c: ExposureCtx, o: { ri
       if (rand() < dailyHazard(d.annual * exposure(d.id, c) * risk)) {
         const len = d.days[0] + Math.floor(rand() * (d.days[1] - d.days[0] + 1));
         out.push({ id: d.id, since: c.day, until: c.day + len });
-        notes.push(`You have fallen ill: ${d.name.toLowerCase()}. ${d.symptom}`);
+        notes.push(`You have fallen ill: ${lowerName(d.name)}. ${d.symptom}`);
       }
     }
   }

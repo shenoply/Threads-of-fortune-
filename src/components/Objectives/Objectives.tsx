@@ -33,7 +33,7 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
     const q = QUESTS[qid];
     if (!q) continue;
     const target = v === 'ready' ? q.readyTarget ?? q.target : q.target;
-    quests.push({ id: qid, title: q.title, giver: NPCS[q.giver]?.name ?? q.giver, target, text: v === 'ready' ? 'Delivered — go back for your reward.' : q.desc });
+    quests.push({ id: qid, title: q.title, giver: NPCS[q.giver]?.name ?? q.giver, target, text: v === 'ready' ? 'Delivered: go back for your reward.' : q.desc });
   }
   const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
   const here = g.world.at;

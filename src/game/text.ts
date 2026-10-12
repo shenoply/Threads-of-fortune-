@@ -8,6 +8,8 @@ const PROPER = new Set([
   'Anatolian', 'Albanian', 'Sudanese', 'Barb', 'Falahi', 'Maghrabi', 'Bishari', 'Anafi', 'Hassawi', 'Baladi', 'Damascus',
   'Aleppo', 'Fayoum', 'Tanta', 'Konya', 'Smyrna', 'Kurdish', 'Caucasian', 'Mosul', 'Baghdad', 'Beirut', 'Jaffa', 'Sinai',
   'Nile', 'British', 'French', 'Greek', 'Armenian', 'Coptic', 'Ottoman', 'Lloyd\'s', 'Dr',
+  'Levant', 'Malta', 'Tarabin', 'Circassian', 'Sufi', 'Jaffa', 'Jerusalem', 'Hejaz', 'Arran', 'Feras', 'Malek', 'Rashid',
+  'English', 'American', 'Suez', 'Druze', 'Kurd', 'Turk', 'Arab', 'Arabic', 'Hamza', 'Effendi',
 ]);
 
 /** "Caravan guard" -> "caravan guard", but "Giza watchman" and "Bedouin rider" keep their capitals */
@@ -19,3 +21,9 @@ export function midName(name: string): string {
 
 /** "1 ration", "2 rations"; pass the plural when it is not just an added s */
 export const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** The whole name in lower case for the middle of a sentence, except the words that are names of places
+ *  or peoples: "Hire a Bedouin guide" -> "hire a Bedouin guide", "Brucellosis (Malta fever)" -> "brucellosis (Malta fever)" */
+export function lowerName(name: string): string {
+  return name.replace(/[A-Za-z\u2019']+/g, (w) => (PROPER.has(w) || PROPER.has(w.replace(/[\u2019']s$/, '')) || /^[A-Z]{2,}$/.test(w) ? w : w.toLowerCase()));
+}

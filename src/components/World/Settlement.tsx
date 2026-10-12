@@ -50,6 +50,7 @@ import './Settlement.css';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
+import { lowerName } from '../../game/text';
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 
 /** The small copy of a picture shown at card size (art/x/y.jpg -> art/x/thumbs/y.webp, 320 wide; 640 wide
@@ -187,10 +188,10 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const people = st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival);
   const venues = venuesIn(id);
   const menuItems: [string, string, string, () => void, string][] = [
-    ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s customers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
+    ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s buyers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
     ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
     ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
-    ['hourglass', 'Wait here', 'Let time pass — trouble on the road may move on before you set off again', () => setWaitOpen(true), 'menu-wait'],
+    ['hourglass', 'Wait here', 'Let time pass: trouble on the road may move on before you set off', () => setWaitOpen(true), 'menu-wait'],
     ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
     ...shopsIn(id).map((sh) => ['needle', sh.name, `Clothes catalogue · ${sh.tagline}`, () => setShop(sh.id), `menu-shop-${sh.id}`] as [string, string, string, () => void, string]),
     ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
@@ -321,7 +322,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 return (
                   <div className="mkt-row" data-testid="tailor">
                     <span className="svc-ico"><Icon name="needle" /></span>
-                    <span><b>Tailors and outfitters</b><small>{all.length} outfits for sale{special.length ? `, among them ${special.slice(0, 3).map((o) => o.name.toLowerCase()).join(', ')}` : ''}. Look at each one before you pay.</small></span>
+                    <span><b>Tailors and outfitters</b><small>{all.length} outfits for sale{special.length ? `, among them ${special.slice(0, 3).map((o) => lowerName(o.name)).join(', ')}` : ''}. Look at each one before you pay.</small></span>
                     <button className="btn primary" onClick={() => setWardrobe(true)} data-testid="open-tailor">Look</button>
                   </div>
                 );
@@ -483,7 +484,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {/* the way out, always in reach: the panel scrolls, so the button in the header goes off the top */}
       {!inCity && !inVenue && !inAuction && !houseWalk && !look && !wardrobe && !shop && !cabaret && (
         <div className="set-exit">
-          <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">{yard ? `⟵ Leave the ${yard.toLowerCase()}` : `⟵ Leave ${st.name} · back to the map`}</button>
+          <button className="btn door-btn leave" onClick={onClose} data-testid="leave-city">{yard ? `⟵ Leave the ${yard.toLowerCase()}` : '⟵ Back to the map'}</button>
         </div>
       )}
       {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && !shop && (() => {
@@ -546,7 +547,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         <div className="overlay" onClick={() => setWaitOpen(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="wait-card">
             <h2>Wait here</h2>
-            <p>You sit tight in {st.name}. The road outside keeps moving without you — raiders drift, and trouble you'd rather not meet may wander off before you go back out.</p>
+            <p>You sit tight in {st.name}. The road outside keeps moving without you: raiders drift, and trouble you'd rather not meet may wander off before you go back out.</p>
             <div className="save-row" style={{ flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => waitHere(1)} data-testid="wait-1h">An hour</button>
               <button className="btn" onClick={() => waitHere(3)} data-testid="wait-3h">3 hours</button>

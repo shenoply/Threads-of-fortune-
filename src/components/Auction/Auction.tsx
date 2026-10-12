@@ -72,7 +72,7 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
             <div><small>{h.tier === 'grand' ? 'GRAND ESTATE SALE' : 'DEALERS\' AUCTION'} · {h.district.toUpperCase()}</small><b>{h.displayName}</b></div>
             <button className="btn door-btn leave slim" onClick={onClose} data-testid="auction-leave">⟵ Leave the sale room</button>
           </div>
-          <p className="auction-note">Anyone may sit and watch. Every sale you see teaches you what rugs really fetch.{h.buyerPremiumPct ? ` Winning bids pay a ${Math.round(h.buyerPremiumPct * 100)}% buyer's premium.` : ''} You have {fmt(g.cash)}.</p>
+          <p className="auction-note">Anyone may sit and watch. Every sale you see teaches you what rugs really fetch.{h.buyerPremiumPct ? ` A winning bid pays ${Math.round(h.buyerPremiumPct * 100)}% more as the buyer's premium.` : ''} You have {fmt(g.cash)}.</p>
           <div className="section-label">THE CATALOGUE · {lots.length} LOTS</div>
           <div className="auction-lots">
             {lots.map((l, i) => {
@@ -294,7 +294,7 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
     setBusy(true); audio.sfx('tap');
     setPrice(jumpBid); setLeader('you'); setGoing(0);
     const at = jumpBid;
-    speak(pickLine('youBid', at), 'You raise your hand — high, to settle it.');
+    speak(pickLine('youBid', at), 'You raise your hand high, to settle it.');
     next(() => step('you', at, 0), 500);
   };
 

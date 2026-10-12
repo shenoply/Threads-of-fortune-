@@ -555,9 +555,9 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
         out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: malekBalks(enc) ? 'He is not sure of the rug yet: he may agree the price and still not buy' : quickIsMore ? `Quick sale pays more: ${fmt(qp!)}` : item && enc.buyerOffer < item.paid + (item.spent ?? 0) ? `Below what you paid (${fmt(item.paid + (item.spent ?? 0))}): a loss` : last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
       }
       if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10 && !last)
-        out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference — they may take it on the spot', icon: 'scale' });
-      if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm — they may still take it', icon: 'shield' });
-      out.push({ id: 'name_price', label: 'Name a new price', sub: last ? 'They leave unless it is theirs' : 'Adjust your ask — a low one may close the sale', icon: 'coin' });
+        out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference: they may take it at once', icon: 'scale' });
+      if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm: they may still take it', icon: 'shield' });
+      out.push({ id: 'name_price', label: 'Name a new price', sub: last ? 'They leave unless it is theirs' : 'Change your ask: a low one may close the sale', icon: 'coin' });
       const pkg = nabilPackage(enc, ctx);
       if (pkg) out.splice(1, 0, { id: 'nabil_package', label: `Sell both · ${fmt(pkg.price)}`, sub: `This and the ${RUGS[pkg.other.typeId]?.name}, cash today`, icon: 'swap' });
       if (!enc.sweetened && out.length < 4) out.push({ id: 'sweetener', label: 'Add delivery', sub: 'Costs you £0.05', icon: 'cart' });
@@ -611,6 +611,11 @@ function reveal(enc: Encounter, list: { id: string }[]) {
   for (const p of list) if (!enc.revealed.includes(p.id)) enc.revealed.push(p.id);
 }
 
+/** A buyer out of patience (or trust) who has not yet named a last price is about to name one. */
+function finalOfferDue(enc: Encounter) {
+  return !enc.outcome && !enc.tutorial && (enc.patience <= 0 || enc.trust <= 5) && !enc.finalOffered && (!enc.insulted || !!enc.buyerOffer);
+}
+
 function checkWalk(enc: Encounter, ctx: Ctx, justPresented = false) {
   const b = BUYERS[enc.buyerId];
   if (enc.outcome) return;
@@ -623,7 +628,7 @@ function checkWalk(enc: Encounter, ctx: Ctx, justPresented = false) {
   // A buyer out of patience who still wants the rug does not just go: they name their last price,
   // once. Refuse that, or dawdle, and they leave.
   // (an insult on the first price ends it; one that comes after offers have been traded does not)
-  const item = (enc.patience <= 0 || enc.trust <= 5) && !bored && !enc.finalOffered && (!enc.insulted || enc.buyerOffer) ? presentedItem(enc, ctx) : undefined;
+  const item = !bored && finalOfferDue(enc) ? presentedItem(enc, ctx) : undefined;
   if (item) {
     const w = wtp(enc, item);
     const prev = enc.buyerOffer ?? 0;
@@ -1117,23 +1122,26 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   const floorOffer = snapDown(w * Math.min(0.85, 0.6 + ctx.rng() * 0.08 + (enc.edge?.open ?? 0)));
   const prev = enc.buyerOffer ?? floorOffer;
   let next: number;
+  // the figure is settled before anyone says it: never below their last offer, and when this turn
+  // uses up their patience, checkWalk names their last price instead, so no smaller counter is spoken first
+  const settle = (n: number) => Math.max(n, enc.buyerOffer ?? 0);
   if (price <= w) {
-    next = snapDown(Math.min(w, (prev + price) / 2));
+    next = settle(snapDown(Math.min(w, (prev + price) / 2)));
     adjust(enc, { patience: -6 });
-    buyerSay(enc, pick(L.counter, ctx.rng, recentBuyerTexts(enc)).replace('{price}', fmt(next)), 'neutral');
+    if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng, recentBuyerTexts(enc)).replace('{price}', fmt(next)), 'neutral');
   } else if (price <= w * 1.25) {
-    next = snapDown(Math.min(w * 0.97, prev + (w - prev) * 0.4));
+    next = settle(snapDown(Math.min(w * 0.97, prev + (w - prev) * 0.4)));
     adjust(enc, { patience: mode === 'hold' ? -16 : -12, interest: -2 });
     buyerSay(enc, pick(mode === 'hold' ? L.holdRefuse : L.priceHigh, ctx.rng), 'skeptical');
-    buyerSay(enc, pick(L.counter, ctx.rng).replace('{price}', fmt(next)), 'skeptical');
+    if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng).replace('{price}', fmt(next)), 'skeptical');
   } else {
-    next = prev;
+    next = settle(prev);
     enc.insulted = true;
     adjust(enc, { patience: -24, trust: -8, interest: -4 });
     buyerSay(enc, pick(L.priceInsult, ctx.rng), 'skeptical');
-    if (enc.buyerOffer) say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(next)));
+    if (enc.buyerOffer && !finalOfferDue(enc)) say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(next)));
   }
-  enc.buyerOffer = Math.max(next, enc.buyerOffer ?? 0);
+  enc.buyerOffer = next;
   if (enc.buyerId === 'nabil') {
     const t = RUGS[item.typeId];
     say(enc, 'narrator', `Nabil's reason: ${nabilAssessment(t, item, { repairDisclosed: !!enc.nabilDisclosed, repeatedPitchCount: enc.nabilPitches ?? 0, labReport: !!item.labReports?.length }).reason}`);

@@ -89,7 +89,7 @@ export function NightPasses({ fed, onDawn, onWake }: { fed: boolean; onDawn: () 
         <h2>{fed ? 'You camp for the night' : 'A cold camp for the night'}</h2>
         <p>{fed ? 'Supper by the fire, a few hours of sleep. You set off again at dawn.' : 'No food, no fire. You sleep badly and set off again at dawn.'}</p>
         <div className="camp-btns">
-          <button className="btn" onClick={onWake} data-testid="night-wake">Stop camping every night: ask me</button>
+          <button className="btn" onClick={onWake} data-testid="night-wake">Ask before camping</button>
         </div>
       </div>
     </div>

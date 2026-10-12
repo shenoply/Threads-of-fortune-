@@ -112,7 +112,7 @@ export function CaravanRoster() {
           <div className="mkt-row" data-testid="caravan-morale">
             <span style={{ flex: 1 }}>
               <b>Men's patience</b>
-              <small>{moraleOf(p) <= 25 ? 'Close to someone walking' : moraleOf(p) <= 50 ? 'Grumbling — keep them fed and paid' : 'Steady'}</small>
+              <small>{moraleOf(p) <= 25 ? 'Close to someone walking' : moraleOf(p) <= 50 ? 'Grumbling: keep them fed and paid' : 'Steady'}</small>
             </span>
             <Stat label="" v={moraleOf(p)} max={100} />
             <button className="btn" onClick={() => setTalk(true)} data-testid="talk-to-men">Talk to your men</button>

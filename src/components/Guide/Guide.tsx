@@ -18,7 +18,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
   {
     img: 'art/stall-samira-v2.jpg', pos: '70% 35%',
     title: 'Your stall',
-    lines: ['Your stall is in the Giza district: tap it in the lane to open it. Customers only come when you press Wait.', 'Ask about their room and taste, lay a rug on the table, argue what they care about, and name a price. Every good sale adds to your name.'],
+    lines: ['Your stall is in the Giza district: tap it in the lane to open it. Buyers only come when you press Wait.', 'Ask about their room and taste, lay a rug on the table, argue what they care about, and name a price. Every good sale adds to your name.'],
   },
   {
     img: 'art/portraits/rashid.jpg', pos: '50% 30%',
@@ -49,7 +49,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     img: 'art/stall-seller.jpg', pos: '25% 40%',
     id: 'radio',
     title: 'The paper and the radio',
-    lines: ['Every day is a real day of 1925. The Courier and Radio Giza carry the real news of that day.', 'What happens in the world moves prices, brings buyers, and makes some roads safer or worse. Read it in the morning.', 'On the radio, "Skip to the news" jumps past the greeting; tap any line to hear it from there. Films of the people you meet play once and wait on the Customers screen.'],
+    lines: ['Every day is a real day of 1925. The Courier and Radio Giza carry the real news of that day.', 'What happens in the world moves prices, brings buyers, and makes some roads safer or worse. Read it in the morning.', 'On the radio, "Skip to the news" jumps past the greeting; tap any line to hear it from there. Films of the people you meet play once and wait on the Buyers list (Progress tab).'],
   },
   {
     id: 'rugs', img: 'art/stall2/stall-empty-patched.webp', pos: '50% 60%',

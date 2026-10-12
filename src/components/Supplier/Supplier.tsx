@@ -102,7 +102,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
 
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
-      {!opening && <p className="set-demand">Whatever you buy from him goes straight into your stall's stock in Giza, wherever you happen to be standing — pack it for the road next time you're there.</p>}
+      {!opening && <p className="set-demand">Whatever you buy from him goes straight into your stall's stock in Giza, wherever you happen to be standing. Pack it for the road next time you're there.</p>}
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}
       <div className="offer-list">
         {sup.offers.map((o) => {

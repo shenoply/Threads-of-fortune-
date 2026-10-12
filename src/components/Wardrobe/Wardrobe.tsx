@@ -7,6 +7,7 @@ import { HeroFigure } from './HeroFigure';
 import { preload } from '../../game/preload';
 import './Wardrobe.css';
 
+import { lowerName } from '../../game/text';
 const placeName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
 const ROOM = 'art/hero/wardrobe-room.jpg';
 
@@ -34,7 +35,7 @@ export function Wardrobe({ onClose }: { onClose: () => void; startSlot?: string 
     return r(a) - r(b) || a.price - b.price;
   });
   const buy = () => { const msg = g.buyOutfit(o.id); setNote(msg); };
-  const wear = () => { g.wearOutfit(o.id); setNote(`You change into ${o.name.toLowerCase()}. The stall will see you in it.`); };
+  const wear = () => { g.wearOutfit(o.id); setNote(`You change into ${lowerName(o.name)}. The stall will see you in it.`); };
 
   return (
     <div className="overlay wardrobe" role="dialog" aria-label="Wardrobe" data-testid="wardrobe">

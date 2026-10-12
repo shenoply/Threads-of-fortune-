@@ -166,10 +166,10 @@ export const MISSIONS: Record<string, Mission> = {
   house: {
     id: 'house', title: 'The House of Fortune', giver: 'Your father',
     brief: 'A shop of your own in Khan el-Khalili, all five royal warrants, every rug in the Register, and a fortune of five thousand pounds. The life\'s work of a carpet merchant.',
-    steps: ['Buy the Khan el-Khalili shop', 'Hold all five royal warrants', 'Complete the Carpet Register', 'Reach a net worth of £5,000', 'The Collection page on the Merchant tab keeps the count'],
+    steps: ['Buy the Khan el-Khalili shop', 'Hold all five royal warrants', 'Complete the Carpet Register', 'Reach a net worth of £5,000', 'The Collection page on the Progress tab keeps the count'],
     locks: 'This is the last chapter.',
     reward: { cash: 0, rep: 10, trust: 0, text: 'Your name is painted over a door in Khan el-Khalili. Your father comes to see it on his stick, and laughs until he has to sit down.' },
-    hint: () => 'Finish the House of Fortune (Merchant tab).',
+    hint: () => 'Finish the House of Fortune (Progress tab).',
   },
 };
 export const MAIN_ORDER = ['alexandria', 'beasts', 'farid', 'rival', 'ambush', 'auction', 'warrant', 'house'];

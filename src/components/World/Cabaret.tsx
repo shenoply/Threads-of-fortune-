@@ -62,7 +62,7 @@ export function Cabaret({ id, onLeave }: { id: string; onLeave: () => void }) {
           </button>
           {!showing && open && (
             <small className="cab-table-hint" data-testid="cab-table-time">
-              The evening runs until {clock(Math.min(23.9, Math.max(g.world.hour, 20) + 2))} — the rest of today is gone once you sit down.
+              The evening runs until {clock(Math.min(23.9, Math.max(g.world.hour, 20) + 2))}: the rest of today is gone once you sit down.
             </small>
           )}
           <button className="btn" onClick={() => setTalk(true)} data-testid="cab-talk"><Icon name="talk" /> Speak to {contact.name.split(' ')[0]}</button>

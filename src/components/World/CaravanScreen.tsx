@@ -49,7 +49,7 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
           <p className="set-demand">You can buy food, animals and guards in any town or village.</p>
           {food <= 0 && animalCount(p) > 0 && (
             <div className="cv-butcher" data-testid="cv-butcher">
-              <p className="set-demand warn">The sacks are empty out here. As a last resort, you can butcher a pack animal for meat — you lose it for good.</p>
+              <p className="set-demand warn">The sacks are empty out here. As a last resort, you can butcher a pack animal for meat: you lose it for good.</p>
               {Object.entries(p.animals).filter(([, n]) => n > 0).map(([id, n]) => (
                 <div className="mkt-row" key={id}>
                   <span><b>{BREEDS[id]?.name ?? id}</b><small>{n} in your string</small></span>

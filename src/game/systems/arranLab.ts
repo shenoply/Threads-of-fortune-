@@ -135,7 +135,7 @@ export function resolveFinding(item: RugItem, service: LabService, day: number, 
     const saysCotton = /cotton/i.test(t.material);
     let verdict: LabVerdict = 'consistent';
     const limitations = ['Fibre shows what the rug is made of, not when or where it was woven.'];
-    if (p.pile === 'wool-mercerised') limitations.push('The catalogue says "silk-style", which is honest. Anyone who sells it as silk is wrong.');
+    if (p.pile === 'wool-mercerised') limitations.push('The catalogue says "bright as silk", not "silk", which is honest. Anyone who sells it as silk is wrong.');
     if (claimsSilk && p.pile !== 'wool-silk') verdict = 'inconsistent';
     if (saysCotton && p.foundation === 'wool') verdict = 'inconsistent';
     if (!saysCotton && p.foundation !== 'wool') evidence.push(`The description "${t.material}" speaks of the pile; the cotton foundation is normal for this weave.`);
