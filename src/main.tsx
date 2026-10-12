@@ -4,6 +4,7 @@ import { installSaveGuard } from './game/state/saveGuard';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
+import { STALL_ART } from './game/preload';
 
 // watch the save for failed writes and for another tab writing it (src/game/state/saveGuard.ts)
 installSaveGuard();
@@ -33,8 +34,36 @@ window.addEventListener('error', (e) => {
   window.setTimeout(() => { im.src = `${url}${url.includes('?') ? '&' : '?'}r=${n + 1}`; }, 1200 * (n + 1));
 }, true);
 
-// the loading bar in index.html goes once the game has drawn its first screen
-requestAnimationFrame(() => requestAnimationFrame(() => {
+// The loading screen in index.html stays up until the game is ready to be played, not just drawn: the
+// title picture, the fonts, and the first stall pictures are fetched behind it, so nothing pops in after
+// it lifts. Its bar shows how many have arrived. On a later visit they come from the phone at once.
+// It never waits longer than BOOT_MAX, however slow the line.
+const BOOT_MAX = 20000;
+const W = window as Window & { __bootP?: number };
+const say = (t: string) => { const el = document.querySelector('#boot small'); if (el) el.textContent = t; };
+const imgLoad = (src: string) => new Promise<void>((res) => { const im = new Image(); im.decoding = 'async'; im.onload = () => { (im.decode?.() ?? Promise.resolve()).catch(() => {}).finally(() => res()); }; im.onerror = () => res(); im.src = src; });
+const capped = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<void>((r) => window.setTimeout(r, ms))]);
+const titlePicture = () => new Promise<string>((res) => {
+  const look = () => { const bg = document.querySelector<HTMLElement>('.title .bg, .bg'); const m = bg?.style.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/); if (m) res(m[1]); else window.setTimeout(look, 50); };
+  look();
+});
+async function bootGate() {
+  const t0 = Date.now();
+  const jobs: Promise<unknown>[] = [];
+  // each job counts by roughly how much it has to download, so the bar moves at an even pace
+  let done = 0, total = 0;
+  const track = (p: Promise<unknown>, weight = 1) => { total += weight; jobs.push(p.finally(() => { done += weight; W.__bootP = 30 + Math.round((done / total) * 68); })); };
+  say('Unrolling the rugs…');
+  track(capped(document.fonts?.ready ?? Promise.resolve(), 6000));
+  track(capped(titlePicture().then(imgLoad), 15000), 4);
+  // the first things the game shows after the title: the Giza lane and the stall
+  for (const src of STALL_ART.slice(0, 6)) track(imgLoad(src), /\.jpg$/.test(src) ? 4 : 1);
+  window.setTimeout(() => say('Opening the stall…'), 1500);
+  await capped(Promise.all(jobs), BOOT_MAX);
+  W.__bootP = 100;
+  // a moment at full so the bar visibly completes, unless it was all already on the phone
+  await new Promise((r) => window.setTimeout(r, Date.now() - t0 > 600 ? 250 : 0));
   const l = document.getElementById('boot'); if (!l) return;
   l.classList.add('done'); window.setTimeout(() => l.remove(), 400);
-}));
+}
+void bootGate();

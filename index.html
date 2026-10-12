@@ -46,9 +46,9 @@
     var tick = setInterval(function () {
       var b = document.getElementById('boot'); if (!b || b.classList.contains('done')) { clearInterval(tick); return; }
       var got = 0; try { performance.getEntriesByType('resource').forEach(function (e) { if (/\/assets\//.test(e.name)) got += e.encodedBodySize || e.transferSize || 0; }); } catch (e) {}
-      var byBytes = Math.min(92, got / 7000); // about 700 KB of code over the wire
-      p = Math.max(p + (92 - p) * 0.02, byBytes); bar.style.width = p + '%';
-      if (Date.now() - t0 > 6000) document.querySelector('#boot small').textContent = 'Still loading: a slow connection. It is quicker next time.';
+      var byBytes = Math.min(100, got / 6000); // the code is the first third of the bar; the pictures fill the rest
+      p = Math.max(p + (30 - p) * 0.03, byBytes * 0.3, window.__bootP || 0); bar.style.width = p + '%';
+      if (Date.now() - t0 > 12000) document.querySelector('#boot small').textContent = 'Still loading: a slow connection. It is quicker next time.';
     }, 120);
   })();
 </script>

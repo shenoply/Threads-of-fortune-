@@ -486,6 +486,8 @@ export interface BandSpec { man: string; leader: string; mounted: number; melee:
 export const MOUNTED_TROOPS = ['bedouin', 'desertcaptain', 'arnaut', 'reformed'];
 export const RIFLE_TROOPS = ['guard', 'veteran', 'sentinel', 'harbour'];
 
+/** Hassan's weight in a fight with no men of his own */
+export const HERO_ALONE = 1.2;
 export function newBattle(o: { field: string; seed: string; mine: Roster[]; enemyMen: number; enemyStrength: number; band: BandSpec; bandName: string; cmd: number; scouted: boolean; maxTurns?: number; heroImg?: string }): Battle {
   const cells = makeGround(o.field, o.seed);
   // the band's make-up comes from the ambush itself, so the same ambush is the same fight after a reload
@@ -497,9 +499,10 @@ export function newBattle(o: { field: string; seed: string; mine: Roster[]; enem
   const put = (s: Squad, prefer: [number, number][]) => { const p = prefer.find(([x, y]) => free(x, y)) ?? [[0, 8]].find(([x, y]) => free(x, y)) ?? [5, 8]; s.x = p[0]; s.y = p[1]; squads.push(s); };
   const mk = (p: Partial<Squad> & Pick<Squad, 'id' | 'side' | 'troop' | 'name' | 'img' | 'kind' | 'n' | 'per'>): Squad => ({ start: p.n, hp: p.n * p.per, maxHp: p.n * p.per, x: 0, y: 0, morale: 80, moved: false, acted: false, held: false, hit: false, ...p });
   // Hassan: weak, behind the line, the one who gives orders
-  // with no men he stands on the band's own scale (his strength 2), so an even fight reads as even
+  // with no men he is a rug seller against men who rob for a living: half their weight, so fighting alone
+  // is a last resort (about one in five against a pair, hopeless against a crowd), not an even match
   const escorted = o.mine.some((m) => m.n > 0);
-  put(mk({ id: 'hero', side: 'me', troop: 'you', name: 'Hassan', img: o.heroImg ?? 'art/battle/hero.webp', kind: 'hero', n: 1, per: escorted ? 8 : 2, morale: 100 }), [[2, 8], [3, 8]]);
+  put(mk({ id: 'hero', side: 'me', troop: 'you', name: 'Hassan', img: o.heroImg ?? 'art/battle/hero.webp', kind: 'hero', n: 1, per: escorted ? 8 : HERO_ALONE, morale: 100 }), [[2, 8], [3, 8]]);
   let wing = 0;
   for (const r of o.mine.filter((m) => m.n > 0)) {
     const mounted = r.kind === 'mounted';
