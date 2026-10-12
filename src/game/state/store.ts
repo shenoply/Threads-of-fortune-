@@ -116,6 +116,8 @@ export interface GameState {
   whereabouts?: Record<number, string>; // day -> where you were (settlement id or 'road')
   totalSales: number;
   lastSummary?: DaySummary;
+  /** big news events the player has been told about (the morning news card) */
+  newsSeen?: string[];
   settings: Record<Channel, boolean>;
   /** whether the game saves itself to this browser after every action; off means only "Save now"
    *  or a save slot writes to disk. Missing on older saves, which always autosaved. */

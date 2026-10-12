@@ -2884,3 +2884,16 @@ body.travelling .world-hud { display: none; }
 
 /* a recorded greeting before an unrecorded talk */
 .dlg-greet { font-style: italic; color: var(--brass-hi); margin-bottom: 6px; }
+
+/* the calendar opens from the place and clock: a small calendar mark says so */
+.hud-cal span svg { width: 12px; height: 12px; vertical-align: -1px; color: var(--brass-hi); margin-right: 1px; }
+.hud-cal { border-radius: 6px; padding: 2px 4px; margin-left: -4px; }
+.hud-cal:active { background: rgba(231,189,110,.12); }
+/* the morning news card */
+.big-news { max-width: 460px; }
+.big-news__kicker { display: block; font-family: var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--brass-hi); margin-bottom: 4px; }
+.big-news__item h2 { margin: 4px 0 6px; }
+.big-news__item p { margin: 0 0 8px; line-height: 1.45; }
+.big-news__item ul { margin: 4px 0 12px; padding-left: 18px; line-height: 1.4; }
+.big-news__item + .big-news__item { border-top: 1px solid var(--line); padding-top: 10px; }
+.big-news__btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }

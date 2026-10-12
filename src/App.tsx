@@ -1,4 +1,5 @@
 import { SimOptions } from './components/Title/SimOptions';
+import { BigNews } from './components/Newspaper/BigNews';
 import { DaySummary } from './components/Ledger/DaySummary';
 import { JobOffer } from './components/World/JobOffer';
 import { afterFirstSale } from './game/preload';
@@ -8,7 +9,7 @@ import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
-import { eventsStarting, laneDay } from './game/economy/life';
+import { eventsStarting, eventsOn, laneDay } from './game/economy/life';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
@@ -524,6 +525,8 @@ export default function App() {
   }, [phase]);
 
   const date = dateFor(g.day);
+  // big news the player has not been told yet (BigNews makes the same test), not in the middle of a sale
+  const newsUp = !g.journey && !(g.encounter && !g.encounter.outcome) && eventsOn(g.day).some((e) => e.from >= 1 && e.from <= g.day && !(g.newsSeen ?? []).includes(e.id) && !e.surprise);
   // the night's summary card is up (the same test DaySummary makes before it shows itself)
   const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
   const [cashFlash, setCashFlash] = useState(false);
@@ -691,7 +694,7 @@ export default function App() {
       <header className="hud">
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
           <b>{g.world.at ? settlementById(g.world.at).name : 'Road'}</b>
-          <span data-testid="map-clock">{clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
+          <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
         </button>
         <div className="hud-stats">
           <button className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
@@ -815,7 +818,7 @@ export default function App() {
 
       {g.rescue && <Rescue />}
       {/* one card at a time: the night's summary first, then a job offer waiting from before */}
-      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && <JobOffer />}</>}
+      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && (newsUp ? <BigNews onRead={openPaper} /> : <JobOffer />)}</>}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>
