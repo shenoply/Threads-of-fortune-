@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDialogEscape } from '../useDialogEscape';
 import { streetRoute } from '../../game/systems/streets';
 import { guideTarget } from '../../game/guide';
+import { lookFor } from '../../game/heroLook';
+import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { VENUES, VENUE_W as DW, VENUE_H as DH, type VenuePoi, type Venue as VenueDef } from '../../data/venues';
@@ -41,10 +44,15 @@ export function AudienceOverlay({ onDone }: { onDone: () => void }) {
   );
 }
 
-export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { id?: string; def?: VenueDef; onLeave: () => void; onAction?: (a: string) => void; onExitCity?: () => void; exitLabel?: string }) {
+export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel, backLabel }: { id?: string; def?: VenueDef; onLeave: () => void; onAction?: (a: string) => void; onExitCity?: () => void; exitLabel?: string; backLabel?: string }) {
   const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
   const v = def ?? VENUES[id!];
   const g = useGame();
+  // your marker on the walk: the same round face as the "Me" tab, kept in step with the wardrobe
+  const faceUrl = lookFor(g.heroLook);
+  const faceRef = useRef(faceUrl); faceRef.current = faceUrl;
+  const markerRef = useRef<PortraitMarker | null>(null);
+  useEffect(() => { markerRef.current?.setFace(faceUrl); }, [faceUrl]);
   const royal = v.royal ? BUYERS[v.royal] : undefined;
   const walked = useRef(0);
   const cvs = useRef<HTMLCanvasElement>(null);
@@ -72,13 +80,14 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
     setNote({ title: p.name, text: lines[Math.floor(Math.random() * lines.length)] ?? '', poi: p });
     if (!hintSeen) dismissHint();
   };
-  useEffect(() => {
-    if (!note) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeNote(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note]);
+  // Escape and the phone's Back: a place's note closes first, otherwise you leave as the Back button
+  // leaves (to the town you are in, never out to the map); an audience over the walk deals with it itself
+  const rootRef = useRef<HTMLDivElement>(null);
+  useDialogEscape(rootRef, () => {
+    if (note) { closeNote(); return; }
+    if (audience) return false;
+    onLeave();
+  });
 
   const reveal = (x: number, y: number) => {
     const s = st.current;
@@ -134,6 +143,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
     // stays himself in every walkable town, auction house and palace ground, not just at home.
     const meSprites: (HTMLImageElement | null)[] = [null, null];
     [1, 2].forEach((k, i) => { const im = new Image(); im.onload = () => { meSprites[i] = im; }; im.src = `art/world/party-solo-${k}.webp`; });
+    const marker = portraitMarker(() => {}); marker.setFace(faceRef.current); markerRef.current = marker;
     let facing: 1 | -1 = 1;
     const fogC = document.createElement('canvas');
     fogC.width = FW; fogC.height = FH;
@@ -200,8 +210,11 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
       const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
       glow.addColorStop(0, 'rgba(255,210,120,0.55)'); glow.addColorStop(1, 'rgba(255,210,120,0)');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
-      ctx.fillStyle = 'rgba(30,16,6,0.35)'; ctx.beginPath(); ctx.ellipse(5, 11, 9, 4.5, 0.3, 0, 7); ctx.fill();
-      if (sprite) {
+      if (marker.ready()) {
+        // a round portrait in a brass ring with a small hop per step; the old sprite stays as the fallback
+        marker.draw(ctx, sc, bob, now, moving);
+      } else if (sprite) {
+        ctx.fillStyle = 'rgba(30,16,6,0.35)'; ctx.beginPath(); ctx.ellipse(5, 11, 9, 4.5, 0.3, 0, 7); ctx.fill();
         const h = 34, w = h * (sprite.width / sprite.height);
         ctx.scale(facing, 1);
         ctx.drawImage(sprite, -w / 2, -h + 2 + bob * 0.4, w, h);
@@ -319,7 +332,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
   const isCity = !v.royal;
 
   return (
-    <div className="venue" data-testid="venue" data-venue={v.id}>
+    <div ref={rootRef} className="venue" data-testid="venue" data-venue={v.id}>
       <div className="venue-stage">
         <canvas ref={cvs} className="district-canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={(e) => zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15)} aria-label={`${v.name}, seen from above. Tap a marker's "i" badge for information, or tap the ground to walk.`} />
         <div className="district-top">
@@ -363,7 +376,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel }: { i
         </div>
       </div>
       <div className="venue-doors">
-        <button className="btn door-btn leave" onClick={onLeave} data-testid="venue-leave">⟵ {v.id.startsWith('auction-') || def?.pois.some((p) => p.action === 'floor') ? 'Leave, back to town' : isCity ? 'Back to the town square' : 'Leave the palace'}</button>
+        <button className="btn door-btn leave" onClick={onLeave} data-testid="venue-leave">⟵ {backLabel ?? (v.id.startsWith('auction-') || def?.pois.some((p) => p.action === 'floor') ? 'Leave, back to town' : isCity ? 'Back to the town square' : 'Leave the palace')}</button>
         {onExitCity && <button className="btn door-btn leave exit-city" onClick={onExitCity} data-testid="venue-exit-city">{exitLabel ?? 'Leave the city'} ⟶</button>}
         {v.pois.filter((p) => p.kind === 'goto' && p.action).length <= 2 && v.pois.filter((p) => p.kind === 'goto' && p.action).map((p) => (
           <button key={p.id} className="btn primary door-btn enter" onClick={() => onAction?.(p.action!)} data-testid={`venue-enter-${p.id}`}>Enter {p.name.toLowerCase()} ⟶</button>

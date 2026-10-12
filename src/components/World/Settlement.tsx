@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
 import { Rumours } from '../Rumours/Rumours';
@@ -66,12 +66,25 @@ const menuGroup = (tid: string) =>
       : /^menu-(sail|wait)/.test(tid) ? 'leave'
         : 'services';
 
-export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town' }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab }) {
+/** Where the town panel was when the map was last taken off screen (another tab, a film): coming
+ *  back to the map while still in that town finds the same view (menu or tab, and scroll) again. */
+const townView = { id: '', menu: true, tab: 'town' as SetTab, scroll: 0 };
+
+/** A place opened over the town panel (a sale room, the clinic, the bank...): Escape and the phone's Back
+ *  leave it as its own Leave button does, back to the town, unless a sheet or film inside it goes first. */
+function EscLayer({ onEsc, children }: { onEsc: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDialogEscape(ref, () => { if (ref.current?.querySelector('[role=dialog], [role=alertdialog], video')) return false; onEsc(); });
+  return <div ref={ref} style={{ display: 'contents' }}>{children}</div>;
+}
+
+export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town', resume = false }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab; resume?: boolean }) {
   const g = useGame();
-  const [tab, setTab] = useState<SetTab>(initialTab);
+  const back = resume && townView.id === id ? townView : null;
+  const [tab, setTab] = useState<SetTab>(back?.tab ?? initialTab);
   // arriving in a town opens its menu first, Bannerlord-style: the town's picture and what there is
   // to do, each a big button into the part of the panel below that does it
-  const [menu, setMenu] = useState(initialTab === 'town');
+  const [menu, setMenu] = useState(back ? back.menu : initialTab === 'town');
   // opened from a yard in the Giza district (the souk, the animal market, the guard yard): it is that
   // place, not the whole town, and closing it goes back to the district, not to the map
   const yard = id === 'giza' && initialTab !== 'town' ? ({ market: 'Food souk', animals: 'Animal market', guards: 'Guard yard' } as Record<SetTab, string>)[initialTab] : null;
@@ -99,6 +112,13 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     </div>
   );
   useEffect(() => { if (menu) rootRef.current?.scrollTo(0, 0); }, [menu]);
+  // remember the view (and, as the panel goes, the scroll) so a return to the map finds it again
+  useEffect(() => { Object.assign(townView, { id, menu, tab }); }, [id, menu, tab]);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (back && !back.menu && el) window.setTimeout(() => el.scrollTo(0, back.scroll), 80);
+    return () => { if (townView.id === id) townView.scroll = el?.scrollTop ?? 0; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // the health strip's "See Dr Feras now" (only Cairo has him)
   useEffect(() => {
     if (id !== 'cairo') return;
@@ -162,6 +182,9 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   useDialogEscape(rootRef, () => {
     if (busy) return false;
     if (waitOpen) { setWaitOpen(false); return; }
+    // the town's full page (opened from a menu tile) steps back to the menu, not out of the town;
+    // only the menu itself, or a Giza yard, is left for the map or the district
+    if (!menu && !yard) { setMenu(true); return; }
     onClose();
   });
   const offers = localOffers(id, g.day, g.world.boughtLocal, g.world.friends, g.reputation);
@@ -205,7 +228,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const menuItems: [string, string, string, () => void, string][] = [
     ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s buyers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
     ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
-    ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
+    ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => setInCity(true), 'menu-walk'] as [string, string, string, () => void, string]] : []),
     ['hourglass', 'Wait here', 'Let time pass: trouble on the road may move on before you set off', () => setWaitOpen(true), 'menu-wait'],
     ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
     ...(HAMMAMS[id] ? [['tea', HAMMAMS[id].name, `Wash off the road · ${fmt(HAMMAMS[id].cost)}`, () => goTo('town', 'sec-baths'), 'menu-hammam'] as [string, string, string, () => void, string]] : []),
@@ -557,8 +580,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </div>
         );
       })()}
-      {finance && <FinancePanel onClose={() => setFinance(false)} />}
-      {library && <LibraryView town={id} onClose={() => setLibrary(false)} />}
+      {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
+      {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}
       {waitOpen && (
         <div className="overlay" onClick={() => setWaitOpen(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="wait-card">
@@ -575,8 +598,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </div>
         </div>
       )}
-      {cairoPlace && <CairoPlace place={cairoPlace} onClose={() => setCairoPlace(null)} />}
-      {clinic && <Clinic onClose={() => setClinic(false)} />}
+      {cairoPlace && <EscLayer onEsc={() => setCairoPlace(null)}><CairoPlace place={cairoPlace} onClose={() => setCairoPlace(null)} /></EscLayer>}
       {cityFilm && createPortal(<IntroFilm id="alexandria" onDone={() => { useGame.getState().markIntroSeen('alexandria'); setCityFilm(false); }} />, document.body)}
       <Tip id="town" when={!menu && !inCity && !inVenue && !talkTo && !inAuction} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
@@ -584,30 +606,33 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           out of that door returns you to the same street, not all the way out to the town panel. */}
       {inCity && walk && (
         <div className="venue-overlay">
-          <Venue def={walk} onLeave={() => setInCity(false)} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
-            if (a === 'palace') { if (venue?.map) setInVenue(true); else { setInCity(false); setTab('town'); } }
+          <Venue def={walk} onLeave={() => setInCity(false)} backLabel={`Back to ${st.name}`} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
+            if (a === 'palace') { if (venue?.map) setInVenue(true); else { setInCity(false); goTo('town', 'sec-court'); } }
             else if (a.startsWith('venue:')) {
               const v = VENUES_1925[a.slice(6)];
               if (v && venueOpen(v, g.day)) setCabaret(v.id);
-              else { setInCity(false); setTab('town'); setNote(`${v?.name ?? 'The hall'} is shuttered. A sign on the door says it opens in 1926.`); }
+              else { setInCity(false); setNote(`${v?.name ?? 'The hall'} is shuttered. A sign on the door says it opens in 1926.`); }
             }
             else if (a.startsWith('house:')) setHouseWalk(a.slice(6));
             else if (a.startsWith('npc:')) setTalkTo(a.slice(4));
             else if (a === 'clinic') setClinic(true);
-            else { setInCity(false); setTab(a as SetTab); }
+            else { setInCity(false); goTo(a as SetTab); }
           }} />
         </div>
       )}
       {houseWalk && (
         <div className="venue-overlay">
-          <Venue def={auctionVenue(houseWalk)} onLeave={() => setHouseWalk(null)} onExitCity={() => { setHouseWalk(null); setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => { if (a === 'floor') setInAuction(houseWalk); }} />
+          <Venue def={auctionVenue(houseWalk)} onLeave={() => { setHouseWalk(null); setInCity(false); }} backLabel={`Back to ${st.name}`} onExitCity={() => { setHouseWalk(null); setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => { if (a === 'floor') setInAuction(houseWalk); }} />
         </div>
       )}
-      {inAuction && <Auction houseId={inAuction} onClose={() => setInAuction(null)} />}
+      {inAuction && <EscLayer onEsc={() => setInAuction(null)}><Auction houseId={inAuction} onClose={() => setInAuction(null)} /></EscLayer>}
       {inVenue && venue && <div className="venue-overlay"><Venue id={venue.id} onLeave={() => setInVenue(false)} /></div>}
-      {cabaret && <div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div>}
+      {/* after the walk in the page, as it opens from the streets too: Escape and Back find it on top */}
+      {clinic && <EscLayer onEsc={() => setClinic(false)}><Clinic onClose={() => setClinic(false)} /></EscLayer>}
+      {cabaret && <EscLayer onEsc={() => setCabaret(null)}><div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div></EscLayer>}
       {audience && <AudienceOverlay onDone={() => setAudience(false)} />}
-      {talkTo && <Dialogue npcId={talkTo} onClose={(m) => { setTalkTo(null); if (m) setNote(m); }} />}
+      {/* a talk started on the streets sits over the walk (whose layer is above the panel's), not hidden under it */}
+      {talkTo && <div style={inCity || houseWalk ? { position: 'relative', zIndex: 65 } : undefined}><Dialogue npcId={talkTo} onClose={(m) => { setTalkTo(null); if (m) setNote(m); }} /></div>}
       {sailing && (
         <SailingTransition
           from={st.name}

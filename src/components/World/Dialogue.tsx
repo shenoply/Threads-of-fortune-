@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { RECORDED_GREETINGS } from '../../data/greetings';
 import { useDialogEscape } from '../useDialogEscape';
 import { useGame } from '../../game/state/store';
 import { NPCS, type DialogueOption } from '../../data/world';
@@ -35,16 +36,19 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
   const fbRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (feedback.length) fbRef.current?.scrollIntoView({ block: 'nearest' }); }, [feedback.length]);
 
+  // a talk whose opening line has no recording yet starts with one of the character's recorded
+  // greetings (shown and spoken), so he is never silent when you walk in; the rest reads as captions
+  const greet = node === 'start' && !voice.has(npc.id, n.text) ? RECORDED_GREETINGS[npcId]?.[g.day % (RECORDED_GREETINGS[npcId]?.length || 1)] : undefined;
   useEffect(() => {
     setTyped(0);
     let live = true;
-    voice.whenReady(npc.id).then(() => { if (live) voice.say(npc.id, n.text); });
+    voice.whenReady(npc.id).then(() => { if (live) voice.say(npc.id, greet && !voice.has(npc.id, n.text) ? greet : n.text); });
     const t = setInterval(() => setTyped((x) => (x >= n.text.length ? x : x + 3)), 28);
     return () => {
       live = false;
       clearInterval(t);
     };
-  }, [node, n.text, npc.id]);
+  }, [node, n.text, npc.id, greet]);
   useEffect(() => () => voice.stop(), []);
 
   const ok = (o: DialogueOption) => {
@@ -85,6 +89,7 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
             <small>{npc.role}</small>
           </div>
         </div>
+        {greet && <p className="dlg-text dlg-greet" data-testid="dlg-greet">“{greet}”</p>}
         <p className="dlg-text" data-testid="dlg-text">
           {n.text.slice(0, typed)}
           {typed < n.text.length && <span className="cursor" />}

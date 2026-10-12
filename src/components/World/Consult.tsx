@@ -24,7 +24,7 @@ const deskWith = (id: string) => `art/clinic/desk/${id}.webp`;
 /** Full-screen picture (kept for anything else that wants one). */
 export function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); } };
     window.addEventListener('keydown', key, true);
     return () => window.removeEventListener('keydown', key, true);
   }, [onClose]);
@@ -39,7 +39,7 @@ export function Lightbox({ src, alt, onClose }: { src: string; alt: string; onCl
 /** His book open at one chapter, full screen, over everything; his voice (outside it) carries on. */
 export function BookPage({ id, onClose, speaking, onReplay, caption }: { id: string; onClose: () => void; speaking?: boolean; onReplay?: () => void; caption?: string }) {
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); } };
     window.addEventListener('keydown', key, true);
     return () => window.removeEventListener('keydown', key, true);
   }, [onClose]);

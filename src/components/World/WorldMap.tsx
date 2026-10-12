@@ -110,7 +110,11 @@ function blockedText(p: Pt) {
   return 'You cannot walk on water. Find a port and take a ship.';
 }
 
-export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goFastest, scale, setScale, frozen, startZoom, onZoomGiza }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; goFastest?: boolean; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void }) {
+/** The town whose panel was open when the map last went off screen (another tab, a screen of its own):
+ *  coming back to the map without a new place to go finds you still in that town, not on the map. */
+const openTown = { at: null as string | null };
+
+export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goFastest, scale, setScale, frozen, startZoom, onZoomGiza, resume }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; goFastest?: boolean; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void; resume?: boolean }) {
   const g = useGame();
   const w = g.world;
   const wrap = useRef<HTMLDivElement>(null);
@@ -218,7 +222,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     setMenStop(true);
   }, [pfood, pmor, pmen, moving, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   // a town's own screen opens only where you actually are; a shortcut to anywhere else plans the route instead
-  const [panel, setPanel] = useState<string | null>(openPanel && openPanel === w.at ? openPanel : null);
+  // (an old request seen again on a return to the map does not count: the town you were last in does)
+  const [panel, setPanel] = useState<string | null>(() => resume ? (openTown.at && openTown.at === w.at ? openTown.at : null) : openPanel && openPanel === w.at ? openPanel : null);
+  const resumed = useRef(resume && !!panel);
+  useEffect(() => { if (panel) openTown.at = panel; }, [panel]);
+  useEffect(() => { if (openTown.at && openTown.at !== w.at) openTown.at = null; }, [w.at]);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
   const pts = useRef(new Map<number, Pt>());
   const pinch = useRef<{ d: number; z: number } | null>(null);
@@ -1274,7 +1282,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           }}
         />
       )}
-      {panel && panel === w.at && <SettlementPanel id={panel} tab={panel === openPanel ? openTab : undefined} onClose={() => setPanel(null)} onStall={onStall} />}
+      {panel && panel === w.at && <SettlementPanel id={panel} tab={resumed.current ? undefined : panel === openPanel ? openTab : undefined} resume={resumed.current} onClose={() => { resumed.current = false; openTown.at = null; setPanel(null); }} onStall={onStall} />}
     </div>
   );
 }

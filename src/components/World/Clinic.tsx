@@ -117,7 +117,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
     filmLock.on();
     voice.stop(); audio.stopVoice(); if (radio.playing) radio.stop();
     audio.attenuate('clinic', true, 0.4, { music: 0, ambience: 0.15 });
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); endIntro(); } };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endIntro(); } };
     window.addEventListener('keydown', key, true);
     const el = v.current;
     if (el) el.play().catch(() => setBlocked(true));

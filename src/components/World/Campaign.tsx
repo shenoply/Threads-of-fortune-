@@ -15,7 +15,7 @@ export type Target = 'buyers' | 'paper' | 'radio' | 'supplier' | 'map' | 'distri
 export type MapIntent = { view?: 'district' | 'world'; panel?: string; tab?: SetTab; plan?: string; go?: boolean; stall?: boolean; n: number };
 
 // remembered between visits to other screens, so coming back finds you where you were
-const memo = { layer: 'giza' as 'giza' | 'world', stall: false, scale: 1 };
+const memo = { layer: 'giza' as 'giza' | 'world', stall: false, scale: 1, intent: 0 };
 export const openStallNext = () => { memo.layer = 'giza'; memo.stall = true; };
 
 /** One continuous map: the region, zoom in to Giza's lanes, zoom in again to your stall. One clock runs through all of it. */
@@ -28,6 +28,10 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
     return memo.layer;
   });
   const [anim, setAnim] = useState<'in' | 'out' | null>(null);
+  // a request already acted on (the map shown again after another tab) is not a new one: the town you
+  // were in (and its view) is kept rather than the old request's town and tab
+  const [fresh] = useState(() => !!intent && intent.n > memo.intent);
+  useEffect(() => { if (intent) memo.intent = Math.max(memo.intent, intent.n); }, [intent]);
   const [stall, setStallRaw] = useState(() => layer === 'giza' && (intent?.stall ?? (intent ? false : memo.stall)));
   const [scale, setScaleRaw] = useState(memo.scale);
   const setScale = (n: number) => { memo.scale = n; setScaleRaw(n); };
@@ -70,6 +74,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
             openTab={intent?.tab}
             planFor={intent?.plan}
             goFastest={intent?.go}
+            resume={!fresh}
             frozen={frozen}
             startZoom={anim === 'out' ? 4.3 : undefined}
             // the speed (and a pause) is kept here, so it survives a trip to another screen and back

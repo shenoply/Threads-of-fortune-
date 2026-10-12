@@ -6,6 +6,8 @@ import { takeMalekRequest, travelTo } from '../../game/nav';
 import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
 import { guideTarget } from '../../game/guide';
+import { lookFor } from '../../game/heroLook';
+import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { useGame, arrivalAt } from '../../game/state/store';
 import { HAMMAMS } from '../../data/character';
 import { fmt } from '../../game/economy/money';
@@ -466,6 +468,11 @@ const OBJECTIVE_BTNS = '[data-testid="first-hour-go"], [data-testid="objective-g
 export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false }: { onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
   const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
   const g = useGame();
+  // your marker on the walk: the same round face as the "Me" tab, kept in step with the wardrobe
+  const faceUrl = lookFor(g.heroLook);
+  const faceRef = useRef(faceUrl); faceRef.current = faceUrl;
+  const markerRef = useRef<PortraitMarker | null>(null);
+  useEffect(() => { markerRef.current?.setFace(faceUrl); }, [faceUrl]);
   const box = useRef<HTMLDivElement>(null);
   const walked = useRef(0);
   const cvs = useRef<HTMLCanvasElement>(null);
@@ -691,6 +698,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     // merchant stays himself once you walk into one instead of shrinking to an abstract token.
     const meSprites: (HTMLImageElement | null)[] = [null, null];
     [1, 2].forEach((k, i) => { const im = new Image(); im.onload = () => { meSprites[i] = im; request(); }; im.src = `art/world/party-solo-${k}.webp`; });
+    const marker = portraitMarker(() => request()); marker.setFace(faceRef.current); markerRef.current = marker;
     let facing: 1 | -1 = 1;
     let raf = 0, last = performance.now(), saveT = 0;
     // On-demand drawing: a frame is drawn only when something changed (walking, camera, the painting
@@ -792,8 +800,11 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
       glow.addColorStop(0, 'rgba(255,210,120,0.55)'); glow.addColorStop(1, 'rgba(255,210,120,0)');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
-      ctx.fillStyle = 'rgba(30,16,6,0.35)'; ctx.beginPath(); ctx.ellipse(5, 11, 9, 4.5, 0.3, 0, 7); ctx.fill();
-      if (sprite) {
+      if (marker.ready()) {
+        // a round portrait in a brass ring with a small hop per step; the old sprite stays as the fallback
+        marker.draw(ctx, sc, bob, now, moving);
+      } else if (sprite) {
+        ctx.fillStyle = 'rgba(30,16,6,0.35)'; ctx.beginPath(); ctx.ellipse(5, 11, 9, 4.5, 0.3, 0, 7); ctx.fill();
         // the sprite is a tall standing cutout; drawn from the feet up so it plants on its shadow
         const h = 34, w = h * (sprite.width / sprite.height);
         ctx.scale(facing, 1);
