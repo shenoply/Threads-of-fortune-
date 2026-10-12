@@ -164,6 +164,14 @@ class Voice {
   }
 
   private segments(speaker: string, text: string): [number, number][] | null {
+    const own = this.segmentsOf(speaker, text);
+    if (own) return own;
+    // a renamed rug keeps its recordings until the line is recorded again under the new name
+    const old = text.replace(/Constantinople Tulip/g, 'Istanbul Tulip');
+    return old !== text ? this.segmentsOf(speaker, old) : null;
+  }
+
+  private segmentsOf(speaker: string, text: string): [number, number][] | null {
     const sp = this.sprites[speaker];
     if (!sp) return null;
     const whole = sp.clips[lineId(speaker, text)];

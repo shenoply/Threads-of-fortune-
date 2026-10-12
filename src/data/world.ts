@@ -60,7 +60,7 @@ export const SETTLEMENTS: Settlement[] = [
   },
   {
     id: 'alexandria', name: 'Alexandria', kind: 'port', x: 86.4, y: 387.2, region: 'Egypt', port: true, rail: true,
-    blurb: 'Greek cafés, cotton brokers and grand hotels along the Corniche. Ships leave for Jaffa, Beirut and Istanbul every week.',
+    blurb: 'Greek cafés, cotton brokers and grand hotels along the Corniche. Ships leave for Jaffa, Beirut and Constantinople every week.',
     demand: { hardwearing: 0.15, bold: 0.1, washable: 0.1 }, sells: [{ typeId: 'canal-ferry-rug', factor: 0.85 }, { typeId: 'jaffa-citrus', factor: 0.95 }, { typeId: 'moroccan-ember', factor: 0.85, minRep: 10 }],
     people: ['pericles'],
   },
@@ -120,12 +120,12 @@ export const SETTLEMENTS: Settlement[] = [
     demand: { silk: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 0.7 }, { typeId: 'konya-prayer-rug', factor: 0.8, minRep: 12 }], people: ['ayse'],
   },
   {
-    id: 'istanbul', name: 'Istanbul', kind: 'city', rail: true, x: 167.1, y: 49.0, region: 'Anatolia', port: true,
+    id: 'istanbul', name: 'Constantinople', kind: 'city', rail: true, x: 167.1, y: 49.0, region: 'Anatolia', port: true,
     blurb: 'The old capital, emptied of its sultan last year. Palace households are quietly selling their carpets.',
     demand: { ornate: 0.2, silk: 0.15, antique: 0.15 }, sells: [{ typeId: 'konya-prayer-rug', factor: 0.9, minRep: 12 }, { typeId: 'golden-palm', factor: 0.85, minRep: 20 }, { typeId: 'istanbul-tulip', factor: 0.85, minRep: 50, chance: 0.2 }], people: ['selim'],
   },
   {
-    id: 'ankara', name: 'Ankara', kind: 'city', rail: true, x: 345.7, y: 95.1, region: 'Anatolia',
+    id: 'ankara', name: 'Angora', kind: 'city', rail: true, x: 345.7, y: 95.1, region: 'Anatolia',
     blurb: 'Capital of the Republic since 1923. A dusty town full of builders, ministries in borrowed houses, and the President\'s residence at Çankaya.',
     demand: { wool: 0.1, restrained: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 0.75 }, { typeId: 'caucasus-eagle', factor: 0.8, minRep: 15 }], people: [],
   },

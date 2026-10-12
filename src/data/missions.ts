@@ -131,7 +131,7 @@ export const MISSIONS: Record<string, Mission> = {
   auction: {
     id: 'auction', title: 'Under the hammer', giver: 'Hagop Boyajian',
     brief: 'Hagop sends a note from the Khan: the great Ottoman houses on the Bosphorus are selling up, and their carpets are going under the hammer. "Real dealers are made at auctions. Sit in the sale rooms, watch what things fetch, and win a lot. Do not bid with your heart."',
-    steps: ['The nearest sale rooms are in Cairo. Alexandria, Jerusalem, Damascus, Amman, Baghdad and Istanbul have them too', 'Each house sells on certain days: the objective line says when the next Cairo sale is', 'Take a seat, inspect the lots and win any one of them. A cheap lot counts the same'],
+    steps: ['The nearest sale rooms are in Cairo. Alexandria, Jerusalem, Damascus, Amman, Baghdad and Constantinople have them too', 'Each house sells on certain days: the objective line says when the next Cairo sale is', 'Take a seat, inspect the lots and win any one of them. A cheap lot counts the same'],
     target: 'cairo',
     locks: 'Hagop has nothing more to teach you until you have won at auction.',
     reward: { cash: 0, rep: 5, trust: 5, text: 'The auctioneer writes your name in his book, and the next sale\'s catalogue arrives at your stall addressed to "the merchant of Giza".' },

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import {
-  COLS, ROWS, KIND_LABEL, RANGE, act, byId, cellAt, chargeCells, choose, dist, squadAt, expectedKills, intents, live, newTurn, outcome, reach, sidePhase, simulate,
+  COLS, ROWS, KIND_LABEL, RANGE, act, byId, cellAt, chargeCells, choose, dist, squadAt, expectedKills, intents, live, newTurn, outcome, reach, rollLuck, sidePhase, simulate, winChance,
   type Battle, type Outcome, type Order, type Squad, type Step, type Style,
 } from '../../game/systems/tactics';
 import './TacticalBattle.css';
@@ -18,7 +18,8 @@ interface Props {
 
 /** The fight as a map: your squads at the bottom, theirs at the top, painted ground behind, full screen. */
 export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
-  const [b, setB] = useState<Battle>(battle);
+  // the day's fortune is rolled once, when the fight opens; the odds shown average over every fortune
+  const [b, setB] = useState<Battle>(() => (battle.luck == null ? { ...battle, luck: rollLuck() } : battle));
   const [sel, setSel] = useState<string | null>('hero');
   const [mode, setMode] = useState<'act' | 'focus'>('act');
   const [busy, setBusy] = useState(false);
@@ -96,7 +97,7 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
 
   useEffect(() => {
     if (!deploying) return;
-    const t = window.setTimeout(() => setOdds(simulatedOdds(bRef.current, 'steady', 30)), 150);
+    const t = window.setTimeout(() => setOdds(simulatedOdds(bRef.current, 'steady')), 150);
     return () => window.clearTimeout(t);
   }, [deploying, b.squads.map((q) => `${q.id}${q.x}${q.y}`).join()]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -318,10 +319,8 @@ export function TacticalBattle({ battle, title, fieldArt, onEnd }: Props) {
   );
 }
 
-// kept for the pre-fight screen: the odds of a plain simulation
-export function simulatedOdds(b: Battle, style: Style = 'steady', runs = 24): number {
-  let w = 0;
-  for (let i = 0; i < runs; i++) if (simulate(b, style).b.over?.result === 'win') w++;
-  return Math.round((w / runs) * 100);
+// the pre-fight screens: the chance to win if the men fight it out (see winChance in systems/tactics)
+export function simulatedOdds(b: Battle, style: Style = 'steady', runs = 60): number {
+  return winChance(b, style, runs);
 }
 void choose;

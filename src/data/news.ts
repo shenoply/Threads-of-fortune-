@@ -261,7 +261,7 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
   hatlaw: {
     article: {
       headline: 'Turkey Bans the Fez',
-      deck: 'Protests in Erzurum and Rize; Gendarmes on the Roads',
+      deck: 'Protests in Erzerum and Rize; Gendarmes on the Roads',
       body: 'Ankara has passed a law against the fez. There have been protests in Erzurum and Rize, and gendarmes are out on the roads. Istanbul dealers are cautious.',
     },
     comingUp: 'A law on hats is before the Turkish assembly; trouble is expected in the provinces.',
@@ -627,6 +627,6 @@ export const SHIPS: string[] = [
 ];
 
 export const PORTS: string[] = [
-  'Marseilles', 'Genoa', 'Naples', 'Trieste', 'Piraeus', 'Smyrna', 'Istanbul', 'Limassol',
+  'Marseilles', 'Genoa', 'Naples', 'Trieste', 'Piraeus', 'Smyrna', 'Constantinople', 'Limassol',
   'Beirut', 'Jaffa', 'Haifa', 'Mersin', 'Alexandretta', 'Tripoli', 'Malta', 'Brindisi',
 ];

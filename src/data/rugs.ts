@@ -270,7 +270,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     weave: knots.court, fringe: 'Original, bound', backNote: 'Extremely fine; family seal on the back.',
   }),
   rug('istanbul-tulip', {
-    name: 'Istanbul Tulip', tier: 4, origin: 'Ottoman elite trade', material: 'Very fine wool, cotton highlights bright as silk', age: 'After an 18th–19th c. design', size: '290 × 190 cm',
+    name: 'Constantinople Tulip', tier: 4, origin: 'Ottoman elite trade', material: 'Very fine wool, cotton highlights bright as silk', age: 'After an 18th–19th c. design', size: '290 × 190 cm',
     colourFamily: 'mixed', colourWords: 'bordered red and sand bands, a central band of tulip medallions', provenance: 'Documented',
     dealerCost: 12000, valueBand: [18000, 32000], asking: 30000,
     traits: ['wool', 'silk', 'ornate', 'fineWeave', 'antique', 'rare', 'story'],

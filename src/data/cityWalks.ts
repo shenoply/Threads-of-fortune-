@@ -43,7 +43,7 @@ export const CITY_WALKS: Record<string, Venue> = {
       { id: 'docks', name: 'Cotton warehouses', sub: 'Dock guards for hire', ...P(955, 318), glyph: 'G', kind: 'goto', action: 'guards' },
       { id: 'hotel', name: 'Hotel Metropole', sub: 'Where the cotton men drink', ...P(377, 284), glyph: 'H', kind: 'note', text: ['Cotton brokers argue over the Liverpool prices on the terrace. One of them wants a Persian carpet for his new villa in Rushdy and says so loudly.', 'A waiter tells you the English buy anything with a lion or a camel on it, and the Greeks buy only silk.'] },
       { id: 'pillar', name: 'Pompey\'s Pillar', sub: 'Roman granite on the old hill', ...P(35, 340), glyph: 'P', kind: 'note', text: ['Twenty-seven metres of red Aswan granite, raised for Diocletian. Children sell postcards of it to the tourists at the gate.'] },
-      { id: 'breakwater', name: 'The breakwater light', sub: 'Harbour mouth', ...P(935, 50), glyph: 'L', kind: 'note', text: ['The light at the end of the breakwater. Steamers for Jaffa, Beirut and Istanbul leave past it every week.'] },
+      { id: 'breakwater', name: 'The breakwater light', sub: 'Harbour mouth', ...P(935, 50), glyph: 'L', kind: 'note', text: ['The light at the end of the breakwater. Steamers for Jaffa, Beirut and Constantinople leave past it every week.'] },
     ],
   },
   jerusalem: {
@@ -79,8 +79,8 @@ export const CITY_WALKS: Record<string, Venue> = {
     ],
   },
   istanbul: {
-    id: 'city-istanbul', settlement: 'istanbul', name: 'Istanbul', where: 'The Golden Horn',
-    history: 'No longer the capital since Ankara took the title in 1923, but still the greatest carpet market between Paris and Tehran.',
+    id: 'city-istanbul', settlement: 'istanbul', name: 'Constantinople', where: 'The Golden Horn',
+    history: 'No longer the capital since Angora took the title in 1923, but still the greatest carpet market between Paris and Teheran.',
     map: 'art/world/city-istanbul.jpg', start: P(150, 190),
     pois: [
       { id: 'station', name: 'Sirkeci Station', sub: 'Back to the town square', ...P(80, 150), glyph: '⇣', kind: 'exit' },

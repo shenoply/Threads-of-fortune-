@@ -43,7 +43,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
   {
     img: 'art/auction/pov/cairo-grand-pov.webp', pos: '50% 50%',
     title: 'Auctions',
-    lines: ['Cairo, Alexandria, Jerusalem, Damascus, Amman, Baghdad and Istanbul each have sale rooms. The calendar shows the sale days.', 'Anyone may sit and watch. Inspect a lot before you bid; grand sales charge a premium, dealers\' rooms have bargains.'],
+    lines: ['Cairo, Alexandria, Jerusalem, Damascus, Amman, Baghdad and Constantinople each have sale rooms. The calendar shows the sale days.', 'Anyone may sit and watch. Inspect a lot before you bid; grand sales charge a premium, dealers\' rooms have bargains.'],
   },
   {
     img: 'art/stall-seller.jpg', pos: '25% 40%',

@@ -88,7 +88,7 @@ export const VENUES: Record<string, Venue> = {
     pois: [
       { id: 'gate', name: 'Palace gate', sub: 'Back to Baghdad', x: 700, y: 905, glyph: '⇣', kind: 'exit' },
       { id: 'forecourt', name: 'Forecourt fountain', sub: 'Deputies and petitioners', x: 713, y: 460, glyph: 'F', kind: 'note', text: ['Deputies of the new parliament argue in low voices by the fountain. A British adviser in a sun helmet checks his watch.'] },
-      { id: 'aide', name: 'Chief of the Diwan', sub: 'Ask how the King receives', x: 713, y: 385, glyph: 'C', kind: 'talk', text: ['The Chief of the Diwan speaks carefully. "His Majesty has lived in Mecca, Istanbul and Damascus. He can smell an invented history. He wants quiet dignity: fine weave, deep colours, nothing that shouts. The hall must belong to no faction and welcome all of them."'] },
+      { id: 'aide', name: 'Chief of the Diwan', sub: 'Ask how the King receives', x: 713, y: 385, glyph: 'C', kind: 'talk', text: ['The Chief of the Diwan speaks carefully. "His Majesty has lived in Mecca, Constantinople and Damascus. He can smell an invented history. He wants quiet dignity: fine weave, deep colours, nothing that shouts. The hall must belong to no faction and welcome all of them."'] },
       { id: 'hall', name: 'Audience hall', sub: 'Audience with King Faisal I', x: 1147, y: 165, glyph: '♛', kind: 'audience' },
       { id: 'stables', name: 'Royal stables', sub: 'Horses and a carriage', x: 253, y: 160, glyph: 'S', kind: 'note', text: ['A motor car and a horse carriage stand side by side in the stable yard. The grooms clearly prefer the horses.'] },
       { id: 'garden', name: 'Orange garden', sub: 'Cypress and fountains', x: 227, y: 473, glyph: 'O', kind: 'note', text: ['Gardeners water the orange trees by hand from the canal. The smell of blossom follows you across the courtyard.'] },
@@ -97,8 +97,8 @@ export const VENUES: Record<string, Venue> = {
     ],
   },
   cankaya: {
-    id: 'cankaya', settlement: 'ankara', royal: 'ataturk', name: 'Çankaya', where: 'Ankara',
-    history: 'A vineyard house on a hill above Ankara, the President\'s residence since 1921. Ankara has been the capital of the Republic since 1923.',
+    id: 'cankaya', settlement: 'ankara', royal: 'ataturk', name: 'Çankaya', where: 'Angora',
+    history: 'A vineyard house on a hill above Angora, the President\'s residence since 1921. Angora has been the capital of the Republic since 1923.',
     start: { x: 0, y: 0 },
     pois: [],
   },

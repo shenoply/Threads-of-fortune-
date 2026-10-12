@@ -38,6 +38,8 @@ export interface Battle {
   heroDown: boolean;
   /** auto-play of the player's side is handicapped: a careful commander does better */
   autoMine: boolean;
+  /** the fortune of the day: a hidden edge for one side, rolled when the fight starts (1 = even; see rollLuck) */
+  luck?: number;
 }
 export interface Step { b: Battle; text: string; fx?: { kind: 'shot' | 'melee' | 'rout' | 'kill' | 'rally' | 'order'; from?: string; to?: string; at?: [number, number] } }
 export type Order =
@@ -126,6 +128,17 @@ export function chargeCells(b: Battle, s: Squad, t: Squad): [number, number][] {
 }
 
 // ---------- combat numbers ----------
+/** One side has the better day: the wind, a jammed rifle, a horse that shies. Rolled once per fight (log-normal),
+ *  so two even sides are close to a coin toss and the stronger side can still lose. LUCK_MEAN is the band's edge
+ *  for choosing the ground; together they put even strength near 50%, 20 against 24 near 38%, double near 88%. */
+export const LUCK_SPREAD = 0.6;
+export const LUCK_MEAN = -0.15;
+const luckAt = (z: number) => Math.exp(LUCK_MEAN + LUCK_SPREAD * z);
+export function rollLuck(): number {
+  const u = Math.max(1e-9, rnd()), v = rnd();
+  return luckAt(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v));
+}
+const fortune = (b: Battle, a: Squad) => { const l = b.luck ?? 1; return a.side === 'me' ? l : 1 / l; };
 const strengthNow = (s: Squad) => s.hp;
 function flanked(b: Battle, t: Squad, attacker: Squad) {
   return live(b, attacker.side).some((o) => o.id !== attacker.id && adjacent(o, t));
@@ -144,7 +157,7 @@ export function shootPower(b: Battle, a: Squad, t: Squad, preview = false): numb
   if (a.side === 'me' && b.autoMine) m *= 0.92;
   if (t.held) m *= 0.8;
   if (t.side === 'me' && b.holdLine && tc === 'cover') m *= 0.75;
-  return preview ? m : m * between(0.75, 1.25);
+  return preview ? m : m * fortune(b, a) * between(0.75, 1.25);
 }
 export function meleePower(b: Battle, a: Squad, t: Squad, charged: boolean, preview = false): number {
   const base = a.kind === 'mounted' ? 0.5 : a.kind === 'melee' ? 0.45 : a.kind === 'leader' ? 0.3 : a.kind === 'rifle' ? 0.18 : 0.12;
@@ -155,7 +168,7 @@ export function meleePower(b: Battle, a: Squad, t: Squad, charged: boolean, prev
   if (a.morale < 50) m *= 0.8;
   if (a.side === 'me' && b.autoMine) m *= 0.92;
   if (t.held) m *= 0.8;
-  return preview ? m : m * between(0.75, 1.25);
+  return preview ? m : m * fortune(b, a) * between(0.75, 1.25);
 }
 /** Chance-free summary for the tap target: the men expected to fall, rounded */
 export function expectedKills(b: Battle, a: Squad, t: Squad, melee: boolean) {
@@ -209,7 +222,10 @@ function checkOver(b: Battle) {
   const enHp = en.reduce((a, s) => a + s.hp, 0), enMax = b.squads.filter((s) => s.side === 'en').reduce((a, s) => a + s.maxHp, 0);
   const frac = enMax ? enHp / enMax : 0;
   if (!en.length || frac <= 0.35 || (b.leaderDown.en && frac <= 0.6)) { b.over = { result: 'win' }; return; }
-  if (b.heroDown || !me.some((s) => s.kind !== 'hero')) { b.over = { result: 'loss' }; return; }
+  // the same rule for your side as for theirs: a line that has lost two thirds of its strength gives way
+  const meHp = me.filter((s) => s.kind !== 'hero').reduce((a, s) => a + s.hp, 0);
+  const meMax = b.squads.filter((s) => s.side === 'me' && s.kind !== 'hero').reduce((a, s) => a + s.maxHp, 0);
+  if (b.heroDown || !me.some((s) => s.kind !== 'hero') || (meMax > 0 && meHp / meMax <= 0.35)) { b.over = { result: 'loss' }; return; }
 }
 
 /** Run one order for one squad. Returns the new battle and a line for the log. */
@@ -300,6 +316,8 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
   const foes = live(b, s.side === 'me' ? 'en' : 'me').filter((f) => s.side === 'en' || f.kind !== 'hero' || true);
   if (!foes.length) return { t: 'hold' };
   const nearest = [...foes].sort((a, c) => dist(s, a) - dist(s, c))[0];
+  // the side that saw the other first waits, steady and aimed, for them to walk into its guns
+  if (b.turn === 1 && s.side === b.initiative && style === 'steady' && !foes.some((f) => dist(s, f) <= Math.max(RANGE[s.kind], 2))) return { t: 'hold' };
   const r = reach(b, s);
   const front = s.side === 'en' ? 0 : ROWS - 1;
   // shaky squads fall back toward their own edge
@@ -357,8 +375,10 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
       if (live(b, s.side).some((o) => o.id !== s.id && adjacent(o, f))) sc += 10;
       if (cellAt(b, to[0], to[1]) === 'cover') sc += 4;
       // do not throw a small squad on a big one
-      const odds = s.hp / Math.max(1, f.hp);
-      if (odds < (style === 'steady' ? 0.7 : 0.45)) sc -= 40;
+      // do not throw a small squad on a big one alone: friends already close to it count for half
+      const help = live(b, s.side).filter((o) => o.id !== s.id && dist(o, f) <= 2).reduce((a, o) => a + o.hp, 0);
+      const odds = (s.hp + help * 0.5) / Math.max(1, f.hp);
+      if (odds < (style === 'steady' ? 0.5 : 0.3)) sc -= 40;
       if (f.kind === 'melee' && s.kind === 'mounted') sc -= 10; // spears stop horses
       if (f.kind === 'hero' && foes.some((o) => o.kind !== 'hero')) sc -= 30; // the commander is a last resort, not a first target
       if (!bestCharge || sc > bestCharge.sc) bestCharge = { t: f, to, sc };
@@ -367,7 +387,8 @@ export function choose(b: Battle, s: Squad, style: Style): Order {
   if (bestCharge && bestCharge.sc > -5) return { t: 'charge', target: bestCharge.t.id, to: bestCharge.to };
   const close = dist(s, nearest) <= 5;
   if (style === 'steady' && close && cellAt(b, s.x, s.y) === 'cover') return { t: 'hold' };
-  const to = bestCellToward(b, s, nearest, style === 'steady' && close ? 3 : 1, r);
+  // spearmen and riders close in: standing off at rifle range only gets them shot
+  const to = bestCellToward(b, s, nearest, 1, r);
   return to && (to[0] !== s.x || to[1] !== s.y) ? { t: 'move', to } : { t: 'hold' };
 }
 
@@ -459,18 +480,20 @@ export function newBattle(o: { field: string; seed: string; mine: Roster[]; enem
       put(mk({ id: `${r.id}${i}`, side: 'me', troop: r.id, name: parts > 1 ? `${r.plural} ${String.fromCharCode(65 + i)}` : r.plural, img: r.img, kind: r.kind, n, per: r.per }), prefer);
     }
   }
-  // the band: a leader and squads of up to three
-  const per = o.enemyStrength / Math.max(1, o.enemyMen);
+  // the band: a leader and squads. Their strength is shared out so the field adds up to it, leader included
+  const per = o.enemyStrength / Math.max(1, o.enemyMen - 1 + 1.8);
   const leader = mk({ id: 'e-lead', side: 'en', troop: 'leader', name: 'The leader', img: `art/battle/${o.band.leader}.webp`, kind: 'leader', n: 1, per: per * 1.8, morale: 90 });
   put(leader, [[2, 0], [3, 0], [1, 0]]);
-  let left = Math.max(0, o.enemyMen - 1), i = 0;
+  // squads about as heavy as yours (some ten strength each), shared out evenly: a crowd of tiny squads that
+  // one volley sends running into its neighbours made every band far weaker than its strength
+  const men = Math.max(0, o.enemyMen - 1);
+  const parts = Math.max(1, Math.min(men, Math.round((men * per) / 10)));
   const front: [number, number][] = [[1, 1], [4, 1], [2, 1], [3, 1], [0, 1], [5, 1], [0, 2], [5, 2], [2, 2], [3, 2]];
-  while (left > 0) {
-    const n = Math.min(3, left); left -= n;
+  for (let i = 0; i < parts && men > 0; i++) {
+    const n = Math.floor(men / parts) + (i < men % parts ? 1 : 0);
     const r = rnd();
     const kind: Kind = r < o.band.mounted ? 'mounted' : r < o.band.mounted + o.band.melee ? 'melee' : 'rifle';
     put(mk({ id: `e${i}`, side: 'en', troop: o.band.man, name: `${o.bandName} ${String.fromCharCode(65 + i)}`, img: `art/battle/${o.band.man}.webp`, kind, n, per }), front);
-    i++;
   }
   const b: Battle = { field: o.field, cells, squads, turn: 1, maxTurns: o.maxTurns ?? 12, initiative: o.scouted ? 'me' : 'en', commanded: false, holdLine: false, cmd: o.cmd, leaderDown: {}, log: [], heroDown: false, autoMine: false };
   b.log = [o.scouted ? 'Your scouts saw them first. You have the first move.' : 'They were waiting. They move first.'];
@@ -494,10 +517,13 @@ export function outcome(b: Battle): Outcome {
 /** Run a whole fight with an AI on both sides (the "let the men fight it out" button, and the balance test). */
 export function simulate(b0: Battle, myStyle: Style, enemyStyle: Style = 'steady'): { b: Battle; steps: Step[] } {
   let b = clone(b0); b.autoMine = true;
+  if (b.luck == null) b.luck = rollLuck();
   const steps: Step[] = [];
+  const opening = b.turn === 1 && !b.squads.some((s) => s.acted || s.moved || s.hit);
   for (let guard = 0; guard < 40 && !b.over; guard++) {
-    const first: Side = b.initiative === 'me' || b.turn > 1 ? 'me' : 'en';
-    const phases: [Side, Style][] = first === 'me' ? [['me', myStyle], ['en', enemyStyle]] : [['en', enemyStyle], ['me', myStyle]];
+    // the same order as the played fight: when they were waiting, their opening is a turn of its own, then the
+    // sides alternate, you then them. (This used to give you two moves in a row after their opening.)
+    const phases: [Side, Style][] = opening && b.turn === 1 && b.initiative === 'en' ? [['en', enemyStyle]] : [['me', myStyle], ['en', enemyStyle]];
     for (const [side, style] of phases) {
       if (b.over) break;
       const ss = sidePhase(b, side, style); steps.push(...ss); if (ss.length) b = ss[ss.length - 1].b;
@@ -505,4 +531,35 @@ export function simulate(b0: Battle, myStyle: Style, enemyStyle: Style = 'steady
     if (!b.over) b = newTurn(b);
   }
   return { b, steps };
+}
+
+/** Inverse of the normal curve (Acklam), for spreading the luck evenly over the odds runs. */
+function probit(p: number): number {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const bb = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const lo = 0.02425;
+  if (p < lo) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  if (p > 1 - lo) return -probit(1 - p);
+  const q = p - 0.5, r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((bb[0] * r + bb[1]) * r + bb[2]) * r + bb[3]) * r + bb[4]) * r + 1);
+}
+/** The chance to win if the men fight it out from here: the same simulation as the fight itself, run many times
+ *  with the day's luck spread evenly over its range and a fixed dice sequence, so the number is honest and does
+ *  not jump about between looks. Shown between 5% and 95%; 0% or 100% only when one side has nobody left. */
+export function winChance(b: Battle, style: Style = 'steady', runs = 60): number {
+  if (!live(b, 'me').some((s) => s.kind !== 'hero')) return 0;
+  if (!live(b, 'en').length) return 100;
+  const saved = rnd;
+  let w = 0;
+  try {
+    setTacticsRng(mulberry(0x5eed));
+    for (let i = 0; i < runs; i++) {
+      // a different dice sequence per run, luck taken from its share of the curve
+      const z = probit((i + 0.5) / runs);
+      if (simulate({ ...b, luck: luckAt(z) }, style).b.over?.result === 'win') w++;
+    }
+  } finally { setTacticsRng(saved); }
+  return Math.max(5, Math.min(95, Math.round((w / runs) * 100)));
 }

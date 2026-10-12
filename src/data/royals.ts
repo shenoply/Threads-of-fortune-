@@ -237,7 +237,7 @@ export const ROYALS: Record<string, BuyerDef> = {
     id: 'faisal',
     name: 'King Faisal I',
     role: 'King of Iraq, receiving at the royal court in Baghdad',
-    bio: 'Crowned in Baghdad in 1921. A patient diplomat who lived in Damascus and Istanbul and knows fine things from every one of them.',
+    bio: 'Crowned in Baghdad in 1921. A patient diplomat who lived in Damascus and Constantinople and knows fine things from every one of them.',
     budget: [12000, 45000],
     patience: 64,
     trust: 44,
@@ -307,7 +307,7 @@ export const ROYALS: Record<string, BuyerDef> = {
   ataturk: {
     id: 'ataturk',
     name: 'Mustafa Kemal Pasha',
-    role: 'President of the Republic of Turkey, at Çankaya in Ankara',
+    role: 'President of the Republic of Turkey, at Çankaya in Angora',
     bio: 'President since the Republic was declared in 1923. He is furnishing the house at Çankaya and prefers Anatolian work to palace carpets.',
     budget: [3000, 12000],
     patience: 50,

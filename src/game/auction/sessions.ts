@@ -122,7 +122,7 @@ interface Seat { id: string; name: string; who: string; img?: string; budget: [n
 const SEATS: Seat[] = [
   // the regulars of the grand sales
   { id: 'greek', name: 'Mr Karamanlis', who: 'a dealer from Smyrna', img: 'art/portraits/bidder-greek.jpg', budget: [2000, 9000], aggression: 0.66, wants: (l) => l.bundle || tierOfLot(l) === 2, houses: 'any', cities: ['alexandria', 'istanbul', 'cairo', 'jerusalem'] },
-  { id: 'lady', name: 'Emine Hanım', who: 'collecting for her Istanbul house', img: 'art/portraits/bidder-lady.jpg', budget: [5000, 22000], aggression: 0.74, wants: (l) => tierOfLot(l) >= 3 || from(l, /Istanbul|Anatolia|Konya|Turk/i), houses: 'grand', cities: ['istanbul', 'cairo', 'alexandria', 'damascus'] },
+  { id: 'lady', name: 'Emine Hanım', who: 'collecting for her Constantinople house', img: 'art/portraits/bidder-lady.jpg', budget: [5000, 22000], aggression: 0.74, wants: (l) => tierOfLot(l) >= 3 || from(l, /Istanbul|Anatolia|Konya|Turk/i), houses: 'grand', cities: ['istanbul', 'cairo', 'alexandria', 'damascus'] },
   { id: 'american', name: 'Mr Burke', who: 'buying for a museum in Boston', img: 'art/portraits/bidder-american.jpg', budget: [4000, 30000], aggression: 0.82, wants: (l) => l.provenance[0] === 'Documented' || has(l, 'antique') || has(l, 'rare'), houses: 'grand' },
   // your own customers, bidding at home
   { id: 'benakis', name: 'Mr Benakis', who: 'the cotton broker', img: 'art/portraits/benakis.jpg', budget: [1000, 7000], aggression: 0.7, wants: (l) => has(l, 'ornate') || has(l, 'silk'), houses: 'grand', cities: ['alexandria'] },
