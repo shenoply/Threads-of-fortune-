@@ -128,7 +128,10 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // a customer who walks away: the next one comes on their own unless you are quicker (a plain
   // timer, so a phone with its sound off is not kept waiting). A sale waits for your tap, so the
   // receipt stays up as long as you want to read it.
-  const autoNext = showResult && enc?.outcome !== 'sold' && !atCourt && !tut;
+  // ...and a walk-away that still leaves you a choice (put the rug aside for them) waits for a tap too,
+  // or the choice would vanish before it could be read
+  const reserveLeft = !!reserveChoice(g);
+  const autoNext = showResult && enc?.outcome !== 'sold' && !atCourt && !tut && !reserveLeft;
   useEffect(() => {
     if (!autoNext) return;
     const t = window.setTimeout(() => { setDial(null); useGame.getState().nextVisit(); }, 8000);
@@ -215,7 +218,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           </div>
         </div>
       )}
-      <InfoBand enc={enc} presented={presented} view={bandView} tierName={tier.name} priorities={priorities} />
+      <InfoBand enc={enc} presented={presented} view={bandView} tierName={tier.name} priorities={priorities} onSkip={skip} />
 
       {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work ?</button>}
       {talking && (
@@ -302,7 +305,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                       : <> · net profit <span className="nw">{fmt(net)}</span></>)}
                   </b>
                   <span>
-                    {buyer?.royal ? `${buyer.royal.warrant} · ` : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
+                    {buyer?.royal ? (g.court?.warrants?.includes(enc.buyerId) ? `${buyer.royal.warrant} · ` : 'No warrant this time: it needs a court-grade rug at a fair price · ') : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
                   </span>
                 </>
               ) : (
@@ -322,7 +325,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                       : enc.embellishCaught
                       ? 'They caught the story. Claim only what you know.'
                       : enc.insulted
-                        ? 'The price offended them. Watch the budget they gave you.'
+                        ? (enc.budgetKnown ? 'The price offended them. Watch the budget they gave you.' : 'The price was too high for them.')
                         : enc.patience <= 0
                           ? 'Their patience ran out. Fewer repeats, more listening.'
                           : 'Nothing you showed matched what they value.'}
@@ -436,14 +439,21 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
 }
 
 /** After a buyer walks away from a rug they liked: put it aside for them (hidden from everyone else). */
-function ReserveAfter() {
-  const g = useGame();
-  const [done, setDone] = useState('');
+function reserveChoice(g: ReturnType<typeof useGame.getState>) {
   const enc = g.encounter;
   if (!enc || enc.outcome !== 'walked' || !enc.presented || enc.venue) return null;
   const item = g.inventory.find((i) => i.uid === enc.presented);
   const liked = enc.malekUnsure || enc.presentedFit >= 55;
   if (!item || !liked) return null;
+  return { enc, item };
+}
+
+function ReserveAfter() {
+  const g = useGame();
+  const [done, setDone] = useState('');
+  const c = reserveChoice(g);
+  if (!c) return null;
+  const { enc, item } = c;
   const name = BUYERS[enc.buyerId]?.name ?? 'them';
   if (done || item.reservedFor === enc.buyerId) return <small className="reserve-done" data-testid="reserve-done">{done || `Kept aside for ${name}.`}</small>;
   return (

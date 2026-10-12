@@ -44,3 +44,9 @@
 
 /* the rug inspector's header is solid, so the top bar does not show through behind the name */
 [data-testid="inspector"] > .overlay-head { position: relative; z-index: 2; background: #140d07; }
+
+/* An audience once the sale is done: the stall's grid names six areas (toolbar first), and the
+   audience's own row list gave its one flexible row to the first of them, the toolbar, which is gone
+   once the talk ends: a tall empty band sat over the picture. The picture takes the spare height. */
+.audience-overlay .stall:not(.in-talk) { grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; }
+.audience-overlay .stall:not(.in-talk) > .scene.audience { min-height: 0; }

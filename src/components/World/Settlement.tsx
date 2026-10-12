@@ -56,6 +56,14 @@ export type SetTab = 'town' | 'market' | 'animals' | 'guards';
  *  for the full-width ones). The full maps are 1448px and only the walk itself needs them. */
 export const thumb = (src: string, w: 320 | 640 = 320) => src.replace(/^\/?(.*\/)([^/]+)\.(jpe?g|webp|png)$/, `$1thumbs/$2${w === 640 ? '-640' : ''}.webp`);
 const LAZY = { loading: 'lazy', decoding: 'async' } as const;
+/** The town menu's groups, the most used first, and which group each of its tiles goes in. */
+const MENU_GROUPS: [string, string][] = [['trade', 'Trade'], ['people', 'People'], ['services', 'Services'], ['leave', 'Leave']];
+const menuGroup = (tid: string) =>
+  /^menu-(stall|malek|walk|sell|market|houses|shop-)/.test(tid) ? 'trade'
+    : /^menu-(people|venues|court|museum|library)/.test(tid) ? 'people'
+      : /^menu-(sail|wait)/.test(tid) ? 'leave'
+        : 'services';
+
 export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town' }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab }) {
   const g = useGame();
   const [tab, setTab] = useState<SetTab>(initialTab);
@@ -161,6 +169,19 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     if (jn) setNote(jn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // A visitor's sale agreed on the card over this panel (A buyer in Tanta...) comes back as a note only
+  // after the panel is open: say what it came to, the price and what it made over what the rug cost,
+  // here where it stays, not only in a toast that may come and go unseen.
+  const jobNote = g.jobNote;
+  useEffect(() => {
+    if (!jobNote || g.world.at !== id) return;
+    const last = g.ledger[g.ledger.length - 1];
+    const sale = last && last.kind === 'sale' && last.day === g.day && last.cost !== undefined && jobNote.includes(fmt(last.amount)) ? last : undefined;
+    const net = sale ? sale.amount - (sale.cost ?? 0) : 0;
+    setNote(sale ? `${jobNote} Sold: ${net >= 0 ? `a profit of ${fmt(net)}` : `a loss of ${fmt(-net)}`} on the ${fmt(sale.cost ?? 0)} you paid.` : jobNote);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobNote]);
 
   // the town menu's buttons: each is a big way into a part of this panel (or a screen of its own)
   const people = st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival);
@@ -482,15 +503,39 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               </div>
               <p className="tm-blurb">{st.blurb}</p>
               {note && <p className="tm-note">{note}</p>}
-              <div className="tm-list">
-                {[...items].sort((a, b) => Number(b[4] === guide?.tile) - Number(a[4] === guide?.tile)).map(([icon, label, sub, act, tid]) => (
-                  <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}`} onClick={() => { act(); }} data-testid={tid}>
+              {(() => {
+                const tile = ([icon, label, sub, act, tid]: typeof items[number], small = false) => (
+                  <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}${small ? ' slim' : ''}`} onClick={() => { act(); }} data-testid={tid}>
                     <Icon name={icon} /><span><b>{label}</b>{sub && <small>{sub}</small>}</span>
                   </button>
-                ))}
-                <button className="tm-item quiet" onClick={() => setMenu(false)} data-testid="menu-all"><Icon name="book" /><span><b>Everything in {st.name}</b><small>Baths, tailors, books, tasks and the rest</small></span></button>
-                <button className="tm-item leave" onClick={onClose} data-testid="menu-leave"><Icon name="map" /><span><b>Leave {st.name}</b><small>Back to the map</small></span></button>
-              </div>
+                );
+                const all = <button key="menu-all" className="tm-item quiet slim" onClick={() => setMenu(false)} data-testid="menu-all"><Icon name="book" /><span><b>Everything in {st.name}</b><small>Baths, tailors, books, tasks and the rest</small></span></button>;
+                const leave = <button key="menu-leave" className="tm-item leave" onClick={onClose} data-testid="menu-leave"><Icon name="map" /><span><b>Leave {st.name}</b><small>Back to the map</small></span></button>;
+                const next = items.find((it) => it[4] === guide?.tile);
+                const rest = items.filter((it) => it !== next);
+                // a small town's few places fit as they are
+                if (items.length <= 6) return <div className="tm-list">{next && tile(next)}{rest.map((it) => tile(it))}{all}{leave}</div>;
+                // a city's many (Cairo has eighteen) come in a few headed groups, the trade first, so
+                // the screen is not one wall of buttons; the objective's place, if any, leads the lot
+                return (
+                  <div className="tm-groups" data-testid="town-menu-groups">
+                    {next && <div className="tm-list tm-next">{tile(next)}</div>}
+                    {MENU_GROUPS.map(([gid, head]) => {
+                      const mine = rest.filter((it) => menuGroup(it[4]) === gid);
+                      if (!mine.length && gid !== 'leave') return null;
+                      return (
+                        <section key={gid} className={`tm-group tm-group--${gid}`} aria-label={head}>
+                          <h3>{head}</h3>
+                          <div className="tm-list">
+                            {mine.map((it) => tile(it, gid !== 'trade'))}
+                            {gid === 'leave' && <>{all}{leave}</>}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );

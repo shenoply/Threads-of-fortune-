@@ -17,7 +17,9 @@ export interface PlaybackView {
   lastSpeaker: 'seller' | 'buyer' | 'other';
 }
 
-const CPS = 70;
+// characters a second: 1.6 times the old 70, which read as slow on a phone (a buyer's line took
+// several seconds to come out in full)
+const CPS = 112;
 
 /** Plays encounter lines one at a time with a typewriter reveal, so seller and buyer never talk over each other. */
 export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
@@ -94,7 +96,7 @@ export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
       typedRef.current = Math.min(next.text.length, typedRef.current + 2);
       setView((v) => ({ ...v, typed: typedRef.current }));
       if (typedRef.current < next.text.length) timer.current = window.setTimeout(tick, 2000 / CPS);
-      else waitVoice(() => { timer.current = window.setTimeout(step, voice.count ? 300 : 450 + next.text.length * 10); });
+      else waitVoice(() => { timer.current = window.setTimeout(step, voice.count ? 250 : 300 + next.text.length * 6); });
     };
     timer.current = window.setTimeout(tick, 120);
   }, [commit]);

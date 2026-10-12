@@ -1,12 +1,14 @@
 import { create } from 'zustand';
-import { openingStep } from '../opening';
+import { openingStep, OPENING } from '../opening';
+import { midName, count } from '../text';
+import { auctionable } from '../storyRugs';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { Goal, LedgerEntry, Relationship, RugItem, SupplierOffer } from '../types';
 import { BUYERS, BUYER_ORDER, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, celebUnlock } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { NARRATOR, RASHID } from '../../data/dialogue';
 import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
-import { snap, fmt } from '../economy/money';
+import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import type { HeroLook } from '../heroLook';
 import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
@@ -33,7 +35,7 @@ import { stepIllness, DISEASE, healthEffects, addIllness, rollInjury, type Illne
 /** Dr Feras's fee for treating one condition, by how serious it is (piastres) */
 export const TREAT_FEE: Record<string, number> = { common: 30, uncommon: 80, rare: 200, extreme: 400 };
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
-import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, type Loan, type Ruin } from '../systems/finance';
+import { LENDERS, INSURERS, COVER_DAYS, RUIN_STEPS, RUIN_THRESHOLD, RUIN_GRACE, claimFor, overdue, premiumFor, rugValue, netWorth, setLendWorth, type Loan, type Ruin } from '../systems/finance';
 import {
   doAction, petCat, pick, presentRug, startEncounter, tierOf,
   type ActionId, type Ctx, type Effects, type Encounter,
@@ -49,7 +51,7 @@ import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, setHealthMods, type PartyState } from '../systems/caravan';
+import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -490,11 +492,11 @@ function nightThieves(s: GameState, day: number, hour: number): { patch: Partial
   if (what === 'rug') {
     const r = carried[Math.floor(rng() * carried.length)];
     const claim = (s.insurance?.until ?? 0) >= s.day ? claimFor([r]) : 0;
-    const text = `Thieves came in the night and made off with the ${RUGS[r.typeId].name}.${claim ? ` You are insured: the agent in the next town will pay ${fmt(claim)}.` : ''}`;
+    const text = `Thieves came in the night and made off with the ${RUGS[r.typeId].name}.${claim ? ` You are insured: the Lloyd's agent in ${CLAIM_TOWNS} will pay ${fmt(claim)}.` : ''}`;
     return { patch: { inventory: s.inventory.filter((i) => i.uid !== r.uid), journal: log(text), ...(claim ? { claims: (s.claims ?? 0) + claim } : {}) }, note: text, night };
   }
   const lost = Math.min(food, 2 + Math.floor(rng() * 3));
-  const text = `Thieves came in the night and took ${lost} rations of food.`;
+  const text = `Thieves came in the night and took ${count(lost, 'ration')} of food.`;
   return { patch: { journal: log(text), world: { ...s.world, party: { ...s.world.party, food: food - lost } } }, note: text, night };
 }
 
@@ -599,13 +601,21 @@ export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
   return Math.round(restorePrice(item) * (1 - Math.min(0.4, levelOf(s.skills?.craft ?? 0) * 0.02)) * (item.condition === 'Dirty' && hasPerk(s.skills?.craft, 'craft', 5) ? 0.7 : 1));
 }
 
+/** What the local dealer pays for one of your rugs here. A dealer who sells this kind himself buys
+ *  it back for no more than four fifths of his own asking price today (in the condition you hold it),
+ *  a round dealer's figure; this keeps a town's own specialty from being bought and sold straight
+ *  back at a profit. The friends' discount on buying is not counted, so the figure is the same
+ *  whoever asks, and it always sits below what the dealer would charge you. */
+export const DEALER_BUYBACK = 0.8;
 export function localBid(sid: string, item: RugItem, day = 1): number {
   const st = settlementById(sid);
   const t = RUGS[item.typeId];
   let m = rumourBid(day, sid, item.typeId, t.traits);
   for (const tr of t.traits) m += st.demand[tr] ?? 0;
   if (item.provenance === 'Documented' && (st.demand.story ?? 0) > 0) m += 0.1;
-  return snap(perceivedValue(t, item) * 0.62 * m);
+  const bid = snap(perceivedValue(t, item) * 0.62 * m);
+  const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
+  return ask === undefined ? bid : Math.min(bid, snapDown(ask * DEALER_BUYBACK));
 }
 
 function initial(): Omit<GameState, keyof Actions> {
@@ -657,6 +667,22 @@ function initial(): Omit<GameState, keyof Actions> {
 // skipped so the game stops updating itself on disk — "Save now" and the save slots still work,
 // by briefly flipping this flag on for their one write (see forceSave below).
 let autosaveEnabled = true;
+/** how many more men the merchant can lead before his name's troop limit (caravan.ts troopCap) */
+export const troopRoom = (s: Pick<GameState, 'reputation' | 'world'>) => Math.max(0, troopCap(s.reputation) - troopCount(s.world.party));
+/** a royal warrant needs a sale at no less than this share of the rug's worth (finance.ts rugValue) */
+export const WARRANT_FAIR = 0.7;
+/** where Lloyd's keeps an agent who pays claims (finance.ts INSURERS) */
+const CLAIM_TOWNS = 'Cairo, Alexandria or Port Said';
+// Whether the last write to the save slot failed (storage full or blocked).
+// The page hears of it through window events: 'tof:save-failed' when a write first fails,
+// 'tof:save-ok' when writes succeed again.
+let saveFailed = false;
+export function lastSaveFailed() { return saveFailed; }
+function notifySave(failed: boolean, err?: unknown) {
+  try {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(failed ? 'tof:save-failed' : 'tof:save-ok', { detail: failed ? { error: String((err as Error)?.name ?? err ?? '') } : {} }));
+  } catch { /* no window */ }
+}
 
 const safeStorage: StateStorage = {
   getItem: (k) => {
@@ -670,8 +696,12 @@ const safeStorage: StateStorage = {
     if (!autosaveEnabled) return;
     try {
       localStorage.setItem(k, v);
-    } catch {
-      /* storage unavailable */
+      if (saveFailed) { saveFailed = false; notifySave(false); }
+    } catch (e) {
+      // storage full or unavailable: remember it and tell the page, so the player can be warned
+      const first = !saveFailed;
+      saveFailed = true;
+      if (first) notifySave(true, e);
     }
   },
   removeItem: (k) => {
@@ -911,7 +941,11 @@ export const useGame = create<GameState & Actions>()(
           const court = { last: { ...s.court.last, [enc.buyerId]: s.day }, warrants: s.court.warrants };
           if (enc.outcome === 'sold') {
             rep += 4;
-            if (!court.warrants.includes(enc.buyerId)) {
+            // a warrant is earned with a rug worthy of the court at a fair price, not with a giveaway
+            const soldItem = enc.presented ? s.inventory.find((i) => i.uid === enc.presented) : undefined;
+            const fair = !!soldItem && (RUGS[soldItem.typeId]?.tier ?? 1) >= 3 && (enc.salePrice ?? 0) >= WARRANT_FAIR * rugValue(soldItem);
+            if (!fair && !court.warrants.includes(enc.buyerId)) journal.push({ day: s.day, text: `${b.name} bought, but no warrant came with it: the household grants one only for a court-grade rug sold at a fair price (at least ${Math.round(WARRANT_FAIR * 100)} per cent of its worth).`, kind: 'royal' });
+            if (fair && !court.warrants.includes(enc.buyerId)) {
               court.warrants = [...court.warrants, enc.buyerId];
               rep += 3;
               journal.push({ day: s.day, text: `${b.royal.warrant}. Word of it will reach every buyer in the lane.`, kind: 'royal' });
@@ -994,7 +1028,7 @@ export const useGame = create<GameState & Actions>()(
               const id = aGuard(ids);
               if (moraleV <= MORALE_DESERT_AT) {
                 party.troops[id] -= 1;
-                notes.push(`No food, and patience ran out. A ${TROOPS[id].name.toLowerCase()} speaks for the rest: "We did not sign on to starve, effendi." He takes what he's owed and walks.`);
+                notes.push(`No food, and patience ran out. ${withArticle(midName(TROOPS[id].name)).replace(/^a/, 'A')} speaks for the rest: "We did not sign on to starve, effendi." He takes what he's owed and walks.`);
                 moraleV = 45;
               } else {
                 notes.push(`No food tonight. ${TROOPS[id].name} pulls you aside: "The sacks are empty, effendi. Fill them soon, or some of us will think about leaving."`);
@@ -1010,7 +1044,37 @@ export const useGame = create<GameState & Actions>()(
             }
             if (hd === 1) notes.push('No food left. You are hungry and the caravan is slower.');
             if ((s.parcels ?? []).length) notes.push("You still have Malek's parcels in your pack: eat a serving from Stock and your own ration is covered tonight.");
-            else { notes.push(`${hd} days with no food. The caravan is exhausted and moving badly.`); repBill -= 1; }
+            else if (hd >= 2) { notes.push(`${hd} days with no food. The caravan is exhausted and moving badly.`); repBill -= 1; }
+          }
+          // On the road a man can only be pushed so far. Worn to nothing, or four days without food, he
+          // goes down where he stands: the caravan stops, he sleeps where he fell, and tomorrow it moves at
+          // half pace. Starving, herders or travellers come by and sell (or, to a man with an empty purse,
+          // give) a few days' bread. Once down, it cannot happen again for a few days, so it never loops.
+          const needsOn = !s.sim || s.sim.needs || !!s.ironman;
+          if (needsOn && !s.world.at && (party.lastCollapse ?? -99) < s.day - 2) {
+            const starving = (party.hungryDays ?? 0) >= 4;
+            if (condition.fatigue >= 96 || starving) {
+              const men = troopIds().length > 0;
+              party.lastCollapse = s.day + 1;
+              party.weakUntil = s.day + 1;
+              condition = { ...condition, fatigue: Math.min(condition.fatigue, men ? 45 : 55), water: Math.max(waterOf(condition), 60) };
+              notes.push(men
+                ? `You went down on the road${starving ? ', weak with hunger' : ', worn out'}. Your men made camp where you fell and kept watch while you slept. The caravan will go slowly tomorrow.`
+                : `You went down on the road${starving ? ', weak with hunger' : ', worn out'} and lay where you fell until morning. Nobody came. You will go slowly tomorrow.`);
+              if (starving) {
+                const sacks = need * 3;
+                const price = Math.min(Math.max(0, Math.floor(cash)), sacks * 2);
+                party.food += sacks;
+                party.hungryDays = 0;
+                condition = { ...condition, fed: Math.max(fedOf(condition), 45) };
+                if (price > 0) {
+                  cash -= price;
+                  ledger.push({ day: s.day, kind: 'expense', label: 'Bread and dates from herders on the road', amount: -price });
+                  notes.push(`Herders driving goats along the track found you and sold you ${sacks} rations for ${fmt(price)}.`);
+                } else notes.push(`Herders driving goats along the track found you. Seeing your empty purse, they left you ${sacks} rations and asked nothing.`);
+              }
+              journal.push({ day: s.day, text: `Went down on the road (${starving ? 'hunger' : 'exhaustion'}).`, kind: 'road' as const });
+            }
           }
           const pay = wages(party);
           let paidWages = 0;
@@ -1028,7 +1092,7 @@ export const useGame = create<GameState & Actions>()(
                 if (moraleV <= MORALE_DESERT_AT) {
                   const leave = Math.min(party.troops[id], 2);
                   party.troops[id] -= leave;
-                  notes.push(`Wages unpaid too long. ${leave} ${TROOPS[id].plural.toLowerCase()} collect what they're owed in kind and leave.`);
+                  notes.push(`Wages unpaid too long. ${leave === 1 ? `${withArticle(midName(TROOPS[id].name)).replace(/^a/, 'A')} collects what he is` : `${leave} ${midName(TROOPS[id].plural)} collect what they're`} owed in kind and ${leave === 1 ? 'leaves' : 'leave'}.`);
                   moraleV = 45;
                 } else {
                   notes.push(`You could not pay wages tonight. ${TROOPS[id].name} is blunt about it: "No pay, no patience, effendi. Settle up soon."`);
@@ -1355,6 +1419,33 @@ export const useGame = create<GameState & Actions>()(
         return idx === st.visitIdx ? {} : { visitIdx: idx, journal: [...st.journal, ...notes] };
       };
 
+      /** A delay (a fight, a faint, a detention) that runs past midnight carries into the next day: the
+       *  clock was set to the last minute of today, and this rolls the rest of the hours over properly
+       *  (upkeep, the night, a new date). In Giza the day closes the usual way first. */
+      const spillHours = (target: number) => {
+        if (!(target >= 24)) return;
+        const s = get();
+        if (s.ended) return;
+        if (s.world.at === 'giza') {
+          get().endDay();
+          const w = get().world;
+          set({ world: { ...w, hour: Math.max(w.hour, Math.min(23.9, target - 24)) } });
+          return;
+        }
+        get().worldTick(Math.max(0, target - s.world.hour) / 24);
+      };
+
+      /** An insurance claim is paid only where Lloyd's keeps an agent; anywhere else it waits, and he is told where to go. */
+      const payClaims = (id: string) => {
+        const g3 = get(); const c = g3.claims ?? 0;
+        if (c <= 0) return;
+        if (!INSURERS.includes(id)) {
+          if (!g3.jobNote) set({ jobNote: `Your insurance claim of ${fmt(c)} is still waiting. There is no Lloyd's agent in ${settlementById(id).name}: claim it in ${CLAIM_TOWNS}.` });
+          return;
+        }
+        set({ cash: g3.cash + c, claims: 0, ledger: [...g3.ledger, { day: g3.day, kind: 'bonus', label: 'Insurance claim paid', amount: c }], journal: [...g3.journal, { day: g3.day, text: `The insurance agent in ${settlementById(id).name} paid your claim: ${fmt(c)}.`, kind: 'arrive' }], jobNote: `The insurance agent in ${settlementById(id).name} paid your claim for the lost rugs: ${fmt(c)}.` });
+      };
+
       return {
         ...initial(),
 
@@ -1461,6 +1552,7 @@ export const useGame = create<GameState & Actions>()(
           const hour = s.world.hour + (skipHour ? 0 : 1.5);
           set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'cairo' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry to Cairo.', kind: 'arrive' }], cash: s.cash - 1, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Nile ferry to Cairo', amount: -1 }], world: { ...s.world, at: 'cairo', x: st.x, y: st.y, hour: Math.min(hour, 23.5), known: s.world.known.includes('cairo') ? s.world.known : [...s.world.known, 'cairo'] } });
           audio.sfx('arrive');
+          payClaims('cairo');
           get().checkJobs('cairo');
           return 'The ferry noses across the brown river. An hour and a half later you step ashore at Cairo.';
         },
@@ -1477,10 +1569,7 @@ export const useGame = create<GameState & Actions>()(
               if (fee > 0) set({ cash: g2.cash - fee, ledger: [...g2.ledger, { day: g2.day, kind: 'expense', label: `Checkpoint at ${settlementById(id).name}`, amount: -fee }], journal: [...g2.journal, { day: g2.day, text: `${ev.name}: soldiers at the gate of ${settlementById(id).name} searched the bales. The "inspection fee" was ${fmt(fee)}.`, kind: 'arrive' }] });
             }
           }
-          if (id && (get().claims ?? 0) > 0) {
-            const g3 = get(); const c = g3.claims ?? 0;
-            set({ cash: g3.cash + c, claims: 0, ledger: [...g3.ledger, { day: g3.day, kind: 'bonus', label: 'Insurance claim paid', amount: c }], journal: [...g3.journal, { day: g3.day, text: `The insurance agent in ${settlementById(id).name} paid your claim: ${fmt(c)}.`, kind: 'arrive' }], jobNote: `The insurance agent paid your claim for the stolen rugs: ${fmt(c)}.` });
-          }
+          if (id) payClaims(id);
           const known = id && !s.world.known.includes(id) ? [...s.world.known, id] : s.world.known;
           const st = id ? settlementById(id) : null;
           set({ world: { ...s.world, at: id, known, ...(st ? { x: st.x, y: st.y } : {}) } });
@@ -1512,9 +1601,9 @@ export const useGame = create<GameState & Actions>()(
               }
               patrols[key] = worst!;
               if (worst!.kind === 'seize') { rep -= 2; attention += 20; }
-              if (worst!.kind === 'detain') { rep -= 3; attention += 30; const fine = Math.min(cash, 200); cash -= fine; ledger.push({ day: s.day, kind: 'expense', label: `Fine at ${settlementById(id).name}`, amount: -fine }); hour = Math.min(23.9, hour + 10); }
+              if (worst!.kind === 'detain') { rep -= 3; attention += 30; const fine = Math.min(cash, 200); cash -= fine; ledger.push({ day: s.day, kind: 'expense', label: `Fine at ${settlementById(id).name}`, amount: -fine }); hour += 10; }
               if (worst!.kind === 'question' && carried.some((c) => c.paperwork === 'none' && c.cls !== 'ordinary')) attention += 10;
-              if (worst!.kind === 'question') hour = Math.min(23.9, hour + 1);
+              if (worst!.kind === 'question') hour += 1;
               journal.push({ day: s.day, text: `Patrol at ${settlementById(id).name}: ${worst!.note}${worst!.reason ? ` Why: ${worst!.reason}` : ''}${worst!.fix ? ` ${worst!.fix}` : ''}`, kind: 'road' });
             }
             notes.push(`Patrol at ${settlementById(id).name}: ${worst!.note}${worst!.reason ? ` Why: ${worst!.reason}` : ''}${worst!.fix ? ` ${worst!.fix}` : ''}`);
@@ -1530,7 +1619,8 @@ export const useGame = create<GameState & Actions>()(
             cargo = cargo.filter((x) => x.id !== c.id);
           }
           if (!notes.length) return;
-          set({ cargo, cash, reputation: Math.max(0, rep), attention: Math.max(0, Math.min(100, attention)), ledger, journal, patrols, world: { ...get().world, hour }, jobNote: notes.join(' ') });
+          set({ cargo, cash, reputation: Math.max(0, rep), attention: Math.max(0, Math.min(100, attention)), ledger, journal, patrols, world: { ...get().world, hour: Math.min(23.9, hour) }, jobNote: notes.join(' ') });
+          spillHours(hour);
         },
 
         setStallShut: (shut) => { set({ stallShut: shut }); audio.sfx('tap'); },
@@ -1566,12 +1656,21 @@ export const useGame = create<GameState & Actions>()(
             lostItems.push(carried[0]);
             inventory = inventory.filter((x) => x.uid !== carried[0].uid);
           }
-          // insured cargo: the claim is paid by the agent in the next town
+          // insured cargo: the claim is paid by the Lloyd's agent in Cairo, Alexandria or Port Said
           const claim = lostItems.length && (s.insurance?.until ?? 0) >= s.day ? claimFor(lostItems) : 0;
           if (claim) set({ claims: (s.claims ?? 0) + claim });
           const troops = { ...s.world.party.troops };
           for (const [id, n] of Object.entries(o.troopsLost ?? {})) troops[id] = Math.max(0, (troops[id] ?? 0) - n);
-          if (o.joiners) troops.reformed = (troops.reformed ?? 0) + o.joiners;
+          // beaten raiders who ask to join are taken on only while there is room under the troop limit
+          let joinNote = '';
+          if (o.joiners) {
+            const room = Math.max(0, troopCap(s.reputation) - Object.values(troops).reduce((a, n) => a + (n ?? 0), 0));
+            const took = Math.min(room, o.joiners), left = o.joiners - took;
+            if (took) troops.reformed = (troops.reformed ?? 0) + took;
+            if (left) joinNote = took
+              ? ` Only ${took} of them could join: you already lead as many men as your name allows, so ${left === 1 ? 'the other rides off alone' : `the other ${left} ride off`}.`
+              : ` You lead as many men as your name allows, so ${o.joiners === 1 ? 'the raider who asked to join rides off alone' : `the ${o.joiners} raiders who asked to join ride off`}.`;
+          }
           // a beaten band's animals go with their men: caught, not bought
           const animals = { ...s.world.party.animals };
           if (o.animalsGained) animals[o.animalsGained.id] = (animals[o.animalsGained.id] ?? 0) + o.animalsGained.n;
@@ -1585,8 +1684,10 @@ export const useGame = create<GameState & Actions>()(
             ...(o.enemyLost ? { size: Math.max(2, (x.size ?? 4) - o.enemyLost), strength: Math.max(4, (x.strength ?? 8) - o.enemyLost * 2) } : {}),
           } : x));
           const hour = s.world.hour + (o.delayHours ?? 0);
-          set({ cash, ledger, inventory, reputation: Math.max(0, s.reputation + (o.rep ?? 0)), world: { ...s.world, hour: Math.min(hour, 23.9), party: { ...s.world.party, troops, animals }, parties }, journal: [...s.journal, { day: s.day, text: o.text, kind: 'road' }] });
-          return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.${claim ? ` You are insured: the agent in the next town will pay ${fmt(claim)}.` : ''}` : o.text;
+          set({ cash, ledger, inventory, reputation: Math.max(0, s.reputation + (o.rep ?? 0)), world: { ...s.world, hour: Math.min(hour, 23.9), party: { ...s.world.party, troops, animals }, parties }, journal: [...s.journal, { day: s.day, text: o.text + joinNote, kind: 'road' }] });
+          spillHours(hour);
+          o = { ...o, text: o.text + joinNote };
+          return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.${claim ? ` You are insured: the Lloyd's agent in ${CLAIM_TOWNS} will pay ${fmt(claim)}.` : ''}` : o.text;
         },
 
         checkJobs: (id, confirm) => {
@@ -1596,7 +1697,7 @@ export const useGame = create<GameState & Actions>()(
           if (visit) {
             const tierOfV = (i: RugItem) => RUGS[i.typeId]?.tier ?? 1;
             const rug = s.inventory.filter((i) => !i.stored && !keptBack(s, i) && tierOfV(i) >= visit.tier).sort((a, b) => tierOfV(a) - tierOfV(b))[0];
-            if (!rug) set({ jobNote: `${visit.who} wants a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][visit.tier]}. Pack one for the road in your Stock and come back before ${dateFor(visit.until).short}.` });
+            if (!rug) set({ jobNote: `${visit.who} wants ${withArticle(['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][visit.tier])}. Pack one for the road in your Stock and come back before ${dateFor(visit.until).short}.` });
             else {
               const t = RUGS[rug.typeId];
               const pay = snap(((t.valueBand[0] + t.valueBand[1]) / 2) * CONDITION_FACTOR[rug.condition] * visit.mult);
@@ -1627,7 +1728,7 @@ export const useGame = create<GameState & Actions>()(
           const tierOf = (i: RugItem) => RUGS[i.typeId]?.tier ?? 1;
           const packed = job.need?.packedTier ? s.inventory.filter((i) => !i.stored && !(job.reward.sellPacked && keptBack(s, i)) && tierOf(i) >= job.need!.packedTier!).sort((a, b) => tierOf(a) - tierOf(b))[0] : undefined;
           const missing =
-            job.need?.packedTier && !packed ? `bring a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][job.need.packedTier]} packed for the road. Rugs are packed at your Giza stall (Stock tab), so this one means a trip home first` :
+            job.need?.packedTier && !packed ? `bring ${withArticle(['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][job.need.packedTier])} packed for the road. Rugs are packed at your Giza stall (Stock tab), so this one means a trip home first` :
             job.need?.animals && animalCount(s.world.party) < job.need.animals ? `bring at least ${job.need.animals} animals` :
             job.need?.guards && !Object.values(s.world.party.troops ?? {}).some((n) => (n ?? 0) > 0) ? 'hire at least one guard' :
             job.reward.fee && s.cash < job.reward.fee ? `bring ${fmt(job.reward.fee)}` : '';
@@ -1690,7 +1791,9 @@ export const useGame = create<GameState & Actions>()(
           // place explicitly; other callers (the map's own travel flow) trigger this right at arrival,
           // when world.at already matches, so the fallback is equivalent for them
           const from = fromOverride ?? s.world.at;
-          const r = from ? (mode === 'motor' ? motorRoutesFrom(from) : seaRoutesFrom(from)).find((x) => x.to === to) : undefined;
+          // the fare covers everyone and every animal, as the map's trip card shows it
+          const party = { people: 1 + troopCount(s.world.party), animals: s.world.party.animals ?? {} };
+          const r = from ? (mode === 'motor' ? motorRoutesFrom(from, party) : seaRoutesFrom(from, party)).find((x) => x.to === to) : undefined;
           if (!r) return mode === 'motor' ? 'No motor service runs there from here.' : 'No ship sails there from here.';
           if (s.cash < r.fare) return 'You cannot afford the fare.';
           set({ cash: s.cash - r.fare, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: mode === 'motor' ? `Nairn desert car to ${settlementById(to).name}` : `Deck passage to ${settlementById(to).name}`, amount: -r.fare }] });
@@ -1836,8 +1939,10 @@ export const useGame = create<GameState & Actions>()(
           // a profit — not only same-day (which also needs the sold-out stock ignored, so this asks
           // for the price directly rather than matching today's one rolled-condition listing) but even
           // across visits, since the rug keeps its condition long after the day it was bought.
+          // (the cap now lives in localBid; this guard only matters if a friend's discount ever drops
+          // the asking price under it)
           const askToday = localAskPrice(sid, s.day, it.typeId, it.condition, s.world.friends, s.reputation);
-          if (askToday !== undefined) bid = Math.min(bid, Math.max(0, askToday - 1));
+          if (askToday !== undefined && bid >= askToday) bid = snapDown(askToday * DEALER_BUYBACK);
           set({
             cash: s.cash + bid,
             inventory: s.inventory.filter((i) => i.uid !== uid),
@@ -1865,7 +1970,7 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('coins');
           if (sid === 'alexandria') set({ onboard: { ...(get().onboard ?? {}), auction: true } });
           const m = MISSIONS.alexandria;
-          if (sid === m.target && s.missions?.alexandria === 'active') {
+          if (sid === m.target && get().missions?.alexandria === 'active') {
             const g2 = get();
             set({
               missions: { ...g2.missions, alexandria: 'done' },
@@ -1941,7 +2046,7 @@ export const useGame = create<GameState & Actions>()(
               for (const id of Object.keys(party.troops)) {
                 let lost = 0;
                 for (let i = 0; i < party.troops[id]; i++) if (rng() < chance) lost++;
-                if (lost) { party.troops[id] -= lost; losses.push(`${lost} ${lost > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`); }
+                if (lost) { party.troops[id] -= lost; losses.push(`${lost} ${midName(lost > 1 ? TROOPS[id].plural : TROOPS[id].name)}`); }
               }
             };
             if (rng() < pWin) {
@@ -1953,8 +2058,14 @@ export const useGame = create<GameState & Actions>()(
               let join = '';
               if (rng() < 0.4) {
                 const n = 1 + Math.floor(rng() * 2);
-                party.troops.reformed = (party.troops.reformed ?? 0) + n;
-                join = ` ${n} of the beaten raiders ask to ride with you instead. You take them on.`;
+                const room = Math.max(0, troopCap(rep) - troopCount(party));
+                const took = Math.min(room, n);
+                if (took) party.troops.reformed = (party.troops.reformed ?? 0) + took;
+                join = took === n
+                  ? ` ${n === 1 ? 'One of the beaten raiders asks' : `${n} of the beaten raiders ask`} to ride with you instead. You take ${n === 1 ? 'him' : 'them'} on.`
+                  : took
+                    ? ` ${n} of the beaten raiders ask to ride with you. You lead as many men as your name allows, so you take on ${took} and the other rides off.`
+                    : ` ${n === 1 ? 'One of the beaten raiders asks' : `${n} of the beaten raiders ask`} to ride with you, but you already lead as many men as your name allows. ${n === 1 ? 'He rides' : 'They ride'} off.`;
               }
               msg = `Your men stand firm and the raiders break and scatter. You pick up ${fmt(loot)} they dropped.${losses.length ? ` Lost: ${losses.join(', ')}.` : ' No one was hurt.'}${join}`;
               const moved = parties.map((x) => (x.id === partyId ? { ...x, x: x.home?.x ?? x.x, y: x.home?.y ?? x.y, cooldownUntil: s.day + 4, size: Math.max(2, (x.size ?? 4) - 2), strength: Math.max(4, (x.strength ?? 8) - 4) } : x));
@@ -1994,16 +2105,17 @@ export const useGame = create<GameState & Actions>()(
             const typeId = pool[(partyId.charCodeAt(1) + s.day) % pool.length];
             const t = RUGS[typeId];
             const price = snap(t.dealerCost * 0.85);
-            if (cash < price) msg = `They offer a ${t.name} for ${fmt(price)}. You cannot afford it.`;
+            if (cash < price) msg = `They offer ${withArticle(t.name)} for ${fmt(price)}. You cannot afford it.`;
             else {
               cash -= price;
               ledger.push({ day: s.day, kind: 'purchase', label: `Bought ${t.name} from a caravan`, amount: -price, cost: price });
               const item: RugItem = { uid: newUid('r'), typeId, condition: 'Good', restored: false, provenance: t.provenance === 'Documented' ? 'Likely' : t.provenance, paid: price, notes: ['Bought from a caravan on the road. No papers.'], stored: false };
               set({ inventory: [...get().inventory, item] });
-              msg = `You buy a ${t.name} off a camel for ${fmt(price)}.`;
+              msg = `You buy ${withArticle(t.name)} off a camel for ${fmt(price)}.`;
             }
           } else msg = 'You move on.';
           set({ cash, reputation: rep, ledger, world: { ...s.world, parties, known, hour: Math.min(hour, 23.9) } });
+          spillHours(hour);
           if (robAfter) msg = `${msg} ${get().robBroke()}`;
           return msg;
         },
@@ -2036,8 +2148,8 @@ export const useGame = create<GameState & Actions>()(
             // 1 your animals
             { art: 'rob-animal', w: 3, ok: herdIds.length > 0, go: () => {
               const id = herdIds[Math.floor(rng() * herdIds.length)];
-              set({ world: { ...get().world, party: { ...party, animals: { ...party.animals, [id]: (party.animals[id] ?? 1) - 1 } } }, journal: journal(`Robbed on the road: they took a ${BREEDS[id]?.name.toLowerCase() ?? 'beast'}.`) });
-              return `So they take a ${BREEDS[id]?.name.toLowerCase() ?? 'beast'} instead, and lead it away. You will carry less and go slower until you buy another.`;
+              set({ world: { ...get().world, party: { ...party, animals: { ...party.animals, [id]: (party.animals[id] ?? 1) - 1 } } }, journal: journal(`Robbed on the road: they took ${BREEDS[id] ? withArticle(midName(BREEDS[id].name)) : 'a beast'}.`) });
+              return `So they take ${BREEDS[id] ? withArticle(midName(BREEDS[id].name)) : 'a beast'} instead, and lead it away. You will carry less and go slower until you buy another.`;
             } },
             // 2 your clothes
             { art: 'rob-clothes', w: 3, ok: takeable.length > 0, go: () => {
@@ -2169,9 +2281,9 @@ export const useGame = create<GameState & Actions>()(
           const cap = troopCap(s.reputation);
           if (troopCount(s.world.party) + k > cap) return `You can lead ${cap} men at most for now. A bigger name (reputation) brings more who will follow you.`;
           const party = { ...s.world.party, troops: { ...s.world.party.troops, [troop]: (s.world.party.troops[troop] ?? 0) + k } };
-          set({ cash: s.cash - cost, world: { ...s.world, party, hired: { ...s.world.hired, [key]: (s.world.hired[key] ?? 0) + k } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Recruited ${k} ${(k > 1 ? t.plural : t.name).replace(/^(?!Giza |Cairo |Bedouin |Arnaut )\w/, (c) => c.toLowerCase())}`, amount: -cost }] });
+          set({ cash: s.cash - cost, world: { ...s.world, party, hired: { ...s.world.hired, [key]: (s.world.hired[key] ?? 0) + k } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Recruited ${k} ${midName(k > 1 ? t.plural : t.name)}`, amount: -cost }] });
           audio.sfx('coins');
-          return `${k} ${(k > 1 ? t.plural : t.name).replace(/^(?!Giza |Cairo |Bedouin |Arnaut )\w/, (c) => c.toLowerCase())} ${k > 1 ? 'join' : 'joins'} your caravan. Wages ${fmt(t.wage * k)} a day.`;
+          return `${k} ${midName(k > 1 ? t.plural : t.name)} ${k > 1 ? 'join' : 'joins'} your caravan. Wages ${fmt(t.wage * k)} a day.`;
         },
 
         dismiss: (troop, n) => {
@@ -2215,7 +2327,7 @@ export const useGame = create<GameState & Actions>()(
             intel[id] = applyAuctionObservation(intel[id] ?? { rugFamily: id, observations: 0, confidence: 0 }, norm);
           }
           let reoffers = (s.reoffers ?? []).filter((r) => !(r.houseId === houseId && lot.reoffered !== undefined && r.typeId === lot.typeIds[0]));
-          if (!winner && !lot.bundle && shouldReofferUnsoldLot(Math.random(), h.tier)) {
+          if (!winner && !lot.bundle && auctionable(lot.typeIds[0]) && shouldReofferUnsoldLot(Math.random(), h.tier)) {
             const times = (lot.reoffered ?? 0) + 1;
             reoffers = [...reoffers, { houseId, typeId: lot.typeIds[0], condition: lot.conditions[0], provenance: lot.provenance[0], reserve: reducedReserveForReoffer(lot.reserve, times), times }].slice(-12);
           }
@@ -2783,7 +2895,7 @@ export const useGame = create<GameState & Actions>()(
           if ((s.bankruptcies ?? 0) > 0 && lid === 'misr') return 'The bank has your name on its list of bankrupts.';
           const stock = s.inventory.reduce((a, i) => a + rugValue(i), 0);
           if (lid === 'misr' && stock < amount) return `The bank wants stock worth at least what you borrow. Yours is worth ${fmt(stock)}.`;
-          const amt = Math.max(100, Math.min(amount, L.max(s.reputation)));
+          const amt = Math.max(100, Math.min(amount, L.max(s.reputation, Math.max(0, netWorth(s)))));
           const loan: Loan = { id: newUid('l'), lender: lid, principal: amt, owed: Math.round((amt * L.owedPer100) / 100), taken: s.day, due: s.day + L.days };
           set({
             cash: s.cash + amt,
@@ -3312,6 +3424,7 @@ export const useGame = create<GameState & Actions>()(
         },
 
         setAutosave: (on) => {
+          if (get().ironman) on = true;
           // let this one write through regardless of the previous state, so the choice itself
           // is always recorded, then leave the flag set to match it for everything after
           autosaveEnabled = true;
@@ -3335,7 +3448,8 @@ export const useGame = create<GameState & Actions>()(
           }
           set(patch);
         },
-        setIronman: (on) => { const s = get(); if (s.started) return; set({ ironman: on }); },
+        // an Ironman game always saves itself: there is no choosing when to write
+        setIronman: (on) => { const s = get(); if (s.started) return; if (on) autosaveEnabled = true; set(on ? { ironman: on, autosaveOn: true } : { ironman: on }); },
         // Passing out in a town: a stranger carries him to Dr Feras (from Giza by the ferry, from further by the next train to Cairo)
         collapse: (reason) => {
           const s = get(); const at = s.world.at;
@@ -3351,6 +3465,7 @@ export const useGame = create<GameState & Actions>()(
               condition: { ...c, fatigue: Math.min(c.fatigue, near ? 55 : 40), fed: Math.max(fedOf(c), 45), water: Math.max(waterOf(c), 70) },
               journal: [...s.journal, { day: s.day, text: `Passed out (${reason}). His men ${near ? 'carried him to Dr Feras' : 'made camp and nursed him'}.`, kind: 'road' as const }],
             });
+            spillHours(s.world.hour + (near ? 1 : 4));
             return;
           }
           // to begin with nobody carries you to Dr Feras: you come to where you fell, some hours later, and see to yourself
@@ -3360,6 +3475,7 @@ export const useGame = create<GameState & Actions>()(
             condition: { ...c, fatigue: Math.min(c.fatigue, 45), fed: Math.max(fedOf(c), 30), water: Math.max(waterOf(c), 60) },
             journal: [...s.journal, { day: s.day, text: `Passed out (${reason}) in ${settlementById(at).name}. Came to hours later.`, kind: 'road' as const }],
           });
+          spillHours(s.world.hour + 5);
         },
         clearRescue: () => set({ rescue: undefined }),
         // Beaten senseless on the road: half the time you wake alone a few hours later, half the time someone walking by finds you
@@ -3375,6 +3491,7 @@ export const useGame = create<GameState & Actions>()(
               world: { ...s.world, hour: Math.min(23.9, s.world.hour + hrs) },
               journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). Woke alone ${hrs} hours later.`, kind: 'road' as const }],
             });
+            spillHours(s.world.hour + hrs);
             return `You wake in the dust ${hrs} hours later, alone, head ringing. The sun has moved. Nobody came.`;
           }
           const here = s.world.at ? SETTLEMENTS.find((x) => x.id === s.world.at) : undefined;
@@ -3385,9 +3502,10 @@ export const useGame = create<GameState & Actions>()(
             rescue: { day: s.day, from: near.id, reason, fare: 0, by: menHere ? 'men' : 'passerby', clinic },
             condition: { ...c, fatigue: Math.min(100, c.fatigue + 10), fed: Math.max(fedOf(c), 35), water: Math.max(waterOf(c), 60) },
             journey: undefined,
-            world: { ...s.world, at: clinic ? 'cairo' : near.id, x: near.x, y: near.y, hour: Math.min(23, s.world.hour + 4) },
+            world: { ...s.world, at: clinic ? 'cairo' : near.id, x: near.x, y: near.y, hour: Math.min(23.9, s.world.hour + 4) },
             journal: [...s.journal, { day: s.day, text: `Knocked senseless (${reason}). ${menHere ? 'His men' : 'A passer-by'} took him to ${near.name}.`, kind: 'road' as const }],
           });
+          spillHours(s.world.hour + 4);
           return menHere ? 'You black out. Your men are around you.' : 'You black out. Someone is standing over you.';
         },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
@@ -3398,6 +3516,8 @@ export const useGame = create<GameState & Actions>()(
           const init = initial() as Record<string, unknown>;
           const cleared: Record<string, undefined> = {};
           for (const [k, v] of Object.entries(get() as unknown as Record<string, unknown>)) if (typeof v !== 'function' && !(k in init)) cleared[k] = undefined;
+          // a new game starts with autosave on (initial() says so), and the write flag must match it
+          autosaveEnabled = true;
           set({ ...cleared, ...init, playMode: undefined, heroLook: undefined } as Partial<GameState>);
         },
       };
@@ -3407,8 +3527,9 @@ export const useGame = create<GameState & Actions>()(
       version: SAVE_VERSION,
       storage: createJSONStorage(() => safeStorage),
       partialize: (s) => {
-        const { encounter, dayOver, seed, audienceStash, held, ...rest } = s as GameState & Actions;
-        void encounter; void dayOver; void seed; void audienceStash; void held;
+        // dayOver is kept: a stall shut for the day stays shut after a reload
+        const { encounter, seed, audienceStash, held, ...rest } = s as GameState & Actions;
+        void encounter; void seed; void audienceStash; void held;
         const out: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(rest)) if (typeof v !== 'function') out[k] = v;
         return out as unknown as GameState & Actions;
@@ -3539,7 +3660,9 @@ export const useGame = create<GameState & Actions>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         // carry the saved autosave choice forward, so a reload doesn't silently turn it back on
-        autosaveEnabled = state.autosaveOn ?? true;
+        autosaveEnabled = state.ironman ? true : (state.autosaveOn ?? true);
+        // story rugs are never auction lots, even ones an older save had queued to be offered again
+        if (state.reoffers?.some((r) => !auctionable(r.typeId))) state.reoffers = state.reoffers.filter((r) => auctionable(r.typeId));
         // A visit in progress is not saved; the same buyer returns on reload.
         if (state.started && !state.tutorial.done) {
           state.tutorial = { done: false, step: 'room', inspected: false };
@@ -3578,6 +3701,43 @@ useGame.subscribe((s) => {
   audio.sfx('chest');
 });
 
+// Rashid's errand starts the moment the opening puts you on the train to Alexandria (not the next
+// morning), so a rug bought there during the opening counts. A purchase made in Alexandria before the
+// errand was on the books (an older save) is taken as proof all the same.
+const alexandriaErrand = (s: GameState) => {
+  if (!s.started || !s.tutorial.done || s.missions?.alexandria === 'done') return;
+  const state = s.missions?.alexandria;
+  const cur = openingStep(s);
+  const onTrain = !!cur && cur.n >= OPENING.findIndex((x) => x.id === 'bandits');
+  if (!state && !onTrain && !s.onboard?.auction) return;
+  if (!state && MAIN_ORDER.some((id) => s.missions?.[id] === 'active')) return;
+  const m = MISSIONS.alexandria;
+  if (s.onboard?.auction) {
+    useGame.setState({
+      missions: { ...s.missions, alexandria: 'done' },
+      missionStart: { ...(s.missionStart ?? {}), alexandria: s.missionStart?.alexandria ?? s.day },
+      cash: s.cash + m.reward.cash,
+      reputation: s.reputation + m.reward.rep,
+      supplier: { ...s.supplier, trust: Math.min(100, s.supplier.trust + m.reward.trust), offers: rashidStock(s.day, rng, s.reputation + m.reward.rep, false) },
+      ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: `Mission: ${m.title}`, amount: m.reward.cash }],
+      journal: [...s.journal, { day: s.day, text: `Mission complete: ${m.title}. Rashid's back room and credit are open.`, kind: 'mission' }],
+    });
+    audio.sfx('chest');
+    return;
+  }
+  if (state) return;
+  useGame.setState({
+    missions: { ...s.missions, alexandria: 'active' },
+    missionStart: { ...(s.missionStart ?? {}), alexandria: s.day },
+    // the opening's own bar already says "take the train to Alexandria": no second banner over it
+    ...(onTrain ? {} : { missionNews: 'alexandria' }),
+    journal: [...s.journal, { day: s.day, text: `New main mission: ${m.title}.`, kind: 'mission' }],
+  });
+};
+// the saved game is loaded before this line runs, so look at it once now as well as on every change
+alexandriaErrand(useGame.getState());
+useGame.subscribe(alexandriaErrand);
+
 // "Your father's rug" cannot be done without the Fayoum Hearth. If it was sold or lost before
 // Rashid sent you to Damascus with it, he tracks it down and buys it back: it waits at the stall.
 // Once only: lose it a second time and the mission has to be done without it (or not at all).
@@ -3586,7 +3746,7 @@ useGame.subscribe((s) => {
   if (s.inventory.some((i) => i.typeId === 'fayoum-hearth')) return;
   const t = RUGS['fayoum-hearth'];
   const item: RugItem = { uid: newUid('r'), typeId: 'fayoum-hearth', condition: 'Worn', restored: false, provenance: t.provenance, paid: 0, notes: ['Your father\'s rug. Rashid bought it back for you.'], stored: true };
-  const text = 'Rashid found your father\'s Fayoum rug and bought it back. "Some things are not for sale." It is waiting at your stall: pack it before you go to Damascus.';
+  const text = 'Rashid found your father\'s Fayoum rug and bought it back. "Some things are not for sale." He is sending it on to you: it travels with you to Damascus.';
   useGame.setState({ inventory: [...s.inventory, item], faridRecovered: true, journal: [...s.journal, { day: s.day, text, kind: 'mission' }], jobNote: text });
 });
 
@@ -3603,6 +3763,17 @@ useGame.subscribe((s) => {
 const syncHealth = (s: { illnesses?: Illness[] }) => { const h = healthEffects(s.illnesses); setHealthMods({ speed: h.speed, carry: h.carry }); };
 syncHealth(useGame.getState());
 useGame.subscribe((s) => syncHealth(s));
+// lenders' limits follow what the business is worth (finance.ts LEND_CTX)
+const syncWorth = (s: GameState) => setLendWorth(netWorth(s));
+syncWorth(useGame.getState());
+useGame.subscribe(syncWorth);
+// tiredness slows the caravan, and the day after going down on the road it goes at half pace
+const syncCondition = (s: GameState) => {
+  const on = !s.sim || s.sim.needs || !!s.ironman;
+  setConditionMods({ fatigue: on ? s.condition?.fatigue ?? 0 : 0, weak: on && (s.world?.party?.weakUntil ?? -1) >= s.day });
+};
+syncCondition(useGame.getState());
+useGame.subscribe(syncCondition);
 // worn out to the bone in a town: he goes down in the street
 useGame.subscribe((s) => { if (s.started && !s.ended && !s.rescue && (!s.sim || s.sim.needs || s.ironman) && s.world.at && (s.condition?.fatigue ?? 0) >= 96) queueMicrotask(() => useGame.getState().collapse('exhaustion')); });
 

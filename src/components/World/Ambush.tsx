@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../Icon';
-import { useGame, takeRobArt } from '../../game/state/store';
+import { useGame, takeRobArt, troopRoom } from '../../game/state/store';
 import { TROOPS } from '../../data/caravan';
 import { strength } from '../../game/systems/caravan';
 import { BREEDS, withArticle } from '../../data/animals';
@@ -10,7 +10,7 @@ import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { BATTLE_ART, BAND_ART, fieldFor } from './BattleField';
-import { TacticalBattle } from './TacticalBattle';
+import { TacticalBattle, simulatedOdds } from './TacticalBattle';
 import { lookFor } from '../../game/heroLook';
 import { newBattle, MOUNTED_TROOPS, RIFLE_TROOPS, type Battle, type Outcome, type Roster } from '../../game/systems/tactics';
 
@@ -31,7 +31,7 @@ const BAND_MOUNT: Record<string, string> = {
 };
 
 /** Bandits on the road, Bannerlord-style: the map stops, both sides are weighed, and you talk, pay, run or fight. */
-export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (msg: string) => void; onTurnBack: () => void }) {
+export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (msg: string) => void; onTurnBack: (msg: string) => void }) {
   const g = useGame();
   const threat = useMemo(() => threatForParty(party, g.day), [party, g.day]);
   const lines = THREAT_LINES[threat.id] ?? THREAT_LINES['egypt-rural-highway-robbers'];
@@ -62,6 +62,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const payFull = (text: string) => { if (marked) useGame.setState({ banditMark: 0 }); settle({ cashLoss: tax, theyLeave: true, text: marked ? `${text} They cross your name out of their book.` : text }); };
   const payLabel = short ? (g.cash > 0 ? `${fmt(g.cash)} is all you have` : 'you have no money') : '';
   const odds = Math.round((mine / (mine + theirs)) * 100);
+  /** what a robbery took from the purse, in money, so the words match the ledger */
+  const takenLine = (loss: number) => (loss > 0 ? ` ${fmt(loss)} of your ${fmt(g.cash)} is gone.` : ' There was nothing in your purse to take.');
 
   const [stage, setStage] = useState<Stage>('standoff');
   const [text, setText] = useState(lines.open);
@@ -91,14 +93,16 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   }, [stage, leader, lines.demand]);
 
   // ---- the fight: a tactical battle on the painted ground (see systems/tactics.ts) ----
+  // your own share of the strength is what strength() gives you without your men: you, and any arms you carry
+  const heroStr = strength({ ...g.world.party, troops: {} });
   const mySide: Unit[] = useMemo(() => [
-    { id: 'you', name: 'You', img: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', str: 2, n: 1, start: 1 },
+    { id: 'you', name: 'You', img: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', str: heroStr, n: 1, start: 1 },
     ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.jpg`, str: TROOPS[id].strength, n: n ?? 0, start: n ?? 0 })),
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
   const enemy = { n: size, str: theirs / size };
   const [tb, setTb] = useState<Battle | null>(null);
-  const fight = () => {
-    audio.sfx('chest');
+  /** The battle as it would open: built once, so the odds offered here are the odds of the fight you get. */
+  const makeBattle = (): Battle => {
     const fieldId = /battle-(\w+)\.webp/.exec(field)?.[1] ?? 'road';
     const art = BAND_ART[threat.id] ?? BAND_ART['egypt-rural-highway-robbers'];
     const mine: Roster[] = Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({
@@ -107,12 +111,25 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     }));
     const mounted = /raider|smuggler/.test(art.man) ? 0.6 : 0;
     const melee = /robber|thief/.test(art.man) ? 0.4 : /rebel/.test(art.man) ? 0.25 : 0.2;
-    setTb(newBattle({
+    const b = newBattle({
       field: fieldId, seed: `${party.id}${g.day}`, mine, enemyMen: size, enemyStrength: theirs,
       band: { man: art.man, leader: art.leader, mounted, melee }, bandName: threat.displayName.replace(/^The /, ''),
       heroImg: lookFor(g.heroLook) ?? undefined,
       cmd: Math.min(1, (g.skills?.speech ?? 0) / 100 + guide * 0.2), scouted: guide > 0 || Object.keys(g.world.party.troops).some((id) => (TROOPS[id].scout ?? 0) > 0 && (g.world.party.troops[id] ?? 0) > 0),
-    }));
+    });
+    // a revolver (or other arms) makes Hassan himself harder to beat, on the same scale as his base 2 strength
+    const arms = g.world.party.arms ?? 0;
+    const hero = b.squads.find((q) => q.id === 'hero');
+    if (hero && arms > 0) { const per = hero.per * (2 + arms) / 2; Object.assign(hero, { per, hp: per * hero.n, maxHp: per * hero.n }); }
+    return b;
+  };
+  const planned = useMemo(makeBattle, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // the chance of winning if the men fight it out: the same simulation the deployment screen shows
+  const [winPct, setWinPct] = useState<number | null>(null);
+  useEffect(() => { if (rebels) return; const t = window.setTimeout(() => setWinPct(simulatedOdds(planned, 'steady', 30)), 120); return () => window.clearTimeout(t); }, [planned, rebels]);
+  const fight = () => {
+    audio.sfx('chest');
+    setTb(planned);
     setStage('battle');
   };
   const finish = (o: Outcome, retreat: boolean) => {
@@ -123,7 +140,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     if (o.heroDown && st.ironman && Math.random() < 0.6) st.dieNow('Cut down at the head of the caravan. Hassan\'s men carried him back to Giza, but too late.');
     if (o.result === 'win' && !retreat) {
       audio.sfx('coins');
-      const joiners = !rebels && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0;
+      // only as many as there is room for under the troop limit
+      const joiners = Math.min(troopRoom(useGame.getState()), !rebels && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0);
       const mountId = BAND_MOUNT[threat.id] ?? 'baladi_d';
       const animalsGained = !rebels && Math.random() < Math.min(0.5, 0.12 + killed * 0.12) ? { id: mountId, n: 1 } : undefined;
       const wound = o.heroHurt && Math.random() < 0.2 ? ` ${useGame.getState().hurt('fight')}` : '';
@@ -142,14 +160,17 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       const wound = o.heroDown || Math.random() < 0.7 ? ` ${useGame.getState().hurt('fight')}` : '';
       // a beaten hero goes down: he wakes alone hours later, or someone walking by finds him
       const out = o.heroDown ? ` ${useGame.getState().knockedOut('beaten by raiders')}` : '';
-      settle({ cashLoss: Math.round(g.cash * 0.45), rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${lostList ? ` Lost: ${lostList}.` : ''}${wound}${out}` });
+      const loss = Math.round(g.cash * 0.45);
+      settle({ cashLoss: loss, rugsLost: 2, troopsLost, rep: -1, enemyLost: killed, text: `${lines.strip}${takenLine(loss)}${lostList ? ` Lost: ${lostList}.` : ''}${wound}${out}` });
     }
   };
 
 
-  const myPow = mySide.reduce((a, u) => a + u.n * u.str, 0);
-  const enPow = Math.round(enemy.n * enemy.str);
-  const share = Math.round((myPow / Math.max(1, myPow + enPow)) * 100);
+  // one measure of strength everywhere: the map label, the party bar and this card all use strength()
+  const myPow = mine;
+  const enPow = theirs;
+  const share = odds;
+  const fightNote = winPct == null ? `${share}% of the strength is yours` : `about ${winPct}% to win`;
 
   return (
     <div className="ambush" data-testid="road-encounter">
@@ -189,8 +210,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
-              {!rebels && <button className="btn primary" onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}% of the strength is yours</small></button>}
-              <button className="btn" onClick={() => { if (Math.random() < (rebels ? 0.9 : 0.55)) { g.ambushOutcome(party.id, { delayHours: 6, text: 'You turn your animals around and lose half a day going round.' }); onTurnBack(); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> Turn back <small>{rebels ? 'usually allowed' : 'they may chase you'}</small></button>
+              {!rebels && <button className="btn primary" onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
+              <button className="btn" onClick={() => { if (Math.random() < (rebels ? 0.9 : 0.55)) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> Turn back <small>{rebels ? 'usually allowed' : 'they may chase you'}</small></button>
             </div>
           </>
         )}
@@ -202,8 +223,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(`You pay ${fmt(tax)}. They let you go.`)} data-testid="amb-pay"><Icon name="coin" /> Pay <small>{fmt(tax)}</small></button>}
-              <button className="btn" onClick={() => { if (ratio >= 2) settle({ cashLoss: Math.round(g.cash * 0.5), rugsLost: 2, rep: -1, text: lines.strip }); else { fight(); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
-              {!rebels && <button className="btn primary" onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{odds}%</small></button>}
+              <button className="btn" onClick={() => { if (ratio >= 2) { const loss = Math.round(g.cash * 0.5); settle({ cashLoss: loss, rugsLost: 2, rep: -1, text: `${lines.strip}${takenLine(loss)}` }); } else { fight(); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
+              {!rebels && <button className="btn primary" onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
             </div>
           </>
         )}

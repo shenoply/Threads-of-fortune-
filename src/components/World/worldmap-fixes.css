@@ -38,3 +38,7 @@
   .world .bl-n { height: 30px; }
   .world .bl-party:not(.open) { min-height: 40px; }
 }
+
+/* what a fare is made of: a ticket each, freight for the animals */
+.wc-main .fare-bill { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #c9a97a; }
+.wc-main .fare-bill i { font-style: normal; overflow-wrap: anywhere; }

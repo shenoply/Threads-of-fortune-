@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useEscapeClose } from '../RugViewer/useEscapeClose';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
 import { MISSIONS, MAIN_ORDER, type MissionState } from '../../data/missions';
@@ -15,6 +16,9 @@ const daysLeft = (until: number, day: number) => (until - day <= 0 ? 'leaves tod
 export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: () => void; onFocus?: (town: string) => void; initial?: ObjTab }) {
   const g = useGame();
   const [tab, setTab] = useState<ObjTab>(initial);
+  // Escape and the phone's back gesture close the panel
+  const box = useRef<HTMLDivElement>(null);
+  useEscapeClose(box, onClose);
   const activeId = MAIN_ORDER.find((id) => g.missions?.[id] === 'active');
   const nextId = activeId ?? MAIN_ORDER.find((id) => g.missions?.[id] !== 'done');
   const m = nextId ? MISSIONS[nextId] : undefined;
@@ -38,7 +42,7 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
   const tabs: [ObjTab, string, number][] = [['story', 'Story', m ? 1 : 0], ['jobs', 'Jobs', jobs.length + quests.length], ['visitors', 'Visitors', visits.length]];
 
   return (
-    <div className="objectives" role="region" aria-label="Objectives" data-testid="objectives" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+    <div ref={box} className="objectives" role="dialog" aria-modal="false" aria-label="Objectives" data-testid="objectives" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
       <div className="obj-head">
         <div className="obj-tabs" role="tablist">
           {tabs.map(([id, label, n]) => (
@@ -55,7 +59,7 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
           <div className="obj-story" data-testid="obj-story">
             <small>{activeId ? 'MAIN MISSION' : 'NEXT IN THE STORY'} · {m.giver.toUpperCase()}</small>
             <b>{m.title}</b>
-            <p className="obj-hint">{activeId ? m.hint(g as unknown as MissionState) : 'This comes to you in a day or two. Keep selling at the stall.'}</p>
+            <p className="obj-hint">{activeId ? m.hint(g as unknown as MissionState) : 'Rashid gives you the next one tomorrow morning. Keep selling at the stall.'}</p>
             <ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol>
             {m.target && (
               <button className="obj-row" onClick={() => focus(m.target)} disabled={!onFocus} data-testid="obj-story-go">

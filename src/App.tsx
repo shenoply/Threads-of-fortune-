@@ -21,7 +21,10 @@ import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
 import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
-import { useGame, dateFor, clock, forceSave, FULL_SIM, type SimSettings } from './game/state/store';
+import { useGame, dateFor, clock, forceSave, FULL_SIM, SAVE_VERSION, type SimSettings } from './game/state/store';
+import * as storeModule from './game/state/store';
+import { SAVE_KEY, BEFORE_LOAD_KEY, SAVE_FAILED_EVENT, SAVE_OK_EVENT, OTHER_TAB_EVENT, saveFailedNow, otherTabActive, blockSaves, memorySave, checkSave, readKey, writeKey } from './game/state/saveGuard';
+import './components/SaveGuard.css';
 import { StallIdle } from './components/StallEncounter/StallIdle';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio/engine';
 import { voice } from './game/audio/voice';
@@ -50,7 +53,7 @@ import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
 import { FinancePanel } from './components/World/Finance';
 import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
-import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, type SlotInfo } from './game/state/slots';
+import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
 const Newspaper = lazy(() => import('./components/Newspaper/Newspaper').then((m) => ({ default: m.Newspaper })));
@@ -96,27 +99,69 @@ export default function App() {
   const risk = g.started ? ruinRisk(ruin, g.day) : 0;
   const daysToCourt = Math.max(0, RUIN_STEPS.court - (g.day - ruin.since));
   const finalStrike = (g.bankruptcies ?? 0) > 0;
+  // whether the last write of the save failed (storage full): the store tells us by an event, and
+  // (when it has one) a lastSaveFailed() export; saveGuard watches the writes itself as well
+  const failedNow = () => saveFailedNow(storeModule);
+  const [saveFail, setSaveFail] = useState(() => failedNow());
+  const [saveWarn, setSaveWarn] = useState(false);
+  // another tab of this browser wrote the save: this one has stopped writing it
+  const [otherTab, setOtherTab] = useState(() => otherTabActive());
+  useEffect(() => {
+    const bad = () => { setSaveFail(true); setSaveWarn(true); };
+    const ok = () => { setSaveFail(false); setSaveWarn(false); };
+    const tab = () => setOtherTab(true);
+    window.addEventListener(SAVE_FAILED_EVENT, bad); window.addEventListener(SAVE_OK_EVENT, ok); window.addEventListener(OTHER_TAB_EVENT, tab);
+    return () => { window.removeEventListener(SAVE_FAILED_EVENT, bad); window.removeEventListener(SAVE_OK_EVENT, ok); window.removeEventListener(OTHER_TAB_EVENT, tab); };
+  }, []);
+  const stamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   // only the "last saved" label follows autosave's own on/off switch — Save now and the slots
-  // update it through their own handlers regardless
-  useEffect(() => useGame.subscribe(() => { if (useGame.getState().autosaveOn !== false) setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }), []);
-  const downloadSave = () => {
-    forceSave(); // autosave may be off: make sure the file reflects where you actually are
-    const raw = localStorage.getItem('threads-of-fortune-save');
-    if (!raw) return;
+  // update it through their own handlers regardless. The write happens just after the change, so
+  // the label waits a moment and is only moved on when the write went through.
+  useEffect(() => useGame.subscribe(() => {
+    if (useGame.getState().autosaveOn === false) return;
+    window.setTimeout(() => { if (failedNow()) { setSaveFail(true); return; } if (!otherTabActive()) setSavedAt(stamp()); }, 0);
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // the save as text: from disk, or from memory when the disk copy is out of date (a write failed)
+  const liveSave = (): string | null => (failedNow() || !readKey(SAVE_KEY) ? memorySave(useGame.getState(), SAVE_VERSION) : readKey(SAVE_KEY));
+  const saveFile = (raw: string, day: number) => {
     const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
     const a = document.createElement('a');
-    a.href = url; a.download = `threads-of-fortune-day-${useGame.getState().day}.json`; a.click();
+    a.href = url; a.download = `threads-of-fortune-day-${day}.json`; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
+  const downloadSave = () => {
+    forceSave(); // autosave may be off: make sure the file reflects where you actually are
+    // in a tab that has stopped saving, the file is this tab's game, not the other tab's
+    const raw = otherTabActive() ? memorySave(useGame.getState(), SAVE_VERSION) : liveSave();
+    if (!raw) return;
+    saveFile(raw, useGame.getState().day);
+  };
+  const FULL_MSG = 'Your game could not be saved: the storage on this phone is full.';
   const loadSave = (f: File) => {
     f.text().then((txt) => {
-      try {
-        const d = JSON.parse(txt);
-        if (!d?.state || typeof d.state.day !== 'number') throw new Error('not a save');
-        if (!window.confirm(`Load the save from day ${d.state.day}? Your current game will be replaced.`)) return;
-        localStorage.setItem('threads-of-fortune-save', txt);
+      const c = checkSave(txt, SAVE_VERSION);
+      if (!c.ok) { window.alert(c.why); return; }
+      if (!window.confirm(`Load the save from day ${c.day}? Your current game will be put aside first.`)) return;
+      const put = () => {
+        blockSaves(); // nothing from this page may write over the loaded save before the reload
+        if (!writeKey(SAVE_KEY, txt)) window.alert(`${FULL_MSG} The backup file could not be opened. Empty a save slot, then try again.`);
         window.location.reload();
-      } catch { window.alert('That file is not a Threads of Fortune save.'); }
+      };
+      // keep the game being replaced: a copy to bring back if the file will not open, and a free slot
+      const cur = useGame.getState();
+      if (!cur.started) { put(); return; }
+      forceSave();
+      const raw = liveSave();
+      let kept = '';
+      if (raw && !cur.ironman) {
+        writeKey(BEFORE_LOAD_KEY, raw);
+        const free = readSlots().findIndex((x) => !x) + 1;
+        if (free > 0 && saveToSlot(free, raw)) { kept = `Your current game was kept in save slot ${free}.`; refreshSlots(); }
+      }
+      if (kept) { window.alert(kept); put(); return; }
+      if (!window.confirm('There is no free save slot to keep your current game. OK makes a backup file of it, then opens the new save. Cancel stops here and changes nothing.')) return;
+      downloadSave();
+      window.setTimeout(put, 1500); // let the file finish before the page reloads
     });
   };
   // three in-browser save slots: a quicker alternative to downloading/loading a file, for a few
@@ -124,10 +169,19 @@ export default function App() {
   // written from the title screen (no game loaded) as well as from Settings mid-game.
   const [slots, setSlots] = useState<(SlotInfo | null)[]>(() => readSlots());
   const refreshSlots = () => setSlots(readSlots());
-  const slotSave = (n: number) => { forceSave(); if (saveToSlot(n)) { refreshSlots(); audio.sfx('tap'); } };
+  const slotSave = (n: number) => {
+    forceSave();
+    const ok = saveToSlot(n, failedNow() ? memorySave(useGame.getState(), SAVE_VERSION) : undefined);
+    refreshSlots();
+    if (ok) audio.sfx('tap');
+    else { toast(`Slot ${n} could not be kept: the storage on this phone is full. Make a backup file instead.`); setSaveWarn(true); }
+  };
   const slotLoad = (n: number, info: SlotInfo) => {
+    if (useGame.getState().started && useGame.getState().ironman) { window.alert('An Ironman run cannot be swapped for a saved game.'); return; }
+    if (info.mode === 'Ironman' || slotIsIronman(n)) { window.alert('This slot holds an Ironman run. An Ironman game has one life and cannot be loaded from a slot.'); return; }
     if (!window.confirm(`Load the save from day ${info.day}? Your current game will be replaced.`)) return;
-    if (loadFromSlot(n)) window.location.reload();
+    if (loadFromSlot(n)) { blockSaves(); window.location.reload(); }
+    else window.alert('That slot could not be loaded. The storage on this phone may be full.');
   };
   const slotClear = (n: number) => {
     if (!window.confirm('Clear this save slot? This cannot be undone.')) return;
@@ -141,17 +195,46 @@ export default function App() {
   // a Sandbox is always a new game: an existing save is kept in a free slot first
   // the new-game chooser: which mode was picked first ('any' opens it with none picked)
   const [chooser, setChooser] = useState<Mode | 'any' | null>(null);
-  const startMode = (mode: Mode, keepIn: number | null, sim: SimSettings) => {
+  /** Copy the game in play into slot n. False if it could not be kept (storage full). An Ironman
+   *  run is never copied: a copy could be loaded after a death. */
+  const keepInSlot = (n: number): boolean => {
+    if (useGame.getState().ironman) return false;
+    forceSave();
+    const ok = saveToSlot(n, failedNow() ? memorySave(useGame.getState(), SAVE_VERSION) : undefined) && !!readSlots()[n - 1];
+    refreshSlots();
+    return ok;
+  };
+  /** A new game in place of the one in play, with saving on (and Ironman set as chosen). */
+  const freshGame = (ironman: boolean) => {
+    const st = useGame.getState();
+    if (st.started) st.reset();
+    useGame.getState().setIronman(ironman);
+    useGame.getState().setAutosave(true);
+  };
+  // returns a message when the game cannot start (the current one could not be kept)
+  const startMode = (mode: Mode, keepIn: number | null, sim: SimSettings): string | void => {
     audio.ensure();
-    if (keepIn) { forceSave(); saveToSlot(keepIn); refreshSlots(); }
-    if (useGame.getState().started) useGame.getState().reset();
+    if (keepIn && useGame.getState().started) {
+      if (useGame.getState().ironman) return 'An Ironman run cannot be kept in a save slot. Start without keeping it, or go back.';
+      if (!keepInSlot(keepIn)) { setSaveWarn(true); return "The storage on this phone is full: your game could not be kept. Make a backup file of it first, then start."; }
+    }
+    freshGame(mode === 'ironman');
     setChooser(null);
-    if (mode === 'ironman') useGame.getState().setIronman(true);
     useGame.getState().setSim(sim);
     if (mode === 'sandbox') setSbx('choose');
     else setPhase(introSeen() ? 'dayone' : 'documentary');
   };
-  const freshForSandbox = () => { if (useGame.getState().started) { forceSave(); saveToSlot(slots.findIndex((x) => !x) + 1 || 1); refreshSlots(); g.reset(); } };
+  // a Sandbox is always a new game: a game still in play is kept in a free slot first (never over another one)
+  const freshForSandbox = (): boolean => {
+    const st = useGame.getState();
+    if (!st.started) { freshGame(false); return true; }
+    if (!st.ironman) {
+      const free = readSlots().findIndex((x) => !x) + 1;
+      if (!free || !keepInSlot(free)) { window.alert('Your game could not be kept: there is no free save slot, or the storage on this phone is full. Make a backup file of it first.'); return false; }
+    }
+    freshGame(false);
+    return true;
+  };
   const guideNext = g.started ? guideTarget(g as unknown as Parameters<typeof guideTarget>[0]) : null;
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
@@ -316,8 +399,13 @@ export default function App() {
   // a customer reached the stall while you were on the map: the sale opens. This overrides
   // whatever the player just tapped (Map, another tab), which otherwise looks like the button
   // silently did nothing; the customer walking up in the stall scene says why, without a pop-up over it.
+  // Once per customer: a buyer who arrives and leaves at once (nothing at their level) is still shown, with
+  // the reason, but a finished sale never pulls the player back once they have gone elsewhere.
+  const shownEnc = useRef<string | null>(null);
+  if (tab === 'stall' && g.encounter) shownEnc.current = g.encounter.id;
   useEffect(() => {
-    if (phase === 'game' && g.encounter && !g.encounter.outcome && !g.encounter.venue && tab === 'map' && g.world.at === 'giza') {
+    if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.world.at === 'giza' && shownEnc.current !== g.encounter.id) {
+      shownEnc.current = g.encounter.id;
       setTab('stall');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -389,6 +477,11 @@ export default function App() {
     if (cal) { setCal(false); return true; }
     if (finance) { setFinance(false); return true; }
     if (guide) { setGuide(false); return true; }
+    if (upgradesOpen) { setUpgradesOpen(false); return true; }
+    if (how !== null) { setHow(null); return true; }
+    // panels kept inside other screens (the rug inspector, the Objectives and Jobs panel): press their own close button
+    const inner = [...document.querySelectorAll<HTMLButtonElement>('[data-testid=inspector-close]:not([disabled]), [data-testid=obj-close]')].filter((b) => b.offsetParent !== null).pop();
+    if (inner) { inner.click(); return true; }
     if (tab !== 'map' && !(tab === 'stall' && g.encounter && !g.encounter.outcome)) { setTab('map'); return true; }
     return false;
   };
@@ -398,10 +491,12 @@ export default function App() {
     push();
     const onPop = () => {
       // a panel deeper in the page (a buyer's card, the wardrobe, a film) gets the first chance, as Escape
-      const open = () => document.querySelectorAll('[role=dialog], .overlay').length;
+      // (the Objectives panel is a region, not a dialog, so it is looked for by name)
+      const PANELS = '[role=dialog], .overlay, [data-testid=objectives], [data-testid=inspector]';
+      const open = () => document.querySelectorAll(PANELS).length;
       const before = open();
       const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-      const target = ([...document.querySelectorAll('[role=dialog]')].pop() as HTMLElement | undefined) ?? document.body;
+      const target = ([...document.querySelectorAll('[role=dialog], [data-testid=objectives]')].pop() as HTMLElement | undefined) ?? document.body;
       target.dispatchEvent(ev);
       push();
       // nothing closed itself: the game steps back
@@ -451,9 +546,38 @@ export default function App() {
     </>
   );
 
-  if (phase === 'documentary') return <Documentary canSkip onEnd={() => { markIntroSeen(); setPhase('dayone'); }} />;
+  // on every screen: the game open in another tab, and a save that could not be written
+  const guardUi = (
+    <>
+      {otherTab && (
+        <div className="tab-guard" role="alertdialog" aria-modal="true" aria-label="Open in another tab" data-testid="other-tab">
+          <div className="crash-card">
+            <h2>This game is open in another tab</h2>
+            <p>Your game was saved from another tab or window of this browser. So as not to write over it, this tab has stopped saving.</p>
+            <p className="crash-dim">Reload to carry on here from where the other tab left off.</p>
+            <div className="crash-btns">
+              <button className="btn primary" onClick={() => window.location.reload()} data-testid="other-tab-reload">Continue here (reload)</button>
+              {g.started && <button className="btn" onClick={downloadSave} data-testid="other-tab-backup">Keep this tab's game as a backup file</button>}
+            </div>
+          </div>
+        </div>
+      )}
+      {saveWarn && saveFail && !otherTab && (
+        <div className="save-warn" role="alert" data-testid="save-warning">
+          <span><b>{FULL_MSG}</b> What you do now is not being kept. Make a backup file so you do not lose this game.</span>
+          <span className="save-warn-btns">
+            <button className="btn primary" onClick={downloadSave} data-testid="save-warning-backup">Make a backup file</button>
+            <button className="btn" onClick={() => setSaveWarn(false)} data-testid="save-warning-close">Close</button>
+          </span>
+        </div>
+      )}
+    </>
+  );
+
+  if (phase === 'documentary') return <><Documentary canSkip onEnd={() => { markIntroSeen(); setPhase('dayone'); }} />{guardUi}</>;
   if (phase === 'dayone')
     return (
+      <>
       <DayOneCard
         onBegin={() => {
           g.beginDayOne();
@@ -462,6 +586,8 @@ export default function App() {
           setTab('map');
         }}
       />
+      {guardUi}
+      </>
     );
   if (phase === 'title') {
     return (
@@ -507,23 +633,26 @@ export default function App() {
             <button className="ghost-btn" onClick={() => openHowItPlays()} data-testid="title-how">▶ Gameplay videos</button>
             <InstallButton className="ghost-btn" />
             <FullScreenButton className="ghost-btn" />
-            {slots.some((s) => s) && (
+            {/* an Ironman run has one save: nothing can be loaded in its place */}
+            {slots.some((s) => s) && !(g.started && g.ironman) && (
               <button className="ghost-btn" onClick={() => { refreshSlots(); setLoadOpen((o) => !o); }} data-testid="title-load-toggle">
                 {loadOpen ? 'Hide saves' : 'Load a save'}
               </button>
             )}
             </div>
           </div>
-          {chooser && <ModeChooser current={g.started ? { day: g.day } : null} slots={slots} first={chooser === 'any' ? undefined : chooser} onStart={startMode} onClose={() => setChooser(null)} />}
-          {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
-          {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); freshForSandbox(); g.startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); freshForSandbox(); g.startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
-          {loadOpen && (
+          {chooser && <ModeChooser current={g.started ? { day: g.day, ironman: !!g.ironman } : null} slots={slots} onBackup={downloadSave} first={chooser === 'any' ? undefined : chooser} onStart={startMode} onClose={() => setChooser(null)} />}
+          {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
+          {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
+          {loadOpen && !(g.started && g.ironman) && (
             <div className="slot-list" data-testid="title-slot-list">
               {slots.map((info, i) => info && (
                 <div className="slot-row" key={i} data-testid={`title-slot-${i + 1}`}>
                   <span className="slot-info">{slotLabel(info)}</span>
                   <span className="slot-btns">
-                    <button className="btn small" onClick={() => slotLoad(i + 1, info)} data-testid={`title-slot-load-${i + 1}`}>Load</button>
+                    {info.mode === 'Ironman'
+                      ? <small className="dim" data-testid={`title-slot-iron-${i + 1}`}>Ironman runs cannot be loaded</small>
+                      : <button className="btn small" onClick={() => slotLoad(i + 1, info)} data-testid={`title-slot-load-${i + 1}`}>Load</button>}
                   </span>
                 </div>
               ))}
@@ -533,6 +662,7 @@ export default function App() {
         {!titleOpts && !chooser && <button className="title-place" onClick={() => setTitleBg((c) => { let n = c; while (n === c) n = TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]; return n; })} title="Show another picture" data-testid="title-shuffle">⟳ {titleBg.place}</button>}
         <div className="title-foot">TRADE · PEOPLE · STORIES</div>
         {howView}
+        {guardUi}
       </div>
     );
   }
@@ -583,7 +713,7 @@ export default function App() {
       {phase === 'game' && !(tab === 'stall' && g.encounter) && (() => {
         const fh = firstHourStep(g);
         return (
-          <ObjectiveBar
+          <ObjectiveBar onMenu={() => { forceSave(); audio.stopAll(); setPhase('title'); }}
             onGo={(t) => t && chapterGo(t as Target)}
             firstHour={fh ? { text: fh.text, btn: fh.btn, n: fh.n, of: fh.of, skip: () => { if (window.confirm('Skip the opening? Every city opens now, and the step-by-step guide goes away.')) { g.seeTip(FIRST_HOUR_TIP); g.skipTutorial(); } }, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
           />
@@ -676,14 +806,21 @@ export default function App() {
             {/* saving, in plain words: what happens on its own, one Save button, separate games in slots,
                 and a backup file for moving to another phone (folded away: most people never need it) */}
             <h3 className="set-h">Saving</h3>
-            <p className="save-status" data-testid="save-status">
-              {g.ironman ? 'Ironman: the game saves itself after every move. There is one save, and no going back.'
-                : g.autosaveOn === false ? 'Saving on its own is off. Tap Save before you stop, or you lose what you did.'
-                : 'Your game saves itself as you play.'}
-              {savedAt ? <> <b>Saved at {savedAt}.</b></> : null}
-            </p>
+            {saveFail || otherTab ? (
+              <p className="save-status save-failed" data-testid="save-status">
+                {otherTab ? 'This game is open in another tab, so this tab has stopped saving.' : <><b>{FULL_MSG}</b> Nothing you do now is kept. Make a backup file so you do not lose this game, then empty a save slot or clear space on the phone.</>}
+                <br /><button className="btn" onClick={downloadSave} data-testid="save-failed-backup">Make a backup file</button>
+              </p>
+            ) : (
+              <p className="save-status" data-testid="save-status">
+                {g.ironman ? 'Ironman: the game saves itself after every move. There is one save, and no going back.'
+                  : g.autosaveOn === false ? 'Saving on its own is off. Tap Save before you stop, or you lose what you did.'
+                  : 'Your game saves itself as you play.'}
+                {savedAt ? <> <b>Saved at {savedAt}.</b></> : null}
+              </p>
+            )}
             <div className="save-row">
-              <button className="btn primary" onClick={() => { forceSave(); setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); audio.sfx('tap'); }} data-testid="save-now">Save</button>
+              <button className="btn primary" onClick={() => { forceSave(); window.setTimeout(() => { if (failedNow()) { setSaveFail(true); setSaveWarn(true); toast(FULL_MSG); } else { setSaveFail(false); setSavedAt(stamp()); audio.sfx('tap'); } }, 0); }} data-testid="save-now">Save</button>
             </div>
             <div className="toggle-row">
               <span>
@@ -704,7 +841,7 @@ export default function App() {
                         <span className="slot-info">{info ? slotLabel(info) : `Slot ${n}: empty`}</span>
                         <span className="slot-btns">
                           <button className="btn small" onClick={() => { if (info && !window.confirm(`Slot ${n} has ${slotLabel(info)}. Put your game in its place? The old one is lost.`)) return; slotSave(n); }} data-testid={`slot-save-${n}`}>{info ? 'Save over' : 'Save here'}</button>
-                          {info && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
+                          {info && info.mode !== 'Ironman' && <button className="btn small" onClick={() => slotLoad(n, info)} data-testid={`slot-load-${n}`}>Load</button>}
                           {info && <button className="btn small ghost-btn" onClick={() => slotClear(n)} data-testid={`slot-clear-${n}`} aria-label={`Empty slot ${n}`}>Empty</button>}
                         </span>
                       </div>
@@ -759,6 +896,7 @@ export default function App() {
         {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
       </Suspense>
       {toastMsg && <div className="toast">{toastMsg}</div>}
+      {guardUi}
     </div>
   );
 }

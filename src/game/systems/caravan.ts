@@ -13,6 +13,10 @@ export interface PartyState {
   morale?: number;
   /** the day you last sat down with your men (a talk lifts them once a day) */
   talkedDay?: number;
+  /** the day you last went down on the road (worn out or starving); a few days must pass before it can happen again */
+  lastCollapse?: number;
+  /** after going down on the road the caravan goes at half pace until the end of this day */
+  weakUntil?: number;
 }
 
 export const MORALE_START = 70;
@@ -51,6 +55,12 @@ function assign(p: PartyState) {
 /** set by the store from the merchant's illnesses and injuries: travel speed % and carrying % (both 0 or negative) */
 export const healthMods = { speed: 0, carry: 0 };
 export const setHealthMods = (m: { speed: number; carry: number }) => { healthMods.speed = m.speed; healthMods.carry = m.carry; };
+/** set by the store from the merchant's tiredness: a worn-out man sets a slower pace, and a day after
+ *  going down on the road he can only manage half */
+export const conditionMods = { fatigue: 0, weak: false };
+export const setConditionMods = (m: { fatigue: number; weak: boolean }) => { conditionMods.fatigue = m.fatigue; conditionMods.weak = m.weak; };
+/** pace multiplier from tiredness: none below 75, down to 0.65 at 100; halved again on a weak day */
+export const fatiguePace = () => (conditionMods.fatigue >= 75 ? Math.max(0.65, 1 - (conditionMods.fatigue - 75) * 0.014) : 1) * (conditionMods.weak ? 0.5 : 1);
 
 export const capacity = (p: PartyState) => {
   const { list } = assign(p);
@@ -75,9 +85,10 @@ export function speedInfo(p: PartyState, inv: RugItem[]) {
   const over = l > cap ? Math.max(0.35, cap / l) : 1;
   // the pace worsens the longer the caravan goes hungry, down to a crawl, rather than a flat penalty forever
   const hungry = p.food <= 0 ? Math.max(0.4, 0.75 - (p.hungryDays ?? 0) * 0.05) : 1;
-  const mult = pace * over * hungry * SKILL_MODS.speed * Math.max(0.2, 1 + healthMods.speed / 100);
+  const tired = fatiguePace();
+  const mult = pace * over * hungry * tired * SKILL_MODS.speed * Math.max(0.2, 1 + healthMods.speed / 100);
   const slowest = walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name : 'nobody';
-  return { pxPerDay: BASE_SPEED * mult, mult, mounted, over: l > cap, hungry: p.food <= 0, cap, load: l, slowest };
+  return { pxPerDay: BASE_SPEED * mult, mult, mounted, over: l > cap, hungry: p.food <= 0, tired: tired < 1, cap, load: l, slowest };
 }
 
 export const foodDaysLeft = (p: PartyState) => Math.floor(p.food / Math.max(1, dailyFood(p)));

@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { slotLabel, type SlotInfo } from '../../game/state/slots';
 import '../Sandbox/sandbox.css';
 import './ModeChooser.css';
+import '../SaveGuard.css';
 
 import { SimOptions } from './SimOptions';
 import { FULL_SIM, type SimSettings } from '../../game/state/store';
@@ -22,20 +23,27 @@ export const MODES: { id: Mode; title: string; line: string; points: string[] }[
 
 interface Props {
   /** a game is in progress: ask about keeping it first */
-  current?: { day: number } | null;
+  current?: { day: number; ironman?: boolean } | null;
   slots: (SlotInfo | null)[];
   first?: Mode;
-  onStart: (mode: Mode, keepInSlot: number | null, sim: SimSettings) => void;
+  /** starts the game; returns a message instead when it cannot (the current game could not be kept) */
+  onStart: (mode: Mode, keepInSlot: number | null, sim: SimSettings) => string | void;
+  /** download the current game as a backup file */
+  onBackup?: () => void;
   onClose: () => void;
 }
 
-export function ModeChooser({ current, slots, first, onStart, onClose }: Props) {
+export function ModeChooser({ current, slots, first, onStart: start, onBackup, onClose }: Props) {
   const [mode, setMode] = useState<Mode | null>(first ?? null);
   const [asking, setAsking] = useState(false);
   const [sim, setSim] = useState<SimSettings>(FULL_SIM);
+  // why the game did not start (the current one could not be kept): shown here, nothing is replaced
+  const [err, setErr] = useState('');
+  const onStart = (md: Mode, keep: number | null, sv: SimSettings) => { setErr(''); const e = start(md, keep, sv); if (e) setErr(e); };
+  const iron = !!current?.ironman;
   const m = MODES.find((x) => x.id === mode);
   const empty = slots.findIndex((s) => !s) + 1; // 0 when every slot is taken
-  const choose = (id: Mode) => { setMode(id); if (current) setAsking(true); };
+  const choose = (id: Mode) => { setMode(id); setErr(''); if (current) setAsking(true); };
   const dialog = useRef<HTMLDivElement>(null);
   // focus the dialog so Escape reaches its onKeyDown straight away
   useEffect(() => { dialog.current?.focus({ preventScroll: true }); }, []);
@@ -72,9 +80,16 @@ export function ModeChooser({ current, slots, first, onStart, onClose }: Props) 
         ) : (
           <div data-testid="mode-keep">
             <h2>{m?.title}: keep your current game?</h2>
-            <p className="sbx-dim">You are on day {current?.day} of a game. Starting {mode === 'ironman' ? 'an Ironman campaign' : mode === 'sandbox' ? 'a sandbox game' : 'the campaign afresh'} replaces it in this browser.</p>
+            <p className="sbx-dim">You are on day {current?.day} of {iron ? 'an Ironman run' : 'a game'}. Starting {mode === 'ironman' ? 'an Ironman campaign' : mode === 'sandbox' ? 'a sandbox game' : 'the campaign afresh'} replaces it in this browser.</p>
+            {iron && <p className="sbx-dim" data-testid="mode-keep-iron">An Ironman run has one life and one save, so it cannot be kept in a save slot: a copy could be loaded after a death. Starting a new game ends this run for good.</p>}
+            {err && (
+              <p className="mc-error" role="alert" data-testid="mode-keep-error">
+                {err}
+                {onBackup && <><br /><button className="btn" onClick={onBackup} data-testid="mode-keep-backup">Make a backup file</button></>}
+              </p>
+            )}
             <div className="mode-keep-btns">
-              {empty > 0 ? (
+              {iron ? null : empty > 0 ? (
                 <button className="btn primary" onClick={() => onStart(mode!, empty, sim)} data-testid="keep-and-start">Keep it in save slot {empty}, then start</button>
               ) : (
                 slots.map((s, i) => (
@@ -83,7 +98,7 @@ export function ModeChooser({ current, slots, first, onStart, onClose }: Props) 
                   </button>
                 ))
               )}
-              <button className="btn danger" onClick={() => { if (window.confirm('Start without keeping your current game? It will be gone for good.')) onStart(mode!, null, sim); }} data-testid="start-without-keeping">Start without keeping it</button>
+              <button className="btn danger" onClick={() => { if (window.confirm(iron ? 'Start a new game? This Ironman run ends for good.' : 'Start without keeping your current game? It will be gone for good.')) onStart(mode!, null, sim); }} data-testid="start-without-keeping">Start without keeping it</button>
               <button className="ghost-btn" onClick={() => setAsking(false)} data-testid="mode-back">Back</button>
             </div>
           </div>

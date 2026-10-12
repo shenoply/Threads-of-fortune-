@@ -105,7 +105,7 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
         {insurerHere && (
           <>
             <div className="section-label">CARGO INSURANCE</div>
-            <p>The Lloyd's agent covers the rugs you carry against raiders and thieves for {COVER_DAYS} days: seven parts in ten of their worth, paid by the agent in the next town.</p>
+            <p>The Lloyd's agent covers the rugs you carry against raiders and thieves for {COVER_DAYS} days: seven parts in ten of their worth, paid by the agent in Cairo, Alexandria or Port Said.</p>
             {covered ? <p className="fin-line ok" data-testid="insured">Covered until {dateFor(g.insurance!.until).short}.</p> : carried.length ? (
               <button className="btn primary" onClick={() => setNote(g.insure())} data-testid="insure">Insure {carried.length} packed rug{carried.length === 1 ? '' : 's'} · {fmt(premiumFor(g.inventory))}</button>
             ) : <p className="dim">You carry nothing to insure. Pack rugs for the road at your Giza stall first.</p>}

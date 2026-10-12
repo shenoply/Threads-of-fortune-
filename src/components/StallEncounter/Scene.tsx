@@ -228,10 +228,12 @@ interface BandProps {
   view: PlaybackView;
   tierName: string;
   priorities: { id: string; label: string }[];
+  /** a tap on the words under the picture hurries them, the same as a tap on the picture */
+  onSkip?: () => void;
 }
 
 /** Status band under the scene: narrator, stage, buyer meters, what you have learned. */
-export function InfoBand({ enc, presented, view, tierName, priorities }: BandProps) {
+export function InfoBand({ enc, presented, view, tierName, priorities, onSkip }: BandProps) {
   const buyer = enc ? BUYERS[enc.buyerId] : null;
   // tap the buyer's name or portrait to see their card (bio, what they buy, how things stand) without
   // stepping away from the table
@@ -246,7 +248,7 @@ export function InfoBand({ enc, presented, view, tierName, priorities }: BandPro
   return (
     <div className={`band ${view.narrator ? 'has-narr' : ''}`} data-testid="band">
       {said && (
-        <div className={`speech ${mood}`} data-testid="speech">
+        <div className={`speech ${mood}`} data-testid="speech" onClick={view.busy ? onSkip : undefined} style={view.busy ? { cursor: 'pointer' } : undefined}>
           <b>{who === 'seller' ? 'You' : buyer?.name ?? 'Samira'}</b>
           {shown}
         </div>

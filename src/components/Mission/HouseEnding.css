@@ -1,0 +1,16 @@
+/* The House of Fortune: the closing card, printed like a shop's engraved announcement */
+.house-end { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at 50% 40%, #2a1a0bcc, #0b0704f2); animation: he-in .5s ease; overflow-y: auto; }
+.he-card { width: min(100%, 440px); padding: 22px 20px 18px; color: var(--ink); text-align: center; background: linear-gradient(180deg, var(--parchment), var(--parchment-2)); border: 1px solid #8a6630; outline: 3px double #8a6630; outline-offset: -9px; border-radius: 4px; box-shadow: 0 18px 50px #000c; }
+.he-kicker { display: block; font-family: var(--label); font-size: 13px; letter-spacing: .08em; color: var(--ink-soft); }
+.he-card h2 { margin: 6px 0 4px; font-family: var(--display); font-weight: 600; font-size: 27px; line-height: 1.15; color: #6b2416; }
+.he-sub { margin: 0; font-family: var(--body); font-size: 15.5px; line-height: 1.35; color: var(--ink-soft); }
+.he-card hr { width: 60%; margin: 12px auto; border: 0; border-top: 1px solid #8a663080; }
+.he-story { margin: 0 0 12px; font-family: var(--body); font-style: italic; font-size: 17px; line-height: 1.4; }
+.he-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 0 0 12px; text-align: left; }
+.he-stats div { display: flex; flex-direction: column; padding: 6px 8px; background: #fff6; border: 1px solid #8a663040; border-radius: 3px; }
+.he-stats dt { font-family: var(--label); font-size: 12.5px; letter-spacing: .05em; color: var(--ink-soft); }
+.he-stats dd { margin: 0; font-family: var(--display); font-size: 18px; color: var(--ink); }
+.he-note { margin: 0 0 14px; font-family: var(--body); font-size: 15px; color: var(--ink-soft); }
+.he-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.he-btns .btn { min-width: 130px; min-height: 42px; font-size: 16px; }
+@keyframes he-in { from { opacity: 0; } to { opacity: 1; } }

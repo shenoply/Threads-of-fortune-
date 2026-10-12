@@ -7,6 +7,7 @@ import type { RugItem } from '../../game/types';
 import { rugSrc, simulatedBack } from './rugArt';
 import { Icon } from '../Icon';
 import { perceivedValue } from '../../game/systems/negotiation';
+import { useEscapeClose } from './useEscapeClose';
 
 const TABS = ['Overview', 'Condition', 'Weave', 'Fringe', 'Provenance', 'Estimate'] as const;
 
@@ -30,6 +31,10 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const used = g.tutorial.inspected;
 
   const t = item ? RUGS[item.typeId] : null;
+  // Escape and the back gesture close it, as Done does (and, like Done, not while the lesson wants a closer look)
+  const box = useRef<HTMLDivElement>(null);
+  const locked = tut && g.tutorial.step === 'inspect2' && !used;
+  useEscapeClose(box, () => { if (!locked) onClose(); });
   useEffect(() => {
     if (back && t && !backSrc) simulatedBack(t).then(setBackSrc);
   }, [back, t, backSrc]);
@@ -48,7 +53,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const pv = snap(perceivedValue(t, item));
 
   return (
-    <div className="overlay" role="dialog" aria-label={`Inspecting ${t.name}`} data-testid="inspector">
+    <div ref={box} className="overlay" role="dialog" aria-modal="true" aria-label={`Inspecting ${t.name}`} data-testid="inspector">
       <div className="overlay-head">
         <div>
           <h2>{t.name}</h2>

@@ -29,12 +29,16 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
       <div className="cs-section">
         <div className="cs-label"><b>Reputation</b><span data-testid="rep-value">{g.reputation}{next ? ` / ${repNext} for ${next.name}` : ''}</span></div>
         <i className="cs-bar rep"><em style={{ width: `${Math.min(100, (g.reputation / Math.max(1, repNext)) * 100)}%` }} /></i>
-        <p className="cs-note">Earned by good sales, honest dealing, commissions and royal warrants. Lost when you are caught lying or miss a debt. It opens better stock, the back rooms of city dealers and palace doors ({RANKS.length} ranks). Rank needs reputation and net worth together — {next?.note ?? 'you have reached the top rank.'}</p>
+        <p className="cs-note">Earned by good sales, honest dealing, commissions and royal warrants. Lost when you are caught lying or miss a debt. It opens better stock, the back rooms of city dealers and palace doors ({RANKS.length} ranks). Rank needs net worth and reputation, and from Merchant of the Levant on, royal warrants. {next ? `Next: ${next.note}` : 'You have reached the top rank.'}</p>
         {blockedByStory && blockingMission && (
           <p className="cs-note" data-testid="rank-story-lock">Reputation and net worth are there, but the rank will not move until an unfinished matter is settled: <b>{blockingMission.title}</b>. {blockingMission.locks}</p>
         )}
         {blockedByWorth && next && (
-          <p className="cs-note" data-testid="rank-worth-lock">The story is settled — it is net worth and reputation holding <b>{next.name}</b> back now: you need {fmt(next.worth)} net worth (you have {fmt(worth)}) and {next.rep} reputation (you have {g.reputation}).</p>
+          <p className="cs-note" data-testid="rank-worth-lock">The story is settled. What holds <b>{next.name}</b> back now: {[
+            worth < next.worth ? `net worth ${fmt(next.worth)} (you have ${fmt(worth)})` : '',
+            g.reputation < next.rep ? `reputation ${next.rep} (you have ${g.reputation})` : '',
+            g.court.warrants.length < next.warrants ? `${next.warrants === 1 ? 'a royal warrant' : `${next.warrants} royal warrants`} (you have ${g.court.warrants.length})` : '',
+          ].filter(Boolean).join(', ')}.</p>
         )}
       </div>
       <div className="cs-section">

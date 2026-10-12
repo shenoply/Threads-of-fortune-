@@ -3,7 +3,7 @@ import { nabilAssessment, isTokenChange, packageOffer, rugKey, type NabilMemory 
 import type { LabService } from './arranLab';
 import type { ArgKind, BuyerDef, Line, ObjectionDef, Relationship, RugItem, RugType, Stage } from '../types';
 import { snap, snapDown, fmt } from '../economy/money';
-import { BUYERS, BUYER_TIERS } from '../../data/buyers';
+import { BUYERS, BUYER_TIERS, CELEB_INFO } from '../../data/buyers';
 import { RUGS, CONDITION_FACTOR } from '../../data/rugs';
 import { SELLER, NARRATOR, STAGE } from '../../data/dialogue';
 import { levelOf, hasPerk, type SkillId, type Manner } from '../../data/character';
@@ -214,10 +214,21 @@ export function perceivedValue(t: RugType, item: RugItem) {
   return mid * CONDITION_FACTOR[item.condition] * PROV_FACTOR[item.provenance];
 }
 
+/** Royals and famous visitors buy at the top of the trade. Whatever budget they name, a rug at their
+ *  level is within their reach, so a court-grade carpet is never let go for a fraction of its worth.
+ *  0 when the rug is below their level or the buyer is an ordinary one. */
+export function courtFloor(buyerId: string, item: RugItem): number {
+  const b = BUYERS[buyerId], t = RUGS[item.typeId];
+  if (!b || !t || !(b.royal || buyerId in CELEB_INFO)) return 0;
+  const minTier = b.royal ? 3 : Math.max(2, BUYER_TIERS[buyerId]?.[0] ?? 2);
+  if ((t.tier ?? 1) < minTier) return 0;
+  return perceivedValue(t, item) * 1.15;
+}
+
 export function wtp(enc: Encounter, item: RugItem): number {
   const b = BUYERS[enc.buyerId];
   const t = RUGS[item.typeId];
-  const cap = prefsFor(enc).budget[1] * (1 + enc.tier * 0.06) * (enc.bazaar ? 1.08 : 1) * (enc.edge?.budget ?? 1) * (enc.edge?.pay ?? 1);
+  const cap = Math.max(prefsFor(enc).budget[1] * (1 + enc.tier * 0.06) * (enc.bazaar ? 1.08 : 1) * (enc.edge?.budget ?? 1) * (enc.edge?.pay ?? 1), courtFloor(enc.buyerId, item));
   if (enc.buyerId === 'nabil') {
     // his figure follows the rug's value, rarity, condition and evidence; never above his ceiling
     const a = nabilAssessment(t, item, { repairDisclosed: !!enc.nabilDisclosed, repeatedPitchCount: enc.nabilPitches ?? 0, labReport: !!item.labReports?.length });
@@ -541,7 +552,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
         const item = presentedItem(enc, ctx);
         const qp = item && canQuickSell(enc, item) ? quickPrice(enc, item) : undefined;
         const quickIsMore = qp !== undefined && qp > enc.buyerOffer;
-        out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: quickIsMore ? `Quick sale pays more: ${fmt(qp!)}` : item && enc.buyerOffer < item.paid + (item.spent ?? 0) ? `Below what you paid (${fmt(item.paid + (item.spent ?? 0))}): a loss` : last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
+        out.push({ id: 'accept_offer', label: last ? `Take the final offer · ${fmt(enc.buyerOffer)}` : `Accept ${fmt(enc.buyerOffer)}`, sub: malekBalks(enc) ? 'He is not sure of the rug yet: he may agree the price and still not buy' : quickIsMore ? `Quick sale pays more: ${fmt(qp!)}` : item && enc.buyerOffer < item.paid + (item.spent ?? 0) ? `Below what you paid (${fmt(item.paid + (item.spent ?? 0))}): a loss` : last ? 'Or they walk away' : 'Close the sale', icon: 'check' });
       }
       if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10 && !last)
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference — they may take it on the spot', icon: 'scale' });
@@ -791,7 +802,8 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
         adjust(enc, { patience: -Q.cost + 1 });
       }
       const pb = prefsFor(enc).budget;
-      const cap = Math.round(pb[1] * (1 + enc.tier * 0.06));
+      const shown = presentedItem(enc, ctx);
+      const cap = Math.round(Math.max(pb[1] * (1 + enc.tier * 0.06), shown ? courtFloor(enc.buyerId, shown) : 0));
       enc.budgetKnown = [round5(pb[0]), round5(cap * (early && b.directBudgetTrust < 0 ? 1.05 : 1))];
       if (enc.stage === 'discovery') enc.stage = 'qualification';
       break;
@@ -1136,14 +1148,21 @@ export const malekConvinced = (enc: Encounter) =>
     ? enc.interest >= 50 && enc.trust >= 40 && enc.presentedFit >= 55
     : enc.interest >= 72 && enc.trust >= (enc.malekBar ?? 55) && enc.presentedFit >= 65;
 
+/** Malek nearly convinced is convinced enough to pay: he only balks when the rug is plainly far from
+ *  right for him (low interest, low trust or a poor fit), so the agreed-price walk-out stays rare. */
+export const malekBalks = (enc: Encounter) =>
+  enc.buyerId === 'malek' && !malekConvinced(enc)
+  && !(enc.interest >= 50 && enc.trust >= (enc.malekBar ?? 55) - 12 && enc.presentedFit >= 50);
+
 function closeSale(enc: Encounter, ctx: Ctx, price: number) {
   const b = BUYERS[enc.buyerId];
-  if (enc.buyerId === 'malek' && !malekConvinced(enc)) {
+  if (malekBalks(enc)) {
     // the figure is agreed, the man is not: he leaves to think about it, and may come back for it
     enc.outcome = 'walked';
     enc.stage = 'close';
     enc.malekUnsure = true;
     buyerSay(enc, pick(MALEK_UNSURE, ctx.rng), 'leaving');
+    say(enc, 'narrator', 'Malek agreed the price but would not pay it. He buys only when he is quite sure of the rug. Put it aside for him in Stock and he may come back for it.');
     return;
   }
   enc.outcome = 'sold';

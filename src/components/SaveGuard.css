@@ -1,0 +1,18 @@
+/* Save warnings (storage full, the game open in another tab) and the crash card. */
+.crash-screen, .tab-guard { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: rgba(8,5,3,0.95); color: var(--parchment, #f0e2c4); font-family: var(--body, Georgia, serif); }
+.crash-screen { background: #120b06; }
+.crash-card { width: min(100%, 440px); box-sizing: border-box; background: linear-gradient(180deg, #24180d, #150e08); border: 1px solid var(--line-strong, #8a6a3a); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px; max-height: 100%; overflow-y: auto; }
+.crash-card h2 { margin: 0; font-family: var(--display, Georgia, serif); }
+.crash-card p { margin: 0; line-height: 1.4; }
+.crash-btns { display: flex; flex-direction: column; gap: 8px; }
+.crash-btns .btn { min-height: 44px; }
+.crash-dim { opacity: 0.75; }
+.crash-note { color: var(--brass-hi, #e5c07b); }
+
+.save-warn { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); z-index: 120; width: min(calc(100vw - 32px), 440px); box-sizing: border-box; background: #3a140c; border: 1px solid #c4553a; border-radius: 6px; padding: 10px 12px; color: #fbe3d6; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 15px; line-height: 1.35; }
+.save-warn b { color: #ffc9b4; }
+.save-warn-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.save-warn-btns .btn { min-height: 40px; }
+.save-status.save-failed { color: #f1b39f; }
+.save-status .btn { margin-top: 6px; }
+.mc-error { color: #f1b39f; margin: 4px 0; }

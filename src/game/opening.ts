@@ -15,7 +15,12 @@ export interface OpeningStep {
   done: (s: S) => boolean;
 }
 
-const been = (s: S, id: string) => s.world.at === id || Object.values(s.whereabouts ?? {}).includes(id);
+// Where you have been, from records that are never overwritten: the journal keeps every arrival and
+// ferry crossing. (whereabouts keeps one place a day, so a second trip the same day used to wipe the first.)
+const NAMES: Record<string, string> = { cairo: 'Cairo', alexandria: 'Alexandria' };
+const been = (s: S, id: string) => s.world.at === id || Object.values(s.whereabouts ?? {}).includes(id)
+  || (s.journal ?? []).some((j) => j.text === `Arrived in ${NAMES[id] ?? id}.` || (id === 'cairo' && j.text === 'Took the Nile ferry to Cairo.'))
+  || (s.ledger ?? []).some((l) => l.label === `Nile ferry to ${NAMES[id] ?? id}` || l.label.endsWith(` in ${NAMES[id] ?? id}`));
 const troops = (s: S) => Object.values(s.world.party.troops ?? {}).reduce((a, n) => a + (n ?? 0), 0);
 /** the line Bilgin gives (data/world.ts, node 'sellmore'): hearing it finishes his step */
 export const BILGIN_TIP = 'Khan el-Khalili pays a third more';
@@ -27,9 +32,17 @@ export const OPENING: OpeningStep[] = [
   { id: 'bilgin', text: () => 'Ask Bilgin where to sell for more.', btn: 'To Bilgin\'s', go: 'district', done: (s) => (s.world.rumours ?? []).some((r) => r.includes(BILGIN_TIP)) },
   { id: 'guards', text: () => 'Hire a guard at the guard yard.', btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
   { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
-  { id: 'bandits', text: () => 'Take the train to Alexandria.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
-  { id: 'auction', text: () => 'Buy one rug in Alexandria.', btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction },
+  { id: 'bandits', text: () => 'Take the train to Alexandria: 3½ hours.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
+  // any rug bought in Alexandria, whether or not Rashid has given his errand yet (it counts for that too)
+  { id: 'auction', text: () => 'Buy one rug in Alexandria.', btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction || s.ledger.some((l) => l.kind === 'purchase' && l.label.endsWith(' in Alexandria')) },
 ];
+/** A step stays done once a later one is: you cannot have reached Alexandria without the guard and the
+ *  ferry, even if the guard has since gone home. So the opening never steps backwards. */
+function stepsDone(s: S): boolean[] {
+  const d = OPENING.map((st) => st.done(s));
+  for (let i = d.length - 2; i >= 0; i--) d[i] = d[i] || d[i + 1];
+  return d;
+}
 
 // test runs (and anyone who set the old developer switch) start with the opening skipped
 const devSkip = (() => { try { return typeof localStorage !== 'undefined' && localStorage.getItem('tof-skip-chapters') === '1'; } catch { return false; } })();
@@ -37,7 +50,7 @@ export const openingSkipped = (s: S) => devSkip || s.playMode === 'sandbox' || (
 /** the step in hand, or null once the opening is finished or skipped */
 export function openingStep(s: S): { step: OpeningStep; n: number } | null {
   if (!s.started || openingSkipped(s)) return null;
-  const n = OPENING.findIndex((st) => !st.done(s));
+  const n = stepsDone(s).findIndex((x) => !x);
   return n < 0 ? null : { step: OPENING[n], n };
 }
 export const openingDone = (s: S) => openingStep(s) === null;

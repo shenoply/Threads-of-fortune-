@@ -117,7 +117,7 @@ export interface PassOutcome { kind: 'quiet' | 'hard' | 'raiders_driven_off' | '
 /** Resolve the crossing once from a stored roll in [0,1): never at render time. */
 export function resolvePass(risk: number, roll: number, strength: number, cash: number, food: number): PassOutcome {
   const p = risk / 100;
-  if (roll >= p) return { kind: roll < p + 0.25 ? 'hard' : 'quiet', text: roll < p + 0.25 ? 'A hard crossing: loose rock, a lame camel, a cold night without a fire. You come through.' : 'The pass is quiet. You see riders on a ridge once, far off, and they do not come down.', fatigue: roll < p + 0.25 ? 18 : 10, foodLost: roll < p + 0.25 ? 2 : 0, cashLost: 0, cargoLost: false, extraDays: 0 };
+  if (roll >= p) return { kind: roll < p + 0.25 ? 'hard' : 'quiet', text: roll < p + 0.25 ? 'A hard crossing: loose rock, a bad fall, a cold night without a fire. You come through.' : 'The pass is quiet. You see riders on a ridge once, far off, and they do not come down.', fatigue: roll < p + 0.25 ? 18 : 10, foodLost: roll < p + 0.25 ? 2 : 0, cashLost: 0, cargoLost: false, extraDays: 0 };
   // raiders: your strength against theirs
   const theirs = 4 + Math.round(risk / 10);
   if (strength >= theirs) return { kind: 'raiders_driven_off', text: `Raiders come down at the narrows, about ${theirs} strong. Your men hold, and they ride off. Nobody is badly hurt.`, fatigue: 22, foodLost: 1, cashLost: 0, cargoLost: false, extraDays: 0 };

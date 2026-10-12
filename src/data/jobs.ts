@@ -1,6 +1,7 @@
 // Jobs on the map: small errands that send you out into the world. Each one waits in a town;
 // arrive there with what it needs and it pays. A few are open at a time; more appear as your name grows.
 
+import { withArticle } from './animals';
 export interface Job {
   id: string;
   title: string;
@@ -127,10 +128,10 @@ export function newVisit(day: number, rank: number, rng: () => number, celebs: {
   if (rank >= 2 && celebs.length && rng() < 0.55) {
     const c = celebs[Math.floor(rng() * celebs.length)];
     const city = rng() < 0.5 ? CITY_ID[c.city] ?? 'cairo' : ['alexandria', 'cairo', 'jerusalem', 'beirut', 'damascus'][Math.floor(rng() * 5)];
-    return { id: `v${day}-${c.id}`, who: c.name, portrait: c.portrait, buyerId: c.id, city, until: day + stay, tier: c.tier, mult: 1.9, rep: 4, text: `${c.name} is staying in town and asking dealers for a ${TIER_WORD[c.tier]}.` };
+    return { id: `v${day}-${c.id}`, who: c.name, portrait: c.portrait, buyerId: c.id, city, until: day + stay, tier: c.tier, mult: 1.9, rep: 4, text: `${c.name} is staying in town and asking dealers for ${withArticle(TIER_WORD[c.tier])}.` };
   }
   const pool = rank >= 1 && rng() < 0.6 ? FINE_VISITORS : COMMON_VISITORS;
   const [who, city, why] = pool[Math.floor(rng() * pool.length)];
   const tier = pool === FINE_VISITORS ? 2 : 1;
-  return { id: `v${day}-${city}-${Math.floor(rng() * 1000)}`, who, city, until: day + stay, tier, mult: tier === 2 ? 1.7 : 1.6, rep: tier === 2 ? 3 : 2, text: `${who} ${why}. Bring a ${TIER_WORD[tier]} before they leave.` };
+  return { id: `v${day}-${city}-${Math.floor(rng() * 1000)}`, who, city, until: day + stay, tier, mult: tier === 2 ? 1.7 : 1.6, rep: tier === 2 ? 3 : 2, text: `${who} ${why}. Bring ${withArticle(TIER_WORD[tier])} before they leave.` };
 }

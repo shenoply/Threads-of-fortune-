@@ -2,7 +2,8 @@
 // map, the right button on the town menu, and the right marker in the streets.
 import type { GameState } from './state/store';
 import { OPENING, openingStep } from './opening';
-import { MISSIONS, MAIN_ORDER, AMBUSH_STRENGTH, hearthUnpacked, strengthOf, type MissionState } from '../data/missions';
+import { MISSIONS, MAIN_ORDER, AMBUSH_STRENGTH, strengthOf, type MissionState } from '../data/missions';
+import { housesIn } from './auction/sessions';
 
 export interface GuideTarget {
   /** the town to be in (settlement id) */
@@ -31,9 +32,14 @@ export function guideTarget(s: GameState): GuideTarget | null {
   const activeId = MAIN_ORDER.find((id) => s.missions?.[id] === 'active');
   const ms = s as unknown as MissionState;
   // a mission that cannot be finished yet points at what is missing, not at the far town
-  if (activeId === 'farid' && hearthUnpacked(ms)) return { city: 'giza' };
   if (activeId === 'ambush' && strengthOf(ms) < AMBUSH_STRENGTH) return { tile: 'menu-guards', poi: 'guards' };
   if (activeId === 'alexandria') return { city: 'alexandria', tile: 'menu-market', poi: 'souq' };
+  if (activeId === 'rival') return { city: 'giza', poi: 'stall' };
+  // Farid is in Damascus's People; the palace is the town menu's court tile
+  if (activeId === 'farid') return { city: 'damascus', tile: 'menu-people' };
+  if (activeId === 'warrant') return { city: 'alexandria', tile: 'menu-court' };
+  // any town's sale rooms will do: the one you are in if it has them, else Cairo's
+  if (activeId === 'auction') return { city: s.world.at && housesIn(s.world.at).length ? s.world.at : 'cairo', tile: 'menu-houses' };
   const target = activeId ? MISSIONS[activeId]?.target : undefined;
   return target ? { city: target } : null;
 }

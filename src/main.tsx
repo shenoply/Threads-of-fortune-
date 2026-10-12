@@ -1,7 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { installSaveGuard } from './game/state/saveGuard';
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
+
+// watch the save for failed writes and for another tab writing it (src/game/state/saveGuard.ts)
+installSaveGuard();
 
 // keep the pictures and sounds on the phone after the first visit (public/sw.js)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
@@ -10,7 +15,9 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
 

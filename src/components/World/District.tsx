@@ -453,6 +453,11 @@ interface Walker { x: number; y: number; vx: number; vy: number; robe: string; h
 
 /** Game minutes that pass per real second at 1x while you are down in the district. */
 const LOCAL_MIN_PER_SEC = 10;
+/** The objective bar's button ("To Malek's", "To Bilgin's") was tapped while the district was already
+ *  on screen: the district it brings up (a fresh one) opens that place at once instead of only showing
+ *  the lane again. */
+let objectiveTap: { poi: string; at: number } | null = null;
+const OBJECTIVE_BTNS = '[data-testid="first-hour-go"], [data-testid="objective-go"]';
 
 export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false }: { onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
   const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
@@ -558,6 +563,39 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       }
     }
   };
+
+  // the place the objective points at is brought into view in the row of places (it may sit far off
+  // to the right), and a second tap on the objective's button goes straight in
+  const placesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = placesRef.current;
+    if (!guidePoi || !row) return;
+    const el = row.querySelector<HTMLElement>(`[data-testid="poi-${guidePoi}"]`);
+    if (!el) return;
+    const r = el.getBoundingClientRect(), b = row.getBoundingClientRect();
+    if (r.left >= b.left && r.right <= b.right) return;
+    // scrollIntoView({ inline: 'center' }) along the row only, so the page itself never jumps
+    row.scrollTo({ left: row.scrollLeft + (r.left - b.left) - (b.width - r.width) / 2, behavior: 'smooth' });
+  }, [guidePoi, seen.length]);
+  const arriveRef = useRef<(id: string) => void>(() => {});
+  arriveRef.current = arrive;
+  useEffect(() => {
+    const tap = objectiveTap;
+    objectiveTap = null;
+    if (tap && tap.poi === guidePoi && Date.now() - tap.at < 2500) arriveRef.current(tap.poi);
+    const on = (e: MouseEvent) => {
+      const poi = useGame.getState().started ? guideTarget(useGame.getState())?.poi : undefined;
+      if (!poi || poi === 'stall' || !POIS.some((p) => p.id === poi)) return;
+      if (!(e.target as Element | null)?.closest?.(OBJECTIVE_BTNS)) return;
+      objectiveTap = { poi, at: Date.now() };
+      // the button brings up a new district, which takes it from here; if none comes, this one does
+      window.setTimeout(() => { if (objectiveTap && alive.current) { const t = objectiveTap; objectiveTap = null; arriveRef.current(t.poi); } }, 400);
+    };
+    window.addEventListener('click', on, true);
+    return () => window.removeEventListener('click', on, true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   const walkTo = (x: number, y: number, target: string | null) => {
     const s = st.current;
@@ -897,7 +935,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         )}
       </div>
       <div className="district-sheet">
-        <div className="district-places">
+        <div className="district-places" ref={placesRef}>
           {POIS.filter((p) => seen.includes(p.id)).map((p) => (
             <button key={p.id} className={`dplace ${guidePoi === p.id ? 'guide' : ''}`} onClick={() => walkTo(p.x, p.y, p.id)} data-testid={`poi-${p.id}`}>
               <i>{p.glyph}</i>

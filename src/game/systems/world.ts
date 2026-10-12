@@ -1,7 +1,8 @@
 import { MASK_W, MASK_H, CELL, WATER_ROWS } from '../../data/landmask';
 import { TERRAIN_ROWS } from '../../data/terrain';
 import { BARRIER_ROWS, BARRIER_NAMES } from '../../data/barriers';
-import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, type Settlement } from '../../data/world';
+import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, RAIL_FARE_PER_KM, RAIL_FARE_MIN, ANIMAL_FREIGHT, type Settlement } from '../../data/world';
+import { BREEDS } from '../../data/animals';
 
 export interface Pt { x: number; y: number }
 
@@ -296,22 +297,45 @@ export function along(p: Pt[], d: number): { pos: Pt; done: boolean } {
 
 export const settlementAt = (p: Pt, r = 12): Settlement | undefined => SETTLEMENTS.find((s) => dist(s, p) <= r);
 export const settlementById = (id: string) => SETTLEMENTS.find((s) => s.id === id)!;
-export const seaRoutesFrom = (id: string) =>
-  SEA_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => ({ to: r.a === id ? r.b : r.a, days: r.days, fare: r.fare }));
-export const motorRoutesFrom = (id: string) =>
-  MOTOR_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => ({ to: r.a === id ? r.b : r.a, days: r.days, fare: r.fare }));
 
-/** Cheapest railway journey between two stations (Dijkstra over the 1925 network). */
-export function railJourney(from: string, to: string): { days: number; fare: number; stops: string[] } | null {
+// ---------- fares for the whole party ----------
+/** Who pays: the people in the caravan, and its animals by kind (camels and horses go as large stock). */
+export interface FareParty { people: number; animals: Record<string, number> }
+export interface FareLine { label: string; n: number; each: number }
+export interface Fare { total: number; lines: FareLine[] }
+/** A per-person fare made into the bill for everyone: a ticket each, and freight for every animal. */
+export function partyFare(perPerson: number, party?: FareParty): Fare {
+  if (!party) return { total: perPerson, lines: [{ label: 'person', n: 1, each: perPerson }] };
+  const lines: FareLine[] = [{ label: party.people === 1 ? 'person' : 'people', n: Math.max(1, party.people), each: perPerson }];
+  const byKind: Record<string, number> = {};
+  for (const [id, n] of Object.entries(party.animals ?? {})) {
+    const b = BREEDS[id];
+    if (b && n > 0) byKind[b.kind] = (byKind[b.kind] ?? 0) + n;
+  }
+  for (const kind of ['camel', 'horse', 'mule', 'donkey']) {
+    const n = byKind[kind];
+    if (n) lines.push({ label: `${n === 1 ? kind : `${kind}s`} (freight)`, n, each: perPerson * (kind === 'camel' || kind === 'horse' ? ANIMAL_FREIGHT.large : ANIMAL_FREIGHT.small) });
+  }
+  return { total: lines.reduce((s, l) => s + l.n * l.each, 0), lines };
+}
+
+export const seaRoutesFrom = (id: string, party?: FareParty) =>
+  SEA_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => { const f = partyFare(r.fare, party); return { to: r.a === id ? r.b : r.a, days: r.days, fare: f.total, perPerson: r.fare, bill: f.lines }; });
+export const motorRoutesFrom = (id: string, party?: FareParty) =>
+  MOTOR_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => { const f = partyFare(r.fare, party); return { to: r.a === id ? r.b : r.a, days: r.days, fare: f.total, perPerson: r.fare, bill: f.lines }; });
+
+/** Quickest railway journey between two stations (Dijkstra over the 1925 network). The fare goes by
+ *  the kilometres of line travelled, third class; with a party, it is the bill for everyone. */
+export function railJourney(from: string, to: string, party?: FareParty): { days: number; fare: number; perPerson: number; bill: FareLine[]; stops: string[] } | null {
   if (from === to) return null;
-  const edges = new Map<string, { to: string; days: number; fareDays: number }[]>();
+  const edges = new Map<string, { to: string; days: number; km: number }[]>();
   for (const l of RAIL_LINKS) {
     const A = settlementById(l.a), B = settlementById(l.b);
-    // the fare goes by distance; the time by the timetable where we have one
-    const fareDays = l.days ?? Math.max(0.1, (dist(A, B) * 1.25) / TRAIN_PX_PER_DAY);
-    const days = l.hours != null ? l.hours / 24 : fareDays;
-    edges.set(l.a, [...(edges.get(l.a) ?? []), { to: l.b, days, fareDays }]);
-    edges.set(l.b, [...(edges.get(l.b) ?? []), { to: l.a, days, fareDays }]);
+    // where a link has no length or timetable of its own, the map distance stands in for both
+    const km = l.km ?? dist(A, B) * 2;
+    const days = l.hours != null ? l.hours / 24 : l.days ?? Math.max(0.1, (dist(A, B) * 1.25) / TRAIN_PX_PER_DAY);
+    edges.set(l.a, [...(edges.get(l.a) ?? []), { to: l.b, days, km }]);
+    edges.set(l.b, [...(edges.get(l.b) ?? []), { to: l.a, days, km }]);
   }
   if (!edges.has(from) || !edges.has(to)) return null;
   const best = new Map<string, number>([[from, 0]]);
@@ -332,9 +356,72 @@ export function railJourney(from: string, to: string): { days: number; fare: num
   const stops = [to];
   while (stops[0] !== from) stops.unshift(prev.get(stops[0])!);
   const days = best.get(to)!;
-  let fareDays = 0;
-  for (let i = 1; i < stops.length; i++) fareDays += edges.get(stops[i - 1])!.find((e) => e.to === stops[i])!.fareDays;
-  return { days, fare: Math.max(15, Math.round((fareDays * 120) / 5) * 5), stops };
+  let km = 0;
+  for (let i = 1; i < stops.length; i++) km += edges.get(stops[i - 1])!.find((e) => e.to === stops[i])!.km;
+  const perPerson = Math.max(RAIL_FARE_MIN, Math.round(km * RAIL_FARE_PER_KM));
+  const f = partyFare(perPerson, party);
+  return { days, fare: f.total, perPerson, bill: f.lines, stops };
+}
+
+// ---------- how long a walk really takes, and what it eats ----------
+/** The hours of a night on the road: night falls at 20:00 and a camp breaks at 06:00. */
+export const NIGHT_FROM = 20, CAMP_UNTIL = 6;
+export interface TripEstimate {
+  /** days from setting off to arriving, by the clock */
+  elapsedDays: number;
+  /** nights spent in camp on the way */
+  camps: number;
+  /** midnights passed on the road: each one is a day's rations for the whole party */
+  nights: number;
+  rations: number;
+  /** days spent waiting at the Sinai narrows, if allowed for */
+  waitDays: number;
+}
+/**
+ * The walk as the map will run it: `walkDays` of marching (24 hours a day of movement, as pathDays
+ * gives it), stopped for the night from 20:00 to 06:00 when the party camps, plus any days of waiting
+ * (an escort at the Sinai narrows). Rations are eaten at each midnight, a day's worth for everyone,
+ * the same as the nightly upkeep on the road.
+ */
+export function tripEstimate(o: { walkDays: number; startHour: number; camp: boolean; perDay: number; waitDays?: number }): TripEstimate {
+  let need = Math.max(0, o.walkDays) * 24;
+  let t = o.startHour; // hours since midnight of the day you leave
+  let camps = 0;
+  // setting off after dark: that first night is marched, as the map does not ask about it
+  const hod0 = ((t % 24) + 24) % 24;
+  let skipNight = hod0 >= NIGHT_FROM || hod0 < CAMP_UNTIL - 1;
+  for (let guard = 0; need > 1e-6 && guard < 2000; guard++) {
+    const hod = ((t % 24) + 24) % 24;
+    const dark = hod >= NIGHT_FROM || hod < CAMP_UNTIL - 1;
+    if (o.camp && dark && !skipNight) {
+      // sleep until dawn
+      t += hod >= NIGHT_FROM ? 24 - hod + CAMP_UNTIL : CAMP_UNTIL - hod;
+      camps++;
+      continue;
+    }
+    if (!dark) skipNight = false;
+    // march until the trip is done or until the next nightfall (or, in the dark, until daylight)
+    const until = dark ? (hod >= NIGHT_FROM ? 24 - hod + CAMP_UNTIL - 1 : CAMP_UNTIL - 1 - hod) : NIGHT_FROM - hod;
+    const step = Math.min(need, Math.max(1e-3, until));
+    t += step;
+    need -= step;
+  }
+  const waitDays = o.waitDays ?? 0;
+  t += waitDays * 24;
+  const nights = Math.floor(t / 24) - Math.floor(o.startHour / 24);
+  return { elapsedDays: (t - o.startHour) / 24, camps, nights, rations: nights * Math.max(1, o.perDay), waitDays };
+}
+
+/** "30 min", "3½ h", "1 d 12 h": a length of time on the same clock the journey runs on. */
+export function durationLabel(days: number) {
+  const h = days * 24;
+  if (h < 0.75) return `${Math.max(5, Math.round((h * 60) / 5) * 5)} min`;
+  if (h < 24) {
+    const half = Math.round(h * 2) / 2;
+    return `${Math.floor(half)}${half % 1 ? '½' : ''} h`;
+  }
+  const d = Math.floor(h / 24), rest = Math.round(h - d * 24);
+  return rest === 24 ? `${d + 1} d` : rest ? `${d} d ${rest} h` : `${d} d`;
 }
 
 // ---------- Fog of war ----------
@@ -427,13 +514,14 @@ export function spawnParties(rng: () => number): Party[] {
 }
 
 /** Bands that watch the trade roads beyond the Nile valley: weak near Egypt, strong in the far deserts. */
+// (names as the ambush card gives them: see threatForParty in data/travelThreats1925.ts)
 const ROAD_BANDS: [string, string, number, string][] = [
-  ['cairo', 'suez', 3, 'Desert thieves'],
-  ['suez', 'sinai', 5, 'Raiders'],
-  ['jaffa', 'jerusalem', 4, 'Hill bandits'],
-  ['jerusalem', 'damascus', 6, 'Raiders'],
-  ['damascus', 'baghdad', 8, 'Desert raiders'],
-  ['aleppo', 'konya', 6, 'Brigands'],
+  ['cairo', 'suez', 3, 'Rural Highway Robbers'],
+  ['suez', 'sinai', 5, 'Desert Raiders'],
+  ['jaffa', 'jerusalem', 4, 'Road Thieves'],
+  ['jerusalem', 'damascus', 6, 'Desert Raiders'],
+  ['damascus', 'baghdad', 8, 'Border Smuggler-Brigands'],
+  ['aleppo', 'konya', 6, 'Border Smuggler-Brigands'],
 ];
 export function spawnRoadBands(rng: () => number): Party[] {
   return ROAD_BANDS.map(([a, b, size, name], i) => {
@@ -447,10 +535,12 @@ export function spawnRoadBands(rng: () => number): Party[] {
 }
 
 /** The strongest band close to a route: what you are walking into. */
-export function routeDanger(path: Pt[], parties: Party[]): number {
+export function routeDanger(path: Pt[], parties: Party[], day?: number): number {
   let worst = 0;
   for (const p of parties) {
     if (p.kind !== 'raiders' || !p.strength) continue;
+    // a band that has had its answer from this caravan keeps away for a while (see stepParties)
+    if (day != null && (p.cooldownUntil ?? 0) > day) continue;
     const L = pathLength(path);
     for (let d = 0; d <= L; d += 8) if (dist(p, along(path, d).pos) < 26) { worst = Math.max(worst, p.strength); break; }
   }

@@ -9,6 +9,12 @@ import { dateFor } from '../../game/economy/economy';
 import { settlementById } from '../../game/systems/world';
 import { CARGO_JOBS, midSentence } from '../../game/systems/fieldwork';
 import { voice, quotes } from '../../game/audio/voice';
+import '../../game/missionRules';
+import { HouseEnding } from './HouseEnding';
+
+/** "+£3.00 · reputation +3": only the parts there are */
+export const rewardLine = (r: { cash: number; rep: number; trust?: number }, trust = false) =>
+  [r.cash ? `+£${(r.cash / 100).toFixed(2)}` : '', r.rep ? `reputation +${r.rep}` : '', trust && r.trust ? `Rashid's trust +${r.trust}` : ''].filter(Boolean).join(' · ');
 
 /** The active main mission, pinned under the top bar. */
 export function MissionBanner({ onMap }: { onMap: () => void }) {
@@ -55,7 +61,7 @@ export function MissionCard({ onMap }: { onMap: () => void }) {
           {done ? (
             <>
               <p>{m.reward.text}</p>
-              <p className="mission-reward">+£{(m.reward.cash / 100).toFixed(2)} · reputation +{m.reward.rep} · Rashid's trust +{m.reward.trust}</p>
+              <p className="mission-reward">{rewardLine(m.reward, true)}</p>
             </>
           ) : (
             <>
@@ -86,7 +92,7 @@ export function goObjective(go: string, onGo: (target?: string) => void) {
 }
 
 /** One objective at a time, in one line under the top bar: new mission news first, then the mission, then the first-hour step, then a job. */
-export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; skip?: () => void } | null }) {
+export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; skip?: () => void } | null; onMenu?: () => void }) {
   const g = useGame();
   const [open, setOpen] = useState(false);
   const news = g.missionNews;
@@ -110,6 +116,8 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
   }, [open]);
   const activeId = MAIN_ORDER.find((m) => g.missions?.[m] === 'active');
   const nm = news ? MISSIONS[news.replace('-done', '')] : undefined;
+  // the last chapter gets a proper ending, not a one-line strip
+  if (news === 'house-done') return <HouseEnding onMenu={onMenu} />;
   if (nm) {
     const done = news!.endsWith('-done');
     return (
@@ -122,7 +130,7 @@ export function ObjectiveBar({ onGo, firstHour }: { onGo: (target?: string) => v
           </button>
           <button className="btn ob-btn" onClick={() => { setOpen(false); g.clearMissionNews(); }} data-testid="mission-ok">{done ? 'Good' : 'Noted'}</button>
         </div>
-        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>{done ? <><p>{nm.reward.text}</p><p className="mission-reward">+£{(nm.reward.cash / 100).toFixed(2)} · reputation +{nm.reward.rep}</p></> : <><p>{nm.brief}</p><p className="mission-lock">{nm.locks}</p></>}</div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>{done ? <><p>{nm.reward.text}</p><p className="mission-reward">{rewardLine(nm.reward)}</p></> : <><p>{nm.brief}</p><ol>{nm.steps.map((x) => <li key={x}>{x}</li>)}</ol><p className="mission-lock">{nm.locks}</p></>}</div>}
       </div>
     );
   }

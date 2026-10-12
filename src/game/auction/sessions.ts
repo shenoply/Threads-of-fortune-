@@ -1,5 +1,6 @@
 // Auction houses in play: when each house holds a sale, what it sells, and who sits in the room.
 // Everything is seeded by house and day, so a sale cannot be rerolled by leaving and coming back.
+import { auctionable } from '../storyRugs';
 import { AUCTION_HOUSES } from '../../data/auctionHouses';
 import type { AuctionHouse, RugTier } from './types';
 import { RUGS, RUG_IDS, CONDITION_FACTOR } from '../../data/rugs';
@@ -87,12 +88,12 @@ export function catalogue(houseId: string, day: number, reoffers: Reoffer[] = []
     return { key, bundle, typeIds, conditions: cs, provenance: ps, value, estimate, reserve, opening, reoffered };
   };
   // last time's unsold lots come back first, cheaper
-  reoffers.filter((r) => r.houseId === houseId).slice(0, 2).forEach((r, i) => lots.push(priceLot(`${houseId}-${day}-re${i}`, [r.typeId], [r.condition], [r.provenance], false, r.reserve, r.times)));
+  reoffers.filter((r) => r.houseId === houseId && auctionable(r.typeId)).slice(0, 2).forEach((r, i) => lots.push(priceLot(`${houseId}-${day}-re${i}`, [r.typeId], [r.condition], [r.provenance], false, r.reserve, r.times)));
   for (let i = lots.length; i < n; i++) {
     const s = seed + i * 11.7;
     // small rooms sell bundles of leftovers now and then
     if (small && rnd(s + 5) < 0.18) {
-      const commons = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === 1);
+      const commons = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === 1 && auctionable(id));
       const k = 2 + Math.floor(rnd(s + 6) * 3);
       const ids = Array.from({ length: k }, (_, j) => commons[Math.floor(rnd(s + 7 + j * 2.3) * commons.length)]);
       const cs = ids.map((_, j) => conds[Math.floor(rnd(s + 9 + j * 3.1) * conds.length)]);
@@ -100,7 +101,7 @@ export function catalogue(houseId: string, day: number, reoffers: Reoffer[] = []
       continue;
     }
     const { tier, artifact } = pickTier(h, rnd(s + 1));
-    const pool = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier);
+    const pool = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier && auctionable(id));
     const id = pool[Math.floor(rnd(s + 2) * pool.length)];
     const c = artifact ? 'Excellent' : conds[Math.floor(rnd(s + 3) * conds.length)];
     const p = artifact ? 'Documented' : provs[Math.floor(rnd(s + 4) * provs.length)];

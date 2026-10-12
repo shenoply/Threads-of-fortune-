@@ -21,3 +21,13 @@
 .set-obj .btn { flex: none; min-height: 38px; padding: 6px 12px; }
 .set-obj.panel { margin: 0 0 8px; }
 .town-menu .set-obj.menu { position: relative; z-index: 2; margin: calc(8px + env(safe-area-inset-top, 0px)) auto 0; width: calc(100% - 20px); max-width: 600px; }
+/* A city's town menu in headed groups (Trade, People, Services, Leave): the trade tiles keep their
+   line of detail, the rest are single-line so the whole menu reads at a glance. */
+.town-menu .tm-groups { display: grid; gap: 8px; }
+.town-menu .tm-group h3 { margin: 0 0 4px; font-family: var(--label); font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #d9a55a; text-shadow: 0 1px 4px #000; }
+.town-menu .tm-item.slim { min-height: 42px; padding: 5px 9px; }
+.town-menu .tm-item.slim small { display: none; }
+.town-menu .tm-item.slim b { font-size: 14.5px; -webkit-line-clamp: 2; }
+.town-menu .tm-item.slim.guide small { display: -webkit-box; }
+.town-menu .tm-list.tm-next { grid-template-columns: 1fr; }
+.town-menu .tm-list.tm-next .tm-item { padding-right: 64px; }

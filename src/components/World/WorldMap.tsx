@@ -11,7 +11,7 @@ import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
-import { routeDanger,
+import { routeDanger, tripEstimate, durationLabel, type FareLine,
   MAP_W, MAP_H, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
@@ -24,7 +24,9 @@ import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { openJobs } from '../../data/jobs';
 import { RUGS } from '../../data/rugs';
-import { BREEDS } from '../../data/animals';
+import { BREEDS, withArticle } from '../../data/animals';
+import { threatForParty } from '../../data/travelThreats1925';
+import { PASS_CHOICES } from '../../game/systems/fieldwork';
 import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
 import { CampScreen, NightPasses } from './Camp';
@@ -45,6 +47,20 @@ function seasonOf(day: number) {
   return m < 2 || m === 11 ? 'Winter' : m < 5 ? 'Spring' : m < 8 ? 'Summer' : 'Autumn';
 }
 
+/** "1 day", "3 days" */
+const daysWord = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
+/** A name in the middle of a sentence: lower case, but places and peoples keep their capital
+ *  ("the Aleppo wool caravan", "2 Cairo sentinels", "the salt traders from the oases"). */
+const PROPER = /^(Aleppo|Persian|Syrian|Egyptian|Cairo|Giza|Alexandria|Bedouin|Arnaut|Circassian|Tarabin|Sufi|Baghdad|Damascus)\b/;
+const midName = (s: string) => (PROPER.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1));
+/** What a band on the map is called: the same name its ambush card gives it. */
+const bandName = (p: Party, day: number) => (p.kind === 'raiders' ? threatForParty(p, day).displayName : p.name);
+/** "3 people × £0.25 + 2 camels and horses, freight × £0.50": what a fare is made of */
+const billLine = (bill: FareLine[]) => bill.map((l) => `${l.n} ${l.label} × ${fmt(l.each)}`).join(' + ');
+
+/** The Nile ferry between Giza and Cairo: an hour and a half, a piastre (the fare is the store's ferry()). */
+const FERRY_DAYS = 1.5 / 24, FERRY_FARE = 1;
+
 const kindIcon: Record<string, string> = { home: 'store', city: 'star', town: 'room', village: 'room', oasis: 'sun', port: 'anchor', monastery: 'book', camp: 'camel' };
 
 interface Plan {
@@ -52,9 +68,9 @@ interface Plan {
   settlement?: Settlement;
   path: Pt[] | null;
   days: number;
-  train?: { days: number; fare: number; stops: string[] };
-  ships: { to: string; days: number; fare: number }[];
-  motor: { to: string; days: number; fare: number }[];
+  train?: { days: number; fare: number; stops: string[]; bill?: FareLine[] };
+  ships: { to: string; days: number; fare: number; bill?: FareLine[] }[];
+  motor: { to: string; days: number; fare: number; bill?: FareLine[] }[];
   /** the port or town this plan was made from, so a ship can still be booked from it even after
    *  you've since set off on foot and world.at has gone back to null on the road */
   from?: Settlement;
@@ -138,8 +154,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const arrivalLabel = (days: number) => {
     const t = g.world.hour + days * 24;
     const d = g.day + Math.floor(t / 24), h = t % 24;
-    const hours = Math.max(1, Math.round(days * 24));
-    return `about ${hours} h, arrives ${dateFor(d).weekday.slice(0, 3)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
+    return `${durationLabel(days)}, arrives ${dateFor(d).weekday.slice(0, 3)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
   };
   const setMoving = (m: null | Moving) => {
     setMovingRaw(m);
@@ -170,9 +185,20 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const [nightRule, setNightRuleRaw] = useState<'ask' | 'camp' | 'march'>(() => { try { return (localStorage.getItem('tof-night-rule') as 'ask' | 'camp' | 'march') || 'ask'; } catch { return 'ask'; } });
   const setNightRule = (r: 'ask' | 'camp' | 'march') => { setNightRuleRaw(r); try { localStorage.setItem('tof-night-rule', r); } catch { /* private mode */ } };
   const nightRuleRef = useRef(nightRule); nightRuleRef.current = nightRule;
+  /** The walk as the map will run it: nights in camp unless you march through them, the wait for an
+   *  escort at the Sinai narrows, and a day's rations for everyone at each midnight on the road. */
+  const estimate = (walkDays: number, dest?: string, fromAt: string | null | undefined = useGame.getState().world.at) => {
+    const st0 = useGame.getState();
+    return tripEstimate({
+      walkDays, startHour: st0.world.hour, camp: nightRuleRef.current !== 'march', perDay: dailyFood(st0.world.party),
+      waitDays: needsPass(fromAt ?? undefined, dest) ? PASS_CHOICES.escort.extraDays : 0,
+    });
+  };
   const [sleeping, setSleeping] = useState(false); // the night passing in a short camp, then on at dawn
   const [rememberNight, setRememberNight] = useState(false);
-  useEffect(() => { if (timeScale > 0) setNightfall(false); }, [timeScale]);
+  // the night's choice is made on the card, never by a tap on the speed buttons; a journey that ends
+  // (arrival, a halt, a fight) takes the question with it
+  useEffect(() => { if (!moving) setNightfall(false); }, [moving]);
   const [report, setReport] = useState<string>('');
   // your men stop you on the road when the bread is nearly gone or their patience is wearing thin
   // (once a day for each reason), so you can deal with it before someone walks
@@ -316,8 +342,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(`${st.name}: ${lockedWhy(useGame.getState(), st.id)}`); audio.sfx('tap'); return; }
     const from = { x: w.x, y: w.y };
     const target = st ? { x: st.x, y: st.y } : to;
-    const ships = here && st ? seaRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
-    const motor = here && st ? motorRoutesFrom(here.id).filter((r) => r.to === st.id) : [];
+    const fp = { people: partySize(w.party), animals: w.party.animals ?? {} };
+    const ships = here && st ? seaRoutesFrom(here.id, fp).filter((r) => r.to === st.id) : [];
+    const motor = here && st ? motorRoutesFrom(here.id, fp).filter((r) => r.to === st.id) : [];
     if (!st && isBlockedPx(to)) {
       const p0: Plan = { to, path: null, days: 0, ships: [], motor: [], from: here };
       setPlan(p0);
@@ -325,9 +352,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
     const days = path ? pathDays(path, sp.pxPerDay) : 0;
-    const train = here && st ? railJourney(here.id, st.id) ?? undefined : undefined;
+    const train = here && st ? railJourney(here.id, st.id, fp) ?? undefined : undefined;
     // the same check setOff() warns about in text, done here too so the route line itself can go red
-    const risky = !!path && routeDanger(path, w.parties) > strength(w.party);
+    const risky = !!path && routeDanger(path, w.parties, g.day) > strength(w.party);
     const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here, risky };
     setPlan(p);
     audio.sfx('tap');
@@ -358,7 +385,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   };
   // a tap on the map while travelling: on foot you may change course (after a look at the food);
   // a train, ship, motor car or ferry keeps to its route, so that only tells you so
-  const [reroute, setReroute] = useState<null | { to: Pt; st?: Settlement; path: Pt[] | null; days: number; need: number; fixed: boolean }>(null);
+  const [reroute, setReroute] = useState<null | { to: Pt; st?: Settlement; path: Pt[] | null; days: number; elapsed: number; need: number; fixed: boolean }>(null);
   useEffect(() => { if (!moving) setReroute(null); }, [moving]);
   const askReroute = (to: Pt, st?: Settlement) => {
     if (!moving) return;
@@ -371,15 +398,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const target = st ? { x: st.x, y: st.y } : to;
     const path = fixed || (!st && isBlockedPx(to)) ? null : findPath(from, target);
     const days = path ? pathDays(path, sp.pxPerDay) : 0;
-    const need = path ? Math.ceil(Math.max(1, days) * dailyFood(now.party)) : 0;
-    setReroute({ to, st, path, days, need, fixed });
+    const est = path ? estimate(days, st?.id, null) : null;
+    setReroute({ to, st, path, days, elapsed: est?.elapsedDays ?? 0, need: est?.rations ?? 0, fixed });
     audio.sfx('tap');
   };
   const changeCourse = () => {
     const r = reroute;
     setReroute(null);
     if (!r || !r.path || !moving) return;
-    const p: Plan = { to: r.st ? { x: r.st.x, y: r.st.y } : r.to, settlement: r.st, path: r.path, days: r.days, ships: [], motor: [], risky: routeDanger(r.path, w.parties) > strength(w.party) };
+    const p: Plan = { to: r.st ? { x: r.st.x, y: r.st.y } : r.to, settlement: r.st, path: r.path, days: r.days, ships: [], motor: [], risky: routeDanger(r.path, w.parties, g.day) > strength(w.party) };
     setAlt(null);
     setOff(p);
   };
@@ -388,7 +415,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // the Objectives panel or the objective banner's Map button) — without this in both places, only
   // one of the two ways to start walking actually caught a caravan that could not make the distance.
   const offerFoodShort = (p: Plan) => {
-    const need = Math.ceil(Math.max(1, p.days) * dailyFood(w.party)) - w.party.food;
+    const need = estimate(p.days, p.settlement?.id).rations - w.party.food;
     if (need > 0 && w.at && MARKETS[w.at] && !moving) {
       setShort({ plan: p, need, price: Math.ceil(need * MARKETS[w.at].food) });
       setPlan(null);
@@ -417,9 +444,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     setAlt(p.train || p.ships.length || p.motor.length || ferry ? p : null);
     setAltFerry(ferry);
     const now = useGame.getState().world;
-    const danger = routeDanger(p.path, now.parties);
+    const danger = routeDanger(p.path, now.parties, useGame.getState().day);
     const mine = strength(now.party);
-    setReport(danger > mine ? `Warning: raiders ride this road, about ${danger} strong. Your strength is ${mine}. Hire guards, or risk your cash and packed rugs.` : foodDaysLeft(now.party) < p.days ? 'Not enough food for the whole journey. Buy some in a town.' : '');
+    setReport(danger > mine ? `Warning: raiders ride this road, about ${danger} strong. Your strength is ${mine}. Hire guards, or risk your cash and packed rugs.` : now.party.food < estimate(p.days, p.settlement?.id).rations ? 'Not enough food for the whole journey. Buy some in a town.' : '');
     audio.sfx('step');
   };  // a chapter can send you here with a journey already planned
   useEffect(() => {
@@ -442,13 +469,45 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (!p) return;
     const cash = useGame.getState().cash;
     const ways: { days: number; go: () => void }[] = [];
-    if (p.path) ways.push({ days: p.days, go: () => start(false, p) });
+    if (p.path) ways.push({ days: estimate(p.days, st.id).elapsedDays, go: () => start(false, p) });
     if (p.train && cash >= p.train.fare) ways.push({ days: p.train.days, go: () => start(true, p) });
     for (const r of p.ships) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'ship', p.from) });
     for (const r of p.motor) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'motor', p.from) });
     ways.sort((a, b) => a.days - b.days)[0]?.go();
   };
 
+  /** Turned back on the road: retrace the way you came, back to the place you set out from
+   *  (or the nearest town to it), on foot from where you stand. */
+  const turnBack = (msg: string) => {
+    const m = moving;
+    const st0 = useGame.getState();
+    const here0 = { x: st0.world.x, y: st0.world.y };
+    if (!m) { setReport(msg); return; }
+    // the way already walked, from the start of the route to where you are, turned round
+    const back: Pt[] = [here0];
+    let run = 0;
+    for (let i = 1; i < m.path.length; i++) {
+      const seg = dist(m.path[i - 1], m.path[i]);
+      if (run + seg >= m.done) break;
+      run += seg;
+      back.splice(1, 0, m.path[i]);
+    }
+    back.push(m.path[0]);
+    const startPt = m.path[0];
+    const home = SETTLEMENTS.filter((x) => w.known.includes(x.id) && !x.gateway).map((x) => ({ x, d: dist(x, startPt) })).sort((a, b) => a.d - b.d)[0];
+    const homeSt = home && home.d < 14 ? home.x : undefined;
+    // a train, a ship or a car does not turn round: you get down and walk back
+    const path = back.length > 1 && dist(back[0], back[back.length - 1]) > 0.5 ? back : null;
+    passTrip.current = null;
+    setAlt(null);
+    setNightfall(false);
+    if (!path) { setMoving(null); setTimeScale(1); setReport(msg); return; }
+    follow.current = true;
+    setMoving({ path, done: 0, train: false, dest: homeSt?.id });
+    setTimeScale(lastScale.current || 1);
+    setReport(`${msg}${homeSt ? ` Back to ${homeSt.name}.` : ''}`);
+    audio.sfx('step');
+  };
   const stop = (why = '') => {
     setMoving(null);
     setTimeScale(1);
@@ -516,7 +575,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // straight across the river, bank to bank (a sea route between the two wound a long way round)
     const path = [{ x: from.x, y: from.y }, { x: dest.x, y: dest.y }];
     follow.current = true;
-    setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / (1.5 / 24), mode: 'ferry' });
+    setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / FERRY_DAYS, mode: 'ferry' });
     setPlan(null);
     setAlt(null);
     setReport('The ferry noses out across the brown river.');
@@ -553,7 +612,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       inSand = sand;
       let days = dt * DAYS_PER_SECOND * scaleRef.current;
       // the ferry is an hour and a half on the clock, but you watch it cross: about six seconds
-      if (moving.mode === 'ferry') days = (dt / 6) * (1.5 / 24);
+      if (moving.mode === 'ferry') days = (dt / 6) * FERRY_DAYS;
       done += days * speed;
       acc += days;
       const { pos, done: arrived } = along(moving.path, done);
@@ -705,9 +764,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // the planned route colours red the moment it's drawn; an already-under-way walk (not train/ship/motor,
   // which don't run into raiders the same way) checks the same thing live, since the danger along it can
   // change as parties move
-  const routeRisky = plan ? plan.risky : moving && !moving.train && !moving.mode ? routeDanger(moving.path, w.parties) > strength(w.party) : false;
+  const routeRisky = plan ? plan.risky : moving && !moving.train && !moving.mode ? routeDanger(moving.path, w.parties, g.day) > strength(w.party) : false;
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
-  const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food ${foodDaysLeft(w.party)} days`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
+  const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food for ${daysWord(foodDaysLeft(w.party))}`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
   const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.mode === 'ferry' ? 'Crossing the Nile' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
@@ -815,13 +874,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                 // ambush/thief rolls already skip themselves for these (see travelStep's `safe` flag).
                 // A tap on a party marker glimpsed out the window used to reach past that and pull the
                 // player into the same standard road encounter anyway; keep it inert while under way.
-                if (moving?.train) { if (raid) setReport(`${p.name} watch the train pass, out of reach from the tracks.`); return; }
+                if (moving?.train) { if (raid) setReport(`${bandName(p, g.day)} watch the train pass, out of reach from the tracks.`); return; }
                 if (dist(p, w) < 18) { setMoving(null); setEncounter(p); } else goTo({ x: p.x, y: p.y });
               }}>
                 {raid && <i className="pring" style={{ width: 44 * s, height: 44 * s }} aria-hidden="true" />}
                 <span className="pbadge"><Icon name={p.kind === 'raiders' ? 'sword' : p.kind === 'pilgrims' ? 'people' : p.kind === 'mercenaries' ? 'shield' : 'camel'} /></span>
                 {raid ? (
-                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? 'Hunting you · ' : ''}{p.name} · {p.strength} vs {mine}</span>
+                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? 'Hunting you · ' : ''}{bandName(p, g.day)} · {p.strength} vs {mine}</span>
                 ) : p.kind === 'caravan' || p.kind === 'bedouin' ? (
                   <span className="pgoods" data-testid={`goods-${p.id}`}><Icon name={gd?.icon ?? 'camel'} />{gd ? `Trader · ${gd.label}` : 'Trader'}</span>
                 ) : z >= 2.2 ? <span className="pname">{p.name}{p.size ? ` · ${p.size}` : ''}</span> : null}
@@ -875,7 +934,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             {moving ? (
               <span className="bl-speeds">
                 {[0, 1, 2, 4].map((k) => (
-                  <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => { setTimeScale(k); audio.sfx('tap'); }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
+                  <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => {
+                    // a question on the card (nightfall, a well, the narrows) is answered there, not by the clock
+                    if (k > 0 && (nightfall || pass)) { setReport(nightfall ? 'Night has fallen: make camp or march on first.' : 'Choose how to cross the narrows first.'); audio.sfx('tap'); return; }
+                    // at a well, going on is the same as "Carry on"
+                    if (k > 0 && well) setWell(null);
+                    setTimeScale(k); audio.sfx('tap');
+                  }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
@@ -908,7 +973,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
           <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
           <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /><small className="tool-cap">You</small></button>
-          <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives: story, jobs and visitors" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
+          <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives" title="Objectives: story, jobs and visitors" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
         </div>
       </div>
 
@@ -944,7 +1009,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <div className="wc-main">
               <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
               <span>
-                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${foodDaysLeft(w.party)} days`}
+                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${daysWord(foodDaysLeft(w.party))}`}
               </span>
             </div>
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
@@ -974,7 +1039,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               <div className="wc-main">
                 <b>{reroute.path ? `Change course to ${name}?` : name}</b>
                 <span>You are walking{destName ? ` to ${destName}` : ''}. {reroute.path
-                  ? `From here to ${name}: ${reroute.days < 0.1 ? 'a short walk' : `${reroute.days.toFixed(1)} days on foot`}, needing ${reroute.need} ration${reroute.need === 1 ? '' : 's'}. You carry ${Math.floor(w.party.food)}.`
+                  ? `From here to ${name}: ${reroute.days < 0.1 ? 'a short walk' : `about ${durationLabel(reroute.elapsed)} on foot`}, needing ${reroute.need} ration${reroute.need === 1 ? '' : 's'}. You carry ${Math.floor(w.party.food)}.`
                   : `There is no way to ${name} on foot from here.`}</span>
                 {short && <span className="warn" data-testid="reroute-food">Not enough food for that journey, and no market out here to buy more.</span>}
               </div>
@@ -1002,75 +1067,92 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <div className="wc-alt" data-testid="alt-routes">
             <span>Faster:</span>
             {altFerry && alt.settlement && (
-              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · £0.01</button>
+              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · {fmt(FERRY_FARE)} · {durationLabel(FERRY_DAYS)}</button>
             )}
-            {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)}</button>}
-            {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)}</button>)}
+            {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)} · {durationLabel(alt.train.days)}</button>}
+            {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {durationLabel(r.days)}</button>)}
           </div>
         )}
         {moving ? null : plan ? (
-          plan.path ? (
+          plan.path ? (() => {
+            // every number on this card comes from what the journey will actually do: the walk with its
+            // nights and any wait at the narrows, and each fare for the whole party
+            const est = estimate(plan.days, plan.settlement?.id);
+            const perDay = dailyFood(w.party);
+            const camping = nightRule !== 'march';
+            const ferry = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
+            const ways = [
+              ...(ferry ? [{ key: 'ferry', days: FERRY_DAYS, ok: g.cash >= FERRY_FARE }] : []),
+              ...(plan.train ? [{ key: 'train', days: plan.train.days, ok: g.cash >= plan.train.fare }] : []),
+              ...plan.ships.map((r) => ({ key: 'ship' + r.to, days: r.days, ok: g.cash >= r.fare })),
+              ...plan.motor.map((r) => ({ key: 'motor' + r.to, days: r.days, ok: g.cash >= r.fare })),
+              { key: 'walk', days: est.elapsedDays, ok: true },
+            ];
+            // the quickest way you can pay for leads the card and is the only one called fastest
+            const lead = ways.filter((x) => x.ok).sort((a, b) => a.days - b.days)[0]?.key ?? 'walk';
+            const fast = (k: string) => (lead === k && ways.length > 1 ? ' · fastest' : '');
+            const bills = [
+              plan.train?.bill && { k: 'Train', bill: plan.train.bill },
+              ...plan.ships.map((r) => r.bill && { k: 'Ship', bill: r.bill }),
+              ...plan.motor.map((r) => r.bill && { k: 'Motor car', bill: r.bill }),
+            ].filter((x): x is { k: string; bill: FareLine[] } => !!x && (x.bill.length > 1 || x.bill[0].n > 1));
+            return (
             <div className="wc-col">
               <div className="wc-main">
                 <b>{plan.settlement ? plan.settlement.name : isExplored(w.fog, plan.to) ? 'Open country' : 'Unexplored land'}</b>
-                <span>
-                  {plan.days < 0.1 ? 'A short walk' : `On foot: ${plan.days.toFixed(1)} days at ${milesPerDay(sp.pxPerDay)} mi a day`}{groundLine(plan.path)} · needs {Math.ceil(Math.max(1, plan.days) * dailyFood(w.party))} rations{foodDaysLeft(w.party) < plan.days ? ' · not enough food' : ''}
+                <span data-testid="plan-walk">
+                  {plan.days < 0.1 ? 'A short walk' : `On foot: about ${durationLabel(est.elapsedDays)} (${plan.days.toFixed(1)} days' march at ${milesPerDay(sp.pxPerDay)} mi a day, ${camping ? `camping at night${nightRule === 'ask' ? ' if you choose to' : ''}` : 'marching through the night'}${est.waitDays ? `, and ${daysWord(est.waitDays)} waiting for an escort at the narrows` : ''})`}{groundLine(plan.path)} · needs {est.rations} ration{est.rations === 1 ? '' : 's'} ({perDay} a day){w.party.food < est.rations ? ' · not enough food' : ''}
                 </span>
                 {(() => {
                   // what the walk leaves for the way home, and a job there that needs a rug packed here
-                  const need = Math.ceil(Math.max(1, plan.days) * dailyFood(w.party)), left = w.party.food - need;
+                  const need = est.rations, left = Math.floor(w.party.food) - need;
                   const job = w.at === 'giza' && plan.settlement ? openJobs(g.jobsDone, g.reputation).find((j) => j.target === plan.settlement!.id && j.need?.packedTier) : undefined;
                   const tier = job?.need?.packedTier ?? 0;
                   const unpacked = job && !g.inventory.some((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 1) >= tier);
                   // the food warning is about walking: a ferry, train or boat that the card leads with
                   // gets you there in hours, so it is left out then
-                  const ferryHere = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
-                  const faster = ferryHere || (!!plan.train && g.cash >= plan.train.fare && plan.train.days < plan.days)
-                    || [...plan.ships, ...plan.motor].some((r) => r.days < plan.days && g.cash >= r.fare);
                   const lines = [
-                    !faster && plan.days >= 1 && left >= 0 && left < need ? (left === 0 ? 'You would arrive with no food for the way back.' : `You would arrive with only ${left} ration${left === 1 ? '' : 's'} for the way back.`) : '',
-                    unpacked ? `${job!.title} needs a ${['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][tier]} packed for the road. Pack it in Stock before you leave: rugs can only be packed at your Giza stall.` : '',
+                    lead === 'walk' && need > 0 && left >= 0 && left < need ? (left === 0 ? 'You would arrive with no food for the way back.' : `You would arrive with only ${left} ration${left === 1 ? '' : 's'} for the way back.`) : '',
+                    unpacked ? `${job!.title} needs ${withArticle(['', 'rug', 'Fine rug', 'Exceptional rug', 'Legendary rug'][tier])} packed for the road. Pack it in Stock before you leave: rugs can only be packed at your Giza stall.` : '',
                   ].filter(Boolean);
                   return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
                 })()}
+                {bills.length > 0 && (
+                  <span className="fare-bill" data-testid="fare-bill">
+                    {bills.map((x) => <i key={x.k}>{x.k}: {billLine(x.bill)}</i>)}
+                  </span>
+                )}
               </div>
-              {(() => {
-                // the quickest way there you can pay for leads the card (the ferry, then the train, then a
-                // ship or motor car that beats walking); walking comes after it as the plain choice
-                const ferry = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
-                const trainOk = !!plan.train && g.cash >= plan.train.fare && plan.train.days < Math.max(plan.days, 0.1);
-                const quick = [...plan.ships.map((r) => ({ r, mode: 'ship' as const })), ...plan.motor.map((r) => ({ r, mode: 'motor' as const }))]
-                  .filter(({ r }) => r.days < plan.days && g.cash >= r.fare).sort((a, b) => a.r.days - b.r.days)[0];
-                const lead = ferry ? 'ferry' : trainOk ? 'train' : quick ? quick.mode + quick.r.to : 'walk';
-                return (
-                  <div className="wc-btns">
-                    {ferry && (
-                      <button className="btn primary sail-btn faster" onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · £0.01 · 1½ h · fastest way there</button>
-                    )}
-                    {plan.train && <button className={`btn${lead === 'train' ? ' primary' : ''}`} onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}</button>}
-                    {plan.ships.map((r) => (
-                      <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}${lead === 'ship' + r.to ? ' primary' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
-                    ))}
-                    {plan.motor.map((r) => (
-                      <button key={r.to} className={`btn sail-btn${r.days < plan.days ? ' faster' : ''}${lead === 'motor' + r.to ? ' primary' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {r.days} d{r.days < plan.days ? ' · fastest way there' : ''}</button>
-                    ))}
-                    {lead === 'walk'
-                      ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
-                      : <button className="btn" onClick={() => start(false)} data-testid="travel">{ferry ? 'Walk instead' : 'Walk'} · {plan.days.toFixed(1)} d</button>}
-                    <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
-                  </div>
-                );
-              })()}
+              <div className="wc-btns">
+                {ferry && (
+                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · {fmt(FERRY_FARE)} · {durationLabel(FERRY_DAYS)}{fast('ferry')}</button>
+                )}
+                {plan.train && <button className={`btn${lead === 'train' ? ' primary' : ''}`} onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}{fast('train')}</button>}
+                {plan.ships.map((r) => (
+                  <button key={r.to} className={`btn sail-btn${lead === 'ship' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('ship' + r.to)}</button>
+                ))}
+                {plan.motor.map((r) => (
+                  <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
+                ))}
+                {lead === 'walk'
+                  ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
+                  : <button className="btn" onClick={() => start(false)} data-testid="travel">{ferry ? 'Walk instead' : 'Walk'} · {plan.days < 0.1 ? 'a short walk' : `about ${durationLabel(est.elapsedDays)}`}</button>}
+                <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
+              </div>
             </div>
-          ) : (
+            );
+          })() : (
             <div className="wc-row">
               <div className="wc-main">
                 <b>{plan.settlement ? plan.settlement.name : blockedTitle(plan.to)}</b>
                 <span>{plan.ships.length || plan.train ? 'Not reachable on foot from here.' : plan.settlement ? 'Not reachable on foot. Go to a port or a railway station.' : blockedText(plan.to)}</span>
+                {[plan.train?.bill && { k: 'Train', bill: plan.train.bill }, ...plan.ships.map((r) => r.bill && { k: 'Ship', bill: r.bill })].filter((x): x is { k: string; bill: FareLine[] } => !!x && (x.bill.length > 1 || x.bill[0].n > 1)).map((x) => (
+                  <span key={x.k} className="fare-bill" data-testid="fare-bill"><i>{x.k}: {billLine(x.bill)}</i></span>
+                ))}
               </div>
-              {plan.train && <button className="btn primary" onClick={() => start(true)}>Train · {fmt(plan.train.fare)}</button>}
+              {plan.train && <button className="btn primary" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}</button>}
               {plan.ships.map((r) => (
-                <button key={r.to} className="btn primary sail-btn" data-testid="ship" onClick={() => startSea(r, 'ship', plan.from)}>⚓ Ship · {fmt(r.fare)}</button>
+                <button key={r.to} className="btn primary sail-btn" data-testid="ship" onClick={() => startSea(r, 'ship', plan.from)}>⚓ Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}</button>
               ))}
               <button className="btn" onClick={() => setPlan(null)}>OK</button>
             </div>
@@ -1126,7 +1208,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         <Ambush
           party={encounter}
           onDone={(msg) => { setReport(msg); setEncounter(null); if (useGame.getState().rescue) setMoving(null); }}
-          onTurnBack={() => { setMoving(null); setEncounter(null); }}
+          onTurnBack={(msg) => { setEncounter(null); turnBack(msg); }}
         />
       )}
       {encounter && encounter.kind !== 'raiders' && (
@@ -1137,8 +1219,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             setEncounter(null);
           }}
           onTurnBack={() => {
-            setMoving(null);
             setEncounter(null);
+            turnBack('You turn your animals around and go back the way you came.');
           }}
         />
       )}
@@ -1165,10 +1247,10 @@ function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const g = useGame();
   const [msg, setMsg] = useState('');
   const mine = strength(g.world.party);
-  const men = Object.entries(g.world.party.troops).filter(([, n]) => n > 0).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id].plural.toLowerCase() : TROOPS[id].name.toLowerCase()}`).join(', ');
+  const men = Object.entries(g.world.party.troops).filter(([, n]) => n > 0).map(([id, n]) => `${n} ${midName(n > 1 ? TROOPS[id].plural : TROOPS[id].name)}`).join(', ');
   const text = useMemo(() => {
     switch (party.kind) {
-      case 'caravan': return `A string of camels comes over the rise: the ${party.name.toLowerCase()}. The caravan master raises a hand in greeting.`;
+      case 'caravan': return `A string of camels comes over the rise: the ${midName(party.name)}. The caravan master raises a hand in greeting.`;
       case 'pilgrims': return `${party.name}, dusty and cheerful, stop to share the shade.`;
       case 'raiders': return `${party.size ?? 'Several'} riders come down off the ridge and block the track. Rifles across their saddles, not yet pointed at anyone.`;
       case 'mercenaries': return `${party.name}: four armed men resting their horses. Their leader looks your camels over and asks if you need protection.`;

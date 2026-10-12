@@ -139,20 +139,27 @@ export const SETTLEMENTS: Settlement[] = [
 // Transport links other than walking. Rail days are worked out from distance unless given.
 // `hours`: the time on the train by the timetables of the day (the Cairo to Alexandria express ran in
 // about three and a half hours, stopping at Tanta). Without it the time is worked out from the distance
-// on the map. The fare is always worked out from the distance.
-export const RAIL_LINKS: { a: string; b: string; days?: number; hours?: number }[] = [
-  { a: 'giza', b: 'cairo', hours: 0.5 }, { a: 'cairo', b: 'tanta', hours: 1.5 }, { a: 'tanta', b: 'alexandria', hours: 2 }, { a: 'giza', b: 'fayoum', hours: 3 },
-  { a: 'cairo', b: 'suez', hours: 4 }, { a: 'cairo', b: 'portsaid', hours: 5 },
-  { a: 'portsaid', b: 'jaffa', hours: 12 }, // across the canal at Kantara, then the Sinai line through El Arish and Gaza (overnight)
-  { a: 'jaffa', b: 'jerusalem', hours: 3.5 }, { a: 'jaffa', b: 'damascus' }, // via Lydda, Haifa and the Hejaz branch through Deraa
-  { a: 'beirut', b: 'damascus' }, { a: 'damascus', b: 'aleppo' }, // Rayak, Homs, Hama
-  { a: 'aleppo', b: 'konya', days: 2 }, { a: 'konya', b: 'istanbul', days: 2 },
-  { a: 'damascus', b: 'amman', days: 1 }, // the Hejaz Railway through Deraa
-  { a: 'istanbul', b: 'ankara', days: 1 }, { a: 'konya', b: 'ankara', days: 2 }, // Anatolian Railway via Eskişehir
+// on the map. `km`: the length of line, which sets the fare (the painted map is not to scale in the Delta).
+export const RAIL_LINKS: { a: string; b: string; days?: number; hours?: number; km?: number }[] = [
+  { a: 'giza', b: 'cairo', hours: 0.5, km: 10 }, { a: 'cairo', b: 'tanta', hours: 1.5, km: 93 }, { a: 'tanta', b: 'alexandria', hours: 2, km: 115 }, { a: 'giza', b: 'fayoum', hours: 3, km: 120 },
+  { a: 'cairo', b: 'suez', hours: 4, km: 245 }, { a: 'cairo', b: 'portsaid', hours: 5, km: 230 },
+  { a: 'portsaid', b: 'jaffa', hours: 12, km: 385 }, // across the canal at Kantara, then the Sinai line through El Arish and Gaza (overnight)
+  { a: 'jaffa', b: 'jerusalem', hours: 3.5, km: 87 }, { a: 'jaffa', b: 'damascus', hours: 18, km: 395 }, // via Lydda, Haifa and the Hejaz branch through Deraa
+  { a: 'beirut', b: 'damascus', hours: 9, km: 147 }, { a: 'damascus', b: 'aleppo', hours: 15, km: 390 }, // the rack line over the Lebanon; Rayak, Homs, Hama
+  { a: 'aleppo', b: 'konya', hours: 30, km: 700 }, // the Baghdad Railway through Adana and the Taurus tunnels
+  { a: 'konya', b: 'istanbul', hours: 22, km: 700 }, // to Haydarpaşa, across the Bosporus from the city
+  { a: 'damascus', b: 'amman', hours: 12, km: 220 }, // the Hejaz Railway through Deraa
+  { a: 'istanbul', b: 'ankara', hours: 20, km: 577 }, { a: 'konya', b: 'ankara', hours: 26, km: 690 }, // Anatolian Railway via Eskişehir
 ];
-// Nairn Transport Company: Cadillacs and Buicks across the desert since 1923
+// Third class in 1925, about 1.2 milliemes a kilometre (Cairo to Alexandria about 25 piastres a head),
+// never less than 2 piastres. Animals go as freight at a multiple of the fare for a person.
+export const RAIL_FARE_PER_KM = 0.12;
+export const RAIL_FARE_MIN = 2;
+export const ANIMAL_FREIGHT = { large: 2, small: 1 };
+// Nairn Transport Company: Cadillacs and Buicks across the desert since 1923. Fares are per person.
 export const MOTOR_ROUTES: { a: string; b: string; days: number; fare: number }[] = [{ a: 'damascus', b: 'baghdad', days: 2, fare: 2500 }];
 
+// Deck passage, per person
 export const SEA_ROUTES: { a: string; b: string; days: number; fare: number }[] = [
   { a: 'alexandria', b: 'jaffa', days: 2, fare: 120 },
   { a: 'portsaid', b: 'jaffa', days: 1, fare: 80 },
@@ -256,7 +263,7 @@ export const NPCS: Record<string, Npc> = {
         ],
       },
       fayoum: {
-        text: 'Southwest, past Saqqara. A day and a half on a donkey, or take the train from Cairo. Ask for Umm Salah. Tell her Bilgin sent you and she will charge you double.',
+        text: 'Southwest, past Saqqara. A day and a half on a donkey, or three hours on the train from Giza. Ask for Umm Salah. Tell her Bilgin sent you and she will charge you double.',
         options: [bye('Thank you, I think.')],
       },
       roads: {
@@ -557,7 +564,7 @@ export const NPCS: Record<string, Npc> = {
         options: [{ label: 'Who?', next: 'who' }, bye()],
       },
       who: {
-        text: 'Farid al-Khatib. He is rude, slow and always right. Over the mountains, a day and a half.',
+        text: 'Farid al-Khatib. He is rude, slow and always right. Over the mountains, half a day on the train.',
         options: [{ label: 'Thank you.', effects: ['reveal:damascus'] }],
       },
     },
@@ -569,7 +576,7 @@ export const NPCS: Record<string, Npc> = {
       start: {
         text: 'Rashid\'s boy. Your father owed me an opinion and never came to collect it. Show me what you have. Do not tell me what it is. Tell me nothing.',
         options: [
-          { label: 'Look at my father\'s old rug. (Appraisal: £0.50)', next: 'appraise', requires: 'has:fayoum-hearth' },
+          { label: 'Look at my father\'s old rug.', next: 'appraise', requires: 'has:fayoum-hearth' },
           { label: 'How do you judge a rug?', next: 'judge' },
           bye(),
         ],
@@ -579,8 +586,8 @@ export const NPCS: Record<string, Npc> = {
         options: [bye()],
       },
       appraise: {
-        text: 'Hm.',
-        options: [{ label: 'Pay £0.50 and wait.', effects: ['cash:-50', 'appraise'] }, bye('Perhaps not.')],
+        text: 'Hm. Put it on the floor. Your father paid for this opinion years ago. Wait.',
+        options: [{ label: 'Wait while he looks.', effects: ['appraise'] }, bye('Perhaps not.')],
       },
     },
   },
