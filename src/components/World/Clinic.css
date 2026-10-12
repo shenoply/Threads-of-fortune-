@@ -141,3 +141,7 @@
 /* "All cases" above a case sits on the dark room, not on the cream page: light ink there, and a
    thumb-sized target */
 .cl-run > .cl-back { color: var(--brass-hi, #e7bd6e) !important; align-self: flex-start; min-height: 40px; padding: 8px 2px; }
+
+/* the Handbook open: it sits above the clinic and every other panel; the clinic underneath is hidden */
+.mb-reader.cl-handbook { z-index: 120; }
+.clinic.reading > * { visibility: hidden; }

@@ -5,6 +5,18 @@ import { NPCS, type DialogueOption } from '../../data/world';
 import { RUGS } from '../../data/rugs';
 import { Portrait } from './Portrait';
 import { voice } from '../../game/audio/voice';
+import { rumoursOn } from '../../game/economy/life';
+
+// Bilgin's news on the lane changes with the day: most days he passes on what his tables are saying
+// (the day's rumours; no recording, so the caption carries it), and now and then his old story (recorded).
+const LANE_OPENERS = ['The talk at my tables today, habibi:', 'A dealer from the Khan had his coffee here this morning. He says:', 'You did not hear it from me.', 'The porters were arguing about it all morning:'];
+function laneNews(day: number): string | null {
+  const rs = rumoursOn(day).filter((r) => r.kind !== 'event' || r.id.startsWith('a-'));
+  if (!rs.length || day % 4 === 1) return null;
+  const r = rs[day % rs.length];
+  return `${LANE_OPENERS[day % LANE_OPENERS.length]} ${r.text}`;
+}
+const VARIES: Record<string, (day: number) => string | null> = { 'abuhamid:news': laneNews };
 
 export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: string) => void }) {
   const g = useGame();
@@ -15,7 +27,9 @@ export function Dialogue({ npcId, onClose }: { npcId: string; onClose: (msg?: st
   // a choice that ends the talk with an outcome (Farid's appraisal, a deal struck): the outcome is read
   // here, in the talk, before the panel underneath gets it as its note
   const [done, setDone] = useState<string | null>(null);
-  const n = npc.nodes[node];
+  const base = npc.nodes[node];
+  const varied = VARIES[`${npcId}:${node}`]?.(g.day);
+  const n = varied ? { ...base, text: varied } : base;
   const box = useRef<HTMLDivElement>(null);
   useDialogEscape(box, () => onClose(feedback.join(' ') || undefined));
   const fbRef = useRef<HTMLParagraphElement>(null);

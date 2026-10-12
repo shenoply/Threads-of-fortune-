@@ -60,7 +60,7 @@ export function Catalogue({ shopId, onClose }: { shopId: string; onClose: () => 
         <small className="cat-note">{o.note}</small>
         <span className="cat-foot">
           <span className="cat-price">{owned ? (wearing ? 'Wearing' : 'Owned') : fmt(o.price)}</span>
-          <em>Charisma {ch > chNow ? `+${ch - chNow}` : ch === chNow ? 'same' : ch - chNow}</em>
+          {!wearing && <em data-testid={`cat-charisma-${o.id}`}>{ch === chNow ? 'Charisma: the same as what you wear' : `Charisma vs what you wear: ${ch > chNow ? '+' : '−'}${Math.abs(ch - chNow)}`}</em>}
           {!locked && (owned
             ? <button className="cat-add" disabled={wearing} onClick={() => wear(o)} data-testid={`cat-wear-${o.id}`}>{wearing ? 'On' : 'Put on'}</button>
             : <button className="cat-add on" disabled={!soldIn(o, at) || g.cash < o.price} onClick={() => buy(o)} data-testid={`cat-buy-${o.id}`}>{g.cash < o.price ? 'Not enough' : 'Buy and wear'}</button>)}

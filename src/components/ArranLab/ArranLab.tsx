@@ -9,7 +9,7 @@ import { settlementById } from '../../game/systems/world';
 import { BookReader } from './Library';
 import { ArranCatalogue } from './ArranCatalogue';
 import { ArranSubtitle, MummyStudy, labPortraitFor } from './ArranVoiceUI';
-import { playArranVoice, preloadArranVoice, stopArranVoice, useSubtitle } from '../../game/audio/arranVoice';
+import { findingLineId, playArranVoice, preloadArranVoice, stopArranVoice, useSubtitle } from '../../game/audio/arranVoice';
 import { ACTIVITY_SCENE, mummyPermitted, type ArranActivity } from '../../game/systems/arranVisits';
 import { RoadPanel } from './RoadPanel';
 import { pickArranScene, type ScenePick } from '../../game/systems/arranScenes';
@@ -189,7 +189,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
     setSpot(SERVICE_SPOT[service]);
     const r = useGame.getState().arranExamine(uid, service, cut);
     setConfirm(null);
-    if (r.ok) { setView(r.finding); setAsk(null); setMsg(''); playArranVoice(r.finding.verdict === 'inconsistent' ? 'discovery' : 'reaction'); return; }
+    if (r.ok) { setView(r.finding); setAsk(null); setMsg(''); const id = findingLineId(r.finding); if (id) playArranVoice({ id }); else stopArranVoice(); return; }
     if (r.needsCut) { setAsk({ uid, service }); setMsg(''); playArranVoice('warning'); return; }
     setMsg(r.message);
   };
@@ -247,11 +247,14 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
     const svc = LAB_SERVICES[sv];
     const book = serviceBook(sv);
     const locked = !!book && !unlocked.includes(sv);
+    // a test that needs a thread from a rug with none loose cuts it: say so before anything is agreed
+    const cuts = !done && !locked && svc.needsThread && !hasLooseThread(i) && conditionAfterCut(i.condition) !== i.condition;
     return (
       <div className={`arran-test ${done ? 'is-done' : ''} ${locked ? 'is-locked' : ''}`} key={sv}>
         <div>
           <b>{svc.label}</b>
           <small>{locked ? `Needs his ${BOOKS[book!].title}` : WHAT[sv]}</small>
+          {cuts && <small className="arran-test__cut" data-testid={`arran-cuts-${sv}-${i.uid}`}>Cuts three knots from the back: {i.condition} becomes {conditionAfterCut(i.condition)}</small>}
         </div>
         {done ? (
           <button type="button" className="btn" onClick={() => { setSpot(SERVICE_SPOT[sv]); setView(done); }} data-testid={`arran-open-${sv}-${i.uid}`}>
@@ -417,6 +420,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
                   <dt>Can tell you</dt><dd>{svc.can}</dd>
                   <dt>Cannot tell you</dt><dd>{svc.cannot}</dd>
                 </dl>
+                {cut && conditionAfterCut(it.condition) !== it.condition && <p className="arran-msg arran-confirm__cut" data-testid="arran-confirm-cut">This test cuts the rug. It goes from {it.condition} to {conditionAfterCut(it.condition)}, and a careful buyer will find the cut.</p>}
                 <div className="arran-btns">
                   <button type="button" className="btn primary" disabled={short || !lateOk} onClick={() => run(confirm.uid, confirm.service, cut)} data-testid="arran-confirm-pay">{short ? 'Not enough money' : !lateOk ? 'Too late today' : cut ? `Cut and pay ${fmt(svc.price)}` : `Pay ${fmt(svc.price)}`}</button>
                   <button type="button" className="btn" onClick={() => { setConfirm(null); setSpot(null); }} data-testid="arran-confirm-cancel">Not now</button>

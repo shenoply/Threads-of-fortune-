@@ -3,7 +3,7 @@ import { Icon } from '../Icon';
 import { clock, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { NPCS } from '../../data/world';
-import { VENUES_1925, venueArt, venueOpen, type Venue1925 } from '../../data/entertainment';
+import { VENUES_1925, billOn, venueArt, venueOpen, type Venue1925 } from '../../data/entertainment';
 import { fmt } from '../../game/economy/money';
 import { Dialogue } from './Dialogue';
 import { Portrait } from './Portrait';
@@ -23,7 +23,9 @@ export function Cabaret({ id, onLeave }: { id: string; onLeave: () => void }) {
   const state = g.venues?.[id];
   const showing = state?.showDay === g.day; // a table paid for tonight
   const open = venueOpen(v, g.day);
-  const bill = v.performers.filter((p) => BUYERS[p]).map((p) => BUYERS[p].name);
+  // one table a night: an evening already spent at another house closes this one
+  const elsewhere = showing ? undefined : Object.entries(g.venues ?? {}).find(([vid, st]) => vid !== id && st.showDay === g.day)?.[0];
+  const bill = billOn(v, g.day).filter((p) => BUYERS[p]).map((p) => BUYERS[p].name);
   useEffect(() => { for (const w of ['interior', 'show'] as const) new Image().src = venueArt(v, w); }, [v]);
   useEffect(() => { g.visitVenue(id); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -54,13 +56,14 @@ export function Cabaret({ id, onLeave }: { id: string; onLeave: () => void }) {
           <Portrait id={contact.id} look={contact.look} accent={contact.accent} size={56} />
           <span><b>{contact.name}</b><small>{contact.role}</small></span>
         </div>
-        <p className="cab-history">{v.history}{bill.length ? ` On the bill this season: ${bill.join(', ')}.` : ''}</p>
+        <p className="cab-history">{v.history}{bill.length ? ` On the bill this season: ${bill.join(' and ')}, on some nights. On the others, ${v.company}.` : ''}</p>
         {note && <p className="cab-note" data-testid="cab-note">{note}</p>}
         <div className="cab-doors">
-          <button className="btn primary" onClick={table} disabled={!open || showing} data-testid="cab-table">
-            <Icon name="coin" /> {showing ? 'Your table is taken' : `Take a table · ${fmt(v.ticket)}`}
+          <button className="btn primary" onClick={table} disabled={!open || showing || !!elsewhere} data-testid="cab-table">
+            <Icon name="coin" /> {showing ? 'Your table is taken' : elsewhere ? 'Your evening is spent' : `Take a table · ${fmt(v.ticket)}`}
           </button>
-          {!showing && open && (
+          {elsewhere && <small className="cab-table-hint" data-testid="cab-table-spent">You spent tonight at {VENUES_1925[elsewhere]?.name ?? 'another house'}. Come back another evening.</small>}
+          {!showing && !elsewhere && open && (
             <small className="cab-table-hint" data-testid="cab-table-time">
               The evening runs until {clock(Math.min(23.9, Math.max(g.world.hour, 20) + 2))}: the rest of today is gone once you sit down.
             </small>

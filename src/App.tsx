@@ -9,7 +9,6 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
 import { eventsStarting, laneDay } from './game/economy/life';
-import { CourierTeaser, isEventNote } from './components/Newspaper/CourierTeaser';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
@@ -57,8 +56,10 @@ import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlo
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
-const Newspaper = lazy(() => import('./components/Newspaper/Newspaper').then((m) => ({ default: m.Newspaper })));
-const Radio = lazy(() => import('./components/Radio/Radio').then((m) => ({ default: m.Radio })));
+// the paper and the radio wait for the researched wires (fetched after the title is up) so the day's news is complete
+const withWires = <T,>(p: Promise<T>) => Promise.all([p, import('./data/daily1925').then((d) => d.loadWires()).catch(() => {})]).then(([m]) => m);
+const Newspaper = lazy(() => withWires(import('./components/Newspaper/Newspaper')).then((m) => ({ default: m.Newspaper })));
+const Radio = lazy(() => withWires(import('./components/Radio/Radio')).then((m) => ({ default: m.Radio })));
 const Gramophone = lazy(() => import('./components/Radio/Gramophone').then((m) => ({ default: m.Gramophone })));
 const Calendar = lazy(() => import('./components/Calendar/Calendar').then((m) => ({ default: m.Calendar })));
 const HeroHub = lazy(() => import('./components/Hero/HeroHub').then((m) => ({ default: m.HeroHub })));

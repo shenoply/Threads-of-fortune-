@@ -279,3 +279,6 @@
   .arran-lab__cash { font-size: 14.5px; padding: 3px 8px; white-space: nowrap; }
   .arran-lab__tab { padding: 0 4px; }
 }
+/* the price of a cut, on the test row and in the confirmation */
+.arran-test .arran-test__cut { display: block; color: #e0a46a; }
+.arran-confirm__cut { color: #e0a46a; }

@@ -10,6 +10,8 @@ import './cafe.css';
 
 type Game = 'chess' | 'tawla';
 const STAKES = [0, 5, 20, 50];
+/** what a win pays against the stake: he gives less away playing gently, more when he plays to win */
+const PAYS: Record<Strength, number> = { easy: 0.5, fair: 1, sharp: 1.5 };
 const MINUTES: Record<Game, number> = { chess: 45, tawla: 30 };
 const tap = () => audio.sfx('tap');
 const TABLE_BG = { ['--table-bg' as string]: 'url(art/cafe/cafe-birdseye-v2.webp)' } as React.CSSProperties;
@@ -17,12 +19,14 @@ const TABLE_BG = { ['--table-bg' as string]: 'url(art/cafe/cafe-birdseye-v2.webp
 export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) => void; onFilm?: () => void; only?: Game }) {
   const cash = useGame((g) => g.cash);
   const cafeGame = useGame((g) => g.cafeGame);
+  // Bilgin plays for money once a day; after that it is for tea
+  const staked = useGame((g) => g.cafeStakeDay === g.day);
   const [game, setGame] = useState<Game | null>(null);
   const [stake, setStake] = useState(0);
   const [strength, setStrength] = useState<Strength>('fair');
 
   const finish = (result: 'win' | 'loss' | 'draw', mult = 1) => {
-    const note = cafeGame(game!, result, stake * mult, MINUTES[game!]);
+    const note = cafeGame(game!, result, stake * mult, MINUTES[game!], PAYS[strength]);
     onClose(note);
   };
 
@@ -38,15 +42,17 @@ export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) 
         <div className="cafe-row">
           <span>Stake</span>
           {STAKES.map((v) => (
-            <button key={v} className={`btn small${stake === v ? ' on' : ''}`} disabled={v > cash} onClick={() => { tap(); setStake(v); }} data-testid={`cafe-stake-${v}`}>{v ? fmt(v) : 'For tea'}</button>
+            <button key={v} className={`btn small${stake === v ? ' on' : ''}`} disabled={v > cash || (v > 0 && staked)} onClick={() => { tap(); setStake(v); }} data-testid={`cafe-stake-${v}`}>{v ? fmt(v) : 'For tea'}</button>
           ))}
         </div>
+        {staked && <p className="cafe-say small" data-testid="cafe-staked">"One game for money a day, my friend. The rest are for tea."</p>}
         <div className="cafe-row">
           <span>Bilgin plays</span>
           {(['easy', 'fair', 'sharp'] as Strength[]).map((v) => (
-            <button key={v} className={`btn small${strength === v ? ' on' : ''}`} onClick={() => { tap(); setStrength(v); }}>{v === 'easy' ? 'gently' : v === 'fair' ? 'properly' : 'to win'}</button>
+            <button key={v} className={`btn small${strength === v ? ' on' : ''}`} onClick={() => { tap(); setStrength(v); }} data-testid={`cafe-strength-${v}`}>{v === 'easy' ? 'gently' : v === 'fair' ? 'properly' : 'to win'}</button>
           ))}
         </div>
+        {stake > 0 && <p className="cafe-pays" data-testid="cafe-pays">A win pays {fmt(Math.max(1, Math.round(stake * PAYS[strength])))}{strength === 'easy' ? ': he plays gently, so he pays half' : strength === 'sharp' ? ': he plays to win, so he pays half as much again' : ''}. A loss costs {fmt(stake)}.</p>}
         <div className={`cafe-games${only ? ' one' : ''}`}>
           {only !== 'tawla' && <button className="btn cafe-game" onClick={() => { tap(); setGame('chess'); }} data-testid="cafe-chess"><b>♞</b>Chess<small>about {MINUTES.chess} minutes</small></button>}
           {only !== 'chess' && <button className="btn cafe-game" onClick={() => { tap(); setGame('tawla'); }} data-testid="cafe-tawla"><b>⚅</b>Tawla<small>about {MINUTES.tawla} minutes · a mars pays double</small></button>}

@@ -87,27 +87,37 @@ export const DAILY: Record<string, Wire[]> = {
   ],
 };
 
-import EGYPT from './egypt1925_research.json';
-import Q2 from './world/1925-04_06.json';
-import Q3 from './world/1925-07_09.json';
-import Q4 from './world/1925-10_12.json';
-import Q5 from './world/1926-01_03.json';
-
-// the rest of the year, researched month by month from the Wikipedia month pages and cross-checked
-for (const q of [Q2, Q3, Q4, Q5] as Record<string, unknown>[]) {
-  for (const [k, v] of Object.entries(q)) {
-    if (k === '_src') { Object.assign(SOURCES, v as Record<string, string>); continue; }
-    DAILY[k] = (v as { head: string; body: string; eg?: boolean }[]).map((x) => ({ head: x.head, body: x.body, eg: x.eg || undefined }));
-  }
-}
-
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const title = (h: string) => (h === h.toUpperCase() ? h.toLowerCase().replace(/(^|[\s'"(-])(\p{L})/gu, (_m, a, b) => a + b.toUpperCase()) : h);
 /** Egypt and the region, researched item by item; only items with a sourced exact date are printed. */
 const EG: Record<string, Wire[]> = {};
-for (const e of EGYPT as { date: string; head: string; body: string; src: string; approx?: boolean }[]) {
-  if (e.approx) continue;
-  (EG[e.date] ??= []).push({ head: title(e.head), body: e.body, eg: true });
+
+// The rest of the year (researched month by month from the Wikipedia month pages and cross-checked) and
+// the Egypt items live in daily1925Wires, fetched once the title is up. Until then wiresOn has March only.
+let wiresLoad: Promise<void> | null = null;
+/** fetch the researched wires (once); resolves when wiresOn covers every day */
+export function loadWires(): Promise<void> {
+  return (wiresLoad ??= import('./daily1925Wires').then(({ QUARTERS, EGYPT_ITEMS }) => {
+    for (const q of QUARTERS) {
+      for (const [k, v] of Object.entries(q)) {
+        if (k === '_src') { Object.assign(SOURCES, v as Record<string, string>); continue; }
+        DAILY[k] = (v as { head: string; body: string; eg?: boolean }[]).map((x) => ({ head: x.head, body: x.body, eg: x.eg || undefined }));
+      }
+    }
+    for (const e of EGYPT_ITEMS) {
+      if (e.approx) continue;
+      (EG[e.date] ??= []).push({ head: title(e.head), body: e.body, eg: true });
+    }
+  }).catch((err) => { wiresLoad = null; throw err; }));
+}
+// fetched while the player is on the title screen, once the opening download, its pictures and the
+// first render are done (the paper and the radio also wait for it, so an early tap still gets the full news)
+if (typeof window !== 'undefined') {
+  const later = () => setTimeout(() => {
+    const go = () => { loadWires().catch(() => {}); };
+    if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 2000 }); else go();
+  }, 3000);
+  if (document.readyState === 'complete') later(); else window.addEventListener('load', later, { once: true });
 }
 
 /** The real news of a calendar date: Egypt first, then the world. */

@@ -150,6 +150,8 @@ export interface BuyerNeed {
 export interface BuyerDef {
   id: string;
   name: string;
+  /** the first-visit greeting speaks of past dealings: before this day it is not said, and an early line opens instead */
+  greetingFromDay?: number;
   role: string;
   bio: string;
   budget: [number, number];

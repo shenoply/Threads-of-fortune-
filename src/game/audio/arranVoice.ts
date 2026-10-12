@@ -115,6 +115,19 @@ export function playArranVoice(what: ArranVoiceContext | { id: string; noSubtitl
   return line;
 }
 
+/**
+ * The recorded line that fits a finding, or null when none says what the result shows (the card is
+ * then the only caption). A rub or a wash speaks only of colour, never of what the dealer claims.
+ */
+export function findingLineId(f: { service: string; verdict: 'consistent' | 'inconsistent' | 'inconclusive' }, rnd = Math.random): string | null {
+  const colourOnly = f.service === 'fastness' || f.service === 'wash';
+  if (f.verdict === 'inconclusive') return 'arran-warning-03';
+  if (f.verdict === 'inconsistent') return colourOnly ? 'arran-discovery-03' : (pickArranLine('discovery', Date.now(), rnd)?.id ?? null);
+  if (colourOnly) return null;
+  // a fibre test answers what the dealer says it is made of; the dye test only fits an age, not proves it
+  return f.service === 'fibre' && rnd() < 0.5 ? 'arran-reaction-02' : 'arran-reaction-01';
+}
+
 /** Fetch the common lines ahead (greetings, inspection, warnings); rare scenes load when used. */
 export function preloadArranVoice() {
   void loadManifest().then(() => {

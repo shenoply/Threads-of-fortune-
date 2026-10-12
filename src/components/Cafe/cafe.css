@@ -247,3 +247,4 @@
   .tawla-body .cafe-actions { position: absolute; left: 10px; bottom: 12px; z-index: 2; }
 }
 @media (pointer: coarse) { .cafe-spot::after { content: ''; position: absolute; inset: -4px; } }
+.cafe-pays { color: var(--text-dim); font-size: 14px; margin: 0; text-align: center; }

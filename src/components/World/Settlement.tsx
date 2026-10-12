@@ -208,6 +208,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => { setMenu(false); setInCity(true); }, 'menu-walk'] as [string, string, string, () => void, string]] : []),
     ['hourglass', 'Wait here', 'Let time pass: trouble on the road may move on before you set off', () => setWaitOpen(true), 'menu-wait'],
     ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
+    ...(HAMMAMS[id] ? [['tea', HAMMAMS[id].name, `Wash off the road · ${fmt(HAMMAMS[id].cost)}`, () => goTo('town', 'sec-baths'), 'menu-hammam'] as [string, string, string, () => void, string]] : []),
     ...shopsIn(id).map((sh) => ['needle', sh.name, `Clothes catalogue · ${sh.tagline}`, () => setShop(sh.id), `menu-shop-${sh.id}`] as [string, string, string, () => void, string]),
     ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
     ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
@@ -316,7 +317,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
 
         {(HAMMAMS[id] || OUTFITS.some((o) => soldIn(o, id)) || Object.values(BOOKS).some((b) => b.where.includes(id))) && (
           <>
-            <div className="section-label">BATHS, TAILORS AND BOOKS</div>
+            <div className="section-label" id="sec-baths">BATHS, TAILORS AND BOOKS</div>
             <div className="mkt">
               {HAMMAMS[id] && (
                 <div className="mkt-row" data-testid="hammam">

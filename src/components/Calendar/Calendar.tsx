@@ -6,6 +6,9 @@ import { settlementById } from '../../game/systems/world';
 import { RUGS } from '../../data/rugs';
 import { BUYERS } from '../../data/buyers';
 import { ALL_EVENTS, isFirstOfMonth, eventsOn } from '../../game/economy/life';
+import { AUCTION_HOUSES } from '../../data/auctionHouses';
+import { saleDays } from '../../game/auction/sessions';
+import { VENUES_1925 } from '../../data/entertainment';
 
 // The merchant's diary: a month view of 1925–26 with where you were, what happened, and what is coming.
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -50,6 +53,19 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
     if (isFirstOfMonth(day) && day > 1) m.push({ icon: '£', cls: 'due', label: day > g.day ? 'Monthly bill falls due' : 'Monthly bill' });
     for (const e of ALL_EVENTS) if ((!e.surprise || e.from <= g.day) && (day === e.from || (day === g.day && day > e.from && day <= e.to))) m.push({ icon: e.surprise ? '✦' : '☾', cls: 'event', label: `${e.name}${day === e.from ? ' begins' : ''}` });
     for (const c of g.commissions) if (!c.done && c.until === day) m.push({ icon: '!', cls: 'due', label: `Last day: ${c.label}` });
+    // someone met at a table: the morning they call, or, if you were away, they still wait for you
+    for (const a of g.appointments ?? []) {
+      const who = BUYERS[a.buyerId]?.name ?? 'An acquaintance', from = VENUES_1925[a.venue]?.name;
+      if (a.day > g.day && day === a.day) m.push({ icon: '✉', cls: 'soon', label: `${who}${from ? ` from ${from}` : ''} calls at your stall in Giza` });
+      else if (a.day <= g.day && day === g.day) m.push({ icon: '✉', cls: 'soon', label: `${who}${from ? ` from ${from}` : ''} will call the first morning you open your stall in Giza` });
+    }
+    // the big sales still to come (estate and house sales, which run for days): the day each opens.
+    // The small dealers' rooms sell every few days and would mark every square.
+    if (day >= g.day) {
+      const opens = AUCTION_HOUSES.filter((h) => h.tier === 'grand' && saleDays(h.id).includes(day));
+      if (opens.length) m.push({ icon: '⚖', cls: 'auction', label: `Sale opens: ${opens.map((h) => `${h.displayName} (${settlementById(h.city)?.name ?? h.city})`).join(', ')}` });
+    }
+    if (dateOf(day).getUTCDay() === 5) m.push({ icon: '☪', cls: 'friday', label: 'Friday. The lane stays quiet until after the noon prayer.' });
     return m;
   };
 
@@ -91,22 +107,22 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
             const ms = valid ? marksFor(day) : [];
             const w = valid ? where(day) : undefined;
             return (
-              <button key={i} disabled={!valid} className={`cal-day ${day === g.day ? 'today' : ''} ${day < g.day ? 'past' : ''} ${day === sel ? 'sel' : ''} ${w === 'road' ? 'road' : ''}`} onClick={() => setSel(day)}>
+              <button key={i} disabled={!valid} className={`cal-day ${new Date(Date.UTC(1925, month, c)).getUTCDay() === 5 ? 'fri' : ''} ${day === g.day ? 'today' : ''} ${day < g.day ? 'past' : ''} ${day === sel ? 'sel' : ''} ${w === 'road' ? 'road' : ''}`} onClick={() => setSel(day)}>
                 <em>{c}</em>
                 {valid && day <= g.day && w && w !== 'road' && <small>{placeName(w).slice(0, 7)}</small>}
-                <span className="cal-marks">{ms.slice(0, 3).map((mk, k) => <b key={k} className={mk.cls}>{mk.icon}</b>)}</span>
+                <span className="cal-marks">{ms.filter((mk) => mk.cls !== 'friday').slice(0, 3).map((mk, k) => <b key={k} className={mk.cls}>{mk.icon}</b>)}</span>
               </button>
             );
           })}
         </div>
         <div className="cal-detail">
           <b>{selDate.getUTCDate()} {MONTHS[selDate.getUTCMonth()]} {selDate.getUTCFullYear()} · Day {sel}{sel === g.day ? ' · today' : sel > g.day ? ' · ahead' : ''}</b>
-          {sel <= g.day && <p className="cal-where">{placeName(where(sel))}{onPaper && <button className="ghost-btn cal-paper" onClick={() => onPaper(sel)} data-testid="cal-read-paper">Read the Courier for this day</button>}</p>}
-          {selMarks.filter((m) => m.cls.includes('due') || m.cls.includes('ready') || m.cls.includes('soon')).map((m) => <p key={m.label} className={`cal-note ${m.cls}`}>{m.icon} {m.label}</p>)}
+          {sel <= g.day && <p className="cal-where"><span>{placeName(where(sel))}</span>{' '}{onPaper && <button className="ghost-btn cal-paper" onClick={() => onPaper(sel)} data-testid="cal-read-paper">Read the Courier for this day</button>}</p>}
+          {selMarks.filter((m) => /due|ready|soon|auction|friday/.test(m.cls)).map((m) => <p key={m.label} className={`cal-note ${m.cls}`}>{m.icon} {m.label}</p>)}
           {[...eventsOn(sel)].filter((e) => !e.surprise || e.from <= g.day).sort((a, b) => (a.to - a.from) - (b.to - b.from)).map((e) => <p key={e.id} className="cal-event" data-testid={`cal-event-${e.id}`}><b>☾ {e.name}</b> {e.text}</p>)}
-          {selEntries.length ? selEntries.map((e, k) => <p key={k}>{e.text}</p>) : sel <= g.day ? <p className="dim">Nothing written in the diary.</p> : <p className="dim">Nothing planned yet.</p>}
+          {selEntries.length ? selEntries.map((e, k) => <p key={k}>{e.text}</p>) : sel <= g.day ? <p className="dim">Nothing written in the diary.</p> : selMarks.some((m) => /due|ready|soon|auction/.test(m.cls)) ? null : <p className="dim">Nothing planned yet.</p>}
         </div>
-        <div className="cal-key"><span><b className="sale">◆</b> sale</span><span><b className="road">⤳</b> travelling</span><span><b className="arrive">⌂</b> arrived</span><span><b className="royal">♛</b> court</span><span><b className="due">!</b> due</span><span><b className="event">☾</b> event</span></div>
+        <div className="cal-key"><span><b className="sale">◆</b> sale</span><span><b className="road">⤳</b> travelling</span><span><b className="arrive">⌂</b> arrived</span><span><b className="royal">♛</b> court</span><span><b className="due">!</b> due</span><span><b className="event">☾</b> event</span><span><b className="auction">⚖</b> sale opens</span><span><b className="soon">✉</b> caller</span><span><b className="friday">☪</b> Friday</span></div>
       </div>
     </div>
   );

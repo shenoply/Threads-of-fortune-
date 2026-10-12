@@ -7,6 +7,8 @@ import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFi
 const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
 import { guideTarget } from '../../game/guide';
 import { useGame, arrivalAt } from '../../game/state/store';
+import { HAMMAMS } from '../../data/character';
+import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
@@ -35,6 +37,8 @@ export const POIS: Poi[] = [
   { id: 'lab', name: "Arran's laboratory", sub: 'Textile tests: fibre, dyes, fastness', x: 553, y: 318, glyph: 'L' },
   { id: 'clothes', name: "Haj Mahmoud's cloth shop", sub: 'Galabiyas, tarbooshes and slippers', x: 985, y: 365, glyph: 'H' },
   { id: 'malek', name: "Malek's grill", sub: 'Kofta, kebab, tea and road parcels', x: 690, y: 420, glyph: 'M' },
+  // the buyers who say "the hammam is only two streets away" mean this one, behind the market
+  { id: 'hammam', name: HAMMAMS.giza.name, sub: `Steam, a scrub and a barber · ${fmt(HAMMAMS.giza.cost)}`, x: 640, y: 610, glyph: 'B' },
   { id: 'pyramids', name: 'The pyramids', sub: 'Tourists, guides and gossip', x: 225, y: 385, glyph: 'P' },
   { id: 'gate', name: 'Desert road', sub: 'Leave for the wider world', x: 90, y: 870, glyph: 'W' },
 ];
@@ -473,7 +477,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const st = useRef({
     x: d0?.x ?? 760, y: d0?.y ?? 468, tx: d0?.x ?? 760, ty: d0?.y ?? 468,
-    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek', 'clothes']),
+    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek', 'clothes', 'hammam']),
     target: null as string | null, route: [] as { x: number; y: number }[], dirty: true,
   });
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
@@ -497,6 +501,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   // (a new district), and that district opens the shop as it mounts
   useEffect(() => { if (takeMalekRequest()) setMalek(true); }, []);
   const [note, setNote] = useState('');
+  // at the hammam's door: the note offers a bath
+  const [bath, setBath] = useState(false);
   useEffect(() => {
     if (!note) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNote(''); };
@@ -534,12 +540,19 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
 
   const arrive = (id: string) => {
     save();
+    setBath(false);
     switch (id) {
       case 'stall': onStall(); break;
       case 'coffee': setRoom(true); if (unseen('abuhamid')) setFilm('abuhamid'); break;
       case 'lab': setLab(true); if (unseen('arran')) setFilm('arran'); break;
       case 'malek': setMalek(true); break;
       case 'clothes': setClothes(true); break;
+      case 'hammam': {
+        const g0 = useGame.getState(), clean = Math.round(g0.attire?.clean ?? 100);
+        setNote(`${HAMMAMS.giza.name}. Steam, a scrub and a barber, an hour and a half, ${fmt(HAMMAMS.giza.cost)}. Your clothes are ${clean >= 70 ? 'clean' : clean >= 35 ? 'dusty' : 'filthy'} (${clean}%), and clean clothes mean charisma.`);
+        setBath(true);
+        break;
+      }
       case 'souk': setPanel('market'); break;
       case 'animals': setPanel('animals'); break;
       case 'guards': setPanel('guards'); break;
@@ -923,13 +936,14 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
           </div>
         </div>
         {toast && <div className="district-toast" data-testid="district-toast">{toast}</div>}
-        {note && <div className="poi-backdrop" onClick={() => setNote('')} />}
+        {note && <div className="poi-backdrop" onClick={() => { setNote(''); setBath(false); }} />}
         {note && (
           <div className="district-note" data-testid="district-note" role="dialog" aria-modal="false">
-            <button className="poi-sheet__close" aria-label="Close" onClick={() => setNote('')}>×</button>
+            <button className="poi-sheet__close" aria-label="Close" onClick={() => { setNote(''); setBath(false); }}>×</button>
             <p>{note}</p>
             <div className="poi-sheet__actions">
-              <button className="btn" onClick={() => setNote('')}>Close</button>
+              {bath && (() => { const g0 = useGame.getState(); const clean = g0.attire?.clean ?? 100; return <button className="btn primary" disabled={g0.cash < HAMMAMS.giza.cost || clean >= 100} onClick={() => { setBath(false); setNote(g0.bathe('giza')); }} data-testid="district-bathe">{clean >= 100 ? 'You are clean' : g0.cash < HAMMAMS.giza.cost ? 'Not enough money' : `Bathe ${fmt(HAMMAMS.giza.cost)}`}</button>; })()}
+              <button className="btn" onClick={() => { setNote(''); setBath(false); }}>Close</button>
             </div>
           </div>
         )}

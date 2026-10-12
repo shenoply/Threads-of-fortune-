@@ -138,8 +138,8 @@ export const BOOK_ORDER: BookId[] = ['fibres', 'dyes', 'provisions', 'field_safe
 /** a book that can be bought as a withdrawn duplicate, not only copied */
 export const hasDuplicate = (id: BookId) => BOOKS[id].duplicate.price > 0;
 
-/** the book each service needs; the colour transfer rub needs none */
+/** the book each service needs; the colour transfer rub and the sample wash (soap, a dish and white wool) need none */
 export const serviceBook = (sv: LabService): BookId | null =>
-  sv === 'fibre' ? 'fibres' : sv === 'dye' || sv === 'wash' ? 'dyes' : sv === 'provisions' ? 'provisions' : sv === 'cargo' ? 'field_safety' : null;
+  sv === 'fibre' ? 'fibres' : sv === 'dye' ? 'dyes' : sv === 'provisions' ? 'provisions' : sv === 'cargo' ? 'field_safety' : null;
 
 export const bookPhase = (books: Partial<Record<BookId, BookState>> | undefined, id: BookId): QuestPhase => books?.[id]?.phase ?? 'unknown';

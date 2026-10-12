@@ -147,6 +147,8 @@ export interface Ctx {
   /** how the merchant looks and smells: attire cleanliness 0..100 and what he is wearing */
   clean?: number;
   attire?: string;
+  /** the ready outfit he has on (wardrobe id): a remark about clothes has to fit what he wears */
+  outfit?: string;
   /** Arran's instruments you own (the loupe) */
   tools?: string[];
   /** what Nabil al-Khatib remembers of you */
@@ -155,6 +157,14 @@ export interface Ctx {
   cohen?: CohenState;
   findings?: LabFinding[];
   day?: number;
+}
+
+/** Plain clothes draw a remark only when they are plain: the everyday stall clothes or the striped work
+ *  galabiya. Friday whites, a good vest or a suit do not. A remark about a galabiya needs one on him. */
+const PLAIN_OUTFITS = ['classic-stall', 'market-work'];
+function raggedLines(lines: string[], outfit?: string): string[] {
+  if (outfit && !PLAIN_OUTFITS.includes(outfit)) return [];
+  return outfit === 'classic-stall' ? lines.filter((l) => !/galabiya/i.test(l)) : lines;
 }
 
 const lvl = (ctx: Ctx, s: SkillId) => levelOf(ctx.skills?.[s] ?? 0);
@@ -326,7 +336,8 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
       enc.log.push({ speaker: 'buyer', text: pick(forHour(L.repeat, ctx.hour), ctx.rng) });
     }
   } else {
-    enc.log.push({ speaker: 'buyer', text: pick(forHour(L.greeting, ctx.hour), ctx.rng) });
+    const early = b.greetingFromDay != null && (ctx.day ?? 0) < b.greetingFromDay && L.earlyPresent.length;
+    enc.log.push({ speaker: 'buyer', text: early ? pick(L.earlyPresent, ctx.rng) : pick(forHour(L.greeting, ctx.hour), ctx.rng) });
   }
   // a returning buyer does not forget being insulted or lied to: they arrive colder and thinner-skinned
   if (rel.visits > 0 && rel.bad > 0) {
@@ -344,8 +355,8 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
       enc.patience -= 8;
       enc.mood = 'skeptical';
       enc.groomed = 'smell';
-    } else if (gr && (ctx.attire ?? 'galabiya') === 'galabiya' && minTier >= 2 && ctx.rng() < 0.7) {
-      enc.log.push({ speaker: 'buyer', text: pick(gr.ragged, ctx.rng), mood: 'skeptical' });
+    } else if (gr && (ctx.attire ?? 'galabiya') === 'galabiya' && minTier >= 2 && raggedLines(gr.ragged, ctx.outfit).length && ctx.rng() < 0.7) {
+      enc.log.push({ speaker: 'buyer', text: pick(raggedLines(gr.ragged, ctx.outfit), ctx.rng), mood: 'skeptical' });
       enc.trust = clamp(enc.trust - 5, 0, 100);
       enc.groomed = 'ragged';
     }

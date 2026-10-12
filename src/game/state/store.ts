@@ -54,7 +54,7 @@ import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity } from '../systems/caravan';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
-import { VENUES_1925, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
+import { VENUES_1925, billOn, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
@@ -149,6 +149,8 @@ export interface GameState {
   venues?: Record<string, { lastVisitDay?: number; showDay?: number; onBill?: string }>;
   /** buyers met at a table who promised to call at the stall on a given day */
   appointments?: { buyerId: string; day: number; venue: string }[];
+  /** the day you last played Bilgin for money: he plays for a stake once a day */
+  cafeStakeDay?: number;
   missionStart?: Record<string, number>;
   lotsSold?: string[];
   /** the hour each of today's customers turns up at the stall */
@@ -358,7 +360,8 @@ interface Actions {
   /** sit down with your men: what you give them (extra rations, a bonus, half a day's rest, or just your ear) */
   talkToMen: (how: 'rations' | 'bonus' | 'rest' | 'listen') => string;
   /** A game of chess or tawla with Bilgin in the coffee house: the stake changes hands, time passes */
-  cafeGame: (game: 'chess' | 'tawla', result: 'win' | 'loss' | 'draw', stake: number, minutes: number) => string;
+  /** `pays` scales what Bilgin hands over when you win: half when he plays gently, half as much again when he plays to win */
+  cafeGame: (game: 'chess' | 'tawla', result: 'win' | 'loss' | 'draw', stake: number, minutes: number, pays?: number) => string;
   startAudience: (buyerId: string) => string;
   markGuide: () => void;
   endAudience: () => void;
@@ -866,6 +869,7 @@ export const useGame = create<GameState & Actions>()(
         eventBudget: s.world.at === 'giza' ? budgetMod(s.day) : 1,
         clean: s.attire?.clean ?? 100,
         attire: s.attire?.worn ?? 'galabiya',
+        outfit: (s.wardrobe ?? START_WARDROBE).worn,
         tools: s.arranTools ?? [],
         nabil: s.nabil,
         cohen: s.cohen,
@@ -1378,9 +1382,12 @@ export const useGame = create<GameState & Actions>()(
           if (grand.length && rng() < 0.18) queue.push(grand[Math.floor(rng() * grand.length)]);
           queue.sort(() => rng() - 0.5);
           // someone met at a table last night comes first, as promised
+          // they come to the stall in Giza, so they wait for the first morning you are there to open it
+          const atStall = s.world.at === 'giza';
           const due = (s.appointments ?? []).filter((a) => a.day <= day);
-          for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
-          const appointments = (s.appointments ?? []).filter((a) => a.day > day);
+          if (atStall) for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
+          else for (const a of due) if (a.day === day) notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'the other night'} will call at your stall the first morning you are back in Giza.`);
+          const appointments = (s.appointments ?? []).filter((a) => a.day > day || !atStall);
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
           const lane = laneDay(day);
@@ -1472,7 +1479,7 @@ export const useGame = create<GameState & Actions>()(
             dayOver: false,
             encounter: null,
             world: { ...s.world, party },
-            arrivals: arrivalTimes(queue.length, rng, lane.late),
+            arrivals: arrivalTimes(queue.length, rng, lane.late, lane.fast),
             errandsDone: [],
           };
           patch.errands = []; // errands are retired; the field stays for old saves
@@ -1481,8 +1488,17 @@ export const useGame = create<GameState & Actions>()(
 
 
       /** Customers spread through the day, the first soon after the stall opens. */
-      function arrivalTimes(n: number, rnd: () => number, late = false) {
+      function arrivalTimes(n: number, rnd: () => number, late = false, fast = false) {
         const out: number[] = [];
+        if (fast) {
+          // Ramadan: a buyer or two in the morning (none after the Friday prayer), the rest after the sunset cannon
+          const am = late ? 0 : Math.floor(n / 3);
+          let h = (late ? 13.5 : 8.6) + rnd() * 0.5;
+          for (let i = 0; i < am; i++) { out.push(Math.min(11.5, Math.round(h * 4) / 4)); h += 1.4 + rnd() * 0.8; }
+          h = 17.25 + rnd() * 0.4;
+          for (let i = am; i < n; i++) { out.push(Math.min(19.5, Math.round(h * 4) / 4)); h += 0.45 + rnd() * 0.3; }
+          return out;
+        }
         if (late) {
           // Friday: nobody shops before the noon prayer
           let h = 13.5 + rnd() * 0.5;
@@ -2024,15 +2040,18 @@ export const useGame = create<GameState & Actions>()(
           if (!venueOpen(v, s.day)) return `${v.name} has not opened yet.`;
           const cur = s.venues?.[id] ?? {};
           if (cur.showDay === s.day) return 'Your table is taken for tonight.';
+          // one evening out a night: the table you took elsewhere was the night
+          const spent = Object.entries(s.venues ?? {}).find(([vid, st]) => vid !== id && st.showDay === s.day);
+          if (spent) return `You spent tonight at ${VENUES_1925[spent[0]]?.name ?? 'another house'}. Come back another evening.`;
           if (s.cash < v.ticket) return `A table is ${fmt(v.ticket)}. You have ${fmt(s.cash)}.`;
           // who is on: a name from the bill you have earned, otherwise the house company
-          const names = v.performers.filter((p) => BUYERS[p] && (BUYER_UNLOCK[p] ?? 0) <= s.reputation + 10);
+          const names = billOn(v, s.day).filter((p) => BUYERS[p] && (BUYER_UNLOCK[p] ?? 0) <= s.reputation + 10);
           const onBill = names.length && rng() < 0.5 ? BUYERS[names[Math.floor(rng() * names.length)]].name : v.company;
           // the next table: now and then someone with money who will call at the stall tomorrow
           const pool = v.guests.filter((b) => BUYERS[b] && (BUYER_UNLOCK[b] ?? 0) <= s.reputation + 8 && !(s.appointments ?? []).some((a) => a.buyerId === b));
           const meet = pool.length && rng() < (s.upgrades.includes('qamar') && id === 'qamar' ? 0.6 : 0.4) ? pool[Math.floor(rng() * pool.length)] : null;
           const journal = [...s.journal, { day: s.day, text: `An evening at ${v.name}: ${onBill}.`, kind: 'road' }];
-          if (meet) journal.push({ day: s.day, text: `Met ${BUYERS[meet].name} at the next table at ${v.name}. They will call at the stall tomorrow.`, kind: 'road' });
+          if (meet) journal.push({ day: s.day, text: `Met ${BUYERS[meet].name} at the next table at ${v.name}. They will call at your stall in Giza the first morning you are there.`, kind: 'road' });
           set({
             cash: s.cash - v.ticket,
             ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `A table at ${v.name}`, amount: -v.ticket }],
@@ -2042,7 +2061,7 @@ export const useGame = create<GameState & Actions>()(
             journal,
           });
           const bill = onBill.charAt(0).toUpperCase() + onBill.slice(1);
-          return `You take a table. ${bill} tonight.${meet ? ` At the next table sits ${BUYERS[meet].name}, who takes your card and promises to call at the stall tomorrow.` : ''}`;
+          return `You take a table. ${bill} tonight.${meet ? ` At the next table sits ${BUYERS[meet].name}, who takes your card and promises to call at your stall in Giza the first morning you are there.` : ''}`;
         },
 
         sellLocal: (uid, sid) => {
@@ -2719,6 +2738,11 @@ export const useGame = create<GameState & Actions>()(
           if (buyerId === 'nabil' && ms?.completed.includes(1) && ms.lastStoryDay != null && s.day - ms.lastStoryDay <= 10) {
             enc.log.push({ speaker: 'narrator', text: ms.completed.includes(3) ? 'Nabil does not mention the grill round the corner, or what came out of its storeroom. Neither do you.' : "Nabil straightens a jacket that does not need straightening, and says nothing about Malek's grill. You decide not to ask." });
           }
+          // Ramadan: a buyer fasting through the heat of the day tires of haggling sooner
+          if (!tutorial && laneDay(s.day).fast && s.world.hour < 17) {
+            enc.patience = Math.max(10, Math.round(enc.patience * 0.75));
+            enc.log.push({ speaker: 'system', text: 'Ramadan. Your buyer has been fasting since dawn and will not haggle for long.' });
+          }
           const fed = wellFedNow(s.condition, s.day * 24 + s.world.hour);
           if (!tutorial && fed > 0) {
             enc.patience += fed * MORALE_PATIENCE;
@@ -2885,12 +2909,15 @@ export const useGame = create<GameState & Actions>()(
           if (how === 'rest') get().passTime(6 * 60);
           return text + (already ? ' (Twice in a day counts for less.)' : '');
         },
-        cafeGame: (game, result, stake, minutes) => {
+        cafeGame: (game, result, stake, minutes, pays = 1) => {
           const s = get();
           const name = game === 'chess' ? 'chess' : 'tawla';
-          const won = result === 'win' ? stake : result === 'loss' ? -Math.min(stake, Math.max(0, s.cash)) : 0;
+          // a staked game is his one game for money today, whatever the result
+          if (stake > 0 && s.cafeStakeDay === s.day) stake = 0;
+          const prize = Math.max(stake ? 1 : 0, Math.round(stake * pays));
+          const won = result === 'win' ? prize : result === 'loss' ? -Math.min(stake, Math.max(0, s.cash)) : 0;
           const text = result === 'win'
-            ? `Beat Bilgin at ${name} in the coffee house${stake ? ` and took his ${fmt(stake)}` : ''}.`
+            ? `Beat Bilgin at ${name} in the coffee house${stake ? ` and took ${fmt(prize)} off him` : ''}.`
             : result === 'loss' ? `Lost to Bilgin at ${name}${won ? `; ${fmt(-won)} went across the table` : ''}.`
             : `Played Bilgin to a draw at ${name}.`;
           set({
@@ -2898,6 +2925,7 @@ export const useGame = create<GameState & Actions>()(
             ...(won ? { ledger: [...s.ledger, { day: s.day, kind: won > 0 ? 'bonus' : 'expense', label: `${name === 'chess' ? 'Chess' : 'Tawla'} with Bilgin`, amount: won }] } : {}),
             journal: [...s.journal, { day: s.day, text, kind: 'quiet' }],
             reputation: s.reputation + (result === 'win' && stake >= 20 ? 1 : 0),
+            ...(stake > 0 ? { cafeStakeDay: s.day } : {}),
           } as Partial<GameState>);
           get().passTime(minutes);
           return text;

@@ -37,6 +37,8 @@ export const COHEN: BuyerDef = {
     { id: 'fit', when: () => true, text: 'Show me the edges first; the pattern can wait.', honest: 'Good. Now the measurements.', facts: 'Yes. And the size?', factsWorks: true },
   ],
   silhouette: 'scarf', accent: '#5b4a33',
+  // his greeting recalls a contract "last spring": that is only true from 1926 (day 298 is 1 January 1926)
+  greetingFromDay: 298,
   lines: {
     arrival: ['A short, stocky man in a cream linen suit, a leather notebook in one hand, stops at the stall and does not smile.', 'Cohen arrives, notebook already open.'],
     greeting: ["I don't have to like you. The numbers have to work. You took the Nile Crescent corridor from me last spring at a price nobody honest could match. This time I have the order: two rugs, boots all day. Edges first."],

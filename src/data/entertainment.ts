@@ -27,6 +27,8 @@ export interface Venue1925 {
   ticket: number;
   /** who is on the bill: buyers already in the game, named in the evening's caption */
   performers: string[];
+  /** a performer who joins the bill only from this day (an engagement announced for a later month) */
+  from?: Record<string, number>;
   /** a fictional house company, for the nights nobody famous is on */
   company: string;
   /** the caption over the show picture */
@@ -53,7 +55,7 @@ export const VENUES_1925: Record<string, Venue1925> = {
   'sala-santi': {
     id: 'sala-santi', city: 'cairo', name: 'Sala Santi', kind: 'music hall', street: 'Ezbekiyya Gardens',
     history: 'A concert hall on the gardens, for people who come to listen. In July 1925 the papers announced an appearance here by a young singer from the Delta, Umm Kulthum.',
-    contact: 'youssef-hanna', ticket: 50, performers: ['umm-kulthum', 'mohamed-abdel-wahab'], company: 'a takht of four and a singer from the conservatoire',
+    contact: 'youssef-hanna', ticket: 50, performers: ['umm-kulthum', 'mohamed-abdel-wahab'], from: { 'umm-kulthum': dayOf(7, 1, 1925) }, company: 'a takht of four and a singer from the conservatoire',
     evening: 'No one moves a chair. The garden windows go dark behind the singer while she holds the note.',
     guests: ['whitcombe', 'hollister', 'benakis', 'wasif', 'levy'],
   },
@@ -77,6 +79,8 @@ export const VENUES_1925: Record<string, Venue1925> = {
 
 export const venuesIn = (city: string) => Object.values(VENUES_1925).filter((v) => v.city === city);
 export const venueOpen = (v: Venue1925, day: number) => !v.opens || day >= v.opens.day;
+/** who is on the bill on this day: a later engagement is not on it before its month */
+export const billOn = (v: Venue1925, day: number) => v.performers.filter((p) => day >= (v.from?.[p] ?? -Infinity));
 export const venueArt = (v: Venue1925, which: 'exterior' | 'interior' | 'show') => `art/venues/${v.id}/${which}.webp`;
 export const CLOSED_DOOR = 'art/venues/closed-door.webp';
 

@@ -216,6 +216,8 @@ export interface LaneDay {
   extra: number;
   /** nobody shops before the noon prayer */
   late: boolean;
+  /** Ramadan: the lane fills after the sunset cannon, and buyers fasting by day tire sooner */
+  fast?: boolean;
   note: string;
 }
 const FEASTS = ['eid', 'adha', 'mawlid', 'nile'];
@@ -223,8 +225,9 @@ export function laneDay(day: number): LaneDay {
   const feast = eventsOn(day).find((e) => FEASTS.includes(e.id));
   if (feast) return { level: 1.4, extra: 1, late: false, note: `${feast.name}. The lane is crowded and in good spirits.` };
   const wd = dateOfDay(day).getUTCDay();
-  if (wd === 5) return { level: 0.6, extra: -1, late: true, note: 'Friday. The lane stays quiet until after the noon prayer.' };
-  if (wd === 4) return { level: 1.25, extra: 1, late: false, note: 'Thursday. The lane fills with people shopping before Friday.' };
-  if (eventsOn(day).some((e) => e.id === 'ramadan')) return { level: 0.8, extra: 0, late: false, note: 'Ramadan. The lane is slow in the heat of the day.' };
+  const fast = eventsOn(day).some((e) => e.id === 'ramadan');
+  if (wd === 5) return { level: 0.6, extra: -1, late: true, fast, note: 'Friday. The lane stays quiet until after the noon prayer.' };
+  if (wd === 4) return { level: 1.25, extra: 1, late: false, fast, note: 'Thursday. The lane fills with people shopping before Friday.' };
+  if (fast) return { level: 0.8, extra: 0, late: false, fast, note: 'Ramadan. The lane is slow in the heat of the day, and busy after the sunset cannon.' };
   return { level: 1, extra: 0, late: false, note: '' };
 }

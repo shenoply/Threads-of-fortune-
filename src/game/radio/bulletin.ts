@@ -135,7 +135,15 @@ function eventPieces(e: GameEvent, lang: Lang, part: 'head' | 'adv' | 'cu'): Seg
 }
 
 /** Where the news itself starts: straight after "Here are the headlines" (the greeting and the date come first). */
-export const newsStart = (segs: Segment[]) => { const i = segs.findIndex((s) => s.key === 'headlines'); return i < 0 ? 0 : i + 1; };
+export const newsStart = (segs: Segment[]) => {
+  let i = segs.findIndex((s) => s.key === 'headlines');
+  // the second greeting already says "Here is the news", so it stands in for the headlines piece:
+  // the news then starts after the date that follows it
+  if (i < 0 && segs[0]?.key === INTRO_WITH_NEWS) i = segs.findIndex((s) => s.key === 'y1925' || s.key === 'y1926');
+  return i < 0 ? 0 : i + 1;
+};
+/** The greeting that ends with "Here is the news." (both languages); the bulletin then leaves out its own headlines piece. */
+const INTRO_WITH_NEWS = 'intro-1';
 
 /** Today's bulletin, in order. */
 export function bulletin(day: number, lang: Lang): Segment[] {
@@ -150,7 +158,8 @@ export function bulletin(day: number, lang: Lang): Segment[] {
   core(`ord-${d.getUTCDate() - 1}`, F.ordinal[d.getUTCDate() - 1]);
   core(`mon-${d.getUTCMonth()}`, F.month[d.getUTCMonth()]);
   if (d.getUTCFullYear() === 1925) core('y1925', F.year1925); else core('y1926', F.year1926);
-  core('headlines', F.headlines);
+  // greeting 1 already announces the news: do not say it twice
+  if (`intro-${ii}` !== INTRO_WITH_NEWS) core('headlines', F.headlines);
   // the real news first: the day's lead from the wires, Egypt before the world
   const wire = wirePiece(d, lang);
   if (wire) out.push(wire);

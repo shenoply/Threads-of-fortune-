@@ -49,7 +49,12 @@ try {
 
   // tawla for 20: opening roll, then play several of your turns by tapping
   await p.waitForSelector('[data-testid=cafe-play-tawla]', { timeout: 8000 });
-  await p.click('[data-testid=cafe-play-tawla]'); await p.click('[data-testid=cafe-stake-20]'); await p.click('[data-testid=cafe-tawla]');
+  await p.click('[data-testid=cafe-play-tawla]');
+  // Bilgin plays for money once a day: the stakes are shut after the chess game; open them again to test tawla
+  const stakeShut = await p.locator('[data-testid=cafe-stake-20]').isDisabled();
+  out.push(`stakes shut after a staked game: ${stakeShut}`);
+  await p.evaluate(async () => (await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts')).useGame.setState({ cafeStakeDay: undefined }));
+  await p.click('[data-testid=cafe-stake-20]'); await p.click('[data-testid=cafe-tawla]');
   await p.click('[data-testid=tw-open]');
   let myMoves = 0, turnsSeen = 0;
   for (let k = 0; k < 120 && turnsSeen < 4; k++) {
@@ -67,7 +72,7 @@ try {
   await p.click('[data-testid=cafe-quit]'); await p.waitForTimeout(500);
   const t1 = await cash();
   out.push(`tawla quit mid-game: ${t0} -> ${t1}`);
-  const tawlaOk = myMoves >= 6 && t1 === t0 - 20;
+  const tawlaOk = myMoves >= 6 && t1 === t0 - 20 && stakeShut;
 
   // rules check: random tawla games always finish with 30 checkers accounted for
   const sim = await p.evaluate(async () => {

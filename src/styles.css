@@ -1149,6 +1149,10 @@ table.ledger .neg { color: var(--bad); }
 .bill-line.total { color: var(--parchment); border-bottom: 0; }
 .bill-owed { color: var(--bad); font-size: 15px; margin: 0 0 4px; }
 .cal-marks b.event, .cal-key b.event, .cal-note.event { color: #9ec0e0; }
+.cal-marks b.auction, .cal-key b.auction, .cal-note.auction { color: #e8b85a; }
+.cal-marks b.soon, .cal-key b.soon { color: #e8c877; }
+.cal-key b.friday, .cal-note.friday { color: #8fbf9a; }
+.cal-day.fri:not(.sel) { border-color: #3d5a43; }
 
 /* Auction */
 .auction-overlay { position: fixed; inset: 0; z-index: 62; background: var(--night); overflow: hidden; }
@@ -2871,3 +2875,9 @@ body.travelling .world-hud { display: none; }
   .nav button:not(:disabled):not([aria-current='page']):hover { color: var(--parchment); background: rgba(231,189,110,0.07); }
   .big-btn:hover, .icon-btn:hover, .hud-chip:not(:disabled):hover { filter: brightness(1.12); }
 }
+
+/* a buyer with only a framed portrait: the frame stands on the counter where a buyer would stand
+   (the centre of the cut-out buyers, about 83% across the stage), sized to the merchant beside it */
+.scene.stall .buyer-figure:not(.has-photo) { top: auto; left: auto; right: calc(17% - var(--hero-h, 170px) * 0.32); bottom: 20.5%; height: calc(var(--hero-h, 170px) * 0.8); width: auto; aspect-ratio: 4 / 5; z-index: 2; }
+.scene.stall .buyer-figure:not(.has-photo) .buyer-framed { position: absolute; inset: 0; right: auto; bottom: auto; width: 100%; height: 100%; max-width: none; aspect-ratio: auto; object-fit: cover; object-position: 50% 22%; border-width: 5px; transform: rotate(-1.5deg); }
+

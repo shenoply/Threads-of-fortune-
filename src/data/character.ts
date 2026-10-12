@@ -135,6 +135,8 @@ export const ATTIRE: Record<string, AttireDef> = {
 
 /** Cities with a public bath where you can wash off the road. */
 export const HAMMAMS: Record<string, { name: string; cost: number }> = {
+  // the stall's own lane: the buyers who say the hammam is two streets away mean this one
+  giza: { name: 'The hammam behind the Giza market', cost: 4 },
   cairo: { name: 'Hammam al-Tambali', cost: 5 },
   alexandria: { name: 'The Greek baths on Rue Nabi Daniel', cost: 6 },
   damascus: { name: 'Hammam Nur al-Din', cost: 5 },

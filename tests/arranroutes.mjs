@@ -43,6 +43,8 @@ const walkTo = async (town, label) => {
       await p.screenshot({ path: `${S}/r-${label}-pass.png` });
       await p.click('[data-testid=pass-continue]');
     }
+    // a long road can end in a faint (fatigue is real now): get up and go on
+    if (await has('rescue')) await p.click('[data-testid=rescue] .btn.primary').catch(() => {});
     for (const id of ['close-stall', 'march-on', 'food-go', 'encounter-leave', 'ambush-ok', 'event-ok', 'arrive-ok']) if (await has(id)) await p.click(`[data-testid=${id}]`).catch(() => {});
     if (await has('travel')) await p.click('[data-testid=travel]').catch(() => {});
     if (await has('speed-4')) await p.click('[data-testid=speed-4]').catch(() => {});
@@ -90,7 +92,8 @@ try {
   }
 
   // the institution: open the town, go to the records room; wait for the doors if early
-  await edit(`s.world.hour = 6.5;`); await reload(); await p.waitForTimeout(800);
+  // a sixteen-day road can end in a faint on arrival: he comes to rested, as in toLab
+  await edit(`s.world.hour = 6.5; delete s.rescue; s.condition = { ...(s.condition ?? {}), fatigue: 0, fed: 100, water: 100 };`); await reload(); await p.waitForTimeout(800);
   if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); } // the town menu covers the nav bar
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-sinai]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }
   await p.waitForSelector('[data-testid=town-menu]'); await p.waitForTimeout(1200); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
@@ -127,7 +130,8 @@ try {
   console.log('5. Port Said route preview:', await has('travel'), '| remote panel?', await has('town-menu'));
   const ok2 = await walkTo('portsaid', 'portsaid');
   console.log('   arrived at Port Said:', ok2, '| hour', (await live()).hour.toFixed(1));
-  await edit(`s.world.hour = 9;`); await reload(); await p.waitForTimeout(800);
+  // the Sinai round trip spans the 1 April bill and the escort's fee: top the purse up for the £3 extract
+  await edit(`s.world.hour = 9; s.cash = Math.max(s.cash, 600);`); await reload(); await p.waitForTimeout(800);
   // arriving (or reloading) in a town can open its full-screen menu, which covers the nav bar
   if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); }
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-portsaid]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }

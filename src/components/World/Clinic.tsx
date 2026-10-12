@@ -3,6 +3,7 @@
 // returns. Below it: a consultation for whatever you have, and his medical book of every illness and
 // injury in the game, which is how he explains them.
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGame, TREAT_FEE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { DISEASES, DISEASE, TIER_LABEL, ferasNothingLine, type Disease } from '../../game/systems/disease';
@@ -124,7 +125,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
   }, [intro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className={`clinic${consulting && tab === 'consult' && !intro ? ' consulting' : ''}`} aria-label="Dr Feras's clinic" data-testid="clinic">
+    <section className={`clinic${consulting && tab === 'consult' && !intro ? ' consulting' : ''}${book !== null ? ' reading' : ''}`} aria-hidden={book !== null || undefined} aria-label="Dr Feras's clinic" data-testid="clinic">
       <header className="cl-head">
         <div><strong>Dr Feras’s clinic</strong><small>Cairo · 1925</small></div>
         <span className="cl-cash">{fmt(g.cash)}</span>
@@ -184,12 +185,12 @@ export function Clinic({ onClose }: { onClose: () => void }) {
           </div>
         ) : <Cases onBook={(id) => setBook(id)} />}
       </div>
-      {book !== null && (
-        <div className="mb-reader" role="dialog" aria-label="Dr Feras's Handbook" data-testid="book-reader">
+      {/* the Handbook goes on top of everything, the clinic hidden beneath it, until you close it */}
+      {book !== null && createPortal(
+        <div className="mb-reader cl-handbook" role="dialog" aria-modal="true" aria-label="Dr Feras's Handbook" data-testid="book-reader">
           <div className="mb-reader-head"><b>Feras’s Handbook of Diseases</b><button className="btn small" onClick={() => setBook(null)} data-testid="book-close">Close the Handbook</button></div>
           <div className="mb-reader-body"><MedicalBook key={book || 'contents'} start={book || undefined} /></div>
-        </div>
-      )}
+        </div>, document.body)}
     </section>
   );
 }
