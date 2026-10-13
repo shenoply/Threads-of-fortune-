@@ -15,7 +15,7 @@ try { mkdirSync(SHOTS, { recursive: true }); } catch { /* read-only or exists */
 export async function serveFirstCustomer(p, ready = '[data-testid=act-ask_room]') {
   for (let i = 0; i < 20; i++) {
     if (await p.locator(ready).count()) return;
-    for (const ok of ['day-summary-ok', 'mission-ok']) { const b = p.locator(`[data-testid=${ok}]`); if (await b.count()) await b.first().click({ timeout: 2000 }).catch(() => {}); }
+    for (const ok of ['day-summary-ok', 'mission-ok', 'big-news-ok']) { const b = p.locator(`[data-testid=${ok}]`); if (await b.count()) await b.first().click({ timeout: 2000 }).catch(() => {}); }
     const w = p.locator('[data-testid=stall-wait]');
     if (await w.count()) await w.first().click({ timeout: 3000 }).catch(() => {});
     else if (i % 3 === 1) await p.locator('[data-testid=nav-stall]').click({ timeout: 2000 }).catch(() => {}); // stall sheet closed: open it
@@ -38,6 +38,7 @@ export const tapPlace = (p, id) => p.locator(`[data-testid=place-${id}]`).dispat
 // (e.g. 'people', 'venues', 'walk', 'market', 'leave'; 'Everything in ...' when the town has no such
 // tile); does nothing when the menu is not open.
 export async function fromTownMenu(p, tile) {
+  await settleBorder(p);
   await p.waitForSelector('[data-testid=town-menu]', { timeout: 1500 }).catch(() => {}); // it slides in on arrival
   if (!(await p.locator('[data-testid=town-menu]').count())) return;
   const t = p.locator(`[data-testid=menu-${tile}]`);
@@ -73,4 +74,16 @@ export async function openBilgin(p) {
   if (await p.locator('[data-testid=film-skip]').count()) await p.click('[data-testid=film-skip]').catch(() => {});
   await p.click('[data-testid=cafe-hot-bilgin]');
   await p.waitForSelector('[data-testid=dialogue]');
+}
+
+// A frontier on the way: declare everything and carry on (the border card, src/components/World/BorderCard.tsx).
+export async function settleBorder(p) {
+  for (let i = 0; i < 4; i++) {
+    if (!(await p.locator('[data-testid=border-card]').count())) return;
+    const pick = ['border-full', 'border-none', 'border-continue'];
+    let did = false;
+    for (const id of pick) { const b = p.locator(`[data-testid=${id}]`); if (await b.count()) { await b.first().click({ timeout: 2000 }).catch(() => {}); did = true; break; } }
+    if (!did) { const any = p.locator('[data-testid=border-card] button'); if (await any.count()) await any.first().click({ timeout: 2000 }).catch(() => {}); }
+    await p.waitForTimeout(400);
+  }
 }

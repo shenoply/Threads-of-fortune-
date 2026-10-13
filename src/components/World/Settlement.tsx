@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
+// the telegraph counter is opened rarely: loaded when first asked for
+const TelegraphOffice = lazy(() => import('./TelegraphOffice').then((m) => ({ default: m.TelegraphOffice })));
+import { TELEGRAPH_TOWNS } from '../../game/systems/post';
 import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
 import { Rumours } from '../Rumours/Rumours';
 import { cityClosed, closedNote, dangerAt } from '../../game/economy/life';
 import { fmt } from '../../game/economy/money';
+import { localMoney, localMoneyLong } from '../../game/economy/currency';
+import { TownMoney } from './BorderCard';
 import { drawWorld, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
 import { localAskPrice, localBid, localOffers, useGame } from '../../game/state/store';
 import { NPCS, QUESTS } from '../../data/world';
@@ -25,6 +30,8 @@ import { Auction } from '../Auction/Auction';
 import { housesIn, saleOn, nextSale, art, HOUSES } from '../../game/auction/sessions';
 import { useAudioEnv, townEnv, townMusic } from '../../game/audio/useAudioEnv';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
+import { flawFor } from '../../game/systems/fakes';
+import { OfferFlags } from '../Inventory/RugFlags';
 import { auctionVenue } from '../../data/auctionVenues';
 import { dateLabel } from '../Auction/Auction';
 import { BOOKS, HAMMAMS, SKILLS } from '../../data/character';
@@ -127,6 +134,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     return () => window.removeEventListener(CLINIC_EVENT, on);
   }, [id]);
   const [finance, setFinance] = useState(false);
+  const [wire, setWire] = useState(false);
   const [library, setLibrary] = useState(false);
   const [cairoPlace, setCairoPlace] = useState<'chemist' | 'museum' | null>(null);
   const [clinic, setClinic] = useState(false);
@@ -172,7 +180,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [sailing, setSailing] = useState<{ to: string } | null>(null);
   // Escape and the phone's Back: the wait card closes, otherwise the panel is left as its Leave button
   // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
-  const busy = wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
+  const busy = wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
   // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
   useEffect(() => {
     if (!note || menu) return;
@@ -241,6 +249,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
     ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
     ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
+    ...(TELEGRAPH_TOWNS.includes(id) ? [['scroll', 'Telegraph office', 'Wire Rashid for stock, or ask a dealer\u2019s prices', () => setWire(true), 'menu-telegraph'] as [string, string, string, () => void, string]] : []),
     ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
     ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
     ...(id === 'cairo' ? [['bag', 'A chemist in the Muski', 'Tonics over the counter; drugs only on prescription', () => setCairoPlace('chemist'), 'menu-chemist'] as [string, string, string, () => void, string]] : []),
@@ -290,6 +299,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {note && <p className="set-note" data-testid="set-note">{note}</p>}
         {tab === 'town' && (<>
         <p className="set-blurb">{st.blurb}</p>
+        <TownMoney id={id} />
         {houses.length > 0 && (
           <div className="houses" id="sec-houses" data-testid="auction-houses">
             <div className="section-label">AUCTION HOUSES</div>
@@ -449,11 +459,12 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               <div className="mkt">
                 {offers.map((o) => {
                   const t = RUGS[o.typeId];
+                  const flaw = flawFor(`${o.key}#${g.world.boughtLocal.filter((b) => b === o.key).length}`, 'dealer', o.typeId);
                   return (
                     <div className="mkt-row" key={o.key} data-testid={`buy-${o.typeId}`}>
-                      <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
-                      <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}</small></span>
-                      <button className="btn primary" disabled={g.cash < o.price} onClick={() => setNote(g.buyLocal(id, o.key))}>Buy {fmt(o.price)}</button>
+                      <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                      <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}</small><OfferFlags typeId={o.typeId} flaw={flaw} /></span>
+                      <button className="btn primary" disabled={g.cash < o.price} onClick={() => setNote(g.buyLocal(id, o.key))}>Buy {localMoney(o.price, id, g.day)}</button>
                     </div>
                   );
                 })}
@@ -482,7 +493,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                       <div className="mkt-row" key={i.uid} data-testid={`sell-${t.id}`}>
                         <img src={rugSrc(t)} alt="" />
                         <span><b>{t.name}</b><small>{i.condition} · {i.provenance} · you paid {fmt(i.paid)}</small></span>
-                        <button className="btn" onClick={() => { const b = g.sellLocal(i.uid, id); setNote(`Sold ${t.name} for ${fmt(b)}.`); }}>Sell {fmt(bid)}</button>
+                        <button className="btn" onClick={() => { const b = g.sellLocal(i.uid, id); setNote(`Sold ${t.name} for ${localMoneyLong(b, id, g.day)}.`); }}>Sell {localMoney(bid, id, g.day)}</button>
                       </div>
                     );
                   })}
@@ -581,6 +592,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         );
       })()}
       {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
+      {wire && <EscLayer onEsc={() => setWire(false)}><Suspense fallback={null}><TelegraphOffice id={id} onClose={() => setWire(false)} /></Suspense></EscLayer>}
       {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}
       {waitOpen && (
         <div className="overlay" onClick={() => setWaitOpen(false)}>

@@ -134,7 +134,7 @@ export function paperFor(day: number, extras: { bills?: boolean; commissions?: {
   const trade = tradeNotes(day);
   for (const ru of rumoursOn(day).filter((x) => x.kind !== 'event').slice(0, 3)) trade.push(ru.text);
   const month = dateOfDay(day).getUTCMonth() + 1;
-  const sand = eventsOn(day).some((e) => e.surprise === 'khamsin');
+  const sand = eventsOn(day).some((e) => e.dust || e.surprise === 'khamsin');
   const weather = sand ? pick(KHAMSIN, day) : pick(WEATHER[month] ?? WEATHER[1], day * 3.1);
   const shipping = pick(SHIPPING, day * 4.3).replace('{ship}', pick(SHIPS, day * 5.7)).replace('{from}', pick(PORTS, day * 6.1));
   const ad = pick(ADS, day * 7.7);

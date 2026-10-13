@@ -12,7 +12,7 @@ const p = await b.newPage({ viewport: { width: 360, height: 780 }, isMobile: tru
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 let ok = true; const check = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) ok = false; };
 await p.goto(BASE);
-await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1')));
+await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1'), localStorage.setItem('tof-news', '1')));
 await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1500);
 check((await p.locator('[data-testid=map-clock] svg').count()) > 0, 'the clock carries a calendar mark');

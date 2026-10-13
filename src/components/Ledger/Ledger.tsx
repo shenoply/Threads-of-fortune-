@@ -10,6 +10,7 @@ import { RASHID_POOL } from '../../data/suppliers';
 import { SETTLEMENTS } from '../../data/world';
 import { houseOfFortune, rankOf, RANKS, netWorth, liabilities, owedParts } from '../../game/economy/progress';
 import { rugSrc } from '../RugViewer/rugArt';
+import { LicenceCard } from './LicenceCard';
 
 /** Where a rug can be found, for the Register. */
 function sourcesOf(id: string) {
@@ -139,6 +140,7 @@ export function Ledger() {
         })()}
         <div className="tile"><small>REPUTATION</small><b>{g.reputation}</b></div>
       </div>
+      <LicenceCard />
 
 
       <div className="section-label">TODAY'S GOALS</div>

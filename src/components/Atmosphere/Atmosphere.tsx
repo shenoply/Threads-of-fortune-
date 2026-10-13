@@ -2,6 +2,7 @@
 // Nothing here reacts to the player.
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
+import { DustHaze } from './DustHaze';
 
 type RGBA = [number, number, number, number];
 interface Key { h: number; tint: RGBA; glow: RGBA; gx: number; gy: number; sun: number }
@@ -49,6 +50,7 @@ export function Atmosphere({ indoor = false, hour }: { indoor?: boolean; hour?: 
       <div className="atmo-glow" style={{ background: `radial-gradient(ellipse 75% 90% at ${L.gx}% ${L.gy}%, ${css(L.glow, indoor ? 0.7 : 1)}, transparent 70%)` }} />
       <Lamps night={Math.min(1, Math.max(0, (0.9 - L.sun) / 0.75))} />
       <Air hourRef={hourRef} indoor={indoor} />
+      {!indoor && hour === undefined && <DustHaze />}
     </div>
   );
 }

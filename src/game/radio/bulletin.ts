@@ -187,7 +187,7 @@ export function bulletin(day: number, lang: Lang): Segment[] {
   }
   core('weather', F.weather);
   const month = d.getUTCMonth() + 1;
-  if (eventsOn(day).some((e) => e.surprise === 'khamsin')) { const k = Math.floor(r(day * 3) * 3); core(`kh-${k}`, (lang === 'ar' ? AR_KHAMSIN : KHAMSIN)[k]); }
+  if (eventsOn(day).some((e) => e.dust || e.surprise === 'khamsin')) { const k = Math.floor(r(day * 3) * 3); core(`kh-${k}`, (lang === 'ar' ? AR_KHAMSIN : KHAMSIN)[k]); }
   else { const w = Math.floor(r(day * 5) * 3); core(`wx-${month}-${w}`, (lang === 'ar' ? AR_WEATHER : WEATHER)[month][w]); }
   const oo = Math.floor(r(day * 7) * 4);
   core(`outro-${oo}`, F.outro[oo]);

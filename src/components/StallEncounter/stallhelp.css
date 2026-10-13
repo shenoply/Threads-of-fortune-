@@ -1,0 +1,43 @@
+/* The shop boy card at the stall, the Post list, the telegraph office and the licence card. */
+.boy-card { margin-top: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(21, 14, 8, .82); color: var(--text); font-size: 14.5px; line-height: 1.35; }
+.boy-card p { margin: 0 0 6px; }
+.boy-card b { color: var(--parchment); font-weight: 600; }
+.boy-card small { color: var(--text-dim); font-size: 13px; }
+.boy-head { display: flex; align-items: center; gap: 8px; }
+.boy-head > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.boy-face { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #3a2614; border: 1px solid var(--line-strong); color: var(--brass-hi); font-family: var(--display); font-size: 16px; }
+.boy-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0 6px; }
+.boy-seg .btn { margin: 0; justify-content: center; font-size: 13.5px; }
+.boy-seg .btn.on { border-color: var(--brass-hi); background: #4a3216; color: var(--parchment); }
+.boy-pct { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.boy-pct span { flex: 1; }
+.boy-pct .btn { margin: 0; min-width: 38px; justify-content: center; }
+.boy-list { margin: 4px 0 6px; padding: 0; list-style: none; }
+.boy-list li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-bottom: 1px dotted var(--line); font-size: 13.5px; }
+.boy-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+.boy-foot .btn { margin: 0; }
+
+.post-list { display: flex; flex-direction: column; gap: 6px; }
+.post-item { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #efe0bf; color: var(--ink); }
+.post-item.telegram { background: #f3ead2; border-style: dashed; }
+.post-item small { display: block; font-family: var(--label); font-size: 12.5px; color: var(--ink-soft); }
+.post-item b { display: block; font-size: 15px; margin: 1px 0 2px; }
+.post-item p { margin: 0; font-size: 14px; line-height: 1.35; }
+.post-item.new { box-shadow: 0 0 0 2px var(--brass-hi); }
+
+.wire-card { max-height: 86vh; overflow-y: auto; }
+.wire-card .mkt-row { gap: 8px; }
+.wire-card .mkt-row > span { min-width: 0; }
+.wire-towns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.wire-towns .btn { margin: 0; }
+.wire-reply { margin: 8px 0; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 6px; background: #f3ead2; color: var(--ink); font-size: 14px; }
+
+.licence-card { padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(21, 14, 8, .82); color: var(--text); font-size: 14.5px; margin-bottom: 10px; }
+.licence-card.lapsed { border-color: var(--bad); }
+.licence-card p { margin: 0 0 6px; }
+.licence-card .btn { margin: 0; }
+.merchant-post { padding: 4px 0 12px; }
+.msub-badge { display: inline-grid; place-items: center; min-width: 17px; height: 17px; margin-left: 4px; border-radius: 9px; background: var(--brass); color: #1a1008; font-size: 11.5px; }
+/* four tabs (Story, Jobs, Visitors, Post) fit a 360px phone */
+.obj-tabs { overflow-x: auto; scrollbar-width: none; }
+.obj-tabs button { padding: 8px 7px; white-space: nowrap; }

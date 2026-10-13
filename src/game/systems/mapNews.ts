@@ -1,7 +1,8 @@
 // Today's news as it shows on the travel map: small badges at the towns it touches, and the khamsin's sand haze.
 import { eventsOn, cityBidMod, cityBuyMod } from '../economy/life';
 import { SETTLEMENTS } from '../../data/world';
-import { dist, type Party, type Pt } from './world';
+import { dist, terrainAt, type Party, type Pt } from './world';
+import { floodOn } from '../economy/calendar1925';
 
 export type NewsMark = 'closed' | 'danger' | 'bid' | 'buy';
 export const NEWS_ICON: Record<NewsMark, string> = { closed: 'lock', danger: 'sword', bid: 'up', buy: 'tag' };
@@ -36,15 +37,36 @@ export function khamsinZones(day: number): Pt[] {
   if (hit) return hit;
   const out: Pt[] = [];
   for (const e of eventsOn(day)) {
-    if (e.surprise !== 'khamsin' || !e.city) continue;
-    const st = SETTLEMENTS.find((x) => x.id === e.city);
-    if (st) out.push({ x: st.x, y: st.y });
+    // a khamsin of the seasons blows over several towns at once; an older surprise over one
+    for (const id of e.dust ?? (e.surprise === 'khamsin' && e.city ? [e.city] : [])) {
+      const st = SETTLEMENTS.find((x) => x.id === id);
+      if (st) out.push({ x: st.x, y: st.y });
+    }
   }
   if (zoneCache.size > 8) zoneCache.clear();
   zoneCache.set(day, out);
   return out;
 }
 export const inKhamsin = (day: number, p: Pt) => khamsinZones(day).some((z) => dist(z, p) < KHAMSIN_R);
+/** walking pace inside a khamsin's sand */
+export const KHAMSIN_PACE = 0.8;
+/** The Nile in flood (August to October): the Delta's low roads and the valley fields are under
+ *  water and caravans keep to the dykes. Walking pace there, else 1. */
+export function floodPace(day: number, p: Pt): number {
+  if (!floodOn(day)) return 1;
+  const delta = p.y > 335 && p.y < 420 && p.x > 75 && p.x < 335;
+  const valley = p.y >= 420 && p.y < 520 && p.x > 120 && p.x < 235 && terrainAt(p) === 'fertile';
+  return delta || valley ? 0.85 : 1;
+}
+/** How much longer a walk along this path takes today for sand and flood (1 = no change). */
+export function seasonPathMult(day: number, path: Pt[] | null): number {
+  if (!path || path.length < 2) return 1;
+  const sand = khamsinZones(day).length > 0, flood = floodOn(day);
+  if (!sand && !flood) return 1;
+  let sum = 0;
+  for (const p of path) sum += 1 / ((sand && inKhamsin(day, p) ? KHAMSIN_PACE : 1) * floodPace(day, p));
+  return sum / path.length;
+}
 
 /** What a travelling party carries, for the small label beside it on the map. Raiders and hired men carry nothing to sell. */
 export function partyGoods(p: Party): { label: string; icon: string; note: string } | null {

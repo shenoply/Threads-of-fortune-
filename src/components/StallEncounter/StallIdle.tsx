@@ -11,6 +11,7 @@ import { laneDay } from '../../game/economy/life';
 import { affordableUpgrades, openUpgrades } from '../Inventory/StallUpgrades';
 import { openMalek } from '../../game/nav';
 import { fedOf, shopOpen as malekOpen } from '../../game/systems/malek';
+import { ShopBoyCard } from './ShopBoyCard';
 
 /** The stall between customers: the road ahead, the next customer, and the auction calendar. */
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
@@ -74,6 +75,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         <button className="btn small idle-tidy" onClick={() => { audio.sfx('tap'); setTidy(true); }} data-testid="idle-tidy">Tidy up</button>
         {!shut && <button className="btn small" onClick={() => useGame.setState({ dayOver: true })} data-testid="stall-close-early"><Icon name="lock" /> Shut the stall</button>}
       </div>
+      <ShopBoyCard />
       {tidy && <TidyFilm onClose={() => setTidy(false)} />}
       {board && <AuctionBoard onClose={() => setBoard(false)} onMap={() => { setBoard(false); onGo('map'); }} />}
     </div>

@@ -62,6 +62,7 @@ export const UPGRADES: Upgrade[] = [
   { id: 'tea', name: 'Tea service', cost: 150, effect: 'Offer tea: +15 patience once per buyer' },
   { id: 'ledgerbook', name: 'Proper ledger book', cost: 100, effect: 'Tighter market estimates in the inspector and price dial' },
   { id: 'display', name: 'Rug display pole', cost: 250, effect: 'Better first impression: +8 interest when a rug is presented' },
+  { id: 'camphor', name: 'Camphor-wood chest', cost: 150, effect: 'Rugs left at the Giza stall are safe from moth in the summer months' },
   { id: 'mat', name: 'A rug mat of your own', cost: 1000, rep: 8, stall: true, effect: 'No longer a borrowed corner. Buyers arrive with more trust (+6). Rent £0.05 a day.' },
   { id: 'bazaar', name: 'Bazaar stall with canopy', cost: 5000, rep: 20, after: 'mat', stall: true, effect: 'Shade and a proper counter. Buyers wait longer and spend a little more. Rent £0.12 a day.' },
   { id: 'khan', name: 'A shop in Khan el-Khalili', cost: 60000, rep: 60, after: 'bazaar', stall: true, effect: 'Your own shop in the great bazaar of Cairo. Richer buyers, budgets 25% higher, +15 patience. Rent £0.40 a day.' },

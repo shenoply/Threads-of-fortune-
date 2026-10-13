@@ -5,6 +5,7 @@ import type { Trait } from '../types';
 import { upcomingGrandSales } from '../auction/sessions';
 import { SURPRISES } from '../../data/news';
 import { SETTLEMENTS } from '../../data/world';
+import { SEASON_EVENTS, withExtras, seasonLane, type SeasonFx } from './calendar1925';
 
 export const dateOfDay = (day: number) => new Date(Date.UTC(1925, 2, 9 + day));
 /** "Wednesday 18 March": a sale named by its date, which still reads right when repeated later */
@@ -45,7 +46,7 @@ export const billTotal = (lines: BillLine[]) => lines.reduce((s, l) => s + l.amo
 
 // ---------- Events of 1925–26 ----------
 // Researched against the record of 1925. Where only the month is known the dates are marked "about".
-export interface GameEvent {
+export interface GameEvent extends SeasonFx {
   id: string;
   name: string;
   from: number; // game day
@@ -143,10 +144,19 @@ function buildSurprises(): GameEvent[] {
   }
   return out;
 }
-export const SURPRISE_EVENTS = buildSurprises();
-export const ALL_EVENTS: GameEvent[] = [...EVENTS, ...SURPRISE_EVENTS];
+// the khamsin now comes from the seasons (calendar1925.ts), with its own morning card
+export const SURPRISE_EVENTS = buildSurprises().filter((e) => e.surprise !== 'khamsin');
+EVENTS.forEach(withExtras);
+export const ALL_EVENTS: GameEvent[] = [...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS];
 
-export const eventsOn = (day: number) => ALL_EVENTS.filter((e) => day >= e.from && day <= e.to);
+// cached by day (the list is fixed after load): selectors, store subscribers and the travel loop ask for it often.
+// Callers only read the array; copy it before sorting.
+const onCache = new Map<number, GameEvent[]>();
+export const eventsOn = (day: number): GameEvent[] => {
+  let r = onCache.get(day);
+  if (!r) { if (onCache.size > 64) onCache.clear(); r = ALL_EVENTS.filter((e) => day >= e.from && day <= e.to); onCache.set(day, r); }
+  return r;
+};
 export const eventsStarting = (day: number) => ALL_EVENTS.filter((e) => e.from === day);
 export const budgetMod = (day: number) => eventsOn(day).reduce((m, e) => m * (e.budget ?? 1), 1);
 export const cityBidMod = (day: number, sid: string) => eventsOn(day).reduce((m, e) => m * (e.cityBid?.[sid] ?? 1), 1);
@@ -218,10 +228,19 @@ export interface LaneDay {
   late: boolean;
   /** Ramadan: the lane fills after the sunset cannon, and buyers fasting by day tire sooner */
   fast?: boolean;
+  /** buyers' patience at the stall, as a multiplier (khamsin, Mawlid crowds) */
+  patience?: number;
   note: string;
 }
 const FEASTS = ['eid', 'adha', 'mawlid', 'nile'];
-export function laneDay(day: number): LaneDay {
+const laneCache = new Map<number, LaneDay>();
+/** the lane today (cached by day: it depends on nothing else; treat it as read-only) */
+export const laneDay = (day: number): LaneDay => {
+  let r = laneCache.get(day);
+  if (!r) { if (laneCache.size > 64) laneCache.clear(); r = seasonLane(laneBase(day), eventsOn(day)); laneCache.set(day, r); }
+  return r;
+};
+function laneBase(day: number): LaneDay {
   const feast = eventsOn(day).find((e) => FEASTS.includes(e.id));
   if (feast) return { level: 1.4, extra: 1, late: false, note: `${feast.name}. The lane is crowded and in good spirits.` };
   const wd = dateOfDay(day).getUTCDay();

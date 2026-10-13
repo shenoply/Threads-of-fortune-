@@ -51,7 +51,8 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
     for (const o of g.supplier.offers) if (o.leavesAfterDay === day) m.push({ icon: '⌛', cls: 'due', label: `Last day for Rashid's ${RUGS[o.typeId].name}` });
     for (const [id, last] of Object.entries(g.court.last)) if (last + 7 === day) m.push({ icon: '♛', cls: 'royal soon', label: `${BUYERS[id].name} will receive you again` });
     if (isFirstOfMonth(day) && day > 1) m.push({ icon: '£', cls: 'due', label: day > g.day ? 'Monthly bill falls due' : 'Monthly bill' });
-    for (const e of ALL_EVENTS) if ((!e.surprise || e.from <= g.day) && (day === e.from || (day === g.day && day > e.from && day <= e.to))) m.push({ icon: e.surprise ? '✦' : '☾', cls: 'event', label: `${e.name}${day === e.from ? ' begins' : ''}` });
+    // short feasts and spells are marked on every day they last; long seasons on their first day and today
+    for (const e of ALL_EVENTS) if ((!(e.surprise || e.unforeseen) || e.from <= g.day) && (day === e.from || (day > e.from && day <= e.to && (day === g.day || (!!e.icon && e.to - e.from < 4))))) m.push({ icon: e.icon ?? (e.surprise ? '✦' : '☾'), cls: 'event', label: `${e.name}${day === e.from && e.to > e.from ? ' begins' : ''}` });
     for (const c of g.commissions) if (!c.done && c.until === day) m.push({ icon: '!', cls: 'due', label: `Last day: ${c.label}` });
     // someone met at a table: the morning they call, or, if you were away, they still wait for you
     for (const a of g.appointments ?? []) {
@@ -119,7 +120,7 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
           <b>{selDate.getUTCDate()} {MONTHS[selDate.getUTCMonth()]} {selDate.getUTCFullYear()} · Day {sel}{sel === g.day ? ' · today' : sel > g.day ? ' · ahead' : ''}</b>
           {sel <= g.day && <p className="cal-where"><span>{placeName(where(sel))}</span>{' '}{onPaper && <button className="ghost-btn cal-paper" onClick={() => onPaper(sel)} data-testid="cal-read-paper">Read the Courier for this day</button>}</p>}
           {selMarks.filter((m) => /due|ready|soon|auction|friday/.test(m.cls)).map((m) => <p key={m.label} className={`cal-note ${m.cls}`}>{m.icon} {m.label}</p>)}
-          {[...eventsOn(sel)].filter((e) => !e.surprise || e.from <= g.day).sort((a, b) => (a.to - a.from) - (b.to - b.from)).map((e) => <p key={e.id} className="cal-event" data-testid={`cal-event-${e.id}`}><b>☾ {e.name}</b> {e.text}</p>)}
+          {[...eventsOn(sel)].filter((e) => !(e.surprise || e.unforeseen) || e.from <= g.day).sort((a, b) => (a.to - a.from) - (b.to - b.from)).map((e) => <p key={e.id} className="cal-event" data-testid={`cal-event-${e.id}`}><b>{e.icon ?? '☾'} {e.name}</b> {e.text}</p>)}
           {selEntries.length ? selEntries.map((e, k) => <p key={k}>{e.text}</p>) : sel <= g.day ? <p className="dim">Nothing written in the diary.</p> : selMarks.some((m) => /due|ready|soon|auction/.test(m.cls)) ? null : <p className="dim">Nothing planned yet.</p>}
         </div>
         <div className="cal-key"><span><b className="sale">◆</b> sale</span><span><b className="road">⤳</b> travelling</span><span><b className="arrive">⌂</b> arrived</span><span><b className="royal">♛</b> court</span><span><b className="due">!</b> due</span><span><b className="event">☾</b> event</span><span><b className="auction">⚖</b> sale opens</span><span><b className="soon">✉</b> caller</span><span><b className="friday">☪</b> Friday</span></div>

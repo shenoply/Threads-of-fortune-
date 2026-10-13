@@ -6,8 +6,10 @@ import { MISSIONS, MAIN_ORDER, type MissionState } from '../../data/missions';
 import { openJobs } from '../../data/jobs';
 import { QUESTS, NPCS } from '../../data/world';
 import { settlementById } from '../../game/systems/world';
+import { PostList } from './PostList';
+import { unread } from '../../game/systems/post';
 
-type ObjTab = 'story' | 'jobs' | 'visitors';
+type ObjTab = 'story' | 'jobs' | 'visitors' | 'post';
 
 const townName = (id?: string) => (id ? settlementById(id)?.name ?? id : '');
 const daysLeft = (until: number, day: number) => (until - day <= 0 ? 'leaves today' : `${until - day} day${until - day > 1 ? 's' : ''} left`);
@@ -35,11 +37,11 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
     const target = v === 'ready' ? q.readyTarget ?? q.target : q.target;
     quests.push({ id: qid, title: q.title, giver: NPCS[q.giver]?.name ?? q.giver, target, text: v === 'ready' ? 'Delivered: go back for your reward.' : q.desc });
   }
-  const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
+  const visits = (g.visits ?? []).filter((v) => v.until >= g.day && (v.heard ?? 0) <= g.day);
   const here = g.world.at;
   const focus = (town?: string) => { if (town && onFocus) onFocus(town); };
 
-  const tabs: [ObjTab, string, number][] = [['story', 'Story', m ? 1 : 0], ['jobs', 'Jobs', jobs.length + quests.length], ['visitors', 'Visitors', visits.length]];
+  const tabs: [ObjTab, string, number][] = [['story', 'Story', m ? 1 : 0], ['jobs', 'Jobs', jobs.length + quests.length], ['visitors', 'Visitors', visits.length], ['post', 'Post', unread(g.post, g.day)]];
 
   return (
     <div ref={box} className="objectives" role="dialog" aria-modal="false" aria-label="Objectives" data-testid="objectives" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
@@ -88,6 +90,8 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
             ))}
           </>
         )}
+
+        {tab === 'post' && <PostList />}
 
         {tab === 'visitors' && (
           <>

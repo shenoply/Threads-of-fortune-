@@ -3,6 +3,7 @@ import { TERRAIN_ROWS } from '../../data/terrain';
 import { BARRIER_ROWS, BARRIER_NAMES } from '../../data/barriers';
 import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, RAIL_FARE_PER_KM, RAIL_FARE_MIN, ANIMAL_FREIGHT, type Settlement } from '../../data/world';
 import { BREEDS } from '../../data/animals';
+import { seaDelayOn, SEASON_NOW } from '../economy/calendar1925';
 
 export interface Pt { x: number; y: number }
 
@@ -320,7 +321,8 @@ export function partyFare(perPerson: number, party?: FareParty): Fare {
 }
 
 export const seaRoutesFrom = (id: string, party?: FareParty) =>
-  SEA_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => { const f = partyFare(r.fare, party); return { to: r.a === id ? r.b : r.a, days: r.days, fare: f.total, perPerson: r.fare, bill: f.lines }; });
+  // quarantine at Port Said or Alexandria holds a ship for a day or two (calendar1925.ts)
+  SEA_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => { const f = partyFare(r.fare, party); return { to: r.a === id ? r.b : r.a, days: r.days + seaDelayOn(SEASON_NOW.day, r.a, r.b), fare: f.total, perPerson: r.fare, bill: f.lines }; });
 export const motorRoutesFrom = (id: string, party?: FareParty) =>
   MOTOR_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => { const f = partyFare(r.fare, party); return { to: r.a === id ? r.b : r.a, days: r.days, fare: f.total, perPerson: r.fare, bill: f.lines }; });
 

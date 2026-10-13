@@ -15,6 +15,7 @@ import { StallUpgrades, affordableUpgrades, openUpgrades } from './StallUpgrades
 import { settlementById } from '../../game/systems/world';
 import { malekItem } from '../../data/malekMenu';
 import { fedOf, parcelWeight, parcelsWeight, waterOf } from '../../game/systems/malek';
+import { MothPanel, RugFlags } from './RugFlags';
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
   const g = useGame();
@@ -42,6 +43,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         </div>
       )}
       <ParcelList />
+      <MothPanel />
       <div className="inv-list">
         {g.inventory.map((i) => {
           const t = RUGS[i.typeId];
@@ -64,6 +66,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   Provenance: {i.provenance}
                   {g.intel?.[i.typeId] && <><br /><span className="intel" data-testid="intel">Seen at auction: about {fmt(Math.round((g.intel[i.typeId].movingAveragePt ?? 0) * CONDITION_FACTOR[i.condition]))} in this condition ({g.intel[i.typeId].observations} sale{g.intel[i.typeId].observations === 1 ? '' : 's'})</span></>}
                 </div>
+                <RugFlags item={i} />
                 {i.notes.slice(-1).map((n) => (
                   <div className="note" key={n}>{n}</div>
                 ))}

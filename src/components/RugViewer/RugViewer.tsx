@@ -8,15 +8,17 @@ import { rugSrc, simulatedBack } from './rugArt';
 import { Icon } from '../Icon';
 import { perceivedValue } from '../../game/systems/negotiation';
 import { useEscapeClose } from './useEscapeClose';
+import { FLAW_CLUES, eyeOf, flawFactorFor, flawNotes } from '../../game/systems/fakes';
+import { RugFlags } from '../Inventory/RugFlags';
 
 const TABS = ['Overview', 'Condition', 'Weave', 'Fringe', 'Provenance', 'Estimate'] as const;
 
-export interface RugPreview { typeId: string; condition: RugItem['condition']; provenance?: RugItem['provenance']; price?: number }
+export interface RugPreview { typeId: string; condition: RugItem['condition']; provenance?: RugItem['provenance']; price?: number; flaw?: Pick<RugItem, 'dye' | 'fakeAge'> }
 /** Inspect a rug you own (uid) or one you are thinking of buying (preview). */
 export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: RugPreview; onClose: () => void }) {
   const g = useGame();
   const item: RugItem | undefined = preview
-    ? { uid: 'preview', typeId: preview.typeId, condition: preview.condition, provenance: preview.provenance ?? RUGS[preview.typeId].provenance, paid: preview.price ?? 0, notes: [], restored: false, stored: false } as RugItem
+    ? { uid: 'preview', typeId: preview.typeId, condition: preview.condition, provenance: preview.provenance ?? RUGS[preview.typeId].provenance, paid: preview.price ?? 0, notes: [], restored: false, stored: false, ...preview.flaw } as RugItem
     : g.inventory.find((i) => i.uid === uid);
   const [tab, setTab] = useState<(typeof TABS)[number]>('Overview');
   const [zoom, setZoom] = useState(1);
@@ -51,6 +53,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const lo = exact ? t.valueBand[0] : snapDown(t.valueBand[0] * 0.85);
   const hi = exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
   const pv = snap(perceivedValue(t, item));
+  const flaws = flawNotes(item, eyeOf(g));
 
   return (
     <div ref={box} className="overlay" role="dialog" aria-modal="true" aria-label={`Inspecting ${t.name}`} data-testid="inspector">
@@ -60,6 +63,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           <div className="sub">
             {t.origin} · {t.material} · {t.age} · {t.size}
           </div>
+          <RugFlags item={item} moth={!preview} />
         </div>
         <button className="btn close" onClick={onClose} disabled={tut && g.tutorial.step === 'inspect2' && !used} data-testid="inspector-close">
           {tut && g.tutorial.step === 'inspect2' && !used ? 'Look closer first' : 'Done'}
@@ -135,6 +139,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
               <dt>Condition</dt><dd>{item.condition}{item.restored ? ' (restored)' : ''}</dd>
               <dt>Back</dt><dd>{t.backNote}</dd>
               {item.notes.map((n, i) => (<Fragment key={i}><dt>Note</dt><dd>{n}</dd></Fragment>))}
+              {flaws.map((f) => (<Fragment key={f.kind}><dt>{f.know === 'proven' ? 'Known' : 'Your eye'}</dt><dd data-testid={`clue-${f.kind}`}>{f.know === 'proven' ? f.text + '.' : FLAW_CLUES[f.kind]}</dd></Fragment>))}
             </dl>
           )}
           {tab === 'Weave' && (
@@ -163,6 +168,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
             <dl className="kv">
               <dt>Market value</dt><dd>{fmt(lo)}–{fmt(hi)} {exact ? '' : '(rough: a ledger book would tighten this)'}</dd>
               <dt>In this condition</dt><dd>about {fmt(pv)}</dd>
+              {flaws.some((f) => f.know === 'proven') && <><dt>Sold as what it is</dt><dd data-testid="honest-value">about {fmt(snap(pv * flaws.filter((f) => f.know === 'proven').reduce((m, f) => m * flawFactorFor(item, f.kind), 1)))}</dd></>}
               <dt>{preview ? 'Asking' : 'You paid'}</dt><dd>{fmt(item.paid)}</dd>
               <dt>Usual asking</dt><dd>{fmt(t.asking)}</dd>
             </dl>

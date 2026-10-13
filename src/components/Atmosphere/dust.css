@@ -1,0 +1,13 @@
+/* the khamsin haze over a painted scene */
+.dust-haze { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden;
+  background: linear-gradient(180deg, rgba(200, 150, 80, 0.5), rgba(182, 128, 62, 0.38) 55%, rgba(152, 104, 50, 0.46));
+  mix-blend-mode: multiply; }
+/* the drifting streaks: only a transform animates, on its own layer, with no blend mode (a blended
+   layer that moves is re-blended with the scene under it every frame); just wide enough for the drift */
+.dust-haze i { position: absolute; inset: 0 -160px 0 0; display: block;
+  background: repeating-linear-gradient(100deg, rgba(232, 196, 140, 0) 0 28px, rgba(232, 196, 140, 0.16) 28px 34px, rgba(232, 196, 140, 0) 34px 70px);
+  will-change: transform; animation: dust-drift 9s steps(60) infinite; }
+/* steps(60): the sand moves on in small jerks about 7 times a second; a smooth drift kept the page
+   drawing every frame (about 3x the idle main-thread time on a throttled phone) */
+@keyframes dust-drift { from { transform: translateX(0); } to { transform: translateX(-140px); } }
+@media (prefers-reduced-motion: reduce) { .dust-haze i { animation: none; } }

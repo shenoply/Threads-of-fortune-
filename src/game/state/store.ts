@@ -32,6 +32,8 @@ import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabi
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
 import { stepIllness, DISEASE, healthEffects, addIllness, rollInjury, type Illness } from '../systems/disease';
+import { flawFor, flawFactor, flawSalePatch, resolveReturns, type FlawSale } from '../systems/fakes';
+import { mothNight, airRugsPatch, AIR_MINUTES } from '../systems/moths';
 /** Dr Feras's fee for treating one condition, by how serious it is (piastres) */
 export const TREAT_FEE: Record<string, number> = { common: 30, uncommon: 80, rare: 200, extreme: 400 };
 import { LAB_HOURS, LAB_SERVICES, conditionAfterCut, examineBlock, hasLooseThread, resolveFinding, type LabFinding, type LabService } from '../systems/arranLab';
@@ -58,9 +60,15 @@ import { VENUES_1925, billOn, venueOpen, QAMAR_SHARE } from '../../data/entertai
 import { CELEB_INFO } from '../../data/buyers';
 import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
+import { seasonCallers, seasonAtStall, khamsinDust } from '../economy/seasons';
+import { setSeasonDay, ferryHours } from '../economy/calendar1925';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
+import { nightBefore, nightAfter, boyOnReturn } from '../systems/stallNight';
+import { boyWait, type ShopBoyState } from '../systems/shopBoy';
+import type { PostState } from '../systems/post';
+import type { LicenceState } from '../systems/inspector';
 export const SAVE_VERSION = 22;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
@@ -248,6 +256,8 @@ export interface GameState {
   journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry' };
   /** the khamsin kit protects until this day */
   khamsinUntil?: number;
+  /** seasonal events already acted on (a khamsin's sand comes once per spell) */
+  seasonsSeen?: string[];
   /** coca wine bottles bought from the chemist */
   tonics?: number;
   /** cargo you have agreed to carry (collected at its town, delivered at its destination) */
@@ -259,6 +269,12 @@ export interface GameState {
   /** resolved once and kept: Sinai crossings and patrol inspections, by trip key */
   crossings?: Record<string, { choice: PassChoice; risk: number; outcome: PassOutcome }>;
   patrols?: Record<string, PatrolOutcome>;
+  /** borders and money (systems/customs.ts): a crossing waiting at the post, the last town reached,
+   *  passport and visas from Cairo, and the money-changer paid on this visit */
+  border?: import('../systems/customs').BorderPending;
+  lastTown?: string;
+  passport?: { day: number };
+  changer?: { town: string; day: number; fee: number };
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
@@ -266,6 +282,16 @@ export interface GameState {
   missionNews?: string;
   /** rugs sold to each town's dealers today: each one lowers the next bid there (localBid) */
   dealerSold?: { day: number; by: Record<string, number> };
+  /** the boy who minds the stall while you are away (systems/shopBoy.ts) */
+  shopBoy?: ShopBoyState;
+  /** letters and telegrams (systems/post.ts) */
+  post?: PostState;
+  /** the trading licence and the market inspector's calls (systems/inspector.ts) */
+  licence?: LicenceState;
+  /** dyed or aged rugs sold without a word, whose buyers will find out (systems/fakes.ts) */
+  fakeSales?: FlawSale[];
+  /** summer moth: the day of the last warning (systems/moths.ts) */
+  moths?: { warned?: number };
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -451,6 +477,8 @@ interface Actions {
   arranReturnBook: (id: BookId) => { ok: boolean; message: string };
   arranExamine: (uid: string, service: LabService, cut?: boolean) => { ok: true; finding: LabFinding } | { ok: false; message: string; needsCut?: boolean };
   restore: (uid: string) => void;
+  /** air and beat the rugs you have with you against moth: an hour (systems/moths.ts) */
+  airRugs: () => string;
   buyUpgrade: (id: string) => void;
   setSetting: (c: Channel, on: boolean) => void;
   /** turn this browser's autosave on or off; the change itself is always written to disk,
@@ -704,7 +732,8 @@ export function localBid(sid: string, item: RugItem, day = 1): number {
   if (item.provenance === 'Documented' && (st.demand.story ?? 0) > 0) m += 0.1;
   // each rug already sold to this town's dealers today knocks a tenth off the next one
   const sold = DEALER_SAT.day === day ? DEALER_SAT.by[sid] ?? 0 : 0;
-  const bid = snap(perceivedValue(t, item) * DEALER_SHARE * m * Math.pow(DEALER_GLUT, sold));
+  // a dealer knows a dyed or aged copy when he sees one (systems/fakes.ts)
+  const bid = snap(perceivedValue(t, item) * flawFactor(item) * DEALER_SHARE * m * Math.pow(DEALER_GLUT, sold));
   const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
   return ask === undefined ? bid : Math.min(bid, snapDown(ask * DEALER_BUYBACK));
 }
@@ -877,6 +906,7 @@ export const useGame = create<GameState & Actions>()(
         cohen: s.cohen,
         findings: s.arranFindings ?? [],
         day: s.day,
+        labUnlocked: s.labUnlocked,
       });
 
       /** Skill XP and manner from an action, with level-ups queued for the player to see. */
@@ -1067,6 +1097,7 @@ export const useGame = create<GameState & Actions>()(
       /** Close one day: upkeep, restoration, Rashid's new stock, tomorrow's visitors. */
       const rollover = (s: GameState, o: { camped?: boolean } = {}): { patch: Partial<GameState>; summary: DaySummary } => {
           const notes: string[] = [];
+          const pre = nightBefore(s, { arrivalAt, patience: AWAY_PATIENCE + boyWait(s), rng }); s = pre.s; notes.push(...pre.notes);
           const ledger = [...s.ledger];
           const journal = [...s.journal];
           // Rent and household are paid monthly, on the first (see below).
@@ -1372,7 +1403,7 @@ export const useGame = create<GameState & Actions>()(
             if ((r?.bad ?? 0) >= 3) return false;
             if (r?.lastPurchaseDay === s.day) return rng() < 0.3;
             const badPenalty = Math.min(0.5, (r?.bad ?? 0) * 0.18);
-            return rng() < Math.min(0.97, 0.85 + Math.max(0, s.manner?.kindness ?? 0) / 500) - badPenalty;
+            return rng() < Math.min(0.97, 0.85 + Math.max(0, s.manner?.kindness ?? 0) / 500) * seasonCallers(day, id) - badPenalty;
           });
           if (!queue.length) queue = [BUYER_ORDER[Math.floor(rng() * BUYER_ORDER.length)]];
           if (s.missions?.rival === 'active' && queue.length > 1 && rng() < 0.35 + Math.max(0, -(s.manner?.kindness ?? 0)) / 200) {
@@ -1485,6 +1516,9 @@ export const useGame = create<GameState & Actions>()(
             errandsDone: [],
           };
           patch.errands = []; // errands are retired; the field stays for old saves
+          nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
+          // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
+          for (const step of [resolveReturns, mothNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           return { patch, summary };
         };
 
@@ -1531,11 +1565,13 @@ export const useGame = create<GameState & Actions>()(
 
       /** Back at the stall after time away: a customer waits about two hours, then goes elsewhere. */
       const gaveUp = () => {
-        const s = get();
+        let s = get();
+        const boy = s.world.at === 'giza' ? boyOnReturn(s, { arrivalAt, patience: AWAY_PATIENCE + boyWait(s), rng, busy: !!(s.held || s.encounter || s.dayOver || !s.tutorial.done || openingStep(s)) }) : null;
+        if (boy) { set(boy); s = get(); }
         if (s.world.at !== 'giza' || s.held || s.encounter || s.dayOver || !s.tutorial.done || openingStep(s)) return;
         let idx = s.visitIdx;
         const names: string[] = [];
-        while (idx < s.queue.length && s.world.hour > arrivalAt(s, idx) + AWAY_PATIENCE) { names.push(BUYERS[s.queue[idx]]?.name ?? 'A customer'); idx++; }
+        while (idx < s.queue.length && s.world.hour > arrivalAt(s, idx) + AWAY_PATIENCE + boyWait(s)) { names.push(BUYERS[s.queue[idx]]?.name ?? 'A customer'); idx++; }
         if (!names.length) return;
         const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
         const text = `${who} came to the stall while you were away, waited a couple of hours and went elsewhere.`;
@@ -1672,7 +1708,7 @@ export const useGame = create<GameState & Actions>()(
           if (s.cash < fare.total) return fare.total > FERRY_FARE ? `The ferryman wants ${fmt(fare.total)} for ${fare.label}.` : 'The ferryman wants a piastre.';
           const st = settlementById('giza');
           const wasAway = s.world.at !== 'giza';
-          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'giza' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry back to Giza.', kind: 'arrive' }], cash: s.cash - fare.total, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: fare.solo ? 'Nile ferry to Giza' : `Nile ferry to Giza (${fare.label})`, amount: -fare.total }], world: { ...s.world, at: 'giza', x: st.x, y: st.y, hour: Math.min(s.world.hour + (skipHour ? 0 : 1.5), 23.5) } });
+          set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'giza' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry back to Giza.', kind: 'arrive' }], cash: s.cash - fare.total, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: fare.solo ? 'Nile ferry to Giza' : `Nile ferry to Giza (${fare.label})`, amount: -fare.total }], world: { ...s.world, at: 'giza', x: st.x, y: st.y, hour: Math.min(s.world.hour + (skipHour ? 0 : ferryHours(s.day)), 23.5) } });
           if (wasAway) gaveUp();
           audio.sfx('arrive');
           get().checkJobs('giza');
@@ -1684,7 +1720,7 @@ export const useGame = create<GameState & Actions>()(
           const fare = ferryFare(s);
           if (s.cash < fare.total) return fare.total > FERRY_FARE ? `The ferryman wants ${fmt(fare.total)} for ${fare.label}.` : 'The ferryman wants a piastre.';
           const st = settlementById('cairo');
-          const hour = s.world.hour + (skipHour ? 0 : 1.5);
+          const hour = s.world.hour + (skipHour ? 0 : ferryHours(s.day));
           set({ whereabouts: { ...(s.whereabouts ?? {}), [s.day]: 'cairo' }, journal: [...s.journal, { day: s.day, text: 'Took the Nile ferry to Cairo.', kind: 'arrive' }], cash: s.cash - fare.total, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: fare.solo ? 'Nile ferry to Cairo' : `Nile ferry to Cairo (${fare.label})`, amount: -fare.total }], world: { ...s.world, at: 'cairo', x: st.x, y: st.y, hour: Math.min(hour, 23.5), known: s.world.known.includes('cairo') ? s.world.known : [...s.world.known, 'cairo'] } });
           audio.sfx('arrive');
           payClaims('cairo');
@@ -2103,7 +2139,7 @@ export const useGame = create<GameState & Actions>()(
           const onBack = s.inventory.filter((i) => !i.stored).length;
           if (onBack + 1 > cap) return `You cannot carry another rug: ${onBack} packed, and your caravan carries ${cap}. A donkey or a hired man carries more.`;
           const t = RUGS[o.typeId];
-          const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [`Bought in ${settlementById(sid).name}.`], stored: false };
+          const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [`Bought in ${settlementById(sid).name}.`], stored: false, ...flawFor(`${key}#${s.world.boughtLocal.filter((b) => b === key).length}`, 'dealer', o.typeId) };
           set({
             cash: s.cash - o.price,
             inventory: [...s.inventory, item],
@@ -2485,7 +2521,7 @@ export const useGame = create<GameState & Actions>()(
           }
           const total = totalAuctionCost(price, h.buyerPremiumPct);
           if (s.cash < total) return 'You cannot cover the bid. The auctioneer sells it to the next bidder.';
-          const items: RugItem[] = lot.typeIds.map((id, j) => ({ uid: newUid('r'), typeId: id, condition: lot.conditions[j], restored: false, provenance: lot.provenance[j], paid: Math.round(total / lot.typeIds.length), notes: [`Bought at the ${h.displayName}.`], stored: false }));
+          const items: RugItem[] = lot.typeIds.map((id, j) => ({ uid: newUid('r'), typeId: id, condition: lot.conditions[j], restored: false, provenance: lot.provenance[j], paid: Math.round(total / lot.typeIds.length), notes: [`Bought at the ${h.displayName}.`], stored: false, ...flawFor(`${lot.key}#${j}`, h.tier === 'grand' ? 'auction-grand' : 'auction-small', id) }));
           set({
             cash: s.cash - total,
             inventory: [...s.inventory, ...items],
@@ -2745,6 +2781,8 @@ export const useGame = create<GameState & Actions>()(
             enc.patience = Math.max(10, Math.round(enc.patience * 0.75));
             enc.log.push({ speaker: 'system', text: 'Ramadan. Your buyer has been fasting since dawn and will not haggle for long.' });
           }
+          // the season: a khamsin or a Mawlid crowd shortens tempers; a feast sets buyers looking for prayer rugs
+          if (!tutorial && s.world.at === 'giza') seasonAtStall(enc, s.day);
           const fed = wellFedNow(s.condition, s.day * 24 + s.world.hour);
           if (!tutorial && fed > 0) {
             enc.patience += fed * MORALE_PATIENCE;
@@ -2880,6 +2918,7 @@ export const useGame = create<GameState & Actions>()(
           if (enc.outcome) {
             const merged = { ...s, ...patch } as GameState;
             patch = { ...patch, ...settle(merged, enc), visitIdx: enc.venue ? s.visitIdx : s.visitIdx + 1 };
+            if (enc.outcome === 'sold') patch = { ...patch, ...flawSalePatch({ ...s, ...patch, inventory: s.inventory } as GameState, enc) };
             if (enc.outcome === 'sold') setTimeout(() => audio.sfx('sold'), 200);
           }
           set(patch);
@@ -2990,7 +3029,7 @@ export const useGame = create<GameState & Actions>()(
               return RASHID.creditRefused[0];
             }
           } else if (s.cash < o.price) return 'Not enough cash.';
-          const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [], stored: true };
+          const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [], stored: true, ...flawFor(o.uid, 'rashid', o.typeId) };
           const line = credit ? RASHID.credit[0] : pick(RASHID.bought, rng);
           set({
             ...growth(s, { appraisal: 2 }),
@@ -3548,6 +3587,14 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('brush');
         },
 
+        airRugs: () => {
+          const r = airRugsPatch(get());
+          if ('error' in r) return r.error;
+          set(r.patch);
+          get().passTime(AIR_MINUTES);
+          return r.text;
+        },
+
         buyUpgrade: (id) => {
           const s = get();
           const u = UPGRADES.find((x) => x.id === id);
@@ -3958,6 +4005,15 @@ useGame.subscribe((s) => {
     journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Entered the ${RUGS[id].name} in the Carpet Register (${RUGS[id].tier === 4 ? 'a treasure' : `tier ${RUGS[id].tier ?? 1}`}).` }))],
   });
 });
+
+// the seasons: sea routes read the day without the store, and a khamsin leaves sand in rugs left out
+const syncSeason = (s: GameState) => {
+  setSeasonDay(s.day);
+  const p = khamsinDust(s, (x, y, at) => (at ? settlementById(at)?.region === 'Egypt' : x < 360 && y > 330));
+  if (p) useGame.setState(p as Partial<GameState>);
+};
+syncSeason(useGame.getState());
+useGame.subscribe(syncSeason);
 
 export { tierOf, dateFor };
 export type { Encounter };

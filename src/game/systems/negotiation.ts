@@ -15,7 +15,9 @@ import { newUid, dateFor } from '../economy/economy';
 import { cohenChecks, dueFor, manualRub, matches, passes, ORDER_PRICE_PER, type CohenState } from './cohen';
 import type { LabFinding } from './arranLab';
 import { LIES, PRAISE } from '../../data/patter';
+import { disclosedFactor, discloseLabel, discloseLine, untold, type Eye } from './fakes';
 import { lieOptions, praiseOptions, rollLie, rollPraise, seeded, stretch, MAX_LIES, MAX_PRAISE, LIE_PAY_CAP, type LieKind, type PraiseKind } from './patter';
+import { wantMult } from '../economy/calendar1925';
 
 export type ActionId =
   | 'ask_room' | 'ask_drawn' | 'ask_budget' | 'ask_decider' | 'small_talk' | 'tea'
@@ -25,7 +27,7 @@ export type ActionId =
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
   | 'm_charm' | 'm_kind' | 'm_firm'
   | 'lie_menu' | 'praise_menu' | 'patter_back' | `lie_${LieKind}` | `praise_${PraiseKind}`
-  | 'nabil_package'
+  | 'nabil_package' | 'disclose'
   | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_more' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
 
 export interface ActionView {
@@ -37,6 +39,8 @@ export interface ActionView {
 }
 
 export interface Encounter {
+  /** a feast has buyers looking for one kind of rug (seasons.ts) */
+  want?: { typeIds?: string[]; traits?: string[]; mult: number; label: string };
   /** Malek: the price was agreed but he was not convinced, so he did not buy */
   malekUnsure?: boolean;
   /** Malek came back for this rug (uid): he has thought about it, and is easier to convince */
@@ -90,6 +94,8 @@ export interface Encounter {
   liesTold?: LieKind[];
   lieBoost?: number;
   praiseUsed?: PraiseKind[];
+  /** faults told to the buyer, `${rug uid}:${'dye' | 'age'}` (systems/fakes.ts) */
+  disclosed?: string[];
   honestCount: number;
   askPrice?: number;
   buyerOffer?: number;
@@ -157,6 +163,8 @@ export interface Ctx {
   cohen?: CohenState;
   findings?: LabFinding[];
   day?: number;
+  /** Arran's tests unlocked by his books: a trained eye for dyes and fibres */
+  labUnlocked?: string[];
 }
 
 /** Plain clothes draw a remark only when they are plain: the everyday stall clothes or the striped work
@@ -174,6 +182,7 @@ const lean = (fx: Effects, m: Partial<Manner>) => { const o = { ...(fx.manner ??
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 export const round5 = snap;
+const eyeCtx = (ctx: Ctx): Eye => ({ skills: ctx.skills, labUnlocked: ctx.labUnlocked, tools: ctx.tools, findings: ctx.findings });
 
 export function pick<T>(arr: T[], rng: () => number, avoid: string[] = []): T {
   if (!arr.length) return '' as unknown as T;
@@ -249,9 +258,12 @@ export function wtp(enc: Encounter, item: RugItem): number {
   let v = perceivedValue(t, item) * factor;
   if (enc.embellished && !enc.embellishCaught) v *= 1 + (enc.lieBoost ?? 0.12);
   if (enc.sweetened) v *= 1.08;
+  // a rug told as new work, or as aniline-dyed, is priced as what it is
+  v *= disclosedFactor(enc, item);
   // Malek on a good week will pay well over the odds; on a bad one, under them
   if (enc.malekPurse) v *= MALEK_PURSE[enc.malekPurse].value;
   v *= enc.edge?.pay ?? 1;
+  v *= wantMult(enc.want, item.typeId);
   return Math.round(Math.min(cap, v));
 }
 
@@ -583,6 +595,9 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   const told = enc.liesTold?.length ?? 0, praised = enc.praiseUsed?.length ?? 0;
   if (enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') && told < MAX_LIES && !enc.embellishCaught)
     core.push({ id: 'lie_menu', label: 'Bend the truth', sub: told ? `Riskier each time · ${told} told` : 'Make it sound better than it is', icon: 'crown' });
+  const shown = enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') ? presentedItem(enc, ctx) : undefined;
+  const faults = shown ? untold(enc, shown, eyeCtx(ctx)) : [];
+  if (faults.length) core.push({ id: 'disclose', ...discloseLabel(faults), icon: 'hand' });
   if ((enc.stage === 'qualification' || enc.stage === 'presentation' || enc.stage === 'bargaining') && praised < MAX_PRAISE)
     core.push({ id: 'praise_menu', label: 'Pay a compliment', sub: praised ? 'Careful: flattery wears thin' : 'Win them over', icon: 'chat' });
   return core;
@@ -771,6 +786,24 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
     const line = enc.prompt?.opts?.find((o) => o.kind === kind)?.line ?? LIES[kind].lines[0].replace(/\{rug\}/g, t?.name ?? 'it');
     enc.prompt = undefined;
     if (item && t) tellLie(enc, ctx, kind, line, t, fx);
+    checkWalk(enc, ctx);
+    return fx;
+  }
+  if (id === 'disclose') {
+    // honesty about a dyed or aged rug: the price drops to what it is, the buyer trusts you more,
+    // and nobody comes back for his money later
+    const faults = item ? untold(enc, item, eyeCtx(ctx)) : [];
+    if (!item || !faults.length) return fx;
+    say(enc, 'seller', discloseLine(faults));
+    enc.disclosed = [...(enc.disclosed ?? []), ...faults.map((k) => `${item.uid}:${k}`)];
+    enc.honestCount++;
+    const old = (prefsFor(enc).values.antique ?? 0) > 0 && faults.includes('age');
+    buyerSay(enc, old ? 'Then it is not what I came for. But I thank you for saying so; most would not.' : 'Thank you for saying so. Most would not. Then the price must come down.', old ? 'neutral' : 'warm');
+    adjust(enc, { trust: 12, interest: old ? -12 : -3 });
+    if (enc.askPrice) enc.askPrice = round5(enc.askPrice * disclosedFactor(enc, item));
+    if (enc.buyerOffer) enc.buyerOffer = Math.min(enc.buyerOffer, snapDown(wtp(enc, item) * 0.9));
+    lean(fx, { honesty: 4 });
+    gain(fx, 'speech', 2);
     checkWalk(enc, ctx);
     return fx;
   }

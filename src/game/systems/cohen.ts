@@ -56,7 +56,7 @@ export function cohenChecks(item: RugItem, findings: LabFinding[] | undefined, m
   const wool = /wool/i.test(t.material) && t.traits.includes('hardwearing');
   const edges = item.condition === 'Excellent' || item.condition === 'Good';
   const rub = (findings ?? []).find((f) => f.id === `${item.uid}:fastness`);
-  const truth = rubTruth(item.typeId);
+  const truth = rubTruth(item.typeId, item);
   const colour: Check = rub
     ? { id: 'colour', ok: truth !== 'transfers', text: truth === 'transfers' ? "Arran's rub test: colour came off on the cloth." : "Arran's rub test: no colour came off on the cloth." }
     : manual
@@ -73,7 +73,7 @@ export const passes = (c: Check[]) => c.length > 0 && c.every((x) => x.ok === tr
 
 /** A hand rub is less reliable than Arran's: colour that comes off is noticed about six times in ten. Fixed per rug. */
 export function manualRub(item: RugItem): 'fast' | 'runs' {
-  if (rubTruth(item.typeId) !== 'transfers') return 'fast';
+  if (rubTruth(item.typeId, item) !== 'transfers') return 'fast';
   let h = 0;
   for (const c of item.uid) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return h % 10 < 6 ? 'runs' : 'fast';

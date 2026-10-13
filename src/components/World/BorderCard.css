@@ -1,0 +1,9 @@
+/* the frontier post: above the town panel that opened on arrival */
+.pass-card.border-card { z-index: 130; }
+.border-card .pass-card__body { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+.border-card__kicker { font-family: var(--label); letter-spacing: 0.12em; font-size: 12px; color: var(--brass, #c9a25a); }
+.border-card .pass-card__body p { margin: 6px 0; line-height: 1.4; }
+.border-card .pass-choice b { font-size: 15px; }
+.trip-money { display: block; font-size: 13px; color: var(--text-dim, #c9b695); margin-top: 3px; }
+.town-money { margin: 8px 0; display: grid; gap: 4px; }
+.town-money p { margin: 0; }

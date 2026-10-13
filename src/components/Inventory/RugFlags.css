@@ -1,0 +1,11 @@
+/* small lines on a rug: dye and age faults you know of, and how it stands against moth */
+.rug-flags { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
+.rug-flag { font-family: var(--label); font-size: 12px; line-height: 1.35; padding: 1px 6px; border-radius: 2px; border: 1px solid var(--line); color: var(--parchment-2); }
+.rug-flag.proven { background: #6d2a18; border-color: #8a3a22; color: #fbe6c8; }
+.rug-flag.hint { font-style: italic; border-style: dashed; color: var(--brass-hi); }
+.rug-flag.moth-open { border-color: var(--warn); color: var(--warn); }
+.rug-flag.moth-safe { color: var(--text-dim); }
+.moth-panel { margin: 8px 0 10px; padding: 8px 10px; border: 1px solid var(--warn); border-radius: 3px; background: rgba(120, 70, 20, 0.18); }
+.moth-panel p { margin: 0 0 6px; font-size: 14px; }
+.moth-panel.calm { border-color: var(--line); background: transparent; }
+.flaw-clue { margin: 6px 0 0; font-size: 14px; font-style: italic; color: var(--brass-hi); }

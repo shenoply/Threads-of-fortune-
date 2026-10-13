@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { fmt } from '../../game/economy/money';
+import { localMoney } from '../../game/economy/currency';
 import { useGame } from '../../game/state/store';
 import { TROOPS, MARKETS, YARD_ART } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, type Breed } from '../../data/animals';
@@ -49,7 +50,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
       <div className="section-label">PROVISIONS</div>
       <div className="mkt">
         <div className="mkt-row">
-          <span><b>Bread, dates and water</b><small>{fmt(m.food)} a ration · you have {p.food}, the caravan eats {dailyFood(p)} a day</small></span>
+          <span><b>Bread, dates and water</b><small>{localMoney(m.food, sid, g.day)} a ration · you have {p.food}, the caravan eats {dailyFood(p)} a day</small></span>
           <button className="btn" onClick={() => setNote(g.buyFood(5))} disabled={g.cash < Math.ceil(5 * m.food)} data-testid="buy-food-5">+5</button>
           <button className="btn primary" onClick={() => setNote(g.buyFood(dailyFood(p) * 5))} disabled={g.cash < Math.ceil(dailyFood(p) * 5 * m.food)} data-testid="buy-food-days">5 days</button>
         </div>

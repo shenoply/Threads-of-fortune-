@@ -117,8 +117,40 @@ export const conditionAfterCut = (c: Condition) => DOWN[c];
 
 const OLD = /18th|19th|late 19th/i;
 
-/** Resolve a test on a real item from its hidden profile. Deterministic: the same rug gives the same answer. */
+/** Resolve a test on a real item from its hidden profile. Deterministic: the same rug gives the same answer.
+ *  A rug's own hidden faults (aniline dyes, a faked age: systems/fakes.ts) are laid over its type's profile. */
 export function resolveFinding(item: RugItem, service: LabService, day: number, cut = false): LabFinding {
+  return withFlaws(item, baseFinding(item, service, day, cut));
+}
+
+/** Natural, mixed or synthetic dyes for a kind of rug, or null if Arran has no card for it. */
+export const dyeKind = (typeId: string): Dyes | null => PROFILES[typeId]?.dyes ?? null;
+
+/** What the rub, the wash, the dye test and the microscope say about a dyed or aged copy. Each of them
+ *  catches one or both: the rub and the wash take colour or stain off; the dye test reads the colours;
+ *  the microscope sees wool burnt by a chemical wash. */
+function withFlaws(item: RugItem, f: LabFinding): LabFinding {
+  const t = RUGS[item.typeId];
+  if (!t || !(item.dye === 'aniline' || item.fakeAge) || f.verdict === 'inconclusive' && !PROFILES[item.typeId]) return f;
+  const ev: string[] = [];
+  let claim = f.claim;
+  if (item.dye === 'aniline') {
+    if (f.service === 'dye') { ev.push('These are aniline dyes: the red spots on the porcelain like a coal-tar colour, not madder, and the yellow is a chrome yellow. Sold as natural dyes, it is not.'); claim = `${t.age}, natural dyes`; }
+    if (f.service === 'fastness') ev.push('A loose aniline red came off on the cloth.');
+    if (f.service === 'wash') { ev.push('The water turned pink and stained the white wool: an aniline colour that runs. It will run on a wet floor too.'); claim = 'Sold as natural dyes'; }
+  }
+  if (item.fakeAge) {
+    if (f.service === 'fibre') { ev.push('The wool tips are burnt and brittle, as a chlorine or acid wash leaves them, and the roots under them are fresh. Real wear rounds a fibre; a wash burns it. This is new wool, aged by hand.'); claim = `Sold as ${t.age}`; }
+    if (f.service === 'wash') { ev.push('The water went brown like weak tea and stained the white wool buff. The age was put on with a stain.'); claim = `Sold as ${t.age}`; }
+    if (f.service === 'fastness') ev.push('A buff brown came off on the cloth, like tea. Dirt does not rub off that evenly: it was stained to look old.');
+    if (f.service === 'dye') ev.push('The colour is bright at the knot roots and dull at the tips: faded by a wash, not by years.');
+  }
+  if (!ev.length) return f;
+  const evidence = f.service === 'fastness' ? ['Colour transferred to the damp test cloth.', ...ev] : f.service === 'wash' ? ev : [...f.evidence, ...ev];
+  return { ...f, verdict: 'inconsistent', confidence: 'strong', claim, evidence };
+}
+
+function baseFinding(item: RugItem, service: LabService, day: number, cut = false): LabFinding {
   const t = RUGS[item.typeId];
   const p = PROFILES[item.typeId];
   const id = `${item.uid}:${service}`;
@@ -190,8 +222,9 @@ export function examineBlock(i: RugItem, day: number) {
 export const verdictWord: Record<LabVerdict, string> = { consistent: 'Consistent', inconsistent: 'Inconsistent', inconclusive: 'Inconclusive' };
 
 /** Whether colour transfers on a damp rub, from the rug's lab profile; null if Arran has no card for it. */
-export function rubTruth(typeId: string): 'clean' | 'transfers' | null {
+export function rubTruth(typeId: string, item?: Pick<RugItem, 'dye'>): 'clean' | 'transfers' | null {
   const p = PROFILES[typeId];
+  if (p && item?.dye === 'aniline') return 'transfers';
   return p ? rubResult(p) : null;
 }
 /** Whether a sample's colour runs in a warm wash; null if Arran has no card for it. */

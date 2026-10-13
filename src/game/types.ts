@@ -54,6 +54,16 @@ export interface RugItem {
   labReports?: string[];
   /** treated with Arran's moth preservative */
   mothproof?: boolean;
+  /** hidden (systems/fakes.ts): coloured with aniline dyes though sold as natural; the colours run and fade */
+  dye?: 'aniline';
+  /** hidden: new work aged with tea, sun, pumice or a chemical wash, and sold as old */
+  fakeAge?: boolean;
+  /** a buyer brought it back: what it really is is no secret any more */
+  flawKnown?: boolean;
+  /** aired and beaten: safe from moth until this day (systems/moths.ts) */
+  airedUntil?: number;
+  /** the month (year*12 + month) moth last took a step of condition off it */
+  mothMonth?: number;
   /** put aside for one buyer: hidden from everyone else at the stall until this day */
   reservedFor?: string;
   reservedUntil?: number;

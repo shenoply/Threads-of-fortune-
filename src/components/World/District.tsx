@@ -14,6 +14,7 @@ import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
 import { Dialogue } from './Dialogue';
+import { DustHaze } from '../Atmosphere/DustHaze';
 import { CafeRoom } from '../Cafe/CafeRoom';
 const CafeTable = lazy(() => import('../Cafe/CafeTable').then((m) => ({ default: m.CafeTable })));
 // Malek's grill loads only when you walk in
@@ -939,6 +940,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
           onWheel={(e) => zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15)}
           aria-label="Giza seen from above. Tap to walk, drag to look around."
         />
+        <DustHaze />
         <div className="district-top">
           <div className="district-title"><b>Giza</b><span>your district · tap to walk</span></div>
           <div className="map-tools district-tools">

@@ -2,6 +2,7 @@ import { CROSSINGS } from '../../data/barriers';
 import './worldmap-fixes.css';
 import { venueFor } from '../../data/venues';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
+import { BorderCard, TripMoney } from './BorderCard';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
@@ -38,7 +39,8 @@ import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
 import { cityLocked, lockedWhy, openingStep } from '../../game/opening';
 import { guideTarget } from '../../game/guide';
-import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R } from '../../game/systems/mapNews';
+import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R, KHAMSIN_PACE, floodPace, seasonPathMult } from '../../game/systems/mapNews';
+import { ferryHours, SEASON_NOW } from '../../game/economy/calendar1925';
 
 export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
 const MAJOR = ['home', 'city', 'port'];
@@ -60,7 +62,8 @@ const bandName = (p: Party, day: number) => (p.kind === 'raiders' ? threatForPar
 const billLine = (bill: FareLine[]) => bill.map((l) => `${l.n} ${l.label} × ${fmt(l.each)}`).join(' + ');
 
 /** The Nile ferry between Giza and Cairo: an hour and a half, a piastre (the fare is the store's ferry()). */
-const FERRY_DAYS = 1.5 / 24;
+// an hour and a half across, a little more against the flood (calendar1925.ts)
+const ferryDays = () => ferryHours(SEASON_NOW.day) / 24;
 
 const kindIcon: Record<string, string> = { home: 'store', city: 'star', town: 'room', village: 'room', oasis: 'sun', port: 'anchor', monastery: 'book', camp: 'camel' };
 
@@ -262,7 +265,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     return { shown: toks.slice(0, MAX), more: Math.max(0, toks.length - MAX) };
   }, [w.party.troops, w.party.animals]);
   const jobs = openJobs(g.jobsDone, g.reputation);
-  const visits = (g.visits ?? []).filter((v) => v.until >= g.day);
+  const visits = (g.visits ?? []).filter((v) => v.until >= g.day && (v.heard ?? 0) <= g.day);
   const [jobsOpen, setJobsOpen] = useState(false);
   const missionTarget = MAIN_ORDER.map((id) => (g.missions?.[id] === 'active' ? MISSIONS[id].target : undefined)).find(Boolean) ?? null;
 
@@ -395,7 +398,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       return p0;
     }
     const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
-    const days = path ? pathDays(path, sp.pxPerDay) : 0;
+    const days = path ? pathDays(path, sp.pxPerDay) * seasonPathMult(g.day, path) : 0;
     const train = here && st ? railJourney(here.id, st.id, fp) ?? undefined : undefined;
     // the same check setOff() warns about in text, done here too so the route line itself can go red
     const risky = !!path && routeDanger(path, w.parties, g.day) > strength(w.party);
@@ -441,7 +444,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const from = live ?? { x: now.x, y: now.y };
     const target = st ? { x: st.x, y: st.y } : to;
     const path = fixed || (!st && isBlockedPx(to)) ? null : findPath(from, target);
-    const days = path ? pathDays(path, sp.pxPerDay) : 0;
+    const days = path ? pathDays(path, sp.pxPerDay) * seasonPathMult(g.day, path) : 0;
     const est = path ? estimate(days, st?.id, null) : null;
     setReroute({ to, st, path, days, elapsed: est?.elapsedDays ?? 0, need: est?.rations ?? 0, fixed });
     audio.sfx('tap');
@@ -619,7 +622,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // straight across the river, bank to bank (a sea route between the two wound a long way round)
     const path = [{ x: from.x, y: from.y }, { x: dest.x, y: dest.y }];
     follow.current = true;
-    setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / FERRY_DAYS, mode: 'ferry' });
+    setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / ferryDays(), mode: 'ferry' });
     setPlan(null);
     setAlt(null);
     setReport('The ferry noses out across the brown river.');
@@ -651,12 +654,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (!moving.train && !moving.mode) speed *= terrainSpeed(livePos) || 1;
       // a khamsin blowing over the road: sand in the eyes, the camels keep their heads down
       const sand = !moving.train && inKhamsin(st0.day, livePos);
-      if (sand) speed *= 0.6;
+      if (sand) speed *= KHAMSIN_PACE;
+      // the Nile in flood: the Delta's low roads are under water
+      if (!moving.train && !moving.mode) speed *= floodPace(st0.day, livePos);
       if (sand && !inSand) setReport('A khamsin is blowing: the caravan slows.');
       inSand = sand;
       let days = dt * DAYS_PER_SECOND * scaleRef.current;
       // the ferry is an hour and a half on the clock, but you watch it cross: about six seconds
-      if (moving.mode === 'ferry') days = (dt / 6) * FERRY_DAYS;
+      if (moving.mode === 'ferry') days = (dt / 6) * ferryDays();
       done += days * speed;
       acc += days;
       const { pos, done: arrived } = along(moving.path, done);
@@ -1094,6 +1099,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             </div>
           );
         })()}
+        <BorderCard onDone={(t) => setPanel(t)} />
         {pass && <PassCard tripKey={pass.key} onCancel={() => { setPass(null); stop('You halt below the narrows. Turn back, or set off again when you are ready.'); }} onGo={() => { setPass(null); setTimeScale(lastScale.current || 1); }} />}
         {short && !moving && (
           <div className="wc-col" data-testid="food-short">
@@ -1111,7 +1117,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <div className="wc-alt" data-testid="alt-routes">
             <span>Faster:</span>
             {altFerry && alt.settlement && (
-              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(FERRY_DAYS)}</button>
+              <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(ferryDays())}</button>
             )}
             {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)} · {durationLabel(alt.train.days)}</button>}
             {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {durationLabel(r.days)}</button>)}
@@ -1126,7 +1132,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const camping = nightRule !== 'march';
             const ferry = (w.at === 'giza' && plan.settlement?.id === 'cairo') || (w.at === 'cairo' && plan.settlement?.id === 'giza');
             const ways = [
-              ...(ferry ? [{ key: 'ferry', days: FERRY_DAYS, ok: g.cash >= ferryFare(g).total }] : []),
+              ...(ferry ? [{ key: 'ferry', days: ferryDays(), ok: g.cash >= ferryFare(g).total }] : []),
               ...(plan.train ? [{ key: 'train', days: plan.train.days, ok: g.cash >= plan.train.fare }] : []),
               ...plan.ships.map((r) => ({ key: 'ship' + r.to, days: r.days, ok: g.cash >= r.fare })),
               ...plan.motor.map((r) => ({ key: 'motor' + r.to, days: r.days, ok: g.cash >= r.fare })),
@@ -1161,6 +1167,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   ].filter(Boolean);
                   return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
                 })()}
+                <TripMoney from={w.at} to={plan.settlement?.id} />
                 {bills.length > 0 && (
                   <span className="fare-bill" data-testid="fare-bill">
                     {bills.map((x) => <i key={x.k}>{x.k}: {billLine(x.bill)}</i>)}
@@ -1169,7 +1176,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </div>
               <div className="wc-btns">
                 {ferry && (
-                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(FERRY_DAYS)}{fast('ferry')}</button>
+                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(ferryDays())}{fast('ferry')}</button>
                 )}
                 {plan.train && <button className={`btn${lead === 'train' ? ' primary' : ''}`} onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}{fast('train')}</button>}
                 {plan.ships.map((r) => (

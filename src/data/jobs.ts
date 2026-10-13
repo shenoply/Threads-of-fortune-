@@ -98,6 +98,8 @@ export interface Visit {
   buyerId?: string;
   city: string;
   until: number; // last day they are there
+  /** the day their letter reaches you (src/game/systems/post.ts); not shown before it */
+  heard?: number;
   tier: number; // lowest tier they will look at
   mult: number; // what they pay against the rug's value
   rep: number;

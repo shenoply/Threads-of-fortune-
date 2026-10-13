@@ -1,5 +1,5 @@
 import { SimOptions } from './components/Title/SimOptions';
-import { BigNews } from './components/Newspaper/BigNews';
+import { BigNews, freshNews } from './components/Newspaper/BigNews';
 import { DaySummary } from './components/Ledger/DaySummary';
 import { JobOffer } from './components/World/JobOffer';
 import { afterFirstSale } from './game/preload';
@@ -9,7 +9,7 @@ import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
-import { eventsStarting, eventsOn, laneDay } from './game/economy/life';
+import { eventsStarting, laneDay } from './game/economy/life';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
@@ -525,8 +525,10 @@ export default function App() {
   }, [phase]);
 
   const date = dateFor(g.day);
+  const quietNews = (() => { try { return localStorage.getItem('tof-skip-chapters') === '1' && localStorage.getItem('tof-news') !== '1'; } catch { return false; } })();
   // big news the player has not been told yet (BigNews makes the same test), not in the middle of a sale
-  const newsUp = !g.journey && !(g.encounter && !g.encounter.outcome) && eventsOn(g.day).some((e) => e.from >= 1 && e.from <= g.day && !(g.newsSeen ?? []).includes(e.id) && !e.surprise);
+  // test runs that jump between dates (the old developer switch) leave the news card out unless they ask for it
+  const newsUp = !quietNews && !g.journey && !(g.encounter && !g.encounter.outcome) && freshNews(g.day, g.newsSeen ?? []).length > 0;
   // the night's summary card is up (the same test DaySummary makes before it shows itself)
   const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
   const [cashFlash, setCashFlash] = useState(false);
