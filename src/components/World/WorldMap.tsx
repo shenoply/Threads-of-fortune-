@@ -117,7 +117,7 @@ function blockedText(p: Pt) {
  *  coming back to the map without a new place to go finds you still in that town, not on the map. */
 const openTown = { at: null as string | null };
 
-export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goFastest, scale, setScale, frozen, startZoom, onZoomGiza, resume }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; goFastest?: boolean; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void; resume?: boolean }) {
+export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goFastest, scale, setScale, frozen, startZoom, onZoomGiza, resume }: { onStall: () => void; onDistrict?: () => void; openPanel?: string; openTab?: SetTab; planFor?: string; goFastest?: boolean | 'train'; scale?: number; setScale?: (n: number) => void; frozen?: boolean; startZoom?: number; onZoomGiza?: () => void; resume?: boolean }) {
   const g = useGame();
   const w = g.world;
   const wrap = useRef<HTMLDivElement>(null);
@@ -515,6 +515,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const p = planTo(st, st, true);
     if (!p) return;
     const cash = useGame.getState().cash;
+    // a ticket bought at the station's board: the train, nothing else
+    if (goFastest === 'train' && p.train && cash >= p.train.fare) { start(true, p); return; }
     const ways: { days: number; go: () => void }[] = [];
     if (p.path) ways.push({ days: estimate(p.days, st.id).elapsedDays, go: () => start(false, p) });
     if (p.train && cash >= p.train.fare) ways.push({ days: p.train.days, go: () => start(true, p) });

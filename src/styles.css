@@ -2906,3 +2906,15 @@ body.travelling .world-hud { display: none; }
 .beta-codes summary { cursor: pointer; color: var(--brass-hi); padding: 6px 0; }
 .beta-codes ul { margin: 4px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: var(--text-dim); }
 .beta-codes button { padding: 0; min-height: 0; font-size: 14px; }
+
+/* the station's departures board */
+.station-board { max-width: 460px; }
+.station-board .sb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.station-board .sb-head h2 { margin: 0; }
+.sb-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }
+.sb-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.sb-row:last-child { border-bottom: 0; }
+.sb-to b { display: block; font-size: 17px; }
+.sb-to small { color: var(--text-dim); font-size: 13px; }
+.sb-time { font-family: var(--label); color: var(--brass-hi); white-space: nowrap; }
+.sb-row .btn { min-width: 76px; min-height: 40px; }

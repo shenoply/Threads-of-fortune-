@@ -110,6 +110,8 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel, backL
   };
 
   const arrive = (p: VenuePoi) => {
+    // the station opens its departures board, when the town has one to show
+    if (p.kind === 'exit' && p.id === 'station' && onAction) { onAction('station'); return; }
     if (p.kind === 'exit') { onLeave(); return; }
     if (p.kind === 'goto' && p.action) { onAction?.(p.action); return; }
     if (p.kind === 'audience' && v.royal) {

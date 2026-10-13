@@ -96,7 +96,7 @@ try {
   await edit(`s.world.hour = 6.5; delete s.rescue; s.condition = { ...(s.condition ?? {}), fatigue: 0, fed: 100, water: 100 };`); await reload(); await p.waitForTimeout(800);
   if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); } // the town menu covers the nav bar
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-sinai]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }
-  await p.waitForSelector('[data-testid=town-menu]'); await p.waitForTimeout(1200); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
+  await p.waitForSelector('[data-testid=town-menu]'); await p.waitForTimeout(1200); (await p.locator('[data-testid=menu-more]').count() && await p.click('[data-testid=menu-more]')); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   console.log('3. at 06:30:', await p.locator('[data-testid=library-closed]').innerText().then((t) => t.replace(/\n+/g, ' | ')));
   await p.click('[data-testid=library-wait]'); await p.waitForTimeout(200);
   console.log('   waited: hour', (await live()).hour, '| closed card still?', await has('library-closed'));
@@ -135,7 +135,7 @@ try {
   // arriving (or reloading) in a town can open its full-screen menu, which covers the nav bar
   if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); }
   if (!(await has('town-menu'))) { await p.locator('[data-testid=place-portsaid]').dispatchEvent('click'); await p.waitForTimeout(1200); if (!(await has('town-menu')) && (await has('town-menu-open'))) await p.click('[data-testid=town-menu-open]'); }
-  await p.waitForTimeout(1200); await p.screenshot({ path: `${__SHOTS}/ps.png` }); console.log('   town menu items:', (await p.evaluate(() => [...document.querySelectorAll('[data-testid^=menu-]')].map((e) => e.dataset.testid))).join(' ')); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
+  await p.waitForTimeout(1200); await p.screenshot({ path: `${__SHOTS}/ps.png` }); console.log('   town menu items:', (await p.evaluate(() => [...document.querySelectorAll('[data-testid^=menu-]')].map((e) => e.dataset.testid))).join(' ')); (await p.locator('[data-testid=menu-more]').count() && await p.click('[data-testid=menu-more]')); await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   await p.click('[data-testid=library-search-restricted_records]'); await p.click('[data-testid=library-copy-restricted_records]'); await p.waitForTimeout(200);
   console.log('   extract bought:', (await st()).arranBooks.restricted_records.phase, '|', await p.locator('[data-testid=library-note]').textContent({ timeout: 1000 }).catch(() => ''));
   await p.click('[data-testid=library-leave]'); await p.waitForTimeout(400);

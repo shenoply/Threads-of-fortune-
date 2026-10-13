@@ -65,7 +65,7 @@ try {
   await edit(`Object.assign(s.world, { at: 'cairo', hour: 10, x: 214.3, y: 413.7 });`); await reload();
   await toTown('cairo');
   await p.screenshot({ path: `${S}/lab-${tag}-menu.png` });
-  console.log('library in menu:', await p.locator('[data-testid=menu-library]').textContent());
+  (await p.locator('[data-testid=menu-more]').count() && await p.click('[data-testid=menu-more]')); console.log('library in menu:', await p.locator('[data-testid=menu-library]').textContent());
   await p.click('[data-testid=menu-library]'); await p.waitForSelector('[data-testid=library]');
   const c0 = await st();
   await p.click('[data-testid=library-search-fibres]'); await p.waitForTimeout(300);

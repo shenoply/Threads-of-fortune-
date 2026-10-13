@@ -41,6 +41,8 @@ export async function fromTownMenu(p, tile) {
   await settleBorder(p);
   await p.waitForSelector('[data-testid=town-menu]', { timeout: 1500 }).catch(() => {}); // it slides in on arrival
   if (!(await p.locator('[data-testid=town-menu]').count())) return;
+  // the long menus keep their less used places behind "More in …"
+  if (!(await p.locator(`[data-testid=menu-${tile}]`).count()) && (await p.locator('[data-testid=menu-more]').count())) { await p.click('[data-testid=menu-more]'); await p.waitForTimeout(200); }
   const t = p.locator(`[data-testid=menu-${tile}]`);
   await p.click((await t.count()) ? `[data-testid=menu-${tile}]` : '[data-testid=menu-all]'); // no such tile: the whole town
   await p.waitForTimeout(300);

@@ -93,7 +93,7 @@ try {
   await p.click('[data-testid=arran-leave]');
   await edit(`s.world.at = 'cairo'; s.condition = { ...s.condition, fatigue: 60 };`); await reload();
   await toTown('cairo');
-  await p.click('[data-testid=menu-chemist]'); await p.waitForSelector('[data-testid=cairo-chemist]');
+  (await p.locator('[data-testid=menu-more]').count() && await p.click('[data-testid=menu-more]')); await p.click('[data-testid=menu-chemist]'); await p.waitForSelector('[data-testid=cairo-chemist]');
   await p.click('[data-testid=cairo-buy-tonic]'); await p.click('[data-testid=cairo-take-tonic]'); await p.waitForTimeout(200);
   await p.screenshot({ path: `${S}/x-${tag}-chemist.png` });
   s = await st();
@@ -105,7 +105,7 @@ try {
   // 6 (part). the permission letter: return the dye book earlier → letter
   await edit(`s.arranVisit = { visitCount: 4, permitStage: 'letter' };`); await reload();
   await toTown('cairo');
-  console.log('6. museum menu:', await p.locator('[data-testid=menu-museum]').textContent());
+  (await p.locator('[data-testid=menu-more]').count() && await p.click('[data-testid=menu-more]')); console.log('6. museum menu:', await p.locator('[data-testid=menu-museum]').textContent());
   await p.click('[data-testid=menu-museum]'); await p.click('[data-testid=cairo-deliver-letter]'); await p.waitForTimeout(200);
   s = await st();
   console.log('   permit:', s.arranVisit.permitStage, 'from day', s.arranVisit.permitDay, '(today', s.day, ')');

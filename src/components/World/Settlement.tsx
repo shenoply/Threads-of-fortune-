@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
 // the telegraph counter is opened rarely: loaded when first asked for
 const TelegraphOffice = lazy(() => import('./TelegraphOffice').then((m) => ({ default: m.TelegraphOffice })));
+import { StationBoard } from './StationBoard';
 import { TELEGRAPH_TOWNS } from '../../game/systems/post';
 import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
@@ -15,9 +16,9 @@ import { ONCE } from '../../data/tips';
 import { currencyAt } from '../../game/economy/currency';
 import { drawWorld, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
 import { localAskPrice, localBid, localOffers, useGame } from '../../game/state/store';
-import { NPCS, QUESTS } from '../../data/world';
+import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
 import { RUGS } from '../../data/rugs';
-import { settlementById, seaRoutesFrom } from '../../game/systems/world';
+import { settlementById, seaRoutesFrom, railJourney } from '../../game/systems/world';
 import { rugSrc } from '../RugViewer/rugArt';
 import { Portrait } from './Portrait';
 import { Dialogue } from './Dialogue';
@@ -174,6 +175,11 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [talkTo, setTalkTo] = useState<string | null>(null);
   const [inVenue, setInVenue] = useState(false);
   const [inCity, setInCity] = useState(false);
+  const [station, setStation] = useState(false);
+  // a long town menu shows its main places first; the rest wait behind "More in …"
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => { setMoreOpen(false); }, [id]);
+  const railTo = SETTLEMENTS.filter((x) => x.id !== id && railJourney(id, x.id)).length;
   const [inAuction, setInAuction] = useState<string | null>(null);
   const [houseWalk, setHouseWalk] = useState<string | null>(null);
   const [cabaret, setCabaret] = useState<string | null>(null);
@@ -262,6 +268,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
     ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
     ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
+    ...(railTo ? [['camel', 'The station', `Trains to ${railTo} town${railTo > 1 ? 's' : ''}: times and fares`, () => setStation(true), 'menu-station'] as [string, string, string, () => void, string]] : []),
     ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
     ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
     ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
@@ -588,6 +595,20 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 if (items.length <= 6) return <div className="tm-list">{next && tile(next)}{rest.map((it) => tile(it))}{all}{leave}</div>;
                 // a city's many (Cairo has eighteen) come in a few headed groups, the trade first, so
                 // the screen is not one wall of buttons; the objective's place, if any, leads the lot
+                // the places most visits are for come first; everything else waits behind one button
+                const MAIN = ['menu-stall', 'menu-malek', 'menu-market', 'menu-sell', 'menu-walk', 'menu-station', 'menu-people', 'menu-clinic'];
+                const main = rest.filter((it) => MAIN.includes(it[4])).sort((a, b) => MAIN.indexOf(a[4]) - MAIN.indexOf(b[4]));
+                const others = rest.filter((it) => !MAIN.includes(it[4]));
+                if (!moreOpen) return (
+                  <div className="tm-groups" data-testid="town-menu-groups">
+                    {next && <div className="tm-list tm-next">{tile(next)}</div>}
+                    <div className="tm-list">{main.map((it) => tile(it))}</div>
+                    <div className="tm-list">
+                      <button className="tm-item quiet slim" onClick={() => setMoreOpen(true)} data-testid="menu-more"><Icon name="book" /><span><b>More in {st.name}</b><small>{others.length} more: {others.slice(0, 3).map((it) => it[1].split(' · ')[0]).join(', ')}…</small></span></button>
+                      {leave}
+                    </div>
+                  </div>
+                );
                 return (
                   <div className="tm-groups" data-testid="town-menu-groups">
                     {next && <div className="tm-list tm-next">{tile(next)}</div>}
@@ -611,6 +632,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </div>
         );
       })()}
+      {station && <EscLayer onEsc={() => setStation(false)}><StationBoard from={id} name={walk?.pois.find((p) => p.id === 'station')?.name ?? `${st.name} station`} onClose={() => setStation(false)} onLeft={() => { setStation(false); setInCity(false); onClose(); }} /></EscLayer>}
       {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
       {wire && <EscLayer onEsc={() => setWire(false)}><Suspense fallback={null}><TelegraphOffice id={id} onClose={() => setWire(false)} /></Suspense></EscLayer>}
       {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}
@@ -639,6 +661,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {inCity && walk && (
         <div className="venue-overlay">
           <Venue def={walk} onLeave={() => setInCity(false)} backLabel={`Back to ${st.name}`} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
+            if (a === 'station') { setStation(true); return; }
             if (a === 'palace') { if (venue?.map) setInVenue(true); else { setInCity(false); goTo('town', 'sec-court'); } }
             else if (a.startsWith('venue:')) {
               const v = VENUES_1925[a.slice(6)];
