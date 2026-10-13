@@ -66,7 +66,9 @@ export function MenTalk({ onClose, stopped }: { onClose: () => void; stopped?: b
           <div><h2>{stopped ? 'Your men stop you' : 'Your men'}</h2><small>{men} {men === 1 ? 'man' : 'men'} · patience {moraleOf(p)}/100 · food for {foodDaysLeft(p)} {foodDaysLeft(p) === 1 ? "day" : "days"} · wages {fmt(wages(p))}/day</small></div>
         </div>
         <p className={`men-talk__line ${mood.tone}`} data-testid="men-line">{mood.line}</p>
-        {note ? <p className="men-talk__note" data-testid="men-note">{note}</p> : (
+        {note && <p className="men-talk__note" data-testid="men-note">{note}</p>}
+        {/* the choices stay open: give them rations, a bonus and an ear in one sitting */}
+        {(
           <div className="men-talk__opts">
             <button className="btn" onClick={() => act('rations')} disabled={p.food < men} data-testid="men-rations">Share out extra rations <small>−{men} food · patience +10</small></button>
             <button className="btn" onClick={() => act('bonus')} disabled={g.cash < Math.max(5, wages(p))} data-testid="men-bonus">Pay a bonus <small>−{fmt(Math.max(5, wages(p)))} · patience +14</small></button>
@@ -74,7 +76,7 @@ export function MenTalk({ onClose, stopped }: { onClose: () => void; stopped?: b
             <button className="btn" onClick={() => act('listen')} data-testid="men-listen">Sit and listen <small>patience +3</small></button>
           </div>
         )}
-        <button className="btn primary" onClick={onClose} data-testid="men-close">{note ? 'Back on the road' : stopped ? 'Carry on' : 'Close'}</button>
+        <button className="btn primary" onClick={onClose} data-testid="men-close">{stopped || note ? 'Back on the road' : 'Close'}</button>
       </div>
     </div>,
     document.body,

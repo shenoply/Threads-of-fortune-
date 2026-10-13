@@ -27,8 +27,9 @@ await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p
 await p.waitForTimeout(2000);
 const card = p.locator('[data-testid=big-news]');
 check((await card.count()) > 0, 'the news card shows that morning');
+if (await p.locator('[data-testid=big-news-more]').count()) await p.click('[data-testid=big-news-more]'); await p.waitForTimeout(300);
 const txt = (await card.innerText().catch(() => '')).replace(/\s+/g, ' ');
-check(/Parliament/.test(txt) && /For your trade/.test(txt), `it names the event and what it means: "${txt.slice(0, 120)}"`);
+check(/Parliament/.test(txt) && /Read the paper/.test(txt), `it names the event and what it means: "${txt.slice(0, 120)}"`);
 await p.screenshot({ path: `${SHOTS}/bignews.png` });
 await p.click('[data-testid=big-news-ok]'); await p.waitForTimeout(500);
 check((await card.count()) === 0, 'Noted puts it away');

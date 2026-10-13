@@ -1,4 +1,4 @@
-// A well beside the road: the caravan stops, you fill the waterskins (an hour), and the sim switches work
+// A well beside the road: the skins are filled on the move with a short notice, and the sim switches work
 import { chromium } from 'playwright';
 import { PORT as __PORT } from './_env.mjs';
 const PORT = __PORT;
@@ -17,15 +17,14 @@ await p.click('[data-testid=nav-map]'); await p.waitForTimeout(400);
 if (await has('[data-testid=district-world]')) await p.click('[data-testid=district-world]');
 await p.evaluate(() => window.dispatchEvent(new CustomEvent('tof:plan-trip', { detail: 'suez' }))); await p.waitForTimeout(500); await p.locator('[data-testid=travel]').dispatchEvent('click');
 await p.locator('[data-testid=speed-4]').dispatchEvent('click');
-let stopped = false;
-for (let i = 0; i < 400 && !stopped; i++) { if (await has('[data-testid=well-stop]')) stopped = true; else await p.waitForTimeout(250); if (await has('[data-testid=settlement]')) break; }
-check(stopped, 'the caravan stops at the well on the Suez road');
-if (stopped) {
-  const before = await S();
-  await p.click('[data-testid=well-fill]'); await p.waitForTimeout(400);
-  const after = await S();
-  check(after.condition.water === 100, `waterskins full (water ${before.condition.water} -> ${after.condition.water})`);
-  check(!(await has('[data-testid=well-stop]')), 'the card closes and the caravan goes on');
+let seen = '';
+for (let i = 0; i < 400 && !seen; i++) { const f = p.locator('[data-testid=road-flash]'); if (await f.count()) seen = (await f.textContent().catch(() => '')) || ''; else await p.waitForTimeout(150); if (await has('[data-testid=settlement]')) break; }
+check(/Waterskins filled/.test(seen), `a short notice says the skins were filled (${seen})`);
+if (seen) {
+  const w = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); return m.useGame.getState().condition.water; });
+  check(w >= 95, `waterskins full on the move (water ${w})`);
+  check(!(await has('[data-testid=well-stop]')), 'no card stops the caravan');
+  check(await has('[data-testid=stop]'), 'the caravan is still under way');
 }
 // the simulation switches
 await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const g = m.useGame.getState(); g.setSim({ illness: false, injuries: false, needs: false }); useGame_set(m); function useGame_set(m){ m.useGame.setState({ illnesses: [{ id: 'flu', since: 1, until: 9 }], condition: { fatigue: 90, fed: 5, water: 5 } }); m.useGame.getState().setSim({ illness: false, injuries: false, needs: false }); } });

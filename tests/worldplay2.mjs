@@ -26,7 +26,7 @@ async function go(id, mode='train') { // the train where there is one; walking t
     if (await has('[data-testid=road-encounter]')) { const h=await p.textContent('[data-testid=road-encounter] h2'); await shot('enc'); const opt = h.includes('Riders') ? '[data-testid=enc-talk]' : '[data-testid=road-encounter] .btn >> nth=0'; await p.click(opt); console.log('  encounter:', h, '->', await p.textContent('[data-testid=encounter-result]')); await p.click('[data-testid=encounter-continue]'); }
     await p.waitForTimeout(150);
   }
-  const st=await S(); console.log(`at ${st.world.at} day ${st.day} ${st.world.hour.toFixed(0)}h cash ${st.cash}`);
+  const st=await S(); if (!st.world.at) await shot("stuck-"+id); console.log(`at ${st.world.at} day ${st.day} ${st.world.hour.toFixed(0)}h cash ${st.cash}`);
 }
 async function talk(npc, ...labels){ if (npc === 'abuhamid') await openBilgin(p); else { await fromTownMenu(p, 'people'); await p.click(`[data-testid=npc-${npc}]`); await p.waitForSelector('[data-testid=dialogue]'); } await talkThrough(p, labels); const note=await p.locator('[data-testid=set-note]').textContent({ timeout: 1000 }).catch(()=> ''); console.log(`  talk ${npc}: ${note}`); }
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(300);

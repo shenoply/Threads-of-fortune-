@@ -8,7 +8,7 @@ import { animalPrice } from '../../game/state/store';
 import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDaysLeft, animalCount, morale as moraleOf } from '../../game/systems/caravan';
 import { AnimalPlate } from './AnimalPlate';
 import { TroopPage, MenTalk, capLine } from './Troops';
-import { troopCount, troopCap } from '../../game/systems/caravan';
+import { troopCount, troopCap, animalCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 
 /** One-line caravan status used on the map and in towns. */
@@ -197,9 +197,10 @@ function BreedMarket({ sid, onNote }: { sid: string; onNote: (s: string) => void
     <>
       <div className="section-label">ANIMAL MARKET</div>
       {!sold.length && <p className="set-demand">No animals for sale here, but a dealer will buy yours.</p>}
+      <p className="set-demand" data-testid="animal-cap">You lead {animalCount(p)} of {animalCap(p)} animals: two for each person in the caravan.</p>
       <div className="breeds">
         {[...sold, ...owned].map((id) => (
-          <BreedCard key={id} breed={BREEDS[id]} price={animalPrice(sid, id)} have={p.animals[id] ?? 0} cash={g.cash} onBuy={() => { onNote(g.trade(id, 1)); g.checkJobs(sid); }} onSell={() => onNote(g.trade(id, -1))} />
+          <BreedCard key={id} breed={BREEDS[id]} price={animalPrice(sid, id)} have={p.animals[id] ?? 0} cash={animalCount(p) >= animalCap(p) ? 0 : g.cash} onBuy={() => { onNote(g.trade(id, 1)); g.checkJobs(sid); }} onSell={() => onNote(g.trade(id, -1))} />
         ))}
       </div>
     </>

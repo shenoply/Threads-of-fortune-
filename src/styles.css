@@ -2924,3 +2924,38 @@ body.travelling .world-hud { display: none; }
 .tm-walk .tm-item { justify-content: center; text-align: center; }
 .tm-walk .tm-item span { align-items: center; }
 .tm-walk .tm-item b { font-size: 1.1em; }
+
+/* Camp lights up when the merchant needs rest */
+.bl-n.camp.need { border-color: #e7bd6e; color: #ffe2a8; box-shadow: 0 0 0 2px rgba(231,189,110,.45); animation: campNeed 1.6s ease-in-out infinite; }
+@keyframes campNeed { 50% { box-shadow: 0 0 0 4px rgba(231,189,110,.2); } }
+.bl-rest { color: #ffcf8a; font-size: 12.5px; margin-right: 4px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .bl-n.camp.need { animation: none; } }
+
+/* road notices and the news strip: say it, then get out of the way */
+.road-flash { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px); padding: 6px 8px 6px 12px; border-radius: 999px; background: rgba(26,16,9,.92); border: 1px solid #b8893a; color: var(--parchment); font-size: 14px; box-shadow: 0 4px 14px #0009; animation: flashIn .25s ease, flashOut .5s ease 2.7s forwards; pointer-events: auto; }
+.road-flash:has(button) { animation: flashIn .25s ease, flashOut .5s ease 5.5s forwards; }
+.road-flash span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.road-flash button { all: unset; cursor: pointer; padding: 3px 10px; border-radius: 999px; background: #b8893a; color: #1a1009; font-weight: 600; font-size: 13px; }
+@keyframes flashIn { from { opacity: 0; transform: translate(-50%, -8px); } }
+@keyframes flashOut { to { opacity: 0; } }
+.news-strip { position: fixed; left: 8px; right: 8px; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 60; max-width: 520px; margin: 0 auto; background: rgba(36,23,12,.96); border: 1px solid #8c6232; border-radius: 8px; box-shadow: 0 6px 18px #000a; animation: flashIn .25s ease; }
+.ns-row { display: flex; align-items: center; }
+.ns-text { all: unset; cursor: pointer; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 7px 10px; }
+.ns-text small { font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #e8b85a; }
+.ns-text b { font-weight: 500; font-size: 14px; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ns-x { all: unset; cursor: pointer; width: 36px; height: 34px; text-align: center; font-size: 20px; color: var(--text-dim); }
+.ns-more { padding: 0 12px 10px; max-height: 45vh; overflow: auto; font-size: 14px; line-height: 1.4; }
+.ns-more h3 { margin: 6px 0 2px; font-size: 15px; color: var(--parchment); }
+.ns-more p { margin: 2px 0; }
+.ns-more ul { margin: 4px 0 6px 18px; padding: 0; }
+/* the objective: one slim line, details on tap */
+.objective-bar { margin: 3px 8px 0 !important; border-radius: 5px; }
+.ob-row { padding: 1px 3px 1px 0 !important; gap: 4px !important; }
+.ob-text { padding: 2px 8px !important; gap: 6px !important; }
+.ob-text small { font-size: 10.5px !important; }
+.ob-text b, .objective-bar.opening .ob-text b { font-size: 14px !important; line-height: 1.25 !important; white-space: nowrap !important; display: block !important; -webkit-line-clamp: unset !important; }
+.objective-bar.opening .ob-text { flex-direction: row !important; align-items: center !important; }
+.objective-bar.opening .ob-text small { font-size: 10.5px !important; }
+.ob-btn { padding: 3px 10px !important; font-size: 13px !important; min-height: 30px !important; }
+.ob-skip { font-size: 12px !important; padding: 4px !important; }
+.objective-bar.opening .ob-text b { white-space: normal !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical; font-size: 13.5px !important; }

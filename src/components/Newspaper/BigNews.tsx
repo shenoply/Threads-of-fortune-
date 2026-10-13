@@ -1,6 +1,7 @@
 // Big news reaches the player even if they never open the paper: the morning an event begins (or the
 // first morning you are back from the road after it began), a short card says what happened and what
 // it means for your trade, with the paper one tap away. Each event is told once.
+import { useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { eventsOn, eventsStarting, type GameEvent } from '../../game/economy/life';
 import { settlementById } from '../../game/systems/world';
@@ -40,32 +41,38 @@ export function freshNews(day: number, seen: string[]): { e: GameEvent; eve: boo
 
 export function BigNews({ onRead }: { onRead: () => void }) {
   const g = useGame();
+  const [open, setOpen] = useState(false);
   const seen = g.newsSeen ?? [];
   // only news that began during the game (what was already under way on day one is in the first paper)
   const fresh = freshNews(g.day, seen);
+  // a strip, never a wall: it waits off the road and keeps out of the way until tapped
   if (!fresh.length || g.journey) return null;
   const shown = fresh.slice(0, 2);
-  const done = () => useGame.setState({ newsSeen: [...seen, ...fresh.map((x) => x.e.id)] });
+  const done = () => { setOpen(false); useGame.setState({ newsSeen: [...seen, ...fresh.map((x) => x.e.id)] }); };
+  const head = fresh[0];
   return (
-    <div className="overlay" onClick={done} data-testid="big-news">
-      <div className="modal-card big-news" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="News">
-        <small className="big-news__kicker">The news this morning</small>
-        {shown.map(({ e, eve }) => {
-          const means = whatItMeans(e);
-          return (
-            <div key={e.id} className="big-news__item">
-              <h2>{eve ? `Tomorrow: ${e.name}` : e.name}</h2>
-              <p>{e.text}</p>
-              {means.length > 0 && <><b>For your trade</b><ul>{means.map((m) => <li key={m}>{m}</li>)}</ul></>}
-            </div>
-          );
-        })}
-        {fresh.length > shown.length && <p className="dim">And more in the paper.</p>}
-        <div className="big-news__btns">
-          <button className="btn" onClick={() => { done(); onRead(); }} data-testid="big-news-paper">Read the paper</button>
-          <button className="btn primary" onClick={done} data-testid="big-news-ok">Noted</button>
-        </div>
+    <div className={`news-strip ${open ? 'open' : ''}`} data-testid="big-news" role="status">
+      <div className="ns-row">
+        <button className="ns-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="big-news-more">
+          <small>News</small><b>{head.eve ? `Tomorrow: ${head.e.name}` : head.e.name}{fresh.length > 1 ? ` +${fresh.length - 1}` : ''}</b>
+        </button>
+        <button className="ns-x" onClick={done} aria-label="Dismiss" data-testid="big-news-ok">×</button>
       </div>
+      {open && (
+        <div className="ns-more">
+          {shown.map(({ e, eve }) => {
+            const means = whatItMeans(e);
+            return (
+              <div key={e.id} className="big-news__item">
+                <h3>{eve ? `Tomorrow: ${e.name}` : e.name}</h3>
+                <p>{e.text}</p>
+                {means.length > 0 && <ul>{means.map((m) => <li key={m}>{m}</li>)}</ul>}
+              </div>
+            );
+          })}
+          <button className="btn" onClick={() => { done(); onRead(); }} data-testid="big-news-paper">Read the paper</button>
+        </div>
+      )}
     </div>
   );
 }

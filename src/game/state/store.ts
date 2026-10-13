@@ -54,7 +54,7 @@ import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity } from '../systems/caravan';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
+import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, billOn, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -2444,6 +2444,7 @@ export const useGame = create<GameState & Actions>()(
           if (delta > 0) {
             if (!price) return `Nobody sells the ${b.name} here.`;
             if (s.cash < price) return 'Not enough cash.';
+            if (animalCount(s.world.party) >= animalCap(s.world.party)) return `You can lead ${animalCap(s.world.party)} animals at most: two for each person in your caravan. Hire more men to lead more.`;
             animals[breed] = (animals[breed] ?? 0) + 1;
             set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, animals } }, ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${withArticle(b.name)}`, amount: -price }] });
             audio.sfx('step');

@@ -40,10 +40,14 @@ try {
   if (!started) out.push('testids: ' + (await p.evaluate(() => [...document.querySelectorAll('[data-testid]')].map((e) => e.dataset.testid).filter((t) => /plan|travel|go|walk|place-sa/.test(t)).join(','))));
   if (started) await p.click('[data-testid=travel]'); await p.waitForTimeout(300);
   if (await has('speed-3')) await p.click('[data-testid=speed-3]');
-  await p.waitForSelector('[data-testid=men-talk]', { timeout: 15000 }).catch(() => {});
+  await p.waitForSelector('[data-testid=road-flash-act]', { timeout: 15000 }).catch(() => {});
+  check(await has('stop'), 'the men speak up without halting the caravan');
+  await p.click('[data-testid=road-flash-act]').catch(() => {});
+  await p.waitForSelector('[data-testid=men-talk]', { timeout: 3000 }).catch(() => {});
   const stopped = await has('men-talk');
   out.push(`(travel started: ${started})`);
-  check(stopped > 0, 'the men stop you when food runs short');
+  check(stopped > 0, 'tapping Talk opens the talk with your men');
+  if (stopped) { await p.click('[data-testid=men-listen]').catch(() => {}); await p.waitForTimeout(200); check(await has('men-rations'), 'the choices stay open after one is picked'); }
   if (stopped) { await p.screenshot({ path: `${S}/stopped.png` }); await p.click('[data-testid=men-close]'); }
   // the full page on a kind of guard, from the caravan screen
   await p.evaluate(async () => { const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const s = useGame.getState(); useGame.setState({ world: { ...s.world, at: 'cairo' } }); });

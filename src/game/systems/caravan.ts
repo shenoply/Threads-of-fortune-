@@ -30,6 +30,8 @@ export const startingParty = (): PartyState => ({ animals: {}, food: 6, troops: 
 const herd = (p: PartyState) => Object.entries(p.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id]);
 export const animalCount = (p: PartyState, kind?: string) => herd(p).reduce((s, [id, n]) => s + (!kind || BREEDS[id].kind === kind ? n : 0), 0);
 
+/** how many beasts the party can lead: two for each person (you and every man) */
+export const animalCap = (p: PartyState) => 2 * (1 + Object.values(p.troops).reduce((s, n) => s + n, 0));
 export const troopCount = (p: PartyState) => Object.values(p.troops).reduce((s, n) => s + n, 0);
 export const partySize = (p: PartyState) => 1 + troopCount(p);
 export const strength = (p: PartyState) => 2 + (p.arms ?? 0) + Object.entries(p.troops).reduce((s, [id, n]) => s + (TROOPS[id]?.strength ?? 1) * n, 0);

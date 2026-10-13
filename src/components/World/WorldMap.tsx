@@ -182,17 +182,27 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // camping is a choice: nightfall on the road pauses the walk and asks; a camp is full screen
   const guideCity = useGame((s) => (s.started ? guideTarget(s)?.city : undefined));
   const [nightfall, setNightfall] = useState(false);
-  // a well or oasis beside the road: stop to fill the waterskins, or carry on
-  const [well, setWell] = useState<null | { id: string; name: string }>(null);
+  // a well or oasis beside the road: the waterskins are filled on the move
   const wellsSeen = useRef<Set<string>>(new Set());
-  useEffect(() => { if (!moving) { wellsSeen.current = new Set(); setWell(null); } }, [moving]);
+  // a short notice that slides in and fades by itself: the road never stops for news
+  const [flash, setFlash] = useState<null | { id: number; text: string; act?: { label: string; run: () => void } }>(null);
+  const flashT = useRef<number>(0);
+  const say = (text: string, act?: { label: string; run: () => void }) => {
+    window.clearTimeout(flashT.current);
+    setFlash({ id: Date.now(), text, act });
+    flashT.current = window.setTimeout(() => setFlash(null), act ? 6000 : 3200);
+  };
+  useEffect(() => { if (!moving) { wellsSeen.current = new Set(); } }, [moving]);
   const [camp, setCamp] = useState<{ dest?: string } | null>(null);
   const [partyOpen, setPartyOpen] = useState(false);
   const nightAsked = useRef(-1);
   // what to do when night falls on a walk: ask each time, or the player's standing order
-  const [nightRule, setNightRuleRaw] = useState<'ask' | 'camp' | 'march'>(() => { try { return (localStorage.getItem('tof-night-rule') as 'ask' | 'camp' | 'march') || 'ask'; } catch { return 'ask'; } });
+  // marching on through the night is the default (it is what most trips want); Camp lights up when the
+  // merchant needs it: worn out, ill, or with men who have had no rest
+  const [nightRule, setNightRuleRaw] = useState<'ask' | 'camp' | 'march'>(() => { try { return (localStorage.getItem('tof-night-rule') as 'ask' | 'camp' | 'march') || 'march'; } catch { return 'march'; } });
   const setNightRule = (r: 'ask' | 'camp' | 'march') => { setNightRuleRaw(r); try { localStorage.setItem('tof-night-rule', r); } catch { /* private mode */ } };
   const nightRuleRef = useRef(nightRule); nightRuleRef.current = nightRule;
+  const needRest = (g.condition?.fatigue ?? 0) >= 70 || (g.illnesses ?? []).length > 0;
   /** The walk as the map will run it: nights in camp unless you march through them, the wait for an
    *  escort at the Sinai narrows, and a day's rations for everyone at each midnight on the road. */
   const estimate = (walkDays: number, dest?: string, fromAt: string | null | undefined = useGame.getState().world.at) => {
@@ -220,9 +230,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const k = `${g.day}:${why}`;
     if (stopSeen.current === k) return;
     stopSeen.current = k;
-    // a halt, not the end of the journey: the clock stops while you talk, and "Carry on" walks on
-    setTimeScale(0);
-    setMenStop(true);
+    // a word from the men, not a halt: tap to talk, or keep walking
+    say(why === 'food' ? 'The men say the bread is nearly gone' : 'The men are growing restless', { label: 'Talk', run: () => { lastScale.current = scaleRef.current || lastScale.current; setTimeScale(0); setMenStop(true); } });
   }, [pfood, pmor, pmen, moving, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   // a town's own screen opens only where you actually are; a shortcut to anywhere else plans the route instead
   // (an old request seen again on a return to the map does not count: the town you were last in does)
@@ -438,8 +447,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (!moving) return;
     if (st && st.id === moving.dest) { setReport(`You are already on your way to ${st.name}.`); audio.sfx('tap'); return; }
     const fixed = !!(moving.train || moving.mode);
-    // a stray tap on open ground from a train or boat is not worth a question
-    if (fixed && !st) return;
+    // a stray tap on open ground is not worth a question; only a town can turn the caravan
+    if (!st) return;
+    if (fixed) { say(`You cannot change course on ${moving.mode === 'ferry' ? 'the ferry' : moving.mode === 'ship' ? 'a ship' : moving.mode === 'motor' ? 'the motor car' : 'the train'}. Plan ${st.name} once you arrive.`); return; }
     const now = useGame.getState().world;
     const from = live ?? { x: now.x, y: now.y };
     const target = st ? { x: st.x, y: st.y } : to;
@@ -739,15 +749,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           const needsOn = !st.sim || st.sim.needs || !!st.ironman;
           const wl = needsOn && waterOf(st.condition) < 85 ? [...ROAD_WELLS, ...SETTLEMENTS.filter((x) => ['oasis', 'camp'].includes(x.kind))].find((x) => x.id !== moving.dest && !wellsSeen.current.has(x.id) && dist(x, pos) < 22) : undefined;
           if (wl) {
+            // the men fill the skins as they pass: no halt, just a word
             wellsSeen.current.add(wl.id);
-            lastScale.current = scaleRef.current || lastScale.current;
-            setTimeScale(0);
-            setMoving({ ...moving, done });
-            setWell({ id: wl.id, name: wl.name });
-            setReport(`${wl.name}: there is a well beside the road.`);
+            if (st.condition) useGame.setState({ condition: { ...st.condition, water: 100 } });
+            say(`Waterskins filled at ${wl.name}`);
             audio.sfx('water');
-            raf = requestAnimationFrame(loop);
-            return;
           }
         }
         if (!moving.train) {
@@ -988,17 +994,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => {
                     // a question on the card (nightfall, a well, the narrows) is answered there, not by the clock
                     if (k > 0 && (nightfall || pass)) { setReport(nightfall ? 'Night has fallen: make camp or march on first.' : 'Choose how to cross the narrows first.'); audio.sfx('tap'); return; }
-                    // at a well, going on is the same as "Carry on"
-                    if (k > 0 && well) setWell(null);
                     setTimeScale(k); audio.sfx('tap');
                   }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
+            {needRest && nightRule !== 'camp' && <small className="bl-rest" data-testid="need-rest">{(g.illnesses ?? []).length ? 'You are ill: camp at night.' : 'Worn out: camp tonight.'}</small>}
             <span className="bl-nights" role="group" aria-label="What to do when night falls on the road" data-testid="night-rule">
               <small>Nights</small>
               {(['ask', 'camp', 'march'] as const).map((r) => (
-                <button key={r} className={`bl-n ${r} ${nightRule === r ? 'on' : ''}`} aria-pressed={nightRule === r} onClick={() => { setNightRule(r); audio.sfx('tap'); }} data-testid={`night-${r}`}>{r === 'ask' ? 'Ask' : r === 'camp' ? 'Camp' : 'March'}</button>
+                <button key={r} className={`bl-n ${r} ${nightRule === r ? 'on' : ''}${r === 'camp' && needRest && nightRule !== 'camp' ? ' need' : ''}`} title={r === 'camp' && needRest ? 'You need rest: camp tonight' : undefined} aria-pressed={nightRule === r} onClick={() => { setNightRule(r); audio.sfx('tap'); }} data-testid={`night-${r}`}>{r === 'ask' ? 'Ask' : r === 'camp' ? 'Camp' : 'March'}</button>
               ))}
             </span>
             {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.mode === 'ferry' ? 'By ferry' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
@@ -1028,20 +1033,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         </div>
       </div>
 
+      {flash && (
+        <div key={flash.id} className="road-flash" data-testid="road-flash" role="status">
+          <span>{flash.text}</span>
+          {flash.act && <button onClick={() => { const r = flash.act!.run; setFlash(null); r(); }} data-testid="road-flash-act">{flash.act.label}</button>}
+        </div>
+      )}
       <div className="world-card" data-testid="world-card">
         {report && <p className="world-report" data-testid="world-report">{report}</p>}
-        {moving && well && !nightfall && (
-          <div className="wc-col nightfall" data-testid="well-stop">
-            <div className="wc-main">
-              <b>{well.name}: a well</b>
-              <span>Stop for an hour and fill every waterskin, or keep going. Water now: {Math.round(waterOf(useGame.getState().condition))} of 100.</span>
-            </div>
-            <div className="wc-btns">
-              <button className="btn primary" onClick={() => { useGame.getState().fillWater(); setWell(null); setTimeScale(lastScale.current || 1); audio.sfx('water'); }} data-testid="well-fill">Fill the waterskins · 1 hour</button>
-              <button className="btn" onClick={() => { setWell(null); setTimeScale(lastScale.current || 1); }} data-testid="well-skip">Carry on</button>
-            </div>
-          </div>
-        )}
         {moving && nightfall && (
           <div className="wc-col nightfall" data-testid="nightfall">
             <div className="wc-main">
