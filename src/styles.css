@@ -2918,3 +2918,9 @@ body.travelling .world-hud { display: none; }
 .sb-to small { color: var(--text-dim); font-size: 13px; }
 .sb-time { font-family: var(--label); color: var(--brass-hi); white-space: nowrap; }
 .sb-row .btn { min-width: 76px; min-height: 40px; }
+
+/* "Walk the streets" leads the town menu on a line of its own, centred */
+.tm-list.tm-walk { grid-template-columns: 1fr; margin-bottom: 8px; }
+.tm-walk .tm-item { justify-content: center; text-align: center; }
+.tm-walk .tm-item span { align-items: center; }
+.tm-walk .tm-item b { font-size: 1.1em; }

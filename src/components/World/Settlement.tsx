@@ -589,10 +589,13 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 );
                 const all = <button key="menu-all" className="tm-item quiet slim" onClick={() => setMenu(false)} data-testid="menu-all"><Icon name="book" /><span><b>Everything in {st.name}</b><small>Baths, tailors, books, tasks and the rest</small></span></button>;
                 const leave = <button key="menu-leave" className="tm-item leave" onClick={onClose} data-testid="menu-leave"><Icon name="map" /><span><b>Leave {st.name}</b><small>Back to the map</small></span></button>;
-                const next = items.find((it) => it[4] === guide?.tile);
-                const rest = items.filter((it) => it !== next);
+                // walking the streets comes first, on a line of its own; then the objective's place
+                const walkIt = items.find((it) => it[4] === 'menu-walk');
+                const walkRow = walkIt && <div className="tm-list tm-walk">{tile(walkIt)}</div>;
+                const next = items.find((it) => it[4] === guide?.tile && it !== walkIt);
+                const rest = items.filter((it) => it !== next && it !== walkIt);
                 // a small town's few places fit as they are
-                if (items.length <= 6) return <div className="tm-list">{next && tile(next)}{rest.map((it) => tile(it))}{all}{leave}</div>;
+                if (items.length <= 6) return <>{walkRow}<div className="tm-list">{next && tile(next)}{rest.map((it) => tile(it))}{all}{leave}</div></>;
                 // a city's many (Cairo has eighteen) come in a few headed groups, the trade first, so
                 // the screen is not one wall of buttons; the objective's place, if any, leads the lot
                 // the places most visits are for come first; everything else waits behind one button
@@ -601,6 +604,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 const others = rest.filter((it) => !MAIN.includes(it[4]));
                 if (!moreOpen) return (
                   <div className="tm-groups" data-testid="town-menu-groups">
+                    {walkRow}
                     {next && <div className="tm-list tm-next">{tile(next)}</div>}
                     <div className="tm-list">{main.map((it) => tile(it))}</div>
                     <div className="tm-list">
@@ -611,6 +615,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                 );
                 return (
                   <div className="tm-groups" data-testid="town-menu-groups">
+                    {walkRow}
                     {next && <div className="tm-list tm-next">{tile(next)}</div>}
                     {MENU_GROUPS.map(([gid, head]) => {
                       const mine = rest.filter((it) => menuGroup(it[4]) === gid);
