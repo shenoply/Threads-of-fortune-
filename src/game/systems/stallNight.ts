@@ -5,6 +5,11 @@ import type { GameState } from '../state/store';
 import { boyMinds, boyNight, BOY } from './shopBoy';
 import { postNight } from './post';
 import { licenceNight } from './inspector';
+import { BOY_OFFER } from '../../data/tips';
+
+/** tipsSeen marks: a buyer gave up waiting at the empty stall; Haj Mahmoud has offered Sami */
+export const AWAY_MISSED = 'away-missed';
+export const BOY_OFFERED = 'boy-offer';
 
 interface Ctx { arrivalAt: (s: GameState, i: number) => number; patience: number; rng: () => number }
 
@@ -35,6 +40,13 @@ export function nightAfter(s: GameState, patch: Partial<GameState>, notes: strin
   const day = patch.day ?? s.day + 1;
   Object.assign(patch, postNight(s, patch, notes, day, rng));
   Object.assign(patch, licenceNight({ ...s, shopBoy: patch.shopBoy ?? s.shopBoy }, patch, notes, day, (patch.world ?? s.world).at, rng, quiet));
+  // once: the morning after a buyer first gave up at your empty stall, a neighbour offers a boy to mind it
+  const seen = patch.tipsSeen ?? s.tipsSeen ?? [];
+  // (only on a night at Giza: the nights on the road and in other towns have no morning card)
+  if (!s.shopBoy && !patch.shopBoy && (patch.world ?? s.world).at === 'giza' && seen.includes(AWAY_MISSED) && !seen.includes(BOY_OFFERED)) {
+    notes.push(BOY_OFFER);
+    patch.tipsSeen = [...seen, BOY_OFFERED];
+  }
 }
 
 /** Back at the stall after time away: the boy deals with whoever came while you were gone, and what he

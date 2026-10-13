@@ -5,5 +5,7 @@
 .border-card .pass-card__body p { margin: 6px 0; line-height: 1.4; }
 .border-card .pass-choice b { font-size: 15px; }
 .trip-money { display: block; font-size: 13px; color: var(--text-dim, #c9b695); margin-top: 3px; }
+.trip-papers { display: block; margin-top: 3px; }
+.trip-papers .btn { margin: 4px 0 0 0; display: block; }
 .town-money { margin: 8px 0; display: grid; gap: 4px; }
 .town-money p { margin: 0; }

@@ -8,6 +8,8 @@ export interface MissionState {
   court: { warrants: string[] };
   upgrades: string[];
   missionStart?: Record<string, number>;
+  /** passport and visas from the Passport Office in Cairo (systems/customs.ts) */
+  passport?: { day: number };
 }
 
 export interface Mission {
@@ -33,6 +35,7 @@ import { strength as partyStrength, type PartyState } from '../game/systems/cara
 import { heroCharisma, START_WARDROBE, type WardrobeState } from './wardrobe';
 import { housesIn, nextSale, saleOn } from '../game/auction/sessions';
 import { RUGS } from './rugs';
+import { countryOf } from '../game/economy/currency';
 type Party = { world: { party?: PartyState } };
 /** the caravan's fighting strength, counted the same way the road counts it */
 export const strengthOf = (s: MissionState) => { const p = (s as unknown as Party).world.party; return p ? partyStrength(p) : 2; };
@@ -94,13 +97,15 @@ export const MISSIONS: Record<string, Mission> = {
   farid: {
     id: 'farid', title: 'Your father\'s rug', giver: 'Uncle Rashid',
     brief: 'Rashid lets something slip: your father paid far too much for that old Fayoum rug, the last thing he bought before his back gave out, and he still will not say why. "Farid al-Khatib in Damascus knows every loom from Aleppo to Kayseri. Take it to him. And do not let him see you are nervous." The rug goes with you: Rashid has rolled it in a sack himself.',
-    steps: ['Your father\'s rug travels with you. Nothing to pack, and it is not for sale until Farid has seen it', 'Go to Damascus: about a day and a half by train from Giza, by Port Said and Jaffa', 'In Damascus, talk to Farid al-Khatib (People, in the town menu) and show him the rug. His opinion costs nothing', 'Guards are wise on the roads through Palestine and Syria, but not required'],
+    steps: ['Your father\'s rug travels with you. Nothing to pack, and it is not for sale until Farid has seen it', 'Go to Damascus: about a day and a half by train from Giza, by Port Said and Jaffa', 'In Damascus, talk to Farid al-Khatib (People, in the town menu) and show him the rug. His opinion costs nothing', 'Papers: every frontier post asks for a passport now. Get one with visas at the Passport Office in Cairo (£E1) before you go, or pay a fine at each crossing', 'Guards are wise on the roads through Palestine and Syria, but not required'],
     target: 'damascus',
     locks: 'Your rank cannot rise past Khan dealer until you know what your father bought.',
     reward: { cash: 0, rep: 4, trust: 5, text: 'Whatever Farid said, the story travels back to Giza before you do. For the first time, merchants in the Khan say your father\'s name with respect, and yours with curiosity.' },
     hint: (s) => {
       if (!hasHearth(s)) return s.world.at === 'damascus' ? 'Tell Farid what became of the rug.' : 'Rug lost: go and tell Farid in Damascus.';
-      return s.world.at === 'damascus' ? 'Show Farid al-Khatib the rug (People).' : 'Show Farid the rug: Damascus, 1½ days.';
+      if (s.world.at === 'damascus') return 'Show Farid al-Khatib the rug (People).';
+      // Rashid's reminder: the frontier wants papers, and the office is in Cairo
+      return s.passport || countryOf(s.world.at) !== 'egypt' ? 'Show Farid the rug: Damascus, 1½ days.' : 'Papers first: the Passport Office in Cairo, £E1. Then Damascus, 1½ days.';
     },
     // lost for good (Rashid already bought it back once): telling Farid in Damascus is the end of it
     check: (s) => s.world.appraised.length > 0 || (s.world.at === 'damascus' && !hasHearth(s) && !!(s as unknown as { faridRecovered?: boolean }).faridRecovered),

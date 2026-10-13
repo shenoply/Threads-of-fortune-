@@ -734,7 +734,9 @@ export default function App() {
       {g.started && phase === 'game' && !tutorialActive && tab !== 'hero' && !(tab === 'stall' && g.encounter) && <HealthStrip />}
 
       {phase === 'game' && <GuideFlash />}
-      {phase === 'game' && !(tab === 'stall' && g.encounter) && (() => {
+      {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
+          Progress, Stock and Caravan they only took room from the page */}
+      {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
         const fh = firstHourStep(g);
         return (
           <ObjectiveBar onMenu={() => { forceSave(); audio.stopAll(); setPhase('title'); }}

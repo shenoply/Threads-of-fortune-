@@ -2,7 +2,7 @@ import { CROSSINGS } from '../../data/barriers';
 import './worldmap-fixes.css';
 import { venueFor } from '../../data/venues';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
-import { BorderCard, TripMoney } from './BorderCard';
+import { BorderCard, TripMoney, TripPapers } from './BorderCard';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
@@ -1168,6 +1168,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
                 })()}
                 <TripMoney from={w.at} to={plan.settlement?.id} />
+                <TripPapers from={w.at} to={plan.settlement?.id} onOffice={() => { if (w.at === 'cairo') { setPlan(null); setPanel('cairo'); } else { const c = settlementById('cairo'); planTo({ x: c.x, y: c.y }, c); } }} />
                 {bills.length > 0 && (
                   <span className="fare-bill" data-testid="fare-bill">
                     {bills.map((x) => <i key={x.k}>{x.k}: {billLine(x.bill)}</i>)}

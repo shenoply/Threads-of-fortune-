@@ -2897,3 +2897,12 @@ body.travelling .world-hud { display: none; }
 .big-news__item ul { margin: 4px 0 12px; padding-left: 18px; line-height: 1.4; }
 .big-news__item + .big-news__item { border-top: 1px solid var(--line); padding-top: 10px; }
 .big-news__btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* the Progress sub-tabs stay pinned with nothing showing through above them */
+.merchant-tabs { box-shadow: 0 -24px 0 var(--night); }
+
+/* beta codes under "Have a code?" */
+.beta-codes { flex-basis: 100%; margin-top: 6px; font-size: 14px; }
+.beta-codes summary { cursor: pointer; color: var(--brass-hi); padding: 6px 0; }
+.beta-codes ul { margin: 4px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: var(--text-dim); }
+.beta-codes button { padding: 0; min-height: 0; font-size: 14px; }

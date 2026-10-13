@@ -5,6 +5,11 @@ import { fmt } from '../../game/economy/money';
 import { RUGS } from '../../data/rugs';
 import { BOY, BOY_PCTS, boyPrice, plainRugs, takeChance, trustWord } from '../../game/systems/shopBoy';
 import { fireBoy, hireBoy, setBoy } from '../../game/systems/stallHelpActions';
+import { BOY_OFFERED } from '../../game/systems/stallNight';
+import '../Tips/once.css';
+
+/** tipsSeen mark: the boy's card has been used once since Haj Mahmoud's offer */
+const BOY_CARD_USED = 'boy-card-used';
 
 /** The boy who minds the stall while you are away: hire him, tell him what to do, let him go. */
 export function ShopBoyCard() {
@@ -13,8 +18,11 @@ export function ShopBoyCard() {
   const [open, setOpen] = useState(false);
   if (!g.tutorial.done) return null;
   if (!b?.hired) {
+    // Haj Mahmoud has offered his nephew on a morning card: the card stands out until it is first used
+    const seen = g.tipsSeen ?? [];
+    const fresh = !b && seen.includes(BOY_OFFERED) && !seen.includes(BOY_CARD_USED);
     return (
-      <div className="boy-card" data-testid="boy-card">
+      <div className={`boy-card${fresh ? ' once-mark' : ''}`} data-testid="boy-card" data-fresh={fresh ? '1' : undefined} onClickCapture={fresh ? () => g.seeTip(BOY_CARD_USED) : undefined}>
         <div className="boy-head">
           <i className="boy-face" aria-hidden="true">S</i>
           <span><b>A boy to mind the stall</b><small>{b ? `${BOY.name} is back at his uncle's shop. He would come back.` : `${BOY.who}, will sit at your stall when you are away.`} {BOY.wage} piastres a day.</small></span>

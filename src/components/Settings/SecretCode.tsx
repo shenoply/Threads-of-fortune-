@@ -15,11 +15,39 @@ async function sha256(s: string) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Beta codes for testers: typed into "Have a code?" in Settings. Plain words, any case. Each one is
+ *  written in the journal as a beta code, so a tester's save shows what was used. Not in Ironman. */
+type S = ReturnType<typeof useGame.getState>;
+const CHEATS: Record<string, { what: string; run: (s: S) => Partial<S> }> = {
+  purse: { what: '£100 in your purse', run: (s) => ({ cash: s.cash + 10000 }) },
+  fortune: { what: '£1,000 in your purse', run: (s) => ({ cash: s.cash + 100000 }) },
+  goodname: { what: 'reputation +10', run: (s) => ({ reputation: s.reputation + 10 }) },
+  famous: { what: 'reputation +50', run: (s) => ({ reputation: s.reputation + 50 }) },
+  opendoors: { what: 'skip the opening and the first-sale lesson: every city open', run: (s) => ({ tipsSeen: [...new Set([...(s.tipsSeen ?? []), 'first-hour'])], tutorial: { done: true, step: 'done', inspected: true } }) },
+  papers: { what: 'travel papers', run: (s) => ({ passport: { day: s.day } }) },
+  rested: { what: 'rested, fed, watered and well', run: (s) => ({ condition: { ...(s.condition ?? { fatigue: 0, dependence: 0 }), fatigue: 0, fed: 100, water: 100 }, illnesses: [] }) },
+  guards: { what: 'four Giza watchmen join you', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, troops: { ...s.world.party.troops, watchman: (s.world.party.troops?.watchman ?? 0) + 4 } } } }) },
+  camels: { what: 'two camels', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, animals: { ...s.world.party.animals, falahi: (s.world.party.animals?.falahi ?? 0) + 2 } } } }) },
+  rations: { what: 'ten days of food', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, food: (s.world.party.food ?? 0) + 10 } } }) },
+  nodebt: { what: 'every debt paid off', run: (s) => ({ supplier: { ...s.supplier, debt: 0 }, loans: [], family: s.family ? { ...s.family, left: 0, due: 0 } : s.family, bills: s.bills ? { ...s.bills, due: 0 } : s.bills }) },
+};
+export const BETA_CODES = Object.entries(CHEATS).map(([code, c]) => ({ code, what: c.what }));
+
 export function SecretCode() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
   const go = async () => {
+    const word = code.trim().toLowerCase();
+    const cheat = CHEATS[word];
+    if (cheat) {
+      const s = useGame.getState();
+      if (s.ironman) { setMsg('Not in an Ironman game.'); return; }
+      useGame.setState({ ...cheat.run(s), journal: [...s.journal, { day: s.day, text: `Beta code "${word}": ${cheat.what}.`, kind: 'quiet' }] } as Partial<S>);
+      audio.sfx('coins');
+      setMsg(`Done: ${cheat.what}.`); setCode('');
+      return;
+    }
     const amount = CODES[await sha256(code)];
     if (!amount) { setMsg('Nothing happens.'); return; }
     const s = useGame.getState();
@@ -33,6 +61,10 @@ export function SecretCode() {
       <input value={code} onChange={(e) => { setCode(e.target.value); setMsg(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void go(); }} placeholder="Code" autoCapitalize="off" autoCorrect="off" spellCheck={false} data-testid="code-input" />
       <button className="btn small" onClick={() => void go()} data-testid="code-go">Use</button>
       {msg && <span className="dim" data-testid="code-msg">{msg}</span>}
+      <details className="beta-codes" data-testid="beta-codes">
+        <summary>Beta codes</summary>
+        <ul>{BETA_CODES.map((c) => <li key={c.code}><button type="button" className="linkish" onClick={() => { setCode(c.code); setMsg(''); }}><b>{c.code}</b></button> {c.what}</li>)}</ul>
+      </details>
     </div>
   );
 }

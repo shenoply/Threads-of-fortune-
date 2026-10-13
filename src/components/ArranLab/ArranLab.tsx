@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { OnceLine } from '../Tips/OnceLine';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
@@ -211,6 +212,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
               : first
                 ? 'A young Englishman opens the door, a loupe still in one hand. "Arran Embleton. Textile chemist, late of the Yorkshire mills, now in Giza for the dyes. Bring me a rug and I will tell you what I can prove about it, and nothing I cannot."'
                 : '"Back again? Come in. I will put my coat on."'}</p>
+            <OnceLine id="arran-fakes" when={open} as="div" />
             <div className="arran-btns">
               {open && <button type="button" className="btn primary" onClick={enter} data-testid="arran-enter">Step inside</button>}
               <button type="button" className={`btn ${open ? '' : 'primary'}`} onClick={onLeave} data-testid="arran-door-leave">{open ? 'Not now' : 'Come back later'}</button>

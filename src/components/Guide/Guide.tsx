@@ -59,7 +59,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
   {
     id: 'arran', img: 'art/arran/13-lab-room.webp', pos: '50% 50%',
     title: "Arran's laboratory",
-    lines: ['Arran, in the Giza lanes, tests a rug for a fee: what it is made of, whether the dye runs, whether it washes. A signed report travels with the rug and buyers believe it.', 'Some tests need a book he lacks: find it (his notebook says where) and bring it to him. His cabinet sells tonics and kit for the road.'],
+    lines: ['Arran, in the Giza lanes, tests a rug for a fee: what it is made of, whether the dye runs, whether it washes. A signed report travels with the rug and buyers believe it. The wash and the dye test also catch an aniline red sold as natural, or new wool stained with tea and sold as old.', 'Some tests need a book he lacks: find it (his notebook says where) and bring it to him. His cabinet sells tonics and kit for the road.'],
   },
   {
     id: 'cohen', img: 'art/portraits/cohen.jpg', pos: '50% 30%',
@@ -70,6 +70,46 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     id: 'malek', img: 'art/malek/scene-serving.webp', pos: '40% 40%',
     title: "Malek's grill",
     lines: ['Malek feeds you round the corner from the stall: eat well and buyers find you more patient for a few hours. Road parcels keep for days on a journey.', 'Sit at one of his tables and his story goes on, one part each visit. He comes to your stall too, unpredictable with money; sell him a rug and his next plates are on his tab.'],
+  },
+  {
+    id: 'seasons', img: 'art/arran/cat/cab-khamsin.webp', pos: '50% 50%',
+    title: 'The seasons of 1925',
+    lines: ['The year has its own trade. Winter brings the tourist steamers and foreign buyers; autumn brings cotton money from the Delta, and a cotton slump takes it away. The feasts send buyers looking for prayer rugs, a khamsin blows sand into rugs left out, the Nile flood slows the ferry and the Delta roads, and a quarantine holds ships in port. Each one is told in a morning card the day it begins, with what it means for your trade.'],
+  },
+  {
+    id: 'papers', img: 'art/arran/cat/book-customs-ledger.webp', pos: '50% 50%',
+    title: 'Frontiers and papers',
+    lines: ['Palestine, Transjordan, Syria, Turkey and Iraq each have a frontier post. Get a passport with visas at the Passport Office in Cairo (\u00a3E1) before you go: without one you are fined at every crossing, and Turkey turns you back. At the post you declare the rugs you carry and pay duty on what you paid for them, or try a present for the clerk, or declare half and hope they do not search. The trip card warns you before you set off.'],
+  },
+  {
+    id: 'money', img: 'art/world/city-damascus.jpg', pos: '50% 50%',
+    title: 'Money abroad',
+    lines: ['Prices abroad are in the money of the place: Syrian pounds, Turkish lira, Indian rupees in Iraq; Palestine and Transjordan still use Egyptian money. Your purse stays in Egyptian pounds, and a money-changer keeps a small share of your first deal each time you come to a town, so make that first deal a large one. The franc keeps falling, so a Syrian pound buys less as the months go by.'],
+  },
+  {
+    id: 'fakes', img: 'art/arran/cat/dye-test.webp', pos: '50% 50%',
+    title: 'Fakes and aniline dyes',
+    lines: ['Some rugs are not what the dealer says. A cheap aniline red runs in the wash and fades in a year; a new rug washed in tea or acid is sold as old. City dealers cheat most, small auction rooms sometimes, the grand sales and Rashid hardly ever. A trained eye sees a hint; Arran\'s tests prove it. Sell one as sound and the buyer may find out and come back for his money.'],
+  },
+  {
+    id: 'moths', img: 'art/arran/cat/cab-moth.webp', pos: '50% 50%',
+    title: 'Moth in summer',
+    lines: ['From June to September moth lays its eggs in wool kept dark and still. Stock gives a warning first: air and beat your rugs (two piastres and an hour, good for two weeks), or buy the camphor-wood chest for the stall. Silk and cotton-backed rugs are attacked less.'],
+  },
+  {
+    id: 'boy', img: 'art/stall-empty.webp', pos: '50% 50%',
+    title: 'Sami minds the stall',
+    lines: ['A buyer who finds your stall empty waits a couple of hours and goes elsewhere. Hire Sami, Haj Mahmoud\'s nephew, from the stall for two piastres a day: he keeps buyers waiting longer, or sells your plain rugs at the price you set. He is a boy, so now and then a buyer talks him down or a coin goes missing; he gets better the longer he works for you. Pay him, or he goes home.'],
+  },
+  {
+    id: 'post', img: 'art/newspaper-stall.webp', pos: '50% 50%',
+    title: 'Letters and telegrams',
+    lines: ['News of trade comes by post: a buyer staying in a town, a new job, Cohen saying when he will call. Letters take a day or more, longer from the Levant, and wait in your post list. Towns with a telegraph office (Cairo, Alexandria, Port Said, Jerusalem, Damascus, Beirut, Baghdad, Constantinople) let you wire Rashid for stock or ask a dealer\'s prices for a few piastres.'],
+  },
+  {
+    id: 'licence', img: 'art/counter-stall.webp', pos: '50% 50%',
+    title: 'Your licence and the inspector',
+    lines: ['A stall needs a trading licence, renewed each year by 30 April at the markets office; the Ledger shows when it runs out. The market inspector calls now and then with his brass metre, more often once a licence has lapsed. Trade without one, or with a short measuring rod, and he fines you; a good name gets a warning the first time.'],
   },
 ];
 

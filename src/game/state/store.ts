@@ -65,7 +65,7 @@ import { setSeasonDay, ferryHours } from '../economy/calendar1925';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
-import { nightBefore, nightAfter, boyOnReturn } from '../systems/stallNight';
+import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
 import type { PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
@@ -1575,7 +1575,10 @@ export const useGame = create<GameState & Actions>()(
         if (!names.length) return;
         const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
         const text = `${who} came to the stall while you were away, waited a couple of hours and went elsewhere.`;
-        set({ visitIdx: idx, journal: [...s.journal, { day: s.day, text }], jobNote: s.jobNote ?? text });
+        // the first buyer lost this way: Haj Mahmoud offers his nephew on the next morning card (stallNight.ts)
+        const seen = s.tipsSeen ?? [];
+        const flag = !s.shopBoy && !seen.includes(AWAY_MISSED) ? { tipsSeen: [...seen, AWAY_MISSED] } : {};
+        set({ visitIdx: idx, journal: [...s.journal, { day: s.day, text }], jobNote: s.jobNote ?? text, ...flag });
       };
 
       /** A delay (a fight, a faint, a detention) that runs past midnight carries into the next day: the

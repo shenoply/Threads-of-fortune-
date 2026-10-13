@@ -13,6 +13,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { dateOfDay } from '../../game/economy/life';
 import { Tip } from '../Tips/Tip';
+import { OnceLine } from '../Tips/OnceLine';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { flawFor } from '../../game/systems/fakes';
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
@@ -74,6 +75,7 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
             <button className="btn door-btn leave slim" onClick={onClose} data-testid="auction-leave">⟵ Leave the sale room</button>
           </div>
           <p className="auction-note">Anyone may sit and watch. Every sale you see teaches you what rugs really fetch.{h.buyerPremiumPct ? ` A winning bid pays ${Math.round(h.buyerPremiumPct * 100)}% more as the buyer's premium.` : ''} You have {fmt(g.cash)}.</p>
+          <OnceLine id="fakes" />
           <div className="section-label">THE CATALOGUE · {lots.length} LOTS</div>
           <div className="auction-lots">
             {lots.map((l, i) => {

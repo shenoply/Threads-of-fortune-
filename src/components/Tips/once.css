@@ -1,0 +1,5 @@
+/* a word said once (OnceLine.tsx): set into the screen, not over it */
+.once-line { margin: 6px 0 8px; padding: 6px 9px; border-left: 3px solid #d9a55a; background: #1a1009cc; border-radius: 0 6px 6px 0; font-size: 14.5px; line-height: 1.4; color: #f3e6c8; }
+.once-line b { color: #ffd48a; font-weight: 600; }
+/* the thing a once-line points at, until it is first used */
+.once-mark { border-color: #e7bd6e !important; box-shadow: 0 0 0 2px rgba(255, 200, 90, 0.45); }

@@ -7,6 +7,7 @@ import { DUTY, PAPERS_FEE, PAPERS_TOWN, buyPapers, carried, crossBorder, finishB
 import { settlementById } from '../../game/systems/world';
 import '../ArranLab/ArranLab.css';
 import './BorderCard.css';
+import { OnceLine } from '../Tips/OnceLine';
 
 installBorders();
 
@@ -92,9 +93,28 @@ export function TripMoney({ from, to }: { from: string | null | undefined; to: s
   const crossing = !!fc && !!tc && fc !== tc;
   return (
     <span className="trip-money" data-testid="trip-money">
-      {crossing && <>Frontier at {postFor((from ?? g.lastTown)!, to).replace(/^the /, '')}: papers and customs ({Math.round(DUTY[tc!] * 100)}% on rugs).{!hasPapers(g) ? ` You have no papers${refusesWithoutPapers(tc!) ? ': Turkey will turn you back' : ''}.` : ''} </>}
+      {crossing && <>Frontier at {postFor((from ?? g.lastTown)!, to).replace(/^the /, '')}: papers and customs ({Math.round(DUTY[tc!] * 100)}% on rugs). </>}
       Money there: {moneyLine(to, g.day)}.
     </span>
+  );
+}
+
+/** the trip card, before you set off: no papers for the country ahead. `onOffice` takes you to the
+ *  Passport Office (shown in Cairo, and across the river in Giza). Rashid says his piece the first time. */
+export function TripPapers({ from, to, onOffice }: { from: string | null | undefined; to: string | undefined; onOffice?: () => void }) {
+  const g = useGame();
+  const fc = countryOf(from ?? g.lastTown), tc = countryOf(to);
+  const need = !!fc && !!tc && fc !== tc && tc !== 'egypt' && !hasPapers(g);
+  if (!need) return null;
+  const near = g.world.at === PAPERS_TOWN || g.world.at === 'giza';
+  return (
+    <>
+      <span className="warn trip-papers" data-testid="trip-papers">
+        You need papers to cross into {COUNTRY_NAME[tc!]}: the Passport Office in Cairo, £E{fmt(PAPERS_FEE).slice(1)}.{refusesWithoutPapers(tc!) ? ' The Turks turn back anyone without them.' : ` Without them, a fine of ${fmt(papersFine(tc!))} at the post.`}
+        {near && onOffice && <button type="button" className="btn small" onClick={onOffice} data-testid="trip-papers-go">{g.world.at === PAPERS_TOWN ? 'Passport Office' : 'Go to Cairo'}</button>}
+      </span>
+      <OnceLine id="papers" />
+    </>
   );
 }
 
@@ -111,7 +131,7 @@ export function TownMoney({ id }: { id: string }) {
         <p className="small" data-testid="money-changer"><b>Money-changer:</b> {paid ? `paid ${fmt(paid.fee)} on this visit.` : `keeps ${Math.round(CHANGER_CUT[c] * 1000) / 10} per cent of your first deal here.`}</p>
       )}
       {id === PAPERS_TOWN && (
-        <div className="mkt-row" data-testid="passport-office">
+        <div className="mkt-row" id="sec-passport" data-testid="passport-office">
           <span><b>Passport Office</b><small>Ministry of the Interior. A passport, with visas for Palestine, Syria, Turkey and Iraq.</small></span>
           {hasPapers(g)
             ? <span className="dim small" style={{ flex: 'none' }}>In order</span>

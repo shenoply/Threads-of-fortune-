@@ -9,6 +9,10 @@ import { cityClosed, closedNote, dangerAt } from '../../game/economy/life';
 import { fmt } from '../../game/economy/money';
 import { localMoney, localMoneyLong } from '../../game/economy/currency';
 import { TownMoney } from './BorderCard';
+import { PAPERS_TOWN } from '../../game/systems/customs';
+import { OnceLine, useOnce } from '../Tips/OnceLine';
+import { ONCE } from '../../data/tips';
+import { currencyAt } from '../../game/economy/currency';
 import { drawWorld, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
 import { localAskPrice, localBid, localOffers, useGame } from '../../game/state/store';
 import { NPCS, QUESTS } from '../../data/world';
@@ -79,6 +83,17 @@ const townView = { id: '', menu: true, tab: 'town' as SetTab, scroll: 0 };
 
 /** A place opened over the town panel (a sale room, the clinic, the bank...): Escape and the phone's Back
  *  leave it as its own Leave button does, back to the town, unless a sheet or film inside it goes first. */
+/** A word from Rashid the first time you open a market: abroad, the money-changer first; then the fakes.
+ *  One at a time, chosen when the market opens, so two never stand together. */
+function MarketWord({ id }: { id: string }) {
+  const seen = useGame((s) => s.tipsSeen ?? []);
+  const abroad = currencyAt(id, useGame.getState().day) !== 'egp';
+  const [which] = useState(() => (abroad && !seen.includes('changer') ? 'changer' : 'fakes'));
+  return which === 'changer'
+    ? <OnceLine id="changer" />
+    : <OnceLine id="fakes" />;
+}
+
 function EscLayer({ onEsc, children }: { onEsc: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useDialogEscape(ref, () => { if (ref.current?.querySelector('[role=dialog], [role=alertdialog], video')) return false; onEsc(); });
@@ -180,6 +195,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [sailing, setSailing] = useState<{ to: string } | null>(null);
   // Escape and the phone's Back: the wait card closes, otherwise the panel is left as its Leave button
   // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
+  // the first time you come into a telegraph town: a word on its office, and its tile marked until used
+  const wireWord = useOnce('telegraph', menu && !inCity && !inVenue && !inAuction && !talkTo && !shop && TELEGRAPH_TOWNS.includes(id) && !g.border && !g.journey);
   const busy = wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
   // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
   useEffect(() => {
@@ -249,6 +266,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
     ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
     ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
+    ...(id === PAPERS_TOWN && !g.passport ? [['scroll', 'Passport Office', 'Papers for Palestine, Syria, Turkey and Iraq', () => goTo('town', 'sec-passport'), 'menu-passport'] as [string, string, string, () => void, string]] : []),
     ...(TELEGRAPH_TOWNS.includes(id) ? [['scroll', 'Telegraph office', 'Wire Rashid for stock, or ask a dealer\u2019s prices', () => setWire(true), 'menu-telegraph'] as [string, string, string, () => void, string]] : []),
     ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
     ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
@@ -453,6 +471,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
             {cityClosed(g.day, id) && <p className="set-note" data-testid="market-closed">{closedNote(g.day, id)}</p>}
             {!cityClosed(g.day, id) && dangerAt(g.day, id) && <p className="set-note">{dangerAt(g.day, id)!.name}: soldiers at every gate. Caravans pay an inspection fee to get in.</p>}
             <Rumours max={3} compact />
+            <MarketWord id={id} />
             <div className="section-label">LOCAL MARKET</div>
             {demandTraits.length > 0 && <p className="set-demand">Dealers here pay more for: {demandTraits.map((d) => <span key={d} className="value-chip">{d.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>)}</p>}
             {offers.length > 0 && (
@@ -554,9 +573,10 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               </div>
               <p className="tm-blurb">{st.blurb}</p>
               {note && <p className="tm-note">{note}</p>}
+              {wireWord && <p className="tm-note once-line" role="note" data-testid="once-telegraph">{ONCE.telegraph.text}</p>}
               {(() => {
                 const tile = ([icon, label, sub, act, tid]: typeof items[number], small = false) => (
-                  <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}${small ? ' slim' : ''}`} onClick={() => { act(); }} data-testid={tid}>
+                  <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}${small ? ' slim' : ''}${wireWord && tid === 'menu-telegraph' ? ' once-mark' : ''}`} onClick={() => { act(); }} data-testid={tid}>
                     <Icon name={icon} /><span><b>{label}</b>{sub && <small>{sub}</small>}</span>
                   </button>
                 );
