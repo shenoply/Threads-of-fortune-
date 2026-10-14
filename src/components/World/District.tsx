@@ -13,6 +13,7 @@ import { HAMMAMS } from '../../data/character';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { SettlementPanel, type SetTab } from './Settlement';
+import { allOpen, isOpen } from '../../game/unlocks';
 import { Dialogue } from './Dialogue';
 import { DustHaze } from '../Atmosphere/DustHaze';
 import { CafeRoom } from '../Cafe/CafeRoom';
@@ -495,6 +496,19 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const redraw = useRef<() => void>(() => {});
   useEffect(() => { redraw.current(); }, [cam]);
   const [seen, setSeen] = useState<string[]>([...st.current.seen]);
+  // places that belong to a part of the game not yet open stay off the plan (game/unlocks.ts); when one
+  // opens, its places are marked on the plan at once, as the notice that goes with it says
+  const caravanOn = useGame((s) => isOpen(s, 'caravan'));
+  const labOn = useGame((s) => isOpen(s, 'lab'));
+  const hidden = useRef(new Set<string>());
+  hidden.current = new Set([...(caravanOn ? [] : ['animals', 'guards']), ...(labOn ? [] : ['lab'])]);
+  useEffect(() => {
+    const s = st.current;
+    // opened by its moment (not by skipping the opening): the two yards are pointed out, not left to find
+    const add = caravanOn && !allOpen(useGame.getState()) ? ['animals', 'guards'] : [];
+    if (add.some((id) => !s.seen.has(id))) { add.forEach((id) => s.seen.add(id)); setSeen([...s.seen]); }
+    s.dirty = true; redraw.current();
+  }, [caravanOn, labOn]);
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
@@ -532,7 +546,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     }
     if (changed) s.dirty = true;
     for (const p of POIS) {
-      if (!s.seen.has(p.id) && Math.hypot(p.x - x, p.y - y) < REVEAL + 20) {
+      if (!s.seen.has(p.id) && !hidden.current.has(p.id) && Math.hypot(p.x - x, p.y - y) < REVEAL + 20) {
         s.seen.add(p.id);
         setSeen([...s.seen]);
         setToast(`Found: ${p.name}`);
@@ -821,7 +835,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       // vital points
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       for (const p of POIS) {
-        if (!s.seen.has(p.id)) continue;
+        if (!s.seen.has(p.id) || hidden.current.has(p.id)) continue;
         const X = ox + p.x * sc, Y = oy + p.y * sc;
         if (X < -80 || Y < -40 || X > W + 80 || Y > H + 40) continue;
         ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(X + 1.5, Y + 2, 13, 0, 7); ctx.fill();
@@ -911,7 +925,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     drag.current = null;
     const rect = cvs.current!.getBoundingClientRect();
     const w = toWorld(e.clientX - rect.left, e.clientY - rect.top);
-    const hit = POIS.find((p) => st.current.seen.has(p.id) && Math.hypot(p.x - w.x, p.y - w.y) < 24 / w.sc + 6);
+    const hit = POIS.find((p) => st.current.seen.has(p.id) && !hidden.current.has(p.id) && Math.hypot(p.x - w.x, p.y - w.y) < 24 / w.sc + 6);
     if (hit) walkTo(hit.x, hit.y, hit.id);
     else walkTo(w.x, w.y, null);
   };
@@ -926,7 +940,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     setCam(clampCam({ ...camRef.current, s: camRef.current.s * f }));
   };
 
-  const unknown = POIS.length - seen.length;
+  const unknown = POIS.filter((p) => !hidden.current.has(p.id)).length - seen.filter((id) => !hidden.current.has(id)).length;
   return (
     <div className="district" ref={box} data-testid="district">
       <div className="district-stage">
@@ -963,7 +977,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       </div>
       <div className="district-sheet">
         <div className="district-places" ref={placesRef}>
-          {POIS.filter((p) => seen.includes(p.id)).map((p) => (
+          {POIS.filter((p) => seen.includes(p.id) && !hidden.current.has(p.id)).map((p) => (
             <button key={p.id} className={`dplace ${guidePoi === p.id ? 'guide' : ''}`} onClick={() => walkTo(p.x, p.y, p.id)} data-testid={`poi-${p.id}`}>
               <i>{p.glyph}</i>
               <span><b>{p.name}</b><small>{p.sub}</small></span>

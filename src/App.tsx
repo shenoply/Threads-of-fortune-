@@ -4,6 +4,8 @@ import { DaySummary } from './components/Ledger/DaySummary';
 import { JobOffer } from './components/World/JobOffer';
 import { afterFirstSale } from './game/preload';
 import { openingStep } from './game/opening';
+import { isOpen, UNLOCKS } from './game/unlocks';
+import { UnlockNotice } from './components/Tips/Unlocks';
 import { guideTarget } from './game/guide';
 import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
@@ -361,6 +363,8 @@ export default function App() {
 
   const tutorialActive = !g.tutorial.done;
   const firstDays = !!openingStep(g);
+  // the Caravan tab stands dimmed until men and animals first matter (game/unlocks.ts)
+  const caravanOpen = isOpen(g, 'caravan');
   // the first-day tour points at the button to press next
   // (not while the opening runs: its own steps say what to do, and two guides glowing at once confused testers)
   const tourStep = g.tutorial.done && !firstDays ? (['buyers', 'news', 'radio', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
@@ -829,7 +833,7 @@ export default function App() {
             ['ledger', 'Progress', 'star'],
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
-          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} className={`${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
+          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
             {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>
@@ -940,6 +944,7 @@ export default function App() {
         {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
       </Suspense>
       {toastMsg && <div className="toast">{toastMsg}</div>}
+      {phase === 'game' && <UnlockNotice />}
       {guardUi}
     </div>
   );

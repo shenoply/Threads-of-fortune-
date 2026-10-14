@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
+import { migrateOpen, ALL_OPEN } from '../unlocks';
 import { midName, count, lowerName } from '../text';
 import { auctionable } from '../storyRugs';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
@@ -69,7 +70,7 @@ import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/st
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
 import type { PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -3757,6 +3758,8 @@ export const useGame = create<GameState & Actions>()(
           const underway = pp.day >= 3 || (pp.totalSales ?? 0) >= 3 || pp.missions?.alexandria === 'done' || (!!pp.world && pp.world.at !== 'giza');
           if (underway && !(pp.tipsSeen ?? []).includes('first-hour')) pp.tipsSeen = [...(pp.tipsSeen ?? []), 'first-hour'];
         }
+        // systems now open one at a time (game/unlocks.ts): a save under way keeps everything in view
+        if (version < 23 && p.started) { try { p.tipsSeen = migrateOpen(p as GameState); } catch { p.tipsSeen = [...(p.tipsSeen ?? []), ALL_OPEN]; } }
         if (version < 18) {
           // the old "colour fastness" result was a rub test: rename it and keep it, without a new charge
           const typeOf = (uid: string) => (p.inventory ?? []).find((i) => i.uid === uid)?.typeId;

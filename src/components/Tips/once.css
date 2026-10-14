@@ -3,3 +3,7 @@
 .once-line b { color: #ffd48a; font-weight: 600; }
 /* the thing a once-line points at, until it is first used */
 .once-mark { border-color: #e7bd6e !important; box-shadow: 0 0 0 2px rgba(255, 200, 90, 0.45); }
+/* a part of the game coming into view (Unlocks.tsx): a line at the foot of the screen, above the usual toasts */
+.toast.unlock-note { pointer-events: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 118px); border-color: #d9a55a; z-index: 91; }
+/* a bottom tab not yet in use: dimmed, and a tap says when it opens */
+.nav button.nav-later { opacity: 0.4; }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './stallhelp.css';
 import { useGame } from '../../game/state/store';
+import { isOpen } from '../../game/unlocks';
 import { fmt } from '../../game/economy/money';
 import { RUGS } from '../../data/rugs';
 import { BOY, BOY_PCTS, boyPrice, plainRugs, takeChance, trustWord } from '../../game/systems/shopBoy';
@@ -17,6 +18,8 @@ export function ShopBoyCard() {
   const b = g.shopBoy;
   const [open, setOpen] = useState(false);
   if (!g.tutorial.done) return null;
+  // the boy comes into it when Haj Mahmoud first offers him (game/unlocks.ts)
+  if (!isOpen(g, 'boy')) return null;
   if (!b?.hired) {
     // Haj Mahmoud has offered his nephew on a morning card: the card stands out until it is first used
     const seen = g.tipsSeen ?? [];

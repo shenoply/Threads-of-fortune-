@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isOpen } from '../../game/unlocks';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -130,7 +131,7 @@ export function TownMoney({ id }: { id: string }) {
       {c !== 'egp' && (
         <p className="small" data-testid="money-changer"><b>Money-changer:</b> {paid ? `paid ${fmt(paid.fee)} on this visit.` : `keeps ${Math.round(CHANGER_CUT[c] * 1000) / 10} per cent of your first deal here.`}</p>
       )}
-      {id === PAPERS_TOWN && (
+      {id === PAPERS_TOWN && isOpen(g, 'abroad') && (
         <div className="mkt-row" id="sec-passport" data-testid="passport-office">
           <span><b>Passport Office</b><small>Ministry of the Interior. A passport, with visas for Palestine, Syria, Turkey and Iraq.</small></span>
           {hasPapers(g)
