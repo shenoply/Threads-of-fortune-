@@ -36,11 +36,16 @@ for (const [w, h] of [[412, 760], [390, 700], [360, 640], [1280, 800]]) {
     return {
       scene: vis('.stall > .scene'), speech: vis('[data-testid=speech]'), interest: vis('[data-testid=meter-interest]'), handle: vis('[data-testid=tray-handle]'), rugs: vis('[data-testid=rugstrip]'), actions: vis('[data-testid=actions]'),
       actsCut: acts.filter((r) => r.bottom > innerHeight + 1).length, acts: acts.length, hud: vis('.hud'),
-      // never taller than the painting's own shape (taller zooms in and crops the people)
+      // the picture may be taller than the painting's shape on a phone (it crops the painting's sides),
+      // but both people stay whole in it: heads in shot, neither cut off at the side
       rows: getComputedStyle(document.querySelector('.stall')).gridTemplateRows,
       chain: (() => { const out = []; for (let e = document.querySelector('.stall'); e && out.length < 6; e = e.parentElement) { const r = e.getBoundingClientRect(); out.push(`${e.className.split(' ')[0]}:${Math.round(r.height)}/${getComputedStyle(e).overflowY}`); } return out.join(' < '); })(),
       bandSpill: (() => { const b = [...document.querySelectorAll('[data-testid=band] > *')].reduce((mx, e) => Math.max(mx, e.getBoundingClientRect().bottom), 0); const h = document.querySelector('[data-testid=tray-handle]')?.getBoundingClientRect().top ?? 9999; return b > h + 1; })(),
-      sceneOk: (() => { const r = document.querySelector('.stall > .scene').getBoundingClientRect(); return r.height <= r.width * 470 / 780 + 2; })(),
+      sceneOk: (() => {
+        const r = document.querySelector('.stall > .scene').getBoundingClientRect();
+        if (r.height > r.width * (r.width < 600 ? 1.45 : 470 / 780) + 2) return false;
+        return ['[data-testid=hero-at-stall]', '[data-testid=buyer-figure]'].every((sel) => { const e = document.querySelector(sel); if (!e) return true; const q = e.getBoundingClientRect(); return q.top >= r.top - 1 && q.left >= r.left - 2 && q.right <= r.right + 2; });
+      })(),
       overlap: (() => { const a = document.querySelector('[data-testid=enc-tier]')?.getBoundingClientRect(); const b = document.querySelector('[data-testid=meter-interest]')?.getBoundingClientRect(); return !!(a && b && a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom); })(),
     };
   });

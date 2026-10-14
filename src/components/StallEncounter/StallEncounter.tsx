@@ -66,15 +66,34 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   useLayoutEffect(() => {
     const el = root.current;
     if (!el || !talking) return;
+    // The talk under the picture (the line, the narrator, the buyer's plate) takes the height of the
+    // longest it has been this visit, so the picture does not jump with every line; any height the
+    // band is given beyond its words is kept between the line and the buyer's plate.
+    let bandMost = 0;
     const fit = () => {
-      let rest = 0;
+      let rest = 0, bandNow = bandMost;
       for (const c of Array.from(el.children) as HTMLElement[]) {
         if (c.classList.contains('scene') || c.classList.contains('stall-toolbar')) continue;
         if (getComputedStyle(c).position === 'absolute' || getComputedStyle(c).position === 'fixed') continue;
+        if (c.classList.contains('band')) {
+          const st = getComputedStyle(c);
+          const kids = (Array.from(c.children) as HTMLElement[]).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed' && k.getBoundingClientRect().height > 0);
+          const own = kids.reduce((a, k) => a + k.getBoundingClientRect().height, 0) + Math.max(0, kids.length - 1) * (parseFloat(st.rowGap) || 0)
+            + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom) + parseFloat(st.borderTopWidth) + parseFloat(st.borderBottomWidth);
+          bandMost = Math.max(bandMost, Math.ceil(own));
+          bandNow = Math.ceil(own);
+          rest += bandMost;
+          continue;
+        }
         rest += c.getBoundingClientRect().height;
       }
-      const natural = el.clientWidth * 470 / 780;
-      const h = Math.max(96, Math.min(natural, el.clientHeight - rest));
+      // a phone held upright gives the picture all the height the rest leaves (the scene crops the
+      // painting at the sides and keeps both people in view); a wide panel keeps the painting's shape
+      const natural = el.clientWidth < 600 ? el.clientWidth * 1.45 : el.clientWidth * 470 / 780;
+      // on a short phone the picture never gives up its own shape's height to a line said earlier:
+      // there it follows the talk as it is now
+      const shape = el.clientWidth * 470 / 780;
+      const h = Math.max(96, Math.min(natural, Math.max(el.clientHeight - rest, Math.min(shape, el.clientHeight - rest + bandMost - bandNow))));
       el.style.setProperty('--scene-h', `${Math.floor(h)}px`);
     };
     fit();
@@ -82,10 +101,18 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     // re-renders for each typed character. The observers catch everything else — the window or a row
     // changing size, a row (the price dial, Cohen's help link) appearing or going.
     const ro = new ResizeObserver(fit);
-    const watch = () => { ro.disconnect(); ro.observe(el); for (const c of Array.from(el.children)) ro.observe(c); };
+    // the band is stretched to its row, so the lines inside it are watched as well
+    const band = () => el.querySelector(':scope > .band');
+    const watch = () => {
+      ro.disconnect(); ro.observe(el);
+      for (const c of Array.from(el.children)) ro.observe(c);
+      for (const c of Array.from(band()?.children ?? [])) ro.observe(c);
+    };
     watch();
     const mo = new MutationObserver(() => { watch(); fit(); });
     mo.observe(el, { childList: true });
+    const b = band();
+    if (b) mo.observe(b, { childList: true });
     return () => { ro.disconnect(); mo.disconnect(); };
   }, [talking, enc?.id, tray]);
   // Keyed on the encounter's own stamped id, not visitIdx: visitIdx advances the instant a sale
