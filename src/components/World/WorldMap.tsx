@@ -44,6 +44,8 @@ import { cityLocked, lockedWhy, openingStep } from '../../game/opening';
 import { guideTarget } from '../../game/guide';
 import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R, KHAMSIN_PACE, floodPace, seasonPathMult } from '../../game/systems/mapNews';
 import { ferryHours, SEASON_NOW } from '../../game/economy/calendar1925';
+import { roadEventDue, startRoadEvent, settleRoadEvent, choicesFor, eventText, walkBegun, absHour, CARD_MIN_MS } from '../../game/systems/roadEvents';
+import type { RoadEvent } from '../../data/roadEvents';
 
 export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
 const MAJOR = ['home', 'city', 'port'];
@@ -246,9 +248,31 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const say = (text: string, act?: { label: string; run: () => void }) => {
     window.clearTimeout(flashT.current);
     setFlash({ id: Date.now(), text, act });
-    flashT.current = window.setTimeout(() => setFlash(null), act ? 6000 : 3200);
+    // a longer line (a happening on the road) wraps and stays long enough to be read
+    flashT.current = window.setTimeout(() => setFlash(null), text.length > 70 ? 7500 : act ? 6000 : 3200);
   };
   useEffect(() => { if (!moving) { wellsSeen.current = new Set(); } }, [moving]);
+  // a small happening on a walk (systems/roadEvents.ts): a passing line in the notice above, or a card
+  // with a quick choice that the caravan walks on beside; left alone for an hour of road, it settles itself
+  type RoadCard = { ev: RoadEvent; dest?: string; until: number; ms: number };
+  const [roadEv, setRoadEvState] = useState<RoadCard | null>(null);
+  const roadEvRef = useRef<RoadCard | null>(null);
+  const setRoadEv = (c: RoadCard | null) => { roadEvRef.current = c; setRoadEvState(c); };
+  const roadHour = useRef(-1);
+  const walkStart = useRef<{ path: Pt[] | null; at: number }>({ path: null, at: 0 });
+  // days of walking saved by a shorter way: the travel loop moves the caravan on by that much
+  const skipDays = useRef(0);
+  const settleRoad = (choice: string | null) => {
+    const c = roadEvRef.current;
+    if (!c) return;
+    setRoadEv(null);
+    const r = settleRoadEvent(c.ev, choice, c.dest);
+    skipDays.current += r.skipDays;
+    say(r.text);
+    audio.sfx('tap');
+  };
+  // a walk that ends (arrival, a train, a halt) settles a card still open the way it would have gone
+  useEffect(() => { if ((!moving || moving.train || moving.mode) && roadEvRef.current) settleRoad(null); }, [moving]); // eslint-disable-line react-hooks/exhaustive-deps
   const [camp, setCamp] = useState<{ dest?: string } | null>(null);
   const [partyOpen, setPartyOpen] = useState(false);
   const nightAsked = useRef(-1);
@@ -551,6 +575,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     { const h = useGame.getState().world.hour, d = useGame.getState().day; if (h >= 20) nightAsked.current = d; else if (h < 5) nightAsked.current = d - 1; }
     setNightfall(false);
     follow.current = true;
+    if (w.at) walkBegun();
     setMoving({ path: p.path, done: 0, train: false, dest: p.settlement?.id });
     setPlan(null);
     const ferry = (w.at === 'giza' && p.settlement?.id === 'cairo') || (w.at === 'cairo' && p.settlement?.id === 'giza');
@@ -725,6 +750,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (sand) speed *= KHAMSIN_PACE;
       // the Nile in flood: the Delta's low roads are under water
       if (!moving.train && !moving.mode) speed *= floodPace(st0.day, livePos);
+      // a guide's shorter way: the caravan comes out further along the road
+      if (skipDays.current && !moving.train && !moving.mode) { done += skipDays.current * speed; skipDays.current = 0; }
+      if (roadEvRef.current && scaleRef.current > 0) roadEvRef.current.ms += dt * 1000;
       if (sand && !inSand) setReport('A khamsin is blowing: the caravan slows.');
       inSand = sand;
       let days = dt * DAYS_PER_SECOND * scaleRef.current;
@@ -810,6 +838,21 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             if (st.condition) useGame.setState({ condition: { ...st.condition, water: 100 } });
             say(`Waterskins filled at ${wl.name}`);
             audio.sfx('water');
+          }
+          // a small happening on the road: at most one a day or so, and it never stops the caravan
+          const now = absHour(useGame.getState());
+          if (walkStart.current.path !== moving.path) walkStart.current = { path: moving.path, at: now };
+          const open = roadEvRef.current;
+          if (open) {
+            if (now >= open.until && open.ms >= CARD_MIN_MS) settleRoad(null);
+          } else if (!arrived && !wl && Math.floor(now) !== roadHour.current) {
+            roadHour.current = Math.floor(now);
+            const ev = roadEventDue(pos, walkStart.current.at, moving.dest);
+            if (ev) {
+              const o = startRoadEvent(ev);
+              if (o.card) { setRoadEv({ ev, dest: moving.dest, until: o.until, ms: 0 }); audio.sfx('tap'); }
+              else { const r = settleRoadEvent(ev, null, moving.dest); skipDays.current += r.skipDays; say(r.text); }
+            }
           }
         }
         if (!moving.train) {
@@ -1140,7 +1183,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       </div>
 
       {flash && (
-        <div key={flash.id} className="road-flash" data-testid="road-flash" role="status">
+        <div key={flash.id} className={`road-flash${flash.text.length > 70 ? ' long' : ''}`} data-testid="road-flash" role="status">
           <span>{flash.text}</span>
           {flash.act && <button onClick={() => { const r = flash.act!.run; setFlash(null); r(); }} data-testid="road-flash-act">{flash.act.label}</button>}
         </div>
@@ -1206,6 +1249,19 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             </div>
           );
         })()}
+        {moving && roadEv && (
+          <div className="wc-col road-event" data-testid="road-event" key={roadEv.ev.id}>
+            <div className="wc-main">
+              <span>{eventText(roadEv.ev, roadEv.dest)}</span>
+            </div>
+            <div className="wc-btns">
+              {choicesFor(roadEv.ev).map((c) => (
+                <button key={c.id} className={`btn${c.id === roadEv.ev.def ? '' : ' primary'}`} onClick={() => settleRoad(c.id)} data-testid={`road-choice-${c.id}`}>{c.label}</button>
+              ))}
+            </div>
+            <i className="re-sand" aria-hidden="true" style={{ animationDuration: `${CARD_MIN_MS}ms`, animationPlayState: timeScale > 0 ? 'running' : 'paused' }} />
+          </div>
+        )}
         <BorderCard onDone={(t) => setPanel(t)} />
         {pass && <PassCard tripKey={pass.key} onCancel={() => { setPass(null); stop('You halt below the narrows. Turn back, or set off again when you are ready.'); }} onGo={() => { setPass(null); setTimeScale(lastScale.current || 1); }} />}
         {short && !moving && (
