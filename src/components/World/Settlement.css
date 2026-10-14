@@ -34,3 +34,40 @@
 /* the NEXT tile's pulsing ring reaches about 8px out: the first group's heading keeps clear of it */
 .town-menu .tm-groups > .tm-next { margin-bottom: 8px; }
 .town-menu .tm-groups > .tm-next + .tm-group h3 { margin-top: 2px; }
+/* The town menu as a painted scene: the town's picture fills the upper half, its name on the picture,
+   "Walk the streets" across the foot of it, three or four main places under it, and the rest behind
+   "More in …". With More open the picture shrinks to a strip over the full list. */
+.town-menu.tm-scene { display: flex; flex-direction: column; }
+.tm-scene .tm-pic { position: relative; flex: 1 0 auto; min-height: 34vh; max-height: 58vh; max-height: 58dvh; overflow: hidden; }
+.tm-scene.tm-more-open .tm-pic { flex: 0 0 auto; height: 22vh; height: 22dvh; min-height: 150px; }
+.tm-scene .tm-pic .tm-art { position: absolute; inset: 0; }
+.tm-scene .tm-pic-map .tm-map { filter: saturate(1.05) contrast(1.04); }
+.tm-scene .tm-shade { background: linear-gradient(180deg, #0c070499 0%, transparent 16%, transparent 58%, #120b06cc 84%, #120b06 100%); }
+.tm-scene .tm-pic .tm-title { position: absolute; left: 14px; bottom: 40px; margin: 0; max-width: calc(100% - 28px); z-index: 1; }
+.tm-scene.tm-more-open .tm-pic .tm-title { bottom: 10px; }
+.tm-scene.tm-more-open .tm-pic .tm-title small, .tm-scene.tm-more-open .tm-pic .tm-when { display: none; }
+.tm-scene .tm-body { flex: 0 1 auto; min-height: 0; margin: -30px auto 0; max-height: none; overflow-y: auto; padding: 0 14px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.tm-scene.tm-more-open .tm-body { margin-top: 0; padding-top: 10px; }
+/* the walk: one wide signboard laid across the bottom of the picture */
+.tm-scene .tm-list.tm-walk { grid-template-columns: 1fr; margin-bottom: 8px; }
+.tm-scene .tm-walk .tm-item { justify-content: center; text-align: center; min-height: 60px; padding: 8px 14px; border: 1px solid #e7bd6e; background: linear-gradient(180deg, #4a2e14f2, #2a1a0cf2); box-shadow: 0 4px 16px #000a, inset 0 1px 0 #ffe2a133; }
+.tm-scene .tm-walk .tm-item span { align-items: center; }
+.tm-scene .tm-walk .tm-item svg { width: 24px; height: 24px; color: #ffd27a; }
+.tm-scene .tm-walk .tm-item b { font-size: 19px; color: #fff1d6; }
+.tm-scene .tm-walk .tm-item small { color: #d9c08f; font-size: 12.5px; -webkit-line-clamp: 1; }
+.tm-scene .tm-blurb { font-size: 14px; line-height: 1.35; color: #cbb68f; background: none; padding: 0 2px; margin: 2px 0 10px; text-shadow: none; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.tm-scene .tm-note { margin-bottom: 8px; }
+/* the main places: large tiles, the picture over the word */
+.tm-scene .tm-main { gap: 8px; }
+.tm-scene .tm-main--1 { grid-template-columns: 1fr; }
+.tm-scene .tm-main--3 { grid-template-columns: 1fr 1fr 1fr; }
+.tm-scene .tm-main .tm-item { flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; gap: 5px; min-height: 96px; padding: 12px 8px 10px; border-radius: 8px; }
+.tm-scene .tm-main .tm-item svg { width: 28px; height: 28px; }
+.tm-scene .tm-main .tm-item span { align-items: center; }
+.tm-scene .tm-main .tm-item b { font-size: 16.5px; }
+.tm-scene .tm-main .tm-item small { font-size: 12px; margin-top: 2px; }
+.tm-scene .tm-main .tm-item.guide::after { top: -9px; right: 50%; transform: translateX(50%); }
+.tm-scene .tm-foot { margin-top: 8px; }
+.tm-scene .tm-foot .tm-item.slim small { display: -webkit-box; -webkit-line-clamp: 1; font-size: 11.5px; }
+.tm-scene .tm-foot .tm-item { min-height: 50px; }
+.tm-scene .tm-back { justify-self: start; background: none; border: 0; padding: 4px 2px; font-family: var(--label); font-size: 13px; letter-spacing: .06em; color: #d9a55a; }
