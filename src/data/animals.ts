@@ -129,4 +129,7 @@ export const ANIMAL_MARKETS: Record<string, [string, number][]> = {
   konya: [['baladi_h', 0.9], ['cyprus_mule', 1]],
   istanbul: [['arabian', 1.2]],
   baghdad: [['arabian', 0.9], ['hassawi', 0.9], ['maghrabi', 0.95]],
+  kermanshah: [['arabian', 0.95]],
+  tehran: [['arabian', 1.05]],
+  isfahan: [['maghrabi', 1]],
 };

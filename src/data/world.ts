@@ -1,6 +1,7 @@
 import { VENUE_NPCS, VENUE_QUESTS } from './entertainment';
+import { isPersian } from './persiaMap';
 // The overworld: settlements, people to talk to, delivery work, sea passages and railways.
-// Coordinates are pixels on art/map-levant.jpg (885 x 567).
+// Coordinates are map units: the painted travel map is 885 across; Persia, east of it, is drawn in code (data/persiaMap.ts).
 import type { Trait } from '../game/types';
 
 export type SettlementKind = 'home' | 'city' | 'town' | 'village' | 'oasis' | 'port' | 'monastery' | 'camp';
@@ -130,9 +131,51 @@ export const SETTLEMENTS: Settlement[] = [
     demand: { wool: 0.1, restrained: 0.1 }, sells: [{ typeId: 'anatolian-hearth', factor: 1 }, { typeId: 'caucasus-eagle', factor: 1.05, minRep: 15, chance: 0.5 }], people: [],
   },
   {
-    id: 'baghdad', name: 'Baghdad', kind: 'city', x: 823.9, y: 266.2, region: 'Iraq',
+    id: 'baghdad', name: 'Baghdad', kind: 'city', x: 823.9, y: 266.2, region: 'Iraq', rail: true,
     blurb: 'A long desert crossing east. Persian carpets come through here on their way west, cheaper than anywhere else.',
     demand: { hardwearing: 0.1 }, sells: [{ typeId: 'sapphire-night', factor: 1.05, minRep: 20, chance: 0.5 }, { typeId: 'moroccan-ember', factor: 1.15, minRep: 15, chance: 0.5 }, { typeId: 'baghdad-night', factor: 1.1, minRep: 55, chance: 0.12 }], people: ['haji'],
+  },
+  // ---- the Persian road (map east of the painting: data/persiaMap.ts). Persian rugs are cheapest where
+  // they are woven; sell factors are a share of the dealer cost in data/rugs.ts.
+  {
+    id: 'khanaqin', name: 'Khanaqin', kind: 'town', x: 861, y: 235.7, region: 'Iraq', rail: true,
+    blurb: 'The last town in Iraq on the Persian road, at the end of the railway from Baghdad. Pilgrims for Karbala and bales of Persian carpets come down through its customs house. The Persian post at Qasr-i Shirin is a few miles on.',
+    demand: { hardwearing: 0.05 }, sells: [{ typeId: 'persian-hamadan', factor: 0.62 }, { typeId: 'persian-baluch', factor: 0.7 }], people: [],
+  },
+  {
+    id: 'kermanshah', name: 'Kermanshah', kind: 'city', x: 920, y: 236.9, region: 'Persia',
+    blurb: 'The first Persian city on the road from Baghdad, in a wide valley of the Zagros. Kurdish rugs and fine Senneh pieces come in from the hills, and the Karbala pilgrims pass through in thousands.',
+    demand: { warm: 0.05 }, sells: [{ typeId: 'persian-senneh', factor: 0.42 }, { typeId: 'persian-hamadan', factor: 0.45 }, { typeId: 'persian-sarouk', factor: 0.5, minRep: 10, chance: 0.4 }], people: [],
+  },
+  {
+    id: 'hamadan', name: 'Hamadan', kind: 'town', x: 971.9, y: 222.7, region: 'Persia',
+    blurb: 'Old Ecbatana, on the high plain below Mount Alvand. The villages round about weave hard-wearing rugs by the bale, and Sarouk pieces come in from the Sultanabad villages.',
+    demand: { warm: 0.05 }, sells: [{ typeId: 'persian-hamadan', factor: 0.38 }, { typeId: 'persian-sarouk', factor: 0.42 }, { typeId: 'persian-heriz', factor: 0.5, chance: 0.5 }], people: [],
+  },
+  {
+    id: 'tehran', name: 'Tehran', kind: 'city', x: 1075.5, y: 196.9, region: 'Persia',
+    blurb: 'The capital, inside its mud walls and tiled gates, under the snows of Damavand. Ministries, legations and a great bazaar, where carpets from every province are sold.',
+    demand: { silk: 0.1, ornate: 0.05 }, sells: [{ typeId: 'persian-mashhad', factor: 0.45 }, { typeId: 'persian-tabriz', factor: 0.5 }, { typeId: 'persian-sarouk', factor: 0.48 }, { typeId: 'persian-kashan', factor: 0.52, minRep: 15, chance: 0.5 }], people: [],
+  },
+  {
+    id: 'tabriz', name: 'Tabriz', kind: 'city', x: 891.9, y: 127.6, region: 'Persia',
+    blurb: 'The great market of Azerbaijan, on the old road to Russia. Its workshops weave fine medallion carpets, and the villages round Heriz send in the heavy geometric ones.',
+    demand: { wool: 0.05 }, sells: [{ typeId: 'persian-tabriz', factor: 0.4 }, { typeId: 'persian-heriz', factor: 0.4 }], people: [],
+  },
+  {
+    id: 'kashan', name: 'Kashan', kind: 'town', x: 1076.9, y: 246.5, region: 'Persia',
+    blurb: 'A town of weavers on the edge of the desert. Kashan carpets, in soft kork wool and sometimes in silk, are among the finest woven in Persia.',
+    demand: {}, sells: [{ typeId: 'persian-kashan', factor: 0.4 }, { typeId: 'persian-joshaghan', factor: 0.45 }], people: [],
+  },
+  {
+    id: 'isfahan', name: 'Isfahan', kind: 'city', x: 1082.9, y: 285, region: 'Persia',
+    blurb: 'The old Safavid capital, with its great square, its bridges and its covered bazaar. The workshops are weaving fine carpets again, and Bakhtiari and Qashqai pieces come in from the mountains.',
+    demand: { ornate: 0.05 }, sells: [{ typeId: 'persian-isfahan', factor: 0.42 }, { typeId: 'persian-bakhtiari', factor: 0.42 }, { typeId: 'persian-qashqai', factor: 0.48 }, { typeId: 'persian-joshaghan', factor: 0.42 }], people: [],
+  },
+  {
+    id: 'kerman', name: 'Kerman', kind: 'city', x: 1223.6, y: 353.8, region: 'Persia',
+    blurb: 'The far south-east, across the desert from Yazd. Kerman workshops weave fine carpets in soft colours, much of it for the American trade, and Afshar and Baluch tribesmen sell their rugs in the bazaar.',
+    demand: {}, sells: [{ typeId: 'persian-kerman', factor: 0.38 }, { typeId: 'persian-afshar', factor: 0.4 }, { typeId: 'persian-baluch', factor: 0.4 }], people: [],
   },
 ];
 
@@ -150,6 +193,8 @@ export const RAIL_LINKS: { a: string; b: string; days?: number; hours?: number; 
   { a: 'konya', b: 'istanbul', hours: 22, km: 700 }, // to Haydarpaşa, across the Bosporus from the city
   { a: 'damascus', b: 'amman', hours: 12, km: 220 }, // the Hejaz Railway through Deraa
   { a: 'istanbul', b: 'ankara', hours: 20, km: 577 }, { a: 'konya', b: 'ankara', hours: 26, km: 690 }, // Anatolian Railway via Eskişehir
+  // the metre-gauge line the army laid in 1917-19, Baghdad by Baqubah and Jalawla to Khanaqin (times and length about)
+  { a: 'baghdad', b: 'khanaqin', hours: 10, km: 170 },
 ];
 // Third class in 1925, about 1.2 milliemes a kilometre (Cairo to Alexandria about 25 piastres a head),
 // never less than 2 piastres. Animals go as freight at a multiple of the fare for a person.
@@ -157,7 +202,15 @@ export const RAIL_FARE_PER_KM = 0.12;
 export const RAIL_FARE_MIN = 2;
 export const ANIMAL_FREIGHT = { large: 2, small: 1 };
 // Nairn Transport Company: Cadillacs and Buicks across the desert since 1923. Fares are per person.
-export const MOTOR_ROUTES: { a: string; b: string; days: number; fare: number }[] = [{ a: 'damascus', b: 'baghdad', days: 2, fare: 2500 }];
+// Beyond Baghdad, motor cars and lorries carried passengers and goods up the Persian road by Khanaqin,
+// Kermanshah and Hamadan to Tehran by the mid-1920s; the days and fares here are the game's, kept plausible.
+/** what runs on a motor route: the Nairn cars across the Syrian desert, motor lorries up the Persian road */
+export const motorLorry = (a?: string | null, b?: string | null) => isPersian(a) || isPersian(b);
+export const MOTOR_ROUTES: { a: string; b: string; days: number; fare: number }[] = [
+  { a: 'damascus', b: 'baghdad', days: 2, fare: 2500 },
+  { a: 'baghdad', b: 'kermanshah', days: 2, fare: 900 },
+  { a: 'baghdad', b: 'tehran', days: 5, fare: 2000 },
+];
 
 // Deck passage, per person
 export const SEA_ROUTES: { a: string; b: string; days: number; fare: number }[] = [

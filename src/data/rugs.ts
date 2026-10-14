@@ -10,6 +10,12 @@ const RARITY: Record<Tier, RugType['rarity']> = { 1: 'Common', 2: 'Uncommon', 3:
 
 interface Def extends Omit<RugType, 'id' | 'rarity' | 'art' | 'tier'> { tier: Tier }
 const rug = (id: string, d: Def): [string, RugType] => [id, { id, ...d, rarity: RARITY[d.tier], art: { kind: 'photo', src: `art/rugs/${id}.jpg` } }];
+/** Persian rugs with a photograph at art/rugs/<id>.jpg (and art/rugs/thumbs/<id>.webp). Until an id is
+ *  added here, its rug is drawn by the woven renderer (components/RugViewer/rugArt.ts). */
+export const PERSIAN_PHOTOS: string[] = [];
+const persian = (id: string, seed: number, layout: 'medallion' | 'lattice' | 'kilim', palette: string[], d: Def): [string, RugType] => (PERSIAN_PHOTOS.includes(id)
+  ? rug(id, d)
+  : [id, { id, ...d, rarity: RARITY[d.tier], art: { kind: 'woven', seed, layout, palette } }]);
 
 const knots = {
   flat: { knot: 'Flatweave (slit tapestry)', kpsi: 'no pile', foundation: 'Wool warp and weft' },
@@ -291,6 +297,164 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     durabilityLine: 'It belongs in a palace or a museum. A king should decide where it lies.',
     weave: knots.court, fringe: 'Original, bound', backNote: 'The finest knotting in the library; no repairs.',
   }),
+
+  // ---------- PERSIA (the Persian road, save 24) ----------
+  // Woven where they are sold cheapest: Tabriz, Hamadan, Kashan, Isfahan, Kerman and the rest (see the
+  // sells lists in data/world.ts). Drawn by the woven renderer until photographs are made; see PERSIAN_PHOTOS.
+  persian('persian-baluch', 61, 'medallion', ['#4a2a22', '#1f2238', '#a88a62', '#7a2a24', '#2a1a14'], {
+    name: 'Baluch Prayer Rug', tier: 1, origin: 'Persia / Baluch tribes, Khorasan and Kerman', material: 'Wool, some camel hair', age: 'c.1900–1920', size: '140 × 90 cm',
+    colourFamily: 'crimson', colourWords: 'dark madder and aubergine, deep blue, a camel-hair field', provenance: 'Likely',
+    dealerCost: 180, valueBand: [260, 480], asking: 450,
+    traits: ['wool', 'darkField', 'restrained', 'humble', 'soft'],
+    history: 'Small dark rugs woven by Baluch families on the eastern borders of Persia and sold in the bazaars of Kerman and Mashhad.',
+    storyLine: 'Baluch work, from the far east of Persia. The tribes weave them for their own tents and sell what they can spare in Kerman.',
+    craftLine: 'Dark, glossy wool and a little camel hair in the field. Quiet colours, but look how the wool shines.',
+    durabilityLine: 'Soft wool, closely knotted. Keep it out of the hall and it will last a lifetime.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 80 knots per sq. inch', foundation: 'Wool warp and weft' }, fringe: 'Kilim ends, slightly worn', backNote: 'Dark wefts; even knotting.',
+  }),
+  persian('persian-hamadan', 62, 'medallion', ['#9a3226', '#2c3048', '#c8a878', '#6e4a2a', '#3a2216'], {
+    name: 'Hamadan Village Rug', tier: 1, origin: 'Persia / Hamadan villages', material: 'Wool on cotton', age: 'c.1910–1925', size: '200 × 130 cm',
+    colourFamily: 'crimson', colourWords: 'red field, a navy and ivory pole medallion, a broad camel-coloured border', provenance: 'Likely',
+    dealerCost: 220, valueBand: [320, 600], asking: 560,
+    traits: ['wool', 'hardwearing', 'warm', 'bold', 'humble'],
+    history: 'The villages round Hamadan wove more rugs than any other district of Persia, and they went west by the bale.',
+    storyLine: 'A Hamadan village rug. Every house from Baghdad to Constantinople has one, and every one of them is still on the floor.',
+    craftLine: 'Single wefts and a thick pile: you can see the wefts on the back. Village work, honest and strong.',
+    durabilityLine: 'Made for a village house. Feet, children and the mud of winter: it will take all of it.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 70 knots per sq. inch', foundation: 'Cotton warp, single cotton weft' }, fringe: 'Cotton fringe, complete', backNote: 'Single wefts show between the knot rows.',
+  }),
+  persian('persian-afshar', 63, 'lattice', ['#7a2a26', '#1f2a44', '#d8c49a', '#c08a2a', '#2a1e18'], {
+    name: 'Afshar Tribal Rug', tier: 2, origin: 'Persia / Afshar tribes, Kerman province', material: 'Wool on wool', age: 'c.1890–1915', size: '170 × 135 cm',
+    colourFamily: 'mixed', colourWords: 'deep red and blue, a lattice of small boteh and flowers, ivory border', provenance: 'Likely',
+    dealerCost: 650, valueBand: [950, 1800], asking: 1700,
+    traits: ['wool', 'bold', 'story', 'warm'],
+    history: 'The Afshar, a Turkic tribe moved to the Kerman hills long ago, weave squarish rugs full of small flowers and boteh.',
+    storyLine: 'Afshar work from the hills behind Kerman. A tribe that came from the north centuries ago and kept its own patterns.',
+    craftLine: 'Squarer than most rugs and full of small drawing. Every boteh is a little different.',
+    durabilityLine: 'Tribal wool on a wool foundation. Strong, but it likes to lie flat on a floor, not be folded.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 90 knots per sq. inch', foundation: 'Wool warp and weft' }, fringe: 'Original kilim ends', backNote: 'Slightly uneven rows; no repairs.',
+  }),
+  persian('persian-qashqai', 64, 'medallion', ['#a2281e', '#1c2a4a', '#e2cfa0', '#d39a2c', '#3a1e14'], {
+    name: 'Qashqai Rug', tier: 2, origin: 'Persia / Qashqai tribes, Fars', material: 'Glossy wool on wool', age: 'c.1900–1920', size: '210 × 145 cm',
+    colourFamily: 'crimson', colourWords: 'bright red field, three linked medallions, small animals and birds', provenance: 'Likely',
+    dealerCost: 800, valueBand: [1150, 2200], asking: 2100,
+    traits: ['wool', 'bold', 'story', 'warm', 'soft'],
+    history: 'The Qashqai drive their flocks between the summer pastures of the Zagros and the winter plains of Fars, and weave on looms they carry with them.',
+    storyLine: 'Qashqai, from Fars. The weaver carried her loom on a camel twice a year. Look for the little goats in the field.',
+    craftLine: 'The best tribal wool in Persia, glossy and bright. The medallions are linked like beads on a string.',
+    durabilityLine: 'Soft, thick tribal wool. It wears slowly and fades beautifully.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 100 knots per sq. inch', foundation: 'Wool warp and weft' }, fringe: 'Complete, with braided ends', backNote: 'Ivory warps; tight even rows.',
+  }),
+  persian('persian-bakhtiari', 65, 'lattice', ['#8a2e22', '#24304a', '#d6c08c', '#4c6a3a', '#3a2418'], {
+    name: 'Bakhtiari Garden Rug', tier: 2, origin: 'Persia / Chahar Mahal, west of Isfahan', material: 'Wool on cotton', age: 'c.1910–1925', size: '220 × 150 cm',
+    colourFamily: 'mixed', colourWords: 'a garden of square panels, each with a tree, cypress or flower vase', provenance: 'Likely',
+    dealerCost: 850, valueBand: [1200, 2300], asking: 2200,
+    traits: ['wool', 'hardwearing', 'bold', 'story'],
+    history: 'Woven in the villages of Chahar Mahal under the Bakhtiari khans, the panel design laid out like a Persian garden.',
+    storyLine: 'A garden you can walk on. The villages under the Bakhtiari khans weave every panel with its own tree.',
+    craftLine: 'Heavy, stiff and dense. The panels are drawn square and true, and no two are alike.',
+    durabilityLine: 'One of the toughest rugs in Persia. Put it in the hall.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 90 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Cotton fringe, complete', backNote: 'Coarse, firm back.',
+  }),
+  persian('persian-heriz', 66, 'medallion', ['#a8442c', '#1e2a48', '#e4d2aa', '#4e7a8a', '#3a2216'], {
+    name: 'Heriz Carpet', tier: 2, origin: 'Persia / Heriz villages, near Tabriz', material: 'Thick wool on cotton', age: 'c.1900–1920', size: '300 × 220 cm',
+    colourFamily: 'crimson', colourWords: 'brick-red field, a great angular medallion in navy and ivory, corner pieces', provenance: 'Likely',
+    dealerCost: 950, valueBand: [1350, 2600], asking: 2500,
+    traits: ['wool', 'hardwearing', 'bold', 'warm', 'darkField'],
+    history: 'The villages on the slopes east of Tabriz weave large carpets with bold angular medallions, sold through the Tabriz bazaar.',
+    storyLine: 'Heriz, from the villages above Tabriz. They draw their medallions straight, with corners, as if they were building a house.',
+    craftLine: 'Thick village wool, the copper in the local water gives it that strength. Count the knots: coarse, but very tight.',
+    durabilityLine: 'Heriz carpets are said to wear for a hundred years. This one has made a good start.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 60 knots per sq. inch', foundation: 'Heavy cotton warp and weft' }, fringe: 'Original, a little short', backNote: 'Coarse, very firm back.',
+  }),
+  persian('persian-joshaghan', 67, 'lattice', ['#8c2a2a', '#1e2848', '#e0cfa2', '#c8a040', '#2c1c18'], {
+    name: 'Joshaghan Rug', tier: 2, origin: 'Persia / Joshaghan, between Kashan and Isfahan', material: 'Wool on cotton', age: 'c.1890–1915', size: '200 × 140 cm',
+    colourFamily: 'crimson', colourWords: 'dark red field covered in a lattice of small diamond flower-heads', provenance: 'Likely',
+    dealerCost: 1000, valueBand: [1400, 2700], asking: 2600,
+    traits: ['wool', 'restrained', 'fineWeave', 'darkField'],
+    history: 'A small town between Kashan and Isfahan that has woven the same diamond lattice of flowers for two hundred years.',
+    storyLine: 'Joshaghan, a little town on the road from Kashan to Isfahan. They have woven this lattice since Safavid days.',
+    craftLine: 'The whole field is one pattern, repeated without a mistake. That takes a weaver who can count in her sleep.',
+    durabilityLine: 'Good town wool, closely knotted. It will take a sitting room for generations.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 110 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Complete', backNote: 'Neat, regular back.',
+  }),
+  persian('persian-mashhad', 68, 'medallion', ['#7a1e2a', '#1a2040', '#c8ac80', '#4a2a5a', '#2a1418'], {
+    name: 'Mashhad Carpet', tier: 2, origin: 'Persia / Mashhad, Khorasan', material: 'Soft wool on cotton', age: 'c.1910–1925', size: '280 × 190 cm',
+    colourFamily: 'crimson', colourWords: 'deep cochineal red with a purple cast, a navy medallion, herati border', provenance: 'Likely',
+    dealerCost: 1050, valueBand: [1450, 2800], asking: 2700,
+    traits: ['wool', 'soft', 'darkField', 'ornate'],
+    history: 'The workshops of the holy city of Mashhad, in Khorasan, weave large carpets in soft wool and deep cochineal reds. They reach Tehran by caravan.',
+    storyLine: 'From Mashhad, the shrine city of the east. It came across Persia by caravan to the Tehran bazaar.',
+    craftLine: 'That red is cochineal, with a purple light in it. Soft Khorasan wool; feel how it gives under the hand.',
+    durabilityLine: 'Soft wool wears faster than village wool. Put it where shoes come off.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 120 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Cotton fringe, complete', backNote: 'Jufti knots in places (tied over four warps).',
+  }),
+  persian('persian-senneh', 69, 'lattice', ['#2a3050', '#8a2a24', '#d8c8a0', '#b0883a', '#1a1a24'], {
+    name: 'Senneh Rug', tier: 2, origin: 'Persia / Senneh (Sanandaj), Kurdistan', material: 'Fine wool on cotton', age: 'c.1890–1915', size: '190 × 130 cm',
+    colourFamily: 'indigo', colourWords: 'navy field of small boteh, a red and ivory border, very finely drawn', provenance: 'Likely',
+    dealerCost: 1100, valueBand: [1550, 2950], asking: 2850,
+    traits: ['wool', 'fineWeave', 'restrained', 'cool'],
+    history: 'The Kurdish town of Senneh weaves the finest small rugs in western Persia, thin and close-knotted, with a back you can feel the knots on like sandpaper.',
+    storyLine: 'Senneh, the Kurdish town north of Kermanshah. Turn it over: the back feels like sandpaper. That is the fineness.',
+    craftLine: 'Very thin, very fine, every boteh drawn small and sharp. Run your hand over the back.',
+    durabilityLine: 'Thin rugs like this were made for a fine room. They last if they are not walked to death.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 180 knots per sq. inch', foundation: 'Cotton warp, single weft' }, fringe: 'Original, short', backNote: 'Gritty, sandpaper back typical of Senneh.',
+  }),
+  persian('persian-sarouk', 70, 'medallion', ['#8e3a3a', '#1c2446', '#e2c8a4', '#3c5a7a', '#2a1a1e'], {
+    name: 'Sarouk Carpet', tier: 3, origin: 'Persia / Sarouk and the Sultanabad villages', material: 'Dense wool on cotton', age: 'c.1905–1925', size: '300 × 200 cm',
+    colourFamily: 'crimson', colourWords: 'rose-red field of sprays of flowers, a navy border', provenance: 'Likely',
+    dealerCost: 2000, valueBand: [2900, 5600], asking: 5300,
+    traits: ['wool', 'fineWeave', 'ornate', 'darkField'],
+    history: 'Close-knotted carpets from the villages near Sultanabad, much sought by the American trade since the war. They come to market in Hamadan.',
+    storyLine: 'A Sarouk. The Americans buy every one they can find, so this one is a lucky find west of Baghdad.',
+    craftLine: 'Double-wefted and packed hard: it stands up stiff when you fold it. Those flowers are drawn freehand.',
+    durabilityLine: 'Dense as felt. A Sarouk will outlast the house it lies in.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 200 knots per sq. inch', foundation: 'Cotton warp, double weft' }, fringe: 'Complete', backNote: 'Very dense, stiff back; blue wefts.',
+  }),
+  persian('persian-tabriz', 71, 'medallion', ['#a33a2c', '#1f2a4a', '#ebdcb8', '#7a8a5a', '#3a2418'], {
+    name: 'Tabriz Medallion Carpet', tier: 3, origin: 'Persia / Tabriz workshops', material: 'Wool on cotton', age: 'c.1900–1920', size: '320 × 220 cm',
+    colourFamily: 'mixed', colourWords: 'ivory and red, a great medallion with pendants, corners in navy, scrolling vines', provenance: 'Likely',
+    dealerCost: 2200, valueBand: [3200, 6200], asking: 5900,
+    traits: ['wool', 'fineWeave', 'ornate', 'restrained'],
+    history: 'Tabriz merchants revived the great workshops in the nineteenth century for the European trade, weaving every design Persia knows.',
+    storyLine: 'A Tabriz workshop carpet. The merchants there weave for Constantinople and Europe, and they know exactly what a good house wants.',
+    craftLine: 'A workshop cartoon, woven with care. The medallion is crisp, the vines never break.',
+    durabilityLine: 'Workshop wool on cotton, tight and even. A drawing room for fifty years.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 160 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Complete', backNote: 'Even workshop knotting, a jufti patch or two.',
+  }),
+  persian('persian-kerman', 72, 'medallion', ['#e6d2b0', '#3a4a6a', '#f4e6cc', '#c47a7a', '#5a6a8a'], {
+    name: 'Kerman Carpet', tier: 3, origin: 'Persia / Kerman workshops', material: 'Fine soft wool on cotton', age: 'c.1910–1925', size: '300 × 210 cm',
+    colourFamily: 'ivory', colourWords: 'ivory field, a rose and pale blue medallion, sprays of flowers in soft colours', provenance: 'Likely',
+    dealerCost: 2400, valueBand: [3500, 6800], asking: 6400,
+    traits: ['wool', 'fineWeave', 'ornate', 'lightField', 'soft'],
+    history: 'Kerman workshops weave fine carpets in soft colours. Since the war much of their work goes to New York.',
+    storyLine: 'Kerman, the far south-east of Persia. The workshops there weave in the colours New York likes, rose and ivory and pale blue.',
+    craftLine: 'Very fine wool, very many colours: count them, there are more than twenty. Each one shades into the next.',
+    durabilityLine: 'Fine and soft, with a pale field. A drawing room, and no dogs.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 220 knots per sq. inch', foundation: 'Cotton warp, triple weft' }, fringe: 'Complete', backNote: 'Very fine, even back.',
+  }),
+  persian('persian-isfahan', 73, 'medallion', ['#8a2224', '#1c2648', '#efe0c0', '#2e6a7a', '#2a1418'], {
+    name: 'Isfahan Carpet', tier: 3, origin: 'Persia / Isfahan workshops', material: 'Fine wool on cotton', age: 'c.1920–1925', size: '230 × 150 cm',
+    colourFamily: 'crimson', colourWords: 'red and ivory, a round medallion of palmettes, a turquoise border', provenance: 'Likely',
+    dealerCost: 2600, valueBand: [3800, 7400], asking: 7000,
+    traits: ['wool', 'fineWeave', 'ornate', 'rare'],
+    history: 'After a long gap, the workshops of Isfahan have begun weaving fine carpets again, after the Safavid court designs.',
+    storyLine: 'New work from Isfahan, where the Safavid kings kept their looms. The workshops have only lately started again.',
+    craftLine: 'Fine knotting and clean drawing, after the old court designs. The turquoise border is an Isfahan colour.',
+    durabilityLine: 'New, fine and well made. With care it will be an heirloom.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 250 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Complete', backNote: 'Crisp, fine back.',
+  }),
+  persian('persian-kashan', 74, 'medallion', ['#7a1c22', '#141c3c', '#e6d4aa', '#3a6a8a', '#24141a'], {
+    name: 'Kashan Carpet', tier: 3, origin: 'Persia / Kashan workshops', material: 'Kork wool on cotton', age: 'c.1905–1925', size: '310 × 205 cm',
+    colourFamily: 'crimson', colourWords: 'deep red field, a navy medallion, ivory spandrels, finely drawn vines', provenance: 'Likely',
+    dealerCost: 2800, valueBand: [4100, 8000], asking: 7600,
+    traits: ['wool', 'fineWeave', 'ornate', 'soft', 'rare'],
+    history: 'Kashan weavers use kork, the soft wool from a lamb\'s neck and shoulders, and knot very finely. Among the finest carpets of Persia.',
+    storyLine: 'A Kashan, in kork wool. The dealers in Cairo and Paris ask for Kashans by name.',
+    craftLine: 'Kork wool, from the neck of the lamb: soft as velvet and it takes dye like silk. Look at the drawing in the vines.',
+    durabilityLine: 'Soft wool, tight knots. It will keep its sheen for generations if the room is kind to it.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 260 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Complete', backNote: 'Very fine knotting, blue wefts.',
+  }),
 ].sort((a, b) => a[1].dealerCost - b[1].dealerCost));
 
 /** What each tier is called in the Carpet Register. */
@@ -309,5 +473,7 @@ export const CONDITION_FACTOR: Record<Condition, number> = {
   Damaged: 0.45,
 };
 
-export const RUG_IDS = Object.keys(RUGS);
+/** the Persian rugs (the Persian road, save 24): not in the Carpet Register, which keeps to the library above */
+export const PERSIAN_RUG_IDS = Object.keys(RUGS).filter((id) => id.startsWith('persian-'));
+export const RUG_IDS = Object.keys(RUGS).filter((id) => !id.startsWith('persian-'));
 export const tierOf = (id: string) => RUGS[id]?.tier ?? 1;

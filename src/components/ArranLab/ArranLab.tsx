@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { rugThumb } from '../RugViewer/rugArt';
 import { OnceLine } from '../Tips/OnceLine';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -384,7 +385,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
                   const n = findings.filter((f) => f.subjectId === i.uid).length;
                   return (
                     <button key={i.uid} type="button" role="option" aria-selected={rugId === i.uid} className={`arran-rugcard ${rugId === i.uid ? 'is-on' : ''}`} onClick={() => { if (rugId !== i.uid) playArranVoice('rug-inspection'); setRugId(i.uid); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-rug-${i.uid}`}>
-                      <img src={t.art.kind === 'photo' ? t.art.src : ''} alt="" draggable={false} loading="lazy" />
+                      <img src={rugThumb(t)} alt="" draggable={false} loading="lazy" />
                       <b>{t.name}</b>
                       <small>{i.condition}{n ? ` · ${n} tested` : ''}</small>
                     </button>

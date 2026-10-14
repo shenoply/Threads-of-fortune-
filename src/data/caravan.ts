@@ -65,11 +65,20 @@ export const MARKETS: Record<string, Market> = {
   konya: { food: 1, horse: 75, recruits: [{ troop: 'fellah', min: 1, max: 3 }, { troop: 'veteran', min: 0, max: 2 }] },
   istanbul: { food: 2, horse: 110, recruits: [{ troop: 'veteran', min: 1, max: 3 }] },
   baghdad: { food: 1, camel: 45, horse: 90, recruits: [{ troop: 'bedouin', min: 1, max: 3 }, { troop: 'guard', min: 0, max: 2 }] },
+  // the Persian road (save 24)
+  khanaqin: { food: 1, horse: 85, recruits: [{ troop: 'guard', min: 0, max: 2 }] },
+  kermanshah: { food: 1, horse: 80, recruits: [{ troop: 'guard', min: 1, max: 2 }, { troop: 'veteran', min: 0, max: 1 }] },
+  hamadan: { food: 1, horse: 80, recruits: [{ troop: 'guard', min: 1, max: 2 }] },
+  tehran: { food: 1.5, horse: 95, recruits: [{ troop: 'guard', min: 1, max: 2 }, { troop: 'veteran', min: 0, max: 2 }] },
+  tabriz: { food: 1, horse: 85, recruits: [{ troop: 'guard', min: 1, max: 2 }, { troop: 'veteran', min: 0, max: 1 }] },
+  kashan: { food: 1, camel: 50, recruits: [{ troop: 'guard', min: 0, max: 2 }] },
+  isfahan: { food: 1, camel: 50, horse: 85, recruits: [{ troop: 'guard', min: 1, max: 2 }] },
+  kerman: { food: 1.2, camel: 45, recruits: [{ troop: 'guard', min: 0, max: 2 }] },
 };
 
 // Old caravan roads, drawn on the map.
 /** The guard yard picture shown in each town's Guards tab. */
-export const YARD_ART: Record<string, string> = { giza: 'yard-giza', saqqara: 'yard-giza', fayoum: 'yard-giza', cairo: 'yard-cairo', tanta: 'yard-cairo', alexandria: 'yard-alexandria', portsaid: 'yard-alexandria', suez: 'yard-caravanserai', bedouin: 'yard-caravanserai', damascus: 'yard-caravanserai', baghdad: 'yard-caravanserai', jerusalem: 'yard-caravanserai', aleppo: 'yard-caravanserai', amman: 'yard-caravanserai' };
+export const YARD_ART: Record<string, string> = { giza: 'yard-giza', saqqara: 'yard-giza', fayoum: 'yard-giza', cairo: 'yard-cairo', tanta: 'yard-cairo', alexandria: 'yard-alexandria', portsaid: 'yard-alexandria', suez: 'yard-caravanserai', bedouin: 'yard-caravanserai', damascus: 'yard-caravanserai', baghdad: 'yard-caravanserai', jerusalem: 'yard-caravanserai', aleppo: 'yard-caravanserai', amman: 'yard-caravanserai', khanaqin: 'yard-caravanserai', kermanshah: 'yard-caravanserai', hamadan: 'yard-caravanserai', tehran: 'yard-caravanserai', tabriz: 'yard-caravanserai', kashan: 'yard-caravanserai', isfahan: 'yard-caravanserai', kerman: 'yard-caravanserai' };
 
 export const ROADS: [string, string][] = [
   ['giza', 'cairo'], ['giza', 'saqqara'], ['saqqara', 'fayoum'], ['cairo', 'tanta'], ['tanta', 'alexandria'],

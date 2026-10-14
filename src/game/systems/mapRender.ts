@@ -2,9 +2,10 @@
 // drawn fresh at every zoom so the map stays sharp.
 import geo from '../../data/geo.json';
 import { RANGES, DESERTS, FERTILE, PALMS, LABELS, RAILWAYS, PROJ, proj } from '../../data/mapFeatures';
-import { MASK_W, MASK_H } from '../../data/landmask';
+import { MASK_H } from '../../data/landmask';
+import { persiaCanvas, PERSIA_X0 } from './persiaArt';
 import { RAIL_LINKS } from '../../data/world';
-import { MAP_W, MAP_H, paint, settlementById, routeLeg } from './world';
+import { MAP_W, MAP_H, PAINT_W, GRID_W, fitFog, paint, settlementById, routeLeg } from './world';
 
 type Ring = number[];
 
@@ -84,6 +85,14 @@ const PAINT_LABELS: { text: string; x: number; y: number; kind: 'region' | 'sea'
   { text: 'Syrian Desert', x: 1090, y: 620, kind: 'minor', size: 1.1 },
   { text: 'Nile', x: 342, y: 880, kind: 'river', rot: 72 },
   { text: 'Euphrates', x: 1150, y: 395, kind: 'river', rot: 28 },
+  // Persia, east of the painting (map units converted to painting pixels)
+  ...([
+    { text: 'PERSIA', x: 1150, y: 262, kind: 'region', size: 1.25 },
+    { text: 'Caspian Sea', x: 1068, y: 82, kind: 'sea', size: 0.9 },
+    { text: 'Persian Gulf', x: 1040, y: 470, kind: 'sea', size: 0.9, rot: 18 },
+    { text: 'Zagros', x: 968, y: 318, kind: 'minor', size: 0.95, rot: 40 },
+    { text: 'Dasht-i Kavir', x: 1140, y: 236, kind: 'minor', size: 0.9 },
+  ] as const).map((l) => ({ ...l, x: (l.x * 1536) / PAINT_W, y: (l.y * 1536) / PAINT_W })),
 ];
 const ringPath = (rings: Ring[]) => {
   const p = new Path2D();
@@ -204,7 +213,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     world();
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(art, 0, 0, MAP_W, MAP_H);
+    ctx.drawImage(art, 0, 0, PAINT_W, MAP_H);
+    // Persia, east of the painting, drawn in code and faded into its edge (persiaArt.ts)
+    const east = persiaCanvas(() => artListeners.forEach((f) => f()));
+    if (east) ctx.drawImage(east, PERSIA_X0, 0, MAP_W - PERSIA_X0, MAP_H);
+    else { ctx.fillStyle = 'rgb(208,158,96)'; ctx.fillRect(PAINT_W, 0, MAP_W - PAINT_W, MAP_H); }
     screen();
   } else {
   // the engraved map's coastlines, grain and stipple are only built when it is drawn (the painting needs none of it)
@@ -554,11 +567,12 @@ export const milesPx = (s: number) => (paintedMap() ? 104 : (160.9 / 111) * PROJ
 /** Fog texture: unexplored land shown as blank parchment. */
 export function fogCanvas(fog: string) {
   const c = document.createElement('canvas');
-  c.width = MASK_W;
+  c.width = GRID_W;
   c.height = MASK_H;
   const g = c.getContext('2d')!;
-  const img = g.createImageData(MASK_W, MASK_H);
-  for (let i = 0; i < MASK_W * MASK_H; i++) {
+  const img = g.createImageData(GRID_W, MASK_H);
+  fog = fitFog(fog);
+  for (let i = 0; i < GRID_W * MASK_H; i++) {
     img.data[i * 4] = 226;
     img.data[i * 4 + 1] = 208;
     img.data[i * 4 + 2] = 168;
@@ -567,7 +581,7 @@ export function fogCanvas(fog: string) {
   g.putImageData(img, 0, 0);
   // blur edges into cloud-like margins
   const big = document.createElement('canvas');
-  big.width = MASK_W * 4;
+  big.width = GRID_W * 4;
   big.height = MASK_H * 4;
   const b = big.getContext('2d')!;
   b.filter = 'blur(6px)';

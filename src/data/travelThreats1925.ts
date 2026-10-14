@@ -164,6 +164,32 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
     "historicalNote": "Composite game encounter inspired by the illicit cross-border economy, smugglers and armed bands documented in the post-Ottoman frontier world.",
     "leaderImage": "art/travel-threats/iraq-border-smuggler-brigands-leader.jpg",
     "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.jpg"
+  },
+  {
+    "id": "zagros-tribal-raiders",
+    "displayName": "Zagros Raiders",
+    "regions": [
+      "the Paitak pass",
+      "Kermanshah road",
+      "Asadabad pass"
+    ],
+    "kind": "tribal_or_criminal_raid",
+    "activeFromMonth": 1,
+    "activeToMonth": 12,
+    "baseRisk": 0.18,
+    "cargoValueSensitivity": 0.16,
+    "nightRiskBonus": 0.08,
+    "escortDeterrence": 0.4,
+    "preferredResolutions": [
+      "pay_passage",
+      "negotiate",
+      "escort_deters",
+      "avoid",
+      "delay"
+    ],
+    "historicalNote": "Tribal bands in the Lur and Kurdish country of western Persia raided the caravan roads in the early 1920s, while Reza Khan's new army was disarming the tribes. A game category for such bands, not a label for Lurs or Kurds generally.",
+    "leaderImage": "art/travel-threats/iraq-border-smuggler-brigands-leader.jpg",
+    "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.jpg"
   }
 ] as TravelThreat[];
 
@@ -271,7 +297,7 @@ export const monthOfDay = (day: number) => new Date(Date.UTC(1925, 2, 9 + day)).
 export function threatForParty(p: Party, day: number): TravelThreat {
   const by = (id: string) => TRAVEL_THREATS_1925.find((t) => t.id === id)!;
   const month = monthOfDay(day);
-  const band: Record<string, string> = { rb0: 'egypt-rural-highway-robbers', rb1: 'sinai-transjordan-desert-raiders', rb2: 'palestine-road-thieves', rb3: month >= 7 ? 'syria-1925-rebels' : 'sinai-transjordan-desert-raiders', rb4: 'iraq-border-smuggler-brigands', rb5: 'iraq-border-smuggler-brigands', r0: 'sinai-transjordan-desert-raiders', r1: month >= 7 ? 'syria-1925-rebels' : 'sinai-transjordan-desert-raiders' };
+  const band: Record<string, string> = { rb0: 'egypt-rural-highway-robbers', rb1: 'sinai-transjordan-desert-raiders', rb2: 'palestine-road-thieves', rb3: month >= 7 ? 'syria-1925-rebels' : 'sinai-transjordan-desert-raiders', rb4: 'iraq-border-smuggler-brigands', rb5: 'iraq-border-smuggler-brigands', rb6: 'zagros-tribal-raiders', rb7: 'zagros-tribal-raiders', r0: 'sinai-transjordan-desert-raiders', r1: month >= 7 ? 'syria-1925-rebels' : 'sinai-transjordan-desert-raiders' };
   return by(band[p.id] ?? 'egypt-rural-highway-robbers');
 }
 
@@ -283,6 +309,8 @@ export const THREAT_VOICE: Record<string, string> = {
   'palestine-road-thieves': 'roadthief',
   'syria-1925-rebels': 'rebelcommander',
   'iraq-border-smuggler-brigands': 'smugglerchief',
+  // no lines recorded for them: their words are shown, not spoken
+  'zagros-tribal-raiders': 'smugglerchief',
 };
 
 export const THREAT_LINES: Record<string, { open: string; demand: string; strip: string; talkOk: string; talkBad: string }> = {
@@ -320,5 +348,12 @@ export const THREAT_LINES: Record<string, { open: string; demand: string; strip:
     strip: 'They go through your packs and your purse for anything worth carrying across the frontier and leave the rest in the sand.',
     talkOk: 'You trade news of French patrols for a safe passage. Everyone leaves happy.',
     talkBad: 'They listen to your news and then name their price anyway.',
+  },
+  'zagros-tribal-raiders': {
+    open: 'Horsemen with rifles and cartridge belts come down off the slope and stand across the road where it bends into the pass.',
+    demand: 'Their leader rides up close. The road through these mountains, he says, belongs to his people, and a caravan pays to use it.',
+    strip: 'They cut open your bales, take what they like and your money with it, and ride back up the hillside.',
+    talkOk: 'You name the khan of the last village you stopped in, and say you carry no soldiers\' goods. They let you through for a little tobacco.',
+    talkBad: 'They listen, then name the price for the road again.',
   },
 };

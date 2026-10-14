@@ -17,26 +17,37 @@
 //                         97.5 / 9 = 10.8, taken as 11 PT.
 //   Iraq                  the Indian rupee (16 annas), 1s 6d sterling: 1.5 x 4.88 = 7.3 PT. The Iraqi
 //                         dinar did not replace it until 1932.
+//   Persia                the silver kran (qiran, 20 shahis); ten krans made a toman, the unit merchants
+//                         reckoned larger sums in. About 56½ krans to the pound sterling in 1922-23 (the
+//                         British trade report to June 1923) and 59¾ when it was pegged in 1930: taken as
+//                         55 in 1925-26, so 97.5 / 55 = 1.77 PT a kran, 17.7 PT a toman.
 import { dayOf } from './life';
 import { fmt } from './money';
 import { SETTLEMENTS } from '../../data/world';
 
-export type Country = 'egypt' | 'palestine' | 'transjordan' | 'syria' | 'turkey' | 'iraq';
-export type Currency = 'egp' | 'pal' | 'syp' | 'try' | 'inr';
+export type Country = 'egypt' | 'palestine' | 'transjordan' | 'syria' | 'turkey' | 'iraq' | 'persia';
+export type Currency = 'egp' | 'pal' | 'syp' | 'try' | 'inr' | 'kran';
 
 const REGION_COUNTRY: Record<string, Country> = {
   Egypt: 'egypt', Sinai: 'egypt', Palestine: 'palestine', Transjordan: 'transjordan',
-  Syria: 'syria', Lebanon: 'syria', Anatolia: 'turkey', Iraq: 'iraq',
+  Syria: 'syria', Lebanon: 'syria', Anatolia: 'turkey', Iraq: 'iraq', Persia: 'persia',
 };
 
 export const COUNTRY_NAME: Record<Country, string> = {
-  egypt: 'Egypt', palestine: 'Palestine', transjordan: 'Transjordan', syria: 'Syria and Lebanon', turkey: 'Turkey', iraq: 'Iraq',
+  egypt: 'Egypt', palestine: 'Palestine', transjordan: 'Transjordan', syria: 'Syria and Lebanon', turkey: 'Turkey', iraq: 'Iraq', persia: 'Persia',
 };
 /** who governs it, in a few words */
 export const COUNTRY_RULE: Record<Country, string> = {
   egypt: 'the Kingdom of Egypt', palestine: 'the British Mandate', transjordan: 'the Emirate, under the British Mandate',
   syria: 'the French Mandate', turkey: 'the Turkish Republic', iraq: 'the Kingdom of Iraq, under the British Mandate',
+  persia: 'Persia',
 };
+/** who governs it on a given day: Persia changed hands in the autumn of 1925 (calendar1925.ts) */
+export const DEPOSED_DAY = dayOf(10, 31), SHAH_DAY = dayOf(12, 12);
+export function countryRule(c: Country, day: number): string {
+  if (c !== 'persia') return COUNTRY_RULE[c];
+  return day >= SHAH_DAY ? 'Persia under Reza Shah Pahlavi' : day >= DEPOSED_DAY ? 'Persia, under the provisional government of Reza Khan' : 'Persia under the Qajar Shah, with Reza Khan as Prime Minister';
+}
 
 export function countryOf(id: string | null | undefined): Country | undefined {
   if (!id) return undefined;
@@ -51,6 +62,7 @@ export function currencyOf(c: Country | undefined, day: number): Currency {
   if (c === 'syria') return 'syp';
   if (c === 'turkey') return 'try';
   if (c === 'iraq') return 'inr';
+  if (c === 'persia') return 'kran';
   if ((c === 'palestine' || c === 'transjordan') && day >= PALESTINE_POUND_FROM) return 'pal';
   return 'egp';
 }
@@ -77,6 +89,7 @@ export function ptPerUnit(c: Currency, day: number) {
     case 'syp': return Math.round((20 / francsToSterling(day)) * 97.5 * 10) / 10;
     case 'try': return 11;
     case 'inr': return 7.3;
+    case 'kran': return 1.77;
   }
 }
 
@@ -86,6 +99,7 @@ export const CURRENCY: Record<Currency, { name: string; plural: string; sign: st
   syp: { name: 'Syrian pound', plural: 'Syrian pounds', sign: '£S', sub: 'Syrian piastres', subPer: 100, issuer: 'the Banque de Syrie et du Grand-Liban' },
   try: { name: 'Turkish lira', plural: 'Turkish lira', sign: '£T', sub: 'kuruş', subPer: 100, issuer: 'the Turkish state' },
   inr: { name: 'rupee', plural: 'rupees', sign: 'Rs', sub: 'annas', subPer: 16, issuer: 'the Government of India' },
+  kran: { name: 'kran', plural: 'krans', sign: 'Kr', sub: 'shahis', subPer: 20, issuer: 'the Persian mint' },
 };
 
 /** a sum in Egyptian piastres, in the local money: units rounded as a merchant would say them */
@@ -95,7 +109,13 @@ export function inLocal(pt: number, c: Currency, day: number) {
   if (units < 1) {
     const raw = units * cur.subPer, step = raw >= 20 && cur.subPer >= 100 ? 5 : 1;
     const sub = Math.max(1, Math.round(raw / step) * step);
-    return { units, short: `${sub} ${c === 'inr' ? 'annas' : c === 'try' ? 'kuruş' : c === 'pal' ? 'mils' : 'Syrian pt'}`, long: `${sub} ${cur.sub}` };
+    return { units, short: `${sub} ${c === 'inr' ? 'annas' : c === 'try' ? 'kuruş' : c === 'pal' ? 'mils' : c === 'kran' ? 'shahis' : 'Syrian pt'}`, long: `${sub} ${cur.sub}` };
+  }
+  // larger sums in Persia are reckoned in tomans of ten krans
+  if (c === 'kran' && units >= 20) {
+    const t = units / 10, r = t >= 10 ? Math.round(t) : Math.round(t * 2) / 2;
+    const n = `${Math.floor(r).toLocaleString('en-GB')}${r % 1 ? '½' : ''}`;
+    return { units, short: `${n} tomans`, long: `${n} tomans` };
   }
   const r = units >= 10 ? Math.round(units) : Math.round(units * 2) / 2;
   const n = `${Math.floor(r).toLocaleString('en-GB')}${r % 1 ? '½' : ''}`;
@@ -120,6 +140,7 @@ export function localMoneyLong(pt: number, at: string | null | undefined, day: n
 export function moneyLine(at: string | null | undefined, day: number) {
   const c = currencyAt(at, day);
   const cur = CURRENCY[c];
+  if (c === 'kran') return `Krans and tomans (ten krans to the toman), about ${ptPerUnit(c, day)} piastres the kran`;
   if (c === 'egp') {
     const country = countryOf(at);
     return country && country !== 'egypt' ? `Egyptian pounds and piastres, as at home` : 'Egyptian pounds and piastres';
@@ -129,12 +150,13 @@ export function moneyLine(at: string | null | undefined, day: number) {
 }
 
 /** what the money-changer keeps on the first deal of a visit, by money (2 per cent is "two piastres in the pound") */
-export const CHANGER_CUT: Record<Currency, number> = { egp: 0, pal: 0.01, syp: 0.025, try: 0.03, inr: 0.02 };
+export const CHANGER_CUT: Record<Currency, number> = { egp: 0, pal: 0.01, syp: 0.025, try: 0.03, inr: 0.02, kran: 0.03 };
 export const CHANGER_WHY: Record<Currency, string> = {
   egp: '',
   pal: 'Palestine pounds for your Egyptian notes, at a small charge.',
   syp: 'The franc keeps falling, so he keeps two and a half piastres in the pound against it.',
   try: 'Paper lira for your Egyptian notes, and the lira is weak: he keeps three in the hundred.',
   inr: 'Rupees for your Egyptian notes: he keeps two in the hundred.',
+  kran: 'Silver krans for your notes, counted out in stacks on a cloth: the sarraf keeps three in the hundred.',
 };
 export const changerFee = (amountPt: number, c: Currency) => (CHANGER_CUT[c] ? Math.max(5, Math.min(500, Math.round(Math.abs(amountPt) * CHANGER_CUT[c]))) : 0);

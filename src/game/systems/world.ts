@@ -2,28 +2,43 @@ import { MASK_W, MASK_H, CELL, WATER_ROWS } from '../../data/landmask';
 import { TERRAIN_ROWS } from '../../data/terrain';
 import { BARRIER_ROWS, BARRIER_NAMES } from '../../data/barriers';
 import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, RAIL_FARE_PER_KM, RAIL_FARE_MIN, ANIMAL_FREIGHT, type Settlement } from '../../data/world';
+import { PAINT_W, EAST_W, eastGround, PERSIA_ROADS } from '../../data/persiaMap';
 import { BREEDS } from '../../data/animals';
 import { seaDelayOn, SEASON_NOW } from '../economy/calendar1925';
 
 export interface Pt { x: number; y: number }
 
-export const MAP_W = 885, MAP_H = 590; // the painted travel map, 1536 x 1024, at 0.576 scale
+// The painted travel map (1536 x 1024, shown 885 x 590) and, east of it, Persia drawn in code
+// (data/persiaMap.ts, systems/persiaArt.ts): the map is 1265 units across.
+export const MAP_W = EAST_W, MAP_H = 590;
+export { PAINT_W };
 /** Painting pixels to map units. */
-export const paint = (x: number, y: number): Pt => ({ x: x * (MAP_W / 1536), y: y * (MAP_W / 1536) });
+export const paint = (x: number, y: number): Pt => ({ x: x * (PAINT_W / 1536), y: y * (PAINT_W / 1536) });
+/** The ground grid over the whole map: the painting's 177 columns (landmask.ts, terrain.ts, barriers.ts)
+ *  and Persia's beyond them. */
+export const GRID_W = Math.round(MAP_W / CELL);
 export const PX_PER_DAY = 24; // on foot with pack animals, about 40 km a day
 export const TRAIN_PX_PER_DAY = 220; // about 400 km a day including stops
 export const TRAIN_SPEEDUP = TRAIN_PX_PER_DAY / PX_PER_DAY;
 export const FOOD_PER_DAY = 6;
 
-const water = new Uint8Array(MASK_W * MASK_H);
+const water = new Uint8Array(GRID_W * MASK_H);
 WATER_ROWS.forEach((row, y) => {
-  for (let x = 0; x < MASK_W; x++) water[y * MASK_W + x] = row.charCodeAt(x) === 49 ? 1 : 0;
+  for (let x = 0; x < MASK_W; x++) water[y * GRID_W + x] = row.charCodeAt(x) === 49 ? 1 : 0;
 });
+// the ground east of the painting, cell by cell
+const EAST_GROUND: string[] = [];
+for (let y = 0; y < MASK_H; y++)
+  for (let x = MASK_W; x < GRID_W; x++) {
+    const g = eastGround({ x: x * CELL + CELL / 2, y: y * CELL + CELL / 2 });
+    EAST_GROUND[y * GRID_W + x] = g;
+    if (g === 'w') water[y * GRID_W + x] = 1;
+  }
 
-export const cellOf = (p: Pt) => ({ cx: Math.max(0, Math.min(MASK_W - 1, Math.floor(p.x / CELL))), cy: Math.max(0, Math.min(MASK_H - 1, Math.floor(p.y / CELL))) });
+export const cellOf = (p: Pt) => ({ cx: Math.max(0, Math.min(GRID_W - 1, Math.floor(p.x / CELL))), cy: Math.max(0, Math.min(MASK_H - 1, Math.floor(p.y / CELL))) });
 export const isWaterPx = (p: Pt) => {
   const { cx, cy } = cellOf(p);
-  return water[cy * MASK_W + cx] === 1;
+  return water[cy * GRID_W + cx] === 1;
 };
 const centre = (cx: number, cy: number): Pt => ({ x: cx * CELL + CELL / 2, y: cy * CELL + CELL / 2 });
 export const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -37,11 +52,17 @@ const KIND: Record<string, Terrain> = { r: 'road', f: 'fertile', d: 'desert', h:
 export const TERRAIN_SPEED: Record<Terrain, number> = { road: 1.25, fertile: 1, desert: 0.8, hills: 0.6, mountains: 0, water: 0, river: 0, lake: 0, canal: 0, bridge: 1.25, ford: 0.45 };
 export const TERRAIN_LABEL: Record<Terrain, string> = { road: 'road', fertile: 'farmland', desert: 'open desert', hills: 'hills', mountains: 'mountains', water: 'water', river: 'a river', lake: 'a lake', canal: 'the canal', bridge: 'a bridge', ford: 'a ford' };
 const BARRIER: Record<string, Terrain> = { R: 'river', L: 'lake', C: 'canal', B: 'bridge', F: 'ford', M: 'mountains' };
-const speedOf = new Float32Array(MASK_W * MASK_H);
-const kindOf: Terrain[] = new Array(MASK_W * MASK_H);
+const speedOf = new Float32Array(GRID_W * MASK_H);
+const kindOf: Terrain[] = new Array(GRID_W * MASK_H);
 for (let y = 0; y < MASK_H; y++)
-  for (let x = 0; x < MASK_W; x++) {
-    const i = y * MASK_W + x;
+  for (let x = 0; x < GRID_W; x++) {
+    const i = y * GRID_W + x;
+    if (x >= MASK_W) {
+      const k: Terrain = water[i] ? 'water' : KIND[EAST_GROUND[i]] ?? 'desert';
+      kindOf[i] = k;
+      speedOf[i] = TERRAIN_SPEED[k];
+      continue;
+    }
     const bar = BARRIER[BARRIER_ROWS[y]?.[x] ?? '.'];
     // a bridge or ford also opens a river the sea mask drew (the Nile above Cairo)
     const opened = BARRIER_ROWS[y]?.[x] === 'O'; // land an old trace marked as water
@@ -51,22 +72,32 @@ for (let y = 0; y < MASK_H; y++)
     kindOf[i] = k;
     speedOf[i] = TERRAIN_SPEED[k];
   }
-const idxOf = (p: Pt) => { const { cx, cy } = cellOf(p); return cy * MASK_W + cx; };
+// the Persian roads, laid over the ground: through the Zagros and the Alborz they are the only way
+for (const r of PERSIA_ROADS)
+  for (let k = 1; k < r.pts.length; k++) {
+    const a = r.pts[k - 1], b = r.pts[k], n = Math.ceil(dist(a, b));
+    for (let t = 0; t <= n; t++) {
+      const cx = Math.floor((a.x + ((b.x - a.x) * t) / n) / CELL), cy = Math.floor((a.y + ((b.y - a.y) * t) / n) / CELL);
+      const i = cy * GRID_W + cx;
+      if (['desert', 'hills', 'mountains', 'fertile'].includes(kindOf[i])) { kindOf[i] = 'road'; speedOf[i] = TERRAIN_SPEED.road; }
+    }
+  }
+const idxOf = (p: Pt) => { const { cx, cy } = cellOf(p); return cy * GRID_W + cx; };
 export const terrainAt = (p: Pt): Terrain => kindOf[idxOf(p)];
 /** the river, lake or crossing here by name, if it has one */
-export const placeNameAt = (p: Pt): string | undefined => BARRIER_NAMES[idxOf(p)];
+export const placeNameAt = (p: Pt): string | undefined => { const { cx, cy } = cellOf(p); return cx < MASK_W ? BARRIER_NAMES[cy * MASK_W + cx] : undefined; };
 /** How fast the caravan goes here, as a share of its pace on good ground (0 = cannot go). */
 export const terrainSpeed = (p: Pt) => speedOf[idxOf(p)];
 export const isBlockedPx = (p: Pt) => speedOf[idxOf(p)] === 0;
 const MAX_SPEED = TERRAIN_SPEED.road;
 
 function nearestOpen(cx: number, cy: number): [number, number] {
-  if (speedOf[cy * MASK_W + cx]) return [cx, cy];
+  if (speedOf[cy * GRID_W + cx]) return [cx, cy];
   for (let r = 1; r < 8; r++)
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++) {
         const x = cx + dx, y = cy + dy;
-        if (x >= 0 && y >= 0 && x < MASK_W && y < MASK_H && speedOf[y * MASK_W + x]) return [x, y];
+        if (x >= 0 && y >= 0 && x < GRID_W && y < MASK_H && speedOf[y * GRID_W + x]) return [x, y];
       }
   return [cx, cy];
 }
@@ -91,12 +122,12 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
   const s = cellOf(from), g = cellOf(to);
   const [sx, sy] = nearestOpen(s.cx, s.cy);
   const [gx, gy] = nearestOpen(g.cx, g.cy);
-  if (!speedOf[gy * MASK_W + gx] || !speedOf[sy * MASK_W + sx]) return null;
-  const N = MASK_W * MASK_H;
+  if (!speedOf[gy * GRID_W + gx] || !speedOf[sy * GRID_W + sx]) return null;
+  const N = GRID_W * MASK_H;
   const gScore = new Float32Array(N).fill(Infinity);
   const came = new Int32Array(N).fill(-1);
   const closed = new Uint8Array(N);
-  const start = sy * MASK_W + sx, goal = gy * MASK_W + gx;
+  const start = sy * GRID_W + sx, goal = gy * GRID_W + gx;
   gScore[start] = 0;
   // binary heap of [f, idx]
   const heap: number[][] = [[0, start]];
@@ -128,19 +159,19 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
     }
     return top;
   };
-  const h = (i: number) => Math.hypot((i % MASK_W) - gx, Math.floor(i / MASK_W) - gy) / MAX_SPEED;
+  const h = (i: number) => Math.hypot((i % GRID_W) - gx, Math.floor(i / GRID_W) - gy) / MAX_SPEED;
   while (heap.length) {
     const [, cur] = pop();
     if (cur === goal) break;
     if (closed[cur]) continue;
     closed[cur] = 1;
-    const cx = cur % MASK_W, cy = Math.floor(cur / MASK_W);
+    const cx = cur % GRID_W, cy = Math.floor(cur / GRID_W);
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         if (!dx && !dy) continue;
         const nx = cx + dx, ny = cy + dy;
-        if (nx < 0 || ny < 0 || nx >= MASK_W || ny >= MASK_H) continue;
-        const ni = ny * MASK_W + nx;
+        if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= MASK_H) continue;
+        const ni = ny * GRID_W + nx;
         if (!speedOf[ni] || closed[ni]) continue;
         const ng = gScore[cur] + (dx && dy ? 1.4142 : 1) * 0.5 * (1 / speedOf[cur] + 1 / speedOf[ni]);
         if (ng < gScore[ni]) {
@@ -157,7 +188,7 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
     if (i === start) break;
   }
   chain.reverse();
-  const raw = [from, ...chain.slice(1, -1).map((i) => centre(i % MASK_W, Math.floor(i / MASK_W))), to];
+  const raw = [from, ...chain.slice(1, -1).map((i) => centre(i % GRID_W, Math.floor(i / GRID_W))), to];
   const cum = [0];
   // (a town drawn on the shore may sit in a water cell: its one step onto land counts at plain pace)
   for (let i = 1; i < raw.length; i++) { const c = lineCost(raw[i - 1], raw[i]); cum.push(cum[i - 1] + (Number.isFinite(c) ? c : dist(raw[i - 1], raw[i]) / CELL)); }
@@ -179,15 +210,15 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
 const SEA_DIRS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]];
 // the straits are narrower than a mask cell, so they are opened for ships only: the Dardanelles and the Bosporus
 const sea = Uint8Array.from(water);
-for (const [x, y] of [[22, 14], [22, 15], [34, 12], [34, 11], [34, 10], [35, 9]]) sea[y * MASK_W + x] = 1;
-const isSeaPx = (p: Pt) => { const { cx, cy } = cellOf(p); return sea[cy * MASK_W + cx] === 1; };
+for (const [x, y] of [[22, 14], [22, 15], [34, 12], [34, 11], [34, 10], [35, 9]]) sea[y * GRID_W + x] = 1;
+const isSeaPx = (p: Pt) => { const { cx, cy } = cellOf(p); return sea[cy * GRID_W + cx] === 1; };
 function nearestWater(cx: number, cy: number): number {
   for (let r = 0; r < 16; r++)
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         const x = cx + dx, y = cy + dy;
-        if (x >= 0 && y >= 0 && x < MASK_W && y < MASK_H && sea[y * MASK_W + x]) return y * MASK_W + x;
+        if (x >= 0 && y >= 0 && x < GRID_W && y < MASK_H && sea[y * GRID_W + x]) return y * GRID_W + x;
       }
   return -1;
 }
@@ -200,12 +231,12 @@ export function findSeaPath(from: Pt, to: Pt): Pt[] | null {
   const s = cellOf(from), g = cellOf(to);
   const start = nearestWater(s.cx, s.cy), goal = nearestWater(g.cx, g.cy);
   if (start < 0 || goal < 0) return null;
-  const N = MASK_W * MASK_H;
+  const N = GRID_W * MASK_H;
   const gScore = new Float32Array(N).fill(Infinity);
   const came = new Int32Array(N).fill(-1);
   const closed = new Uint8Array(N);
-  const gx = goal % MASK_W, gy = Math.floor(goal / MASK_W);
-  const h = (i: number) => Math.hypot((i % MASK_W) - gx, Math.floor(i / MASK_W) - gy);
+  const gx = goal % GRID_W, gy = Math.floor(goal / GRID_W);
+  const h = (i: number) => Math.hypot((i % GRID_W) - gx, Math.floor(i / GRID_W) - gy);
   // a small binary heap of [f, cell]
   const heap: number[][] = [[h(start), start]];
   gScore[start] = 0;
@@ -232,20 +263,20 @@ export function findSeaPath(from: Pt, to: Pt): Pt[] | null {
     if (cur === goal) break;
     if (closed[cur]) continue;
     closed[cur] = 1;
-    const cx = cur % MASK_W, cy = Math.floor(cur / MASK_W);
+    const cx = cur % GRID_W, cy = Math.floor(cur / GRID_W);
     for (const [dx, dy, w] of SEA_DIRS) {
       const nx = cx + dx, ny = cy + dy;
-      if (nx < 0 || ny < 0 || nx >= MASK_W || ny >= MASK_H) continue;
-      const ni = ny * MASK_W + nx;
+      if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= MASK_H) continue;
+      const ni = ny * GRID_W + nx;
       if (!sea[ni] || closed[ni]) continue;
       // keep a cable's length off the shore where the sea allows: cells next to land cost a little more
-      const ng = gScore[cur] + w * (sea[ni - 1] && sea[ni + 1] && sea[ni - MASK_W] && sea[ni + MASK_W] ? 1 : 1.6);
+      const ng = gScore[cur] + w * (sea[ni - 1] && sea[ni + 1] && sea[ni - GRID_W] && sea[ni + GRID_W] ? 1 : 1.6);
       if (ng < gScore[ni]) { gScore[ni] = ng; came[ni] = cur; push(ng + h(ni), ni); }
     }
   }
   if (came[goal] === -1 && goal !== start) return null;
   const chain: Pt[] = [];
-  for (let i = goal; i !== -1; i = came[i]) { chain.push(centre(i % MASK_W, Math.floor(i / MASK_W))); if (i === start) break; }
+  for (let i = goal; i !== -1; i = came[i]) { chain.push(centre(i % GRID_W, Math.floor(i / GRID_W))); if (i === start) break; }
   chain.reverse();
   const out: Pt[] = [chain[0]];
   let anchor = 0;
@@ -427,20 +458,36 @@ export function durationLabel(days: number) {
 }
 
 // ---------- Fog of war ----------
-export const FOG_LEN = MASK_W * MASK_H;
+export const FOG_LEN = GRID_W * MASK_H;
 export function blankFog() {
   return '0'.repeat(FOG_LEN);
 }
+/** A fog of the right size for today's map. Saves from before Persia was added (save 24) kept
+ *  177 cells a row: each row is carried over and Persia's cells start unexplored. */
+let fitIn = '', fitOut = '';
+export function fitFog(fog: string): string {
+  if (fog.length === FOG_LEN) return fog;
+  if (fog === fitIn) return fitOut;
+  let out: string;
+  if (fog.length === MASK_W * MASK_H) {
+    const pad = '0'.repeat(GRID_W - MASK_W);
+    out = '';
+    for (let y = 0; y < MASK_H; y++) out += fog.slice(y * MASK_W, (y + 1) * MASK_W) + pad;
+  } else out = (fog + '0'.repeat(FOG_LEN)).slice(0, FOG_LEN);
+  fitIn = fog; fitOut = out;
+  return out;
+}
 export function revealFog(fog: string, p: Pt, radiusCells = 7): string {
   const { cx, cy } = cellOf(p);
+  fog = fitFog(fog);
   const arr = fog.split('');
   let changed = false;
   for (let dy = -radiusCells; dy <= radiusCells; dy++)
     for (let dx = -radiusCells; dx <= radiusCells; dx++) {
       if (dx * dx + dy * dy > radiusCells * radiusCells) continue;
       const x = cx + dx, y = cy + dy;
-      if (x < 0 || y < 0 || x >= MASK_W || y >= MASK_H) continue;
-      const i = y * MASK_W + x;
+      if (x < 0 || y < 0 || x >= GRID_W || y >= MASK_H) continue;
+      const i = y * GRID_W + x;
       if (arr[i] !== '1') {
         arr[i] = '1';
         changed = true;
@@ -450,7 +497,7 @@ export function revealFog(fog: string, p: Pt, radiusCells = 7): string {
 }
 export const isExplored = (fog: string, p: Pt) => {
   const { cx, cy } = cellOf(p);
-  return fog.charCodeAt(cy * MASK_W + cx) === 49;
+  return fitFog(fog).charCodeAt(cy * GRID_W + cx) === 49;
 };
 
 // ---------- Roaming parties ----------
@@ -486,6 +533,7 @@ const PAIRS: [string, string, Party['kind'], string][] = [
   ['damascus', 'baghdad', 'caravan', 'Persian carpet caravan'],
   ['tanta', 'cairo', 'pilgrims', 'Sufi brothers going to Tanta'],
   ['giza', 'fayoum', 'caravan', 'Salt traders from the oases'],
+  ['hamadan', 'khanaqin', 'caravan', 'Persian carpet caravan'],
 ];
 
 export function spawnParties(rng: () => number): Party[] {
@@ -524,6 +572,9 @@ const ROAD_BANDS: [string, string, number, string][] = [
   ['jerusalem', 'damascus', 6, 'Desert Raiders'],
   ['damascus', 'baghdad', 8, 'Border Smuggler-Brigands'],
   ['aleppo', 'konya', 6, 'Border Smuggler-Brigands'],
+  // tribal raiders in the Zagros passes on the Persian road (travelThreats1925.ts: rb6, rb7)
+  ['khanaqin', 'kermanshah', 7, 'Zagros Raiders'],
+  ['kermanshah', 'hamadan', 6, 'Zagros Raiders'],
 ];
 export function spawnRoadBands(rng: () => number): Party[] {
   return ROAD_BANDS.map(([a, b, size, name], i) => {

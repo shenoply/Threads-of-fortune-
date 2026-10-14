@@ -14,6 +14,8 @@ export const BAND_ART: Record<string, { man: string; leader: string; fields: str
   'syria-1925-rebels': { man: 'rebel', leader: 'rebel-leader', fields: ['basalt', 'mountain', 'pass'] },
   // the Euphrates crossings and the desert border posts
   'iraq-border-smuggler-brigands': { man: 'smuggler', leader: 'smuggler-leader', fields: ['ruins', 'ford', 'dunes', 'oasis'] },
+  // the Zagros passes on the Persian road
+  'zagros-tribal-raiders': { man: 'raider', leader: 'raider-leader', fields: ['pass', 'mountain', 'hills'] },
 };
 
 /** The ground for one fight: fixed for a given band on a given day, different from one fight to the next. */

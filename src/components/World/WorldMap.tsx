@@ -11,12 +11,12 @@ import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { lookFor } from '../../game/heroLook';
 import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
 import { useGame, ferryFare } from '../../game/state/store';
-import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
+import { SETTLEMENTS, ROAD_WELLS, motorLorry, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger, tripEstimate, durationLabel, type FareLine,
-  MAP_W, MAP_H, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
@@ -41,8 +41,10 @@ import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
 import { cityLocked, lockedWhy, openingStep } from '../../game/opening';
+import { persiaOpen, persiaWhy } from '../../game/unlocks';
+import { inPersia, PERSIA_ROADS } from '../../data/persiaMap';
 import { guideTarget } from '../../game/guide';
-import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R, KHAMSIN_PACE, floodPace, seasonPathMult } from '../../game/systems/mapNews';
+import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R, KHAMSIN_PACE, floodPace, seasonPathMult, snowPass, SNOW_PACE } from '../../game/systems/mapNews';
 import { ferryHours, SEASON_NOW } from '../../game/economy/calendar1925';
 import { roadEventDue, startRoadEvent, settleRoadEvent, choicesFor, eventText, walkBegun, absHour, CARD_MIN_MS } from '../../game/systems/roadEvents';
 import type { RoadEvent } from '../../data/roadEvents';
@@ -61,7 +63,7 @@ function seasonOf(day: number) {
 const daysWord = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
 /** A name in the middle of a sentence: lower case, but places and peoples keep their capital
  *  ("the Aleppo wool caravan", "2 Cairo sentinels", "the salt traders from the oases"). */
-const PROPER = /^(Aleppo|Persian|Syrian|Egyptian|Cairo|Giza|Alexandria|Bedouin|Arnaut|Circassian|Tarabin|Sufi|Baghdad|Damascus)\b/;
+const PROPER = /^(Aleppo|Persian|Syrian|Egyptian|Cairo|Giza|Alexandria|Bedouin|Arnaut|Circassian|Tarabin|Sufi|Baghdad|Damascus|Zagros)\b/;
 const midName = (s: string) => (PROPER.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1));
 /** What a band on the map is called: the same name its ambush card gives it. */
 const bandName = (p: Party, day: number) => (p.kind === 'raiders' ? threatForParty(p, day).displayName : p.name);
@@ -200,7 +202,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const passTrip = useRef<{ key: string; atPx: number } | null>(null);
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
-  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry' };
+  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean };
   // resume a journey already under way, from where the caravan actually is along its path
   const [moving, setMovingRaw] = useState<null | Moving>(() => {
     const j = useGame.getState().journey;
@@ -336,7 +338,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   // zoom 1 is the map filling the screen; on a tall phone that shows only the Delta, so you can zoom
   // out further, down to the whole map fitted on screen with dark margins round it
-  const base = Math.max(size.w / MAP_W, size.h / MAP_H);
+  // (zoom 1 is measured against the painting, so Persia, drawn east of it, does not change the usual view)
+  const base = Math.max(size.w / PAINT_W, size.h / MAP_H);
   const minZ = Math.min(1, Math.min(size.w / MAP_W, size.h / MAP_H) / base);
   const s = base * z;
   const sRef = useRef(s);
@@ -363,8 +366,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // a trunk route (both ends a city, port or your home) draws heavier than a local track to a village,
   // oasis, monastery or camp — so the map reads "this is the way between places that matter" at a glance
   const MAJOR_KIND = new Set(['home', 'city', 'town', 'port']);
-  const roads = useMemo(() => ROAD_LINES.map((r) => ({
-    pts: r.pts.map(([x, y]) => ({ x, y })),
+  const roads = useMemo(() => [...ROAD_LINES.map((r) => ({ a: r.a, b: r.b, pts: r.pts.map(([x, y]) => ({ x, y })) })), ...PERSIA_ROADS].map((r) => ({
+    pts: r.pts,
     major: MAJOR_KIND.has(settlementById(r.a).kind) && MAJOR_KIND.has(settlementById(r.b).kind),
   })), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -478,6 +481,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (moving && !reroute) return;
     // the opening keeps the wider world shut until the first errand is done
     if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(`${st.name}: ${lockedWhy(useGame.getState(), st.id)}`); audio.sfx('tap'); return; }
+    // open country beyond the Persian frontier is shut the same way as its towns
+    if (!st && inPersia(to) && !persiaOpen(useGame.getState())) { setPlan(null); setReport(persiaWhy(useGame.getState())); audio.sfx('tap'); return; }
     const from = { x: w.x, y: w.y };
     const target = st ? { x: st.x, y: st.y } : to;
     const fp = { people: partySize(w.party), animals: w.party.animals ?? {} };
@@ -689,16 +694,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const from = origin ?? here;
     if (!from) return;
     const dest = settlementById(r.to);
+    const lorry = mode === 'motor' && motorLorry(from.id, r.to);
     useGame.setState((st) => ({
       cash: st.cash - r.fare,
-      ledger: [...st.ledger, { day: st.day, kind: 'expense', label: mode === 'motor' ? `Nairn desert car to ${dest.name}` : `Deck passage to ${dest.name}`, amount: -r.fare }],
+      ledger: [...st.ledger, { day: st.day, kind: 'expense', label: mode === 'motor' ? (lorry ? `Motor lorry to ${dest.name}` : `Nairn desert car to ${dest.name}`) : `Deck passage to ${dest.name}`, amount: -r.fare }],
     }));
     const path = routeLeg({ x: from.x, y: from.y }, { x: dest.x, y: dest.y }, mode === 'motor' ? 'motor' : 'ship');
     follow.current = true;
-    setMoving({ path, done: 0, train: true, dest: r.to, pxPerDay: pathLength(path) / Math.max(0.1, r.days), mode });
+    setMoving({ path, done: 0, train: true, dest: r.to, pxPerDay: pathLength(path) / Math.max(0.1, r.days), mode, lorry });
     setPlan(null);
     setAlt(null);
-    setReport(mode === 'motor' ? `By Nairn motor car across the desert to ${dest.name}.` : `By ship to ${dest.name}.`);
+    setReport(mode === 'motor' ? (lorry ? `By motor lorry up the Persian road to ${dest.name}.` : `By Nairn motor car across the desert to ${dest.name}.`) : `By ship to ${dest.name}.`);
     audio.sfx('tap');
   };
 
@@ -738,6 +744,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     let livePos = along(moving.path, done).pos;
     let lastView = performance.now();
     let inSand = false;
+    let inSnow = false;
     // the frame-by-frame view goes straight to the DOM; React hears about it only a few times a second
     const syncView = () => { setLive(livePos); setPan(panRef.current); };
     const loop = (now: number) => {
@@ -752,6 +759,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (sand) speed *= KHAMSIN_PACE;
       // the Nile in flood: the Delta's low roads are under water
       if (!moving.train && !moving.mode) speed *= floodPace(st0.day, livePos);
+      // winter snow on the Persian passes: the caravan crawls over them (a motor car keeps to its timetable)
+      const pass = !moving.train ? snowPass(st0.day, livePos) : undefined;
+      if (pass && !moving.mode) speed *= SNOW_PACE;
+      if (pass && !inSnow) setReport(`Snow on ${pass.name}: the caravan slows.`);
+      inSnow = !!pass;
       // a guide's shorter way: the caravan comes out further along the road
       if (skipDays.current && !moving.train && !moving.mode) { done += skipDays.current * speed; skipDays.current = 0; }
       if (roadEvRef.current && scaleRef.current > 0) roadEvRef.current.ms += dt * 1000;
@@ -1237,7 +1249,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <div className="wc-main">
               <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
               <span>
-                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `On foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`}
+                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? (moving.lorry ? 'Motor lorry, the Persian road' : 'Nairn desert car') : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `On foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`}
               </span>
             </div>
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
@@ -1247,7 +1259,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           const destName = moving.dest ? settlementById(moving.dest).name : '';
           const name = reroute.st ? reroute.st.name : 'this spot';
           if (reroute.fixed) {
-            const by = moving.mode === 'ferry' ? 'the ferry' : moving.mode === 'ship' ? 'a ship' : moving.mode === 'motor' ? 'the Nairn motor car' : 'the train';
+            const by = moving.mode === 'ferry' ? 'the ferry' : moving.mode === 'ship' ? 'a ship' : moving.mode === 'motor' ? (moving.lorry ? 'the motor lorry' : 'the Nairn motor car') : 'the train';
             const why = moving.mode === 'ferry' ? 'The ferry only crosses the river and back' : moving.mode === 'ship' ? 'A ship keeps to its course' : moving.mode === 'motor' ? 'The motor car keeps to its route' : 'A train keeps to its line';
             return (
               <div className="wc-col reroute" data-testid="reroute">
@@ -1376,7 +1388,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   <button key={r.to} className={`btn sail-btn${lead === 'ship' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship"><Icon name="anchor" /> Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('ship' + r.to)}</button>
                 ))}
                 {plan.motor.map((r) => (
-                  <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
+                  <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 {motorLorry(plan.from?.id, r.to) ? 'Motor lorry' : 'Nairn motor car'} · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
                 ))}
                 {lead === 'walk'
                   ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>

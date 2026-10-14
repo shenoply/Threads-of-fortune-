@@ -116,3 +116,29 @@ export function migrateOpen(s: S): string[] {
   if (underway) return [...seen, ALL_OPEN];
   return [...seen, ...SYSTEMS.filter((k) => !seen.includes(mark(k)) && UNLOCKS[k].when(s)).map(mark)];
 }
+
+// ---- the Persian road (save 24) ----
+// Persia is on the map from the start, greyed. It opens to a merchant with shops in Baghdad and two other
+// cities (the shops system keys them by settlement id; the Khan el-Khalili shop counts as Cairo) and a
+// Persian visa from the consulate in Baghdad.
+/** the cities where you keep a shop */
+export function shopTowns(s: S): string[] {
+  const keyed = Object.keys((s as unknown as { shops?: Record<string, unknown> }).shops ?? {});
+  return [...new Set([...keyed, ...((s.upgrades ?? []).includes('khan') ? ['cairo'] : [])])];
+}
+export function persiaOpen(s: S): boolean {
+  const shops = shopTowns(s);
+  return shops.includes('baghdad') && shops.length >= 3 && !!s.persianVisa;
+}
+/** what still keeps the road shut, in a line */
+export function persiaWhy(s: S): string {
+  const shops = shopTowns(s);
+  const need: string[] = [];
+  if (!shops.includes('baghdad')) need.push('a shop in Baghdad');
+  const others = shops.filter((t) => t !== 'baghdad').length;
+  if (others < 2) need.push(others === 1 ? 'a shop in one more city' : 'shops in two other cities');
+  if (!s.persianVisa) need.push('a Persian visa from the consulate in Baghdad');
+  if (!need.length) return 'The road to Persia is open.';
+  if (need.length === 3) return 'Opens to a merchant with shops in Baghdad and two other cities, and a Persian visa from the consulate in Baghdad.';
+  return `Opens with shops in Baghdad and two other cities, and a Persian visa. Still to get: ${need.join(', ')}.`;
+}

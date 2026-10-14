@@ -10,7 +10,8 @@ import { cityClosed, closedNote, dangerAt } from '../../game/economy/life';
 import { fmt } from '../../game/economy/money';
 import { localMoney, localMoneyLong } from '../../game/economy/currency';
 import { TownMoney } from './BorderCard';
-import { PAPERS_TOWN } from '../../game/systems/customs';
+import { PAPERS_TOWN, VISA_TOWN } from '../../game/systems/customs';
+import { isPersian } from '../../data/persiaMap';
 import { OnceLine, useOnce } from '../Tips/OnceLine';
 import { ONCE } from '../../data/tips';
 import { currencyAt } from '../../game/economy/currency';
@@ -200,6 +201,19 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     inVenue ? 'palace' : hwTier ? (hwTier === 'grand' ? 'auction-grand' : 'auction-small') : cabaret ? (id === 'istanbul' ? 'istanbul' : 'cabaret') : townMusic(id),
   );
   const walk = CITY_WALKS[id];
+  // the Persian towns' pictures (art/world/city-<id>.jpg) are still to be drawn: the town menu shows the
+  // map until one has loaded
+  const persiaPic = isPersian(id) ? `art/world/city-${id}.jpg` : null;
+  const [persiaPicOk, setPersiaPicOk] = useState(false);
+  useEffect(() => {
+    setPersiaPicOk(false);
+    if (!persiaPic) return;
+    let live = true;
+    const im = new Image();
+    im.onload = () => { if (live && im.naturalWidth > 0) setPersiaPicOk(true); };
+    im.src = persiaPic;
+    return () => { live = false; };
+  }, [persiaPic]);
   const [audience, setAudience] = useState(false);
   const venue = venueFor(id);
   const royal = venue?.royal ? BUYERS[venue.royal] : undefined;
@@ -267,7 +281,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const hideKey = (['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).map((k) => (on(k) ? '1' : '0')).join('');
   const walkDef = useMemo(() => walk && { ...walk, pois: walk.pois.filter((p) => { const k = actSys(p.action); return !k || hideKey[(['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).indexOf(k)] === '1'; }) }, [walk, hideKey]);
   // which town-menu tile, and which place in the streets, belongs to a system still to come
-  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic' };
+  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-consulate': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic' };
   const allItems: [string, string, string, () => void, string][] = [
     ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s buyers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
     ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
@@ -286,6 +300,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
     ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
     ...(id === PAPERS_TOWN && !g.passport ? [['scroll', 'Passport Office', 'Papers for Palestine, Syria, Turkey and Iraq', () => goTo('town', 'sec-passport'), 'menu-passport'] as [string, string, string, () => void, string]] : []),
+    ...(id === VISA_TOWN && !g.persianVisa ? [['scroll', 'The Persian consulate', 'A visa for Persia', () => goTo('town', 'sec-consulate'), 'menu-consulate'] as [string, string, string, () => void, string]] : []),
     ...(TELEGRAPH_TOWNS.includes(id) ? [['scroll', 'Telegraph office', 'Wire Rashid for stock, or ask a dealer\u2019s prices', () => setWire(true), 'menu-telegraph'] as [string, string, string, () => void, string]] : []),
     ...(LIBRARIES[id] ? [['book', LIBRARIES[id].name, (() => { const w = Object.entries(g.arranBooks ?? {}).some(([bid, b]) => b && ['requested', 'located'].includes(b.phase) && LIBRARIES[ARRAN_BOOKS[bid as keyof typeof ARRAN_BOOKS].library]?.town === id); return w ? 'Arran\'s book may be here' : 'Reference books and a copyist'; })(), () => setLibrary(true), 'menu-library'] as [string, string, string, () => void, string]] : []),
     ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
@@ -578,7 +593,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       )}
       {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && !shop && (() => {
         const items = menuItems;
-        const pic = id === 'giza' ? 'art/world/giza-district.jpg' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.jpg` : null);
+        const pic = id === 'giza' ? 'art/world/giza-district.jpg' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.jpg` : persiaPicOk ? persiaPic : null);
         const hh = Math.floor(g.world.hour), mm = Math.floor((g.world.hour % 1) * 60);
         // the main places of this town, most useful first: the walk has its own banner across the
         // foot of the picture; three or four more stand under it; the rest wait behind "More in …"

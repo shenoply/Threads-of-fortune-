@@ -3,8 +3,8 @@ import { isOpen } from '../../game/unlocks';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
-import { CHANGER_CUT, COUNTRY_NAME, COUNTRY_RULE, countryOf, currencyAt, localMoneyLong, moneyLine } from '../../game/economy/currency';
-import { DUTY, PAPERS_FEE, PAPERS_TOWN, buyPapers, carried, crossBorder, finishBorder, hasPapers, installBorders, oddsWord, papersFine, postFor, quote, refusesWithoutPapers, type DeclareChoice } from '../../game/systems/customs';
+import { CHANGER_CUT, COUNTRY_NAME, countryOf, countryRule, currencyAt, localMoneyLong, moneyLine } from '../../game/economy/currency';
+import { DUTY, PAPERS_FEE, PAPERS_TOWN, VISA_FEE, VISA_TOWN, buyPapers, buyPersianVisa, carried, crossBorder, finishBorder, hasPapers, hasPapersFor, installBorders, oddsWord, papersFine, postFor, quote, refusesWithoutPapers, tightFrontier, type DeclareChoice } from '../../game/systems/customs';
 import { settlementById } from '../../game/systems/world';
 import '../ArranLab/ArranLab.css';
 import './BorderCard.css';
@@ -21,8 +21,9 @@ export function BorderCard({ onDone }: { onDone: (town: string) => void }) {
   const b = g.border;
   const [busy, setBusy] = useState(false);
   if (!b) return null;
-  const papers = hasPapers(g);
-  const q = quote(g, b.toC);
+  const papers = hasPapersFor(g, b.toC);
+  const q = quote(g, b.toC, b.fromC);
+  const tight = tightFrontier(g.day, b.toC, b.fromC);
   const { rugs, value } = carried(g);
   const toName = settlementById(b.to).name;
   const refused = !papers && refusesWithoutPapers(b.toC);
@@ -41,12 +42,15 @@ export function BorderCard({ onDone }: { onDone: (town: string) => void }) {
         <h2>{b.post.replace(/^the /, '').replace(/^./, (c) => c.toUpperCase())}</h2>
         {!b.result ? (
           <>
-            <p>The frontier of {COUNTRY_RULE[b.toC]}. Beyond it lies the road to {toName}.</p>
+            <p>The frontier of {countryRule(b.toC, g.day)}. Beyond it lies the road to {toName}.</p>
             <p className="small" data-testid="border-papers">
               <b>Papers:</b> {papers ? 'your passport and visas are in order.' : refused
-                ? `the Turkish Republic admits no one without a passport and visa. Get them at the Passport Office in Cairo (${fmt(PAPERS_FEE)}).`
+                ? (b.toC === 'persia'
+                  ? `Persia admits no one without a passport and a Persian visa. The Persian consulate in Baghdad issues the visa (${fmt(VISA_FEE)}).`
+                  : `the Turkish Republic admits no one without a passport and visa. Get them at the Passport Office in Cairo (${fmt(PAPERS_FEE)}).`)
                 : `you have none. They will fine you ${fmt(fine)} and write ${b.toC === 'egypt' ? 'down your name' : 'a pass for this crossing'}. Papers cost ${fmt(PAPERS_FEE)} in Cairo.`}
             </p>
+            {tight && <p className="small" data-testid="border-tight"><b>The frontier is strict:</b> with the change of government in Persia they are searching loads and taking few presents.</p>}
             <p className="small" data-testid="border-money"><b>Money there:</b> {moneyLine(b.to, g.day)}.</p>
             {refused ? (
               <button type="button" className="btn primary" onClick={() => go('back')} data-testid="border-back">Turn back to {settlementById(b.from).name}</button>
@@ -105,9 +109,12 @@ export function TripMoney({ from, to }: { from: string | null | undefined; to: s
 export function TripPapers({ from, to, onOffice }: { from: string | null | undefined; to: string | undefined; onOffice?: () => void }) {
   const g = useGame();
   const fc = countryOf(from ?? g.lastTown), tc = countryOf(to);
-  const need = !!fc && !!tc && fc !== tc && tc !== 'egypt' && !hasPapers(g);
+  const need = !!fc && !!tc && fc !== tc && tc !== 'egypt' && !hasPapersFor(g, tc);
   if (!need) return null;
   const near = g.world.at === PAPERS_TOWN || g.world.at === 'giza';
+  if (tc === 'persia' && hasPapers(g)) return (
+    <span className="warn trip-papers" data-testid="trip-papers">You need a Persian visa to cross into Persia: the Persian consulate in Baghdad, {fmt(VISA_FEE)}. The Persian post turns back anyone without one.</span>
+  );
   return (
     <>
       <span className="warn trip-papers" data-testid="trip-papers">
@@ -137,6 +144,14 @@ export function TownMoney({ id }: { id: string }) {
           {hasPapers(g)
             ? <span className="dim small" style={{ flex: 'none' }}>In order</span>
             : <button className="btn primary" disabled={g.cash < PAPERS_FEE} onClick={() => setNote(buyPapers())} data-testid="buy-papers">Apply · {fmt(PAPERS_FEE)}</button>}
+        </div>
+      )}
+      {id === VISA_TOWN && isOpen(g, 'abroad') && (
+        <div className="mkt-row" id="sec-consulate" data-testid="persian-consulate">
+          <span><b>The Persian consulate</b><small>A Persian visa, stamped into your passport. Persia lets no one in without one.</small></span>
+          {g.persianVisa
+            ? <span className="dim small" style={{ flex: 'none' }}>Visa in order</span>
+            : <button className="btn primary" disabled={g.cash < VISA_FEE || !hasPapers(g)} onClick={() => setNote(buyPersianVisa())} data-testid="buy-visa">{hasPapers(g) ? `Apply · ${fmt(VISA_FEE)}` : 'Passport first'}</button>}
         </div>
       )}
       {note && <p className="small set-note" data-testid="papers-note">{note}</p>}

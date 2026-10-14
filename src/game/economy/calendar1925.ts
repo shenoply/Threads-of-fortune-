@@ -42,6 +42,8 @@ export interface SeasonFx {
   icon?: string;
   /** weather and accidents: not on the calendar until the day comes */
   unforeseen?: boolean;
+  /** frontiers made strict (countries, as currency.ts names them): more loads searched, fewer presents taken */
+  frontier?: string[];
 }
 
 const d = (m: number, dd: number, y = 1925) => Math.round((Date.UTC(y, m - 1, dd) - Date.UTC(1925, 2, 9)) / 86400000);
@@ -78,6 +80,31 @@ function khamsins(): GameEvent[] {
   return out;
 }
 
+// ---------- Persia, 1925–26: Reza Khan's rise and the change of dynasty ----------
+// Reza Khan, Minister of War since 1921 and Prime Minister since October 1923, was given command of all
+// the armed forces by the Majlis in February 1925, with Ahmad Shah away in Europe; the Majlis passed his
+// conscription law in June 1925. The Majlis deposed the
+// Qajar dynasty on 31 October 1925; the Constituent Assembly gave Reza Khan the throne on 12 December, and
+// he took the oath as Shah on the 15th (the dates the paper prints, data/world/1925-10_12.json). He was
+// crowned in the Golestan Palace on 25 April 1926. The trade effects are the game's: the frontier posts
+// strict and Persian dealers holding back while the change is made, then the bazaars selling again.
+const PERSIAN_CITIES = ['kermanshah', 'hamadan', 'tehran', 'tabriz', 'kashan', 'isfahan', 'kerman'];
+const allPersia = (m: number) => Object.fromEntries(PERSIAN_CITIES.map((c) => [c, m]));
+const PERSIA_EVENTS: GameEvent[] = [
+  { id: 'reza-khan-25', name: 'Reza Khan\'s army law', from: d(6, 8), to: d(6, 30), icon: '⚐', text: 'In Persia the Majlis has passed Reza Khan\'s law of military service: young men are to serve two years in the new army. Reza Khan, Prime Minister and since February commander of all the armed forces, holds the country while Ahmad Shah stays in Europe. His troops patrol the Kermanshah road and are disarming the tribes.' },
+  { id: 'qajar-deposed-25', name: 'The Majlis deposes the Qajars', from: d(10, 31), to: d(12, 11), icon: '⚐', text: 'The Persian Majlis has deposed the absent Ahmad Shah and ended the Qajar dynasty. Reza Khan heads a provisional government until a Constituent Assembly meets. The frontier posts at Qasr-i Shirin and Khanaqin are searching every load, and Persian dealers are holding back their stock until they see what comes.', frontier: ['persia'], cityBuy: allPersia(1.12), cityBid: { baghdad: 1.06 } },
+  { id: 'reza-shah-25', name: 'Reza Khan proclaimed Shah', from: d(12, 12), to: d(1, 10, 1926), icon: '♛', text: 'The Persian Constituent Assembly has given the throne to Reza Khan, the first of a new dynasty, Pahlavi; he took the oath on the 15th. The frontier is still strict while the new reign begins, but the bazaars of Tehran and Isfahan are open.', frontier: ['persia'], cityBuy: allPersia(1.05) },
+  { id: 'persia-settles-26', name: 'Trade settles in Persia', from: d(1, 11, 1926), to: d(4, 24, 1926), icon: '↓', text: 'With the new Shah on the throne the carpet caravans are moving again on the Kermanshah road. The Persian bazaars are selling, and Tabriz and Kashan carpets are coming west in numbers.', cityBuy: allPersia(0.92), cityBid: { baghdad: 0.97 } },
+  { id: 'coronation-26', name: 'Reza Shah crowned', from: d(4, 25, 1926), to: d(4, 30, 1926), icon: '♛', text: 'Reza Shah has been crowned in the Golestan Palace in Tehran. Officials and merchants are dressing their houses for the receptions.', cityBid: { tehran: 1.12 }, demand: [{ sid: 'tehran', traits: ['fineWeave', 'silk', 'ornate'], mult: 1.1 }] },
+];
+
+/** Snow on the Persian passes, from December to the middle of March: the caravan crawls over them. */
+export const snowOn = (day: number) => {
+  const dt = new Date(Date.UTC(1925, 2, 9 + day));
+  const m = dt.getUTCMonth() + 1, dd = dt.getUTCDate();
+  return m === 12 || m === 1 || m === 2 || (m === 3 && dd <= 15);
+};
+
 // ---------- The rest of the year ----------
 const FIXED: GameEvent[] = [
   // the tail of the 1924–25 winter season (under way when the game opens, so no morning card)
@@ -106,6 +133,7 @@ const FIXED: GameEvent[] = [
   { id: 'summer-26', name: 'The summer lull', from: d(6, 15, 1926), to: d(9, 30, 1926), icon: '☀', text: 'The visitors have gone home and the rich have moved to Alexandria. Giza is quiet.', budget: 0.95, callers: { foreign: 0.7 } },
   { id: 'quarantine-26', unforeseen: true, name: 'Pilgrims held at El Tor', from: d(7, 3, 1926), to: d(7, 14, 1926), icon: '⚑', text: 'The pilgrim ships are back from the Hejaz and the quarantine station at El Tor is full. Every ship calling at Port Said or Alexandria is held for inspection.', sea: { portsaid: 2, alexandria: 1 }, cityBid: { suez: 0.92 } },
   { id: 'hijri-26', name: 'Islamic New Year', from: d(7, 11, 1926), to: d(7, 11, 1926), eve: true, icon: '☾', text: 'The first of Muharram, 1345. Government offices are shut and families visit one another.', budget: 1.04, callers: { pious: 1.2 } },
+  ...PERSIA_EVENTS,
 ];
 
 /** What the seasons add to events life.ts already has (merged into them at load). */

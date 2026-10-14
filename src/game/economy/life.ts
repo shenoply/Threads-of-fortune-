@@ -1,6 +1,6 @@
 // The calendar of a merchant's life: monthly bills, the events of 1925–26, and the day's rumours.
 import { withArticle } from '../../data/animals';
-import { RUGS } from '../../data/rugs';
+import { RUGS, RUG_IDS } from '../../data/rugs';
 import type { Trait } from '../types';
 import { upcomingGrandSales } from '../auction/sessions';
 import { SURPRISES } from '../../data/news';
@@ -187,7 +187,7 @@ function rumoursStarting(day: number): Rumour[] {
     if (glut !== town) out.push({ id: `g${day}`, kind: 'glut', sid: glut, mult: 0.75, until: day + 3, text: `A caravan has just unloaded in ${TOWN_NAME[glut]}. Dealers there are full up and pay less.` });
   }
   if (h(day * 4.4) < 0.35) {
-    const ids = Object.keys(RUGS).filter((id) => (RUGS[id].tier ?? 1) === 2 || (RUGS[id].tier ?? 1) === 3);
+    const ids = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === 2 || (RUGS[id].tier ?? 1) === 3);
     const id = ids[Math.floor(h(day * 6.6) * ids.length)];
     const city = TOWNS[Math.floor(h(day * 8.8) * TOWNS.length)];
     out.push({ id: `b${day}`, kind: 'buyer', sid: city, typeId: id, mult: 1.5, until: day + 6, text: `A collector in ${TOWN_NAME[city]} is asking for ${withArticle(RUGS[id].name)}. The dealers there will pay half again for one.` });

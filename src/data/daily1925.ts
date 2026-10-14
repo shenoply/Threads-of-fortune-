@@ -82,7 +82,7 @@ export const DAILY: Record<string, Wire[]> = {
     { head: 'Rudolf Steiner Dies', body: 'The Austrian philosopher Rudolf Steiner has died at Dornach, Switzerland, at 64.' },
   ],
   '1925-03-31': [
-    { head: 'Iran Adopts a Solar Calendar', body: 'The Persian Majlis has adopted a solar calendar with the old Persian month names, the year beginning at the spring equinox.' },
+    { head: 'Persia Adopts a Solar Calendar', body: 'The Persian Majlis has adopted a solar calendar with the old Persian month names, the year beginning at the spring equinox.' },
     { head: 'Soldiers Drown in the Weser', body: 'A pontoon bridge collapsed under a German army column on the Weser near Minden. Dozens of soldiers were drowned.' },
   ],
 };
