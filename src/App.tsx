@@ -60,6 +60,7 @@ import { FinancePanel } from './components/World/Finance';
 import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
 import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlot';
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
+import { HeirButton } from './components/Character/Household';
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
 // the paper and the radio wait for the researched wires (fetched after the title is up) so the day's news is complete
@@ -949,6 +950,7 @@ export default function App() {
             <p>{g.ended.text}</p>
             <p className="dim">You traded for {g.ended.day} days, sold {g.ledger.filter((l) => l.kind === 'sale').length} rugs and reached reputation {g.reputation}.</p>
             {g.ended.cause === 'death' && <p className="dim">{g.ironman ? 'Ironman: there is no second life. The run is over.' : ''}</p>}
+            <HeirButton />
             <button className="btn primary" onClick={() => { audio.stopAll(); g.reset(); setPhase('title'); }} data-testid="ending-restart">{g.ended.cause === 'death' ? 'Start a new life' : 'Begin again'}</button>
           </div>
         </div>

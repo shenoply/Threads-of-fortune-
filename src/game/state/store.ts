@@ -69,11 +69,12 @@ import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvaila
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
+import { applyHousehold, HOUSEHOLD_START, type HouseholdState, type HouseholdAct } from '../systems/household';
 import type { PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
 import { countryOf } from '../economy/currency';
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek } = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -294,6 +295,8 @@ export interface GameState {
   dealerSold?: { day: number; by: Record<string, number> };
   /** the boy who minds the stall while you are away (systems/shopBoy.ts) */
   shopBoy?: ShopBoyState;
+  /** wife, children and heir (systems/household.ts); separate from `family`, your father's debt */
+  household?: HouseholdState;
   /** letters and telegrams (systems/post.ts) */
   post?: PostState;
   /** the trading licence and the market inspector's calls (systems/inspector.ts) */
@@ -358,6 +361,8 @@ interface Actions {
   spawnOpeningBandits: (at: { x: number; y: number }) => Party;
   ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; animalsGained?: { id: string; n: number }; text: string }) => string;
   setStallShut: (shut: boolean) => void;
+  /** courtship, the wedding, your wife and children, and handing the house to an heir (systems/household.ts) */
+  householdAct: (a: HouseholdAct) => string;
   setDistrict: (d: DistrictState) => void;
   setWalk: (id: string, fog: string, seen: string[]) => void;
   ferryToCairo: (skipHour?: boolean) => string;
@@ -766,6 +771,7 @@ function initial(): Omit<GameState, keyof Actions> {
     upgrades: [],
     supplier: { trust: 20, offers: rashidStock(1, rng), debt: 0, debtDue: 0, lastLine: RASHID.greeting[0], haggleLocked: [] },
     family: { ...FAMILY_START, first: firstWeekStart() },
+    household: { ...HOUSEHOLD_START, suitors: {}, children: [] },
     tutorial: { done: false, step: 'room', inspected: false },
     queue: ['samira', 'yusuf', 'mariam'],
     visitIdx: 0,
@@ -3795,6 +3801,18 @@ export const useGame = create<GameState & Actions>()(
           spillHours(s.world.hour + 4);
           return menHere ? 'You black out. Your men are around you.' : 'You black out. Someone is standing over you.';
         },
+        householdAct: (a) => {
+          const s = get();
+          const r = applyHousehold(s, a, rng);
+          if (!Object.keys(r.patch).length) return r.msg;
+          const patch: Partial<GameState> = { ...r.patch };
+          // the heir starts fresh in body: no illness, no rescue under way, rested
+          if (a.kind === 'inherit' && r.ok) {
+            Object.assign(patch, { illnesses: [], rescue: undefined, condition: { ...CONDITION_START }, ...(s.ended?.cause === 'ruin' ? { ruin: undefined, bankruptcies: 0 } : {}) });
+          }
+          set(patch);
+          return r.msg;
+        },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
@@ -3832,6 +3850,9 @@ export const useGame = create<GameState & Actions>()(
         // the music default came down from full to under half: a save still at the old full level follows it
         // Rashid's first-week instalment arrived with save 23: only a merchant still in his first two days
         // (or not yet started) is asked for it; anyone further on has it marked settled, never failed
+        // the household (wife, children, heir: systems/household.ts) arrived with save 24: every older
+        // save starts unmarried, and families are approached on the next night that the name allows
+        if (version < 24) p.household = p.household ?? { ...HOUSEHOLD_START, suitors: {}, children: [] };
         if (version < 23) {
           const day = p.day ?? 1;
           const fam = p.family ?? { ...FAMILY_START };
@@ -4161,3 +4182,7 @@ useGame.subscribe(syncSeason);
 
 export { tierOf, dateFor };
 export type { Encounter };
+
+/** Leave a grown child to keep one of your shops (the shop record, read from `shops` if that system is
+ *  present, gets `childAgent`); returns the line to show. */
+export const assignChildToShop = (childId: string, shopKey: string) => useGame.getState().householdAct({ kind: 'childRole', child: childId, role: 'shop', shop: shopKey });
