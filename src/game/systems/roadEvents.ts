@@ -2,7 +2,7 @@
 // Data in data/roadEvents.ts. Nothing here stops the walk: the map shows a passing line, or a card
 // with a choice that the caravan walks on beside and that settles itself if left alone.
 import { ROAD_EVENTS, roadEventById, type RoadChoice, type RoadEvent, type RoadFx } from '../../data/roadEvents';
-import { RUGS } from '../../data/rugs';
+import { RUGS, RUG_IDS } from '../../data/rugs';
 import { useGame, type GameState } from '../state/store';
 import { rollFor } from './fieldwork';
 import { capacity, troopCount, MORALE_START } from './caravan';
@@ -47,7 +47,7 @@ function groundOf(p: Pt): 'desert' | 'sown' {
 }
 
 const carriedCommon = (s: GameState) => s.inventory.filter((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 1) === 1);
-const COMMON = () => Object.keys(RUGS).filter((id) => (RUGS[id].tier ?? 1) === 1);
+const COMMON = () => RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === 1);
 
 function fits(e: RoadEvent, s: GameState, p: Pt, dest?: string) {
   const h = s.world.hour, day = h >= 6 && h < 19;

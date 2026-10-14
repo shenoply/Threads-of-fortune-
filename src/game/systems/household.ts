@@ -363,7 +363,7 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
         const key = a.shop ?? '';
         if (!nextShops?.[key]) return no('There is no shop of yours there to keep.');
         const agent = { id: c.id, name: c.name ?? childName(c), since: day };
-        return { ok: true, msg: `${c.name} will keep the shop.`, patch: { household: setKid({ ...c, role: 'shop', shopAt: key }), shops: { ...nextShops, [key]: { ...nextShops[key], childAgent: agent } } } as Partial<GameState> };
+        return { ok: true, msg: `${c.name} will keep the shop.`, patch: { household: setKid({ ...c, role: 'shop', shopAt: key }), shops: { ...nextShops, [key]: { ...nextShops[key], childAgent: agent } } } as unknown as Partial<GameState> };
       }
       return { ok: true, msg: `${c.name} stays at home.`, patch: { household: setKid({ ...c, role: 'home', shopAt: undefined }), ...(nextShops !== shops ? { shops: nextShops } as Partial<GameState> : {}) } };
     }

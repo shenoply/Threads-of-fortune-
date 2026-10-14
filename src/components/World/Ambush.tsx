@@ -21,7 +21,7 @@ type Stage = 'standoff' | 'demand' | 'battle' | 'result';
 interface Unit { id: string; name: string; img: string; str: number; n: number; start: number }
 
 /** a name mid-sentence: lower case, but places and peoples keep their capital ("2 Giza watchmen", "the Syrian rebel band") */
-const midName = (s: string) => s.toLowerCase().replace(/\b(syrian|giza|cairo|bedouin|arnaut|egyptian|alexandria)\b/g, (w) => w[0].toUpperCase() + w.slice(1));
+const midName = (s: string) => s.toLowerCase().replace(/\b(syrian|giza|cairo|bedouin|arnaut|egyptian|alexandria|zagros|persian)\b/g, (w) => w[0].toUpperCase() + w.slice(1));
 
 /** What a beaten band is likely to have been riding, by who they are - a village robber on a donkey
  *  is not mounted the same as a Sinai raider. Falls back to the common Egyptian donkey. */
@@ -30,6 +30,7 @@ const BAND_MOUNT: Record<string, string> = {
   'sinai-transjordan-desert-raiders': 'bishari',
   'palestine-road-thieves': 'baladi_d',
   'iraq-border-smuggler-brigands': 'maghrabi',
+  'zagros-tribal-raiders': 'baladi_h',
 };
 
 /** Bandits on the road, Bannerlord-style: the map stops, both sides are weighed, and you talk, pay, run or fight. */

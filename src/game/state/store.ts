@@ -1,3 +1,5 @@
+import { PERSIA_IDS } from '../../data/persiaMap';
+import { motorLorry } from '../../data/world';
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
 import { migrateOpen, ALL_OPEN } from '../unlocks';
@@ -52,7 +54,7 @@ import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from '../audio/eng
 import { stopArranVoice, syncArranVolume } from '../audio/arranVoice';
 import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
 import {
-  blankFog, revealFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom, partyFare, railJourney,
+  blankFog, revealFog, fitFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom, partyFare, railJourney,
   type Party, type Pt,
 } from '../systems/world';
 import { CONDITION_FACTOR } from '../../data/rugs';
@@ -84,6 +86,8 @@ import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID }
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
 export const SAVE_VERSION = 24;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
+/** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
+const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek } = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -302,6 +306,8 @@ export interface GameState {
   border?: import('../systems/customs').BorderPending;
   lastTown?: string;
   passport?: { day: number };
+  /** a Persian visa from the Persian consulate in Baghdad (the Persian road, save 24) */
+  persianVisa?: { day: number };
   changer?: { town: string; day: number; fee: number };
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
@@ -660,7 +666,7 @@ function initialWorld(): WorldState {
   let fog = blankFog();
   fog = revealFog(fog, g, 9);
   fog = revealFog(fog, settlementById('cairo'), 6);
-  return { x: g.x, y: g.y, at: 'giza', fog, known: ['giza', 'cairo', 'alexandria', 'portsaid', 'jaffa', 'jerusalem', 'beirut', 'damascus', 'aleppo', 'istanbul', 'baghdad', 'konya', 'amman', 'ankara'], hour: 8, parties: spawnParties(rng), quests: {}, rumours: [], boughtLocal: [], appraised: [], friends: [], party: startingParty(), hired: {} };
+  return { x: g.x, y: g.y, at: 'giza', fog, known: ['giza', 'cairo', 'alexandria', 'portsaid', 'jaffa', 'jerusalem', 'beirut', 'damascus', 'aleppo', 'istanbul', 'baghdad', 'konya', 'amman', 'ankara', ...PERSIAN_ROAD], hour: 8, parties: spawnParties(rng), quests: {}, rumours: [], boughtLocal: [], appraised: [], friends: [], party: startingParty(), hired: {} };
 }
 
 /** What a settlement's own market has today, before stock is filtered out. Used both to show what is
@@ -2283,11 +2289,11 @@ export const useGame = create<GameState & Actions>()(
           const r = from ? (mode === 'motor' ? motorRoutesFrom(from, party) : seaRoutesFrom(from, party)).find((x) => x.to === to) : undefined;
           if (!r) return mode === 'motor' ? 'No motor service runs there from here.' : 'No ship sails there from here.';
           if (s.cash < r.fare) return 'You cannot afford the fare.';
-          set({ cash: s.cash - r.fare, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: mode === 'motor' ? `Nairn desert car to ${settlementById(to).name}` : `Deck passage to ${settlementById(to).name}`, amount: -r.fare }] });
+          set({ cash: s.cash - r.fare, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: mode === 'motor' ? (motorLorry(from, to) ? `Motor lorry to ${settlementById(to).name}` : `Nairn desert car to ${settlementById(to).name}`) : `Deck passage to ${settlementById(to).name}`, amount: -r.fare }] });
           const dest = settlementById(to);
           const notes = get().travelStep(dest, r.days, true);
           get().arriveAt(to);
-          return [mode === 'motor' ? `Two days across the desert in a Nairn Cadillac, sand in everything. You reach ${dest.name}.` : `You sailed ${r.days} day${r.days > 1 ? 's' : ''} to ${dest.name}.`, ...notes].join(' ');
+          return [mode === 'motor' ? (motorLorry(from, to) ? `${r.days} days up the Persian road in a motor lorry, on the bales with the other passengers. You reach ${dest.name}.` : `Two days across the desert in a Nairn Cadillac, sand in everything. You reach ${dest.name}.`) : `You sailed ${r.days} day${r.days > 1 ? 's' : ''} to ${dest.name}.`, ...notes].join(' ');
         },
 
         talk: (npcId, effects) => {
@@ -4449,6 +4455,16 @@ export const useGame = create<GameState & Actions>()(
           // v1 saves had no settings or commissions
           p.settings = p.settings ?? { dialogue: true, music: true, sfx: true, ambience: true };
           p.commissions = p.commissions ?? [];
+        }
+        // The Persian road arrived with save 24 (Persia east of the painted map, data/persiaMap.ts): its
+        // towns go on the map, greyed until the road opens (unlocks.ts); the fog grows to cover Persia,
+        // unexplored; the Zagros raiders and a Persian carpet caravan join the roads. persianVisa and
+        // shops are optional and start empty.
+        if (version < 24 && p.world) {
+          const w = p.world;
+          const have = new Set((w.parties ?? []).map((x) => x.id));
+          const added = spawnParties(rng).filter((x) => ['rb6', 'rb7', 'p6'].includes(x.id) && !have.has(x.id));
+          p.world = { ...w, fog: fitFog(w.fog ?? blankFog()), known: [...new Set([...(w.known ?? []), ...PERSIAN_ROAD])], parties: [...(w.parties ?? []), ...added] };
         }
         return p as GameState & Actions;
       },

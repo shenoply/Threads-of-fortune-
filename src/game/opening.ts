@@ -2,6 +2,8 @@
 // ticking itself off from what the player has actually done. Until it is finished (or skipped) only
 // Giza, Cairo and, later, Alexandria are open on the map, so nothing pulls a newcomer off the path.
 import type { GameState } from './state/store';
+import { isPersian } from '../data/persiaMap';
+import { persiaOpen, persiaWhy } from './unlocks';
 
 export const OPENING_TIP = 'first-hour'; // the old first-hour hint's id: dismissing either skips both
 type S = GameState;
@@ -57,6 +59,8 @@ export const openingDone = (s: S) => openingStep(s) === null;
 
 /** During the opening only Giza and Cairo are open, and Alexandria from the moment you set out for it. */
 export function cityLocked(s: S, id: string): boolean {
+  // Persia, whatever the opening: shops in three cities and a Persian visa (unlocks.ts)
+  if (isPersian(id) && !persiaOpen(s)) return true;
   const cur = openingStep(s);
   if (!cur) return false;
   if (id === 'giza' || id === 'cairo') return false;
@@ -64,6 +68,7 @@ export function cityLocked(s: S, id: string): boolean {
   return true;
 }
 export function lockedWhy(s: S, id: string): string {
+  if (isPersian(id) && !persiaOpen(s)) return persiaWhy(s);
   if (id === 'alexandria') return 'Alexandria opens once you have a guard and have reached Cairo.';
   return 'Opens once the opening is done (Rashid\'s errand in Alexandria). You can skip the opening in the objective bar.';
 }
