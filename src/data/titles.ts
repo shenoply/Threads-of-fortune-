@@ -39,5 +39,8 @@ export const TITLES: TitleDef[] = [
   { id: 'legend', name: 'Keeper of Legends', how: 'Own a Legendary carpet.', test: (s) => s.inventory.some((i) => RUGS[i.typeId]?.tier === 4) },
   { id: 'hammer', name: 'The Hammer Falls', how: 'Win an estate auction.', test: (s) => (s.stats?.auctionsWon ?? 0) >= 1 },
   { id: 'rival', name: 'Rival Undone', how: 'Finish the story of Selim Kassab.', test: (s) => s.missions?.rival === 'done' },
+  { id: 'orders', name: 'Trusted with Orders', how: 'Deliver a special order on time.', test: (s) => s.missions?.['ms-order'] === 'done' },
+  { id: 'border', name: 'Known Beyond the Border', how: 'Sell £25 worth of rugs outside Egypt.', test: (s) => s.missions?.['ms-abroad'] === 'done' },
+  { id: 'nodebt', name: 'Clear of Debt', how: 'Pay off your father\'s debt to Rashid.', test: (s) => s.missions?.['ms-debt'] === 'done' },
   { id: 'caught', name: 'Caught Red-Handed', how: 'Be caught lying three times.', secret: true, test: (s) => (s.stats?.liesCaught ?? 0) >= 3 },
 ];

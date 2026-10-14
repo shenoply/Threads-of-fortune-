@@ -26,6 +26,9 @@ export interface Mission {
   /** the objective button, when the next thing to do is not the trip to the target: 'stock', 'guards',
    *  'animals', 'district' or a town id (see App's chapterGo); null keeps the plain Map / Go button */
   next?: (s: MissionState) => { btn: string; go: string } | null;
+  /** true while the mission waits only on reputation to grow: the objective bar shows the current
+   *  milestone (data/milestones.ts) instead, which is what grows it */
+  waits?: (s: MissionState) => boolean;
   /** done? (the Alexandria errand is completed by the purchase itself) */
   check?: (s: MissionState) => boolean;
 }
@@ -169,6 +172,7 @@ export const MISSIONS: Record<string, Mission> = {
     },
     // only packed rugs reach a palace, and packing is done at the Giza stall
     next: (s) => (!courtRug(s) && ((s as unknown as { reputation?: number }).reputation ?? 0) >= FIRST_COURT_REP && charismaOf(s) >= 6 ? { btn: s.world.at === 'giza' ? 'Stock' : 'To Giza', go: s.world.at === 'giza' ? 'stock' : 'district' } : null),
+    waits: (s) => repOf(s) < FIRST_COURT_REP,
     check: (s) => s.court.warrants.length >= 1,
   },
   canopy: {
@@ -184,6 +188,7 @@ export const MISSIONS: Record<string, Mission> = {
       return 'Buy the bazaar stall with canopy (Improve, at the stall): £50.';
     },
     next: (s) => ({ btn: s.world.at === 'giza' ? 'Your stall' : 'To Giza', go: 'district' }),
+    waits: (s) => s.upgrades.includes('mat') && repOf(s) < 20,
     check: (s) => s.upgrades.includes('bazaar'),
   },
   warrant2: {
@@ -201,6 +206,7 @@ export const MISSIONS: Record<string, Mission> = {
       return rep >= 25 ? 'Sell to King Fuad (Cairo) or the Emir (Amman).' : 'Sell to the Emir Abdullah in Amman.';
     },
     next: (s) => (!courtRug(s) && charismaOf(s) >= 6 && repOf(s) >= 20 ? { btn: s.world.at === 'giza' ? 'Stock' : 'To Giza', go: s.world.at === 'giza' ? 'stock' : 'district' } : null),
+    waits: (s) => repOf(s) < 20,
     check: (s) => s.court.warrants.length >= 2,
   },
   house: {

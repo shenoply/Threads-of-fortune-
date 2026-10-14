@@ -11,6 +11,8 @@ import { SETTLEMENTS } from '../../data/world';
 import { houseOfFortune, rankOf, RANKS, netWorth, liabilities, owedParts } from '../../game/economy/progress';
 import { rugSrc } from '../RugViewer/rugArt';
 import { LicenceCard } from './LicenceCard';
+import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY } from '../../data/milestones';
+import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
 function sourcesOf(id: string) {
@@ -50,6 +52,8 @@ export function Fortune() {
           ))}
         </div>
       </div>
+
+      <Ladder />
 
       <div className="section-label reg-head">
         <span>CARPET REGISTER · {have}/{RUG_IDS.length}</span>
@@ -206,5 +210,36 @@ export function Ledger() {
         ))}
       </div>
     </div>
+  );
+}
+
+/** The milestones from the second week on: what each asks, what it brings, and where you are on it. */
+export function Ladder() {
+  const g = useGame();
+  const st = g as unknown as MissionState;
+  const done = MILESTONE_ORDER.filter((id) => g.missions?.[id] === 'done').length;
+  return (
+    <>
+      <div className="section-label">THE BUSINESS · {done}/{MILESTONE_ORDER.length} GOALS</div>
+      <div className="ladder" data-testid="ladder">
+        {g.day < MILESTONE_FROM_DAY && !done && <small className="ladder-note">The first goal opens on day {MILESTONE_FROM_DAY}.</small>}
+        {MILESTONE_ORDER.map((id, i) => {
+          const m = MILESTONES[id];
+          const state = g.missions?.[id];
+          const [have, need] = m.progress(st);
+          return (
+            <div key={id} className={`rung ${state ?? 'later'}`} data-testid={`rung-${id}`} data-state={state ?? 'later'}>
+              <span className="tick">{state === 'done' ? '✓' : i + 1}</span>
+              <div>
+                <b>{m.title}</b>
+                {state === 'active' ? <small>{m.hint(st)}</small> : state === 'done' ? <small className="said">{m.speaker}: {m.reward.text}</small> : <small>{m.aim}</small>}
+                <small className="opens">{state === 'done' ? 'Opened: ' : 'Reward: '}{m.opens}</small>
+                {state === 'active' && <i className="bar"><em style={{ width: `${Math.round(Math.min(1, have / need) * 100)}%` }} /></i>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

@@ -69,7 +69,9 @@ import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/st
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
 import type { PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
-export const SAVE_VERSION = 22;
+import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
+import { countryOf } from '../economy/currency';
+export const SAVE_VERSION = 23;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -150,7 +152,8 @@ export interface GameState {
   /** level-ups waiting to be announced */
   levelUps: { skill: SkillId; level: number }[];
   titles: string[];
-  stats: { liesOk?: number; liesCaught?: number; auctionsWon?: number; rivalSales?: number };
+  /** abroadSold: rug sales made outside Egypt, in piastres (the 'A caravan abroad' milestone) */
+  stats: { liesOk?: number; liesCaught?: number; auctionsWon?: number; rivalSales?: number; abroadSold?: number };
   /** titles waiting to be announced */
   titleNews: string[];
   merchantSeen?: number;
@@ -280,6 +283,8 @@ export interface GameState {
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number };
   missionNews?: string;
+  /** a milestone just reached (data/milestones.ts): its short notice, not saved */
+  milestoneNews?: string;
   /** rugs sold to each town's dealers today: each one lowers the next bid there (localBid) */
   dealerSold?: { day: number; by: Record<string, number> };
   /** the boy who minds the stall while you are away (systems/shopBoy.ts) */
@@ -724,12 +729,16 @@ export const DEALER_SHARE = 0.48;
 export const DEALER_GLUT = 0.9;
 /** rugs sold to dealers today, town by town: kept in step with the store (dealerSold) */
 export const DEALER_SAT: { day: number; by: Record<string, number> } = { day: 0, by: {} };
+/** milestone rewards the pure price functions need to know about (kept in step with the save below) */
+export const MS_FX = { cairoDealers: false };
 export function localBid(sid: string, item: RugItem, day = 1): number {
   const st = settlementById(sid);
   const t = RUGS[item.typeId];
   let m = rumourBid(day, sid, item.typeId, t.traits);
   for (const tr of t.traits) m += st.demand[tr] ?? 0;
   if (item.provenance === 'Documented' && (st.demand.story ?? 0) > 0) m += 0.1;
+  // Hagop's introduction (the 'A name among Cairo dealers' milestone)
+  if (sid === 'cairo' && MS_FX.cairoDealers) m += CAIRO_DEALER_BONUS;
   // each rug already sold to this town's dealers today knocks a tenth off the next one
   const sold = DEALER_SAT.day === day ? DEALER_SAT.by[sid] ?? 0 : 0;
   // a dealer knows a dyed or aged copy when he sees one (systems/fakes.ts)
@@ -1424,7 +1433,7 @@ export const useGame = create<GameState & Actions>()(
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
           const lane = laneDay(day);
-          queue = queue.slice(0, Math.max(1, 3 + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + lane.extra));
+          queue = queue.slice(0, Math.max(1, 3 + (s.missions?.['ms-regulars'] === 'done' ? 1 : 0) + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + lane.extra));
           if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
           // Cohen: a promise missed closes that order and costs his trust; never on his Sabbath
@@ -1468,6 +1477,20 @@ export const useGame = create<GameState & Actions>()(
             if (nextId === 'rival') stats = { ...stats, rivalSales: 0 };
             notes.push(`New main mission: ${MISSIONS[nextId].title}.`);
             journal.push({ day, text: `New main mission: ${MISSIONS[nextId].title}.`, kind: 'mission' });
+          }
+          // the milestones (data/milestones.ts): from the second week, one at a time, beside the story
+          const nextMs = MILESTONE_ORDER.find((id) => missions[id] !== 'done');
+          if (s.tutorial.done && day >= MILESTONE_FROM_DAY && nextMs && !activeMilestone(missions)) {
+            missions[nextMs] = 'active';
+            missionStart[nextMs] = day;
+            notes.push(`New goal: ${MILESTONES[nextMs].title}. ${MILESTONES[nextMs].hint(s as never)}`);
+            journal.push({ day, text: `New goal: ${MILESTONES[nextMs].title}.`, kind: 'mission' });
+          }
+          // the agent in the Souq el-Attarin sends his takings on Mondays
+          if (missions['ms-agent'] === 'done' && dateFor(day).weekday === 'Monday') {
+            cash += AGENT_PAY;
+            ledger.push({ day, kind: 'bonus', label: 'Your agent in Alexandria: the week\'s takings', amount: AGENT_PAY });
+            notes.push(`Your agent in Alexandria sent ${fmt(AGENT_PAY)}.`);
           }
           // visitors: who is in which town this week
           let visits = (s.visits ?? []).filter((v) => v.until >= day);
@@ -3736,8 +3759,8 @@ export const useGame = create<GameState & Actions>()(
       storage: createJSONStorage(() => safeStorage),
       partialize: (s) => {
         // dayOver is kept: a stall shut for the day stays shut after a reload
-        const { encounter, seed, audienceStash, held, ...rest } = s as GameState & Actions;
-        void encounter; void seed; void audienceStash; void held;
+        const { encounter, seed, audienceStash, held, milestoneNews, ...rest } = s as GameState & Actions;
+        void encounter; void seed; void audienceStash; void held; void milestoneNews;
         const out: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(rest)) if (typeof v !== 'function') out[k] = v;
         return out as unknown as GameState & Actions;
@@ -3751,6 +3774,19 @@ export const useGame = create<GameState & Actions>()(
         // the opening (game/opening.ts) arrived with save 21: a merchant already under way skips it, with
         // every city open as before; one still on his first day or two starts it, steps already done ticked
         // the music default came down from full to under half: a save still at the old full level follows it
+        // the milestones arrived with save 23: a merchant already past them has them ticked quietly, in
+        // order, up to the first one not yet met (no rewards paid twice, no notices); the next morning
+        // opens the next one as usual
+        if (version < 23 && p.started && (p.day ?? 1) >= MILESTONE_FROM_DAY) {
+          const ms = { ...(p.missions ?? {}) } as Record<string, 'active' | 'done'>;
+          for (const id of MILESTONE_ORDER) {
+            let met = false;
+            try { met = !!MILESTONES[id].check?.(p as never); } catch { met = false; }
+            if (!met) break;
+            ms[id] = 'done';
+          }
+          p.missions = ms;
+        }
         if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
           const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };
@@ -3925,6 +3961,45 @@ useGame.subscribe(() => {
   });
   audio.sfx('chest');
 });
+
+// Milestones (data/milestones.ts) finish themselves the same way, one at a time: the reward is paid,
+// the journal and ledger say so, and a short notice shows (MilestoneNotice), with nothing to dismiss.
+useGame.subscribe(() => {
+  const s = useGame.getState();
+  if (!s.started) return;
+  const id = activeMilestone(s.missions);
+  if (!id) return;
+  const m = MILESTONES[id];
+  if (!m.check?.(s as never)) return;
+  const line = `Goal reached: ${m.title}. ${m.opens}.`;
+  useGame.setState({
+    missions: { ...s.missions, [id]: 'done' },
+    milestoneNews: id,
+    cash: s.cash + m.reward.cash,
+    reputation: s.reputation + m.reward.rep,
+    supplier: { ...s.supplier, trust: Math.min(100, s.supplier.trust + m.reward.trust) },
+    journal: [...s.journal, { day: s.day, text: `${line} ${m.speaker}: ${m.reward.text}`, kind: 'mission' }],
+    ledger: m.reward.cash ? [...s.ledger, { day: s.day, kind: 'bonus', label: `Goal: ${m.title}`, amount: m.reward.cash }] : s.ledger,
+  });
+  audio.sfx('chest');
+});
+// what was sold outside Egypt, for "A caravan abroad": every rug sale the ledger records while you are
+// in a town abroad (dealers, visitors, palaces, venues), wherever it was made from
+let ledgerSeen = useGame.getState().ledger?.length ?? 0;
+useGame.subscribe((s) => {
+  const n = s.ledger?.length ?? 0;
+  if (n < ledgerSeen) { ledgerSeen = n; return; } // a new game
+  if (n === ledgerSeen) return;
+  const fresh = s.ledger.slice(ledgerSeen);
+  ledgerSeen = n;
+  const c = countryOf(s.world?.at);
+  if (!s.started || !c || c === 'egypt') return;
+  const add = fresh.filter((l) => l.kind === 'sale' && l.cost !== undefined && l.amount > 0 && !/^Seized/.test(l.label)).reduce((a, l) => a + l.amount, 0);
+  if (add > 0) useGame.setState({ stats: { ...(s.stats ?? {}), abroadSold: (s.stats?.abroadSold ?? 0) + add } });
+});
+const syncMs = (s: GameState) => { MS_FX.cairoDealers = s.missions?.['ms-name'] === 'done'; };
+syncMs(useGame.getState());
+useGame.subscribe(syncMs);
 
 // Rashid's errand starts the moment the opening puts you on the train to Alexandria (not the next
 // morning), so a rug bought there during the opening counts. A purchase made in Alexandria before the

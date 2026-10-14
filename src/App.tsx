@@ -36,7 +36,7 @@ import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/
 import { Supplier } from './components/Supplier/Supplier';
 import { Inventory } from './components/Inventory/Inventory';
 import { Guide, guidePage } from './components/Guide/Guide';
-import { ObjectiveBar, SideTasks } from './components/Mission/Mission';
+import { MilestoneNotice, ObjectiveBar, SideTasks } from './components/Mission/Mission';
 import { firstHourStep, FIRST_HOUR_TIP } from './components/Tips/FirstHour';
 import { GuideFlash } from './components/Tips/GuideFlash';
 import { CaravanScreen } from './components/World/CaravanScreen';
@@ -750,6 +750,7 @@ export default function App() {
       {g.started && phase === 'game' && !tutorialActive && tab !== 'hero' && !(tab === 'stall' && g.encounter) && <HealthStrip />}
 
       {phase === 'game' && <GuideFlash />}
+      {phase === 'game' && <MilestoneNotice />}
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
           Progress, Stock and Caravan they only took room from the page */}
       {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
