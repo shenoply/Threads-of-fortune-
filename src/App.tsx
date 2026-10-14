@@ -715,7 +715,7 @@ export default function App() {
     <div className="app">
       <header className="hud">
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
-          <b>{g.world.at ? settlementById(g.world.at).name : 'Road'}</b>
+          {(() => { const nm = g.world.at ? settlementById(g.world.at).name.split(',')[0] : 'Road'; return <b className={nm.length > 11 ? 'long' : undefined}>{nm}</b>; })()}
           <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
         </button>
         <div className="hud-stats">

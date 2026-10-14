@@ -2994,3 +2994,125 @@ body.travelling .world-hud { display: none; }
 .wc-col.road-event .wc-main span { color: var(--parchment); }
 .wc-col.road-event .re-sand { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: #b8893a; transform-origin: left; animation: reSand 8s linear forwards; opacity: .7; }
 @keyframes reSand { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+/* ================= Calmer phone screens (Pixel 7a, 412px) =================
+   One type scale on the everyday screens: --fs-l titles, --fs-m reading text and buttons, --fs-s
+   small print. One gold button per card; the others are plain, Cancel is quieter still. */
+:root { --fs-l: 17px; --fs-m: 15px; --fs-s: 13px; --gap: 8px; }
+.btn.quiet { background: transparent; border-color: var(--line); color: var(--text-dim); font-weight: 400; }
+
+/* top bar: the same buttons, slimmer, no rings; a red dot still marks news */
+@media (max-width: 480px) {
+  .hud { min-height: 48px; padding-top: calc(4px + env(safe-area-inset-top, 0px)); padding-bottom: 4px; gap: 6px; }
+  .hud-stats { gap: 2px; }
+  .hud .icon-btn { width: 40px; height: 40px; min-width: 40px; border-color: transparent; background: transparent; }
+  .hud .icon-btn svg { width: 21px; height: 21px; }
+  .hud .icon-btn.nav-new { animation: none; border-color: transparent; }
+  .radio-btn.nav-new::after, .paper-btn.nav-new::after { animation: none; top: 6px; right: 6px; inset: 6px 6px auto auto; }
+  .hud-chip { height: 40px; padding: 0 8px; gap: 4px; border-color: transparent; background: rgba(255,255,255,.045); border-radius: 20px; font-size: var(--fs-m); }
+  .hud-chip svg { display: inline; width: 14px; height: 14px; }
+  .hud-rep { display: inline-flex; border-color: transparent; }
+  .hud-place { flex: 1 1 auto; min-width: 0; }
+  .hud-place b { font-size: var(--fs-l); }
+  .hud-cal span, .hud-place span { font-size: var(--fs-s); overflow: visible; text-overflow: clip; }
+  .hud-cal span svg { display: none; }
+  .hud-cal { min-height: 40px; justify-content: center; }
+
+  /* clock bar: date, dial, speeds, and one Nights toggle, on one line */
+  .world .bl-bar { gap: 6px; bottom: 6px; left: 6px; right: 6px; }
+  .world .bl-time { gap: 4px; padding: 2px 4px 2px 12px; min-height: 48px; border-radius: 24px; }
+  .world .bl-date { font-size: var(--fs-s); }
+  .world .bl-date small { font-size: 10.5px; }
+  .world .bl-dial { width: 42px; height: 42px; margin: 0; }
+  .world .bl-still { display: none; }
+  .world .bl-speeds { gap: 0; }
+  .world .bl-speeds button { min-width: 40px; height: 40px; border-radius: 20px; font-size: 12px; }
+  .world .bl-rest { font-size: 12px; white-space: normal; flex: 1 1 100%; order: 9; text-align: center; padding-bottom: 2px; }
+  .world .bl-time:has(.bl-rest) { flex-wrap: wrap; }
+  .world .bl-night { height: 40px; padding: 0 12px 0 10px; gap: 5px; border-radius: 20px; font-size: var(--fs-s); cursor: pointer; flex: none; }
+  .world .bl-night svg { width: 15px; height: 15px; }
+  .world .bl-night.ask { border-color: rgba(223,228,255,.35); background: transparent; }
+  .world .bl-night.need { box-shadow: 0 0 0 2px rgba(231,189,110,.45); animation: campNeed 1.6s ease-in-out infinite; }
+  /* the caravan line: one row, only while travelling or planning a trip */
+  .world .bl-party { min-height: 40px; padding: 4px 12px; border-radius: 20px; justify-content: space-between; }
+  .world .bl-party span { font-size: var(--fs-s); }
+
+  /* the card under the map */
+  .world-card { padding: 8px 12px 10px; gap: var(--gap); }
+  .world-report { font-size: var(--fs-s); }
+  .wc-main b { font-size: var(--fs-l); line-height: 1.2; }
+  .wc-main span, .wc-main span.warn { font-size: var(--fs-s); line-height: 1.35; }
+  .wc-main .fare-bill, .wc-main .fare-bill i { font-size: 12px; }
+  .wc-btns { gap: 6px; }
+  .wc-btns .btn, .wc-row > .btn, .wc-alt .btn { min-height: 44px; padding: 6px 12px; font-size: var(--fs-m); }
+  .wc-btns .btn.primary { flex: 1 1 100%; }
+  .wc-btns .btn:not(.primary) { flex: 1 1 auto; }
+  .wc-btns .btn { letter-spacing: .01em; }
+  .wc-btns .sail-btn:not(.primary) { border-color: var(--line-strong); color: var(--parchment); background: #2a1c10; }
+  .wc-btns .sail-btn.primary.faster { background: linear-gradient(180deg, #c9974a, #9b6d2c); color: #1b1006; border-color: #e7bd6e; box-shadow: none; }
+  .btn .fast-tag { font-size: 12px; font-weight: 400; opacity: .8; margin-left: 4px; }
+  .wc-alt { gap: 6px; font-size: var(--fs-s); color: var(--text-dim); }
+}
+@media (prefers-reduced-motion: reduce) { .bl-night.need { animation: none; } }
+@media (max-width: 480px) {
+  .world .wc-alt .btn { min-height: 40px; padding: 4px 10px; font-size: var(--fs-s); }
+
+  /* stall: the same three sizes, the four questions as an even grid */
+  .app .narrator { font-size: var(--fs-m); line-height: 1.35; }
+  .app .narrator small { font-size: 12px; }
+  .app .plate-row-btn { min-height: 40px; }
+  .app .meter { font-size: var(--fs-s); }
+  .app .rugcard .nm { font-size: var(--fs-m); }
+  .app .rugcard .val, .app .rugcard .meta { font-size: 12px; }
+  .app .actions { grid-auto-rows: 1fr; gap: 6px; }
+  .app .act { min-height: 52px; }
+  .app .act .t { font-size: var(--fs-m); line-height: 1.15; }
+  .app .act .s { font-size: 12px; line-height: 1.2; }
+
+  /* town menu: every tile the same height, one title size, one line of small print */
+  .town-menu .tm-title h2 { font-size: 28px; }
+  .town-menu .tm-blurb { font-size: var(--fs-m); }
+  .town-menu .tm-note { font-size: var(--fs-s); }
+  .town-menu .tm-list { gap: 6px; grid-auto-rows: minmax(52px, auto); }
+  .town-menu .tm-item { min-height: 52px; padding: 6px 10px; }
+  .town-menu .tm-item b, .town-menu .tm-walk .tm-item b { font-size: var(--fs-m); }
+  .town-menu .tm-item small { font-size: 12px; line-height: 1.25; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .town-menu .tm-walk .tm-item { justify-content: flex-start; text-align: left; }
+  .town-menu .tm-walk .tm-item span { align-items: flex-start; }
+
+  /* Me: the figure and three plain facts; no second purse */
+  .hero-hub { gap: var(--gap); }
+  .hh-stats { gap: 5px; }
+  .hh-stats h2 { font-size: 19px; }
+  .hh-called { font-size: var(--fs-s); }
+  .hh-stats dd { font-size: var(--fs-m); }
+  .hh-stats dl { grid-template-columns: 1fr 1fr; }
+  .hh-stats .btn.primary { min-height: 44px; font-size: var(--fs-m); }
+  .hero-hub h3, .hero-hub .cs-label b { font-size: var(--fs-l); }
+
+  /* Progress: plain tabs, films as quiet chips, the first-days hint without the pulsing gold box */
+  .merchant-tabs { gap: 3px; }
+  .merchant-tabs button { font-size: var(--fs-s); padding: 6px 2px; }
+  .merchant-tabs .merchant-help { text-decoration: none; border: 1px solid transparent; color: var(--brass-hi); font-size: var(--fs-s); padding: 0 4px; min-height: 44px; }
+  .film-shelf { gap: 4px; margin-bottom: 6px; }
+  .film-shelf .btn.small { min-height: 40px; padding: 4px 10px; font-size: var(--fs-s); background: transparent; border-color: var(--line); }
+  .cust-goal { animation: none; border: 1px solid var(--line-strong); border-radius: 6px; background: rgba(231,189,110,.08); font-size: var(--fs-m); font-weight: 400; padding: 8px 12px; margin: 4px 0 10px; }
+  .cust-intro { font-size: var(--fs-m); }
+
+  /* Settings: one heading size inside the sheet, slim slot rows */
+  [data-testid="settings"] .settings-head h2 { font-size: 20px; }
+  [data-testid="settings"] h2:not(.settings-head h2), [data-testid="settings"] .set-h { font-size: var(--fs-l); margin: 16px 0 4px; color: var(--brass-hi); font-family: var(--display); font-weight: 500; }
+  [data-testid="settings"] p, [data-testid="settings"] .dim { font-size: var(--fs-s); line-height: 1.4; margin-bottom: 8px; }
+  [data-testid="settings"] .slot-row { padding: 2px 4px 2px 10px; min-height: 48px; flex-wrap: nowrap; }
+  [data-testid="settings"] .slot-row .slot-info { font-size: var(--fs-s); }
+  [data-testid="settings"] .slot-list { display: grid; gap: 4px; }
+  [data-testid="settings"] .btn { min-height: 40px; font-size: var(--fs-s); }
+  [data-testid="settings"] .btn.primary { font-size: var(--fs-m); }
+}
+@media (max-width: 480px) {
+  /* a long town name takes two smaller lines rather than losing its end */
+  .hud-place b.long { font-size: 13.5px; line-height: 1.05; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; text-overflow: clip; }
+  .hud-chip { padding: 0 7px; }
+  .hud-stats { gap: 1px; }
+  [data-testid="settings"] .slot-row .slot-info { align-self: center; }
+  .upgrade-nudge__go { border-color: var(--line-strong); font-size: var(--fs-s); }
+}
