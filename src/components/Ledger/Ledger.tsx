@@ -12,6 +12,9 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { LicenceCard } from './LicenceCard';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, activeMilestone } from '../../data/milestones';
 import { Fold } from '../Fold/Fold';
+import { onWall } from '../../game/systems/shops';
+import { settlementById } from '../../game/systems/world';
+
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
@@ -62,6 +65,8 @@ export function Fortune() {
       </Fold>
 
       <Ladder />
+
+      <ShopsFold />
 
       <Fold id="pr-register" testid="register-fold" rowTestid="register-toggle" title="Carpet Register" gist={`${have}/${RUG_IDS.length}`}>
         <div className="register" data-testid="register">
@@ -271,5 +276,28 @@ export function CurrentGoal() {
       {first ? <b>{first[0].label}</b> : <b>Today's goals are met.</b>}
       {!first && g.day < MILESTONE_FROM_DAY && <span>The first business goal opens on day {MILESTONE_FROM_DAY}.</span>}
     </div>
+  );
+}
+
+/** Your shops in other cities, in one folded row: who keeps each, what is on its wall, what it has sent. */
+export function ShopsFold() {
+  const g = useGame();
+  const ids = Object.keys(g.shops ?? {});
+  if (!ids.length) return null;
+  const sent = ids.reduce((t, id) => t + (g.shops![id].takings ?? 0), 0);
+  return (
+    <Fold id="pr-shops" testid="shops-fold" className="shop-fold" title="Your shops" gist={`${ids.length} · ${ids.map((id) => settlementById(id).name).join(', ')}`}>
+      {ids.map((id) => {
+        const sh = g.shops![id];
+        const wall = onWall(sh, g.day).length;
+        return (
+          <div className="shop-row" key={id} data-testid={`shop-row-${id}`}>
+            <span><b>{settlementById(id).name}</b><small>{sh.khan ? 'The Khan el-Khalili: you keep it yourself' : sh.agent ? `${sh.agent.name} · ${wall ? `${wall} rug${wall > 1 ? 's' : ''} on the wall` : 'nothing to sell'}` : 'Nobody keeps it'}</small></span>
+            <span>{sh.khan ? '' : <small>sent {fmt(sh.takings ?? 0)}{sh.last ? ` · last ${fmt(sh.last.sent)}` : ''}</small>}</span>
+          </div>
+        );
+      })}
+      {sent > 0 && <small className="dim">Sent to you so far: {fmt(sent)}. Takings come on Mondays.</small>}
+    </Fold>
   );
 }

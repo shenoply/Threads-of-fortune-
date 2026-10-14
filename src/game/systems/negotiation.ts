@@ -18,6 +18,7 @@ import { LIES, PRAISE } from '../../data/patter';
 import { disclosedFactor, discloseLabel, discloseLine, untold, type Eye } from './fakes';
 import { lieOptions, praiseOptions, rollLie, rollPraise, seeded, stretch, MAX_LIES, MAX_PRAISE, LIE_PAY_CAP, type LieKind, type PraiseKind } from './patter';
 import { wantMult } from '../economy/calendar1925';
+import { dressingFx } from '../../data/shops';
 
 export type ActionId =
   | 'ask_room' | 'ask_drawn' | 'ask_budget' | 'ask_decider' | 'small_talk' | 'tea'
@@ -141,6 +142,8 @@ export interface Ctx {
   hour?: number;
   inventory: RugItem[];
   upgrades: string[];
+  /** pieces dressing the Giza stall (data/shops.ts DRESSING) */
+  dressing?: string[];
   reputation: number;
   rel: Relationship;
   rng: () => number;
@@ -327,6 +330,13 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   enc.trust = clamp(enc.trust + Math.round((ctx.charisma ?? 0) / 2) + (perk(ctx, 'speech', 15) ? 6 : 0) + (perk(ctx, 'catkeeping', 10) && b.catAffinity > 0 ? 4 : 0), 0, 100);
   if (b.royal && perk(ctx, 'speech', 20)) enc.patience += 15;
   if (ctx.upgrades.includes('khan')) enc.patience += 15;
+  // the stall's dressing: lamps, a bench, a glass case... (rich: buyers of the Fine trade and up)
+  if (ctx.dressing?.length) {
+    const fx = dressingFx(ctx.dressing, (BUYER_TIERS[buyerId]?.[0] ?? 1) >= 2);
+    enc.patience += fx.patience;
+    enc.interest = clamp(enc.interest + fx.interest, 0, 100);
+    enc.trust = clamp(enc.trust + fx.trust, 0, 100);
+  }
   const hl = lvl(ctx, 'haggling');
   enc.edge = {
     pay: 1 + hl * 0.004 + (perk(ctx, 'haggling', 15) ? 0.03 : 0) + (perk(ctx, 'appraisal', 20) && b.royal ? 0.05 : 0),

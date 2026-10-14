@@ -7,7 +7,9 @@ import type { RugItem } from '../types';
 import { missionsDone, MAIN_ORDER, MISSIONS } from '../../data/missions';
 
 interface S { cash: number; reputation: number; inventory: RugItem[]; upgrades: string[]; supplier: { debt: number }; court: { warrants: string[] }; register?: string[]; missions?: Record<string, string>;
-  loans?: { owed: number }[]; family?: { left: number }; bills?: { due: number } }
+  loans?: { owed: number }[]; family?: { left: number }; bills?: { due: number };
+  /** shops in other cities (systems/shops.ts): their leases and the rugs on their walls */
+  shops?: Record<string, { paid?: number; khan?: boolean; stock?: RugItem[] }> }
 
 const PROPERTY: Record<string, number> = { khan: 60000 };
 export const ROYAL_IDS = Object.values(BUYERS).filter((b) => b.royal).map((b) => b.id);
@@ -28,7 +30,8 @@ export function owedParts(s: Pick<S, 'supplier' | 'loans' | 'family' | 'bills'>)
 }
 export function netWorth(s: S) {
   const property = s.upgrades.reduce((a, u) => a + (PROPERTY[u] ?? 0), 0);
-  return Math.round(s.cash + stockValue(s.inventory) + property - liabilities(s));
+  const shops = Object.values(s.shops ?? {}).reduce((a, sh) => a + (sh.khan ? 0 : sh.paid ?? 0) + stockValue(sh.stock ?? []), 0);
+  return Math.round(s.cash + stockValue(s.inventory) + property + shops - liabilities(s));
 }
 
 export const HOUSE_TARGET = 500000; // £5,000: a rich man's fortune in 1925

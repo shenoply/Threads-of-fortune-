@@ -69,11 +69,13 @@ import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvaila
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
-import type { PostState } from '../systems/post';
+import { post as postLetter, TELEGRAPH_TOWNS, telegramFee, type PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
 import { countryOf } from '../economy/currency';
-export const SAVE_VERSION = 23;
+import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
+import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
+export const SAVE_VERSION = 24;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek } = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -302,6 +304,11 @@ export interface GameState {
   fakeSales?: FlawSale[];
   /** summer moth: the day of the last warning (systems/moths.ts) */
   moths?: { warned?: number };
+  /** shops of your own in other cities, keyed by settlement id (systems/shops.ts); Cairo's is the Khan
+   *  shop upgrade, mirrored here while it is owned */
+  shops?: Shops;
+  /** pieces bought to dress the Giza stall (data/shops.ts DRESSING) */
+  dressing?: string[];
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -490,6 +497,19 @@ interface Actions {
   /** air and beat the rugs you have with you against moth: an hour (systems/moths.ts) */
   airRugs: () => string;
   buyUpgrade: (id: string) => void;
+  /** a piece to dress the Giza stall (data/shops.ts DRESSING) */
+  buyDressing: (id: string) => string;
+  /** shops in other cities: each returns a line for the player */
+  buyShop: (sid: string) => string;
+  hireAgent: (sid: string, agentId: string) => string;
+  dismissAgent: (sid: string) => string;
+  /** leave a rug you carry on the shop's wall (you must be in that city), or take one back */
+  leaveStock: (sid: string, uid: string) => string;
+  takeStock: (sid: string, uid: string) => string;
+  /** look over the agent's book, in person: what he kept back comes out */
+  checkBooks: (sid: string) => string;
+  /** from a telegraph office: the boy sends a rug kept at the Giza stall to one of your shops by rail */
+  railStock: (sid: string, uid: string) => string;
   setSetting: (c: Channel, on: boolean) => void;
   /** turn this browser's autosave on or off; the change itself is always written to disk,
    *  whichever way it goes */
@@ -905,6 +925,7 @@ export const useGame = create<GameState & Actions>()(
         hour: s.world.hour,
         inventory: s.inventory,
         upgrades: s.upgrades,
+        dressing: s.dressing,
         reputation: s.reputation,
         rel: s.relationships[buyerId] ?? emptyRel(),
         rng,
@@ -1470,7 +1491,7 @@ export const useGame = create<GameState & Actions>()(
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
           const lane = laneDay(day);
-          queue = queue.slice(0, Math.max(1, 3 + (s.missions?.['ms-regulars'] === 'done' ? 1 : 0) + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + lane.extra));
+          queue = queue.slice(0, Math.max(1, 3 + (s.missions?.['ms-regulars'] === 'done' ? 1 : 0) + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + ((s.dressing ?? []).some((d) => DRESSING_BY_ID[d]?.buyerWeek) && rng() < 1 / 7 ? 1 : 0) + lane.extra));
           if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
           // Cohen: a promise missed closes that order and costs his trust; never on his Sabbath
@@ -1523,11 +1544,12 @@ export const useGame = create<GameState & Actions>()(
             notes.push(`New goal: ${MILESTONES[nextMs].title}. ${MILESTONES[nextMs].hint(s as never)}`);
             journal.push({ day, text: `New goal: ${MILESTONES[nextMs].title}.`, kind: 'mission' });
           }
-          // the agent in the Souq el-Attarin sends his takings on Mondays
-          if (missions['ms-agent'] === 'done' && dateFor(day).weekday === 'Monday') {
+          // Rashid's man in the Souq el-Attarin shows other merchants' rugs in your Alexandria shop as
+          // well, and sends you their rent for the wall on Mondays (until he is let go)
+          if (missions['ms-agent'] === 'done' && dateFor(day).weekday === 'Monday' && !s.shops?.alexandria?.noNahhas) {
             cash += AGENT_PAY;
-            ledger.push({ day, kind: 'bonus', label: 'Your agent in Alexandria: the week\'s takings', amount: AGENT_PAY });
-            notes.push(`Your agent in Alexandria sent ${fmt(AGENT_PAY)}.`);
+            ledger.push({ day, kind: 'bonus', label: 'Your agent in Alexandria: rent for the other merchants\' rugs', amount: AGENT_PAY });
+            notes.push(`Your agent in Alexandria sent ${fmt(AGENT_PAY)} for the wall space.`);
           }
           // visitors: who is in which town this week
           let visits = (s.visits ?? []).filter((v) => v.until >= day);
@@ -1579,6 +1601,19 @@ export const useGame = create<GameState & Actions>()(
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
           for (const step of [resolveReturns, mothNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
+          if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => sh.agent && !sh.khan)) {
+            const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);
+            patch.shops = wk.shops;
+            patch.cash = (patch.cash ?? cash) + wk.cashIn - wk.cashOut;
+            patch.ledger = [...(patch.ledger ?? ledger), ...wk.ledger];
+            patch.journal = [...(patch.journal ?? journal), ...wk.journal];
+            let pst = patch.post ?? s.post;
+            for (const l of wk.letters) pst = postLetter(pst, { day, sent: day, kind: 'letter', from: l.from, title: l.title, body: l.body });
+            patch.post = pst;
+            notes.push(...wk.notice);
+            if (wk.notice.length) patch.jobNote = wk.notice.join(' ');
+          }
           return { patch, summary };
         };
 
@@ -3691,6 +3726,145 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('chest');
         },
 
+        buyDressing: (id) => {
+          const s = get();
+          const d = DRESSING_BY_ID[id];
+          if (!d) return '';
+          if ((s.dressing ?? []).includes(id)) return `You already have ${lowerName(d.name)}.`;
+          if (s.cash < d.cost) return `${d.name}: ${fmt(d.cost)}. You have ${fmt(s.cash)}.`;
+          set({
+            cash: s.cash - d.cost,
+            dressing: [...(s.dressing ?? []), id],
+            ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: d.name, amount: -d.cost }],
+            journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(d.name)} for the stall.` }],
+          });
+          audio.sfx('chest');
+          return `${d.name} for the stall: ${fmt(d.cost)}.`;
+        },
+
+        buyShop: (sid) => {
+          const s = get();
+          const c = SHOP_CITIES[sid];
+          if (!c || sid === 'cairo') return '';
+          const name = settlementById(sid).name;
+          if (s.shops?.[sid]) return `You already have a shop in ${name}.`;
+          if (s.world.at !== sid) return `You must be in ${name} to sign the lease.`;
+          if (s.reputation < c.rep) return `The landlords in ${name} want a merchant of reputation ${c.rep}. Yours is ${s.reputation}.`;
+          if (s.cash < c.cost) return `The lease and fittings come to ${fmt(c.cost)}. You have ${fmt(s.cash)}.`;
+          const shop: ShopState = { since: s.day, paid: c.cost, stock: [] };
+          set({
+            cash: s.cash - c.cost,
+            shops: { ...(s.shops ?? {}), [sid]: shop },
+            ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: `A shop in ${name}`, amount: -c.cost }],
+            journal: [...s.journal, { day: s.day, text: `Took the lease on a shop ${c.place}, ${name}, for ${fmt(c.cost)}.`, kind: 'shop' }],
+          });
+          audio.sfx('chest');
+          return `The shop ${c.place} is yours. Hire a man to keep it, and leave him rugs to sell.`;
+        },
+
+        hireAgent: (sid, agentId) => {
+          const s = get();
+          const sh = s.shops?.[sid];
+          if (!sh || sh.khan) return '';
+          const pool = [...(AGENTS[sid] ?? []), ...(sid === 'alexandria' && !sh.noNahhas ? [RASHIDS_MAN] : [])];
+          const a = pool.find((x) => x.id === agentId);
+          if (!a) return '';
+          if (s.world.at !== sid) return 'You must be there to take a man on.';
+          if (sh.agent?.id === a.id) return `${a.name} already keeps the shop.`;
+          const name = settlementById(sid).name;
+          set({
+            shops: { ...s.shops, [sid]: { ...sh, agent: { ...a, since: s.day }, skimmed: 0 } },
+            journal: [...s.journal, { day: s.day, text: `Took on ${a.name} to keep your shop in ${name}${a.wage ? ` at ${fmt(a.wage)} a week` : ''}.`, kind: 'shop' }],
+          });
+          return `${a.name} will keep the shop. He writes every Monday and sends what he has taken.`;
+        },
+
+        dismissAgent: (sid) => {
+          const s = get();
+          const sh = s.shops?.[sid];
+          if (!sh?.agent) return '';
+          const a = sh.agent;
+          const name = settlementById(sid).name;
+          set({
+            shops: { ...s.shops, [sid]: { ...sh, agent: undefined, skimmed: 0, ...(a.id === RASHIDS_MAN.id ? { noNahhas: true } : {}) } },
+            journal: [...s.journal, { day: s.day, text: `Let ${a.name} go from your shop in ${name}.`, kind: 'shop' }],
+          });
+          return `${a.name} hands back the key. The shop is shut until you take someone on.`;
+        },
+
+        leaveStock: (sid, uid) => {
+          const s = get();
+          const sh = s.shops?.[sid];
+          if (!sh || sh.khan) return '';
+          if (s.world.at !== sid) return 'You can only leave rugs at the shop when you are there.';
+          const item = s.inventory.find((i) => i.uid === uid);
+          if (!item || item.stored || item.restoringUntil) return 'That rug is not with you.';
+          if (keptBack(s, item)) return KEPT_BACK_NOTE;
+          const name = settlementById(sid).name;
+          set({
+            inventory: s.inventory.filter((i) => i.uid !== uid),
+            shops: { ...s.shops, [sid]: { ...sh, stock: [...sh.stock, { ...item, stored: false }] } },
+            journal: [...s.journal, { day: s.day, text: `Left the ${RUGS[item.typeId].name} at your shop in ${name}.`, kind: 'shop' }],
+          });
+          return `The ${RUGS[item.typeId].name} goes up on the wall.`;
+        },
+
+        takeStock: (sid, uid) => {
+          const s = get();
+          const sh = s.shops?.[sid];
+          if (!sh) return '';
+          if (s.world.at !== sid) return 'You can only take rugs back when you are there.';
+          const item = sh.stock.find((i) => i.uid === uid && (i.arrives ?? 0) <= s.day);
+          if (!item) return 'That rug is not on the wall.';
+          const { arrives, ...rug } = item; void arrives;
+          set({
+            inventory: [...s.inventory, { ...rug, stored: false }],
+            shops: { ...s.shops, [sid]: { ...sh, stock: sh.stock.filter((i) => i.uid !== uid) } },
+          });
+          return `You take the ${RUGS[item.typeId].name} down and pack it.`;
+        },
+
+        checkBooks: (sid) => {
+          const s = get();
+          const sh = s.shops?.[sid];
+          if (!sh) return '';
+          if (s.world.at !== sid) return 'His book is in the shop: you must be there to look at it.';
+          const r = lookOverBook(sh, s.day);
+          set({
+            shops: { ...s.shops, [sid]: r.shop },
+            ...(r.refund ? {
+              cash: s.cash + r.refund,
+              ledger: [...s.ledger, { day: s.day, kind: 'bonus' as const, label: `Paid back by ${sh.agent?.name ?? 'your agent'}`, amount: r.refund }],
+              journal: [...s.journal, { day: s.day, text: r.text, kind: 'shop' }],
+            } : {}),
+          });
+          return r.text;
+        },
+
+        railStock: (sid, uid) => {
+          const s = get();
+          const sh = s.shops?.[sid];
+          if (!sh || sh.khan) return '';
+          const at = s.world.at;
+          if (!at || !TELEGRAPH_TOWNS.includes(at)) return 'You need a telegraph office to send word to the boy at the stall.';
+          const item = s.inventory.find((i) => i.uid === uid);
+          if (!item || !item.stored || item.restoringUntil) return 'Only a rug kept at your Giza stall can be sent.';
+          if (keptBack(s, item)) return KEPT_BACK_NOTE;
+          const egypt = settlementById(sid).region === 'Egypt';
+          const fee = (egypt ? RAIL_FEE.egypt : RAIL_FEE.abroad) + telegramFee(at, 'giza');
+          if (s.cash < fee) return `The wire and the freight come to ${fmt(fee)}.`;
+          const name = settlementById(sid).name;
+          const arrives = s.day + (egypt ? RAIL_DAYS.egypt : RAIL_DAYS.abroad);
+          set({
+            cash: s.cash - fee,
+            inventory: s.inventory.filter((i) => i.uid !== uid),
+            shops: { ...s.shops, [sid]: { ...sh, stock: [...sh.stock, { ...item, stored: false, arrives }] } },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Rail freight: a rug to your shop in ${name}`, amount: -fee }],
+            journal: [...s.journal, { day: s.day, text: `Wired the stall to send the ${RUGS[item.typeId].name} to your shop in ${name} by rail. It arrives ${dateFor(arrives).short}.`, kind: 'shop' }],
+          });
+          return `The boy will put the ${RUGS[item.typeId].name} on the train. It reaches ${name} ${dateFor(arrives).short}. ${fmt(fee)} with the wire.`;
+        },
+
         setVolume: (c, v) => {
           const volumes = { ...DEFAULT_VOLUMES, ...(get().volumes ?? {}), [c]: Math.max(0, Math.min(1, v)) };
           audio.setVolumes(volumes);
@@ -3849,6 +4023,15 @@ export const useGame = create<GameState & Actions>()(
             ms[id] = 'done';
           }
           p.missions = ms;
+        }
+        // shops in other cities and the stall's dressing (empire: shops) arrived with save 24. A merchant who
+        // already has the agent in Alexandria has that shop, kept by Rashid's man; the Khan shop is Cairo's
+        if (version < 24) {
+          const shops: Shops = { ...(p.shops ?? {}) };
+          if (p.missions?.['ms-agent'] === 'done' && !shops.alexandria) shops.alexandria = { since: p.day ?? 1, paid: 0, stock: [], gift: true, agent: { ...RASHIDS_MAN, since: p.day ?? 1 } };
+          if ((p.upgrades ?? []).includes('khan') && !shops.cairo) shops.cairo = { since: p.day ?? 1, paid: 0, stock: [], khan: true };
+          p.shops = shops;
+          p.dressing = p.dressing ?? [];
         }
         if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
@@ -4037,7 +4220,15 @@ useGame.subscribe(() => {
   const m = MILESTONES[id];
   if (!m.check?.(s as never)) return;
   const line = `Goal reached: ${m.title}. ${m.opens}.`;
+  // the agent in Alexandria: Rashid's man keeps a shop there for you (the shop itself, if you have one)
+  let shops = s.shops;
+  if (id === 'ms-agent') {
+    const cur = s.shops?.alexandria;
+    if (!cur) shops = { ...(s.shops ?? {}), alexandria: { since: s.day, paid: 0, stock: [], gift: true, agent: { ...RASHIDS_MAN, since: s.day } } };
+    else if (!cur.agent) shops = { ...s.shops, alexandria: { ...cur, agent: { ...RASHIDS_MAN, since: s.day } } };
+  }
   useGame.setState({
+    ...(shops !== s.shops ? { shops } : {}),
     missions: { ...s.missions, [id]: 'done' },
     milestoneNews: id,
     cash: s.cash + m.reward.cash,
@@ -4062,6 +4253,15 @@ useGame.subscribe((s) => {
   const add = fresh.filter((l) => l.kind === 'sale' && l.cost !== undefined && l.amount > 0 && !/^Seized/.test(l.label)).reduce((a, l) => a + l.amount, 0);
   if (add > 0) useGame.setState({ stats: { ...(s.stats ?? {}), abroadSold: (s.stats?.abroadSold ?? 0) + add } });
 });
+// the Khan shop (the 'khan' upgrade) is your shop in Cairo: kept in the shops record while you own it
+const syncKhan = (s: GameState) => {
+  if (!s.started) return;
+  const has = s.upgrades.includes('khan'), mirrored = !!s.shops?.cairo?.khan;
+  if (has && !mirrored) useGame.setState({ shops: { ...(s.shops ?? {}), cairo: { since: s.day, paid: 0, stock: [], khan: true } } });
+  else if (!has && mirrored) { const { cairo, ...rest } = s.shops ?? {}; void cairo; useGame.setState({ shops: rest }); }
+};
+syncKhan(useGame.getState());
+useGame.subscribe(syncKhan);
 const syncMs = (s: GameState) => { MS_FX.cairoDealers = s.missions?.['ms-name'] === 'done'; };
 syncMs(useGame.getState());
 useGame.subscribe(syncMs);

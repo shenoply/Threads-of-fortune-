@@ -19,7 +19,8 @@ export interface Milestone extends Mission {
 
 /** the ladder starts on the morning of this day (the first week has its own goal) */
 export const MILESTONE_FROM_DAY = 7;
-/** what the Alexandria agent sends every Monday, in piastres */
+/** what the Alexandria agent sends every Monday for the other merchants' rugs he shows in your shop, in
+ *  piastres (what he sells of yours comes on top: systems/shops.ts) */
 export const AGENT_PAY = 250;
 /** Cairo dealers' bid, raised once Hagop has introduced you (store.ts localBid) */
 export const CAIRO_DEALER_BONUS = 0.1;
@@ -117,11 +118,11 @@ export const MILESTONES: Record<string, Milestone> = {
   },
   'ms-agent': {
     aim: 'A net worth of £70', id: 'ms-agent', title: 'An agent in Alexandria', giver: 'Uncle Rashid', speaker: 'Uncle Rashid',
-    brief: 'A merchant cannot stand in every market at once. Rashid knows a man in the Souq el-Attarin who shows other people\'s rugs for a share. He will take you on once your business is worth £70, after your debts.',
-    steps: [`Reach a net worth of ${fmt(AGENT_WORTH)}: cash and stock, less everything you owe`, 'Net worth is on the Progress tab, under Collection', `The agent sends ${fmt(AGENT_PAY)} every Monday, wherever you are`],
+    brief: 'A merchant cannot stand in every market at once. Rashid knows a man in the Souq el-Attarin, Ibrahim Nahhas, who shows other people\'s rugs for a share. He will keep a shop in Alexandria for you once your business is worth £70, after your debts.',
+    steps: [`Reach a net worth of ${fmt(AGENT_WORTH)}: cash and stock, less everything you owe`, 'Net worth is on the Progress tab, under Collection', `He sends ${fmt(AGENT_PAY)} every Monday for the other merchants\' rugs on the wall, and sells any rugs you leave with him for a tenth`],
     locks: '',
     reward: { cash: 0, rep: 2, trust: 0, text: '"He is honest, mostly. I will keep an eye on him for you."' },
-    opens: `An agent in Alexandria sends ${fmt(AGENT_PAY)} every Monday`,
+    opens: `A shop in Alexandria, kept by Rashid's man, and ${fmt(AGENT_PAY)} every Monday`,
     hint: (s) => `Net worth ${fmt(Math.max(0, worth(s)))} of ${fmt(AGENT_WORTH)}, for an agent in Alexandria.`,
     check: (s) => worth(s) >= AGENT_WORTH,
     progress: (s) => [Math.max(0, Math.min(AGENT_WORTH, worth(s))), AGENT_WORTH],

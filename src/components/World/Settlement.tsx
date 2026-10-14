@@ -65,6 +65,8 @@ import { LENDERS, INSURERS } from '../../game/systems/finance';
 
 import { lowerName } from '../../game/text';
 import { isOpen, type Sys } from '../../game/unlocks';
+import { ShopPanel, shopTileSub } from './ShopPanel';
+import { SHOP_CITIES } from '../../data/shops';
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 
 /** The small copy of a picture shown at card size (art/x/y.jpg -> art/x/thumbs/y.webp, 320 wide; 640 wide
@@ -74,7 +76,7 @@ const LAZY = { loading: 'lazy', decoding: 'async' } as const;
 /** The town menu's groups, the most used first, and which group each of its tiles goes in. */
 const MENU_GROUPS: [string, string][] = [['trade', 'Trade'], ['people', 'People'], ['services', 'Services'], ['leave', 'Leave']];
 const menuGroup = (tid: string) =>
-  /^menu-(stall|malek|walk|sell|market|houses|shop-)/.test(tid) ? 'trade'
+  /^menu-(stall|malek|walk|sell|market|houses|shop-|myshop)/.test(tid) ? 'trade'
     : /^menu-(people|venues|court|museum|library)/.test(tid) ? 'people'
       : /^menu-(sail|wait)/.test(tid) ? 'leave'
         : 'services';
@@ -182,6 +184,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [inVenue, setInVenue] = useState(false);
   const [inCity, setInCity] = useState(false);
   const [station, setStation] = useState(false);
+  const [myShop, setMyShop] = useState(false);
   // a long town menu shows its main places first; the rest wait behind "More in …"
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { setMoreOpen(false); }, [id]);
@@ -267,7 +270,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const hideKey = (['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).map((k) => (on(k) ? '1' : '0')).join('');
   const walkDef = useMemo(() => walk && { ...walk, pois: walk.pois.filter((p) => { const k = actSys(p.action); return !k || hideKey[(['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).indexOf(k)] === '1'; }) }, [walk, hideKey]);
   // which town-menu tile, and which place in the streets, belongs to a system still to come
-  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic' };
+  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic', 'menu-myshop': 'abroad' };
   const allItems: [string, string, string, () => void, string][] = [
     ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s buyers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
     ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
@@ -291,6 +294,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(id === 'cairo' ? [['plus', 'Dr Feras\u2019s clinic', (g.illnesses ?? []).length ? 'You are not well: see the doctor' : 'Illness and injury, and his medical book', () => setClinic(true), 'menu-clinic'] as [string, string, string, () => void, string]] : []),
     ...(id === 'cairo' ? [['bag', 'A chemist in the Muski', 'Tonics over the counter; drugs only on prescription', () => setCairoPlace('chemist'), 'menu-chemist'] as [string, string, string, () => void, string]] : []),
     ...(id === 'cairo' && g.arranVisit?.permitStage ? [['scale', 'The museum store', g.arranVisit.permitStage === 'letter' ? 'Deliver Arran\'s letter to Hamza Effendi' : 'Hamza Effendi has given his permission', () => setCairoPlace('museum'), 'menu-museum'] as [string, string, string, () => void, string]] : []),
+    ...(SHOP_CITIES[id] ? [['store', g.shops?.[id] ? 'Your shop' : 'A shop of your own', shopTileSub(g, id), () => setMyShop(true), 'menu-myshop'] as [string, string, string, () => void, string]] : []),
     ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),
   ];
   const menuItems = allItems.filter((it) => !TILE_SYS[it[4]] || on(TILE_SYS[it[4]]));
@@ -585,7 +589,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         const stock = g.inventory.some((i) => !i.restoringUntil && !i.stored);
         const ill = (g.illnesses ?? []).length > 0;
         const saleToday = houses.some((h) => saleOn(h.id, g.day));
-        const FIRST = ['menu-stall', 'menu-malek', stock ? 'menu-sell' : 'menu-market', ill ? 'menu-clinic' : '', 'menu-station', 'menu-people', stock ? 'menu-market' : 'menu-sell', saleToday ? 'menu-houses' : '', 'menu-sail', 'menu-venues'].filter(Boolean);
+        const FIRST = ['menu-stall', 'menu-malek', stock ? 'menu-sell' : 'menu-market', ill ? 'menu-clinic' : '', 'menu-station', 'menu-people', stock ? 'menu-market' : 'menu-sell', saleToday ? 'menu-houses' : '', g.shops?.[id] && !g.shops[id].khan ? 'menu-myshop' : '', 'menu-sail', 'menu-venues'].filter(Boolean);
         const walkIt = items.find((it) => it[4] === 'menu-walk');
         const next = items.find((it) => it[4] === guide?.tile && it !== walkIt);
         const picks = [...(next ? [next] : []), ...FIRST.map((t) => items.find((it) => it[4] === t && it !== next)).filter((it): it is typeof items[number] => !!it)].slice(0, walkIt ? 3 : 4);
@@ -647,6 +651,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         );
       })()}
       {station && <EscLayer onEsc={() => setStation(false)}><StationBoard from={id} name={walk?.pois.find((p) => p.id === 'station')?.name ?? `${st.name} station`} onClose={() => setStation(false)} onLeft={() => { setStation(false); setInCity(false); onClose(); }} /></EscLayer>}
+      {myShop && <EscLayer onEsc={() => setMyShop(false)}><ShopPanel sid={id} onClose={() => setMyShop(false)} /></EscLayer>}
       {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
       {wire && <EscLayer onEsc={() => setWire(false)}><Suspense fallback={null}><TelegraphOffice id={id} onClose={() => setWire(false)} /></Suspense></EscLayer>}
       {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}

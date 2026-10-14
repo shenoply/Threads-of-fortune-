@@ -23,6 +23,7 @@ const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
 const SELLER_LAMPS = '0.537,0.124;0.412,0.252;0.949,0.287';
 
 import { PROP_SPOTS, CAT_VARIANTS, CAT_REPLACES, dayPick } from '../../game/stallDressing';
+import { dressingArt } from '../../data/shops';
 
 interface SceneProps {
   enc: Encounter | null;
@@ -155,6 +156,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px`, ['--crop' as string]: `${crop}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         <StallProps />
+        <StallDressingArt />
         <StallGramophone />
         {/* The base stall body is always painted, so he always shows dressed in whatever pieces
             already have a stall-pose layer; a piece without one yet just doesn't draw (see
@@ -340,6 +342,20 @@ function StallProps() {
         const pick = dayPick(day, spot, options);
         return <img key={spot} className="stall-prop" src={`art/stall2/props/${pick}.webp`} alt="" draggable={false} />;
       })}
+    </>
+  );
+}
+
+/** The pieces bought to dress the stall (data/shops.ts): full-canvas overlays like the shelf props. A
+ *  piece whose picture has not been painted yet simply does not draw. */
+function StallDressingArt() {
+  const own = useGame((st) => st.dressing);
+  const [missing, setMissing] = useState<string[]>([]);
+  return (
+    <>
+      {(own ?? []).filter((id) => !missing.includes(id)).map((id) => (
+        <img key={id} className="stall-prop stall-dressing-art" src={dressingArt(id)} alt="" draggable={false} data-testid={`dressing-art-${id}`} onError={() => setMissing((m) => [...m, id])} />
+      ))}
     </>
   );
 }

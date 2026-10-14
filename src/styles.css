@@ -3177,3 +3177,12 @@ body.travelling .world-hud { display: none; }
 .objective-bar .ob-text > small { line-height: 1.2; }
 .objective-bar .ob-text b { width: 100%; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; display: block !important; }
 .objective-bar .ob-text > svg { display: none; }
+
+/* the stall's dressing pieces in the Improve sheet: an icon stands in until the piece's picture exists */
+.dress-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.upgrade .dress-pic, .dress-pic { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--line); background: #0e0905; display: flex; align-items: center; justify-content: center; color: var(--brass-hi); overflow: hidden; }
+.dress-pic img { width: 100%; height: 100%; object-fit: cover; }
+.dress-pic svg { width: 22px; height: 22px; }
+.stall-dressing-art { pointer-events: none; }
+.shop-fold .shop-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.shop-fold .shop-row small { display: block; color: var(--text-dim); font-size: 12.5px; }
