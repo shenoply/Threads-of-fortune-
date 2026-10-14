@@ -1670,9 +1670,10 @@ export const useGame = create<GameState & Actions>()(
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
           for (const step of [resolveReturns, mothNight, ranksNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
-          if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => sh.agent && !sh.khan)) {
+          if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
             const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);
             patch.shops = wk.shops;
+            for (const x of wk.sales) Object.assign(patch, recordCitySale({ ...s, ...patch } as GameState, x.sid, x.gross));
             patch.cash = (patch.cash ?? cash) + wk.cashIn - wk.cashOut;
             patch.ledger = [...(patch.ledger ?? ledger), ...wk.ledger];
             patch.journal = [...(patch.journal ?? journal), ...wk.journal];

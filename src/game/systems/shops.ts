@@ -38,6 +38,8 @@ export interface ShopState {
   gift?: boolean;
   /** Rashid's man has been let go: the rent for the other merchants' rugs stops */
   noNahhas?: boolean;
+  /** a grown son or daughter keeping the shop (systems/household.ts): honest, no wage */
+  childAgent?: { id: string; name: string; since: number };
 }
 export type Shops = Record<string, ShopState>;
 
@@ -62,6 +64,8 @@ export const weekCap = (sid: string, skill: number) => 1 + Math.round(skill * 2 
 
 export interface ShopWeek {
   shops: Shops;
+  /** what each shop sold this week (for the city's sales table, systems/ranks.ts) */
+  sales: { sid: string; gross: number }[];
   /** money in (takings sent) and out (wages), and what to write */
   cashIn: number;
   cashOut: number;
@@ -77,12 +81,14 @@ const list = (names: string[]) => (names.length <= 1 ? names.join('') : `${names
 /** Monday: every shop with an agent sells for the week, takes its wage, and writes. `cash` is what you have
  *  before (a wage the takings do not cover comes out of it; when it cannot, the wage is owed). */
 export function shopsWeek(shops: Shops | undefined, day: number, cash: number, rng: () => number): ShopWeek {
-  const out: ShopWeek = { shops: { ...(shops ?? {}) }, cashIn: 0, cashOut: 0, ledger: [], journal: [], letters: [], notice: [] };
+  const out: ShopWeek = { shops: { ...(shops ?? {}) }, cashIn: 0, cashOut: 0, ledger: [], journal: [], letters: [], notice: [], sales: [] };
   let purse = cash;
   for (const [sid, sh0] of Object.entries(shops ?? {})) {
-    if (sh0.khan || !sh0.agent) continue;
+    // your own grown child keeps it honestly and for no wage, and sells as well as a good agent
+    const keeper: ShopAgent | undefined = sh0.agent ?? (sh0.childAgent ? { id: sh0.childAgent.id, name: sh0.childAgent.name, honesty: 1, skill: 0.7, wage: 0, since: sh0.childAgent.since } as ShopAgent : undefined);
+    if (sh0.khan || !keeper) continue;
     const sh: ShopState = { ...sh0, stock: [...sh0.stock] };
-    const a = { ...sh0.agent };
+    const a = { ...keeper };
     const town = settlementById(sid)?.name ?? sid;
     const wall = onWall(sh, day);
     const sold: { item: ShopRug; price: number }[] = [];
@@ -117,6 +123,7 @@ export function shopsWeek(shops: Shops | undefined, day: number, cash: number, r
       }
     }
     out.cashIn += sent;
+    if (gross > 0) out.sales.push({ sid, gross });
     out.cashOut += paidWage;
     if (sent > 0) {
       out.ledger.push({ day, kind: 'bonus', label: `Takings from ${town}`, amount: sent });
