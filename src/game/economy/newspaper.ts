@@ -106,7 +106,7 @@ const NAMES: Record<string, string> = { portsaid: 'Port Said', giza: 'Giza' };
 /** a town as the paper names it: the settlement's own name (istanbul is "Constantinople" in 1925), not its id */
 const cap = (id: string) => NAMES[id] ?? SETTLEMENTS.find((x) => x.id === id)?.name ?? id.charAt(0).toUpperCase() + id.slice(1);
 
-export function paperFor(day: number, extras: { bills?: boolean; commissions?: { label: string; until?: number }[] } = {}): Paper {
+export function paperFor(day: number, extras: { bills?: boolean; commissions?: { label: string; until?: number }[]; ranks?: string[] } = {}): Paper {
   const starting = eventsStarting(day).sort((a, b) => weight(b) - weight(a));
   const ongoing = eventsOn(day).filter((e) => e.from < day).sort((a, b) => b.from - a.from);
   // the day's real news from the wires: Egypt first, then the world
@@ -131,7 +131,8 @@ export function paperFor(day: number, extras: { bills?: boolean; commissions?: {
   if (extras.bills) comingUp.push({ when: 'On the 1st', text: 'The month\'s rent, dues and household bill fall due.' });
   for (const c of extras.commissions ?? []) if (c.until && c.until >= day) comingUp.push({ when: c.until === day ? 'Today' : `By day ${c.until}`, text: `Commission: ${c.label}.` });
   comingUp.sort((a, b) => num(a.when) - num(b.when));
-  const trade = tradeNotes(day);
+  // the season's final tables of the rug trade, for a few days after it ends (systems/ranks.ts)
+  const trade = [...(extras.ranks ?? []), ...tradeNotes(day)];
   for (const ru of rumoursOn(day).filter((x) => x.kind !== 'event').slice(0, 3)) trade.push(ru.text);
   const month = dateOfDay(day).getUTCMonth() + 1;
   const sand = eventsOn(day).some((e) => e.dust || e.surprise === 'khamsin');

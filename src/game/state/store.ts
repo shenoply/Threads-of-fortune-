@@ -20,6 +20,7 @@ import { EARLY_OFF, EARLY_TRUST, FIRST_WORD, LATE_FEE, LATE_TRUST, SECOND_DAYS, 
 import { laneDay, isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
 import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
+import { recordCitySale, ranksNight, rankReaction, undercutBid, auctionWelcome, firstCities, freshRanks, RANK_FX, FIRST_DISCOUNT, type RanksState } from '../systems/ranks';
 import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
 import { OUTFIT, START_WARDROBE, heroCharisma, legacyWorn, soldIn as outfitSoldIn, wardrobeFromOld, type WardrobeState } from '../../data/wardrobe';
@@ -309,6 +310,8 @@ export interface GameState {
   shops?: Shops;
   /** pieces bought to dress the Giza stall (data/shops.ts DRESSING) */
   dressing?: string[];
+  /** the season's tables of rug sales, city by city, with the named rival houses (systems/ranks.ts) */
+  ranks?: RanksState;
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -643,7 +646,7 @@ export function localOffersRaw(sid: string, day: number, bought: string[], frien
       const h = Math.abs(Math.sin((day * 31 + i * 7 + sid.length * 13) * 12.9898)) % 1;
       const condition: RugItem['condition'] = h < 0.2 ? 'Dirty' : h < 0.32 ? 'Worn' : 'Good';
       const t = RUGS[o.typeId];
-      const disc = friends.includes(sid) ? 0.85 : 1;
+      const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1);
       const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
       const key = `${day}:${sid}:${o.typeId}`;
       // village rugs come in stacks; the finer the rug, the fewer the copies
@@ -1031,6 +1034,7 @@ export const useGame = create<GameState & Actions>()(
           enc.saleCost = (enc.saleCost ?? item.paid) + (item.spent ?? 0) + (second?.spent ?? 0) + (enc.sweetened ? 5 : 0);
           patch.inventory = s.inventory.filter((i) => i.uid !== item.uid && i.uid !== second?.uid);
           patch.totalSales = s.totalSales + 1;
+          Object.assign(patch, recordCitySale(s, s.world.at ?? 'giza', enc.salePrice));
           if (s.missions?.rival === 'active' && !enc.venue) patch.stats = { ...(s.stats ?? {}), rivalSales: (s.stats?.rivalSales ?? 0) + 1 };
         } else {
           rel.affinity = Math.max(-100, rel.affinity - (enc.insulted ? 12 : 4));
@@ -1600,7 +1604,7 @@ export const useGame = create<GameState & Actions>()(
           patch.errands = []; // errands are retired; the field stays for old saves
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
-          for (const step of [resolveReturns, mothNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          for (const step of [resolveReturns, mothNight, ranksNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => sh.agent && !sh.khan)) {
             const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);
@@ -1988,6 +1992,7 @@ export const useGame = create<GameState & Actions>()(
                 ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${t.name} to ${midWho}`, amount: pay, cost: rug.paid }],
                 journal: [...s.journal, { day: s.day, text: `Sold the ${t.name} to ${midWho} in ${settlementById(id).name} for ${fmt(pay)}.`, kind: 'arrive' }],
                 jobNote: `${visit.who} buys your ${t.name} for ${fmt(pay)}.`,
+                ...recordCitySale(s, id, pay),
               });
               audio.sfx('coins');
               return;
@@ -2216,6 +2221,7 @@ export const useGame = create<GameState & Actions>()(
           // the asking price under it)
           const askToday = localAskPrice(sid, s.day, it.typeId, it.condition, s.world.friends, s.reputation);
           if (askToday !== undefined && bid >= askToday) bid = snapDown(askToday * DEALER_BUYBACK);
+          bid = undercutBid(s, sid, bid);
           const ds = s.dealerSold?.day === s.day ? s.dealerSold.by : {};
           set({
             dealerSold: { day: s.day, by: { ...ds, [sid]: (ds[sid] ?? 0) + 1 } },
@@ -2223,6 +2229,7 @@ export const useGame = create<GameState & Actions>()(
             inventory: s.inventory.filter((i) => i.uid !== uid),
             ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `${RUGS[it.typeId].name} to a dealer in ${settlementById(sid).name}`, amount: bid, cost: it.paid }],
             totalSales: s.totalSales + 1,
+            ...recordCitySale(s, sid, bid),
           });
           audio.sfx('coins');
           return bid;
@@ -2618,7 +2625,9 @@ export const useGame = create<GameState & Actions>()(
             set({ lotsSold, intel, reoffers, ...growth(s, { appraisal: 2 }) });
             return winner ? `${winnerName ?? 'A bidder'} takes ${title} for ${fmt(price)}.` : `No bid reaches the reserve. ${title} is bought in${reoffers.length > (s.reoffers ?? []).length ? ' and will be offered again, cheaper' : ''}.`;
           }
-          const total = totalAuctionCost(price, h.buyerPremiumPct);
+          // the houses of a city where you stand in the top ten waive their premium (systems/ranks.ts)
+          const prem = auctionWelcome(s, h.city) ? 0 : h.buyerPremiumPct;
+          const total = totalAuctionCost(price, prem);
           if (s.cash < total) return 'You cannot cover the bid. The auctioneer sells it to the next bidder.';
           const items: RugItem[] = lot.typeIds.map((id, j) => ({ uid: newUid('r'), typeId: id, condition: lot.conditions[j], restored: false, provenance: lot.provenance[j], paid: Math.round(total / lot.typeIds.length), notes: [`Bought at the ${h.displayName}.`], stored: false, ...flawFor(`${lot.key}#${j}`, h.tier === 'grand' ? 'auction-grand' : 'auction-small', id) }));
           set({
@@ -2648,7 +2657,7 @@ export const useGame = create<GameState & Actions>()(
               });
             }
           }
-          return lot.bundle ? `The porters cut the rope: ${items.map((i) => `${RUGS[i.typeId].name} (${i.condition})`).join(', ')}.` : `${title} is yours for ${fmt(total)}${total > price ? `, with the ${Math.round(h.buyerPremiumPct * 100)}% premium` : ''}.`;
+          return lot.bundle ? `The porters cut the rope: ${items.map((i) => `${RUGS[i.typeId].name} (${i.condition})`).join(', ')}.` : `${title} is yours for ${fmt(total)}${total > price ? `, with the ${Math.round(prem * 100)}% premium` : ''}.`;
         },
         practise: (skill, xp) => set(growth(get(), { [skill]: xp })),
         popLevelUp: () => set({ levelUps: (get().levelUps ?? []).slice(1) }),
@@ -4033,6 +4042,11 @@ export const useGame = create<GameState & Actions>()(
           p.shops = shops;
           p.dressing = p.dressing ?? [];
         }
+        // city sales tables with rival merchants (systems/ranks.ts) arrived with save 24: a merchant under
+        // way starts this season's tables at the bottom, as a new one does
+        if (version < 24) {
+          if (p.started && !p.ranks) p.ranks = freshRanks(p.day ?? 1);
+        }
         if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
           const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };
@@ -4262,6 +4276,12 @@ const syncKhan = (s: GameState) => {
 };
 syncKhan(useGame.getState());
 useGame.subscribe(syncKhan);
+// a rival just passed in a city's table answers (systems/ranks.ts): a short notice and his reaction
+useGame.subscribe((s) => { if (s.ranks?.pending?.length) useGame.setState(rankReaction(s)); });
+let ranksSeen: RanksState | undefined | null = null;
+const syncRanks = (s: GameState) => { if (s.ranks === ranksSeen) return; ranksSeen = s.ranks; RANK_FX.first = firstCities(s); };
+syncRanks(useGame.getState());
+useGame.subscribe(syncRanks);
 const syncMs = (s: GameState) => { MS_FX.cairoDealers = s.missions?.['ms-name'] === 'done'; };
 syncMs(useGame.getState());
 useGame.subscribe(syncMs);

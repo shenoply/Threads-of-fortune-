@@ -38,6 +38,8 @@ import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { flawFor } from '../../game/systems/fakes';
 import { OfferFlags } from '../Inventory/RugFlags';
 import { auctionVenue } from '../../data/auctionVenues';
+import { RankTable, rankLine } from './RankTable';
+import { cityName, tableOf, undercutBid } from '../../game/systems/ranks';
 import { dateLabel } from '../Auction/Auction';
 import { BOOKS, HAMMAMS, SKILLS } from '../../data/character';
 import { OUTFITS, soldIn } from '../../data/wardrobe';
@@ -76,7 +78,7 @@ const LAZY = { loading: 'lazy', decoding: 'async' } as const;
 /** The town menu's groups, the most used first, and which group each of its tiles goes in. */
 const MENU_GROUPS: [string, string][] = [['trade', 'Trade'], ['people', 'People'], ['services', 'Services'], ['leave', 'Leave']];
 const menuGroup = (tid: string) =>
-  /^menu-(stall|malek|walk|sell|market|houses|shop-|myshop)/.test(tid) ? 'trade'
+  /^menu-(stall|malek|walk|sell|market|houses|ranks|shop-|myshop)/.test(tid) ? 'trade'
     : /^menu-(people|venues|court|museum|library)/.test(tid) ? 'people'
       : /^menu-(sail|wait)/.test(tid) ? 'leave'
         : 'services';
@@ -283,6 +285,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
     ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
     ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
+    ...(rankLine(g.ranks, id) ? [['ledger', `The rug trade of ${cityName(tableOf(id)!)}`, rankLine(g.ranks, id)!, () => goTo('town', 'sec-ranks'), 'menu-ranks'] as [string, string, string, () => void, string]] : []),
     ...(railTo ? [['camel', 'The station', `Trains to ${railTo} town${railTo > 1 ? 's' : ''}: times and fares`, () => setStation(true), 'menu-station'] as [string, string, string, () => void, string]] : []),
     ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
     ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
@@ -484,6 +487,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         )}
 
         {id === 'giza' && <StallOverhead onOpen={() => { onClose(); onStall(); }} />}
+        {rankLine(g.ranks, id) && <RankTable town={id} />}
         </>)}
 
         {tab === 'market' && <TownSupplies show={['food']} />}
@@ -531,7 +535,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                     // matches the same-day-same-town cap sellLocal() applies, so the price on the
                     // button is the price you actually get, not the higher uncapped number
                     const askToday = localAskPrice(id, g.day, i.typeId, i.condition, g.world.friends, g.reputation);
-                    const bid = askToday !== undefined ? Math.min(localBid(id, i, g.day), Math.max(0, askToday - 1)) : localBid(id, i, g.day);
+                    const bid = undercutBid(g, id, askToday !== undefined ? Math.min(localBid(id, i, g.day), Math.max(0, askToday - 1)) : localBid(id, i, g.day));
                     return (
                       <div className="mkt-row" key={i.uid} data-testid={`sell-${t.id}`}>
                         <img src={rugSrc(t)} alt="" />

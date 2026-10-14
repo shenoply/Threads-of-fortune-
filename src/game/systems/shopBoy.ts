@@ -6,6 +6,7 @@
 //
 // Pure logic: no store import (the store imports this file). Values the store owns (the customers'
 // arrival hours, how long a customer waits) are passed in.
+import { recordCitySale } from './ranks';
 import type { GameState } from '../state/store';
 import type { LedgerEntry, RugItem } from '../types';
 import { RUGS } from '../../data/rugs';
@@ -75,7 +76,7 @@ export function hireBoy(prev: ShopBoyState | undefined, day: number): ShopBoySta
   };
 }
 
-type Mind = Pick<GameState, 'shopBoy' | 'inventory' | 'day' | 'queue' | 'visitIdx' | 'cash' | 'ledger' | 'journal' | 'dayStats' | 'totalSales' | 'arrivals'>;
+type Mind = Pick<GameState, 'shopBoy' | 'inventory' | 'day' | 'queue' | 'visitIdx' | 'cash' | 'ledger' | 'journal' | 'dayStats' | 'totalSales' | 'arrivals'> & Partial<Pick<GameState, 'ranks'>>;
 
 /** The boy deals with the customers who came while you were away, up to `hour`. A buyer of plain rugs
  *  may buy one at his price; anyone else he keeps talking for a few hours. `final`: the day is over and
@@ -96,6 +97,7 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
   const left: string[] = [];
   const slack = 1 - boy.trust / 100;
   let sold = 0;
+  let takings = 0;
   while (idx < s.queue.length && opts.arrivalAt(idx) <= hour) {
     const id = s.queue[idx];
     const pool = boy.mode === 'sell' && buysFromBoy(id) ? plainRugs({ inventory, day: s.day }) : [];
@@ -113,7 +115,7 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
       ledger.push({ day: s.day, kind: 'sale', label: `${BOY.name} sold ${name} while you were away`, amount: price, cost: item.paid });
       journal.push({ day: s.day, text: `${BOY.name} sold the ${name} to ${BUYERS[id]?.name ?? 'a buyer'} for ${fmt(price)} while you were away (paid ${fmt(item.paid)}).`, kind: 'stall' });
       stats.sales += 1; stats.revenue += price; stats.gross += price - item.paid;
-      total += 1; sold += 1;
+      total += 1; sold += 1; takings += price;
       sales.push({ day: s.day, typeId: item.typeId, price, asked, how });
       lines.push(`${BOY.name} sold the ${name} for ${fmt(price)} while you were away.${how === 'down' ? ` ${BUYERS[id]?.name ?? 'The buyer'} talked him down from ${fmt(asked)}.` : how === 'cheap' ? ` He took the first offer; your price was ${fmt(asked)}.` : ''}`);
       idx++;
@@ -133,7 +135,8 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
   }
   if (idx === s.visitIdx && !lines.length) return null;
   const shopBoy: ShopBoyState = { ...boy, sales: sales.slice(-12), short: boy.short + short, report: [...boy.report, ...lines] };
-  return { patch: { visitIdx: idx, inventory, cash, ledger, journal, dayStats: stats, totalSales: total, shopBoy }, lines };
+  // the boy's sales are the stall's: they count in Cairo's table (systems/ranks.ts)
+  return { patch: { visitIdx: idx, inventory, cash, ledger, journal, dayStats: stats, totalSales: total, shopBoy, ...recordCitySale(s, 'giza', takings) }, lines };
 }
 
 /** The boy's pay at night, with the other wages: paid if the purse allows, otherwise owed; three

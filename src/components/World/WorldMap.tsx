@@ -11,6 +11,7 @@ import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { lookFor } from '../../game/heroLook';
 import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
 import { useGame, ferryFare } from '../../game/state/store';
+import { rankChip } from './RankTable';
 import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
@@ -1080,7 +1081,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   {news[st.id].map((m) => <i key={m} className={`pn-${m}`} title={NEWS_TIP[m]} aria-label={NEWS_TIP[m]}><Icon name={NEWS_ICON[m]} /></i>)}
                 </span>
               )}
-              {named ? <span className="plbl">{st.name}{g.shops?.[st.id] && <i className="pshop" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}</span>
+              {named ? <span className="plbl">{st.name}{rankChip(g.ranks, st.id) && <em className="prank" data-testid={`rank-chip-${st.id}`}>{rankChip(g.ranks, st.id)}</em>}{g.shops?.[st.id] && <i className="pshop" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}</span>
                 : g.shops?.[st.id] && shown && <i className="pshop alone" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}
             </button>
             );

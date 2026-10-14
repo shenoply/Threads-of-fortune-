@@ -157,10 +157,11 @@ export function SkillsSection() {
 export function Titles() {
   const g = useGame();
   const got = TITLES.filter((t) => (g.titles ?? []).includes(t.id));
+  const listed = TITLES.filter((t) => !t.quiet || (g.titles ?? []).includes(t.id));
   return (
-    <Fold id="me-titles" testid="titles" title="Titles" gist={`${got.length} of ${TITLES.length}${got.length ? ` · ${TITLES.find((t) => t.id === g.titles?.[g.titles.length - 1])?.name ?? got[0].name}` : ''}`}>
+    <Fold id="me-titles" testid="titles" title="Titles" gist={`${got.length} of ${listed.length}${got.length ? ` · ${TITLES.find((t) => t.id === g.titles?.[g.titles.length - 1])?.name ?? got[0].name}` : ''}`}>
       <div className="cs-titles">
-        {TITLES.map((t) => {
+        {listed.map((t) => {
           const has = (g.titles ?? []).includes(t.id);
           return <div key={t.id} className={`cs-title ${has ? 'got' : ''}`}><b>{has || !t.secret ? t.name : '???'}</b><small>{has || !t.secret ? t.how : 'A secret.'}</small></div>;
         })}

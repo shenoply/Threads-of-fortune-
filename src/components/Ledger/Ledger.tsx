@@ -15,6 +15,7 @@ import { Fold } from '../Fold/Fold';
 import { onWall } from '../../game/systems/shops';
 import { settlementById } from '../../game/systems/world';
 
+import { RanksFold } from '../World/RankTable';
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
@@ -67,6 +68,7 @@ export function Fortune() {
       <Ladder />
 
       <ShopsFold />
+      <RanksFold />
 
       <Fold id="pr-register" testid="register-fold" rowTestid="register-toggle" title="Carpet Register" gist={`${have}/${RUG_IDS.length}`}>
         <div className="register" data-testid="register">
