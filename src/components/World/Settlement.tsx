@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 // the telegraph counter is opened rarely: loaded when first asked for
+const DominoTable = lazy(() => import('../Cafe/DominoTable').then((m) => ({ default: m.DominoTable })));
 const TelegraphOffice = lazy(() => import('./TelegraphOffice').then((m) => ({ default: m.TelegraphOffice })));
 import { StationBoard } from './StationBoard';
 import { TELEGRAPH_TOWNS } from '../../game/systems/post';
@@ -30,6 +31,7 @@ import { venueFor } from '../../data/venues';
 import { Cabaret } from './Cabaret';
 import { VENUES_1925, venuesIn, venueOpen, venueArt, CLOSED_DOOR } from '../../data/entertainment';
 import { CITY_WALKS } from '../../data/cityWalks';
+import { regularIn } from '../../data/dominoRegulars';
 import { Tip } from '../Tips/Tip';
 import { Auction } from '../Auction/Auction';
 import { housesIn, saleOn, nextSale, art, HOUSES } from '../../game/auction/sessions';
@@ -165,6 +167,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [library, setLibrary] = useState(false);
   const [cairoPlace, setCairoPlace] = useState<'chemist' | 'museum' | null>(null);
   const [clinic, setClinic] = useState(false);
+  // a hand of dominoes with the regular in this town's coffee house, from the streets
+  const [domino, setDomino] = useState(false);
   // the first time you arrive in Alexandria, its film plays once
   const [cityFilm, setCityFilm] = useState(() => id === 'alexandria' && !(useGame.getState().introSeen ?? []).includes('alexandria'));
   // sit tight somewhere safe and let the clock run: raiders and other road danger drift and cool down
@@ -216,7 +220,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
   // the first time you come into a telegraph town: a word on its office, and its tile marked until used
   const wireWord = useOnce('telegraph', on('abroad') && menu && !inCity && !inVenue && !inAuction && !talkTo && !shop && TELEGRAPH_TOWNS.includes(id) && !g.border && !g.journey);
-  const busy = wanted || wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
+  const busy = wanted || domino || wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
   // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
   useEffect(() => {
     if (!note || menu) return;
@@ -510,10 +514,11 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               <div className="mkt">
                 {offers.map((o) => {
                   const t = RUGS[o.typeId];
-                  const flaw = flawFor(`${o.key}#${g.world.boughtLocal.filter((b) => b === o.key).length}`, 'dealer', o.typeId);
+                  const offerKey = `${o.key}#${g.world.boughtLocal.filter((b) => b === o.key).length}`;
+                  const flaw = flawFor(offerKey, 'dealer', o.typeId);
                   return (
                     <div className="mkt-row" key={o.key} data-testid={`buy-${o.typeId}`}>
-                      <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                      <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
                       <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}</small><OfferFlags typeId={o.typeId} flaw={flaw} /></span>
                       <button className="btn primary" disabled={g.cash < o.price} onClick={() => setNote(g.buyLocal(id, o.key))}>Buy {localMoney(o.price, id, g.day)}</button>
                     </div>
@@ -699,6 +704,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
             else if (a.startsWith('house:')) setHouseWalk(a.slice(6));
             else if (a.startsWith('npc:')) setTalkTo(a.slice(4));
             else if (a === 'clinic') setClinic(true);
+            else if (a === 'dominoes') { if (regularIn(id)) setDomino(true); }
             else { setInCity(false); goTo(a as SetTab); }
           }} />
         </div>
@@ -712,6 +718,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {inVenue && venue && <div className="venue-overlay"><Venue id={venue.id} onLeave={() => setInVenue(false)} /></div>}
       {/* after the walk in the page, as it opens from the streets too: Escape and Back find it on top */}
       {clinic && <EscLayer onEsc={() => setClinic(false)}><Clinic onClose={() => setClinic(false)} /></EscLayer>}
+      {/* over the street it was opened from: on the page itself, above the walk's layer */}
+      {domino && regularIn(id) && createPortal(<EscLayer onEsc={() => setDomino(false)}><Suspense fallback={null}><DominoTable regId={regularIn(id)!.id} onClose={() => setDomino(false)} /></Suspense></EscLayer>, document.body)}
       {cabaret && <EscLayer onEsc={() => setCabaret(null)}><div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div></EscLayer>}
       {audience && <AudienceOverlay onDone={() => setAudience(false)} />}
       {/* a talk started on the streets sits over the walk (whose layer is above the panel's), not hidden under it */}

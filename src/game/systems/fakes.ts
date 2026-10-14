@@ -71,9 +71,10 @@ export function flawFactorFor(item: Pick<RugItem, 'typeId'>, kind: FlawKind) {
 export const flawFactor = (item: RugItem) => flawsOf(item).reduce((m, k) => m * flawFactorFor(item, k), 1);
 
 // ---- what the merchant knows ----
-export interface Eye { skills?: Partial<Record<SkillId, number>>; labUnlocked?: string[]; tools?: string[]; findings?: LabFinding[] }
-export const eyeOf = (s: Pick<GameState, 'skills' | 'labUnlocked' | 'arranTools' | 'arranFindings'>): Eye =>
-  ({ skills: s.skills, labUnlocked: s.labUnlocked as string[] | undefined, tools: s.arranTools, findings: s.arranFindings });
+/** knots: the rugs (uids, or dealers' offers) whose knots you counted right (game/knots.ts) */
+export interface Eye { skills?: Partial<Record<SkillId, number>>; labUnlocked?: string[]; tools?: string[]; findings?: LabFinding[]; knots?: string[] }
+export const eyeOf = (s: Pick<GameState, 'skills' | 'labUnlocked' | 'arranTools' | 'arranFindings'> & Partial<Pick<GameState, 'knotCounts'>>): Eye =>
+  ({ skills: s.skills, labUnlocked: s.labUnlocked as string[] | undefined, tools: s.arranTools, findings: s.arranFindings, knots: Object.entries(s.knotCounts ?? {}).filter(([, r]) => r.ok).map(([k]) => k) });
 /** 'proven': Arran's test or a buyer showed it; 'hint': a trained eye suspects it; null: nothing seen */
 export type Know = 'proven' | 'hint' | null;
 const PROVES: Record<FlawKind, LabService[]> = { dye: ['dye', 'fastness', 'wash'], age: ['fibre', 'wash', 'fastness', 'dye'] };
@@ -87,6 +88,8 @@ export function knowFlaw(item: RugItem, kind: FlawKind, eye: Eye): Know {
   if (!flawsOf(item).includes(kind)) return null;
   if (item.flawKnown) return 'proven';
   if ((eye.findings ?? []).some((f) => f.subjectId === item.uid && PROVES[kind].includes(f.service) && f.verdict === 'inconsistent')) return 'proven';
+  // a right knot count shows new work for what it is: crisp square knots, unworn wool at the roots
+  if (kind === 'age' && (eye.knots ?? []).includes(item.uid)) return 'hint';
   return eyeScore(eye, kind) >= EYE_NEEDS[kind] ? 'hint' : null;
 }
 

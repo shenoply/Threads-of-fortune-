@@ -36,6 +36,9 @@ import { NABIL_MIN_REP } from '../../data/nabil';
 import { chooseArranActivity, type ArranActivity, type ArranVisitState } from '../systems/arranVisits';
 import { stepIllness, DISEASE, healthEffects, addIllness, rollInjury, type Illness } from '../systems/disease';
 import { flawFor, flawFactor, flawSalePatch, resolveReturns, type FlawSale } from '../systems/fakes';
+import { REGULARS } from '../../data/dominoRegulars';
+import { regularTalk, FRIEND_TALKS } from '../cafe/regularTalk';
+import { closeEnough, knotVerdict, type KnotResult } from '../knots';
 import { mothNight, airRugsPatch, AIR_MINUTES } from '../systems/moths';
 /** Dr Feras's fee for treating one condition, by how serious it is (piastres) */
 export const TREAT_FEE: Record<string, number> = { common: 30, uncommon: 80, rare: 200, extreme: 400 };
@@ -79,6 +82,7 @@ import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
 export const SAVE_VERSION = 24;
+export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
 export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek } = { left: 10000, due: 0, since: 0, paid: 0 };
@@ -174,6 +178,14 @@ export interface GameState {
   appointments?: { buyerId: string; day: number; venue: string }[];
   /** the day you last played Bilgin for money: he plays for a stake once a day */
   cafeStakeDay?: number;
+  /** dominoes with the coffee-house regulars (data/dominoRegulars.ts): per regular, hands won, lost and
+   *  drawn, how well he knows you (a day you sat with him counts one), the day he last played for money,
+   *  the day he last talked and how many things he has told you */
+  dominoes?: Record<string, DominoRecord>;
+  /** knots counted on the back of a rug (game/knots.ts): per rug uid, or per dealer's offer while it is
+   *  still his, what you counted against the true count; tries and close counts overall */
+  knotCounts?: Record<string, KnotResult>;
+  knotTally?: { tries: number; close: number };
   missionStart?: Record<string, number>;
   lotsSold?: string[];
   /** the hour each of today's customers turns up at the stall */
@@ -422,6 +434,10 @@ interface Actions {
   /** A game of chess or tawla with Bilgin in the coffee house: the stake changes hands, time passes */
   /** `pays` scales what Bilgin hands over when you win: half when he plays gently, half as much again when he plays to win */
   cafeGame: (game: 'chess' | 'tawla', result: 'win' | 'loss' | 'draw', stake: number, minutes: number, pays?: number) => string;
+  /** A hand of dominoes with a coffee-house regular: the stake changes hands, a win (or a friend) brings talk */
+  dominoGame: (regId: string, result: 'win' | 'loss' | 'draw', stake: number) => string;
+  /** knots counted on a rug's back against the clock: kept by key (a rug's uid or a dealer's offer) */
+  knotCount: (key: string, typeId: string, counted: number, truth: number, where: 'lab' | 'dealer') => string;
   startAudience: (buyerId: string) => string;
   markGuide: () => void;
   endAudience: () => void;
@@ -2434,8 +2450,11 @@ export const useGame = create<GameState & Actions>()(
           const onBack = s.inventory.filter((i) => !i.stored).length;
           if (onBack + 1 > cap) return `You cannot carry another rug: ${onBack} packed, and your caravan carries ${cap}. A donkey or a hired man carries more.`;
           const t = RUGS[o.typeId];
-          const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [`Bought in ${settlementById(sid).name}.`], stored: false, ...flawFor(`${key}#${s.world.boughtLocal.filter((b) => b === key).length}`, 'dealer', o.typeId) };
+          const offerKey = `${key}#${s.world.boughtLocal.filter((b) => b === key).length}`;
+          const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [`Bought in ${settlementById(sid).name}.`], stored: false, ...flawFor(offerKey, 'dealer', o.typeId) };
           set({
+            // knots counted on the dealer's rug stay counted on yours
+            ...(s.knotCounts?.[offerKey] ? { knotCounts: { ...s.knotCounts, [item.uid]: s.knotCounts[offerKey] } } : {}),
             cash: s.cash - o.price,
             inventory: [...s.inventory, item],
             world: { ...s.world, boughtLocal: [...s.world.boughtLocal.slice(-60), key] },
@@ -2823,6 +2842,8 @@ export const useGame = create<GameState & Actions>()(
           set({
             cash: s.cash - total,
             inventory: [...s.inventory, ...items],
+            // knots counted on a lot at the viewing stay counted on the rug you take home
+            ...(items.some((it, j) => s.knotCounts?.[`${lot.key}#${j}`]) ? { knotCounts: { ...s.knotCounts, ...Object.fromEntries(items.flatMap((it, j) => { const k = s.knotCounts?.[`${lot.key}#${j}`]; return k ? [[it.uid, k]] : []; })) } } : {}),
             lotsSold, intel, reoffers,
             stats: { ...(s.stats ?? {}), auctionsWon: (s.stats?.auctionsWon ?? 0) + 1 },
             ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Auction: ${title}${total > price ? ' (with premium)' : ''}`, amount: -total, cost: total }],
@@ -3269,6 +3290,57 @@ export const useGame = create<GameState & Actions>()(
           get().passTime(minutes);
           return text;
         },
+        dominoGame: (regId, result, stake) => {
+          const s = get();
+          const reg = REGULARS[regId];
+          if (!reg) return '';
+          const all = s.dominoes ?? {};
+          const r: DominoRecord = Object.assign({ won: 0, lost: 0, drawn: 0, friend: 0, told: 0 }, all[regId]);
+          // one hand for money a day with each man; the rest are for tea
+          if (stake > 0 && r.stakeDay === s.day) stake = 0;
+          const won = result === 'win' ? stake : result === 'loss' ? -Math.min(stake, Math.max(0, s.cash)) : 0;
+          const next: DominoRecord = {
+            ...r,
+            won: r.won + (result === 'win' ? 1 : 0), lost: r.lost + (result === 'loss' ? 1 : 0), drawn: r.drawn + (result === 'draw' ? 1 : 0),
+            friend: r.friend + (r.playedDay === s.day ? 0 : 1), playedDay: s.day,
+            ...(stake > 0 ? { stakeDay: s.day } : {}),
+          };
+          // a win, or a friend whatever the result, and he talks: once a day
+          let heard = '';
+          const rumours = [...s.world.rumours];
+          if ((result === 'win' || next.friend >= FRIEND_TALKS) && r.talkDay !== s.day) {
+            heard = regularTalk(regId, s.day, r.told, rumours);
+            if (heard) { next.talkDay = s.day; next.told = r.told + 1; if (!rumours.includes(heard)) rumours.push(heard); }
+          }
+          const head = result === 'win'
+            ? `Beat ${reg.name} at dominoes${won ? ` and took ${fmt(won)}` : ''}.`
+            : result === 'loss' ? `Lost a hand of dominoes to ${reg.name}${won ? `; ${fmt(-won)} went across the table` : ''}.`
+            : `A blocked hand with ${reg.name}, and nobody the richer.`;
+          const text = heard ? `${head} Over the last glass of tea he says: "${heard}"` : head;
+          set({
+            cash: s.cash + won,
+            dominoes: { ...all, [regId]: next },
+            ...(won ? { ledger: [...s.ledger, { day: s.day, kind: won > 0 ? 'bonus' : 'expense', label: `Dominoes with ${reg.name}`, amount: won }] } : {}),
+            journal: [...s.journal, { day: s.day, text: head, kind: 'quiet' }, ...(heard ? [{ day: s.day, text: `Heard from ${reg.name}: ${heard}` }] : [])],
+            world: { ...s.world, rumours },
+          } as Partial<GameState>);
+          get().passTime(20);
+          return text;
+        },
+        knotCount: (key, typeId, counted, truth, where) => {
+          const s = get();
+          const ok = closeEnough(counted, truth);
+          const res: KnotResult = { counted, truth, ok, day: s.day };
+          const t = s.knotTally ?? { tries: 0, close: 0 };
+          const item = s.inventory.find((i) => i.uid === key);
+          set({
+            knotCounts: { ...(s.knotCounts ?? {}), [key]: res },
+            knotTally: { tries: t.tries + 1, close: t.close + (ok ? 1 : 0) },
+            ...(ok ? growth(s, { appraisal: 1 }) : {}),
+          } as Partial<GameState>);
+          get().passTime(where === 'lab' ? 15 : 10);
+          return knotVerdict(res, typeId, item);
+        },
         pet: () => {
           const s = get();
           if (!s.encounter) {
@@ -3328,6 +3400,7 @@ export const useGame = create<GameState & Actions>()(
             }
           } else if (s.cash < o.price) return 'Not enough cash.';
           const item: RugItem = { uid: newUid('r'), typeId: o.typeId, condition: o.condition, restored: false, provenance: t.provenance, paid: o.price, notes: [], stored: true, ...flawFor(o.uid, 'rashid', o.typeId) };
+          if (s.knotCounts?.[o.uid]) set({ knotCounts: { ...s.knotCounts, [item.uid]: s.knotCounts[o.uid] } });
           const line = credit ? RASHID.credit[0] : pick(RASHID.bought, rng);
           set({
             ...growth(s, { appraisal: 2 }),
@@ -4199,6 +4272,8 @@ export const useGame = create<GameState & Actions>()(
         // clothes are twenty ready outfits now: older saves get the outfits matching what they owned
         p.wardrobe = wardrobeFromOld(p.wardrobe, p.attire);
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        // dominoes with the coffee-house regulars and knot counting arrived with save 24: an empty record of each
+        if (version < 24) { p.dominoes = p.dominoes ?? {}; p.knotCounts = p.knotCounts ?? {}; p.knotTally = p.knotTally ?? { tries: 0, close: 0 }; }
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
         // the opening (game/opening.ts) arrived with save 21: a merchant already under way skips it, with
         // every city open as before; one still on his first day or two starts it, steps already done ticked

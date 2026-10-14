@@ -12,6 +12,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'station', name: 'Bab el-Hadid Station', sub: 'Back to the town square', x: 750, y: 95, glyph: '⇣', kind: 'exit' },
       { id: 'khan', name: 'Khan el-Khalili', sub: 'Local rug market', x: 1158, y: 263, glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'Fishawi\'s coffee house', sub: 'Dominoes with Sayyid the bookbinder', x: 1180, y: 175, glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'khanauction', name: 'Khan el-Khalili Dealer Room', sub: 'Dealers\' auction', x: 1224, y: 405, glyph: '⚖', kind: 'goto', action: 'house:cairo-khan' },
       { id: 'hagop', name: 'Hagop\'s shop', sub: 'Hagop Boyajian, dealer', x: 1030, y: 330, glyph: 'H', kind: 'goto', action: 'npc:hagop' },
       { id: 'wikala', name: 'The Wikala', sub: 'Uncle Rashid\'s bales', x: 1053, y: 566, glyph: 'R', kind: 'goto', action: 'npc:rashid' },
@@ -38,6 +39,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'station', name: 'Misr Station', sub: 'Back to the town square', ...P(780, 641), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'Souq el-Attarin', sub: 'Local rug market', ...P(548, 447), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'Athineos', sub: 'Dominoes with Stavros, ship\'s chandler', ...P(640, 520), glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'port', name: 'Western Harbour', sub: 'Pericles Stavrou, shipping agent', ...P(707, 175), glyph: '⚓', kind: 'goto', action: 'npc:pericles' },
       { id: 'palace', name: 'Ras el-Tin Palace', sub: 'The summer court', ...P(258, 57), glyph: '♛', kind: 'goto', action: 'palace' },
       { id: 'docks', name: 'Cotton warehouses', sub: 'Dock guards for hire', ...P(955, 318), glyph: 'G', kind: 'goto', action: 'guards' },
@@ -53,6 +55,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'gate', name: 'Jaffa Gate', sub: 'Back to the town square', ...P(400, 430), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'Souq Khan ez-Zeit', sub: 'Local rug market', ...P(570, 445), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'Coffee house, Jaffa Gate', sub: 'Dominoes with Khalil the stone-cutter', ...P(445, 375), glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'boulos', name: 'Armenian Quarter', sub: 'Father Boulos', ...P(470, 540), glyph: 'A', kind: 'goto', action: 'npc:boulos' },
       { id: 'jaffaroad', name: 'Jaffa Road', sub: 'Muleteers and guards', ...P(152, 500), glyph: 'G', kind: 'goto', action: 'guards' },
       { id: 'sepulchre', name: 'Church of the Holy Sepulchre', sub: 'Pilgrims from every church', ...P(545, 265), glyph: '✝', kind: 'note', text: ['Russian pilgrims kneel at the door. A Greek monk sells candles and asks whether you deal in old church carpets. He has two to sell.'] },
@@ -69,6 +72,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'gate', name: 'Bab al-Jabiya', sub: 'Back to the town square', ...P(620, 630), glyph: '⇣', kind: 'exit' },
       { id: 'hamidiyya', name: 'Souq al-Hamidiyya', sub: 'Local rug market', ...P(497, 313), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'The Nawfara', sub: 'Dominoes with Abu Sa\'id the weaver', ...P(770, 330), glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'farid', name: 'Antique shop', sub: 'Farid al-Khatib', ...P(668, 468), glyph: 'F', kind: 'goto', action: 'npc:farid' },
       { id: 'khan', name: 'Khan and camel yard', sub: 'Camels, horses and mules', ...P(252, 365), glyph: '♞', kind: 'goto', action: 'animals' },
       { id: 'citadel', name: 'The Citadel', sub: 'Guards and gendarmes', ...P(130, 100), glyph: 'G', kind: 'goto', action: 'guards' },
@@ -85,6 +89,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'station', name: 'Sirkeci Station', sub: 'Back to the town square', ...P(80, 150), glyph: '⇣', kind: 'exit' },
       { id: 'bazaar', name: 'The Grand Bazaar', sub: 'Local rug market', ...P(300, 500), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'Çorlulu Ali Pasha courtyard', sub: 'Dominoes with Hüsnü Efendi', ...P(390, 565), glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'maxim', name: 'The Nightingale', sub: 'Jazz and dancing, Taksim', ...P(520, 120), glyph: '♪', kind: 'goto', action: 'venue:maxim-istanbul' },
       { id: 'topkapi', name: 'Topkapı Palace', sub: 'Selim Bey, former steward', ...P(880, 470), glyph: 'S', kind: 'goto', action: 'npc:selim' },
       { id: 'docks', name: 'Harbour hiring hall', sub: 'Veterans looking for work', ...P(230, 280), glyph: 'G', kind: 'goto', action: 'guards' },
@@ -102,6 +107,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'bridge', name: 'The Seil bridge', sub: 'Back to the town square', ...P(640, 720), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'The souq', sub: 'Local market', ...P(580, 470), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'Coffee house by the Seil', sub: 'Dominoes with Kasim the carter', ...P(490, 600), glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'raghadan', name: 'Raghadan Palace', sub: 'Still being built', ...P(200, 130), glyph: '♛', kind: 'goto', action: 'palace' },
       { id: 'legion', name: 'Arab Legion post', sub: 'Guards for the desert road', ...P(270, 650), glyph: 'G', kind: 'goto', action: 'guards' },
       { id: 'camels', name: 'Camel lines', sub: 'Animals for the road', ...P(100, 560), glyph: '♞', kind: 'goto', action: 'animals' },
@@ -118,6 +124,7 @@ export const CITY_WALKS: Record<string, Venue> = {
     pois: [
       { id: 'gate', name: 'Western gate', sub: 'Back to the town square', ...P(140, 510), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'Carpet souq', sub: 'Local rug market', ...P(180, 180), glyph: '◆', kind: 'goto', action: 'market' },
+      { id: 'dominoes', name: 'The Shabandar', sub: 'Dominoes with Yunus the boatman', ...P(520, 330), glyph: 'D', kind: 'goto', action: 'dominoes' },
       { id: 'haji', name: 'Covered market', sub: 'Haji Karim, Persian importer', ...P(270, 330), glyph: 'K', kind: 'goto', action: 'npc:haji' },
       { id: 'palace', name: 'The royal palace', sub: 'The court of King Faisal', ...P(870, 280), glyph: '♛', kind: 'goto', action: 'palace' },
       { id: 'khan', name: 'Khan and camel yard', sub: 'Animals for the desert', ...P(330, 540), glyph: '♞', kind: 'goto', action: 'animals' },
