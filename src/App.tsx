@@ -243,7 +243,7 @@ export default function App() {
     return true;
   };
   const guideNext = g.started ? guideTarget(g as unknown as Parameters<typeof guideTarget>[0]) : null;
-  const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
+  const [titleBg, setTitleBg] = useState(() => TITLE_BGS.find((b) => b.src === (window as Window & { __tofTitle?: string }).__tofTitle) ?? TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
   // each screen comes in with a short fade and rise when the bottom tabs switch (feel.ts)
