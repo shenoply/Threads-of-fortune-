@@ -2,6 +2,7 @@
 // and at the back the raised corner with his chess table and the tawla table. Tap Bilgin to talk, or
 // tap a table: the view drops down onto it and the game is played on that table.
 import { useState } from 'react';
+import { Icon } from '../Icon';
 import './cafe.css';
 
 type Pt = [number, number];
@@ -48,7 +49,7 @@ export function CafeRoom({ onTalk, onPlay, onLeave, onFilm, note, onNote }: {
       <div className="cafe-room__acts">
         <button className="btn cafe-act" onClick={() => play('chess')} data-testid="cafe-play"><b>♞</b>Play chess</button>
         <button className="btn cafe-act" onClick={() => play('tawla')} data-testid="cafe-play-tawla"><b>⚅</b>Play tawla</button>
-        <button className="btn cafe-act" onClick={onTalk} data-testid="cafe-hot-bilgin"><b>☕</b>Talk to Bilgin</button>
+        <button className="btn cafe-act" onClick={onTalk} data-testid="cafe-hot-bilgin"><b><Icon name="tea" /></b>Talk to Bilgin</button>
       </div>
       {note && <div className="cafe-room__note" data-testid="cafe-room-note"><p>{note}</p><button className="btn small" onClick={onNote}>OK</button></div>}
     </div>

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { useDialogEscape } from '../useDialogEscape';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
@@ -54,7 +55,7 @@ export function Catalogue({ shopId, onClose }: { shopId: string; onClose: () => 
         <span className="cat-no">{locked ? 'Not stocked' : `No. ${i + 1}`}</span>
         <span className="cat-plate">
           <i style={{ backgroundImage: `url(${fullSrc(o.id)})` }} />
-          {locked && <span className="cat-lock" aria-hidden="true">🔒</span>}
+          {locked && <span className="cat-lock" aria-hidden="true"><Icon name="lock" /></span>}
         </span>
         <b className="cat-name">{o.name}</b>
         <small className="cat-note">{o.note}</small>

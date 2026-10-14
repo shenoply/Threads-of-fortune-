@@ -1,5 +1,6 @@
 // Bilgin's table in the Giza coffee house: a game of chess or tawla, for nothing or for a few piastres.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { Chess, type Square } from 'chess.js';
 import { useGame } from '../../game/state/store';
 import { audio, DEFAULT_VOLUMES, type Volumes } from '../../game/audio/engine';
@@ -92,7 +93,7 @@ function Head({ title, stake, onQuit, you, him, turn }: { title: string; stake: 
       <div className="cafe-head__top">
         <h2>{title}</h2>
         <span className="cafe-head__stake">{stake ? `for ${fmt(stake)}` : 'for tea'}</span>
-        <button className="btn small cafe-head__btn" onClick={() => setSound((v) => !v)} aria-label="Sound" aria-pressed={sound} data-testid="cafe-sound">🔊</button>
+        <button className="btn small cafe-head__btn" onClick={() => setSound((v) => !v)} aria-label="Sound" aria-pressed={sound} data-testid="cafe-sound"><Icon name="sound" /></button>
         <button className="btn small cafe-head__btn" onClick={onQuit} data-testid="cafe-quit" aria-label="Leave the table" title={stake ? 'Leaving a game you have started gives up the stake' : 'Leave'}>✕</button>
       </div>
       <div className="cafe-scores" data-testid="cafe-score">

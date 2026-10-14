@@ -1,0 +1,7 @@
+/* the buyer groups on Progress: what they buy, and when they come, a short line each */
+.cust-lines { display: grid; gap: 3px; }
+.cust-lines span { display: flex; align-items: flex-start; gap: 7px; line-height: 1.3; }
+.cust-li { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--brass, #c9974a); }
+/* a drawn cameo stands in the same brass ring as the painted portraits */
+.cust-cameo { display: block; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; border: 2px solid var(--brass, #c9974a); box-sizing: content-box; }
+.cust-cameo svg { display: block; }

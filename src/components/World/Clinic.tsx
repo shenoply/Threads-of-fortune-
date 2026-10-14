@@ -3,6 +3,7 @@
 // returns. Below it: a consultation for whatever you have, and his medical book of every illness and
 // injury in the game, which is how he explains them.
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { createPortal } from 'react-dom';
 import { useGame, TREAT_FEE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -143,7 +144,7 @@ export function Clinic({ onClose }: { onClose: () => void }) {
             {blocked && <button className="btn primary cl-play" onClick={() => { setBlocked(false); v.current?.play().catch(() => endIntro()); }} data-testid="clinic-play">▶ Play introduction</button>}
             <p className="cl-caption" data-testid="clinic-caption">{captionAt(filmT)}</p>
             <div className="cl-film-btns">
-              <button className="btn small" onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} data-testid="clinic-sound">{muted ? '🔇' : '🔊'}</button>
+              <button className="btn small" onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} data-testid="clinic-sound"><Icon name={muted ? 'x' : 'sound'} /></button>
               <button className="btn small" onClick={endIntro} data-testid="clinic-skip">Skip</button>
             </div>
           </div>

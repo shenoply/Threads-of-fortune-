@@ -6,6 +6,10 @@ import { BUYERS, LISTED_BUYERS as BUYER_ORDER, SPECIAL_BUYERS, BUYER_UNLOCK, BUY
 import { NABIL_MIN_REP } from '../../data/nabil';
 import { fmt } from '../../game/economy/money';
 import { createPortal } from 'react-dom';
+import { Icon } from '../Icon';
+import { PersonCameo } from '../People/Person';
+import { personFor } from '../../data/people';
+import './customers.css';
 import { Cutscene } from '../Malek/Cutscene';
 import { STORY_FILM } from '../Malek/storyFilm';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
@@ -23,12 +27,13 @@ export function Customers() {
     const seen = useGame.getState().buyersSeen ?? [];
     if (!seen.includes(id)) useGame.setState({ buyersSeen: [...seen, id] });
   };
-  const groups: { title: string; note: string; ids: string[] }[] = [
-    { title: 'Everyday customers', note: 'Common rugs. They keep the stall alive.', ids: BUYER_ORDER.filter((id) => SPECIAL_BUYERS.includes(id) || (BUYER_TIERS[id]?.[0] ?? 1) === 1) },
-    { title: 'Fine households', note: 'Fine rugs, £6 to £18. They start coming once you are a Bazaar merchant.', ids: BUYER_ORDER.filter((id) => !SPECIAL_BUYERS.includes(id) && BUYER_TIERS[id]?.[0] === 2) },
-    { title: 'Rich collectors', note: 'Exceptional and Legendary rugs. They come to a Khan dealer, and laugh at a stall of village mats.', ids: BUYER_ORDER.filter((id) => (BUYER_TIERS[id]?.[0] ?? 1) >= 3) },
-    { title: 'Famous names of 1925', note: 'Real people of the time. Once you are a Khan dealer they drop in, or stay in a town for a few days.', ids: CELEB_IDS },
-    { title: 'The courts', note: 'Kings, a queen, an emir and a president. They receive you in their palaces once your reputation is high enough.', ids: ROYALS },
+  // each group in two short lines: what they buy, and when they start coming
+  const groups: { title: string; buys: string; when: string; ids: string[] }[] = [
+    { title: 'Everyday customers', buys: 'Common rugs', when: 'From your first day. They keep the stall alive.', ids: BUYER_ORDER.filter((id) => SPECIAL_BUYERS.includes(id) || (BUYER_TIERS[id]?.[0] ?? 1) === 1) },
+    { title: 'Fine households', buys: 'Fine rugs, £6 to £18', when: 'Once you are a Bazaar merchant', ids: BUYER_ORDER.filter((id) => !SPECIAL_BUYERS.includes(id) && BUYER_TIERS[id]?.[0] === 2) },
+    { title: 'Rich collectors', buys: 'Exceptional and Legendary rugs', when: 'Once you are a Khan dealer', ids: BUYER_ORDER.filter((id) => (BUYER_TIERS[id]?.[0] ?? 1) >= 3) },
+    { title: 'Famous names of 1925', buys: 'Real people of the time', when: 'Once you are a Khan dealer, at the stall or in a town', ids: CELEB_IDS },
+    { title: 'The courts', buys: 'Kings, a queen, an emir and a president', when: 'In their palaces, once your name is high enough', ids: ROYALS },
   ];
   const allIds = groups.flatMap((gr) => gr.ids.filter((id) => BUYERS[id]));
   const unlockOf = (id: string) => (id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? BUYERS[id]?.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0);
@@ -39,7 +44,7 @@ export function Customers() {
       {groups.map((gr) => (
         <section key={gr.title}>
           <div className="section-label">{gr.title.toUpperCase()}</div>
-          <p className="cust-note">{gr.note}</p>
+          <p className="cust-note cust-lines"><span><Icon name="tag" className="cust-li" />{gr.buys}</span><span><Icon name="calendar" className="cust-li" />{gr.when}</span></p>
           <div className="cust-grid">
             {gr.ids.filter((id) => BUYERS[id]).map((id) => {
               const b = BUYERS[id];
@@ -50,7 +55,7 @@ export function Customers() {
               const t = BUYER_TIERS[id] ?? [3, 4];
               return (
                 <button key={id} className={`cust ${locked ? 'locked' : ''} ${open === id ? 'open' : ''}`} onClick={() => show(id)} data-testid={`cust-${id}`}>
-                  <img src={`art/portraits/small/${id}.webp`} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
+                  <CustFace id={id} />
                   <b>{b.name}</b>
                   <small>{rankShort ? RANKS[CELEB_IDS.includes(id) ? 2 : rankNeeded(id)].name : locked ? `Reputation ${need}` : r?.visits ? `${r.visits} visit${r.visits > 1 ? 's' : ''}` : 'Not met yet'}</small>
                 </button>
@@ -69,6 +74,13 @@ export function Customers() {
       )}
     </div>
   );
+}
+
+/** A buyer's face in the list: the painted portrait, or the drawn cameo in the same frame when there is none. */
+function CustFace({ id }: { id: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span className="cust-cameo" data-testid={`cameo-${id}`}><PersonCameo spec={personFor(id)} size={64} /></span>;
+  return <img src={`art/portraits/small/${id}.webp`} alt="" onError={() => setFailed(true)} />;
 }
 
 /** A buyer's card: who they are, what they buy and spend, and how things stand with them so far.

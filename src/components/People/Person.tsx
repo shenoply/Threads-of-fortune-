@@ -488,7 +488,8 @@ export function PersonBack({ spec, className }: { spec: PersonSpec; className?: 
 export function PersonCameo({ spec, size = 60, className }: { spec: PersonSpec; size?: number; className?: string }) {
   const [k] = useState(() => `c${++uid}`);
   const s = spec;
-  const ink = '#1d130b';
+  // toned like the painted portraits beside it: a dark umber backdrop, the sitter lit from the left
+  const ink = '#24180e';
   const f = !!s.female;
   const old = s.age > 50;
   // profile facing left
@@ -564,18 +565,36 @@ export function PersonCameo({ spec, size = 60, className }: { spec: PersonSpec; 
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} aria-hidden="true">
       <defs>
-        <radialGradient id={`${k}-g`} cx="0.42" cy="0.38" r="0.7">
-          <stop offset="0" stopColor="#f6ecd4" />
-          <stop offset="0.75" stopColor="#e6d3aa" />
-          <stop offset="1" stopColor="#c9ae7c" />
+        <radialGradient id={`${k}-g`} cx="0.36" cy="0.32" r="0.8">
+          <stop offset="0" stopColor="#7a5c3a" />
+          <stop offset="0.55" stopColor="#4a3521" />
+          <stop offset="1" stopColor="#21160d" />
         </radialGradient>
-        <clipPath id={`${k}-c`}><circle cx="50" cy="50" r="47" /></clipPath>
+        {/* the face and the coat, lit from the upper left like the studio portraits */}
+        <linearGradient id={`${k}-f`} x1="0.1" y1="0.15" x2="0.9" y2="0.9">
+          <stop offset="0" stopColor="#d2b183" />
+          <stop offset="0.55" stopColor="#a07c54" />
+          <stop offset="1" stopColor="#5c4229" />
+        </linearGradient>
+        <linearGradient id={`${k}-b`} x1="0" y1="0" x2="1" y2="0.4">
+          <stop offset="0" stopColor="#4a3622" />
+          <stop offset="1" stopColor="#1f150c" />
+        </linearGradient>
+        <radialGradient id={`${k}-v`} cx="0.45" cy="0.42" r="0.62">
+          <stop offset="0.6" stopColor="#120b05" stopOpacity="0" />
+          <stop offset="1" stopColor="#120b05" stopOpacity="0.55" />
+        </radialGradient>
+        {/* paper grain, so it reads as a print and not a flat drawing */}
+        <filter id={`${k}-n`} x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" />
+          <feColorMatrix values="0 0 0 0 0.85  0 0 0 0 0.72  0 0 0 0 0.52  0 0 0 1.4 -0.35" />
+        </filter>
+        <clipPath id={`${k}-c`}><circle cx="50" cy="50" r="49" /></clipPath>
       </defs>
-      <circle cx="50" cy="50" r="49" fill="#8a6a3a" />
-      <circle cx="50" cy="50" r="47" fill={`url(#${k}-g)`} />
+      <circle cx="50" cy="50" r="49" fill={`url(#${k}-g)`} />
       <g clipPath={`url(#${k}-c)`}>
-        {s.head === 'tarha' || s.head === 'cowl' || s.head === 'keffiyeh' ? null : <path d={bust} fill={ink} />}
-        <path d={face} fill={ink} />
+        {s.head === 'tarha' || s.head === 'cowl' || s.head === 'keffiyeh' ? null : <path d={bust} fill={`url(#${k}-b)`} />}
+        <path d={face} fill={`url(#${k}-f)`} />
         {hair}
         {head}
         {beard}
@@ -583,10 +602,11 @@ export function PersonCameo({ spec, size = 60, className }: { spec: PersonSpec; 
         {s.glasses && <g stroke="#e8d6b0" strokeOpacity="0.8" strokeWidth="0.9" fill="none"><circle cx="40" cy="46" r="3.2" /><path d="M43 46 L60 47" /></g>}
         {s.earrings && <circle cx="66" cy="60" r="1.6" fill="#d8b25a" />}
         {collar}
-        {(s.head === 'tarha' || s.head === 'cowl' || s.head === 'keffiyeh') && <path d={bust} fill={ink} opacity="0.92" />}
+        {(s.head === 'tarha' || s.head === 'cowl' || s.head === 'keffiyeh') && <path d={bust} fill={`url(#${k}-b)`} opacity="0.95" />}
+        <rect width="100" height="100" fill={`url(#${k}-v)`} />
+        <rect width="100" height="100" filter={`url(#${k}-n)`} opacity="0.22" style={{ mixBlendMode: 'overlay' }} />
       </g>
-      <circle cx="50" cy="50" r="47" fill="none" stroke="#5a3d20" strokeWidth="0.8" />
-      <circle cx="50" cy="50" r="44.5" fill="none" stroke="#b8904e" strokeOpacity="0.5" strokeWidth="0.6" />
+      <circle cx="50" cy="50" r="49" fill="none" stroke="#1a110a" strokeWidth="2" />
     </svg>
   );
 }

@@ -1,0 +1,57 @@
+/* How the game feels in the hand: short entrances for panels and cards, a press on every button, numbers
+   that roll in the purse, and pictures that fade in when they arrive. Opacity and translate/scale only
+   (the individual properties, so an element's own transform is kept). Nothing here blocks a tap. */
+
+@keyframes ff-fade { from { opacity: 0; } }
+@keyframes ff-rise { from { opacity: 0; translate: 0 10px; scale: .985; } }
+@keyframes ff-up { from { opacity: .4; translate: 0 36px; } }
+
+/* overlays fade, the card on them rises a little */
+.overlay { animation: ff-fade .18s ease-out; }
+.modal-card { animation: ff-rise .2s cubic-bezier(.2,.7,.3,1); }
+.tac-sheet { animation: ff-fade .16s ease-out; }
+.tac-sheet-card, .radio-sheet { animation: ff-rise .2s cubic-bezier(.2,.7,.3,1); }
+/* entering a town: the panel fades in; its menu follows */
+.overlay.settlement { animation: ff-fade .2s ease-out; }
+.town-menu { animation: ff-fade .2s ease-out both; }
+/* bottom sheets slide up from where they sit, not from off the screen */
+.stall-sheet { animation: ff-up .22s cubic-bezier(.2,.7,.3,1); }
+.malek-sheet { animation: ff-fade .16s ease-out; }
+.district-sheet, .district-note { animation: ff-fade .18s ease-out; }
+
+/* a quick press on every button; a button's own transition, where it has one, wins */
+:where(button, .btn, [role=button]) { transition: scale 80ms ease-out; }
+:where(button, .btn, [role=button]):active:not(:disabled) { scale: .97; }
+
+/* the purse and reputation roll to their new value, tinted for a moment */
+.hud-chip { font-variant-numeric: tabular-nums; }
+.hud-chip .ff-num { display: inline-block; min-width: 2ch; text-align: right; transition: color .35s ease-out; }
+.hud-chip.ff-up .ff-num { color: #8fd18a; }
+.hud-chip.ff-down .ff-num { color: #ef8b74; }
+
+/* big pictures (scenes, portraits, backdrops) wait unseen until they have arrived, then fade in.
+   Only while loading (no .ff-ok yet, set by installImageFade in feel.ts on load or error); afterwards the
+   picture's own opacity and animation apply. The delayed animation shows it anyway if its load is never seen. */
+@media (prefers-reduced-motion: no-preference) {
+@keyframes ff-show { to { opacity: 1; } }
+:where(img.fade-img, img.buyer-big, img.buyer-framed, img.buyer-art, img.troop-page__pic, img.camp-art, img.tm-art,
+  img.yard-hero, img.amb-rob-art, img.court-img, img.pass-card__art, img.mroom__img, img.cl-room, img.arran-scene,
+  img.audience-art, img.overhead-img, img.cafe-room__bg, img.cab-bg, img.stage-bg, img.auction-bg, img.malek-door__bg,
+  img.arran-lab__room, img.arran-lab__backdrop, img.arran-door__art, img.chess-table__img, img.cat__plate) {
+  transition: opacity .22s ease-out;
+}
+:where(img.fade-img, img.buyer-big, img.buyer-framed, img.buyer-art, img.troop-page__pic, img.camp-art, img.tm-art,
+  img.yard-hero, img.amb-rob-art, img.court-img, img.pass-card__art, img.mroom__img, img.cl-room, img.arran-scene,
+  img.audience-art, img.overhead-img, img.cafe-room__bg, img.cab-bg, img.stage-bg, img.auction-bg, img.malek-door__bg,
+  img.arran-lab__room, img.arran-lab__backdrop, img.arran-door__art, img.chess-table__img, img.cat__plate):not(.ff-ok) {
+  opacity: 0; animation: ff-show .2s ease-out 1.6s forwards;
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .modal-card, .tac-sheet, .tac-sheet-card, .radio-sheet, .overlay.settlement, .town-menu,
+  .stall-sheet, .malek-sheet, .district-sheet, .district-note { animation: none !important; }
+  :where(button, .btn, [role=button]) { transition: none; }
+  :where(button, .btn, [role=button]):active:not(:disabled) { scale: none; }
+  .hud-chip .ff-num { transition: none; }
+}

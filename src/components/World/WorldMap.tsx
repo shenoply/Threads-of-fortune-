@@ -6,7 +6,10 @@ import { BorderCard, TripMoney, TripPapers } from './BorderCard';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { portraitMarker, type PortraitMarker } from './portraitMarker';
+import { lookFor } from '../../game/heroLook';
+import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
 import { useGame, ferryFare } from '../../game/state/store';
 import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
@@ -64,6 +67,33 @@ const billLine = (bill: FareLine[]) => bill.map((l) => `${l.n} ${l.label} × ${f
 /** The Nile ferry between Giza and Cairo: an hour and a half, a piastre (the fare is the store's ferry()). */
 // an hour and a half across, a little more against the flood (calendar1925.ts)
 const ferryDays = () => ferryHours(SEASON_NOW.day) / 24;
+
+/** How the caravan is travelling, for the small engraved badge beside your medallion: the vehicle when
+ *  there is one, else the animals you lead (camels before donkeys, mules and horses), else on foot. */
+function travelMode(m: { train: boolean; mode?: 'ship' | 'motor' | 'ferry' } | null, animals: Record<string, number> | undefined): TravelMode {
+  if (m?.mode === 'ship') return 'steamer';
+  if (m?.mode === 'ferry') return 'felucca';
+  if (m?.mode === 'motor') return 'motor';
+  if (m?.train) return 'train';
+  const kinds = new Set(Object.entries(animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id]).map(([id]) => BREEDS[id].kind));
+  return kinds.has('camel') ? 'camels' : kinds.size ? 'donkey' : 'foot';
+}
+/** The part of a route already behind you: the path up to the point on it nearest where you are. */
+function travelledPart(path: Pt[], here: Pt): { behind: Pt[]; ahead: Pt[] } {
+  let best = 0, bestD = Infinity, bestPt = path[0];
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1], b = path[i], dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((here.x - a.x) * dx + (here.y - a.y) * dy) / l2));
+    const q = { x: a.x + dx * t, y: a.y + dy * t };
+    const d = dist(here, q);
+    if (d < bestD) { bestD = d; best = i; bestPt = q; }
+  }
+  return { behind: [...path.slice(0, best), bestPt], ahead: [bestPt, ...path.slice(best)] };
+}
+/** The engraved icon on a party's medallion. */
+const bandIcon = (k: Party['kind']): BandIcon => (k === 'raiders' ? 'blades' : k === 'mercenaries' ? 'rifle' : k === 'bedouin' ? 'tent' : k === 'pilgrims' ? 'pilgrim' : 'bale');
+type Box = { l: number; t: number; r: number; b: number };
+const hits = (a: Box, b: Box) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 
 const kindIcon: Record<string, string> = { home: 'store', city: 'star', town: 'room', village: 'room', oasis: 'sun', port: 'anchor', monastery: 'book', camp: 'camel' };
 
@@ -131,6 +161,32 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const setPan = useCallback((p: Pt) => { panRef.current = p; setPanState(p); }, []);
   const innerRef = useRef<HTMLDivElement>(null);
   const meRef = useRef<HTMLSpanElement>(null);
+  // you on the map: your portrait in a brass ring (the same medallion as on the town walks), painted
+  // once onto its own small canvas and moved by CSS, never redrawn per frame
+  const medalRef = useRef<HTMLCanvasElement>(null);
+  const markerRef = useRef<PortraitMarker | null>(null);
+  const faceUrl = lookFor(g.heroLook);
+  useEffect(() => {
+    const paintMedal = () => {
+      const cv = medalRef.current, mk = markerRef.current;
+      if (!cv || !mk?.ready()) return;
+      const dpr = Math.min(3, window.devicePixelRatio || 1);
+      cv.width = Math.round(56 * dpr); cv.height = Math.round(56 * dpr);
+      const x = cv.getContext('2d');
+      if (!x) return;
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      x.clearRect(0, 0, 56, 56);
+      x.translate(28, 50);
+      mk.draw(x, 1, 0, 0, false);
+      cv.dataset.ready = '1';
+    };
+    if (!markerRef.current) markerRef.current = portraitMarker(paintMedal);
+    markerRef.current.setFace(faceUrl);
+    paintMedal();
+  }, [faceUrl]);
+  // a band on the map tapped: its name and strength show until another is tapped or the map is
+  const [selParty, setSelParty] = useState<string | null>(null);
+  const partyRefs = useRef(new Map<string, HTMLSpanElement>());
   const [plan, setPlan] = useState<Plan | null>(null);
   const [alt, setAlt] = useState<Plan | null>(null);
   const [altFerry, setAltFerry] = useState(false);
@@ -803,6 +859,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const d = drag.current;
     drag.current = null;
     if (!d || d.moved) return;
+    setSelParty(null);
     const now = performance.now();
     void now; void lastTap;
     // tap anywhere to go there; mid-journey, goTo asks before the caravan turns
@@ -817,7 +874,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const visibleParties = w.parties.filter((p) => isExplored(w.fog, p) || dist(p, moving && live ? live : w) < (p.kind === 'raiders' ? 48 : 30));
   const news = newsMarks(g.day);
   const sandZones = khamsinZones(g.day);
-  const routeSvg = plan?.path ?? (moving ? moving.path : null);
+  // under way, the road ahead keeps its dashed line and the road behind becomes a faint dotted trail
+  const split = !plan && moving && live && moving.mode !== 'ferry' ? travelledPart(moving.path, live) : null;
+  const routeSvg = plan?.path ?? (split ? split.ahead : moving ? moving.path : null);
+  const mode = travelMode(moving, w.party.animals);
   // the planned route colours red the moment it's drawn; an already-under-way walk (not train/ship/motor,
   // which don't run into raiders the same way) checks the same thing live, since the danger along it can
   // change as parties move
@@ -833,6 +893,47 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const meOff = size.w > 0 && (meScreen.x < 24 || meScreen.x > size.w - 24 || meScreen.y < 24 || meScreen.y > size.h - 24);
   const meAngle = Math.atan2(meScreen.y - size.h / 2, meScreen.x - size.w / 2) * 180 / Math.PI;
   const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
+
+  // Keep the town names readable: after each render, your medallion and the party medallions step aside
+  // (a few fixed nudges, the first that fits) from any town name, town mark or each other; a trader or
+  // pilgrim band that finds no room is hidden, raiders always stay. Only positions are written here.
+  useLayoutEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return;
+    const ir = inner.getBoundingClientRect();
+    const rel = (el: Element, pad = 0): Box => { const r = el.getBoundingClientRect(); return { l: r.left - ir.left - pad, t: r.top - ir.top - pad, r: r.right - ir.left + pad, b: r.bottom - ir.top + pad }; };
+    const names = [...inner.querySelectorAll('.place .plbl')].map((el) => rel(el, 1));
+    const marks = [...inner.querySelectorAll('.place .pdot')].map((el) => rel(el));
+    const meX = mePt.x * s, meY = mePt.y * s;
+    // you: the disc sits above the spot you stand on (the mode badge at its lower right)
+    const meBox = (dx: number, dy: number): Box => ({ l: meX + dx - 22, r: meX + dx + (moving ? 32 : 22), t: meY + dy - 48, b: meY + dy - 2 });
+    const ME_TRY: [number, number][] = [[0, 0], [0, -14], [-36, -4], [36, -4], [0, -30], [-48, 14], [48, 14], [0, 34]];
+    const meAt = ME_TRY.find(([dx, dy]) => !names.some((n) => hits(meBox(dx, dy), n))) ?? [0, 0];
+    if (meRef.current) meRef.current.style.translate = meAt[0] || meAt[1] ? `${meAt[0]}px ${meAt[1]}px` : '';
+    const taken: Box[] = [...names, ...marks, meBox(meAt[0], meAt[1])];
+    const rank = (p: Party) => (p.kind === 'raiders' ? (dist(p, mePt) < 22 ? 0 : 1) : p.kind === 'mercenaries' ? 2 : 3);
+    const TRY: [number, number][] = [[0, 0], [0, -30], [30, 0], [-30, 0], [0, 30], [26, -26], [-26, -26], [26, 26], [-26, 26]];
+    for (const p of [...visibleParties].sort((a, b) => rank(a) - rank(b))) {
+      const el = partyRefs.current.get(p.id);
+      if (!el) continue;
+      const x = p.x * s, y = p.y * s;
+      const lbl = el.querySelector('.pname, .pgoods');
+      const lw = lbl ? (lbl as HTMLElement).offsetWidth : 0;
+      const boxes = (dx: number, dy: number): Box[] => {
+        const b: Box[] = [{ l: x + dx - 15, r: x + dx + 15, t: y + dy - 15, b: y + dy + 15 }];
+        if (lw) b.push({ l: x + dx - lw / 2, r: x + dx + lw / 2, t: y + dy + 14, b: y + dy + 32 });
+        return b;
+      };
+      const fits = (dx: number, dy: number) => boxes(dx, dy).every((b) => !taken.some((t) => hits(b, t)));
+      const at = TRY.find(([dx, dy]) => fits(dx, dy));
+      const keep = at ?? (p.kind === 'raiders' || selParty === p.id ? [0, 0] as [number, number] : null);
+      el.style.visibility = keep ? '' : 'hidden';
+      el.style.setProperty('--nx', `${keep?.[0] ?? 0}px`);
+      el.style.setProperty('--ny', `${keep?.[1] ?? 0}px`);
+      el.classList.toggle('nudged', !!keep && (keep[0] !== 0 || keep[1] !== 0));
+      if (keep) taken.push(...boxes(keep[0], keep[1]));
+    }
+  });
 
   return (
     <div className="world" data-testid="world">
@@ -889,6 +990,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
+            {split && split.behind.length > 1 && <polyline points={split.behind.map((p) => `${p.x},${p.y}`).join(' ')} className="route-trail" data-testid="route-trail" />}
             {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}
             {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
             {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
@@ -924,42 +1026,46 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const hunting = raid && d < 22 && mine < (p.strength ?? 0) * 1.4;
             const threat = raid ? ((p.strength ?? 0) > mine ? 'strong' : 'weak') : '';
             const gd = partyGoods(p);
+            // a small medallion on the map; its name and strength only once tapped, or close in
+            const open = selParty === p.id || z >= 3.2;
+            const name = raid ? bandName(p, g.day) : p.name;
             return (
-              <span key={p.id} className={`party party-${p.kind} ${threat ? `threat-${threat}` : ''} ${hunting ? 'hunting' : ''}`} style={{ left: p.x * s, top: p.y * s }} data-testid={`party-${p.kind}`} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => {
+              <span key={p.id} ref={(el) => { if (el) partyRefs.current.set(p.id, el); else partyRefs.current.delete(p.id); }} className={`party medal party-${p.kind} ${threat ? `threat-${threat}` : ''} ${hunting ? 'hunting' : ''} ${open ? 'open' : ''}`} style={{ left: p.x * s, top: p.y * s }} data-testid={`party-${p.kind}`} data-party={p.id} role="button" aria-label={raid ? `${name}, ${p.strength} strong against your ${mine}` : name} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => {
                 e.stopPropagation();
+                const first = selParty !== p.id;
+                setSelParty(p.id);
                 // Train, ship and motor journeys are meant to be the safe way through — the road's own
                 // ambush/thief rolls already skip themselves for these (see travelStep's `safe` flag).
                 // A tap on a party marker glimpsed out the window used to reach past that and pull the
                 // player into the same standard road encounter anyway; keep it inert while under way.
                 if (moving?.train) { if (raid) setReport(`${bandName(p, g.day)} watch the train pass, out of reach from the tracks.`); return; }
-                if (dist(p, w) < 18) { setMoving(null); setEncounter(p); } else goTo({ x: p.x, y: p.y });
+                if (dist(p, w) < 18) { setMoving(null); setEncounter(p); return; }
+                // further off, the first tap names them; a second tap sets off towards them
+                if (first) { audio.sfx('tap'); return; }
+                goTo({ x: p.x, y: p.y });
               }}>
                 {raid && <i className="pring" style={{ width: 44 * s, height: 44 * s }} aria-hidden="true" />}
-                <span className="pbadge"><Icon name={p.kind === 'raiders' ? 'sword' : p.kind === 'pilgrims' ? 'people' : p.kind === 'mercenaries' ? 'shield' : 'camel'} /></span>
-                {raid ? (
-                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? 'Hunting you · ' : ''}{bandName(p, g.day)} · {p.strength} vs {mine}</span>
+                <i className="pfoot" aria-hidden="true" />
+                <img className="pmedal" src={bandIconUrl(bandIcon(p.kind), raid, p.kind === 'mercenaries')} alt="" draggable={false} />
+                {open && (raid ? (
+                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? 'Hunting you · ' : ''}{name} · {p.strength} vs {mine}</span>
                 ) : p.kind === 'caravan' || p.kind === 'bedouin' ? (
                   <span className="pgoods" data-testid={`goods-${p.id}`}><Icon name={gd?.icon ?? 'camel'} />{gd ? `Trader · ${gd.label}` : 'Trader'}</span>
-                ) : z >= 2.2 ? <span className="pname">{p.name}{p.size ? ` · ${p.size}` : ''}</span> : null}
+                ) : <span className="pname">{p.name}{p.size ? ` · ${p.size}` : ''}</span>)}
               </span>
             );
           })}
-          <span ref={meRef} className={`me ${moving && timeScale ? 'moving' : ''}`} style={{ left: (moving && live ? live.x : w.x) * s, top: (moving && live ? live.y : w.y) * s }} data-testid="me" data-x={Math.round(w.x)} data-y={Math.round(w.y)}>
-            {moving && (moving.train || moving.mode) ? (
-              <span className="pbadge me-badge"><Icon name="camel" /></span>
-            ) : (
-              // you on foot, two painted steps that alternate while you walk, and behind you, Bannerlord
-              // style, the caravan that follows: your guards and every animal you own, each as its own token
-              <span className="me-row">
-                <span className="me-train" aria-hidden="true" data-testid="me-train">
-                  {train.shown.map((t, k) => <img key={k} className={`me-tok ${t.kind}`} src={t.src} alt="" draggable={false} style={{ ['--k' as string]: k }} />)}
-                  {train.more > 0 && <i className="me-more" style={{ ['--k' as string]: train.shown.length }}>+{train.more}</i>}
-                </span>
-                <span className="me-walk solo" aria-hidden="true">
-                  {[1, 2].map((k) => <img key={k} src={`art/world/party-solo-${k}.webp`} alt="" draggable={false} />)}
-                </span>
+          <span ref={meRef} className={`me medal ${moving && timeScale ? 'moving' : ''}`} style={{ left: (moving && live ? live.x : w.x) * s, top: (moving && live ? live.y : w.y) * s }} data-testid="me" data-x={Math.round(w.x)} data-y={Math.round(w.y)} data-mode={moving ? mode : undefined}>
+            {/* standing still, your men and animals wait beside you, one small token each */}
+            {!moving && train.shown.length > 0 && (
+              <span className="me-train" aria-hidden="true" data-testid="me-train">
+                {train.shown.map((t, k) => <img key={k} className={`me-tok ${t.kind}`} src={t.src} alt="" draggable={false} style={{ ['--k' as string]: k }} />)}
+                {train.more > 0 && <i className="me-more" style={{ ['--k' as string]: train.shown.length }}>+{train.more}</i>}
               </span>
             )}
+            <canvas ref={medalRef} className="me-medal" width={56} height={56} aria-hidden="true" data-testid="me-medal" />
+            {/* on the move, a small engraved badge says how: train, steamer, felucca, motor car, camels, donkeys or on foot */}
+            {moving && <img className="me-mode" src={modeIconUrl(mode)} alt={MODE_LABEL[mode]} title={MODE_LABEL[mode]} draggable={false} data-testid="me-mode" data-mode={mode} />}
             {z >= 3 && <span className="pname me-name">You · {partySize(w.party)}</span>}
           </span>
         </div>
@@ -1121,7 +1227,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               <button className="btn" onClick={() => startFerry(alt.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(ferryDays())}</button>
             )}
             {alt.train && <button className="btn" onClick={() => { setMoving(null); start(true, alt); }} data-testid="train">Train · {fmt(alt.train.fare)} · {durationLabel(alt.train.days)}</button>}
-            {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {durationLabel(r.days)}</button>)}
+            {alt.ships.map((r) => <button key={r.to} className="btn sail-btn" onClick={() => { setMoving(null); startSea(r, 'ship', alt.from); }} data-testid="ship"><Icon name="anchor" /> Ship · {fmt(r.fare)} · {durationLabel(r.days)}</button>)}
           </div>
         )}
         {moving ? null : plan ? (
@@ -1178,11 +1284,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </div>
               <div className="wc-btns">
                 {ferry && (
-                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry">⛴ Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(ferryDays())}{fast('ferry')}</button>
+                  <button className={`btn sail-btn${lead === 'ferry' ? ' primary faster' : ''}`} onClick={() => startFerry(plan.settlement!.id as 'giza' | 'cairo')} data-testid="ferry"><Icon name="anchor" /> Nile ferry · {fmt(ferryFare(g).total)} · {durationLabel(ferryDays())}{fast('ferry')}</button>
                 )}
                 {plan.train && <button className={`btn${lead === 'train' ? ' primary' : ''}`} onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}{fast('train')}</button>}
                 {plan.ships.map((r) => (
-                  <button key={r.to} className={`btn sail-btn${lead === 'ship' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship">⚓ Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('ship' + r.to)}</button>
+                  <button key={r.to} className={`btn sail-btn${lead === 'ship' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship"><Icon name="anchor" /> Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('ship' + r.to)}</button>
                 ))}
                 {plan.motor.map((r) => (
                   <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 Nairn motor car · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
@@ -1205,7 +1311,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </div>
               {plan.train && <button className="btn primary" onClick={() => start(true)} data-testid="train">Train · {fmt(plan.train.fare)} · {arrivalLabel(plan.train.days)}</button>}
               {plan.ships.map((r) => (
-                <button key={r.to} className="btn primary sail-btn" data-testid="ship" onClick={() => startSea(r, 'ship', plan.from)}>⚓ Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}</button>
+                <button key={r.to} className="btn primary sail-btn" data-testid="ship" onClick={() => startSea(r, 'ship', plan.from)}><Icon name="anchor" /> Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}</button>
               ))}
               <button className="btn" onClick={() => setPlan(null)}>OK</button>
             </div>

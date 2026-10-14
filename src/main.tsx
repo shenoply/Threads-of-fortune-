@@ -4,10 +4,14 @@ import { installSaveGuard } from './game/state/saveGuard';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
+import './feel.css';
+import { installImageFade } from './game/feel';
 import { STALL_ART } from './game/preload';
 
 // watch the save for failed writes and for another tab writing it (src/game/state/saveGuard.ts)
 installSaveGuard();
+// mark pictures as they arrive so the big ones fade in (src/feel.css)
+installImageFade();
 
 // keep the pictures and sounds on the phone after the first visit (public/sw.js)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

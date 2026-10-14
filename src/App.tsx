@@ -30,6 +30,7 @@ import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from './game/audio
 import { voice } from './game/audio/voice';
 import { JOBS, GIVER_VOICE } from './data/jobs';
 import { Icon } from './components/Icon';
+import { useTween, useEnterAnimation, useVibration, setVibration, canVibrate, prefetchNextScreens } from './game/feel';
 import { StallEncounter } from './components/StallEncounter/StallEncounter';
 import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/Documentary/Documentary';
 import { Supplier } from './components/Supplier/Supplier';
@@ -245,6 +246,9 @@ export default function App() {
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
+  // each screen comes in with a short fade and rise when the bottom tabs switch (feel.ts)
+  const mainRef = useRef<HTMLElement>(null);
+  useEnterAnimation(mainRef, tab);
   const [settings, setSettings] = useState(false);
   // the settings panel keeps the keyboard inside it (Tab cycles, Esc closes) and takes focus when it opens
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -531,6 +535,12 @@ export default function App() {
   const newsUp = !quietNews && !g.journey && !(g.encounter && !g.encounter.outcome) && freshNews(g.day, g.newsSeen ?? []).length > 0;
   // the night's summary card is up (the same test DaySummary makes before it shows itself)
   const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
+  // the purse and reputation roll to their new value (feel.ts); tests read data-pt / data-v
+  const cashT = useTween(g.cash);
+  const repT = useTween(g.reputation);
+  const vibrate = useVibration();
+  // on the map in a town, fetch the screens opened next (Malek, the cafe, the telegraph) in a quiet moment
+  useEffect(() => { if (phase === 'game' && tab === 'map' && g.world.at) prefetchNextScreens(); }, [phase, tab, g.world.at]);
   const [cashFlash, setCashFlash] = useState(false);
   const prevCash = useRef(g.cash);
   useEffect(() => {
@@ -564,6 +574,12 @@ export default function App() {
                   </div>
                 );
               })}
+              {/* a short buzz on a sale, a purchase, an ambush, a mission done (feel.ts) */}
+              <div className="vol-row sound-row">
+                <span>Vibration<small>{canVibrate() ? 'A short buzz on sales, buys and ambushes' : 'Not on this device'}</small></span>
+                <i />
+                <button className="switch" role="switch" aria-checked={vibrate} aria-label="Vibration" onClick={() => setVibration(!vibrate)} data-testid="toggle-vibration"><i>Off</i><i>On</i></button>
+              </div>
             </div>
     </>
   );
@@ -699,12 +715,12 @@ export default function App() {
           <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
         </button>
         <div className="hud-stats">
-          <button className={`hud-chip ${cashFlash ? 'flash' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
-            <Icon name="coin" />{fmt(g.cash)}
+          <button className={`hud-chip ${cashFlash ? 'flash' : ''} ${cashT.dir > 0 ? 'ff-up' : cashT.dir < 0 ? 'ff-down' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
+            <Icon name="coin" /><span className="ff-num">{cashT.shown >= 10000 ? `£${Math.floor(cashT.shown / 100).toLocaleString('en-GB')}` : fmt(cashT.shown)}</span>
           </button>
           {inDebt && <button className="hud-chip hud-debt" onClick={() => setFinance(true)} title="You owe money that is overdue" data-testid="hud-debt">Debts</button>}
-          <button className="hud-chip hud-rep" title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep">
-            <Icon name="star" />{g.reputation}
+          <button className={`hud-chip hud-rep ${repT.dir > 0 ? 'ff-up' : repT.dir < 0 ? 'ff-down' : ''}`} title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep" data-v={g.reputation}>
+            <Icon name="star" /><span className="ff-num">{repT.shown}</span>
           </button>
           {/* always there; while the opening runs they don't pulse, so the step's own button is the one that calls */}
           <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
@@ -753,7 +769,7 @@ export default function App() {
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the lesson</button>
       )}
       {upgradesOpen && <UpgradesSheet onClose={() => setUpgradesOpen(false)} />}
-      <main style={{ minHeight: 0, display: 'grid' }}>
+      <main ref={mainRef} style={{ minHeight: 0, display: 'grid' }}>
         {tab === 'stall' && (g.world.at === 'giza' ? (
           !g.encounter && !g.dayOver ? <StallIdle onGo={chapterGo} /> :
           <StallEncounter onGoto={(t) => setTab(t)} />

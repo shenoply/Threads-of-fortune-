@@ -5,6 +5,7 @@
 // the music and the radio give way while it plays. If the browser will not start sound on its own,
 // a Play button starts it from a tap.
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { INTRO_FILMS, type IntroCue } from '../../data/introFilms';
 import { FILMS, filmVideo, type FilmId, type Still } from './films';
 import { audio } from '../../game/audio/engine';
@@ -147,7 +148,7 @@ export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: 
       <p className="film__title">{title}</p>
       <p className="film__caption" aria-live="polite" data-testid="film-caption">{caption}</p>
       <div className="film__btns">
-        <button className="btn film__sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} data-testid="film-sound">{muted ? '🔇' : '🔊'}</button>
+        <button className="btn film__sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} data-testid="film-sound"><Icon name={muted ? 'x' : 'sound'} /></button>
         {needTap && <button className="btn primary" onClick={() => void start()} data-testid="film-play">▶ Play the film</button>}
         {over ? <button className="btn primary" onClick={finish} data-testid="film-continue">Continue</button>
           : <button className="btn" onClick={finish} data-testid="film-skip">Skip</button>}

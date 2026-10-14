@@ -9,6 +9,7 @@ import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
+import { buzz } from '../../game/feel';
 import { BATTLE_ART, BAND_ART, fieldFor } from './BattleField';
 import { TacticalBattle } from './TacticalBattle';
 import { winChanceAsync, warmOdds } from '../../game/systems/odds';
@@ -83,6 +84,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // the leader speaks his demand aloud
   const leader = THREAT_VOICE[threat.id] ?? 'robberchief';
   useEffect(() => { voice.load().then(() => voice.preload([leader])); return () => voice.stop(); }, [leader]);
+  // a buzz on the phone as they ride out at you (feel.ts)
+  useEffect(() => { buzz(25); }, []);
   // the battlefield pictures, fetched while they talk so a fight opens on a painted field
   const field = useMemo(() => fieldFor(threat.id, party.id, g.day), [threat.id, party.id, g.day]);
   useEffect(() => { for (const src of [field, ...BATTLE_ART]) new Image().src = src; }, [field]);

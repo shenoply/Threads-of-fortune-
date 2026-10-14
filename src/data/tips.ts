@@ -18,7 +18,7 @@ export const TIPS: Record<string, TipDef> = {
 // Each id is kept in tipsSeen once it has been said.
 export const ONCE: Record<string, { who?: string; text: string }> = {
   papers: { who: 'Uncle Rashid', text: '"Every frontier post wants a passport now, nephew, and a visa stamped in it. A morning in the queues at the Ministry in Cairo costs less than one fine."' },
-  fakes: { who: 'Uncle Rashid', text: '"Half the \'antiques\' in the Khan were woven last year and washed in tea, and a red too bright for its age is German aniline that runs in the first wash. Ask Arran to look before you pay antique money."' },
+  fakes: { who: 'Hagop the dealer', text: '"Half the \'antiques\' in the Khan were woven last year and washed in tea. Ask Arran to look before you pay antique money."' },
   changer: { who: 'Uncle Rashid', text: '"Outside Egypt a money-changer turns your notes into the money of the place, and keeps his share of the first deal you make each time you come to a town. So make that first deal a big one."' },
   telegraph: { text: 'The telegraph office: wire Rashid for stock, or ask another town\'s prices.' },
   'arran-fakes': { who: 'Arran', text: '"And if a dealer swears a rug is old, or dyed with madder, bring it here first. The wash and the dye test show a tea stain or an aniline red in an afternoon."' },

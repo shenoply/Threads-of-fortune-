@@ -1,12 +1,30 @@
 .hs { background: #1e1812; border-bottom: 1px solid rgba(217,164,65,.45); }
 .hs-row { display: flex; gap: 8px; align-items: center; width: 100%; padding: 5px 12px; background: none; border: 0; color: #ffe9bd; font-size: 13px; text-align: left; cursor: pointer; }
-.hs-m { position: relative; flex: 1 1 0; min-width: 0; height: 18px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; display: block; }
-.hs-m i { position: absolute; inset: 0 auto 0 0; background: #6b8f5a; }
-.hs-m.warn i { background: #d9a441; }
-.hs-m.bad i { background: #b3402b; }
-.hs-m b { position: relative; display: block; font: 600 11px/18px var(--label, sans-serif); letter-spacing: .06em; text-transform: uppercase; padding: 0 6px; color: #fff; text-shadow: 0 1px 2px #000; }
-.hs-ill { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ffd27a; font-weight: 700; }
+/* each need: a drawn icon and a small ruled gauge under its name, ink and brass until it runs low */
+.hs-m { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 5px; color: #c9b48d; }
+.hs-ic { flex: none; display: block; width: 16px; height: 16px; }
+.hs-g { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hs-g b { font: 600 11px/1 var(--label, sans-serif); letter-spacing: .07em; color: #d8c49c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-g i { position: relative; display: block; height: 6px; border: 1px solid rgba(201,151,74,.55); border-radius: 1px; background:
+  repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(201,151,74,.35) calc(25% - 1px) 25%), #15100a; overflow: hidden; }
+.hs-g em { position: absolute; inset: 0 auto 0 0; background: linear-gradient(180deg, #a98d62, #7c6443); }
+.hs-m.warn { color: #e8b35a; }
+.hs-m.warn .hs-g b { color: #f0c470; }
+.hs-m.warn .hs-g i { border-color: #d49a3a; }
+.hs-m.warn .hs-g em { background: linear-gradient(180deg, #e3ad4f, #b8822c); }
+.hs-m.bad { color: #e2735c; }
+.hs-m.bad .hs-g b { color: #f08a72; }
+.hs-m.bad .hs-g i { border-color: #c0553f; }
+.hs-m.bad .hs-g em { background: linear-gradient(180deg, #cf5d45, #962f1f); }
+/* the condition: a small tag, like a chemist's label */
+.hs-ill { flex: 0 1 auto; max-width: 38%; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 5px; border: 1px solid rgba(232,179,90,.6); border-radius: 3px; background: #2a1d10; color: #f3cf8a; font: 600 12px/1.2 var(--body, serif); }
+.hs-ill .hs-ic { width: 14px; height: 14px; }
+.hs-ill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hs-more { padding: 2px 14px 8px; color: #ffe9bd; font-size: 14px; line-height: 1.35; }
 .hs-more p { margin: 3px 0; }
 .hs-more em { color: #f3c37c; }
 .hs-doc { margin-top: 4px; min-height: 40px; padding: 8px 14px; background: #d9a441; color: #1b1308; border: 0; border-radius: 4px; font-weight: 700; }
+@media (max-width: 380px) { .hs-row { gap: 6px; padding: 5px 8px; } .hs-ic { width: 14px; height: 14px; } .hs-g b { font-size: 10px; } }
+/* the older flat-bar rules in styles.css (.hs-m height, .hs-m b) do not apply to the gauges */
+.hs .hs-m { height: auto; }
+.hs .hs-m .hs-g b { font: 600 10.5px/1 var(--label, sans-serif); padding: 0; text-shadow: none; letter-spacing: .07em; }

@@ -3,6 +3,7 @@
 // Dialogue plays recorded clips only. With no clip, captions carry the line.
 import { voice, filmLock } from './voice';
 import { fetchMedia } from './cdn';
+import { buzzFor } from '../feel';
 
 export type Channel = 'dialogue' | 'music' | 'sfx' | 'ambience';
 type Toggles = Record<Channel, boolean>;
@@ -381,6 +382,8 @@ class AudioEngine {
   }
 
   sfx(name: string) {
+    // the important moments also buzz on a phone that can (feel.ts), with or without sound
+    buzzFor(name);
     if (!this.ensure() || !this.toggles.sfx) return;
     this.state.lastSfx = name;
     const d = this.gains.sfx;

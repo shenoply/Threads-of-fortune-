@@ -2,6 +2,7 @@
 // the menu with a confirm step that shows exactly what you pay and get, food parcels to carry, and his
 // remarks. The whole module is loaded with React.lazy from the Giza district.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { useGame, clock } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { MALEK_MENU, malekItem, type MalekItem, type MalekItemId } from '../../data/malekMenu';
@@ -134,7 +135,7 @@ function MalekBonusClip({ onDone }: { onDone: () => void }) {
         </video>
       </div>
       <div className="film__btns">
-        <button className="btn film__sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} data-testid="malek-bonus-sound">{muted ? '🔇' : '🔊'}</button>
+        <button className="btn film__sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} data-testid="malek-bonus-sound"><Icon name={muted ? 'x' : 'sound'} /></button>
         {needTap && <button className="btn primary" onClick={() => { void video.current?.play(); setNeedTap(false); }} data-testid="malek-bonus-play">▶ Play</button>}
         <button className="btn" onClick={finish} data-testid="malek-bonus-skip">Skip</button>
       </div>

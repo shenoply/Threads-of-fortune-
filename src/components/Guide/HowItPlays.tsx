@@ -3,6 +3,7 @@
 // the words on screen. Take your time: nothing moves on until you choose. "Watch them all" plays the
 // films one after another. The films are made by tools/how-films (capture.mjs, then compose.py).
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { HOW_FILMS } from '../../data/howFilms';
 import { audio } from '../../game/audio/engine';
 import { useFilmSound } from '../../game/audio/useFilmSound';
@@ -79,7 +80,7 @@ function Player({ at, all, onPick, onClose }: { at: number; all: boolean; onPick
             onTimeUpdate={(e) => setT(e.currentTarget.currentTime)} onEnded={() => setEnded(true)} onError={() => setFailed(true)} data-testid="how-video" />}
       <div className="how-play__top">
         <div className="how-play__title"><small>{at + 1} of {FEATURES.length}</small><b>{f.name}</b></div>
-        <button className="btn small" onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} data-testid="how-sound">{muted ? '🔇' : '🔊'}</button>
+        <button className="btn small" onClick={() => setMuted((m) => !m)} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} data-testid="how-sound"><Icon name={muted ? 'x' : 'sound'} /></button>
         <button className="btn small" onClick={onClose} aria-label="Close" data-testid="how-close-film">✕</button>
       </div>
       {(cue || failed) && !ended && <p className="how-play__caption" data-testid="how-caption">{failed ? film.cues.map((c) => c.text).join(' ') : cue!.text}</p>}
