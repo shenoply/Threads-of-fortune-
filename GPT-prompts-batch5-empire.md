@@ -17,27 +17,26 @@ Reply "ready" and wait for my prompts.
 ---
 
 ## 1. Stall pieces (12) — what you buy for your stall
-**Attach `stall-empty-patched.webp`** (the empty stall; I'll send it to you if you don't have it) with **every** prompt, and paste:
+ChatGPT cannot edit a picture without redrawing it, so **don't ask it to put the piece in the stall**. Ask for the piece alone, cut out; I place it in the stall myself. Attach `01-stall-empty-BASE.png` and `03-example-stall-piece-lamp.png` from the reference pack once at the start so it matches the light and style. Paste:
 ```
-Edit this exact image. Keep the camera, walls, shelves, light and every existing object exactly as they are. Only ADD the object described below, in the place described, painted in the same style and light. Same size 1536x1024. No people, no text.
-Add:
+Paint ONLY the single object described below, on a fully transparent background (PNG cut-out, nothing behind it, no floor, no wall, no shadow box). Same painting style, warm late-afternoon light from the left as in the stall picture I attached. Square 1024x1024, the object filling most of the frame. No text.
+Object:
 ```
-then one line:
 
-| Save as | Add: |
+| Save as | Object: |
 | --- | --- |
-| `stall-lamps.png` | two brass oil lamps hanging from the top beam, lit, with a warm glow |
-| `stall-kilims.png` | two flat-woven kilims in red, indigo and ochre laid on the ground in front of the stall |
-| `stall-tray.png` | a large engraved brass tray with tea glasses and a small teapot on the low table |
-| `stall-sign.png` | a painted wooden shop board above the opening, dark green with a gold border and a carved rug motif, no letters |
-| `stall-glasscase.png` | a small glass-fronted wooden display case on the right with folded silk rugs inside |
-| `stall-bench.png` | a low wooden bench with red cushions along the left wall |
-| `stall-copper.png` | a row of hammered copper jugs and bowls on the middle shelf |
-| `stall-curtain.png` | a heavy striped cotton curtain tied back at the right side of the opening |
-| `stall-cushions.png` | a pile of embroidered floor cushions in front of the rug stack |
-| `stall-mirror.png` | a gilt-framed mirror on the back wall |
-| `stall-flowers.png` | a tall clay jar of jasmine and roses by the entrance |
-| `stall-scale.png` | a brass merchant's balance scale with small weights on the counter end |
+| `stall-lamps.png` | a pair of brass oil lamps hanging on short chains, lit, with a warm glow |
+| `stall-kilims.png` | two flat-woven kilims in red, indigo and ochre, lying flat, seen from the front at a low angle |
+| `stall-tray.png` | a large engraved brass tray with two tea glasses and a small brass teapot |
+| `stall-sign.png` | a long painted wooden shop board, dark green with a gold border and a carved rug medallion, no letters |
+| `stall-glasscase.png` | a small glass-fronted wooden display case with folded silk rugs inside |
+| `stall-bench.png` | a low wooden bench with red patterned cushions |
+| `stall-copper.png` | a row of hammered copper jugs, coffee pots and bowls standing side by side |
+| `stall-curtain.png` | a heavy striped cotton curtain hanging from a rod, tied back with a cord |
+| `stall-cushions.png` | a pile of three embroidered floor cushions |
+| `stall-mirror.png` | a gilt-framed mirror |
+| `stall-flowers.png` | a tall clay jar of jasmine and red roses |
+| `stall-scale.png` | a brass merchant's balance scale with small weights |
 
 ---
 

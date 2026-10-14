@@ -1,33 +1,21 @@
 # Threads of Fortune: art batch 6 (the stall through the day and the year, and the arms dealer)
 
-Same ChatGPT chat as batch 5 (STYLE LOCK pasted first). Save each image with the exact file name and attach it here.
+Same ChatGPT chat as batch 5 (STYLE LOCK pasted first, reference pack attached). Save each image with the exact file name and attach it here.
 
 ---
 
-## 1. The stall at different times, weather and feast days (14)
-**Attach `stall-empty-patched.png`** (the empty stall) with every prompt and paste:
-```
-Edit this exact image. Keep the camera, the walls, the shelves, the counter, the rug stack and every object exactly where they are, same size 1536x1024, same painting style. Change ONLY the light, the sky, the street and the view beyond the opening, and add only what is described below. No people close up, no text.
-Change:
-```
-then one line:
+## 1. The stall through the day and the year
+Time of day and weather (dawn, noon, evening, night, sandstorm, winter, rain) **I do in the game itself** by changing the light and sky over the stall painting, so nothing is needed from you for those.
+For feast days I need only the **decorations**, cut out, which I hang over the stall. Same cut-out prompt as the stall pieces in batch 5 (transparent background, no wall, no floor), wide landscape 1536x512:
 
-| Save as | Change: |
+| Save as | Object: |
 | --- | --- |
-| `stall-dawn.png` | early morning: cool pale light from the left, a pink and pale-blue sky, mist around the pyramids, the street beyond still empty |
-| `stall-noon.png` | midday: hard white sunlight from above, short shadows, a bleached blue sky, heat haze over the pyramids |
-| `stall-evening.png` | sunset: deep orange light low from the right, long shadows, an orange and violet sky, a lamp lit inside the stall |
-| `stall-night.png` | night: dark blue moonlight, stars over the pyramids, a single oil lamp lighting the stall warmly from inside |
-| `stall-khamsin.png` | a khamsin sandstorm: the air thick and yellow-brown with dust, the pyramids barely visible, a dim orange sun, sand drifted at the threshold |
-| `stall-winter.png` | a grey winter day: overcast sky, soft flat light, people beyond in coats and shawls |
-| `stall-rain.png` | a rare winter rain: wet shining paving, puddles in the street, dark clouds over the pyramids, water dripping from the awning |
-| `stall-ramadan.png` | a Ramadan night: strings of coloured glass fanous lanterns across the street, a crescent moon, warm lights in the lane |
-| `stall-eid.png` | Eid morning: paper garlands and coloured flags across the street, children in new clothes beyond, bright festive light |
-| `stall-moulid.png` | a moulid evening: strings of lights, a sugar-doll stall and a swing ride glimpsed in the lane beyond |
-| `stall-shamnessim.png` | Sham el-Nessim spring morning: flowers in jars, baskets of coloured eggs by the entrance, green trees beyond |
-| `stall-flood.png` | the Nile flood season: the fields beyond the pyramids under shining water, palm trees standing in it, humid golden light |
-| `stall-parliament.png` | a day of national celebration: Egyptian green flags with the crescent and three stars hung across the street and from balconies |
-| `stall-christmas.png` | Coptic Christmas in January: a cold clear evening, small candles and palm-frond decorations by the entrance, a church dome lit beyond |
+| `deco-ramadan.png` | a string of coloured glass fanous lanterns hanging across, lit, and a small crescent moon ornament |
+| `deco-eid.png` | strings of paper garlands and small coloured triangular flags hanging across |
+| `deco-moulid.png` | strings of small lights and a row of painted sugar dolls (arousat al-moulid) on a shelf |
+| `deco-shamnessim.png` | a basket of coloured eggs, green onions and spring flowers |
+| `deco-national.png` | a string of Egyptian green flags with a white crescent and three stars hanging across |
+| `deco-christmas.png` | Coptic Christmas: small candles and palm-frond crosses on a wooden shelf |
 
 ---
 
