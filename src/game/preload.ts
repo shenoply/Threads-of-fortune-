@@ -1,5 +1,6 @@
 import { stallFigure } from '../components/StallEncounter/stallArt';
 import { useGame } from './state/store';
+import { BOOT_ART, BOOT_LATER } from './bootArt';
 // Warm the browser cache for paintings the player is about to see: one at a time, in idle moments,
 // so a scene opens with its picture already there instead of popping in.
 const seen = new Set<string>();
@@ -91,7 +92,8 @@ const STALL_PROPS = [
 // screens the player bounces between), then the stall scene the first buyer walks into: stage,
 // counter, the merchant, the wireless, the paper and the gramophone that is always on the shelf.
 // The first buyer's own pictures come from buyerArt.
-export const STALL_ART = ['art/world/giza-district-small.webp', 'art/world/giza-district.jpg', 'art/stall-empty.webp', 'art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/outfits/classic-stall-stall.webp', 'art/radio-stall.webp', 'art/newspaper-stall.webp', prop('prop-gramophone')];
+// (the first of them are the ones the loading screen waits for: src/game/bootArt.ts)
+export const STALL_ART = [BOOT_ART[0], ...BOOT_LATER, ...BOOT_ART.slice(1), 'art/radio-stall.webp', 'art/newspaper-stall.webp', prop('prop-gramophone')];
 // The rest, once the line is clear: the shelf dressing (a different pick each day). The paper held
 // up to read and the stall seen from above wait for the first sale to be over.
 const STALL_LATER = STALL_PROPS;

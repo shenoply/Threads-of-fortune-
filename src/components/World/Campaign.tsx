@@ -1,11 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
 import { useGame, clock, arrivalAt } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { dateFor } from '../../game/economy/economy';
 import { District } from './District';
-import { WorldMap } from './WorldMap';
+// the wider world (with its ambushes and battles) is a large part of the code and is not on screen on
+// day one: it comes in its own file, fetched once the title is up (main.tsx), so it does not hold up the start
+// Once it is in, the map is used directly (a lazy screen still waits a beat before showing, even when
+// its file is already here).
+let worldMapReady: (typeof import('./WorldMap'))['WorldMap'] | null = null;
+export const loadWorldMap = () => import('./WorldMap').then((m) => { worldMapReady = m.WorldMap; return m; });
+const LazyWorldMap = lazy(() => loadWorldMap().then((m) => ({ default: m.WorldMap })));
 import { StallIdle } from '../StallEncounter/StallIdle';
 import type { SetTab } from './Settlement';
 import { audio } from '../../game/audio/engine';
@@ -21,6 +27,8 @@ export const openStallNext = () => { memo.layer = 'giza'; memo.stall = true; };
 /** One continuous map: the region, zoom in to Giza's lanes, zoom in again to your stall. One clock runs through all of it. */
 export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIntent | null; frozen: boolean; onGo: (t: Target) => void; clearIntent?: () => void }) {
   const g = useGame();
+  // picked once, so the map is not drawn afresh when its file arrives part way through
+  const [WorldMap] = useState(() => worldMapReady ?? LazyWorldMap);
   const at = g.world.at;
   const [layer, setLayerRaw] = useState<'giza' | 'world'>(() => {
     if (intent?.view === 'world' || at !== 'giza') return 'world';
@@ -66,6 +74,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
             startZoomedOut={anim === 'in'}
           />
         ) : (
+          <Suspense fallback={<div className="campaign-wait" data-testid="campaign-wait" />}>
           <WorldMap
             key={`${intent?.panel ?? ''}-${intent?.plan ?? ''}-${intent?.go ? intent.n : ''}`}
             onStall={() => { setLayer('giza', 'in'); setStall(true); }}
@@ -82,6 +91,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
             setScale={setScale}
             onZoomGiza={() => setLayer('giza', 'in')}
           />
+          </Suspense>
         )}
       </div>
       {stall && layer === 'giza' && (
