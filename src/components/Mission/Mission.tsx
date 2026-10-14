@@ -11,6 +11,23 @@ import { CARGO_JOBS, midSentence } from '../../game/systems/fieldwork';
 import { voice, quotes } from '../../game/audio/voice';
 import '../../game/missionRules';
 import { HouseEnding } from './HouseEnding';
+import { countdown, firstDue } from '../../game/firstWeek';
+
+/** Rashid's first-week instalment, as a short countdown at the end of the objective line; a tap opens his
+ *  page at your father's debt. Nothing once it is paid. */
+function WeekDue({ onGo }: { onGo: (target?: string) => void }) {
+  const g = useGame();
+  const wk = firstDue(g.family, g.day);
+  if (!wk) return null;
+  // his page opens at the top; bring the debt into view once it is there
+  const go = () => {
+    onGo('supplier');
+    let n = 0;
+    const find = () => { const el = document.querySelector('[data-testid="family-debt"]'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); else if (++n < 20) setTimeout(find, 100); };
+    setTimeout(find, 650); // after the opening's guide has brought its own button into view
+  };
+  return <button className={`ob-due ${wk.days <= 1 ? 'near' : ''}`} onClick={go} data-testid="week-due" title="Uncle Rashid wants this towards your father's debt">{countdown(wk.owed, wk.days)}</button>;
+}
 
 /** "+£3.00 · reputation +3": only the parts there are */
 export const rewardLine = (r: { cash: number; rep: number; trust?: number }, trust = false) =>
@@ -139,7 +156,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
     return (
       <div className="objective-bar opening" data-testid="first-hour">
         <div className="ob-row">
-          <span className="ob-text"><small>{firstHour.n ? `Step ${firstHour.n} of ${firstHour.of}` : 'Objective'}</small><b>{firstHour.text}</b></span>
+          <span className="ob-text"><span className="ob-eye"><small>{firstHour.n ? `Step ${firstHour.n} of ${firstHour.of}` : 'Objective'}</small><WeekDue onGo={onGo} /></span><b>{firstHour.text}</b></span>
           {firstHour.btn && <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>}
           {firstHour.skip && <button className="ob-skip" onClick={firstHour.skip} data-testid="first-hour-skip" aria-label="Skip the opening">Skip</button>}
         </div>
@@ -155,7 +172,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
       <div ref={barRef} className={`objective-bar ${open ? 'open' : ''}`} data-testid="mission-banner">
         <div className="ob-row">
           <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="mission-expand">
-            <small>Objective</small>
+            <span className="ob-eye"><small>Objective</small><WeekDue onGo={onGo} /></span>
             <b>{hint}</b>
             <Icon name={open ? 'up' : 'down'} />
           </button>
@@ -163,6 +180,16 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
             : m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
         {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>}
+      </div>
+    );
+  }
+  // nothing else in hand: Rashid's instalment is the objective
+  if (firstDue(g.family, g.day)) {
+    return (
+      <div className="objective-bar" data-testid="week-bar">
+        <div className="ob-row">
+          <span className="ob-text"><span className="ob-eye"><small>Objective</small><WeekDue onGo={onGo} /></span><b>Your father's first instalment</b></span>
+        </div>
       </div>
     );
   }

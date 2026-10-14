@@ -15,6 +15,7 @@ import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
 import { applyAuctionObservation, type MarketIntelRecord } from '../auction/marketIntel';
 import { shouldReofferUnsoldLot, reducedReserveForReoffer, totalAuctionCost } from '../auction/auctionSystem';
 import { houseOfFortune, liabilities, owedParts } from '../economy/progress';
+import { EARLY_OFF, EARLY_TRUST, FIRST_WORD, LATE_FEE, LATE_TRUST, SECOND_DAYS, dueDate, firstOpen, firstWeekStart, type FirstWeek } from '../firstWeek';
 import { laneDay, isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
 import { rankOf } from '../economy/progress';
 import { TITLES, type TitleCtx } from '../../data/titles';
@@ -69,10 +70,10 @@ import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/st
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
 import type { PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
-export const FAMILY_START = { left: 10000, due: 0, since: 0, paid: 0 };
+export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek } = { left: 10000, due: 0, since: 0, paid: 0 };
 export const FAMILY_INSTALMENT = 2500;
 
 export type TutorialStep = 'room' | 'rug' | 'inspect' | 'inspect2' | 'argue' | 'price' | 'counter' | 'done';
@@ -278,7 +279,7 @@ export interface GameState {
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
-  family?: { left: number; due: number; since: number; paid: number };
+  family?: { left: number; due: number; since: number; paid: number; first?: FirstWeek };
   missionNews?: string;
   /** rugs sold to each town's dealers today: each one lowers the next bid there (localBid) */
   dealerSold?: { day: number; by: Record<string, number> };
@@ -751,14 +752,14 @@ function initial(): Omit<GameState, keyof Actions> {
     ledger: [],
     upgrades: [],
     supplier: { trust: 20, offers: rashidStock(1, rng), debt: 0, debtDue: 0, lastLine: RASHID.greeting[0], haggleLocked: [] },
-    family: { ...FAMILY_START },
+    family: { ...FAMILY_START, first: firstWeekStart() },
     tutorial: { done: false, step: 'room', inspected: false },
     queue: ['samira', 'yusuf', 'mariam'],
     visitIdx: 0,
     dayStats: { sales: 0, revenue: 0, gross: 0, expenses: 0 },
     goals: goalsFor(1, { debt: 0 }),
     commissions: [],
-    journal: [{ day: 1, text: 'Opened the borrowed corner in Giza with three rugs, 120 piastres and Saffron.' }],
+    journal: [{ day: 1, text: 'Opened the borrowed corner in Giza with three rugs, 120 piastres and Saffron.' }, { day: 1, text: FIRST_WORD, kind: 'due' }],
     totalSales: 0,
     settings: { dialogue: true, music: true, sfx: true, ambience: true },
     autosaveOn: true,
@@ -1284,6 +1285,36 @@ export const useGame = create<GameState & Actions>()(
               notes.push(`Rashid is still waiting for ${fmt(family.due)} of your father's debt. His trust in you drops.`);
             }
           }
+          // The first week: Rashid's first instalment, due on the night of its day (game/firstWeek.ts)
+          let firstTrust = 0;
+          let firstLine: string | undefined;
+          if (firstOpen(family) && s.day >= family.first.by) {
+            const w = family.first;
+            const owed = w.sum - w.paid;
+            if (cash >= owed) {
+              cash -= owed;
+              ledger.push({ day: s.day, kind: 'debt', label: "First instalment on father's debt to Rashid", amount: -owed });
+              family = { ...family, left: Math.max(0, family.left - owed), paid: family.paid + owed, first: { ...w, paid: w.sum, done: s.day, how: w.second ? 'late' : 'onTime' } };
+              firstTrust = 2;
+              notes.push(`You sent Uncle Rashid his ${fmt(owed)} on the day. ${w.second ? 'He says nothing about last week. That is his way of forgiving.' : 'He writes it in his book without a word, which is praise.'}`);
+              journal.push({ day: s.day, text: `Paid Uncle Rashid the ${fmt(owed)} he asked for, on the day.`, kind: 'due' });
+            } else if (!w.second) {
+              // missed, once: the debt grows, his trust drops, and he gives one more week
+              const by = w.by + SECOND_DAYS;
+              family = { ...family, left: family.left + LATE_FEE, first: { sum: w.sum + LATE_FEE, paid: w.paid, by, second: true } };
+              firstTrust = -LATE_TRUST;
+              firstLine = RASHID.creditRefused[3];
+              const text = `You did not have Rashid's ${fmt(owed)}. He adds ${fmt(LATE_FEE)} to your father's debt for his trouble and trusts you less. One more week: ${fmt(owed + LATE_FEE)} by ${dueDate(by)}.`;
+              notes.push(text); journal.push({ day: s.day, text, kind: 'due' });
+            } else {
+              // missed again: it goes into his book as an overdue instalment, taken from the purse each morning
+              family = { ...family, due: family.due + owed, since: family.due > 0 ? family.since : day, first: { ...w, done: s.day, how: 'rolled' } };
+              firstTrust = -5;
+              firstLine = RASHID.creditRefused[3];
+              const text = `Rashid's second week is up. The ${fmt(owed)} goes into his book as overdue, and it is taken from your purse each morning until it is paid.`;
+              notes.push(text); journal.push({ day: s.day, text, kind: 'due' });
+            }
+          }
           // Three days' warning before the first: what falls due, against what is in the purse
           if (isFirstOfMonth(day + 3)) {
             const coming = billTotal(monthlyBill(upgrades, rankOf(s).idx, s.inventory.filter((i) => i.stored).length)) + (family.left > family.due ? Math.min(FAMILY_INSTALMENT, family.left - family.due) : 0);
@@ -1318,6 +1349,8 @@ export const useGame = create<GameState & Actions>()(
           sup.offers = rashidStock(day, rng, s.reputation, s.missions?.alexandria !== 'done');
           sup.lastLine = leaving ? RASHID.gone[0].replace('{rug}', RUGS[leaving.typeId].name) : pick(RASHID.greeting, rng);
           let reputation = s.reputation;
+          if (firstTrust) sup.trust = Math.max(0, Math.min(100, sup.trust + firstTrust));
+          if (firstLine) sup.lastLine = firstLine;
           if (familyLate) {
             sup.trust = Math.max(0, sup.trust - 10);
             sup.lastLine = RASHID.familyLate[0].replace('{amount}', fmt(family.due));
@@ -3563,13 +3596,32 @@ export const useGame = create<GameState & Actions>()(
           const f = s.family ?? FAMILY_START;
           const amt = Math.min(s.cash, amount, f.left);
           if (amt <= 0) return;
-          const left = f.left - amt;
+          let left = f.left - amt;
           const due = Math.max(0, f.due - amt);
+          // the first week's instalment: paid in full before its day, Rashid takes something off
+          let first = f.first;
+          let trust = left === 0 ? 10 : 1;
+          let lastLine = left === 0 ? RASHID.familyPaid[0] : RASHID.familyPart[Math.floor(Math.random() * RASHID.familyPart.length)];
+          const journal = [...s.journal];
+          if (firstOpen(f)) {
+            const w = f.first;
+            const paid = Math.min(w.sum, w.paid + amt);
+            if (paid >= w.sum) {
+              const early = !w.second && s.day < w.by;
+              const off = early ? Math.min(EARLY_OFF, left) : 0;
+              left -= off;
+              trust += early ? EARLY_TRUST : 2;
+              first = { ...w, paid, done: s.day, how: early ? 'early' : w.second ? 'late' : 'onTime' };
+              if (early && left > 0) lastLine = RASHID.familyPart[1];
+              journal.push({ day: s.day, text: early ? `Paid Uncle Rashid his ${fmt(w.sum)} before the day. He took ${fmt(off)} off your father's debt.` : `Paid Uncle Rashid the ${fmt(w.sum)} he asked for.`, kind: 'due' });
+            } else first = { ...w, paid };
+          }
           set({
             cash: s.cash - amt,
-            family: { left, due, since: due > 0 ? f.since : 0, paid: f.paid + amt },
-            supplier: { ...s.supplier, trust: Math.min(100, s.supplier.trust + (left === 0 ? 10 : 1)), lastLine: left === 0 ? RASHID.familyPaid[0] : RASHID.familyPart[Math.floor(Math.random() * RASHID.familyPart.length)] },
+            family: { left, due, since: due > 0 ? f.since : 0, paid: f.paid + amt, ...(first ? { first } : {}) },
+            supplier: { ...s.supplier, trust: Math.min(100, s.supplier.trust + trust), lastLine },
             ledger: [...s.ledger, { day: s.day, kind: 'debt', label: "Paid towards father's debt to Rashid", amount: -amt }],
+            journal,
           });
           audio.sfx('coins');
         },
@@ -3751,6 +3803,13 @@ export const useGame = create<GameState & Actions>()(
         // the opening (game/opening.ts) arrived with save 21: a merchant already under way skips it, with
         // every city open as before; one still on his first day or two starts it, steps already done ticked
         // the music default came down from full to under half: a save still at the old full level follows it
+        // Rashid's first-week instalment arrived with save 23: only a merchant still in his first two days
+        // (or not yet started) is asked for it; anyone further on has it marked settled, never failed
+        if (version < 23) {
+          const day = p.day ?? 1;
+          const fam = p.family ?? { ...FAMILY_START };
+          p.family = { ...fam, first: !p.started || day <= 2 ? firstWeekStart() : { ...firstWeekStart(), done: day, how: 'old' } };
+        }
         if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
           const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };

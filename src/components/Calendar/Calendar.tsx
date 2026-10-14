@@ -1,3 +1,4 @@
+import { firstDue } from '../../game/firstWeek';
 import { useState } from 'react';
 import { Icon } from '../Icon';
 import { fmt } from '../../game/economy/money';
@@ -46,6 +47,8 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
     if (j.some((e) => e.kind === 'royal')) m.push({ icon: '♛', cls: 'royal', label: 'Royal audience' });
     if (where(day) === 'road') m.push({ icon: '⤳', cls: 'road', label: 'On the road' });
     if (j.some((e) => e.kind === 'arrive')) m.push({ icon: '⌂', cls: 'arrive', label: 'Arrived' });
+    const wk = firstDue(g.family, g.day);
+    if (wk && day === wk.by) m.push({ icon: '!', cls: 'due', label: `Rashid wants ${fmt(wk.owed)} of your father's debt` });
     if (day === g.supplier.debtDue && g.supplier.debt > 0) m.push({ icon: '!', cls: 'due', label: `Pay Rashid ${fmt(g.supplier.debt)}` });
     for (const it of g.inventory) if (it.restoringUntil === day) m.push({ icon: '✚', cls: 'ready', label: `${RUGS[it.typeId].name} back from restoration` });
     for (const o of g.supplier.offers) if (o.leavesAfterDay === day) m.push({ icon: '⌛', cls: 'due', label: `Last day for Rashid's ${RUGS[o.typeId].name}` });

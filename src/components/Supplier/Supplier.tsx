@@ -14,6 +14,7 @@ import { RASHID } from '../../data/dialogue';
 import { rugSrc } from '../RugViewer/rugArt';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { flawFor } from '../../game/systems/fakes';
+import { EARLY_OFF, dueDate, firstDue } from '../../game/firstWeek';
 
 /** Uncle Rashid himself. Tap him and he will find something wrong with you. */
 export function RashidPortrait({ onPoke }: { onPoke?: () => void }) {
@@ -32,6 +33,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
   const [film, setFilm] = useState(() => filmDue('rashid', useGame.getState().introSeen));
   const sup = g.supplier;
   const fam = g.family ?? FAMILY_START;
+  const wk = firstDue(fam, g.day);
   // Rashid always has an opinion about how you look, how much you have, and the cat
   const [line, setLine] = useState(() => {
     const clean = g.attire?.clean ?? 100, worn = g.attire?.worn ?? 'galabiya';
@@ -148,9 +150,12 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
             <b>Your father's debt</b>
             <span className="fd-amt">{fmt(fam.left)} <small>of {fmt(FAMILY_START.left)}</small></span>
             <i className="fd-bar"><span style={{ width: `${100 - (fam.left / FAMILY_START.left) * 100}%` }} /></i>
+            {wk && <small className="fd-week" data-testid="family-week">{wk.second ? 'One more week: ' : 'Rashid wants '}<b>{fmt(wk.owed)}</b> by {dueDate(wk.by)}{wk.days === 0 ? ' (today)' : ''}.{!wk.second && wk.days > 0 ? ` Pay it before then and he takes ${fmt(EARLY_OFF)} off. ` : ' '}That night he takes it from your purse, if it is there.</small>}
+            {g.family?.first?.how === 'early' && g.family.first.done === g.day && <small className="fd-week">Paid before the day. Rashid took {fmt(EARLY_OFF)} off the debt.</small>}
             <small>{fam.due > 0 ? <em>{fmt(fam.due)} is overdue. It is taken from your cash each morning.</em> : <>{fmt(Math.min(FAMILY_INSTALMENT, fam.left))} is taken on the 1st of every month.</>}</small>
           </div>
           <div className="fd-btns">
+            {wk && wk.owed !== 500 && <button className="btn primary" disabled={g.cash < wk.owed} onClick={() => g.payFamily(wk.owed)} data-testid="pay-week">Pay {fmt(wk.owed)}</button>}
             <button className="btn" disabled={g.cash < Math.min(500, fam.left)} onClick={() => g.payFamily(500)} data-testid="pay-family">Pay {fmt(Math.min(500, fam.left))}</button>
             <button className="btn" disabled={g.cash < Math.min(2000, fam.left)} onClick={() => g.payFamily(2000)}>Pay {fmt(Math.min(2000, fam.left))}</button>
           </div>
