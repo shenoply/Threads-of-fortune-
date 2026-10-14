@@ -60,6 +60,7 @@ import { CLINIC_EVENT } from '../../game/nav';
 import { guideTarget, objectiveLine } from '../../game/guide';
 import { goObjective } from '../Mission/Mission';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
+import { WantedCard } from './Wanted';
 import { createPortal } from 'react-dom';
 import './Settlement.css';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
@@ -187,6 +188,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [inCity, setInCity] = useState(false);
   const [station, setStation] = useState(false);
   const [myShop, setMyShop] = useState(false);
+  const [wanted, setWanted] = useState(false);
   // a long town menu shows its main places first; the rest wait behind "More in …"
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { setMoreOpen(false); }, [id]);
@@ -214,7 +216,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
   // the first time you come into a telegraph town: a word on its office, and its tile marked until used
   const wireWord = useOnce('telegraph', on('abroad') && menu && !inCity && !inVenue && !inAuction && !talkTo && !shop && TELEGRAPH_TOWNS.includes(id) && !g.border && !g.journey);
-  const busy = wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
+  const busy = wanted || wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
   // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
   useEffect(() => {
     if (!note || menu) return;
@@ -272,7 +274,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const hideKey = (['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).map((k) => (on(k) ? '1' : '0')).join('');
   const walkDef = useMemo(() => walk && { ...walk, pois: walk.pois.filter((p) => { const k = actSys(p.action); return !k || hideKey[(['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).indexOf(k)] === '1'; }) }, [walk, hideKey]);
   // which town-menu tile, and which place in the streets, belongs to a system still to come
-  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic', 'menu-myshop': 'abroad' };
+  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-wanted': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic', 'menu-myshop': 'abroad' };
   const allItems: [string, string, string, () => void, string][] = [
     ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s buyers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
     ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
@@ -284,6 +286,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
     ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
     ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
+    // the police post: the bands' leaders on its wall, and a desk for prisoners (systems/combat.ts)
+    ...(['city', 'town', 'port', 'home'].includes(st.kind) ? [['scroll', 'Police post · Wanted', (() => { const n = (g.combat?.prisoners ?? []).reduce((a, p) => a + p.n + (p.leader ? 1 : 0), 0); return n ? `Hand over your ${n === 1 ? 'prisoner' : `${n} prisoners`} for the bounty` : 'Rewards for the leaders of the road bands'; })(), () => setWanted(true), 'menu-wanted'] as [string, string, string, () => void, string]] : []),
     ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
     ...(rankLine(g.ranks, id) ? [['ledger', `The rug trade of ${cityName(tableOf(id)!)}`, rankLine(g.ranks, id)!, () => goTo('town', 'sec-ranks'), 'menu-ranks'] as [string, string, string, () => void, string]] : []),
     ...(railTo ? [['camel', 'The station', `Trains to ${railTo} town${railTo > 1 ? 's' : ''}: times and fares`, () => setStation(true), 'menu-station'] as [string, string, string, () => void, string]] : []),
@@ -656,6 +660,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       })()}
       {station && <EscLayer onEsc={() => setStation(false)}><StationBoard from={id} name={walk?.pois.find((p) => p.id === 'station')?.name ?? `${st.name} station`} onClose={() => setStation(false)} onLeft={() => { setStation(false); setInCity(false); onClose(); }} /></EscLayer>}
       {myShop && <EscLayer onEsc={() => setMyShop(false)}><ShopPanel sid={id} onClose={() => setMyShop(false)} /></EscLayer>}
+      {wanted && <EscLayer onEsc={() => setWanted(false)}><WantedCard town={st.name} onClose={() => setWanted(false)} /></EscLayer>}
       {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
       {wire && <EscLayer onEsc={() => setWire(false)}><Suspense fallback={null}><TelegraphOffice id={id} onClose={() => setWire(false)} /></Suspense></EscLayer>}
       {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}

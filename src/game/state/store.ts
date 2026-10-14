@@ -57,6 +57,8 @@ import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity } from '../systems/caravan';
+import { BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
+import { threatForParty } from '../../data/travelThreats1925';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, billOn, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
@@ -236,6 +238,8 @@ export interface GameState {
   faridRecovered?: boolean;
   /** robbed with nothing to pay: the bandits wrote your name down; the next toll is double until paid */
   banditMark?: number;
+  /** road fights (systems/combat.ts): your record, the men's experience, rifles, prisoners and the named leaders */
+  combat?: CombatState;
   /** a bandit chief's token: riders let you pass until this day */
   chiefTokenUntil?: number;
   /** Arran's notebook: lab results keyed `${rug uid}:${service}`; reopening one is free */
@@ -367,6 +371,14 @@ interface Actions {
   /** the opening's small band of robbers, put on the road where you are; returns it to meet */
   spawnOpeningBandits: (at: { x: number; y: number }) => Party;
   ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; animalsGained?: { id: string; n: number }; text: string }) => string;
+  /** after a road fight: experience and promotions, spoils, prisoners and what becomes of their leader */
+  clashAfter: (partyId: string, end: { result: ClashResult; kills: number; size?: number; rebels?: boolean }) => ClashSpoils;
+  /** willing prisoners taken on as reformed raiders, as far as the troop limit allows */
+  recruitPrisoners: (n: number) => string;
+  /** hand your prisoners to the police post: bounty for all, or ransom their leader back to his band */
+  policePost: (leader: 'bounty' | 'ransom') => string;
+  buyRifle: () => string;
+  sellRifles: () => string;
   setStallShut: (shut: boolean) => void;
   setDistrict: (d: DistrictState) => void;
   setWalk: (id: string, fog: string, seen: string[]) => void;
@@ -825,6 +837,30 @@ function initial(): Omit<GameState, keyof Actions> {
 // by briefly flipping this flag on for their one write (see forceSave below).
 let autosaveEnabled = true;
 /** how many more men the merchant can lead before his name's troop limit (caravan.ts troopCap) */
+/** What a road fight brought in, for the result card. */
+export interface ClashSpoils {
+  text: string; cash: number; rifles: number; animals?: { id: string; n: number }; bale?: string; rare?: boolean;
+  prisoners: number; leader?: string; willing: number; ups: string; sergeant?: string; revenge?: boolean;
+}
+/** The combat record, with nothing yet for an older save. */
+export const combatOf = (s: Pick<GameState, 'combat'>): CombatState => s.combat ?? combatStart();
+/** The man leading a band now: the one you know, or the next if the last is in jail and his time is up. */
+export function leaderOf(s: Pick<GameState, 'combat' | 'day' | 'world'>, partyId: string): Leader | undefined {
+  if (!BAND_ROAD[partyId]) return undefined;
+  const known = combatOf(s).leaders[partyId];
+  const party = s.world.parties.find((p) => p.id === partyId);
+  const threat = party ? threatForParty(party, s.day) : undefined;
+  if (!party || !threat || threat.kind === 'rebel_guerrilla') return undefined;
+  if (known && !(known.status === 'jailed' && s.day >= (known.clearUntil ?? 0))) return known;
+  return newLeader(partyId, threat.id, party.strength ?? 8, known ? known.gen + 1 : 0);
+}
+/** Wanted posters: every band leader on the roads, the ones with a score to settle first. */
+export function wantedList(s: Pick<GameState, 'combat' | 'day' | 'world'>) {
+  return Object.keys(BAND_ROAD).map((id) => ({ id, road: BAND_ROAD[id], leader: leaderOf(s, id) })).filter((w): w is { id: string; road: string; leader: Leader } => !!w.leader)
+    .sort((a, b) => Number(!!b.leader.robbed) - Number(!!a.leader.robbed) || b.leader.bounty - a.leader.bounty);
+}
+/** after enough wins, your name rides ahead of you and weak bands stand aside */
+export const nameOnRoad = (s: Pick<GameState, 'combat'>) => combatOf(s).wins >= NAME_ON_ROAD;
 export const troopRoom = (s: Pick<GameState, 'reputation' | 'world'>) => Math.max(0, troopCap(s.reputation) - troopCount(s.world.party));
 /** a royal warrant needs a sale at no less than this share of the rug's worth (finance.ts rugValue) */
 export const WARRANT_FAIR = 0.7;
@@ -1962,6 +1998,160 @@ export const useGame = create<GameState & Actions>()(
           spillHours(hour);
           o = { ...o, text: o.text + joinNote };
           return taken.length ? `${o.text} They took the ${taken.join(' and the ')}.${claim ? ` You are insured: the Lloyd's agent in ${CLAIM_TOWNS} will pay ${fmt(claim)}.` : ''}` : o.text;
+        },
+
+        clashAfter: (partyId, end) => {
+          const s = get();
+          const c0 = combatOf(s);
+          const c: CombatState = { ...c0, xp: { ...c0.xp }, leaders: { ...c0.leaders }, prisoners: [...c0.prisoners] };
+          const party = s.world.parties.find((p) => p.id === partyId);
+          const size = end.size ?? party?.size ?? 4;
+          const threat = party ? threatForParty(party, s.day) : undefined;
+          const lead = leaderOf(s, partyId);
+          const rng = rngFrom(`${partyId}:${s.day}:${c.wins}:${c.losses}`);
+          const out: ClashSpoils = { text: '', cash: 0, rifles: 0, prisoners: 0, willing: 0, ups: '' };
+          const lines: string[] = [];
+          let troops = { ...s.world.party.troops };
+          let inventory = s.inventory;
+          let parties = s.world.parties;
+          let rep = 0;
+          const win = isWin(end.result);
+          if (lead) c.leaders[partyId] = { ...lead, seen: true };
+          if (win) {
+            c.wins += 1;
+            const full = end.result === 'yield', thin = end.result === 'withdraw';
+            // the men learn on the road: every man who stood gets a share, and enough of it earns a step up
+            const pr = promote(troops, c.xp, thin ? 0.5 : 1);
+            troops = pr.troops; c.xp = pr.xp;
+            out.ups = promotionLine(pr.ups);
+            if (out.ups) lines.push(out.ups);
+            if (c.sergeant) c.sergeant = { ...c.sergeant, fights: c.sergeant.fights + 1 };
+            else if (c.wins >= SERGEANT_AFTER && (troops.veteran ?? 0) > 0) {
+              const name = SERGEANT_NAMES[hashSeed(`${s.day}${c.wins}`) % SERGEANT_NAMES.length];
+              c.sergeant = { name, fights: 0 };
+              out.sergeant = name;
+              lines.push(`One of your veterans, ${name}, has taken charge of the men. They call him Sergeant ${name} now.`);
+            }
+            // what they leave behind
+            out.cash = Math.round((15 + size * 8) * (full ? 1.5 : thin ? 0.5 : 1));
+            const mount = threat?.id === 'sinai-transjordan-desert-raiders' ? 'bishari' : threat?.id === 'iraq-border-smuggler-brigands' ? 'maghrabi' : 'baladi_d';
+            const mountedBand = /raiders|smuggler/.test(threat?.id ?? '');
+            const room = Math.max(0, animalCap({ ...s.world.party, troops }) - animalCount(s.world.party));
+            const beasts = Math.min(room, full ? (mountedBand ? Math.min(3, size - end.kills) : 1) : thin ? 0 : rng() < (mountedBand ? 0.7 : 0.45) ? 1 : 0);
+            if (beasts > 0) out.animals = { id: mount, n: beasts };
+            out.rifles = full ? 1 + Math.floor(size / 3) : thin ? 0 : rng() < 0.5 ? 1 : 0;
+            c.spare += out.rifles;
+            // a bale they had taken off someone else: now and then a fine one
+            if (!thin && rng() < (full ? 0.55 : 0.3)) {
+              const rich = /smuggler|raiders/.test(threat?.id ?? '');
+              const roll = rng();
+              const tier = rich && roll < 0.05 ? 4 : roll < (rich ? 0.25 : 0.12) ? 3 : roll < 0.6 ? 2 : 1;
+              const pool = Object.values(RUGS).filter((t) => t.tier === tier);
+              const t = pool[Math.floor(rng() * pool.length)];
+              if (t) {
+                inventory = [...inventory, { uid: newUid('r'), typeId: t.id, condition: rng() < 0.5 ? 'Worn' : 'Dirty', restored: false, provenance: 'Uncertain', paid: 0, notes: ['Taken back from a band on the road. No papers.'], stored: false }];
+                out.bale = t.name; out.rare = tier >= 3;
+                lines.push(`Among their loads is a bale they took from someone else: ${withArticle(t.name)}${tier >= 3 ? '. A fine piece' : ''}.`);
+              }
+            }
+            // prisoners: the whole band when it yields, a couple of wounded when it runs
+            const caught = full ? Math.min(4, Math.max(0, size - end.kills - 1)) : thin ? 0 : Math.min(2, Math.floor(end.kills / 2));
+            const leaderTaken = full && !!lead;
+            if (caught || leaderTaken) {
+              c.prisoners.push({ band: partyId, n: caught, leader: leaderTaken || undefined, day: s.day });
+              out.prisoners = caught;
+              out.willing = end.rebels ? 0 : full ? Math.min(caught, caught >= 3 ? 2 : caught >= 1 ? 1 : 0) : 0;
+            }
+            if (lead) {
+              if (leaderTaken) { c.leaders[partyId] = { ...c.leaders[partyId], status: 'held' }; out.leader = lead.name; }
+              else if (!thin) { c.leaders[partyId] = { ...c.leaders[partyId], grudge: true, bounty: lead.bounty + 40 }; lines.push(`${lead.name} gets away. He will not forget this.`); }
+              if (lead.robbed) {
+                out.revenge = true; rep += 2;
+                c.leaders[partyId] = { ...c.leaders[partyId], robbed: undefined };
+                lines.push(`You have paid ${lead.name} back for robbing you.`);
+              }
+            }
+          } else if (end.result === 'pushed' || end.result === 'broken') {
+            c.losses += 1;
+            if (lead) {
+              c.leaders[partyId] = { ...c.leaders[partyId], robbed: s.day, bounty: lead.bounty + 50 };
+              lines.push(`${lead.name} will boast of this in every coffee house on ${BAND_ROAD[partyId]}. Your score with him is not settled.`);
+            }
+          }
+          // a band whose leader is in your hands, or gone, keeps off its road
+          if (c.leaders[partyId]?.status === 'held') parties = parties.map((p) => (p.id === partyId ? { ...p, cooldownUntil: Math.max(p.cooldownUntil ?? 0, s.day + 6) } : p));
+          // the sergeant goes if the last veteran does
+          if (c.sergeant && !(troops.veteran ?? 0)) { lines.push(`Sergeant ${c.sergeant.name} is no longer with you.`); c.sergeant = undefined; }
+          out.text = lines.join(' ');
+          const ledger = out.cash ? [...s.ledger, { day: s.day, kind: 'bonus' as const, label: 'Spoils after a fight on the road', amount: out.cash }] : s.ledger;
+          const animals = { ...s.world.party.animals };
+          if (out.animals) animals[out.animals.id] = (animals[out.animals.id] ?? 0) + out.animals.n;
+          set({ combat: c, cash: s.cash + out.cash, ledger, inventory, reputation: Math.max(0, s.reputation + rep), world: { ...s.world, parties, party: { ...s.world.party, troops, animals } }, ...(out.text ? { journal: [...s.journal, { day: s.day, text: out.text, kind: 'road' as const }] } : {}) });
+          return out;
+        },
+
+        recruitPrisoners: (n) => {
+          const s = get();
+          const take = Math.min(n, troopRoom(s));
+          if (!take) return 'You lead as many men as your name allows. The prisoners stay tied.';
+          const c = combatOf(s);
+          // the willing come out of the last band's prisoners
+          const prisoners = [...c.prisoners];
+          let left = take;
+          for (let i = prisoners.length - 1; i >= 0 && left > 0; i--) { const k = Math.min(left, prisoners[i].n); prisoners[i] = { ...prisoners[i], n: prisoners[i].n - k }; left -= k; }
+          set({ combat: { ...c, prisoners: prisoners.filter((p) => p.n > 0 || p.leader) }, world: { ...s.world, party: { ...s.world.party, troops: { ...s.world.party.troops, reformed: (s.world.party.troops.reformed ?? 0) + take - left } } } });
+          return take - left === 1 ? 'One of the prisoners swears on his father\'s grave to ride for you. You cut his ropes.' : `${take - left} of the prisoners swear to ride for you. You cut their ropes.`;
+        },
+
+        policePost: (choice) => {
+          const s = get();
+          const c = combatOf(s);
+          if (!c.prisoners.length) return 'You have no prisoners to hand over.';
+          const men = c.prisoners.reduce((a, p) => a + p.n, 0);
+          let cash = men * PRISONER_BOUNTY;
+          const leaders = { ...c.leaders };
+          let parties = s.world.parties;
+          const parts: string[] = [];
+          if (men) parts.push(`The sergeant at the post signs for ${men === 1 ? 'one man' : `${men} men`}: ${fmt(men * PRISONER_BOUNTY)}.`);
+          for (const p of c.prisoners.filter((x) => x.leader)) {
+            const l = leaders[p.band];
+            if (!l) continue;
+            if (choice === 'ransom') {
+              const r = ransomFor(l);
+              cash += r;
+              leaders[p.band] = { ...l, status: 'free', grudge: true };
+              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + 6 } : q));
+              parts.push(`A cousin of ${l.name} pays ${fmt(r)} in silver to have him back. He rides off without a word. You may meet him again.`);
+            } else {
+              cash += l.bounty;
+              leaders[p.band] = { ...l, status: 'jailed', clearUntil: s.day + CLEAR_DAYS };
+              // his band keeps off its road for weeks, and comes back smaller under a new man
+              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + CLEAR_DAYS, size: Math.max(2, (q.size ?? 4) - 1), strength: Math.max(4, (q.strength ?? 8) - 2) } : q));
+              parts.push(`${l.name} goes into the cells. The reward on his head is ${fmt(l.bounty)}. ${BAND_ROAD[p.band][0].toUpperCase()}${BAND_ROAD[p.band].slice(1)} will be quiet for a while.`);
+            }
+          }
+          set({ cash: s.cash + cash, reputation: s.reputation + (choice === 'bounty' ? 2 : 0), combat: { ...c, prisoners: [], leaders }, world: { ...s.world, parties }, ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: choice === 'ransom' ? 'Bounty and ransom for prisoners' : 'Bounty for prisoners', amount: cash }], journal: [...s.journal, { day: s.day, text: parts.join(' '), kind: 'road' }] });
+          audio.sfx('coins');
+          return parts.join(' ');
+        },
+
+        buyRifle: () => {
+          const s = get();
+          if (s.cash < RIFLE_PRICE) return 'You cannot afford a rifle.';
+          const c = combatOf(s);
+          set({ cash: s.cash - RIFLE_PRICE, combat: { ...c, rifles: c.rifles + 1 }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'A rifle for your men', amount: -RIFLE_PRICE }] });
+          audio.sfx('coins');
+          return `A good rifle and a bandolier of cartridges: one of your men will count for more in a fight. Your men carry ${c.rifles + 1}.`;
+        },
+
+        sellRifles: () => {
+          const s = get();
+          const c = combatOf(s);
+          if (!c.spare) return 'You have no taken rifles to sell.';
+          const pay = c.spare * RIFLE_SELL;
+          set({ cash: s.cash + pay, combat: { ...c, spare: 0 }, ledger: [...s.ledger, { day: s.day, kind: 'sale', label: 'Rifles taken on the road', amount: pay }] });
+          audio.sfx('coins');
+          return `The yard keeper looks the rifles over and pays ${fmt(pay)} for ${c.spare === 1 ? 'the one' : `all ${c.spare}`}.`;
         },
 
         checkJobs: (id, confirm) => {
@@ -4015,6 +4205,9 @@ export const useGame = create<GameState & Actions>()(
         // the music default came down from full to under half: a save still at the old full level follows it
         // Rashid's first-week instalment arrived with save 23: only a merchant still in his first two days
         // (or not yet started) is asked for it; anyone further on has it marked settled, never failed
+        // road fights as rounds of orders, with named leaders, prisoners and promotions (systems/combat.ts):
+        // an older merchant starts with a clean record
+        if (version < 24) { p.combat = p.combat ?? combatStart(); }
         if (version < 23) {
           const day = p.day ?? 1;
           const fam = p.family ?? { ...FAMILY_START };

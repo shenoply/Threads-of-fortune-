@@ -31,7 +31,7 @@ export function buzz(ms = 18) {
   try { navigator.vibrate(ms); } catch { /* not allowed before a tap */ }
 }
 // the sounds that mark an important moment: a sale or a purchase (coins), a mission or upgrade (chest), the hammer
-const SFX_BUZZ: Record<string, number> = { sold: 25, soldBig: 35, stamp: 20, coins: 15, coin: 12, chest: 22, gavel: 20 };
+const SFX_BUZZ: Record<string, number> = { sold: 25, soldBig: 35, stamp: 20, coins: 15, coin: 12, chest: 22, gavel: 20, volley: 30, melee: 35, shot: 15 };
 export const buzzFor = (sfx: string) => { const ms = SFX_BUZZ[sfx]; if (ms) buzz(ms); };
 
 // ---------- rolling numbers ----------

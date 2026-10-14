@@ -10,7 +10,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { lookFor } from '../../game/heroLook';
 import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
-import { useGame, ferryFare } from '../../game/state/store';
+import { nameOnRoad, useGame, ferryFare } from '../../game/state/store';
 import { rankChip } from './RankTable';
 import { SETTLEMENTS, ROAD_WELLS, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
@@ -36,7 +36,6 @@ import { Objectives } from '../Objectives/Objectives';
 import { Ambush } from './Ambush';
 import { CampScreen, NightPasses } from './Camp';
 import { dateLine } from '../../game/economy/dateLine';
-import { warmOdds } from '../../game/systems/odds';
 import { dateFor } from '../../game/economy/economy';
 import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
@@ -372,8 +371,6 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
   useEffect(() => { paintedMap(); return onPaintedMap(() => setArtTick((t) => t + 1)); }, []);
-  // bands wait on the roads: have the fight-odds worker loaded (12 KB, idle) before the first ambush card opens
-  useEffect(() => { const t = window.setTimeout(warmOdds, 4000); return () => window.clearTimeout(t); }, []);
   /** Paint the map at the live camera (panRef), not the last committed one; the travel loop calls this every frame.
    *  On the move the map is drawn once at 1x with a margin round the screen and slid under CSS (a GPU move,
    *  no repaint) until the camera nears the margin; whole-canvas redraws at 2x every frame cost ~100 ms a frame on
@@ -867,6 +864,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             if (hit.kind === 'raiders' && hit.strength && mine >= hit.strength * 2) {
               useGame.setState({ world: { ...st.world, parties: st.world.parties.map((p) => (p.id === hit.id ? { ...p, cooldownUntil: st.day + 1 } : p)) } });
               setReport('Raiders watched your guards from the ridge and thought better of it.');
+            } else if (hit.strength && nameOnRoad(st) && mine * 1.3 >= hit.strength) {
+              // a name on the road: after enough fights won, the weaker bands step aside (systems/combat.ts)
+              useGame.setState({ world: { ...st.world, parties: st.world.parties.map((p) => (p.id === hit.id ? { ...p, cooldownUntil: st.day + 2 } : p)) } });
+              say('They know your name on this road. The band draws off and lets you pass.');
             } else {
               setMoving({ ...moving, done });
               setEncounter(hit);
