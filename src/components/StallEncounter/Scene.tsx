@@ -160,13 +160,16 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   const sh = Math.min(Math.max(W, H * 1.5) / 1.5, H / 0.6), sw = sh * 1.5;
   // figures stand on the counter (a fixed share of the stage) and must keep their heads inside the
   // visible frame, whose height is what a phone or a wide desktop panel actually shows
-  const figH = Math.min(sh * 0.55, H * 0.93 - sh * 0.21);
+  // on a tall, narrow frame (a phone) the painting is cropped at both sides; the figures are kept at
+  // the edges of what is shown, not of the painting, and no wider than the frame leaves room for
+  const crop = Math.max(0, (sw - W) / 2);
+  const figH = Math.min(sh * 0.55, H * 0.93 - sh * 0.21, W * 0.62);
   // the leaning figure: hands at 94% of its height rest on the counter top. The cloth's top edge
   // (counter-stall.webp) sits 22.5% up the stage and the painted hands land 7.5% of the stage
   // above where the 94% line puts them, so the figure is set that much lower to put hands on cloth.
   // The head (11% down) must stay inside the visible frame.
-  const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.175 + 0) / 0.83);
-  const heroStyle = { height: heroH, bottom: sh * 0.175 - heroH * 0.13 };
+  const heroH = Math.min(sh * 0.62, (H * 0.94 - sh * 0.175 + 0) / 0.83, W * 0.66);
+  const heroStyle = { height: heroH, bottom: sh * 0.175 - heroH * 0.13, left: crop };
   // a standing buyer is drawn head to foot, the merchant only head to hands: their heads come out the
   // same size as his at 1.3 times his height; the counter then cuts them at the waist (40% up the figure) rather than the
   // shins, and their head (the top 5% of the picture is air) must stay inside the visible frame
@@ -175,7 +178,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
-      <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px` }}>
+      <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px`, ['--crop' as string]: `${crop}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
         <StallProps />
         <StallGramophone />

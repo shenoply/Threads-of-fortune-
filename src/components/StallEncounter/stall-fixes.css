@@ -50,3 +50,21 @@
    once the talk ends: a tall empty band sat over the picture. The picture takes the spare height. */
 .audience-overlay .stall:not(.in-talk) { grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; }
 .audience-overlay .stall:not(.in-talk) > .scene.audience { min-height: 0; }
+
+/* On a phone the painting is cropped at both sides (Scene.tsx sets --crop, how much of the stage
+   lies beyond each edge of the frame): the buyer stands at the right edge of what is shown. */
+.stall .scene.stall .buyer-figure.has-photo, .stall .scene.stall .buyer-figure.has-photo[data-buyer="samira"] { right: var(--crop, 0px); }
+.stall .scene.stall .buyer-figure:not(.has-photo) { right: calc(var(--crop, 0px) + (100% - 2 * var(--crop, 0px)) * .17 - var(--hero-h, 170px) * 0.32); }
+
+/* A phone held upright: the selling moment fills the screen. The picture takes what the rest leaves
+   (StallEncounter measures it); the band's row takes any slack, which sits between the line and the
+   buyer's plate, so the meters stay just over the rugs and the tiles at the foot of the screen. */
+@media (orientation: portrait) {
+  div.stall.in-talk { grid-template-rows: minmax(96px, var(--scene-h, 200px)) minmax(min-content, 1fr) max-content max-content max-content max-content; align-content: stretch; }
+  div.stall.in-talk > .band > .plate-buyer { margin-top: auto; }
+  /* what you know of the buyer sits beside their name rather than on a row of its own */
+  div.stall.in-talk .band .plate-buyer { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 5px; align-items: center; }
+  div.stall.in-talk .band .plate-buyer > .plate-row { grid-column: 1; grid-row: 1; }
+  div.stall.in-talk .band .plate-buyer > .values { grid-column: 2; grid-row: 1; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  div.stall.in-talk .band .plate-buyer > .meters { grid-column: 1 / -1; grid-row: 2; }
+}
