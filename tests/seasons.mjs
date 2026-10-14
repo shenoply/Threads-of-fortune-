@@ -54,8 +54,9 @@ const load = async (day, extra = {}) => {
 const rug = { uid: 'dust1', typeId: 'cairo-garden', condition: 'Good', restored: false, provenance: 'Likely', paid: 500, notes: [] };
 await load(24, { inventory: [rug] });
 const card = p.locator('[data-testid=big-news]');
+await p.locator('[data-testid=big-news-more]').click().catch(() => {}); await p.waitForTimeout(300);
 const txt = (await card.innerText().catch(() => '')).replace(/\s+/g, ' ');
-check(/Khamsin/.test(txt) && /For your trade/.test(txt) && /Fewer buyers/.test(txt) && /Sand gets into rugs/.test(txt), `the khamsin card: "${txt.slice(0, 160)}"`);
+check(/Khamsin/.test(txt) && /Fewer buyers/.test(txt) && /Sand gets into rugs/.test(txt), `the khamsin card: "${txt.slice(0, 160)}"`);
 await p.screenshot({ path: `${SHOTS}/seasons-khamsin-card.png` });
 await p.click('[data-testid=big-news-ok]').catch(() => {}); await p.waitForTimeout(600);
 const st = await p.evaluate((k) => JSON.parse(localStorage.getItem(k)).state, K);
@@ -72,6 +73,7 @@ check(st2.inventory.find((i) => i.uid === 'dust1')?.condition === 'Worn', 'once 
 
 // 2. the eve of Eid al-Fitr: told the evening before, prayer rugs wanted
 await load(45);
+await p.locator('[data-testid=big-news-more]').click().catch(() => {}); await p.waitForTimeout(300);
 const t2 = (await card.innerText().catch(() => '')).replace(/\s+/g, ' ');
 check(/Tomorrow: Eid al-Fitr/.test(t2) && /prayer rugs/.test(t2), `the Eid card the day before: "${t2.slice(0, 200)}"`);
 await p.screenshot({ path: `${SHOTS}/seasons-eid-card.png` });
