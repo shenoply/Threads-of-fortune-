@@ -12,6 +12,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { LicenceCard } from './LicenceCard';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, activeMilestone } from '../../data/milestones';
 import { Fold } from '../Fold/Fold';
+import { RanksFold } from '../World/RankTable';
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
@@ -62,6 +63,8 @@ export function Fortune() {
       </Fold>
 
       <Ladder />
+
+      <RanksFold />
 
       <Fold id="pr-register" testid="register-fold" rowTestid="register-toggle" title="Carpet Register" gist={`${have}/${RUG_IDS.length}`}>
         <div className="register" data-testid="register">

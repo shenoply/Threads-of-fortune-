@@ -1,0 +1,27 @@
+/* The season's table of a city's rug houses (RankTable.tsx) */
+.rank-table { margin: 10px 0 14px; }
+.rk-when { display: block; color: var(--text-dim); font-size: 13px; margin: 2px 0 6px; }
+.rk-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.rk-rows li { display: grid; grid-template-columns: 22px 30px 1fr auto; align-items: center; gap: 8px; min-height: 40px; padding: 3px 6px; border-radius: 4px; background: rgba(28, 19, 11, 0.6); border: 1px solid transparent; }
+.rk-rows li.rk-named { background: rgba(44, 30, 16, 0.75); }
+.rk-rows li.rk-you { border-color: var(--brass-hi); background: rgba(154, 51, 38, 0.35); }
+.rk-n { font-family: var(--label); color: var(--text-dim); text-align: right; font-size: 14px; }
+.rk-med { position: relative; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--parchment); border: 1.5px solid var(--brass); }
+.rk-med b { font-family: var(--display); font-size: 15px; color: var(--ink); }
+.rk-med img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rk-med.rk-plain { background: transparent; border: 1px dashed var(--line); width: 12px; height: 12px; justify-self: center; }
+.rk-who { min-width: 0; display: flex; flex-direction: column; }
+.rk-who b { font-size: 15px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-who small { font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-v { font-family: var(--label); font-size: 14px; color: var(--brass-hi); white-space: nowrap; }
+.rk-note { margin: 6px 0 0; font-size: 14px; color: var(--warn); }
+.rk-perks { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--text-dim); }
+.rk-perks li::before { content: '○ '; }
+.rk-perks li.on { color: var(--good); }
+.rk-perks li.on::before { content: '✓ '; }
+.rk-sum { display: grid; gap: 4px; }
+.rk-sum small { color: var(--text-dim); }
+.rk-sum-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: baseline; }
+.rk-sum-row span:last-child { font-family: var(--label); color: var(--brass-hi); min-width: 64px; text-align: right; }
+/* the chip beside a city's name on the world map */
+.place .plbl .prank { font-style: normal; font-family: var(--label); font-size: 11px; margin-left: 4px; padding: 0 4px; border-radius: 6px; background: #2c3b6b; color: #fff1d6; vertical-align: 1px; }

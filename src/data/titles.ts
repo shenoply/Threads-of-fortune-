@@ -1,6 +1,7 @@
 // Titles: small honours for the way you play. Earned once, shown on your Merchant page.
 import { levelOf } from './character';
 import { RUGS } from './rugs';
+import { RANK_CITIES } from './rivals';
 
 export interface TitleCtx {
   totalSales: number;
@@ -13,9 +14,11 @@ export interface TitleCtx {
   whereabouts?: Record<number, string>;
   stats?: { liesOk?: number; liesCaught?: number; auctionsWon?: number };
   missions?: Record<string, string>;
+  /** cities where a season ended with you first among the dealers (systems/ranks.ts) */
+  ranks?: { firsts?: string[] };
 }
 
-export interface TitleDef { id: string; name: string; how: string; secret?: boolean; test: (s: TitleCtx) => boolean }
+export interface TitleDef { id: string; name: string; how: string; secret?: boolean; /** listed only once earned */ quiet?: boolean; test: (s: TitleCtx) => boolean }
 
 const visited = (s: TitleCtx) => new Set(Object.values(s.whereabouts ?? {}).filter((w) => w && w !== 'road'));
 
@@ -43,4 +46,6 @@ export const TITLES: TitleDef[] = [
   { id: 'border', name: 'Known Beyond the Border', how: 'Sell £25 worth of rugs outside Egypt.', test: (s) => s.missions?.['ms-abroad'] === 'done' },
   { id: 'nodebt', name: 'Clear of Debt', how: 'Pay off your father\'s debt to Rashid.', test: (s) => s.missions?.['ms-debt'] === 'done' },
   { id: 'caught', name: 'Caught Red-Handed', how: 'Be caught lying three times.', secret: true, test: (s) => (s.stats?.liesCaught ?? 0) >= 3 },
+  // a season ended with you first among a city's dealers (systems/ranks.ts): kept for good
+  ...RANK_CITIES.map((c): TitleDef => ({ id: `first-${c.id}`, name: `First Merchant of ${c.name}`, how: `End a season first among the rug dealers of ${c.name}.`, quiet: c.id !== 'cairo', test: (s) => !!s.ranks?.firsts?.includes(c.id) })),
 ];

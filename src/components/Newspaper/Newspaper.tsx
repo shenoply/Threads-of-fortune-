@@ -2,6 +2,7 @@ import { Icon } from '../Icon';
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { paperFor } from '../../game/economy/newspaper';
+import { seasonNews } from '../../game/systems/ranks';
 import { isFirstOfMonth } from '../../game/economy/life';
 import { audio } from '../../game/audio/engine';
 
@@ -9,7 +10,7 @@ import { audio } from '../../game/audio/engine';
 export function Newspaper({ day, onClose }: { day: number; onClose: () => void }) {
   const g = useGame();
   const billSoon = Array.from({ length: 7 }, (_, i) => day + i + 1).some((d) => isFirstOfMonth(d));
-  const p = useMemo(() => paperFor(day, { bills: billSoon, commissions: day === g.day ? g.commissions.filter((c) => !c.done) : [] }), [day, billSoon, g.day, g.commissions]);
+  const p = useMemo(() => paperFor(day, { bills: billSoon, commissions: day === g.day ? g.commissions.filter((c) => !c.done) : [], ranks: seasonNews(g, day) }), [day, billSoon, g.day, g.commissions, g.ranks]);
   useEffect(() => { audio.sfx('paper'); }, [day]);
   const first = p.lead.body.charAt(0), rest = p.lead.body.slice(1);
   // First you hold it up and glance at the front: masthead, date and the day's headlines, printed on the
