@@ -22,3 +22,11 @@
   .hh-room { min-height: 270px; }
   .hh-stats dd { font-size: 15px; }
 }
+/* one screenful: the portrait card is the summary, the long sections below it fold into rows */
+.hero-hub { gap: 8px; }
+.hh-top { min-height: 0; }
+.hh-room { min-height: 214px; }
+.hh-stats { gap: 4px; padding: 10px 10px 10px 0; }
+.hh-stats dl { gap: 4px 10px; }
+.hh-stats .btn { padding: 8px 10px; min-height: 0; }
+@media (max-width: 420px) { .hh-room { min-height: 214px; } }

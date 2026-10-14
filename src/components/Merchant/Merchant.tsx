@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGame } from '../../game/state/store';
-import { Fortune, Ledger } from '../Ledger/Ledger';
+import { Fortune, Ledger, Standing } from '../Ledger/Ledger';
 import { Customers } from './Customers';
 import { PostList } from '../Objectives/PostList';
 import { unread } from '../../game/systems/post';
@@ -15,6 +15,7 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
   useEffect(() => { g.markMerchantSeen(); if (sub === 'customers' && !g.onboard?.buyers) useGame.setState({ onboard: { ...(g.onboard ?? {}), buyers: true } }); }, [sub]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="screen merchant" data-testid="merchant">
+      <Standing />
       <div className="merchant-tabs" role="tablist">
         {([['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Ledger'], ['post', 'Post']] as [MerchantSub, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)} data-testid={`msub-${k}`}>{label}{k === 'post' && unread(g.post, g.day) > 0 && <b className="msub-badge">{unread(g.post, g.day)}</b>}</button>

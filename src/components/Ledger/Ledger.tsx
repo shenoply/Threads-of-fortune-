@@ -4,14 +4,14 @@ import { BUYERS, LISTED_BUYERS as BUYER_ORDER } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { tierOf } from '../../game/systems/negotiation';
 import type { Goal } from '../../game/types';
-import { useState } from 'react';
 import { RUG_IDS, TIERS } from '../../data/rugs';
 import { RASHID_POOL } from '../../data/suppliers';
 import { SETTLEMENTS } from '../../data/world';
 import { houseOfFortune, rankOf, RANKS, netWorth, liabilities, owedParts } from '../../game/economy/progress';
 import { rugSrc } from '../RugViewer/rugArt';
 import { LicenceCard } from './LicenceCard';
-import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY } from '../../data/milestones';
+import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, activeMilestone } from '../../data/milestones';
+import { Fold } from '../Fold/Fold';
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
@@ -23,43 +23,47 @@ function sourcesOf(id: string) {
   return out.length ? out.join(' · ') : 'Only by chance on the road';
 }
 
+/** The top of Progress: rank, net worth and reputation, the next rank, and the goal in front of you. */
+export function Standing() {
+  const g = useGame();
+  const { idx, rank, next, worth } = rankOf(g);
+  return (
+    <div className="standing" data-testid="standing">
+      <div className="rank-row">
+        <div><small>RANK {idx + 1} OF {RANKS.length}</small><b data-testid="rank">{rank.name}</b></div>
+        <div className="worth"><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b>{liabilities(g) > 0 && <small data-testid="net-worth-debts">after what you owe: {owedParts(g)}</small>}</div>
+        <div className="worth"><small>REPUTATION</small><b>{g.reputation}</b></div>
+      </div>
+      {next && (
+        <div className="rank-next">
+          <span>Next: <b>{next.name}</b> · {next.note}</span>
+          <i className="bar"><em style={{ width: `${Math.min(100, Math.max(0, netWorth(g) / next.worth) * 100)}%` }} /></i>
+        </div>
+      )}
+      <CurrentGoal />
+    </div>
+  );
+}
+
 export function Fortune() {
   const g = useGame();
-  const [open, setOpen] = useState(false);
-  const { idx, rank, next, worth } = rankOf(g);
   const house = houseOfFortune(g);
   const reg = g.register ?? [];
   const have = RUG_IDS.filter((id) => reg.includes(id)).length;
   return (
     <>
-      <div className="section-label">YOUR STANDING</div>
-      <div className="fortune" data-testid="fortune">
-        <div className="rank-row">
-          <div><small>RANK {idx + 1} OF {RANKS.length}</small><b data-testid="rank">{rank.name}</b></div>
-          <div className="worth"><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b>{liabilities(g) > 0 && <small data-testid="net-worth-debts">after what you owe: {owedParts(g)}</small>}</div>
-        </div>
-        {next && (
-          <div className="rank-next">
-            <span>Next: <b>{next.name}</b> · {next.note}</span>
-            <i className="bar"><em style={{ width: `${Math.min(100, Math.max(0, netWorth(g) / next.worth) * 100)}%` }} /></i>
-          </div>
-        )}
+      <Fold id="pr-house" testid="fortune" title={house.done ? 'The House of Fortune stands.' : 'The House of Fortune'} gist={`${house.parts.filter((p) => p.done).length} of ${house.parts.length}`}>
         <div className="house">
-          <b>{house.done ? 'The House of Fortune stands.' : 'The House of Fortune'}</b>
           <small>{house.done ? 'Your name is over a door in Khan el-Khalili, and kings know it.' : 'The life\'s work of a carpet merchant. All four, at once.'}</small>
           {house.parts.map((p) => (
             <div key={p.id} className={`goal ${p.done ? 'done' : ''}`}><span className="tick">{p.done ? '✓' : ''}</span>{p.label}<span className="prog">{p.prog}</span></div>
           ))}
         </div>
-      </div>
+      </Fold>
 
       <Ladder />
 
-      <div className="section-label reg-head">
-        <span>CARPET REGISTER · {have}/{RUG_IDS.length}</span>
-        <button className="ghost-btn" onClick={() => setOpen((o) => !o)} data-testid="register-toggle">{open ? 'Close' : 'Open'}</button>
-      </div>
-      {open && (
+      <Fold id="pr-register" testid="register-fold" rowTestid="register-toggle" title="Carpet Register" gist={`${have}/${RUG_IDS.length}`}>
         <div className="register" data-testid="register">
           {[1, 2, 3, 4].map((tier) => (
             <div key={tier} className="reg-tier">
@@ -70,7 +74,7 @@ export function Fortune() {
                   const got = reg.includes(id);
                   return (
                     <div key={id} className={`reg-card ${got ? 'got' : ''} ${tier === 4 ? 'treasure' : ''}`} data-testid={`reg-${id}`}>
-                      <div className="reg-img">{got ? <img src={rugSrc(t)} alt="" /> : <span>?</span>}</div>
+                      <div className="reg-img">{got ? <img src={rugSrc(t)} alt="" loading="lazy" /> : <span>?</span>}</div>
                       <b>{got || tier < 4 ? t.name : 'Unknown treasure'}</b>
                       <small>{got ? `${t.origin.split(',')[0]} · ${fmt(t.valueBand[0])}–${fmt(t.valueBand[1])}` : tier < 4 ? sourcesOf(id) : t.origin.split(',').slice(-1)[0].trim()}</small>
                     </div>
@@ -80,7 +84,7 @@ export function Fortune() {
             </div>
           ))}
         </div>
-      )}
+      </Fold>
     </>
   );
 }
@@ -115,15 +119,11 @@ export function Ledger() {
   const expenses = g.ledger.filter((l) => l.kind === 'expense' || l.kind === 'restoration').reduce((s, l) => s - l.amount, 0);
   const margin = revenue ? Math.round(((revenue - cogs) / revenue) * 100) : 0;
   const stock = g.inventory.reduce((s, i) => s + i.paid, 0);
+  const met = BUYER_ORDER.filter((id) => (g.relationships[id]?.visits ?? 0) > 0).length;
+  const bought = BUYER_ORDER.reduce((n, id) => n + (g.relationships[id]?.purchases ?? 0), 0);
   return (
     <div className="screen" data-testid="ledger">
-      <div className="screen-head">
-        <div>
-          <div className="eyebrow">THE LEDGER</div>
-          <h2>Ledger</h2>
-          <p>Day {g.day}. Every piastre in and out.</p>
-        </div>
-      </div>
+      <p className="ledger-sub">Day {g.day}. Every piastre in and out.</p>
       <div className="tiles">
         <div className="tile"><small>CASH</small><b data-testid="ledger-cash" data-pt={g.cash}>{fmt(g.cash)}</b></div>
         <div className="tile"><small>STOCK AT COST</small><b>{fmt(stock)}</b></div>
@@ -142,7 +142,6 @@ export function Ledger() {
             </div>
           );
         })()}
-        <div className="tile"><small>REPUTATION</small><b>{g.reputation}</b></div>
       </div>
       <LicenceCard />
 
@@ -161,7 +160,7 @@ export function Ledger() {
         })}
       </div>
 
-      <div className="section-label">CUSTOMERS</div>
+      <Fold id="pr-book-customers" title="Customers" gist={`${met} met · ${bought} purchase${bought === 1 ? '' : 's'}`}>
       <div className="people">
         {BUYER_ORDER.map((id) => {
           const r = g.relationships[id] ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] };
@@ -180,8 +179,9 @@ export function Ledger() {
           );
         })}
       </div>
+      </Fold>
 
-      <div className="section-label">ENTRIES</div>
+      <Fold id="pr-book-entries" title="Entries" gist={g.ledger.length ? `${g.ledger.length} · last: ${g.ledger[g.ledger.length - 1].label}` : 'None yet'}>
       <div className="ledger-table-wrap">
         <table className="ledger">
           <thead>
@@ -202,13 +202,15 @@ export function Ledger() {
           </tbody>
         </table>
       </div>
+      </Fold>
 
-      <div className="section-label">JOURNAL</div>
+      <Fold id="pr-book-journal" title="Journal" gist={g.journal.length ? g.journal[g.journal.length - 1].text : 'Nothing yet'}>
       <div className="journal">
         {[...g.journal].reverse().slice(0, 30).map((j, i) => (
           <p key={i}><span>Day {j.day}</span>{j.text}</p>
         ))}
       </div>
+      </Fold>
     </div>
   );
 }
@@ -218,9 +220,9 @@ export function Ladder() {
   const g = useGame();
   const st = g as unknown as MissionState;
   const done = MILESTONE_ORDER.filter((id) => g.missions?.[id] === 'done').length;
+  const now = activeMilestone(g.missions);
   return (
-    <>
-      <div className="section-label">THE BUSINESS · {done}/{MILESTONE_ORDER.length} GOALS</div>
+    <Fold id="pr-ladder" title="The business" attention={!!g.milestoneNews} gist={`${done}/${MILESTONE_ORDER.length} goals${now ? ` · now: ${MILESTONES[now].title}` : ''}`}>
       <div className="ladder" data-testid="ladder">
         {g.day < MILESTONE_FROM_DAY && !done && <small className="ladder-note">The first goal opens on day {MILESTONE_FROM_DAY}.</small>}
         {MILESTONE_ORDER.map((id, i) => {
@@ -240,6 +242,34 @@ export function Ladder() {
           );
         })}
       </div>
-    </>
+    </Fold>
+  );
+}
+
+/** The one goal in front of you now, in a line with its bar: the business goal when one is open,
+ *  otherwise the first of today's goals not yet met. For the summaries on Me and Progress. */
+export function CurrentGoal() {
+  const g = useGame();
+  const st = g as unknown as MissionState;
+  const ms = activeMilestone(g.missions);
+  if (ms) {
+    const m = MILESTONES[ms];
+    const [have, need] = m.progress(st);
+    return (
+      <div className="cur-goal" data-testid="current-goal">
+        <small>GOAL {MILESTONE_ORDER.indexOf(ms) + 1} OF {MILESTONE_ORDER.length}</small>
+        <b>{m.title}</b><span>{m.hint(st)}</span>
+        <i className="bar"><em style={{ width: `${Math.round(Math.min(1, have / Math.max(1, need)) * 100)}%` }} /></i>
+      </div>
+    );
+  }
+  const left = g.goals.map((goal) => [goal, ...goalProgress(g, goal)] as const).filter(([, , done]) => !done);
+  const first = left[0];
+  return (
+    <div className="cur-goal" data-testid="current-goal">
+      <small>TODAY · {g.goals.length - left.length}/{g.goals.length} GOALS</small>
+      {first ? <b>{first[0].label}</b> : <b>Today's goals are met.</b>}
+      {!first && g.day < MILESTONE_FROM_DAY && <span>The first business goal opens on day {MILESTONE_FROM_DAY}.</span>}
+    </div>
   );
 }
