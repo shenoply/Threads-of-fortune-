@@ -121,6 +121,9 @@ export interface GameState {
   goals: Goal[];
   commissions: Commission[];
   journal: { day: number; text: string; kind?: string }[];
+  /** small happenings on a walk (systems/roadEvents.ts): when the last one was (absolute game hour),
+   *  the ones seen lately, and how many walks have been begun */
+  roadStories?: { lastAt: number; recent: string[]; walks: number };
   whereabouts?: Record<number, string>; // day -> where you were (settlement id or 'road')
   totalSales: number;
   lastSummary?: DaySummary;
