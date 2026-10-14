@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { fmt } from '../../game/economy/money';
 import { localMoney } from '../../game/economy/currency';
-import { useGame } from '../../game/state/store';
+import { useGame, combatOf } from '../../game/state/store';
+import { PROMOTE, RIFLE_PRICE, RIFLE_SELL } from '../../game/systems/combat';
 import { TROOPS, MARKETS, YARD_ART } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, type Breed } from '../../data/animals';
 import { animalPrice } from '../../game/state/store';
@@ -80,10 +81,35 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
             })}
             {pool.every((r) => !r.available) && <p className="set-demand">Nobody else wants work today. Come back tomorrow.</p>}
           </div>
+          {YARD_ART[sid] && <RifleRack onNote={setNote} />}
           {YARD_ART[sid] && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
         </>
       )}
     </div>
+  );
+}
+
+/** A guard yard's rifles: better ones for your men, and a buyer for the ones you took on the road. */
+function RifleRack({ onNote }: { onNote: (s: string) => void }) {
+  const g = useGame();
+  const c = combatOf(g);
+  const men = troopCount(g.world.party);
+  return (
+    <>
+      <div className="section-label">RIFLES</div>
+      <div className="mkt">
+        <div className="mkt-row rifle-row" data-testid="rifle-buy-row">
+          <span><b>A good rifle for one of your men</b><small>A Lee-Enfield and a belt of cartridges. Each rifle makes one man count for more in a fight. Your men carry {c.rifles} of them{men ? `, for ${men} ${men === 1 ? 'man' : 'men'}` : ''}.</small></span>
+          <button className="btn primary" disabled={g.cash < RIFLE_PRICE || c.rifles >= men} onClick={() => onNote(g.buyRifle())} data-testid="buy-rifle">{c.rifles >= men && men > 0 ? 'Every man has one' : `Buy · ${fmt(RIFLE_PRICE)}`}</button>
+        </div>
+        {c.spare > 0 && (
+          <div className="mkt-row rifle-row" data-testid="rifle-sell-row">
+            <span><b>{c.spare} {c.spare === 1 ? 'rifle' : 'rifles'} taken on the road</b><small>Old pieces, but the yard will buy them.</small></span>
+            <button className="btn" onClick={() => onNote(g.sellRifles())} data-testid="sell-rifles">Sell · {fmt(c.spare * RIFLE_SELL)}</button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -122,7 +148,7 @@ export function CaravanRoster() {
           {troops.map(([id, n]) => (
             <div className="mkt-row" key={id}>
               <img className="troop-pic small tappable" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
-              <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name : TROOPS[id].plural}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each</small></span>
+              <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name : TROOPS[id].plural}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each{PROMOTE[id] ? ` · road experience ${Math.floor(combatOf(g).xp[id] ?? 0)} of ${PROMOTE[id].xp}: then one becomes a ${TROOPS[PROMOTE[id].to].name.replace(/^Bedouin c/, 'Bedouin c').toLowerCase().replace('bedouin', 'Bedouin')}` : ''}{id === 'veteran' && combatOf(g).sergeant ? ` · Sergeant ${combatOf(g).sergeant!.name} leads them` : ''}</small></span>
               <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>Send one home</button>
             </div>
           ))}

@@ -30,7 +30,7 @@ export const BATTLE_ART = [...new Set([...Object.values(BAND_ART).flatMap((b) =>
 /** Every man on the field is drawn; past this many a side is shown as its first men. */
 const MAX_SHOWN = 18;
 
-interface Token { key: string; img: string; x: number; y: number; size: number; down: boolean; flip: boolean }
+interface Token { key: string; img: string; x: number; y: number; size: number; down: boolean; flip: boolean; turn?: number; lead?: boolean }
 export interface FieldUnit { id: string; n: number; start: number }
 /** One exchange of fire: which round it is and how many rifles spoke on each side. */
 export interface Volley { round: number; mine: number; theirs: number }
@@ -66,13 +66,24 @@ function shooters(tokens: Token[], count: number, round: number) {
  * Men who fall stay where they fell. On a charge both lines close in; holding, they keep their distance.
  * Each round a few rifles flash and their powder smoke drifts off across the field.
  */
-export function BattleField({ bandId, field, mySide, enemyN, enemyStart, party, charging, volley }: { bandId: string; field: string; mySide: FieldUnit[]; enemyN: number; enemyStart: number; party: PartyState; charging: boolean; volley?: Volley }) {
+export function BattleField({ bandId, field, mySide, enemyN, enemyStart, party, charging, volley, cue, act, wall, leaderOut, heroArt }: {
+  bandId: string; field: string; mySide: FieldUnit[]; enemyN: number; enemyStart: number; party: PartyState; charging: boolean; volley?: Volley;
+  /** what the band is doing this round, shown by how its men move (systems/combat.ts tells) */
+  cue?: 'rush' | 'feint' | 'snipe' | 'circle' | 'waver' | 'flee';
+  /** the order your men are carrying out */
+  act?: 'volley' | 'hold' | 'charge' | 'flank' | 'parley';
+  /** camels knelt in a line in front of your men */
+  wall?: boolean;
+  /** their leader steps out alone (the duel) */
+  leaderOut?: boolean;
+  heroArt?: string;
+}) {
   const band = BAND_ART[bandId] ?? BAND_ART['egypt-rural-highway-robbers'];
 
   const mine = useMemo(() => {
     const men: { id: string; img: string; big: boolean; down: boolean }[] = [];
     for (const u of mySide) {
-      const id = u.id === 'you' ? 'hero' : u.id;
+      const id = u.id === 'you' ? (heroArt ?? 'hero') : u.id;
       // every man he hired is on the field; those lost are the ones at the back of each group
       for (let k = 0; k < u.start && men.length < MAX_SHOWN; k++) {
         const down = k >= u.n;
@@ -89,10 +100,16 @@ export function BattleField({ bandId, field, mySide, enemyN, enemyStart, party, 
       const kind = BREEDS[id]?.kind;
       if (kind === 'camel') camels += n; else if (kind === 'horse') horses += n;
     }
+    if (wall) {
+      // the camels knelt side by side across the front, the loads between them: men fire over them
+      const n = Math.max(2, Math.min(4, camels));
+      for (let i = 0; i < n; i++) out.push({ key: `w${i}`, img: art('camel'), x: 50 + (i - (n - 1) / 2) * 21, y: 53, size: 30, down: false, flip: false, turn: 90 });
+      return out;
+    }
     const herd = [...Array(Math.min(3, camels)).fill('camel'), ...Array(Math.min(2, horses)).fill('horse')];
     herd.forEach((id, i) => out.push({ key: `a${i}`, img: art(id), x: 50 + (i - (herd.length - 1) / 2) * 16, y: 92, size: 36, down: false, flip: false }));
     return out;
-  }, [party.animals]);
+  }, [party.animals, wall]);
 
   const theirs = useMemo(() => {
     const shown = Math.min(enemyStart, MAX_SHOWN);
@@ -107,22 +124,48 @@ export function BattleField({ bandId, field, mySide, enemyN, enemyStart, party, 
     });
     // the leader stands behind his men
     const [leader, ...rest] = ids;
-    return [...layout(rest, 34, 24, false), ...layout([leader], 15, 15, false)];
+    return [...layout(rest, 34, 24, false), ...layout([leader], 15, 15, false).map((t) => ({ ...t, key: 'eL', lead: true }))];
   }, [enemyN, enemyStart, band]);
 
   const gap = charging ? 7 : 0;
-  const placed = [...theirs.map((t) => ({ ...t, y: t.down ? t.y : t.y + gap })), ...mine.map((t) => ({ ...t, y: t.down ? t.y : t.y - gap }))];
+  // how a man moves for the band's move this round: the men in front, and their leader with them or not
+  const theirMove = (t: Token, i: number): Token => {
+    if (t.down) return t;
+    if (leaderOut && t.lead) return { ...t, x: 50, y: 33 };
+    switch (cue) {
+      case 'rush': return { ...t, y: t.y + 11 };
+      case 'feint': return t.lead ? { ...t, x: t.x - 6 } : { ...t, y: t.y + 9 };
+      case 'snipe': return t.lead ? { ...t, y: t.y - 3 } : { ...t, y: t.y - 5, size: t.size * 0.85 };
+      case 'circle': return t.lead ? t : i % 2 ? { ...t, x: Math.max(6, t.x - 30), y: t.y + 14 } : { ...t, x: t.x - 8 };
+      case 'flee': return { ...t, y: t.y - 30 - (i % 3) * 4, x: t.x + jitter(i, 9) * 20 };
+      case 'waver': return t.lead ? { ...t, y: t.y - 4 } : { ...t, x: t.x + jitter(i, 7) * 14, y: t.y - 4 - (i % 3) * 3 };
+      default: return t;
+    }
+  };
+  const myMove = (t: Token, i: number): Token => {
+    if (t.down) return t;
+    // the duel: you walk out to meet him
+    if (leaderOut && /hero/.test(t.img)) return { ...t, x: 50, y: 45 };
+    switch (act) {
+      case 'charge': return { ...t, y: t.y - 16 };
+      case 'flank': return i % 2 ? { ...t, x: Math.min(94, t.x + 30), y: t.y - 18 } : t;
+      case 'hold': return { ...t, x: 50 + (t.x - 50) * 0.7, y: t.y - 2 };
+      case 'parley': return t.img.includes('hero') || i === 0 ? { ...t, y: t.y - 8 } : t;
+      default: return t;
+    }
+  };
+  const placed = [...theirs.map((t, i) => theirMove({ ...t, y: t.down ? t.y : t.y + gap }, i)), ...mine.map((t, i) => myMove({ ...t, y: t.down ? t.y : t.y - gap }, i))];
   const fire = volley ? [...shooters(placed.filter((t) => t.flip), volley.theirs, volley.round), ...shooters(placed.filter((t) => !t.flip), volley.mine, volley.round)] : [];
 
   return (
-    <div className="bf" data-testid="battlefield" style={{ backgroundImage: `url(${field})` }}>
+    <div className={`bf${cue ? ` cue-${cue}` : ''}`} data-testid="battlefield" data-cue={cue ?? ''} style={{ backgroundImage: `url(${field})` }}>
       {[...placed, ...animals].map((t) => (
         <img
           key={t.down ? `${t.key}-down` : t.key}
-          className={`bf-tok${t.down ? ' down' : ''}${t.flip ? ' flip' : ''}`}
+          className={`bf-tok${t.down ? ' down' : ''}${t.flip ? ' flip' : ''}${t.lead ? ' lead' : ''}${cue === 'waver' && t.flip && !t.down ? ' shaky' : ''}`}
           src={t.img}
           alt=""
-          style={{ left: `${t.x}%`, top: `${t.y}%`, width: `${t.size}%`, transform: `translate(-50%,-50%)${t.flip ? ' rotate(180deg)' : ''}` }}
+          style={{ left: `${t.x}%`, top: `${t.y}%`, width: `${t.size}%`, transform: `translate(-50%,-50%)${t.flip ? ' rotate(180deg)' : t.turn ? ` rotate(${t.turn}deg)` : ''}` }}
         />
       ))}
       {fire.map((f) => (

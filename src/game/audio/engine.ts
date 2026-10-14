@@ -506,6 +506,25 @@ class AudioEngine {
         this.sfx('coins');
         this.till(0.18);
         break;
+      case 'volley': {
+        // a ragged volley of old rifles: sharp cracks a few hundredths apart, each with a short low boom
+        const n = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          const at = i * (0.03 + Math.random() * 0.07);
+          this.noise(0.09, d, { type: 'highpass', f: 1400, gain: 0.32, attack: 0.001, delay: at });
+          this.noise(0.35, d, { type: 'lowpass', f: 260, gain: 0.4, attack: 0.002, delay: at });
+        }
+        break;
+      }
+      case 'shot':
+        this.noise(0.08, d, { type: 'highpass', f: 1600, gain: 0.3, attack: 0.001 });
+        this.noise(0.3, d, { type: 'lowpass', f: 240, gain: 0.35, attack: 0.002 });
+        break;
+      case 'melee':
+        // sticks and rifle butts: dull knocks and a scuffle of feet
+        for (let i = 0; i < 5; i++) this.noise(0.07, d, { type: 'bandpass', f: 500 + Math.random() * 500, q: 2.5, gain: 0.3, attack: 0.002, delay: i * (0.07 + Math.random() * 0.06) });
+        this.noise(0.5, d, { type: 'lowpass', f: 600, gain: 0.15, attack: 0.05 });
+        break;
       case 'stamp':
         // an ink seal pressed onto paper: a soft low thud and the slap of the page
         this.noise(0.16, d, { type: 'lowpass', f: 170, gain: 0.5, attack: 0.003 });
