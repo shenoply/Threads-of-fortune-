@@ -17,7 +17,7 @@ export function UnlockNotice() {
     const m = queue.current.shift() ?? '';
     setLine(m);
     window.clearTimeout(timer.current);
-    timer.current = m ? window.setTimeout(next, Math.max(5000, m.length * 70)) : undefined;
+    timer.current = m ? window.setTimeout(next, Math.min(4000, Math.max(2600, m.length * 45))) : undefined;
   };
   useEffect(() => {
     const check = () => {

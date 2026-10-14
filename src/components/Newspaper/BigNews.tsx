@@ -1,7 +1,7 @@
 // Big news reaches the player even if they never open the paper: the morning an event begins (or the
 // first morning you are back from the road after it began), a short card says what happened and what
 // it means for your trade, with the paper one tap away. Each event is told once.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { eventsOn, eventsStarting, type GameEvent } from '../../game/economy/life';
 import { settlementById } from '../../game/systems/world';
@@ -43,6 +43,13 @@ export function BigNews({ onRead }: { onRead: () => void }) {
   const g = useGame();
   const [open, setOpen] = useState(false);
   const seen = g.newsSeen ?? [];
+  // it says its piece at the top for a few seconds and goes; the paper keeps the story
+  const freshIds = freshNews(g.day, seen).map((x) => x.e.id).join(',');
+  useEffect(() => {
+    if (!freshIds || open || g.journey) return;
+    const t = window.setTimeout(() => { const s = useGame.getState(); useGame.setState({ newsSeen: [...new Set([...(s.newsSeen ?? []), ...freshIds.split(',')])] }); }, 7000);
+    return () => window.clearTimeout(t);
+  }, [freshIds, open, g.journey]);
   // only news that began during the game (what was already under way on day one is in the first paper)
   const fresh = freshNews(g.day, seen);
   // a strip, never a wall: it waits off the road and keeps out of the way until tapped

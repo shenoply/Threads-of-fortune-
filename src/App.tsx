@@ -33,6 +33,8 @@ import { voice } from './game/audio/voice';
 import { JOBS, GIVER_VOICE } from './data/jobs';
 import { Icon } from './components/Icon';
 import { useTween, useEnterAnimation, useVibration, setVibration, canVibrate, prefetchNextScreens } from './game/feel';
+import { stallDressing } from './game/stallDressing';
+import { rugThumb } from './components/RugViewer/rugArt';
 import { StallEncounter } from './components/StallEncounter/StallEncounter';
 import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/Documentary/Documentary';
 import { Supplier } from './components/Supplier/Supplier';
@@ -351,6 +353,10 @@ export default function App() {
   }, [(g.illnesses ?? []).length]); // eslint-disable-line react-hooks/exhaustive-deps
   const toast = (m: string) => {
     if (!m) return;
+    // one short line at the top, gone in a few seconds: the first sentence carries the news (and any
+    // sum in it); the rest is in the journal
+    const cut = m.match(/^.+?[.!?](?=\s+[A-Z"“])/);
+    m = cut && cut[0].length >= 24 ? cut[0] : m;
     setToast(m);
     window.clearTimeout(toastTimer.current);
     // any note that moves money without the player choosing to (a visitor buying a packed rug, a
@@ -358,7 +364,7 @@ export default function App() {
     // it flashes by at the usual reading pace — doubly so arriving somewhere fast, like the ferry —
     // so anything naming an amount gets extra time on screen, not just the "buys" sale wording
     const money = /£/.test(m);
-    toastTimer.current = window.setTimeout(() => setToast(''), Math.max(money ? 5000 : 2600, m.length * (money ? 85 : 55)));
+    toastTimer.current = window.setTimeout(() => setToast(''), Math.min(money ? 4500 : 3500, Math.max(2500, m.length * 50)));
   };  toastRef.current = toast;
 
   const tutorialActive = !g.tutorial.done;
@@ -540,6 +546,13 @@ export default function App() {
   // the night's summary card is up (the same test DaySummary makes before it shows itself)
   const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
   // the purse and reputation roll to their new value (feel.ts); tests read data-pt / data-v
+  // the stall's shelf dressing for today and the rugs you carry, fetched as soon as the game is open, so
+  // the stall shows dressed at once instead of filling in piece by piece
+  useEffect(() => {
+    if (phase !== 'game' && phase !== 'title') return;
+    const srcs = [...stallDressing(g.day), ...g.inventory.slice(0, 8).map((it) => RUGS[it.typeId]).filter(Boolean).map((t) => rugThumb(t))];
+    for (const src of srcs) { const im = new Image(); (im as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'high'; im.src = src; }
+  }, [phase, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   const cashT = useTween(g.cash);
   const repT = useTween(g.reputation);
   const vibrate = useVibration();
@@ -766,6 +779,7 @@ export default function App() {
           />
         );
       })()}
+      {phase === 'game' && !g.rescue && !summaryUp && newsUp && <BigNews onRead={openPaper} />}
       {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
         return <SideTasks onGo={(t) => planTrip(t)} />;
       })()}
@@ -843,7 +857,7 @@ export default function App() {
 
       {g.rescue && <Rescue />}
       {/* one card at a time: the night's summary first, then a job offer waiting from before */}
-      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && (newsUp ? <BigNews onRead={openPaper} /> : <JobOffer />)}</>}
+      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && !newsUp && <JobOffer />}</>}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>
@@ -944,7 +958,7 @@ export default function App() {
         {radioOpen && <Radio onClose={() => setRadioOpen(false)} />}
         {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
       </Suspense>
-      {toastMsg && <div className="toast">{toastMsg}</div>}
+      {toastMsg && <div className="toast" role="status" onClick={() => setToast('')} data-testid="toast">{toastMsg}</div>}
       {phase === 'game' && <UnlockNotice />}
       {guardUi}
     </div>
