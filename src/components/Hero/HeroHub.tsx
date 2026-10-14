@@ -19,7 +19,7 @@ export function HeroHub() {
   const w = g.wardrobe ?? START_WARDROBE;
   const clean = g.attire?.clean ?? 100;
   const ch = heroCharisma(w, clean);
-  const { rank, next } = rankOf(g);
+  const { rank } = rankOf(g);
   const worth = w.owned.reduce((n, id) => n + (OUTFIT[id]?.price ?? 0), 0);
   return (
     <div className="screen hero-hub" data-testid="hero-hub">
@@ -35,11 +35,8 @@ export function HeroHub() {
           <p className="hh-called">{rank.name}</p>
           <p className="hh-called">The bazaar calls you <b>{mannerTitle(g.manner ?? START_MANNER)}</b>.</p>
           <dl>
-            <div><dt>Cash</dt><dd data-testid="hh-cash">{fmt(g.cash)}</dd></div>
-            <div><dt>Reputation</dt><dd>{g.reputation}{next ? <small> / {next.rep}</small> : null}</dd></div>
             <div><dt>Charisma</dt><dd>{ch}</dd></div>
             <div><dt>Clothes</dt><dd>{clean >= 70 ? 'Clean' : clean >= 35 ? 'Dusty' : 'Filthy'} <small>{Math.round(clean)}%</small></dd></div>
-            <div><dt>Day</dt><dd>{g.day}</dd></div>
             <div><dt>Wardrobe</dt><dd>{w.owned.length} outfits <small>{fmt(worth)}</small></dd></div>
           </dl>
           <button className="btn primary" onClick={() => setOpen(true)} data-testid="hh-wardrobe">Wardrobe</button>

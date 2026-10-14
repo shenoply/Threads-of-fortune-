@@ -784,7 +784,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         const nightOf = hr >= 20 ? today : hr < 5 ? today - 1 : -1;
         if (!moving.train && !moving.mode && !arrived && nightOf >= 0 && nightAsked.current !== nightOf) {
           nightAsked.current = nightOf;
-          if (nightRuleRef.current === 'camp') { setTimeScale(0); setSleeping(true); setReport('Night: camping, as you set. Change it under "Nights" on the clock bar.'); }
+          if (nightRuleRef.current === 'camp') { setTimeScale(0); setSleeping(true); setReport('Night: camping, as you set. Change it with the moon button on the clock bar.'); }
           else if (nightRuleRef.current === 'ask') { setTimeScale(0); setNightfall(true); }
         }
         // the opening's robbers: on the way to Alexandria, whatever the means, a small band stops you once
@@ -1106,24 +1106,31 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
             {needRest && nightRule !== 'camp' && <small className="bl-rest" data-testid="need-rest">{(g.illnesses ?? []).length ? 'You are ill: camp at night.' : 'Worn out: camp tonight.'}</small>}
-            <span className="bl-nights" role="group" aria-label="What to do when night falls on the road" data-testid="night-rule">
-              <small>Nights</small>
-              {(['ask', 'camp', 'march'] as const).map((r) => (
-                <button key={r} className={`bl-n ${r} ${nightRule === r ? 'on' : ''}${r === 'camp' && needRest && nightRule !== 'camp' ? ' need' : ''}`} title={r === 'camp' && needRest ? 'You need rest: camp tonight' : undefined} aria-pressed={nightRule === r} onClick={() => { setNightRule(r); audio.sfx('tap'); }} data-testid={`night-${r}`}>{r === 'ask' ? 'Ask' : r === 'camp' ? 'Camp' : 'March'}</button>
-              ))}
-            </span>
+            {/* one small toggle: tap to cycle March -> Camp -> Ask. Its test id names what the next tap sets,
+                so a test (or a player) asking for "night-camp" gets Camp */}
+            {(() => {
+              const next = ({ march: 'camp', camp: 'ask', ask: 'march' } as const)[nightRule];
+              const label = nightRule === 'ask' ? 'Ask' : nightRule === 'camp' ? 'Camp' : 'March';
+              return (
+                <button type="button" className={`bl-night ${nightRule}${needRest && nightRule !== 'camp' ? ' need' : ''}`} data-rule={nightRule}
+                  aria-label={`At night: ${label}. Tap for ${next === 'ask' ? 'Ask' : next === 'camp' ? 'Camp' : 'March'}`}
+                  title={needRest && nightRule !== 'camp' ? 'You need rest: set Camp' : 'What to do when night falls on the road'}
+                  onClick={() => { setNightRule(next); audio.sfx('tap'); }} data-testid={`night-${next}`}>
+                  <Icon name="moon" /><span data-testid="night-rule">{label}</span>
+                </button>
+              );
+            })()}
             {moving && <span className="bl-pace" data-testid="pace">{g.dayOver ? 'Paused · tap Next day to set off' : moving.mode === 'ship' ? 'By ship' : moving.mode === 'motor' ? 'By motor car' : moving.mode === 'ferry' ? 'By ferry' : moving.train ? 'By train' : timeScale === 0 ? 'Paused' : `${milesPerDay(sp.pxPerDay)} mi/day`}</span>}
           </div>
           {/* small on the map; a tap opens it larger, with each number named */}
-          <button type="button" className={`bl-party ${partyOpen ? 'open' : ''}`} onClick={() => setPartyOpen((o) => !o)} aria-expanded={partyOpen} aria-label="Your caravan: tap for details" data-testid="bl-party">
-            <span title="Money"><Icon name="coin" />{fmt(g.cash)}<em>Money</em></span>
+          {(moving || plan) && <button type="button" className={`bl-party ${partyOpen ? 'open' : ''}`} onClick={() => setPartyOpen((o) => !o)} aria-expanded={partyOpen} aria-label="Your caravan: tap for details" data-testid="bl-party">
             <span title="People: you and your men"><Icon name="people" />{partySize(w.party)}<em>People</em></span>
             <span className={foodDaysLeft(w.party) < 2 ? 'warn' : ''} title="Days of food at today's rate"><Icon name="bag" />{foodDaysLeft(w.party)}d<em>Food</em></span>
             <span title="Animals"><Icon name="camel" />{animalCount(w.party)}<em>Animals</em></span>
             <span className={sp.over ? 'warn' : ''} title="Load / what you can carry"><Icon name="scale" />{Math.round(sp.load)}/{Math.round(sp.cap)}<em>Load</em></span>
             <span title="Fighting strength"><Icon name="shield" />{strength(w.party)}<em>Strength</em></span>
             <span className={sp.hungry || sp.over ? 'warn' : ''} title={`Travel speed on foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`} data-testid="bl-speed"><Icon name="run" />{milesPerDay(sp.pxPerDay)}<small>mi/d</small><em>Speed{sp.hungry ? ', hungry' : sp.over ? ', overloaded' : ''}</em></span>
-          </button>
+          </button>}
         </div>
         {meOff && (
           <button type="button" className="find-me-pill" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={() => { follow.current = true; centreOn(mePt); audio.sfx('tap'); }} data-testid="find-me-pill">
@@ -1157,7 +1164,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               <button className="btn primary" onClick={() => { if (rememberNight) setNightRule('camp'); const dest = moving.dest; setNightfall(false); setMoving(null); setTimeScale(1); setAlt(null); setCamp({ dest }); audio.sfx('tap'); }} data-testid="make-camp">Make camp</button>
               <button className="btn" onClick={() => { if (rememberNight) setNightRule('march'); setNightfall(false); setTimeScale(lastScale.current || 1); }} data-testid="march-on">March on</button>
             </div>
-            <label className="nf-remember"><input type="checkbox" checked={rememberNight} onChange={(e) => setRememberNight(e.target.checked)} data-testid="night-remember" /> Do this every night. Change it any time under "Nights" on the clock bar.</label>
+            <label className="nf-remember"><input type="checkbox" checked={rememberNight} onChange={(e) => setRememberNight(e.target.checked)} data-testid="night-remember" /> Do this every night. Change it any time with the moon button on the clock bar.</label>
           </div>
         )}
         {moving ? (
@@ -1165,7 +1172,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <div className="wc-main">
               <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
               <span>
-                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `${milesPerDay(sp.pxPerDay)} mi a day${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''} · food for ${daysWord(foodDaysLeft(w.party))}`}
+                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Nairn desert car' : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `On foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`}
               </span>
             </div>
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
@@ -1247,7 +1254,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             ];
             // the quickest way you can pay for leads the card and is the only one called fastest
             const lead = ways.filter((x) => x.ok).sort((a, b) => a.days - b.days)[0]?.key ?? 'walk';
-            const fast = (k: string) => (lead === k && ways.length > 1 ? ' · fastest' : '');
+            const fast = (k: string) => (lead === k && ways.length > 1 ? <small className="fast-tag">· fastest</small> : null);
             const bills = [
               plan.train?.bill && { k: 'Train', bill: plan.train.bill },
               ...plan.ships.map((r) => r.bill && { k: 'Ship', bill: r.bill }),
@@ -1296,7 +1303,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                 {lead === 'walk'
                   ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
                   : <button className="btn" onClick={() => start(false)} data-testid="travel">{ferry ? 'Walk instead' : 'Walk'} · {plan.days < 0.1 ? 'a short walk' : `about ${durationLabel(est.elapsedDays)}`}</button>}
-                <button className="btn" onClick={() => setPlan(null)}>Cancel</button>
+                <button className="btn quiet" onClick={() => setPlan(null)} data-testid="plan-cancel">Cancel</button>
               </div>
             </div>
             );
@@ -1313,7 +1320,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               {plan.ships.map((r) => (
                 <button key={r.to} className="btn primary sail-btn" data-testid="ship" onClick={() => startSea(r, 'ship', plan.from)}><Icon name="anchor" /> Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}</button>
               ))}
-              <button className="btn" onClick={() => setPlan(null)}>OK</button>
+              <button className="btn quiet" onClick={() => setPlan(null)}>OK</button>
             </div>
           )
         ) : here ? (
