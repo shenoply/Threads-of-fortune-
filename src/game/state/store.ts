@@ -75,6 +75,7 @@ import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvaila
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
+import { applyHousehold, HOUSEHOLD_START, type HouseholdState, type HouseholdAct } from '../systems/household';
 import { post as postLetter, TELEGRAPH_TOWNS, telegramFee, type PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
@@ -313,6 +314,8 @@ export interface GameState {
   dealerSold?: { day: number; by: Record<string, number> };
   /** the boy who minds the stall while you are away (systems/shopBoy.ts) */
   shopBoy?: ShopBoyState;
+  /** wife, children and heir (systems/household.ts); separate from `family`, your father's debt */
+  household?: HouseholdState;
   /** letters and telegrams (systems/post.ts) */
   post?: PostState;
   /** the trading licence and the market inspector's calls (systems/inspector.ts) */
@@ -392,6 +395,8 @@ interface Actions {
   buyRifle: () => string;
   sellRifles: () => string;
   setStallShut: (shut: boolean) => void;
+  /** courtship, the wedding, your wife and children, and handing the house to an heir (systems/household.ts) */
+  householdAct: (a: HouseholdAct) => string;
   setDistrict: (d: DistrictState) => void;
   setWalk: (id: string, fog: string, seen: string[]) => void;
   ferryToCairo: (skipHour?: boolean) => string;
@@ -817,6 +822,7 @@ function initial(): Omit<GameState, keyof Actions> {
     upgrades: [],
     supplier: { trust: 20, offers: rashidStock(1, rng), debt: 0, debtDue: 0, lastLine: RASHID.greeting[0], haggleLocked: [] },
     family: { ...FAMILY_START, first: firstWeekStart() },
+    household: { ...HOUSEHOLD_START, suitors: {}, children: [] },
     tutorial: { done: false, step: 'room', inspected: false },
     queue: ['samira', 'yusuf', 'mariam'],
     visitIdx: 0,
@@ -4241,6 +4247,18 @@ export const useGame = create<GameState & Actions>()(
           spillHours(s.world.hour + 4);
           return menHere ? 'You black out. Your men are around you.' : 'You black out. Someone is standing over you.';
         },
+        householdAct: (a) => {
+          const s = get();
+          const r = applyHousehold(s, a, rng);
+          if (!Object.keys(r.patch).length) return r.msg;
+          const patch: Partial<GameState> = { ...r.patch };
+          // the heir starts fresh in body: no illness, no rescue under way, rested
+          if (a.kind === 'inherit' && r.ok) {
+            Object.assign(patch, { illnesses: [], rescue: undefined, condition: { ...CONDITION_START }, ...(s.ended?.cause === 'ruin' ? { ruin: undefined, bankruptcies: 0 } : {}) });
+          }
+          set(patch);
+          return r.msg;
+        },
         dieNow: (text) => { const s = get(); if (s.ended) return; set({ ended: { day: s.day, cause: 'death', text }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] }); },
         reset: () => {
           audio.stopAll();
@@ -4283,6 +4301,9 @@ export const useGame = create<GameState & Actions>()(
         // road fights as rounds of orders, with named leaders, prisoners and promotions (systems/combat.ts):
         // an older merchant starts with a clean record
         if (version < 24) { p.combat = p.combat ?? combatStart(); }
+        // the household (wife, children, heir: systems/household.ts) arrived with save 24: every older
+        // save starts unmarried, and families are approached on the next night that the name allows
+        if (version < 24) p.household = p.household ?? { ...HOUSEHOLD_START, suitors: {}, children: [] };
         if (version < 23) {
           const day = p.day ?? 1;
           const fam = p.family ?? { ...FAMILY_START };
@@ -4649,3 +4670,7 @@ useGame.subscribe(syncSeason);
 
 export { tierOf, dateFor };
 export type { Encounter };
+
+/** Leave a grown child to keep one of your shops (the shop record, read from `shops` if that system is
+ *  present, gets `childAgent`); returns the line to show. */
+export const assignChildToShop = (childId: string, shopKey: string) => useGame.getState().householdAct({ kind: 'childRole', child: childId, role: 'shop', shop: shopKey });

@@ -81,10 +81,12 @@ type Mind = Pick<GameState, 'shopBoy' | 'inventory' | 'day' | 'queue' | 'visitId
 /** The boy deals with the customers who came while you were away, up to `hour`. A buyer of plain rugs
  *  may buy one at his price; anyone else he keeps talking for a few hours. `final`: the day is over and
  *  everyone still unserved has gone home. Returns the changed state and lines for your report. */
-export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) => number; patience: number; final: boolean; rng: () => number }): { patch: Partial<GameState>; lines: string[] } | null {
+export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) => number; patience: number; final: boolean; rng: () => number; name?: string }): { patch: Partial<GameState>; lines: string[] } | null {
   const boy = s.shopBoy;
   if (!boy?.hired) return null;
   const { rng } = opts;
+  // someone else may mind the stall in his place (your wife: systems/household.ts)
+  const who = opts.name ?? BOY.name;
   let idx = s.visitIdx;
   let inventory = s.inventory;
   let cash = s.cash;
@@ -112,12 +114,12 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
       const name = RUGS[item.typeId].name;
       inventory = inventory.filter((i) => i.uid !== item.uid);
       cash += price;
-      ledger.push({ day: s.day, kind: 'sale', label: `${BOY.name} sold ${name} while you were away`, amount: price, cost: item.paid });
-      journal.push({ day: s.day, text: `${BOY.name} sold the ${name} to ${BUYERS[id]?.name ?? 'a buyer'} for ${fmt(price)} while you were away (paid ${fmt(item.paid)}).`, kind: 'stall' });
+      ledger.push({ day: s.day, kind: 'sale', label: `${who} sold ${name} while you were away`, amount: price, cost: item.paid });
+      journal.push({ day: s.day, text: `${who} sold the ${name} to ${BUYERS[id]?.name ?? 'a buyer'} for ${fmt(price)} while you were away (paid ${fmt(item.paid)}).`, kind: 'stall' });
       stats.sales += 1; stats.revenue += price; stats.gross += price - item.paid;
       total += 1; sold += 1; takings += price;
       sales.push({ day: s.day, typeId: item.typeId, price, asked, how });
-      lines.push(`${BOY.name} sold the ${name} for ${fmt(price)} while you were away.${how === 'down' ? ` ${BUYERS[id]?.name ?? 'The buyer'} talked him down from ${fmt(asked)}.` : how === 'cheap' ? ` He took the first offer; your price was ${fmt(asked)}.` : ''}`);
+      lines.push(`${who} sold the ${name} for ${fmt(price)} while you were away.${how === 'down' ? ` ${BUYERS[id]?.name ?? 'The buyer'} talked him down from ${fmt(asked)}.` : how === 'cheap' ? ` He took the first offer; your price was ${fmt(asked)}.` : ''}`);
       idx++;
       continue;
     }
@@ -125,13 +127,13 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
     if (opts.final || opts.arrivalAt(idx) + opts.patience < hour) { left.push(BUYERS[id]?.name ?? 'A customer'); idx++; continue; }
     break;
   }
-  if (left.length && opts.final) lines.push(`${left.length === 1 ? left[0] : `${left.slice(0, -1).join(', ')} and ${left[left.length - 1]}`} came by. ${BOY.name} asked them to wait, but they could not stay.`);
+  if (left.length && opts.final) lines.push(`${left.length === 1 ? left[0] : `${left.slice(0, -1).join(', ')} and ${left[left.length - 1]}`} came by. ${who} asked them to wait, but they could not stay.`);
   let short = 0;
   if (sold && rng() < 0.25 * slack) {
     short = Math.min(cash, 1 + Math.floor(rng() * 3));
     cash -= short;
-    ledger.push({ day: s.day, kind: 'expense', label: `Short in ${BOY.name}'s takings`, amount: -short });
-    lines.push(`The takings were ${short} piastre${short > 1 ? 's' : ''} short. ${BOY.name} says a coin rolled into the gutter.`);
+    ledger.push({ day: s.day, kind: 'expense', label: `Short in ${who}'s takings`, amount: -short });
+    lines.push(`The takings were ${short} piastre${short > 1 ? 's' : ''} short. ${who} says a coin rolled into the gutter.`);
   }
   if (idx === s.visitIdx && !lines.length) return null;
   const shopBoy: ShopBoyState = { ...boy, sales: sales.slice(-12), short: boy.short + short, report: [...boy.report, ...lines] };

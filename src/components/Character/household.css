@@ -1,0 +1,22 @@
+/* the Household fold on the Me tab: framed portraits, a contentment bar, small choice chips */
+.hh-card { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line, rgba(201,150,72,.28)); }
+.hh-card:first-of-type { border-top: 0; }
+.hh-pt { position: relative; flex: none; width: 64px; height: 80px; border: 2px solid var(--brass, #c9974a); border-radius: 3px; box-shadow: inset 0 0 0 2px #1b1006, 0 1px 3px rgba(0,0,0,.5); background: radial-gradient(circle at 50% 40%, #4a3320, #241709); overflow: hidden; display: grid; place-items: center; }
+.hh-pt.sm { width: 48px; height: 60px; }
+.hh-pt b { font: 700 26px/1 var(--display, serif); color: var(--brass-hi, #e7bd6e); }
+.hh-pt.sm b { font-size: 20px; }
+.hh-pt img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .3s; }
+.hh-txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.hh-txt > b { font-size: 15.5px; color: var(--parchment, #f1e2c2); }
+.hh-txt small { font-size: 13.5px; line-height: 1.3; color: var(--text-dim, #b39d7b); }
+.hh-brings { font-style: italic; }
+.hh-bar { margin: 3px 0 0; }
+.hh-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.hh-btns .btn { padding: 6px 10px; font-size: 14px; }
+.hh-roles { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.hh-chip { min-height: 32px; padding: 4px 9px; border: 1px solid var(--line-strong, rgba(201,150,72,.5)); border-radius: 14px; background: transparent; color: var(--text, #eadbbd); font: 13px/1.2 var(--label, sans-serif); }
+.hh-chip.on { background: var(--brass, #c9974a); color: #1b1006; border-color: var(--brass-hi, #e7bd6e); font-weight: 700; }
+.hh-pace, .hh-heir { display: grid; gap: 4px; padding: 8px 0 2px; border-top: 1px solid var(--line, rgba(201,150,72,.28)); }
+.hh-pace small, .hh-heir small { font-size: 13px; color: var(--text-dim, #b39d7b); }
+.hh-heir .btn { justify-self: start; padding: 6px 10px; font-size: 14px; }
+.hh-msg { margin: 6px 0 0; padding: 6px 8px; border-left: 2px solid var(--brass, #c9974a); font-size: 14px; line-height: 1.35; color: var(--text, #eadbbd); }

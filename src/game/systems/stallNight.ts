@@ -6,6 +6,7 @@ import { boyMinds, boyNight, BOY } from './shopBoy';
 import { postNight } from './post';
 import { licenceNight } from './inspector';
 import { BOY_OFFER } from '../../data/tips';
+import { householdNight, spouseMinds } from './household';
 
 /** tipsSeen marks: a buyer gave up waiting at the empty stall; Haj Mahmoud has offered Sami */
 export const AWAY_MISSED = 'away-missed';
@@ -18,9 +19,15 @@ interface Ctx { arrivalAt: (s: GameState, i: number) => number; patience: number
  *  fields the rollover's own patch does not carry. */
 export function nightBefore(s: GameState, c: Ctx): { s: GameState; notes: string[]; extra: Partial<GameState> } {
   const notes: string[] = [];
-  if (!s.shopBoy) return { s, notes, extra: {} };
   const away = s.world.at !== 'giza';
   let st = s;
+  // no boy, but your wife minds the stall: she sells the plain rugs at their worth, and nothing goes missing
+  const wife = spouseMinds(s);
+  if (wife && away && !st.encounter) {
+    const r = boyMinds({ ...st, shopBoy: { hired: true, since: 0, trust: 100, mode: 'sell', pct: 1, owed: 0, report: [], sales: [], short: 0, days: 0 } }, 24, { arrivalAt: (i) => c.arrivalAt(st, i), patience: c.patience, final: true, rng: c.rng, name: wife });
+    if (r) { const { shopBoy: _boy, ...rest } = r.patch; void _boy; st = { ...st, ...rest }; notes.push(...r.lines); }
+  }
+  if (!s.shopBoy) return { s: st, notes, extra: st !== s ? { totalSales: st.totalSales } : {} };
   if (away && !st.encounter) {
     const r = boyMinds(st, 24, { arrivalAt: (i) => c.arrivalAt(st, i), patience: c.patience, final: true, rng: c.rng });
     if (r) { st = { ...st, ...r.patch }; notes.push(...r.lines); }
@@ -39,6 +46,8 @@ export function nightAfter(s: GameState, patch: Partial<GameState>, notes: strin
   Object.assign(patch, extra);
   const day = patch.day ?? s.day + 1;
   Object.assign(patch, postNight(s, patch, notes, day, rng));
+  // the household: families, your wife and her letters, the children (systems/household.ts)
+  Object.assign(patch, householdNight(s, patch, notes, day, rng));
   Object.assign(patch, licenceNight({ ...s, shopBoy: patch.shopBoy ?? s.shopBoy }, patch, notes, day, (patch.world ?? s.world).at, rng, quiet));
   // once: the morning after a buyer first gave up at your empty stall, a neighbour offers a boy to mind it
   const seen = patch.tipsSeen ?? s.tipsSeen ?? [];

@@ -9,6 +9,7 @@ import { START_WARDROBE, heroCharisma, wornOutfit, OUTFIT } from '../../data/war
 import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { MeSection, SkillsSection } from '../Character/Character';
+import { HouseholdSection } from '../Character/Household';
 import { CurrentGoal } from '../Ledger/Ledger';
 import './HeroHub.css';
 
@@ -45,6 +46,7 @@ export function HeroHub() {
       </section>
       <CurrentGoal />
       <MeSection hideDress />
+      <HouseholdSection />
       <SkillsSection />
       {open && <Wardrobe onClose={() => setOpen(false)} />}
     </div>
