@@ -28,6 +28,8 @@ function WeekDue({ onGo }: { onGo: (target?: string) => void }) {
   };
   return <button className={`ob-due ${wk.days <= 1 ? 'near' : ''}`} onClick={go} data-testid="week-due" title="Uncle Rashid wants this towards your father's debt">{countdown(wk.owed, wk.days)}</button>;
 }
+import { MILESTONES, MILESTONE_ORDER, activeMilestone } from '../../data/milestones';
+import { openUpgrades } from '../Inventory/StallUpgrades';
 
 /** "+£3.00 · reputation +3": only the parts there are */
 export const rewardLine = (r: { cash: number; rep: number; trust?: number }, trust = false) =>
@@ -105,6 +107,7 @@ export function MissionCard({ onMap }: { onMap: () => void }) {
 /** Follow an objective's button. Stock is a screen of its own, not a place: its tab is in the bottom bar. */
 export function goObjective(go: string, onGo: (target?: string) => void) {
   if (go === 'stock') document.querySelector<HTMLElement>('[data-testid="nav-inventory"]')?.click();
+  else if (go === 'improve') openUpgrades();
   else if (go) onGo(go);
 }
 
@@ -163,6 +166,33 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
       </div>
     );
   }
+  // the current milestone takes the line when there is no main mission, or the main mission is only
+  // waiting on reputation; otherwise it is one line in the drop-down
+  const msId = activeMilestone(g.missions);
+  const ms = msId ? MILESTONES[msId] : undefined;
+  if (ms && (!activeId || MISSIONS[activeId].waits?.(g as unknown as MissionState))) {
+    const nx = ms.next?.(g as unknown as MissionState);
+    return (
+      <div ref={barRef} className={`objective-bar goal ${open ? 'open' : ''}`} data-testid="milestone-bar">
+        <div className="ob-row">
+          <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="milestone-expand">
+            <small>Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}</small>
+            <b>{ms.hint(g as unknown as MissionState)}</b>
+            <Icon name={open ? 'up' : 'down'} />
+          </button>
+          {nx && <button className="btn ob-btn" onClick={() => goObjective(nx.go, onGo)} data-testid="milestone-go">{nx.btn}</button>}
+        </div>
+        {open && (
+          <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>
+            <p><b>{ms.title}.</b> {ms.brief}</p>
+            <ol>{ms.steps.map((x) => <li key={x}>{x}</li>)}</ol>
+            <p className="mission-reward">Reward: {ms.opens}.</p>
+            {activeId && <p className="mission-lock">Main mission: {MISSIONS[activeId].title}. {MISSIONS[activeId].hint(g as unknown as MissionState)}</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
   if (activeId) {
     const m = MISSIONS[activeId];
     const hint = m.hint ? m.hint(g) : m.steps[0];
@@ -179,7 +209,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
           {nx ? <button className="btn ob-btn" onClick={() => goObjective(nx.go, onGo)} data-testid="objective-go">{nx.btn}</button>
             : m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
-        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol>{ms && <p className="mission-lock" data-testid="ob-goal">Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}, {ms.title}: {ms.hint(g as unknown as MissionState)} Reward: {ms.opens}.</p>}</div>}
       </div>
     );
   }
@@ -234,6 +264,26 @@ export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only
           <span aria-hidden="true">◆</span>{t.text}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** A milestone just reached: one short notice above the bottom bar for a few seconds, nothing to tap. */
+export function MilestoneNotice() {
+  const id = useGame((s) => s.milestoneNews);
+  useEffect(() => {
+    if (!id) return;
+    const t = window.setTimeout(() => useGame.setState({ milestoneNews: undefined }), 6500);
+    return () => window.clearTimeout(t);
+  }, [id]);
+  const m = id ? MILESTONES[id] : undefined;
+  if (!m) return null;
+  return (
+    <div className="levelup milestone" role="status" data-testid="milestone-notice">
+      <small>GOAL REACHED · {MILESTONE_ORDER.indexOf(m.id) + 1}/{MILESTONE_ORDER.length}</small>
+      <b>{m.title}</b>
+      <span>{m.opens}</span>
+      <span className="ms-line">{m.speaker}: {m.reward.text}</span>
     </div>
   );
 }
