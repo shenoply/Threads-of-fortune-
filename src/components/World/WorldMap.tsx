@@ -49,6 +49,8 @@ import type { RoadEvent } from '../../data/roadEvents';
 
 export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
 const MAJOR = ['home', 'city', 'port'];
+/** The zooms at which the map adds towns (and short job flags), then everything with its name. */
+const MID_Z = 1.5, NEAR_Z = 2.4;
 /** The season of a game day, for the date on the map bar (day 1 = 10 March 1925). */
 function seasonOf(day: number) {
   const m = new Date(Date.UTC(1925, 2, 9 + day)).getUTCMonth();
@@ -908,7 +910,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // tap anywhere to go there; mid-journey, goTo asks before the caravan turns
     const r = wrap.current!.getBoundingClientRect();
     const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
-    const st = SETTLEMENTS.filter((x) => w.known.includes(x.id)).map((x) => ({ x, d: dist(x, mp) })).filter((o) => o.d * s < 22).sort((a, b) => a.d - b.d)[0]?.x;
+    const st = SETTLEMENTS.filter((x) => w.known.includes(x.id) && placeShown(x)).map((x) => ({ x, d: dist(x, mp) })).filter((o) => o.d * s < 22).sort((a, b) => a.d - b.d)[0]?.x;
     if (st && st.id === w.at && !moving) { setPanel(st.id); return; }
     goTo(mp, st);
   };
@@ -937,6 +939,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const meAngle = Math.atan2(meScreen.y - size.h / 2, meScreen.x - size.w / 2) * 180 / Math.PI;
   const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
 
+  // What the map names at this zoom. Far out (tier 0) only the cities, ports and your home, plus the
+  // places that matter now: where you are, where you are bound, the mission and the objective's town.
+  // At middle zoom the towns (with names) and the villages, oases, monasteries and camps (marks only),
+  // job flags as the town's name, and news marks; close in every name, job flags in full and the river
+  // crossings.
+  // A place left out keeps its button (only faded out and not tappable), so it can come straight back.
+  const tier = z < MID_Z ? 0 : z < NEAR_Z ? 1 : 2;
+  const keyPlace = (id: string) => w.at === id || plan?.settlement?.id === id || moving?.dest === id || missionTarget === id || guideCity === id;
+  const placeShown = (st: Settlement) => tier > 0 || keyPlace(st.id) || !!venueFor(st.id) || MAJOR.includes(st.kind);
+
   // Keep the town names readable: after each render, your medallion and the party medallions step aside
   // (a few fixed nudges, the first that fits) from any town name, town mark or each other; a trader or
   // pilgrim band that finds no room is hidden, raiders always stay. Only positions are written here.
@@ -945,8 +957,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (!inner) return;
     const ir = inner.getBoundingClientRect();
     const rel = (el: Element, pad = 0): Box => { const r = el.getBoundingClientRect(); return { l: r.left - ir.left - pad, t: r.top - ir.top - pad, r: r.right - ir.left + pad, b: r.bottom - ir.top + pad }; };
-    const names = [...inner.querySelectorAll('.place .plbl')].map((el) => rel(el, 1));
-    const marks = [...inner.querySelectorAll('.place .pdot')].map((el) => rel(el));
+    const names = [...inner.querySelectorAll('.place:not(.pl-off) .plbl')].map((el) => rel(el, 1));
+    const marks = [...inner.querySelectorAll('.place:not(.pl-off) .pdot')].map((el) => rel(el));
     const meX = mePt.x * s, meY = mePt.y * s;
     // you: the disc sits above the spot you stand on (the mode badge at its lower right)
     const meBox = (dx: number, dy: number): Box => ({ l: meX + dx - 22, r: meX + dx + (moving ? 32 : 22), t: meY + dy - 48, b: meY + dy - 2 });
@@ -1023,13 +1035,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
         <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
-        <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)}>
+        <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)} data-tier={tier}>
           <div className="daynight" style={{ background: tint(w.hour) }} />
           {sandZones.map((c, i) => (
             <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
           ))}
           {/* where a river or the canal can be crossed: a bridge, or a slow ford or ferry */}
-          {z >= 1.6 && CROSSINGS.map((c) => (
+          {z >= NEAR_Z - 0.2 && CROSSINGS.map((c) => (
             <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
@@ -1038,10 +1050,19 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
             {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
           </svg>
-          {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => (
+          {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => {
+            const shown = placeShown(st), key = keyPlace(st.id);
+            const visit = missionTarget !== st.id ? visits.find((v) => v.city === st.id) : undefined;
+            const job = missionTarget !== st.id && !visit ? jobs.find((j) => j.target === st.id) : undefined;
+            // job and visitor flags: none far out (unless the place is where you are bound), the town's
+            // name close-ish, the whole errand only once zoomed in
+            const named = shown && (!!venueFor(st.id) || key || MAJOR.includes(st.kind) || (tier >= 1 && st.kind === 'town') || tier === 2);
+            // (short: just the icon where the town's name is already on the map, else the icon and the name)
+            const flag = !shown || (tier === 0 && !key) ? null : tier === 2 ? 'full' : named ? 'icon' : 'short';
+            return (
             <button
               key={st.id}
-              className={`place kind-${st.kind} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''} ${guideCity === st.id && w.at !== st.id ? 'guide-here' : ''} ${cityLocked(g, st.id) ? 'locked' : ''}`}
+              className={`place kind-${st.kind} ${shown ? '' : 'pl-off'} ${w.at === st.id ? 'here' : ''} ${plan?.settlement?.id === st.id ? 'sel' : ''} ${missionTarget === st.id ? 'mission' : ''} ${guideCity === st.id && w.at !== st.id ? 'guide-here' : ''} ${cityLocked(g, st.id) ? 'locked' : ''}`}
               title={cityLocked(g, st.id) ? lockedWhy(g, st.id) : undefined}
               style={{ left: st.x * s, top: st.y * s }}
               onPointerDown={(e) => e.stopPropagation()}
@@ -1051,17 +1072,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             >
               <span className="pdot"><Icon name={kindIcon[st.kind] ?? 'pin'} /></span>
               {missionTarget === st.id && <span className="pmission" data-testid="mission-pin"><Icon name="star" /> Mission</span>}
-              {missionTarget !== st.id && visits.some((v) => v.city === st.id) ? <span className="pjob visit" data-testid={`visit-pin-${st.id}`}><Icon name="hourglass" /> {visits.find((v) => v.city === st.id)!.who}</span>
-                : missionTarget !== st.id && jobs.some((j) => j.target === st.id) && <span className="pjob" data-testid={`job-pin-${st.id}`}><Icon name="scroll" /> {jobs.find((j) => j.target === st.id)!.title}</span>}
+              {visit && flag ? <span className={`pjob visit ${flag}`} title={visit.who} data-testid={`visit-pin-${st.id}`}><Icon name="hourglass" />{flag === 'icon' ? null : <> {flag === 'full' ? visit.who : st.name}</>}</span>
+                : job && flag && <span className={`pjob ${flag}`} title={job.title} data-testid={`job-pin-${st.id}`}><Icon name="scroll" />{flag === 'icon' ? null : <> {flag === 'full' ? job.title : st.name}</>}</span>}
               {venueFor(st.id) && <span className="pcrown" title="Royal court" data-testid={`crown-${st.id}`}><Icon name="crown" /></span>}
-              {news[st.id] && (
+              {news[st.id] && shown && (tier > 0 || key) && (
                 <span className="pnews" data-testid={`news-pin-${st.id}`}>
                   {news[st.id].map((m) => <i key={m} className={`pn-${m}`} title={NEWS_TIP[m]} aria-label={NEWS_TIP[m]}><Icon name={NEWS_ICON[m]} /></i>)}
                 </span>
               )}
-              {(venueFor(st.id) || MAJOR.includes(st.kind) || z >= 2.4 || plan?.settlement?.id === st.id || w.at === st.id) && <span className="plbl">{st.name}</span>}
+              {named && <span className="plbl">{st.name}</span>}
             </button>
-          ))}
+            );
+          })}
           {visibleParties.map((p) => {
             const mine = strength(w.party);
             const raid = p.kind === 'raiders' && !!p.strength;

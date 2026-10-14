@@ -3136,3 +3136,18 @@ body.travelling .world-hud { display: none; }
 .rung .bar em { display: block; height: 100%; background: #e8b85a; }
 .levelup.milestone { border-color: #e8b85a; max-width: min(88vw, 420px); }
 .levelup.milestone span.ms-line { font-style: italic; color: var(--parchment); }
+
+/* World map: what shows at which zoom (WorldMap tier). A place not shown at this zoom keeps its button,
+   faded out and untappable, so it comes back in place as you zoom in. */
+.place { transition: opacity .25s ease, scale .25s ease; }
+.place.pl-off { opacity: 0; scale: .5; pointer-events: none !important; }
+.place.pl-off::before { display: none; }
+/* job and visitor flags: the town's name with the icon out at middle zoom, the whole errand close in */
+.pjob.short { max-width: 130px; padding: 1px 7px; font-size: 11.5px; }
+.pjob.full { max-width: 210px; }
+.pjob.icon { padding: 1px 4px; top: -10px; left: auto; right: calc(50% + 9px); transform: none; font-size: 11px; }
+.pjob.visit.icon { top: 8px; }
+/* far out, smaller names and marks so the Levant's cities sit side by side */
+.world-inner[data-tier="0"] .place .plbl { font-size: 10.5px; padding: 0 3px; letter-spacing: .02em; }
+.world-inner[data-tier="0"] .place .pdot { width: 19px; height: 19px; border-width: 1.5px; }
+.world-inner[data-tier="0"] .place .pdot svg { width: 10px; height: 10px; }
