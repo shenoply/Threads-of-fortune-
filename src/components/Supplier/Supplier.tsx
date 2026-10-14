@@ -114,7 +114,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           const hi = exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
           return (
             <div className="offer" key={o.uid} data-testid={`offer-${t.id}`}>
-              <div className={`img ${o.condition === 'Dirty' ? 'dirty' : o.condition === 'Damaged' ? 'damaged' : ''}`} onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw: flawFor(o.uid, 'rashid', o.typeId) })} role="button" aria-label={`Look closely at ${t.name}`} data-testid={`look-${t.id}`}>
+              <div className={`img ${o.condition === 'Dirty' ? 'dirty' : o.condition === 'Damaged' ? 'damaged' : ''}`} onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw: flawFor(o.uid, 'rashid', o.typeId), key: o.uid })} role="button" aria-label={`Look closely at ${t.name}`} data-testid={`look-${t.id}`}>
                 <img src={rugSrc(t)} alt={t.name} />
                 <span className="look-hint"><Icon name="search" /> Look closer</span>
                 {o.tag && <span className={`tag ${o.tag}`}>{o.tag === 'Limited' ? 'Today only' : o.tag}</span>}

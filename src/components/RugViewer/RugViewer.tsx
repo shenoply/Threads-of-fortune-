@@ -10,15 +10,18 @@ import { perceivedValue } from '../../game/systems/negotiation';
 import { useEscapeClose } from './useEscapeClose';
 import { FLAW_CLUES, eyeOf, flawFactorFor, flawNotes } from '../../game/systems/fakes';
 import { RugFlags } from '../Inventory/RugFlags';
+import { KnotCount } from '../KnotCount/KnotCount';
+import { countable, knotVerdict } from '../../game/knots';
 
 const TABS = ['Overview', 'Condition', 'Weave', 'Fringe', 'Provenance', 'Estimate'] as const;
 
-export interface RugPreview { typeId: string; condition: RugItem['condition']; provenance?: RugItem['provenance']; price?: number; flaw?: Pick<RugItem, 'dye' | 'fakeAge'> }
+/** key: the dealer's offer (the seed of its hidden faults), so a knot count on it is kept and goes with the rug if bought */
+export interface RugPreview { typeId: string; condition: RugItem['condition']; provenance?: RugItem['provenance']; price?: number; flaw?: Pick<RugItem, 'dye' | 'fakeAge'>; key?: string }
 /** Inspect a rug you own (uid) or one you are thinking of buying (preview). */
 export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: RugPreview; onClose: () => void }) {
   const g = useGame();
   const item: RugItem | undefined = preview
-    ? { uid: 'preview', typeId: preview.typeId, condition: preview.condition, provenance: preview.provenance ?? RUGS[preview.typeId].provenance, paid: preview.price ?? 0, notes: [], restored: false, stored: false, ...preview.flaw } as RugItem
+    ? { uid: preview.key ?? 'preview', typeId: preview.typeId, condition: preview.condition, provenance: preview.provenance ?? RUGS[preview.typeId].provenance, paid: preview.price ?? 0, notes: [], restored: false, stored: false, ...preview.flaw } as RugItem
     : g.inventory.find((i) => i.uid === uid);
   const [tab, setTab] = useState<(typeof TABS)[number]>('Overview');
   const [zoom, setZoom] = useState(1);
@@ -26,6 +29,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const [rot, setRot] = useState(0);
   const [back, setBack] = useState(false);
   const [backSrc, setBackSrc] = useState('');
+  const [counting, setCounting] = useState(false);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const pinch = useRef<{ d: number; z: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -49,10 +53,14 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
     if (nz === 1) setPan({ x: 0, y: 0 });
     mark();
   };
-  const exact = g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
-  const lo = exact ? t.valueBand[0] : snapDown(t.valueBand[0] * 0.85);
-  const hi = exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
-  const pv = snap(perceivedValue(t, item));
+  // a knot count tightens the estimate to what you counted: right if the count was right, a little off if not
+  const knots = g.knotCounts?.[item.uid];
+  const kf = knots ? Math.sqrt(knots.counted / knots.truth) : 1;
+  const exact = !!knots || g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
+  const lo = knots ? snapDown(t.valueBand[0] * kf) : exact ? t.valueBand[0] : snapDown(t.valueBand[0] * 0.85);
+  const hi = knots ? snap(t.valueBand[1] * kf) : exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
+  const canCount = !!preview?.key && countable(t.id);
+  const pv = snap(perceivedValue(t, item) * (g.knotCounts?.[item.uid] ? Math.sqrt(g.knotCounts[item.uid].counted / g.knotCounts[item.uid].truth) : 1));
   const flaws = flawNotes(item, eyeOf(g));
 
   return (
@@ -148,6 +156,8 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
               <dt>Density</dt><dd>{t.weave.kpsi}</dd>
               <dt>Foundation</dt><dd>{t.weave.foundation}</dd>
               <dt>Seller's view</dt><dd>{t.craftLine}</dd>
+              {knots && <><dt>Your count</dt><dd data-testid="knot-line">{knotVerdict(knots, t.id, item)}</dd></>}
+              {canCount && <><dt>Count it</dt><dd><button className="btn small" onClick={() => { setCounting(true); mark(); }} data-testid="knot-count-open">{!knots ? 'Count the knots on the back' : knots.day === g.day ? 'Your count today' : 'Count the knots again'}</button></dd></>}
             </dl>
           )}
           {tab === 'Fringe' && <p style={{ margin: 0 }}>{t.fringe}</p>}
@@ -166,8 +176,9 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           )}
           {tab === 'Estimate' && (
             <dl className="kv">
-              <dt>Market value</dt><dd>{fmt(lo)}–{fmt(hi)} {exact ? '' : '(rough: a ledger book would tighten this)'}</dd>
+              <dt>Market value</dt><dd data-testid="estimate-value">{fmt(lo)}–{fmt(hi)} {knots ? '(by your knot count)' : exact ? '' : '(rough: a ledger book or a knot count would tighten this)'}</dd>
               <dt>In this condition</dt><dd>about {fmt(pv)}</dd>
+              {knots?.ok && flaws.some((f) => f.kind === 'age' && f.know === 'hint') && <><dt>As new work</dt><dd data-testid="knot-new-value">about {fmt(snap(pv * flawFactorFor(item, 'age')))}, if the knots tell the truth</dd></>}
               {flaws.some((f) => f.know === 'proven') && <><dt>Sold as what it is</dt><dd data-testid="honest-value">about {fmt(snap(pv * flaws.filter((f) => f.know === 'proven').reduce((m, f) => m * flawFactorFor(item, f.kind), 1)))}</dd></>}
               <dt>{preview ? 'Asking' : 'You paid'}</dt><dd>{fmt(item.paid)}</dd>
               <dt>Usual asking</dt><dd>{fmt(t.asking)}</dd>
@@ -175,6 +186,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           )}
         </div>
       </div>
+      {counting && <KnotCount typeId={t.id} keyId={item.uid} where="dealer" fakeAge={item.fakeAge} onClose={() => setCounting(false)} />}
     </div>
   );
 }

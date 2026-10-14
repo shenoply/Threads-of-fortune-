@@ -1,12 +1,12 @@
 // Bilgin's table in the Giza coffee house: a game of chess or tawla, for nothing or for a few piastres.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from '../Icon';
 import { Chess, type Square } from 'chess.js';
 import { useGame } from '../../game/state/store';
-import { audio, DEFAULT_VOLUMES, type Volumes } from '../../game/audio/engine';
+import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
 import { bestMove, type Strength } from '../../game/cafe/chessAI';
 import { startBoard, plays, apply, choosePlay, winner, sameStep, pips, type Board, type Side, type Step } from '../../game/cafe/tawla';
+import { Head, EndCard } from './TableHead';
 import './cafe.css';
 
 type Game = 'chess' | 'tawla';
@@ -64,63 +64,6 @@ export function CafeTable({ onClose, onFilm, only }: { onClose: (note?: string) 
 }
 
 interface TableProps { strength: Strength; stake: number; onEnd: (r: 'win' | 'loss' | 'draw', mult?: number) => void; onQuit: () => void }
-
-interface Seat { label: string; main: React.ReactNode; sub?: string }
-
-/** the sound at the table: the same sliders as Settings, a tap away from the right-hand corner */
-function SoundPanel({ onClose }: { onClose: () => void }) {
-  const vols = useGame((g) => g.volumes ?? DEFAULT_VOLUMES);
-  const setVolume = useGame((g) => g.setVolume);
-  return (
-    <div className="cafe-sound" role="dialog" aria-label="Sound" data-testid="cafe-sound-panel">
-      <div className="cafe-sound__head"><b>Sound</b><button className="btn small" onClick={onClose} aria-label="Close sound">✕</button></div>
-      {([['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects'], ['dialogue', 'Voices']] as [keyof Volumes, string][]).map(([k, l]) => (
-        <label className="vol-row" key={k}>
-          <span>{l}</span>
-          <input type="range" min={0} max={100} step={5} value={Math.round(vols[k] * 100)} onChange={(e) => setVolume(k, Number(e.target.value) / 100)} aria-label={`${l} volume`} data-testid={`cafe-vol-${k}`} />
-          <b>{Math.round(vols[k] * 100)}</b>
-        </label>
-      ))}
-    </div>
-  );
-}
-
-/** the top of a game: title and stake, sound and leave on the right, then a clear scoreboard */
-function Head({ title, stake, onQuit, you, him, turn }: { title: string; stake: number; onQuit: () => void; you: Seat; him: Seat; turn: 'you' | 'him' | null }) {
-  const [sound, setSound] = useState(false);
-  return (
-    <div className="cafe-head">
-      <div className="cafe-head__top">
-        <h2>{title}</h2>
-        <span className="cafe-head__stake">{stake ? `for ${fmt(stake)}` : 'for tea'}</span>
-        <button className="btn small cafe-head__btn" onClick={() => setSound((v) => !v)} aria-label="Sound" aria-pressed={sound} data-testid="cafe-sound"><Icon name="sound" /></button>
-        <button className="btn small cafe-head__btn" onClick={onQuit} data-testid="cafe-quit" aria-label="Leave the table" title={stake ? 'Leaving a game you have started gives up the stake' : 'Leave'}>✕</button>
-      </div>
-      <div className="cafe-scores" data-testid="cafe-score">
-        {[['you', you], ['him', him]].map(([k, sd]) => {
-          const x = sd as Seat;
-          return (
-            <div key={k as string} className={`cafe-side ${k}${turn === k ? ' on' : ''}`}>
-              <span className="cafe-side__who">{x.label}{turn === k && <i> · to play</i>}</span>
-              <b className="cafe-side__main">{x.main}</b>
-              {x.sub && <small className="cafe-side__sub">{x.sub}</small>}
-            </div>
-          );
-        })}
-      </div>
-      {sound && <SoundPanel onClose={() => setSound(false)} />}
-    </div>
-  );
-}
-
-function EndCard({ text, onDone }: { text: string; onDone: () => void }) {
-  return (
-    <div className="cafe-end" data-testid="cafe-end">
-      <p>{text}</p>
-      <button className="btn" onClick={onDone} data-testid="cafe-done">Get up from the table</button>
-    </div>
-  );
-}
 
 // ─── chess ───────────────────────────────────────────────────────────────────
 

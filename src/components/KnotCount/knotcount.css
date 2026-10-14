@@ -1,0 +1,40 @@
+/* counting knots: a dark bench, the back of the rug under a brass one-inch window, the clock across the top */
+.overlay.knotcount { z-index: 120; background: radial-gradient(ellipse at 50% 35%, #2b1d10 0%, #0f0904 80%); padding: calc(8px + env(safe-area-inset-top, 0px)) 14px calc(12px + env(safe-area-inset-bottom, 0px)); gap: 8px; overflow-y: auto; }
+.kc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kc-head h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 20px; color: var(--brass-hi, #e3bd6b); }
+.kc-rug { font-family: var(--label); font-size: 13px; color: #d9c49a; margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; }
+.kc-x { min-width: 44px; min-height: 44px; font-size: 17px; }
+.kc-rules, .kc-how { margin: 0; font-size: 13.5px; line-height: 1.38; color: #eadbbd; }
+.kc-rules b { color: var(--brass-hi, #e3bd6b); font-weight: 600; }
+.kc-how { color: #cdb995; font-size: 13px; }
+.kc-how b { color: #e6d5b1; font-weight: 600; }
+.kc-clock { position: relative; height: 26px; border-radius: 13px; background: rgba(255,240,210,.08); border: 1px solid rgba(201,162,74,.45); overflow: hidden; flex: 0 0 auto; }
+.kc-clock i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #8a6420, #c9a24a); transition: width .1s linear; }
+.kc-clock i.low { background: linear-gradient(90deg, #7a2416, #c0492c); }
+.kc-clock span { position: relative; display: block; text-align: center; line-height: 24px; font-family: var(--label); font-size: 13.5px; color: #fff3dc; text-shadow: 0 1px 2px #000; }
+.kc-glass { position: relative; flex: 1 1 auto; min-height: 220px; display: flex; align-items: center; justify-content: center; }
+.kc-glass canvas { display: block; border-radius: 6px; box-shadow: 0 0 0 6px #3b2210, 0 0 0 8px #c9a24a, 0 16px 34px rgba(0,0,0,.7); touch-action: manipulation; cursor: pointer; }
+.kc-glass canvas.is-wait { filter: blur(5px) brightness(.6); }
+.kc-start { position: absolute; min-height: 52px; padding: 0 26px; font-size: 17px; }
+.kc-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 0 0 auto; }
+.kc-step { display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; grid-template-areas: 'l l l' 'm v p'; align-items: center; border-radius: 10px; padding: 6px 8px 8px; background: rgba(255,240,210,.05); border: 1.5px solid; }
+.kc-step { grid-template-columns: 48px 1fr 48px; }
+.kc-step.row { border-color: #ffd25a; }
+.kc-step.col { border-color: #7fd4ff; }
+.kc-step span { grid-area: l; font-family: var(--label); font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; color: #e6d5b1; text-align: center; margin-bottom: 4px; }
+.kc-step .btn { min-height: 46px; min-width: 46px; font-size: 22px; padding: 0; }
+.kc-step b { text-align: center; font-size: 26px; color: #fbf1dc; font-weight: 600; }
+.kc-foot { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.kc-sum { flex: 1; font-size: 14px; color: #eadbbd; }
+.kc-foot .btn { min-height: 48px; padding: 0 22px; font-size: 16px; }
+.kc-result { margin: auto 0; background: var(--parchment, #efe0bf); color: var(--ink); border-radius: 12px; padding: 16px; box-shadow: 0 10px 28px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 10px; }
+.kc-result p { margin: 0; font-size: 15.5px; line-height: 1.45; }
+.kc-verdict { font-weight: 600; }
+.kc-check { font-style: italic; }
+.kc-tally { font-family: var(--label); font-size: 13px; color: #6b5233; }
+.kc-result .btn { align-self: center; min-height: 46px; }
+@media (orientation: landscape) and (max-height: 599px) {
+  .overlay.knotcount { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-auto-rows: min-content; column-gap: 14px; }
+  .kc-glass { grid-column: 1; grid-row: 1 / span 6; min-height: 0; height: calc(100svh - 24px); }
+  .kc-head, .kc-rules, .kc-how, .kc-clock, .kc-steps, .kc-foot, .kc-result { grid-column: 2; }
+}

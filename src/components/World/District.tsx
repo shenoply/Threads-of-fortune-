@@ -18,6 +18,7 @@ import { Dialogue } from './Dialogue';
 import { DustHaze } from '../Atmosphere/DustHaze';
 import { CafeRoom } from '../Cafe/CafeRoom';
 const CafeTable = lazy(() => import('../Cafe/CafeTable').then((m) => ({ default: m.CafeTable })));
+const DominoTable = lazy(() => import('../Cafe/DominoTable').then((m) => ({ default: m.DominoTable })));
 // Malek's grill loads only when you walk in
 const MalekShop = lazy(() => import('../Malek/MalekShop'));
 const ArranLab = lazy(() => import('../ArranLab/ArranLab').then((m) => ({ default: m.ArranLab })));
@@ -512,7 +513,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
-  const [cafe, setCafe] = useState<false | 'chess' | 'tawla'>(false);
+  const [cafe, setCafe] = useState<false | 'chess' | 'tawla' | 'dominoes'>(false);
   const [room, setRoom] = useState(false);
   const [lab, setLab] = useState(false);
   const [malek, setMalek] = useState(false);
@@ -995,7 +996,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       {malek && createPortal(<Suspense fallback={<div className="malek-boot" role="status">Walking over to Malek's…</div>}><MalekShop onLeave={() => setMalek(false)} /></Suspense>, document.body)}
       {talk && !film && <Dialogue npcId="abuhamid" onClose={(m) => { setTalk(false); if (m) setNote(m); }} />}
       {room && createPortal(<CafeRoom onTalk={() => setTalk(true)} onPlay={(g) => { setCafe(g); if (g === 'chess' && unseen('bilgin-chess')) setFilm('bilgin-chess'); }} onLeave={() => { setRoom(false); setTalk(false); setNote(''); }} onFilm={filmReady('abuhamid') ? () => setFilm('abuhamid') : undefined} note={note} onNote={() => setNote('')} />, document.body)}
-      {cafe && <Suspense fallback={null}><CafeTable only={cafe} onClose={(m) => { setCafe(false); if (m) setNote(m); }} onFilm={filmReady('bilgin-chess') ? () => setFilm('bilgin-chess') : undefined} /></Suspense>}
+      {cafe === 'dominoes' && <Suspense fallback={null}><DominoTable regId="tawfiq" onClose={(m) => { setCafe(false); if (m) setNote(m); }} /></Suspense>}
+      {cafe && cafe !== 'dominoes' && <Suspense fallback={null}><CafeTable only={cafe} onClose={(m) => { setCafe(false); if (m) setNote(m); }} onFilm={filmReady('bilgin-chess') ? () => setFilm('bilgin-chess') : undefined} /></Suspense>}
     </div>
   );
 }

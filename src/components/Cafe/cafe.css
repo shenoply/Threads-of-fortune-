@@ -248,3 +248,12 @@
 }
 @media (pointer: coarse) { .cafe-spot::after { content: ''; position: absolute; inset: -4px; } }
 .cafe-pays { color: var(--text-dim); font-size: 14px; margin: 0; text-align: center; }
+
+/* four ways to spend an hour at Bilgin's: chess, tawla, dominoes, or a word with him */
+.cafe-room__acts { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cafe-act { font-size: 14px; padding: 8px 4px; }
+.cafe-act__dom { display: inline-flex; flex-direction: column; width: 13px; height: 24px; border-radius: 3px; background: #f5ecd6; border: 1px solid #6e5536; overflow: hidden; }
+.cafe-act__dom i { flex: 1; position: relative; }
+.cafe-act__dom i + i { border-top: 1.5px solid #3a2a1a; }
+.cafe-act__dom i::after { content: ''; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; background: #1b120b; }
+@media (orientation: landscape) and (max-height: 599px) { .cafe-room__acts { grid-template-columns: 1fr; } }

@@ -16,6 +16,8 @@ import { RoadPanel } from './RoadPanel';
 import { pickArranScene, type ScenePick } from '../../game/systems/arranScenes';
 import { openGuide } from '../Guide/Guide';
 import { ErrandCard } from './ErrandCard';
+import { KnotCount } from '../KnotCount/KnotCount';
+import { countable, knotVerdict } from '../../game/knots';
 import './ArranLab.css';
 
 /**
@@ -115,6 +117,8 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
   const [catalogue, setCatalogue] = useState(false);
   const [activity, setActivity] = useState<ArranActivity | null>(null);
   const [mummy, setMummy] = useState(false);
+  // counting knots on one of your rugs with Arran's brass gauge (game/knots.ts)
+  const [knotRug, setKnotRug] = useState<string | null>(null);
   // this visit's scene: a picture and Arran's opening line, until you look around the lab
   const [scene, setScene] = useState<ScenePick | null>(null);
   const [sceneAsk, setSceneAsk] = useState(false);
@@ -397,6 +401,19 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
                   <div className="arran-tests" data-testid="arran-tests">
                     <small className="dim">{RUGS[rug.typeId]!.material} · {RUGS[rug.typeId]!.age} · {hasLooseThread(rug) ? 'has a loose thread to sample' : 'no loose thread: a sample would need cutting'}</small>
                     {block ? <p className="dim">{block}</p> : TESTS.map((sv) => testButton(rug, sv))}
+                    {!block && countable(rug.typeId) && (() => {
+                      const kc = g.knotCounts?.[rug.uid];
+                      const today = kc?.day === g.day;
+                      return (
+                        <div className={`arran-test ${kc ? 'is-done' : ''}`} key="knots">
+                          <div>
+                            <b>Count the knots</b>
+                            <small>{kc ? knotVerdict(kc, rug.typeId, rug) : 'His brass gauge on the back: knots across and down, against his watch. Free.'}</small>
+                          </div>
+                          <button type="button" className={`btn${kc ? '' : ' primary'}`} onClick={() => { setKnotRug(rug.uid); setSpot('microscope'); audio.sfx('tap'); }} data-testid={`arran-knots-${rug.uid}`}>{today ? 'Your count' : kc ? 'Count again' : 'Free · 30 s'}</button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })()}
@@ -529,6 +546,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
         </div>
       </div>
       {read && <BookReader id={read} onClose={() => setRead(null)} />}
+      {knotRug && (() => { const it = g.inventory.find((i) => i.uid === knotRug); return it ? <KnotCount typeId={it.typeId} keyId={it.uid} where="lab" fakeAge={it.fakeAge} onClose={() => { setKnotRug(null); setSpot(null); }} /> : null; })()}
       {mummy && <MummyStudy onClose={() => { setMummy(false); setActivity((a) => (a === 'mummy_linen' ? 'microscope' : a)); }} />}
       {catalogue && (
         <ArranCatalogue

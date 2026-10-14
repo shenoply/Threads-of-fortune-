@@ -6,13 +6,15 @@ import { Icon } from '../Icon';
 import './cafe.css';
 
 type Pt = [number, number];
-type Game = 'chess' | 'tawla';
+type Game = 'chess' | 'tawla' | 'dominoes';
 const IMG = 'art/cafe/cafe-birdseye-v2.webp';
 /** where things are in the painting (percent across, percent down) */
 export const CAFE_SPOTS = {
   bilgin: [64, 10] as Pt,
   chess: [69, 18] as Pt,
   tawla: [89, 24] as Pt,
+  /** Tawfiq's table, the old tram driver in the white turban, who plays dominoes */
+  dominoes: [74, 49] as Pt,
   door: [50, 85] as Pt,
 };
 
@@ -43,12 +45,14 @@ export function CafeRoom({ onTalk, onPlay, onLeave, onFilm, note, onNote }: {
           <button className="cafe-spot" style={at(CAFE_SPOTS.bilgin)} onClick={onTalk} data-testid="cafe-spot-bilgin"><span>Talk to Bilgin</span></button>
           <button className="cafe-spot is-main" style={at(CAFE_SPOTS.chess)} onClick={() => play('chess')} data-testid="cafe-spot-chess"><span>Chess</span></button>
           <button className="cafe-spot" style={at(CAFE_SPOTS.tawla)} onClick={() => play('tawla')} data-testid="cafe-spot-tawla"><span>Tawla</span></button>
+          <button className="cafe-spot" style={at(CAFE_SPOTS.dominoes)} onClick={() => play('dominoes')} data-testid="cafe-spot-dominoes"><span>Dominoes</span></button>
           <button className="cafe-spot" style={at(CAFE_SPOTS.door)} onClick={onLeave} data-testid="cafe-spot-door"><span>Way out</span></button>
         </div>
       </div>
       <div className="cafe-room__acts">
         <button className="btn cafe-act" onClick={() => play('chess')} data-testid="cafe-play"><b>♞</b>Play chess</button>
         <button className="btn cafe-act" onClick={() => play('tawla')} data-testid="cafe-play-tawla"><b>⚅</b>Play tawla</button>
+        <button className="btn cafe-act" onClick={() => play('dominoes')} data-testid="cafe-play-dominoes"><b className="cafe-act__dom" aria-hidden="true"><i /><i /></b>Dominoes</button>
         <button className="btn cafe-act" onClick={onTalk} data-testid="cafe-hot-bilgin"><b><Icon name="tea" /></b>Talk to Bilgin</button>
       </div>
       {note && <div className="cafe-room__note" data-testid="cafe-room-note"><p>{note}</p><button className="btn small" onClick={onNote}>OK</button></div>}
