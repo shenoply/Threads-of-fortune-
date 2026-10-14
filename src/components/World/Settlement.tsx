@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 // the telegraph counter is opened rarely: loaded when first asked for
 const TelegraphOffice = lazy(() => import('./TelegraphOffice').then((m) => ({ default: m.TelegraphOffice })));
 import { StationBoard } from './StationBoard';
@@ -64,6 +64,7 @@ import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
 import { lowerName } from '../../game/text';
+import { isOpen, type Sys } from '../../game/unlocks';
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 
 /** The small copy of a picture shown at card size (art/x/y.jpg -> art/x/thumbs/y.webp, 320 wide; 640 wide
@@ -77,6 +78,9 @@ const menuGroup = (tid: string) =>
     : /^menu-(people|venues|court|museum|library)/.test(tid) ? 'people'
       : /^menu-(sail|wait)/.test(tid) ? 'leave'
         : 'services';
+
+/** which system a door in a city's streets belongs to (game/unlocks.ts) */
+const actSys = (a?: string): Sys | undefined => !a ? undefined : a === 'guards' || a === 'animals' ? 'caravan' : a.startsWith('house:') ? 'auction' : a.startsWith('venue:') ? 'cabaret' : a === 'palace' ? 'abroad' : a === 'clinic' ? 'clinic' : undefined;
 
 /** Where the town panel was when the map was last taken off screen (another tab, a film): coming
  *  back to the map while still in that town finds the same view (menu or tab, and scroll) again. */
@@ -103,6 +107,8 @@ function EscLayer({ onEsc, children }: { onEsc: () => void; children: ReactNode 
 
 export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town', resume = false }: { id: string; onClose: () => void; onStall: () => void; tab?: SetTab; resume?: boolean }) {
   const g = useGame();
+  // parts of the town not yet in the merchant's life stay out of view (game/unlocks.ts)
+  const on = (k: Sys) => isOpen(g, k);
   const back = resume && townView.id === id ? townView : null;
   const [tab, setTab] = useState<SetTab>(back?.tab ?? initialTab);
   // arriving in a town opens its menu first, Bannerlord-style: the town's picture and what there is
@@ -202,7 +208,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // Escape and the phone's Back: the wait card closes, otherwise the panel is left as its Leave button
   // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
   // the first time you come into a telegraph town: a word on its office, and its tile marked until used
-  const wireWord = useOnce('telegraph', menu && !inCity && !inVenue && !inAuction && !talkTo && !shop && TELEGRAPH_TOWNS.includes(id) && !g.border && !g.journey);
+  const wireWord = useOnce('telegraph', on('abroad') && menu && !inCity && !inVenue && !inAuction && !talkTo && !shop && TELEGRAPH_TOWNS.includes(id) && !g.border && !g.journey);
   const busy = wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
   // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
   useEffect(() => {
@@ -256,10 +262,15 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // the town menu's buttons: each is a big way into a part of this panel (or a screen of its own)
   const people = st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival);
   const venues = venuesIn(id);
-  const menuItems: [string, string, string, () => void, string][] = [
+  // the streets keep only the doors that are open to you; the rest of the town is drawn as before
+  const hideKey = (['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).map((k) => (on(k) ? '1' : '0')).join('');
+  const walkDef = useMemo(() => walk && { ...walk, pois: walk.pois.filter((p) => { const k = actSys(p.action); return !k || hideKey[(['caravan', 'auction', 'abroad', 'cabaret', 'clinic'] as Sys[]).indexOf(k)] === '1'; }) }, [walk, hideKey]);
+  // which town-menu tile, and which place in the streets, belongs to a system still to come
+  const TILE_SYS: Record<string, Sys> = { 'menu-animals': 'caravan', 'menu-guards': 'caravan', 'menu-houses': 'auction', 'menu-sail': 'abroad', 'menu-passport': 'abroad', 'menu-telegraph': 'abroad', 'menu-court': 'abroad', 'menu-venues': 'cabaret', 'menu-finance': 'bank', 'menu-library': 'lab', 'menu-clinic': 'clinic', 'menu-chemist': 'clinic' };
+  const allItems: [string, string, string, () => void, string][] = [
     ...(id === 'giza' ? [['store', 'Open your stall', 'Serve the day\'s buyers', () => { onClose(); onStall(); }, 'menu-stall'] as [string, string, string, () => void, string]] : []),
     ...(id === 'giza' ? [['tea', "Malek's grill", malekOpen(g.world.hour) ? 'Kofta, kebab, tea and road parcels' : 'Open 07:00 to 21:00', () => { onClose(); openMalek(); }, 'menu-malek'] as [string, string, string, () => void, string]] : []),
-    ...(walk ? [['map', 'Walk the streets', walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => setInCity(true), 'menu-walk'] as [string, string, string, () => void, string]] : []),
+    ...(walkDef ? [['map', 'Walk the streets', walkDef.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 3).join(' · '), () => setInCity(true), 'menu-walk'] as [string, string, string, () => void, string]] : []),
     ['hourglass', 'Wait here', 'Let time pass: trouble on the road may move on before you set off', () => setWaitOpen(true), 'menu-wait'],
     ...(hasMarket && id !== 'giza' ? [['tag', (() => { const n = g.inventory.filter((i) => !i.restoringUntil && !i.stored).length; return n ? `Sell your rugs · ${n}` : 'Sell your rugs'; })(), g.inventory.some((i) => !i.restoringUntil && !i.stored) ? 'Local dealers bid on what you carry' : 'None packed: pack rugs at Giza first', () => goTo('market', 'sec-sell'), 'menu-sell'] as [string, string, string, () => void, string]] : []),
     ...(HAMMAMS[id] ? [['tea', HAMMAMS[id].name, `Wash off the road · ${fmt(HAMMAMS[id].cost)}`, () => goTo('town', 'sec-baths'), 'menu-hammam'] as [string, string, string, () => void, string]] : []),
@@ -281,6 +292,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(id === 'cairo' && g.arranVisit?.permitStage ? [['scale', 'The museum store', g.arranVisit.permitStage === 'letter' ? 'Deliver Arran\'s letter to Hamza Effendi' : 'Hamza Effendi has given his permission', () => setCairoPlace('museum'), 'menu-museum'] as [string, string, string, () => void, string]] : []),
     ...(venue ? [['crown', venue.name, royal ? `The court of ${royal.name}` : 'The palace grounds', () => goTo('town', 'sec-court'), 'menu-court'] as [string, string, string, () => void, string]] : []),
   ];
+  const menuItems = allItems.filter((it) => !TILE_SYS[it[4]] || on(TILE_SYS[it[4]]));
 
   return (
     <div ref={rootRef} className={`overlay settlement${menu ? ' menu-open' : ''}`} role="dialog" aria-label={st.name} data-testid="settlement">
@@ -297,7 +309,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         <button className="btn set-menu slim" onClick={() => setMenu(true)} data-testid="town-menu-open">☰ Town</button>
         <span className="set-cash" title="Your money" data-testid="set-cash"><Icon name="coin" />{fmt(g.cash)}</span>
       </div>
-      {ships.length > 0 && tab === 'town' && (
+      {ships.length > 0 && on('abroad') && tab === 'town' && (
         <div className="port-sail" id="sec-sail" data-testid="port-sail">
           <div className="section-label">SAIL FROM {st.name.toUpperCase()}</div>
           <div className="mkt">
@@ -314,7 +326,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {!menu && objLine('panel')}
         <div className="set-sticky">
         <div className="set-tabs" role="tablist">
-          {([['town', 'Town'], ['market', 'Market'], ['animals', 'Animals'], ['guards', 'Guards']] as [SetTab, string][]).map(([k, label]) => (
+          {([['town', 'Town'], ['market', 'Market'], ['animals', 'Animals'], ['guards', 'Guards']] as [SetTab, string][]).filter(([k]) => on('caravan') || (k !== 'animals' && k !== 'guards') || k === tab).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)} data-testid={`tab-${k}`}>{label}</button>
           ))}
         </div>
@@ -325,7 +337,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {tab === 'town' && (<>
         <p className="set-blurb">{st.blurb}</p>
         <TownMoney id={id} />
-        {houses.length > 0 && (
+        {houses.length > 0 && on('auction') && (
           <div className="houses" id="sec-houses" data-testid="auction-houses">
             <div className="section-label">AUCTION HOUSES</div>
             {houses.map((h) => {
@@ -344,7 +356,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {walk && (
           <button className="city-walk" onClick={() => setInCity(true)} data-testid="walk-city">
             <img src={walk.map ? thumb(walk.map) : undefined} alt="" {...lazy} />
-            <span><b>Walk the streets of {st.name}</b><small>{walk.pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 4).join(' · ')}</small></span>
+            <span><b>Walk the streets of {st.name}</b><small>{(walkDef ?? walk).pois.filter((p) => p.kind === 'goto').map((p) => p.name).slice(0, 4).join(' · ')}</small></span>
           </button>
         )}
 
@@ -412,7 +424,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </>
         )}
 
-        {venuesIn(id).length > 0 && (
+        {venuesIn(id).length > 0 && on('cabaret') && (
           <>
             <div className="section-label" id="sec-venues">CABARETS AND THEATRES</div>
             {venuesIn(id).map((v) => {
@@ -441,7 +453,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </>
         )}
 
-        {venue && royal?.royal && (
+        {venue && royal?.royal && on('abroad') && (
           <>
             <div className="section-label" id="sec-court">ROYAL COURT</div>
             <div className="court-card" data-testid="court-card">
@@ -665,7 +677,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           out of that door returns you to the same street, not all the way out to the town panel. */}
       {inCity && walk && (
         <div className="venue-overlay">
-          <Venue def={walk} onLeave={() => setInCity(false)} backLabel={`Back to ${st.name}`} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
+          <Venue def={walkDef!} onLeave={() => setInCity(false)} backLabel={`Back to ${st.name}`} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
             if (a === 'station') { setStation(true); return; }
             if (a === 'palace') { if (venue?.map) setInVenue(true); else { setInCity(false); goTo('town', 'sec-court'); } }
             else if (a.startsWith('venue:')) {

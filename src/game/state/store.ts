@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
+import { migrateOpen, ALL_OPEN } from '../unlocks';
 import { midName, count, lowerName } from '../text';
 import { auctionable } from '../storyRugs';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
@@ -3816,6 +3817,8 @@ export const useGame = create<GameState & Actions>()(
           const underway = pp.day >= 3 || (pp.totalSales ?? 0) >= 3 || pp.missions?.alexandria === 'done' || (!!pp.world && pp.world.at !== 'giza');
           if (underway && !(pp.tipsSeen ?? []).includes('first-hour')) pp.tipsSeen = [...(pp.tipsSeen ?? []), 'first-hour'];
         }
+        // systems now open one at a time (game/unlocks.ts): a save under way keeps everything in view
+        if (version < 23 && p.started) { try { p.tipsSeen = migrateOpen(p as GameState); } catch { p.tipsSeen = [...(p.tipsSeen ?? []), ALL_OPEN]; } }
         if (version < 18) {
           // the old "colour fastness" result was a rub test: rename it and keep it, without a new charge
           const typeOf = (uid: string) => (p.inventory ?? []).find((i) => i.uid === uid)?.typeId;
