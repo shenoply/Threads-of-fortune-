@@ -219,6 +219,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   useDialogEscape(rootRef, () => {
     if (busy) return false;
     if (waitOpen) { setWaitOpen(false); return; }
+    if (menu && moreOpen) { setMoreOpen(false); return; }
     // the town's full page (opened from a menu tile) steps back to the menu, not out of the town;
     // only the menu itself, or a Giza yard, is left for the map or the district
     if (!menu && !yard) { setMenu(true); return; }
@@ -579,72 +580,68 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         const items = menuItems;
         const pic = id === 'giza' ? 'art/world/giza-district.jpg' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.jpg` : null);
         const hh = Math.floor(g.world.hour), mm = Math.floor((g.world.hour % 1) * 60);
+        // the main places of this town, most useful first: the walk has its own banner across the
+        // foot of the picture; three or four more stand under it; the rest wait behind "More in …"
+        const stock = g.inventory.some((i) => !i.restoringUntil && !i.stored);
+        const ill = (g.illnesses ?? []).length > 0;
+        const saleToday = houses.some((h) => saleOn(h.id, g.day));
+        const FIRST = ['menu-stall', 'menu-malek', stock ? 'menu-sell' : 'menu-market', ill ? 'menu-clinic' : '', 'menu-station', 'menu-people', stock ? 'menu-market' : 'menu-sell', saleToday ? 'menu-houses' : '', 'menu-sail', 'menu-venues'].filter(Boolean);
+        const walkIt = items.find((it) => it[4] === 'menu-walk');
+        const next = items.find((it) => it[4] === guide?.tile && it !== walkIt);
+        const picks = [...(next ? [next] : []), ...FIRST.map((t) => items.find((it) => it[4] === t && it !== next)).filter((it): it is typeof items[number] => !!it)].slice(0, walkIt ? 3 : 4);
+        const others = items.filter((it) => it !== walkIt && !picks.includes(it));
+        const tile = ([icon, label, sub, act, tid]: typeof items[number], small = false) => (
+          <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}${small ? ' slim' : ''}${wireWord && tid === 'menu-telegraph' ? ' once-mark' : ''}`} onClick={() => { act(); }} data-testid={tid}>
+            <Icon name={icon} /><span><b>{label}</b>{sub && <small>{sub}</small>}</span>
+          </button>
+        );
+        const all = <button key="menu-all" className="tm-item quiet slim" onClick={() => setMenu(false)} data-testid="menu-all"><Icon name="book" /><span><b>Everything in {st.name}</b><small>Baths, tailors, books, tasks and the rest</small></span></button>;
+        const leave = (slim = false) => <button key="menu-leave" className={`tm-item leave${slim ? ' slim' : ''}`} onClick={onClose} data-testid="menu-leave"><Icon name="map" /><span><b>Leave {st.name}</b><small>Back to the map</small></span></button>;
         return (
-          <div className="town-menu" role="dialog" aria-label={`${st.name}: what to do`} data-testid="town-menu">
-            {pic ? <img className="tm-art" src={pic} alt="" draggable={false} /> : <div className="tm-art tm-map"><MapThumb x={st.x} y={st.y} zoom={zoom} /></div>}
-            <div className="tm-shade" />
-            {objLine('menu')}
-            <div className="tm-body">
+          <div className={`town-menu tm-scene${moreOpen ? ' tm-more-open' : ''}`} role="dialog" aria-label={`${st.name}: what to do`} data-testid="town-menu">
+            <div className={`tm-pic${pic ? '' : ' tm-pic-map'}`}>
+              {pic ? <img className="tm-art" src={pic} alt="" draggable={false} /> : <div className="tm-art tm-map"><MapThumb x={st.x} y={st.y} zoom={2.4} /></div>}
+              <div className="tm-shade" />
+              {objLine('menu')}
               <div className="tm-title">
                 <small>{st.region.toUpperCase()} · {st.kind === 'home' ? 'YOUR STALL' : st.kind.toUpperCase()}</small>
                 <h2>{st.name}</h2>
                 <span className="tm-when">{dateLine(g.day)} · {String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</span>
               </div>
-              <p className="tm-blurb">{st.blurb}</p>
+            </div>
+            <div className="tm-body">
+              {!moreOpen && walkIt && <div className="tm-list tm-walk">{tile(walkIt)}</div>}
+              {!moreOpen && <p className="tm-blurb">{st.blurb}</p>}
               {note && <p className="tm-note">{note}</p>}
               {wireWord && <p className="tm-note once-line" role="note" data-testid="once-telegraph">{ONCE.telegraph.text}</p>}
-              {(() => {
-                const tile = ([icon, label, sub, act, tid]: typeof items[number], small = false) => (
-                  <button key={tid} className={`tm-item ${guide?.tile === tid ? 'guide' : ''}${small ? ' slim' : ''}${wireWord && tid === 'menu-telegraph' ? ' once-mark' : ''}`} onClick={() => { act(); }} data-testid={tid}>
-                    <Icon name={icon} /><span><b>{label}</b>{sub && <small>{sub}</small>}</span>
-                  </button>
-                );
-                const all = <button key="menu-all" className="tm-item quiet slim" onClick={() => setMenu(false)} data-testid="menu-all"><Icon name="book" /><span><b>Everything in {st.name}</b><small>Baths, tailors, books, tasks and the rest</small></span></button>;
-                const leave = <button key="menu-leave" className="tm-item leave" onClick={onClose} data-testid="menu-leave"><Icon name="map" /><span><b>Leave {st.name}</b><small>Back to the map</small></span></button>;
-                // walking the streets comes first, on a line of its own; then the objective's place
-                const walkIt = items.find((it) => it[4] === 'menu-walk');
-                const walkRow = walkIt && <div className="tm-list tm-walk">{tile(walkIt)}</div>;
-                const next = items.find((it) => it[4] === guide?.tile && it !== walkIt);
-                const rest = items.filter((it) => it !== next && it !== walkIt);
-                // a small town's few places fit as they are
-                if (items.length <= 6) return <>{walkRow}<div className="tm-list">{next && tile(next)}{rest.map((it) => tile(it))}{all}{leave}</div></>;
-                // a city's many (Cairo has eighteen) come in a few headed groups, the trade first, so
-                // the screen is not one wall of buttons; the objective's place, if any, leads the lot
-                // the places most visits are for come first; everything else waits behind one button
-                const MAIN = ['menu-stall', 'menu-malek', 'menu-market', 'menu-sell', 'menu-walk', 'menu-station', 'menu-people', 'menu-clinic'];
-                const main = rest.filter((it) => MAIN.includes(it[4])).sort((a, b) => MAIN.indexOf(a[4]) - MAIN.indexOf(b[4]));
-                const others = rest.filter((it) => !MAIN.includes(it[4]));
-                if (!moreOpen) return (
-                  <div className="tm-groups" data-testid="town-menu-groups">
-                    {walkRow}
-                    {next && <div className="tm-list tm-next">{tile(next)}</div>}
-                    <div className="tm-list">{main.map((it) => tile(it))}</div>
-                    <div className="tm-list">
-                      <button className="tm-item quiet slim" onClick={() => setMoreOpen(true)} data-testid="menu-more"><Icon name="book" /><span><b>More in {st.name}</b><small>{others.length} more: {others.slice(0, 3).map((it) => it[1].split(' · ')[0]).join(', ')}…</small></span></button>
-                      {leave}
-                    </div>
+              {!moreOpen ? (
+                <div className="tm-groups" data-testid="town-menu-groups">
+                  <div className={`tm-list tm-main tm-main--${picks.length}`}>{picks.map((it) => tile(it))}</div>
+                  <div className="tm-list tm-foot">
+                    <button className="tm-item quiet slim" onClick={() => setMoreOpen(true)} data-testid="menu-more"><Icon name="book" /><span><b>More in {st.name}</b><small>{others.length ? `${others.slice(0, 3).map((it) => it[1].split(' · ')[0]).join(', ')}${others.length > 3 ? '…' : ''}` : 'Everything else'}</small></span></button>
+                    {leave(true)}
                   </div>
-                );
-                return (
-                  <div className="tm-groups" data-testid="town-menu-groups">
-                    {walkRow}
-                    {next && <div className="tm-list tm-next">{tile(next)}</div>}
-                    {MENU_GROUPS.map(([gid, head]) => {
-                      const mine = rest.filter((it) => menuGroup(it[4]) === gid);
-                      if (!mine.length && gid !== 'leave') return null;
-                      return (
-                        <section key={gid} className={`tm-group tm-group--${gid}`} aria-label={head}>
-                          <h3>{head}</h3>
-                          <div className="tm-list">
-                            {mine.map((it) => tile(it, gid !== 'trade'))}
-                            {gid === 'leave' && <>{all}{leave}</>}
-                          </div>
-                        </section>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                </div>
+              ) : (
+                <div className="tm-groups" data-testid="town-menu-groups">
+                  <button className="tm-back" onClick={() => setMoreOpen(false)} data-testid="menu-back">⟵ Back to {st.name}</button>
+                  {walkIt && <div className="tm-list tm-walk">{tile(walkIt)}</div>}
+                  {next && <div className="tm-list tm-next">{tile(next)}</div>}
+                  {MENU_GROUPS.map(([gid, head]) => {
+                    const mine = items.filter((it) => it !== walkIt && it !== next && menuGroup(it[4]) === gid);
+                    if (!mine.length && gid !== 'leave') return null;
+                    return (
+                      <section key={gid} className={`tm-group tm-group--${gid}`} aria-label={head}>
+                        <h3>{head}</h3>
+                        <div className="tm-list">
+                          {mine.map((it) => tile(it, gid !== 'trade'))}
+                          {gid === 'leave' && <>{all}{leave()}</>}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         );
