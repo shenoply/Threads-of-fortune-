@@ -48,7 +48,36 @@
 }
 }
 
+/* the small rewards (feel.ts floatSale, stampOn, starTick): one layer over everything, never taking a tap */
+.ff-layer { position: fixed; inset: 0; pointer-events: none; z-index: 9000; overflow: hidden; }
+.ff-layer > * { position: absolute; translate: -50% -50%; pointer-events: none; white-space: nowrap; }
+/* a sale: the price in ink-dark brass figures, rising and fading */
+.ff-sale { font-family: var(--label, serif); font-weight: 700; font-size: 17px; letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  color: #f3dfa6; padding: 2px 9px; border-radius: 4px; background: rgba(36, 23, 12, .82); border: 1px solid rgba(201, 151, 74, .7);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35); animation: ff-sale 1.7s cubic-bezier(.2,.7,.3,1) forwards; }
+.ff-sale.ff-big { font-size: 21px; color: #ffe7a8; border-color: #e0b25c; border-width: 1.5px;
+  background: linear-gradient(180deg, rgba(74, 48, 18, .92), rgba(36, 23, 12, .92)); box-shadow: 0 0 0 3px rgba(201,151,74,.18), 0 3px 12px rgba(0,0,0,.45); }
+.ff-sale.ff-won { color: var(--ink, #2b1b0d); background: rgba(239, 224, 191, .95); border-color: #8b5a2b; }
+@keyframes ff-sale { 0% { opacity: 0; translate: -50% -30%; scale: .9; } 12% { opacity: 1; translate: -50% -50%; scale: 1; }
+  70% { opacity: 1; } 100% { opacity: 0; translate: -50% -180%; } }
+/* a goal reached: a round seal pressed down, held, then lifted */
+.ff-stamp { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; rotate: -14deg;
+  border: 3px double #9b2a17; color: #9b2a17; background: rgba(243, 230, 200, .9); box-shadow: 0 1px 4px rgba(0,0,0,.4), inset 0 0 0 2px rgba(155,42,23,.25);
+  font-family: var(--label, serif); font-weight: 800; font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+  animation: ff-stamp 1.25s cubic-bezier(.3,.6,.3,1) forwards; }
+.ff-stamp span { border-top: 1px solid currentColor; border-bottom: 1px solid currentColor; padding: 1px 2px; line-height: 1.1; }
+.ff-stamp.ff-brass { border-color: #8a5a14; color: #7a4c0c; background: radial-gradient(circle at 40% 35%, #f6dc95, #d4a14a 70%, #a8762c); }
+@keyframes ff-stamp { 0% { opacity: 0; scale: 1.9; } 12% { opacity: .95; scale: .94; } 18% { scale: 1; } 78% { opacity: .95; scale: 1; } 100% { opacity: 0; scale: 1.04; } }
+/* reputation up: a star off the chip, and the chip nods */
+.ff-star { color: var(--brass, #c9974a); font-weight: 700; font-size: 14px; text-shadow: 0 1px 3px rgba(0,0,0,.6); animation: ff-star 1.1s ease-out forwards; }
+@keyframes ff-star { 0% { opacity: 0; scale: .4; } 20% { opacity: 1; scale: 1.3; } 40% { scale: 1; } 75% { opacity: 1; } 100% { opacity: 0; translate: -50% -95%; } }
+.hud-chip.ff-tick { animation: ff-tick .5s ease-out; }
+@keyframes ff-tick { 30% { scale: 1.08; } }
+
 @media (prefers-reduced-motion: reduce) {
+  .ff-sale, .ff-stamp, .ff-star { animation: ff-still 1.6s linear forwards; }
+  .hud-chip.ff-tick { animation: none; }
+  @keyframes ff-still { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
   .overlay, .modal-card, .tac-sheet, .tac-sheet-card, .radio-sheet, .overlay.settlement, .town-menu,
   .stall-sheet, .malek-sheet, .district-sheet, .district-note { animation: none !important; }
   :where(button, .btn, [role=button]) { transition: none; }

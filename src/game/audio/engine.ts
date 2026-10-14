@@ -381,6 +381,26 @@ class AudioEngine {
     src.stop(t + 0.4);
   }
 
+  /** A small brass bell, the kind on a shop counter: a struck partial or three, a long soft ring. */
+  private till(delay: number, gain = 0.05) {
+    const c = this.ctx!;
+    const t = c.currentTime + delay;
+    const base = 1650 + Math.random() * 120;
+    [[1, 1, 1.3], [2.76, 0.45, 0.7], [5.4, 0.2, 0.35]].forEach(([m, a, len]) => {
+      const o = c.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = base * m;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain * a, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g).connect(this.gains.sfx);
+      o.start(t);
+      o.stop(t + len + 0.05);
+    });
+  }
+  private coinsAt = 0;
+
   sfx(name: string) {
     // the important moments also buzz on a phone that can (feel.ts), with or without sound
     buzzFor(name);
@@ -403,6 +423,10 @@ class AudioEngine {
         this.noise(0.25, d, { type: 'highpass', f: 2500, gain: 0.22, attack: 0.05 });
         break;
       case 'coins': {
+        // one handful at a time: a sale and the purse watching it can both ask for the same coins
+        const now = performance.now();
+        if (now - this.coinsAt < 400) break;
+        this.coinsAt = now;
         const n = 3 + Math.floor(Math.random() * 3);
         for (let i = 0; i < n; i++) this.coin(i * (0.05 + Math.random() * 0.07), 0.09);
         break;
@@ -476,6 +500,16 @@ class AudioEngine {
       }
       case 'sold':
         this.sfx('coins');
+        break;
+      case 'soldBig':
+        // a good sale: the coins, then the counter bell
+        this.sfx('coins');
+        this.till(0.18);
+        break;
+      case 'stamp':
+        // an ink seal pressed onto paper: a soft low thud and the slap of the page
+        this.noise(0.16, d, { type: 'lowpass', f: 170, gain: 0.5, attack: 0.003 });
+        this.noise(0.05, d, { type: 'bandpass', f: 900, q: 1.2, gain: 0.12, attack: 0.002 });
         break;
     }
   }
