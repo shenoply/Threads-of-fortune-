@@ -10,6 +10,7 @@ import { Icon } from '../Icon';
 import { PersonCameo } from '../People/Person';
 import { personFor } from '../../data/people';
 import './customers.css';
+import { Fold } from '../Fold/Fold';
 import { Cutscene } from '../Malek/Cutscene';
 import { STORY_FILM } from '../Malek/storyFilm';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
@@ -41,12 +42,18 @@ export function Customers() {
     <div className="customers" data-testid="customers">
       <FilmShelf />
       {(g.buyersSeen?.length ?? 0) < 3 ? <p className="cust-goal" data-testid="cust-goal">Tap a buyer to open their card · {g.buyersSeen?.length ?? 0} of 3 opened</p> : <p className="cust-intro">Tap anyone to see what they buy and spend.</p>}
-      {groups.map((gr) => (
-        <section key={gr.title}>
-          <div className="section-label">{gr.title.toUpperCase()}</div>
+      {groups.map((gr, gi) => {
+        const ids = gr.ids.filter((id) => BUYERS[id]);
+        const metN = ids.filter((id) => (g.relationships[id]?.visits ?? 0) > 0).length;
+        const isLocked = (id: string) => g.reputation < unlockOf(id) || (!ROYALS.includes(id) && !SPECIAL_BUYERS.includes(id) && rankOf(g).idx < (CELEB_IDS.includes(id) ? 2 : rankNeeded(id)));
+        const lockedN = ids.filter(isLocked).length;
+        const when = gr.when.split(',')[0];
+        return (
+        <Fold key={gr.title} id={`pr-buyers-${gi}`} testid={`cust-group-${gi}`} title={gr.title} attention={gi === 0 && (g.buyersSeen?.length ?? 0) < 3}
+          gist={metN ? `${metN} of ${ids.length} met` : lockedN === ids.length ? when.charAt(0).toLowerCase() + when.slice(1) : `${ids.length} · none met yet`}>
           <p className="cust-note cust-lines"><span><Icon name="tag" className="cust-li" />{gr.buys}</span><span><Icon name="calendar" className="cust-li" />{gr.when}</span></p>
           <div className="cust-grid">
-            {gr.ids.filter((id) => BUYERS[id]).map((id) => {
+            {ids.map((id) => {
               const b = BUYERS[id];
               const need = unlockOf(id);
               const rankShort = !ROYALS.includes(id) && !SPECIAL_BUYERS.includes(id) && rankOf(g).idx < (CELEB_IDS.includes(id) ? 2 : rankNeeded(id));
@@ -62,8 +69,9 @@ export function Customers() {
               );
             })}
           </div>
-        </section>
-      ))}
+        </Fold>
+        );
+      })}
       {open && BUYERS[open] && (
         <BuyerCard
           id={open}

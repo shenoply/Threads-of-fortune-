@@ -1,0 +1,51 @@
+/* a long section folded into one row: name · gist ›, opening in place */
+.fold { border: 1px solid var(--line, rgba(201,150,72,.28)); border-radius: 6px; background: #170f08; }
+.fold + .fold { margin-top: 6px; }
+.fold-row { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 6px 12px; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+.fold-row::-webkit-details-marker { display: none; }
+.fold-row > b { flex: none; font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--parchment, #f1e3c4); }
+.fold-gist { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--text-dim, #b39d7b); }
+.fold-gist::before { content: '·'; margin-right: 6px; color: var(--brass, #c9974a); }
+.fold-chev { flex: none; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--brass-hi, #e7bd6e); border-bottom: 2px solid var(--brass-hi, #e7bd6e); transform: rotate(-45deg); transition: transform .15s; }
+.fold[open] > .fold-row .fold-chev { transform: rotate(45deg); }
+.fold[open] > .fold-row { border-bottom: 1px solid var(--line, rgba(201,150,72,.28)); }
+.fold-new > .fold-row > b::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 6px; vertical-align: middle; border-radius: 50%; background: var(--brass-hi, #e7bd6e); }
+.fold-body { padding: 8px 12px 12px; }
+.fold-body > .section-label:first-child, .fold-body > .cs-label:first-child { margin-top: 0; }
+/* the goal in front of you now, under the summary on Me and Progress */
+.cur-goal { display: grid; gap: 2px; padding: 8px 12px; border: 1px solid var(--line-strong, rgba(201,150,72,.5)); border-radius: 6px; background: linear-gradient(180deg, #21160c, #160e07); }
+.cur-goal small { font-family: var(--label); font-size: 12px; letter-spacing: .08em; color: var(--brass, #c9974a); }
+.cur-goal b { font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--parchment, #f1e3c4); }
+.cur-goal span { font-size: 14px; line-height: 1.3; color: var(--text-dim, #b39d7b); }
+.cur-goal .bar { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: #2a1c10; overflow: hidden; }
+.cur-goal .bar em { display: block; height: 100%; background: #e8b85a; }
+/* the top of Progress: rank, worth, reputation, next rank and the goal now, in one card */
+.standing { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line-strong, rgba(201,150,72,.5)); border-radius: 6px; background: linear-gradient(180deg, #1d130b, #140d07); }
+.standing .rank-row { align-items: flex-start; gap: 10px; }
+.standing .rank-row > div:first-child { flex: 1; min-width: 0; }
+.standing .rank-row b { font-size: 19px; line-height: 1.15; }
+.standing .rank-row .worth small[data-testid=net-worth-debts] { letter-spacing: 0; font-size: 12px; max-width: 140px; margin-left: auto; }
+.standing .rank-next { font-size: 14px; gap: 4px; }
+.standing .cur-goal { border: 0; border-top: 1px solid var(--line, rgba(201,150,72,.28)); border-radius: 0; background: none; padding: 6px 0 0; }
+.fold .house { border-top: 0; padding-top: 0; }
+.merchant > .fold + .fold, .customers > .fold + .fold { margin-top: 0; }
+.ledger-sub { margin: 0 0 8px; color: var(--text-dim, #b39d7b); font-size: 14px; }
+[data-testid=ledger] > .fold { margin-top: 8px; }
+.merchant > .standing { margin-bottom: 14px; } /* the sticky tabs paint 24px of night above themselves */
+/* buyers in a folded group: four to a row, smaller faces */
+.fold .cust-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.fold .cust { padding: 6px 2px; gap: 2px; }
+.fold .cust img, .fold .cust-cameo { width: 48px; height: 48px; }
+.fold .cust-cameo svg { width: 48px; height: 48px; }
+.fold .cust b { font-size: 13.5px; }
+.fold .cust small { font-size: 12px; line-height: 1.2; }
+.fold .cust-lines { margin: 0 0 8px; }
+.charsheet .fold-body { display: grid; gap: 6px; }
+.charsheet .fold-body > .cs-skill { width: 100%; }
+/* the Ledger page under Progress: its numbers three to a row, so the folded rows show on the first screen */
+.merchant > [data-testid=ledger] { padding: 0; }
+.merchant [data-testid=ledger] > .tiles { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.merchant [data-testid=ledger] > .tiles .tile { padding: 6px 8px; min-width: 0; }
+.merchant [data-testid=ledger] > .tiles .tile small { font-size: 11.5px; letter-spacing: .03em; }
+.merchant [data-testid=ledger] > .tiles .tile b { font-size: 18px; }
+[data-testid=ledger] > .section-label { margin: 12px 0 6px; }
