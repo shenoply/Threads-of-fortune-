@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 import './feel.css';
 import { installImageFade } from './game/feel';
+import { installRewards } from './game/rewards';
 import { BOOT_ART, BOOT_LATER } from './game/bootArt';
 import { loadWorldMap } from './components/World/Campaign';
 
@@ -13,6 +14,8 @@ import { loadWorldMap } from './components/World/Campaign';
 installSaveGuard();
 // mark pictures as they arrive so the big ones fade in (src/feel.css)
 installImageFade();
+// the coins, seals and stars on the moments that matter (src/game/rewards.ts)
+installRewards();
 
 // keep the pictures and sounds on the phone after the first visit (public/sw.js)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
