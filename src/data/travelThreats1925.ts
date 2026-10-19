@@ -188,7 +188,7 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "delay"
     ],
     "historicalNote": "Tribal bands in the Lur and Kurdish country of western Persia raided the caravan roads in the early 1920s, while Reza Khan's new army was disarming the tribes. A game category for such bands, not a label for Lurs or Kurds generally.",
-    "leaderImage": "art/travel-threats/iraq-border-smuggler-brigands-leader.jpg",
+    "leaderImage": "art/travel-threats/zagros-raiders-leader.jpg",
     "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.jpg"
   }
 ] as TravelThreat[];
