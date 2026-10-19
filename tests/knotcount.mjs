@@ -59,7 +59,7 @@ try {
   const h0 = await st('s.world.hour');
   await p.click('[data-testid=arran-knots-kc-blue]');
   await p.waitForSelector('[data-testid=knotcount]');
-  check((await p.locator('.kc-rules').textContent()).includes('brass window'), 'rules line at the top');
+  check((await p.locator('.kc-rules').textContent()).includes('one inch'), 'rules line at the top');
   await p.screenshot({ path: `${S}/kc-ready.png` });
   const lab = await count({ shot: `${S}/kc-counting.png` });
   check(lab.tapped === lab.A, `tapping the gold row counts its knots (${lab.tapped} of ${lab.A})`);

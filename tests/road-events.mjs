@@ -55,7 +55,7 @@ check(!(await has('[data-testid=road-event]')), 'the card goes once a choice is 
 check(after.water < before.water, `sharing water costs water (${before.water} → ${after.water})`);
 check(after.journal.some((t) => /pilgrims/.test(t) && /blesses/.test(t)), 'the outcome is written in the journal');
 flash = (await p.locator('[data-testid=road-flash]').textContent().catch(() => '')) || '';
-check(/blesses/.test(flash), `the outcome shows as a notice (${flash.slice(0, 60)})`);
+check(/blesses|skins/.test(flash), `the outcome shows as a notice (${flash.slice(0, 60)})`);
 
 // 3. a card left alone: settles with its default and goes, the caravan never stopping
 const c0 = await G();

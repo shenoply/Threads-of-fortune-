@@ -71,3 +71,6 @@
 .tm-scene .tm-foot .tm-item.slim small { display: -webkit-box; -webkit-line-clamp: 1; font-size: 11.5px; }
 .tm-scene .tm-foot .tm-item { min-height: 50px; }
 .tm-scene .tm-back { justify-self: start; background: none; border: 0; padding: 4px 2px; font-family: var(--label); font-size: 13px; letter-spacing: .06em; color: #d9a55a; }
+/* the picture takes whatever the choices leave, so nothing is left empty at the foot of the screen */
+.tm-scene:not(.tm-more-open) .tm-pic { flex: 1 1 auto; max-height: none; }
+.tm-scene:not(.tm-more-open) .tm-body { flex: 0 0 auto; }

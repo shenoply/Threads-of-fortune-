@@ -2987,7 +2987,7 @@ body.travelling .world-hud { display: none; }
 .family-debt .fd-week { display: block; margin: 4px 0 2px; color: #f0c86a; }
 .dayone p.dayone-debt { font-style: normal; color: var(--parchment, #ead9b5); margin: -14px auto 24px; max-width: 30em; font-size: 15px; line-height: 1.4; }
 /* a happening on the road: a longer line wraps and stays a little longer */
-.road-flash.long { border-radius: 10px; align-items: flex-start; width: max-content; max-width: min(420px, calc(100% - 32px)); animation: flashIn .25s ease, flashOut .6s ease 6.9s forwards; }
+.road-flash.long { border-radius: 10px; align-items: flex-start; width: max-content; max-width: min(420px, calc(100% - 32px)); animation: flashIn .25s ease, flashOut .6s ease 4.4s forwards; }
 .road-flash.long span { white-space: normal; line-height: 1.3; }
 /* a quick choice on the road: the caravan walks on while it waits; the sand line runs down beside it */
 .wc-col.road-event { position: relative; border: 1px solid #8a6a32; background: linear-gradient(180deg, #24180c, #1a1109); border-radius: 6px; padding: 8px 10px 10px; animation: reIn .3s ease; overflow: hidden; }

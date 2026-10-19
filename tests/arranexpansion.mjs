@@ -145,7 +145,7 @@ try {
   if (await has('food-go')) await p.click('[data-testid=food-go]');
   if (!(await has('pass-card')) && (await has('travel'))) await p.click('[data-testid=travel]');
   // the caravan walks to the narrows; the card comes up there, part way along
-  for (let i = 0; i < 120 && !(await has('pass-card')); i++) { if (await has('speed-4')) await p.click('[data-testid=speed-4]').catch(() => {}); for (const id of ['close-stall', 'march-on']) if (await has(id)) await p.click(`[data-testid=${id}]`).catch(() => {}); await p.waitForTimeout(500); }
+  for (let i = 0; i < 120 && !(await has('pass-card')); i++) { for (const id of ['clash-auto', 'clash-continue', 'clash-over', 'encounter-continue', 'road-flash-act']) if (await has(id)) await p.click(`[data-testid=${id}]`, { timeout: 2000 }).catch(() => {}); if (await has('speed-4')) await p.click('[data-testid=speed-4]', { timeout: 2000 }).catch(() => {}); for (const id of ['close-stall', 'march-on']) if (await has(id)) await p.click(`[data-testid=${id}]`).catch(() => {}); await p.waitForTimeout(500); }
   if (await has('pass-card')) {
     await p.screenshot({ path: `${S}/x-${tag}-pass.png` });
     console.log('   kit:', await p.locator('[data-testid=pass-kit]').textContent().catch(() => 'none'));

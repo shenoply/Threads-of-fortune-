@@ -38,3 +38,10 @@
   .kc-glass { grid-column: 1; grid-row: 1 / span 6; min-height: 0; height: calc(100svh - 24px); }
   .kc-head, .kc-rules, .kc-how, .kc-clock, .kc-steps, .kc-foot, .kc-result { grid-column: 2; }
 }
+
+/* the glass fills the screen; the words stay short */
+.kc-rules { font-size: 13.5px; line-height: 1.35; margin: 0; }
+.kc-glass { min-height: 0; }
+.kc-glass canvas { width: 100% !important; height: auto !important; max-height: 58vh; object-fit: contain; }
+.kc-glass { flex: 0 0 auto; }
+@media (orientation: portrait) { .overlay.knotcount { justify-content: center; } }

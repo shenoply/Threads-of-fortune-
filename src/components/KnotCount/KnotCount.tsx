@@ -133,18 +133,21 @@ export function KnotCount({ typeId, keyId, where, fakeAge, onClose }: KnotCountP
       const x = ox + k * cw, y = oy + r * ch;
       const col = colours?.[r + 1]?.[k + 1] ?? pal[Math.floor(hash01(`${keyId}:${Math.floor((r + 3) / 3)}:${Math.floor((k + 3) / 4)}`, 1) * pal.length)];
       const j = (n: number) => (hash01(`${keyId}:${r}:${k}`, n) - 0.5);
-      const lw = cw * (0.25 + j(2) * 0.04), lh = ch * (0.4 + j(3) * 0.06);
-      const cx = x + cw / 2 + j(4) * cw * 0.08, cy = y + ch / 2 + j(5) * ch * 0.08;
-      // a knot seen from the back: two lobes side by side, round the pair of warps
-      for (const side of [-1, 1]) {
-        const lx = cx + side * cw * 0.22;
-        const grd = g.createRadialGradient(lx - lw * 0.3, cy - lh * 0.35, lh * 0.1, lx, cy, lh * 1.1);
-        grd.addColorStop(0, shade(col.startsWith('#') ? col : '#888888', 1.25));
-        grd.addColorStop(0.6, col);
-        grd.addColorStop(1, shade(col.startsWith('#') ? col : '#888888', 0.62));
-        g.fillStyle = grd;
-        g.beginPath(); g.ellipse(lx, cy, lw, lh, 0, 0, Math.PI * 2); g.fill();
-      }
+      // a knot seen from the back: a small flat block of wool with the warp line down its middle,
+      // packed close to its neighbours like the back of a real rug
+      const base = col.startsWith('#') ? col : '#888888';
+      const kw = cw * (0.86 + j(2) * 0.05), kh = ch * (0.8 + j(3) * 0.06);
+      const kx = x + (cw - kw) / 2 + j(4) * cw * 0.04, ky = y + (ch - kh) / 2 + j(5) * ch * 0.04;
+      const grd = g.createLinearGradient(kx, ky, kx, ky + kh);
+      grd.addColorStop(0, shade(base, 1.12));
+      grd.addColorStop(1, shade(base, 0.82));
+      g.fillStyle = grd;
+      g.beginPath();
+      if (typeof (g as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect === 'function') g.roundRect(kx, ky, kw, kh, Math.min(kw, kh) * 0.28); else g.rect(kx, ky, kw, kh);
+      g.fill();
+      g.strokeStyle = shade(base, 0.55);
+      g.lineWidth = Math.max(0.8, cw * 0.05);
+      g.beginPath(); g.moveTo(kx + kw / 2, ky + kh * 0.18); g.lineTo(kx + kw / 2, ky + kh * 0.82); g.stroke();
     }
     // the dim round the window, and the brass gauge
     g.fillStyle = 'rgba(20,12,6,.62)';
@@ -212,8 +215,7 @@ export function KnotCount({ typeId, keyId, where, fakeAge, onClose }: KnotCountP
         <span className="kc-rug">{t.name}{where === 'lab' ? ' · at Arran\'s bench' : ''}</span>
         <button className="btn small kc-x" onClick={onClose} aria-label="Leave the count" data-testid="kc-close">✕</button>
       </div>
-      <p className="kc-rules"><b>One inch of the back under the brass window.</b> Count the knots in the gold row and the blue column. Within one in twenty of the true count, and you know what the rug is.</p>
-      <p className="kc-how"><b>How to play:</b> tap each knot in the gold row, then each in the blue column (the knot where they cross is already marked), or set the numbers with − and +. Press Done when you are sure.</p>
+      <p className="kc-rules"><b>Count the knots in one inch of the back.</b> Tap each knot in the gold row and the blue column, or use − and +. Close enough, and you know what the rug is.</p>
       {phase !== 'done' && (
         <>
           <div className="kc-clock" aria-label={`${Math.ceil(left)} seconds left`} data-testid="kc-clock"><i style={{ width: `${(left / SECONDS) * 100}%` }} className={left < 6 ? 'low' : ''} /><span>{phase === 'count' ? `${Math.ceil(left)} s` : `${SECONDS} seconds`}</span></div>

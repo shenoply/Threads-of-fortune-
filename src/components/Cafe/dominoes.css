@@ -64,3 +64,10 @@
   .dm-hand { grid-column: 1; grid-row: 3; min-height: 70px; }
   .dm-mine { width: 34px; }
 }
+
+/* the table holds the line at a size you can read, and sits in the middle of the screen */
+.dm-body { justify-content: center; }
+.dm-felt { flex: 0 1 auto; min-height: 0; max-height: 62vh; }
+.dm-line { height: auto; max-height: 58vh; }
+.dm-rules { text-align: center; font-size: 13px; color: #d9c7a2; }
+.dm-mine { flex-basis: 54px; width: 54px; }

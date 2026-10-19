@@ -66,7 +66,7 @@ try {
 
   // ── Giza: Tawfiq, for 5 piastres ──
   await p.click('[data-testid=cafe-play-dominoes]'); await p.waitForSelector('[data-testid=domino-table]');
-  check((await p.locator('[data-testid=domino-rules]').textContent()).includes('Block game'), 'rules line at the top');
+  check((await p.locator('[data-testid=domino-rules]').textContent()).includes('open end'), 'rules line at the top');
   await p.screenshot({ path: `${S}/dom-sit.png` });
   const sim = await simulate('tawfiq');
   const c0 = await st('s.cash'), t0 = await st('s.world.hour * 60');

@@ -75,6 +75,8 @@ try {
   await p.click('[data-testid=act-c_accept]'); await p.waitForTimeout(400);
   await p.screenshot({ path: `${S}/cohen-${tag}-promise.png` });
   await p.locator('[data-testid="rug-red-medina"]').first().click(); await p.waitForTimeout(600);
+  // Saffron may be asleep on the rug: lift her off and show it again
+  if (await p.locator('[data-testid=act-saffron_move]').count()) { await p.click('[data-testid=act-saffron_move]'); await p.waitForTimeout(400); await p.locator('[data-testid="rug-red-medina"]').first().click(); await p.waitForTimeout(600); }
   await p.screenshot({ path: `${S}/cohen-${tag}-check.png` });
   await p.click('[data-testid=act-c_leave]').catch(() => {}); await p.waitForTimeout(500);
   if (await has('next-visit')) await p.click('[data-testid=next-visit]');

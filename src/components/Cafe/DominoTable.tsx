@@ -40,7 +40,7 @@ function TileG({ a, b, x, y, v, cls }: { a: number; b: number; x: number; y: num
 // runs left and turns up, so the line snakes across the table and the tiles already down never move ──
 // half the table's width, in tile halves: as many as fit at a comfortable size on this screen
 const UNIT = 36;
-const halfFor = (w: number) => Math.max(3.2, Math.min(6.5, w / (2 * UNIT) - 1.4));
+const halfFor = (w: number) => Math.max(3.2, Math.min(3.6, w / (2 * UNIT) - 1.4));
 interface Spot { x: number; y: number; v: boolean; a: number; b: number }
 type Arm = { x: number; y: number; dir: 1 | -1 };
 function stepArm(h: Arm, near: number, far: number, turn: 1 | -1, HALF: number): { spot: Spot; next: Arm } {
@@ -194,8 +194,7 @@ export function DominoTable({ regId, onClose }: { regId: string; onClose: (note?
     <div className="overlay cafe-overlay at-dominoes" data-testid="domino-table" style={TABLE_BG}>
       <Head title={`Dominoes with ${reg.name}`} stake={stake} onQuit={quit} turn={turn} you={youSeat} him={himSeat} />
       <div className="dm-body">
-        <p className="dm-rules" data-testid="domino-rules"><b>Block game, double-six.</b> Match a number at either open end. First to lay his last tile wins; if both are stuck, the lighter hand wins.</p>
-        <p className="dm-how"><b>How to play:</b> tap a tile that glows; if it fits both ends, tap the end. When nothing fits, knock.</p>
+        <p className="dm-rules" data-testid="domino-rules"><b>Match an open end.</b> First to lay his last tile wins. Tap a glowing tile; nothing fits, knock.</p>
         <div className="dm-him" aria-label={`${reg.name}'s tiles`} data-testid="domino-him">
           {Array.from({ length: hand ? hand.him.length : 7 }, (_, k) => <span key={k} className="dm-back" />)}
         </div>

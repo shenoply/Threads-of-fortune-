@@ -251,9 +251,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const flashT = useRef<number>(0);
   const say = (text: string, act?: { label: string; run: () => void }) => {
     window.clearTimeout(flashT.current);
+    // short on the map: the first sentence and what it cost or gave; the whole of it is in the journal
+    if (text.length > 90) {
+      const first = text.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? text;
+      const sum = text.match(/\([^()]*\)\s*$/)?.[0];
+      text = sum && !first.endsWith(sum) ? `${first} ${sum}` : first;
+    }
     setFlash({ id: Date.now(), text, act });
-    // a longer line (a happening on the road) wraps and stays long enough to be read
-    flashT.current = window.setTimeout(() => setFlash(null), text.length > 70 ? 7500 : act ? 6000 : 3200);
+    flashT.current = window.setTimeout(() => setFlash(null), text.length > 70 ? 5000 : act ? 6000 : 3200);
   };
   useEffect(() => { if (!moving) { wellsSeen.current = new Set(); } }, [moving]);
   // a small happening on a walk (systems/roadEvents.ts): a passing line in the notice above, or a card

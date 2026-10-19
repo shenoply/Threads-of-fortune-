@@ -86,15 +86,16 @@ try {
   await G(`set({ tutorial: { done: true, step: 'done', inspected: true }, levelUps: [], titleNews: [], missionNews: undefined, introSeen: ['malek','arran','abuhamid','bilgin-chess','rashid','nabil','cohen'] });`);
   const early = await G(`g.endDay(); return g.household.stage;`);
   ok(early === 'none', 'no match proposed to a new stallholder', early);
-  const offered = await G(`set({ reputation: 30, upgrades: ['mat', 'bazaar'], cash: 30000, manner: { ...g.manner, honesty: 30 } }); g.endDay(); return { stage: g.household.stage, note: g.lastSummary.notes.find((n) => /Uncle Rashid takes you aside/.test(n)) };`);
-  ok(offered.stage === 'offered' && !!offered.note, 'with a canopy and a name, Rashid says the families would listen (morning card)', offered.stage);
+  const offered = await G(`set({ reputation: 30, upgrades: ['mat', 'bazaar'], cash: 30000, manner: { ...g.manner, honesty: 30 } }); g.endDay(); const before = g.household.stage; const msg = g.householdAct({ kind: 'seek' }); return { before, stage: g.household.stage, note: msg };`);
+  ok(offered.before === 'none', 'nobody is married off unasked: with a canopy and a name, still no match until you ask', offered.before);
+  ok(offered.stage === 'offered' && /At last/.test(offered.note), 'asking Rashid to look for a match brings the families', offered.stage);
   await clearCards();
   const court = await G(`
     const out = [];
     out.push(g.householdAct({ kind: 'visit', bride: 'nadia' }));
     set({ world: { ...g.world, at: 'cairo', hour: 9 } });
     out.push(g.householdAct({ kind: 'ask', bride: 'nadia' }));
-    for (let i = 0; i < 6 && (g.household.suitors.nadia?.favour ?? 0) < 50; i++) { out.push(g.householdAct({ kind: 'visit', bride: 'nadia' })); out.push(g.householdAct({ kind: 'visit', bride: 'nadia' })); set({ day: g.day + 1, world: { ...g.world, hour: 9 } }); }
+    for (let i = 0; i < 12 && (g.household.suitors.nadia?.favour ?? 0) < 70; i++) { out.push(g.householdAct({ kind: 'visit', bride: 'nadia' })); out.push(g.householdAct({ kind: 'visit', bride: 'nadia' })); set({ day: g.day + 1, world: { ...g.world, hour: 9 } }); }
     out.push(g.householdAct({ kind: 'gift', bride: 'nadia' }));
     const cash0 = g.cash;
     out.push(g.householdAct({ kind: 'ask', bride: 'nadia' }));

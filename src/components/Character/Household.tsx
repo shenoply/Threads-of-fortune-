@@ -45,9 +45,12 @@ export function HouseholdSection() {
         {h.merchant && <p className="cs-note" data-testid="hh-merchant">{h.merchant.name} heads the house now, since {dateFor(h.merchant.since).short}. {h.mother ? `His mother ${BRIDES[h.mother].short} lives with him.` : ''}</p>}
 
         {h.stage === 'none' && !h.merchant && (
-          <p className="cs-note" data-testid="hh-none">
-            {standing(g) ? 'Word will go round tonight that you are thinking of a household.' : `Families will listen to a proposal once your name is known (reputation ${MATCH_REP}) and you keep a stall with a canopy or better.`}
-          </p>
+          <>
+            <p className="cs-note" data-testid="hh-none">
+              {standing(g) ? 'You are not married. If you want a household, Uncle Rashid knows families who would hear of you. Winning one over takes calls, presents and a good name.' : `You are not married. Families will listen once your name is known (reputation ${MATCH_REP}) and you keep a stall with a canopy or better.`}
+            </p>
+            {standing(g) && <button className="btn" onClick={() => act({ kind: 'seek' })} data-testid="hh-seek">Ask Rashid to look for a match</button>}
+          </>
         )}
 
         {h.stage === 'offered' && (

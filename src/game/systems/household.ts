@@ -82,7 +82,7 @@ export const childArt = (c: Child) => `art/family/child-${c.sex}-${ageOf(c) >= 1
 export const MATCH_REP = 25;
 export const MATCH_STALLS = ['bazaar', 'khan'];
 /** favour her father must have of you before you may ask for her hand */
-export const ASK_AT = 50;
+export const ASK_AT = 70;
 /** days between the contract and the feast, for the families to prepare */
 export const FEAST_AFTER = 7;
 export const VISIT_HOURS = 3;
@@ -152,6 +152,7 @@ export const HOUSEHOLD_START: HouseholdState = { stage: 'none', suitors: {}, chi
 export const hh = (s: Pick<GameState, 'household'>): HouseholdState => s.household ?? HOUSEHOLD_START;
 
 export type HouseholdAct =
+  | { kind: 'seek' }
   | { kind: 'visit'; bride: BrideId }
   | { kind: 'gift'; bride: BrideId }
   | { kind: 'ask'; bride: BrideId }
@@ -239,6 +240,12 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
   const setKid = (c: Child): HouseholdState => ({ ...h, children: h.children.map((x) => (x.id === c.id ? c : x)) });
 
   switch (a.kind) {
+    // marriage is never forced on the merchant: he asks Rashid to look for a match only if he wants one
+    case 'seek': {
+      if (h.stage !== 'none' || h.spouse || h.merchant) return no('That is already in hand.');
+      if (!standing(s as never)) return no(`Rashid laughs: "On what? Families want a name (reputation ${MATCH_REP}) and a stall with a canopy before they open the door to you."`);
+      return { ok: true, msg: OFFER_NOTE, patch: { household: { ...h, stage: 'offered', offered: day }, journal: jot('Asked Uncle Rashid to look for a match.') } };
+    }
     case 'visit': {
       if (h.stage !== 'offered') return no('There is no family to call on.');
       const b = BRIDES[a.bride];
@@ -397,7 +404,7 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
   return no('');
 }
 
-const OFFER_NOTE = 'Uncle Rashid takes you aside over tea: a merchant with a canopy and a name should be thinking of a household. He has spoken to a schoolteacher in Cairo; Farid al-Khatib writes of a silk merchant\'s daughter in Damascus; the Abu Salem weavers in the Fayoum have a daughter of age. The families would receive you (Me, Household).';
+const OFFER_NOTE = 'Uncle Rashid is pleased: "At last." He has spoken to a schoolteacher in Cairo; Farid al-Khatib writes of a silk merchant\'s daughter in Damascus; the Abu Salem weavers in the Fayoum have a daughter of age. The families would receive you, but they will want to know you first: call on them, send presents, and keep your name clean.';
 
 /** letters from home, by her mood */
 function letterBody(h: HouseholdState, sp: Spouse, away: number, rng: () => number): { title: string; body: string } {
@@ -424,11 +431,7 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
   const at = (patch.world ?? s.world).at;
   const home = at === 'giza';
 
-  // families are approached once your name and your stall can carry a household
-  if (h.stage === 'none' && !h.merchant && !h.spouse && s.started && s.tutorial?.done && standing({ reputation: rep, upgrades })) {
-    h = { ...h, stage: 'offered', offered: day };
-    notes.push(OFFER_NOTE);
-  }
+  // families are approached only when the merchant asks Rashid to look for a match ('seek')
 
   const sp0 = h.spouse;
   if (sp0) {
