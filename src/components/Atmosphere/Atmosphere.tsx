@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { DustHaze } from './DustHaze';
+import { Weather } from './Weather';
 
 type RGBA = [number, number, number, number];
 interface Key { h: number; tint: RGBA; glow: RGBA; gx: number; gy: number; sun: number }
@@ -51,6 +52,7 @@ export function Atmosphere({ indoor = false, hour }: { indoor?: boolean; hour?: 
       <Lamps night={Math.min(1, Math.max(0, (0.9 - L.sun) / 0.75))} />
       <Air hourRef={hourRef} indoor={indoor} />
       {!indoor && hour === undefined && <DustHaze />}
+      {!indoor && hour === undefined && <Weather />}
     </div>
   );
 }

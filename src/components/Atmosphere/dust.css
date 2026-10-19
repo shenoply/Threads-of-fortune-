@@ -11,3 +11,10 @@
    drawing every frame (about 3x the idle main-thread time on a throttled phone) */
 @keyframes dust-drift { from { transform: translateX(0); } to { transform: translateX(-140px); } }
 @media (prefers-reduced-motion: reduce) { .dust-haze i { animation: none; } }
+/* winter skies (Weather.tsx): a grey day flattens the light; rain adds slanting streaks */
+.weather { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.weather.grey { background: linear-gradient(180deg, rgba(120,128,138,.42), rgba(90,96,104,.18) 55%, rgba(60,64,70,.12)); mix-blend-mode: multiply; backdrop-filter: saturate(.65); }
+.weather.rain { background: linear-gradient(180deg, rgba(70,80,96,.55), rgba(60,66,78,.28) 60%, rgba(40,44,52,.2)); backdrop-filter: saturate(.55) brightness(.9); }
+.weather.rain i { position: absolute; inset: -20% -10%; background-image: repeating-linear-gradient(102deg, transparent 0 23px, rgba(214,224,236,.16) 23px 24px, transparent 24px 61px), repeating-linear-gradient(98deg, transparent 0 41px, rgba(214,224,236,.11) 41px 42px, transparent 42px 97px); animation: rainfall .45s linear infinite; -webkit-mask-image: radial-gradient(ellipse 60% 55% at 78% 32%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse 60% 55% at 78% 32%, #000 30%, transparent 75%); }
+@keyframes rainfall { to { transform: translate(-8px, 38px); } }
+@media (prefers-reduced-motion: reduce) { .weather.rain i { animation: none; } }
