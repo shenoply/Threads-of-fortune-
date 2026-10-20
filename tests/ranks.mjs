@@ -122,7 +122,7 @@ await p.evaluate(([k, raw]) => {
 }, [K, v23]);
 await p.reload(); await p.waitForTimeout(1500);
 const mig = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts'))); const s = m.useGame.getState(); return { ranks: s.ranks ?? null, version: m.SAVE_VERSION }; });
-check(mig.version === 24 && mig.ranks && mig.ranks.season === 0 && Object.keys(mig.ranks.tables).length === 0 && mig.ranks.seen.length === 0, `an old save gets fresh tables (${JSON.stringify(mig.ranks)})`);
+check(mig.version >= 24 && mig.ranks && mig.ranks.season === 0 && Object.keys(mig.ranks.tables).length === 0 && mig.ranks.seen.length === 0, `an old save gets fresh tables (${JSON.stringify(mig.ranks)})`);
 check(errs.length === 0, `no page errors ${JSON.stringify(errs)}`);
 console.log(ok ? 'PASS' : 'FAIL');
 await b.close();

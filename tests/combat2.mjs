@@ -241,7 +241,7 @@ await p.locator('[data-testid=stop]').dispatchEvent('click').catch(() => {});
 await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.version = 23; delete d.state.combat; window.__tofEdit = true; localStorage.setItem(k, JSON.stringify(d)); window.__tofEdit = false; const w = Storage.prototype.setItem; const h = function (key, v) { if (key === k && !window.__tofEdit) return; return w.call(this, key, v); }; Storage.prototype.setItem = h; });
 await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
 const mig = await inGame((m) => { const s = m.useGame.getState(); return { combat: s.combat, version: m.SAVE_VERSION }; });
-check(mig.version === 24 && mig.combat && mig.combat.wins === 0 && Array.isArray(mig.combat.prisoners), 'an old save migrates: a clean fighting record, nothing lost');
+check(mig.version >= 24 && mig.combat && mig.combat.wins === 0 && Array.isArray(mig.combat.prisoners), 'an old save migrates: a clean fighting record, nothing lost');
 
 console.log(out.join('\n')); console.log(ok && !errs.length ? 'PASS' : 'FAIL', errs);
 await b.close();

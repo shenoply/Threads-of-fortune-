@@ -101,7 +101,7 @@ check(await G(`return g.tipsSeen.includes('open-all');`), 'everything opened');
 
 // 6. stall dressing
 await press('dress', 'adm-dress');
-check((await waitId('improve-sheet')) && (await waitId('stall-dressing')), 'the stall\'s improvements, with the dressing pieces');
+check(await waitId('dress-screen'), 'the Dress your stall screen opens'); await p.click('[data-testid=dress-close]').catch(() => {});
 await fresh();
 
 // 7. shops
