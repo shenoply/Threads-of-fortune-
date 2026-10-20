@@ -1,11 +1,22 @@
 // Vintage-atlas renderer for the world map. Real coastlines, rivers and lakes (Natural Earth),
 // drawn fresh at every zoom so the map stays sharp.
-import geo from '../../data/geo.json';
+// the coastlines (115 KB) are only for the engraved map, drawn when the painting cannot be had: fetched
+// then, not with the opening download
+type Geo = typeof import('../../data/geo.json');
+let geo: Geo | null = null, geoAsked = false;
+function needGeo(): Geo | null {
+  if (!geoAsked) {
+    geoAsked = true;
+    import('../../data/geo.json').then((m) => { geo = (m.default ?? m) as Geo; artListeners.forEach((f) => f()); }).catch(() => { geoAsked = false; });
+  }
+  return geo;
+}
 import { RANGES, DESERTS, FERTILE, PALMS, LABELS, RAILWAYS, PROJ, proj } from '../../data/mapFeatures';
 import { MASK_H } from '../../data/landmask';
 import { persiaCanvas, PERSIA_X0 } from './persiaArt';
 import { RAIL_LINKS } from '../../data/world';
 import { MAP_W, MAP_H, PAINT_W, GRID_W, fitFog, paint, settlementById, routeLeg } from './world';
+import { crossfadeCanvas } from '../feel';
 
 type Ring = number[];
 
@@ -48,16 +59,30 @@ function loadSharp() {
     .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
     .catch(() => { artFailed = true; artListeners.forEach((f) => f()); });
 }
+// the sharp copy is only asked for once something wants it (the map opened, or warmPaintedMap(true)),
+// and only after the small one is in, so the two never share a slow line
+let wantSharp = false, smallDone = false;
+function askSmall() {
+  if (smallAsked) return;
+  smallAsked = true;
+  loadPicture('art/world/travel-map-768.webp')
+    .then((p) => { artSmall = p; smallReady = true; if (!artReady) artListeners.forEach((f) => f()); })
+    .catch(() => {})
+    .finally(() => { smallDone = true; if (wantSharp) loadSharp(); });
+}
 /** The painting, once it has loaded (the sharp copy when it is in, the small one before that). */
 export function paintedMap(): CanvasImageSource | null {
   if (typeof Image === 'undefined') return null;
-  if (!smallAsked) {
-    smallAsked = true;
-    loadPicture('art/world/travel-map-768.webp')
-      .then((p) => { artSmall = p; smallReady = true; if (!artReady) artListeners.forEach((f) => f()); loadSharp(); })
-      .catch(() => loadSharp());
-  }
+  wantSharp = true;
+  if (smallDone) loadSharp();
+  askSmall();
   return artReady ? artImg : smallReady ? artSmall : null;
+}
+/** Fetch and decode the painting ahead of the map being opened (src/game/preload.ts): the small copy,
+ *  and with `sharp` the sharp one after it. Decoded off the main thread, so the map opens on it at once. */
+export function warmPaintedMap(sharp: boolean) {
+  if (typeof Image === 'undefined') return;
+  if (sharp) paintedMap(); else askSmall();
 }
 export function onPaintedMap(f: () => void) { artListeners.add(f); return () => { artListeners.delete(f); }; }
 
@@ -125,6 +150,7 @@ function rnd(seed: number) {
 
 function build() {
   if (cache) return cache;
+  const geo = needGeo()!;
   const land = ringPath(geo.land as Ring[]);
   const holes = ringPath(geo.landHoles as Ring[]);
   const lakes = ringPath(geo.lakes as Ring[]);
@@ -190,6 +216,7 @@ const SEA_DEEP = '#93aba1';
 const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
+const lastArt = new WeakMap<HTMLCanvasElement, CanvasImageSource | null>();
 export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean } = {}) {
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -198,6 +225,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
   const zf = Math.max(0.75, Math.min(1.7, s / 1.6));
 
   const art = paintedMap();
+  // a better copy of the painting than the one this canvas last showed: the old frame fades out over the
+  // new one instead of the map changing in a blink
+  const prev = lastArt.get(ctx.canvas);
+  if (prev !== undefined && prev !== art && art) crossfadeCanvas(ctx.canvas);
+  lastArt.set(ctx.canvas, art);
   if (!art && !artFailed) {
     // the painting is still loading: show plain parchment rather than flashing the old engraved map
     screen();
@@ -221,6 +253,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     screen();
   } else {
   // the engraved map's coastlines, grain and stipple are only built when it is drawn (the painting needs none of it)
+  if (!needGeo()) { screen(); ctx.fillStyle = '#2a1d12'; ctx.fillRect(0, 0, w, h); return; }
   const c = build();
   // sea
   screen();

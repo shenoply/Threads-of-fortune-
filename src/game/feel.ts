@@ -88,12 +88,100 @@ export function useEnterAnimation(ref: { current: HTMLElement | null }, key: unk
 }
 
 // ---------- pictures ----------
-/** Marks each picture when it arrives (or fails), so feel.css can fade it in. Installed once. */
+/** Marks each picture once it has arrived and been decoded (or failed), so feel.css can fade it in.
+ *  Installed once. The listener sits on the document: a picture's load event never reaches the window
+ *  (so before, every faded picture waited for feel.css's 1.6 s fallback however quick its download).
+ *  Waiting for decode() as well starts the fade on a picture ready to paint, not on one the phone is
+ *  still unpacking (a blank frame, then a pop). */
 export function installImageFade() {
   if (!hasWindow) return;
-  const mark = (e: Event) => { const t = e.target as HTMLElement | null; if (t && t.tagName === 'IMG') t.classList.add('ff-ok'); };
-  window.addEventListener('load', mark, true);
-  window.addEventListener('error', mark, true);
+  const ok = (t: HTMLImageElement) => t.classList.add('ff-ok');
+  document.addEventListener('load', (e) => {
+    const t = e.target as HTMLImageElement | null;
+    if (!t || t.tagName !== 'IMG' || t.classList.contains('ff-ok')) return;
+    if (typeof t.decode !== 'function') return ok(t);
+    t.decode().catch(() => {}).finally(() => ok(t));
+  }, true);
+  document.addEventListener('error', (e) => { const t = e.target as HTMLImageElement | null; if (t && t.tagName === 'IMG') ok(t); }, true);
+  installCompose();
+}
+
+/** A canvas about to be redrawn with a better copy of its picture (a painted map whose sharp copy has
+ *  just come in): what it shows now is laid over it as a still and faded out, so the change is a short
+ *  dissolve, not a blink. Cheap: one copy of the canvas and a CSS fade, the map itself is drawn once. */
+export function crossfadeCanvas(c: HTMLCanvasElement, ms = 420) {
+  if (!hasWindow || reducedMotion() || !c.isConnected || !c.parentElement || !c.width || !c.height) return;
+  const o = document.createElement('canvas');
+  o.width = c.width; o.height = c.height;
+  const x = o.getContext('2d');
+  if (!x) return;
+  try { x.drawImage(c, 0, 0); } catch { return; }
+  const cs = getComputedStyle(c);
+  Object.assign(o.style, {
+    position: 'absolute', left: `${c.offsetLeft}px`, top: `${c.offsetTop}px`, width: `${c.offsetWidth}px`, height: `${c.offsetHeight}px`,
+    transform: cs.transform === 'none' ? '' : cs.transform, transformOrigin: cs.transformOrigin, zIndex: cs.zIndex === 'auto' ? '' : cs.zIndex,
+    pointerEvents: 'none', transition: `opacity ${ms}ms ease-out`,
+  });
+  o.setAttribute('aria-hidden', 'true');
+  c.after(o);
+  requestAnimationFrame(() => requestAnimationFrame(() => { o.style.opacity = '0'; }));
+  window.setTimeout(() => o.remove(), ms + 120);
+}
+
+// ---------- scenes shown whole ----------
+// A painted scene built from layers (the stall: the room, the shelf props, the merchant, the buyer, the
+// counter, the wireless, the paper, the cat) is held back until every layer present when it opens is
+// downloaded and decoded, then shown in one short fade, instead of each layer popping in on its own.
+// Meanwhile a tiny blurred copy of the room stands in (feel.css), so the frame is never empty and nothing
+// jumps. A layer still not in after MAX_WAIT (a very slow line) does not hold the rest back: the scene
+// shows and that layer fades in by itself when it comes (installImageFade).
+// It works on the page as drawn, so the scenes need no change: a scene is found by its selector.
+const COMPOSE = ['.scene.stall > .stage'];
+const LAYERS_KEY = 'tof-stall-layers';
+/** The pictures the stall was last made of (its shelf, the merchant, the counter...), as last shown. */
+export function stallLayersSeen(): string[] { try { return JSON.parse(localStorage.getItem(LAYERS_KEY) || '[]'); } catch { return []; } }
+const MAX_WAIT = 2600;
+const ready = (im: HTMLImageElement): Promise<void> => {
+  const dec = () => (typeof im.decode === 'function' ? im.decode().catch(() => {}) : Promise.resolve());
+  if (im.complete) return im.naturalWidth ? dec() : Promise.resolve();
+  return new Promise<void>((res) => {
+    const done = () => { im.removeEventListener('load', done); im.removeEventListener('error', done); res(); };
+    im.addEventListener('load', done); im.addEventListener('error', done);
+  }).then(dec);
+};
+function compose(el: HTMLElement) {
+  if (el.dataset.cmp) return;
+  el.dataset.cmp = 'wait';
+  const t0 = performance.now();
+  let shown = false;
+  const show = () => {
+    if (shown) return;
+    shown = true;
+    el.querySelectorAll('img').forEach((im) => { if (im.complete) im.classList.add('ff-ok'); });
+    // all of it already on the phone and unpacked at once: no fade (it would only slow a scene that is there)
+    el.dataset.cmp = performance.now() - t0 < 120 ? 'now' : 'ready';
+    el.dataset.cmpMs = String(Math.round(performance.now() - t0));
+    // what it was made of, so the next time can be unpacked ahead (preload.ts predecodeStall)
+    try { localStorage.setItem(LAYERS_KEY, JSON.stringify([...new Set([...el.querySelectorAll('img')].map((im) => im.getAttribute('src') || '').filter((u) => u.startsWith('art/')))].slice(0, 40))); } catch { /* private mode */ }
+  };
+  // the layers present now and any added in the same moment (the buyer, the props of the day)
+  requestAnimationFrame(() => {
+    Promise.all([...el.querySelectorAll('img')].map(ready)).then(show);
+    window.setTimeout(show, MAX_WAIT);
+  });
+}
+let composeOn = false;
+function installCompose() {
+  if (composeOn || typeof MutationObserver === 'undefined') return;
+  composeOn = true;
+  const sel = COMPOSE.join(',');
+  const scan = (n: Node) => {
+    if (n.nodeType !== 1) return;
+    const e = n as HTMLElement;
+    if (e.matches(sel)) compose(e);
+    e.querySelectorAll<HTMLElement>(sel).forEach(compose);
+  };
+  new MutationObserver((ms) => { for (const m of ms) m.addedNodes.forEach(scan); }).observe(document.documentElement, { childList: true, subtree: true });
 }
 
 // ---------- prefetch ----------
