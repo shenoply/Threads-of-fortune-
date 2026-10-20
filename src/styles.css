@@ -3219,3 +3219,8 @@ body.travelling .world-hud { display: none; }
 .dress-note { color: var(--brass-hi); font-size: 14.5px; margin: 8px 0 0; }
 .shop-fold .shop-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .shop-fold .shop-row small { display: block; color: var(--text-dim); font-size: 12.5px; }
+/* the shop's own room, above its page (ShopPanel ShopPicture) */
+.shop-pic { position: relative; margin: 0 -16px 12px; aspect-ratio: 3 / 2; max-height: 42vh; overflow: hidden; background: #1a1009; }
+.shop-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shop-pic.for-sale img { filter: saturate(.6) brightness(.75); }
+.shop-pic__tag { position: absolute; left: 12px; bottom: 10px; padding: 3px 10px; border-radius: 4px; background: rgba(20,12,6,.85); border: 1px solid #b8893a; color: #f3e2bd; font-size: 13px; letter-spacing: .04em; }

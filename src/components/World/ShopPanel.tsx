@@ -35,6 +35,7 @@ export function ShopPanel({ sid, onClose }: { sid: string; onClose: () => void }
     <div className="overlay" onClick={onClose}>
       <div className="modal-card big-card shop-card" onClick={(e) => e.stopPropagation()} data-testid="shop-panel">
         <div className="big-card-head"><h2>{sh ? `Your shop in ${st.name}` : 'A shop of your own'}</h2><button className="btn slim" onClick={onClose} data-testid="shop-close">Close</button></div>
+        <ShopPicture sid={sid} owned={!!sh} />
         {note && <p className="wire-reply" data-testid="shop-note">{note}</p>}
 
         {sid === 'cairo' ? (
@@ -107,6 +108,19 @@ export function ShopPanel({ sid, onClose }: { sid: string; onClose: () => void }
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The inside of the shop (art/shops/<city>.webp): the dearer the city, the bigger and finer the room.
+ *  Shown dimmed with "for sale" before it is yours; nothing at all until the picture exists. */
+function ShopPicture({ sid, owned }: { sid: string; owned: boolean }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    <div className={`shop-pic${owned ? '' : ' for-sale'}`} data-testid="shop-pic">
+      <img src={`art/shops/${sid}.webp`} alt="" draggable={false} onError={() => setOk(false)} />
+      {!owned && <span className="shop-pic__tag">For lease</span>}
     </div>
   );
 }
