@@ -310,11 +310,13 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         return `Things open one at a time again, as for a new player${dev ? ' (the old test switch in this browser still opens everything)' : ''}.`;
       } },
     ] },
-    { id: 'dress', title: 'Stall dressing', gist: `${(g.dressing ?? []).length} pieces owned`, acts: [
+    { id: 'dress', title: 'Stall dressing', gist: 'buy and place pieces on the stall', acts: [
       { label: 'Dress your stall', testid: 'adm-dress', run: async () => {
         await leave(() => nav.upgrades());
         await openFold('dressing-fold');
-        return 'The stall\'s improvements and dressing pieces.';
+        for (let i = 0; i < 20 && !document.querySelector('[data-testid=dress-open]'); i++) await new Promise((r) => setTimeout(r, 100));
+        (document.querySelector('[data-testid=dress-open]') as HTMLButtonElement | null)?.click();
+        return 'Dress your stall: tap a place on the stall, then a piece to see it there.';
       } },
       { label: '+£50 to spend', testid: 'adm-dress-cash', run: () => { set({ cash: S().cash + 5000 }); return `£50 added: ${fmt(S().cash)} now.`; } },
     ] },

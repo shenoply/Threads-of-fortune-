@@ -109,6 +109,21 @@ function streamed(e, url) {
   }).catch(() => fetch(e.request)));
 }
 
+// The daily re-check asks "has it changed?" (the kept copy's ETag / Last-Modified) instead of fetching the
+// file again: an unchanged picture costs a few hundred bytes (304 Not Modified), not its whole size. Before,
+// a player coming back each day re-downloaded every picture they had seen, a few megabytes on a phone plan.
+function recheck(c, r, hit) {
+  const h = new Headers();
+  const tag = hit.headers.get('ETag'), mod = hit.headers.get('Last-Modified');
+  if (tag) h.set('If-None-Match', tag);
+  if (mod) h.set('If-Modified-Since', mod);
+  if (!tag && !mod) return fetch(r).then((res) => { if (res.ok && res.status === 200) { c.put(r, res.clone()); return stamp(c, r.url); } });
+  return fetch(r.url, { headers: h, cache: 'no-store', credentials: 'same-origin' }).then((res) => {
+    if (res.status === 304) return stamp(c, r.url); // unchanged: the kept copy stays, its check time moves on
+    if (res.ok && res.status === 200) { c.put(r, res.clone()); return stamp(c, r.url); }
+  });
+}
+
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim().then(() => tidy())));
 
@@ -132,7 +147,7 @@ self.addEventListener('fetch', (e) => {
     // a file with a known fetch time under a day old is used as it is; otherwise one quiet re-check
     if (!hashed && !(Date.now() - (stamps[r.url] || 0) < DAY)) {
       stamps[r.url] = Date.now(); // one re-check per file at a time, even if it is asked for again meanwhile
-      e.waitUntil(get().catch(() => {}));
+      e.waitUntil(recheck(c, r, hit).catch(() => {}));
     }
     return hit;
   }));
