@@ -1,43 +1,7 @@
 import { fmt } from '../../game/economy/money';
 import { stallName, useGame } from '../../game/state/store';
 import { UPGRADES, type Upgrade } from '../../data/suppliers';
-import { useState } from 'react';
-import { DRESSING, dressingArt, type DressingPiece } from '../../data/shops';
-import { Icon } from '../Icon';
-import { Fold } from '../Fold/Fold';
-
-/** a dressing piece's picture, or its icon while the picture does not exist yet */
-function DressPic({ d }: { d: DressingPiece }) {
-  const [art, setArt] = useState(true);
-  return <span className="dress-pic" aria-hidden="true">{art ? <img src={dressingArt(d.id)} alt="" loading="lazy" onError={() => setArt(false)} style={{ objectFit: 'contain' }} /> : <Icon name={d.icon} />}</span>;
-}
-
-/** Pieces to dress the Giza stall: each a small, lasting help with every buyer. */
-export function StallDressing() {
-  const g = useGame();
-  const own = g.dressing ?? [];
-  const [note, setNote] = useState('');
-  return (
-    <>
-      <Fold id="dress-stall" testid="dressing-fold" title="Dress the stall" gist={`${own.length} of ${DRESSING.length} · lamps, kilims, a bench…`}>
-      {note && <p className="dim small" data-testid="dressing-note">{note}</p>}
-      <div className="dress-list" data-testid="stall-dressing">
-        {DRESSING.map((d) => {
-          const owned = own.includes(d.id);
-          return (
-            <div className={`upgrade ${!owned && g.cash >= d.cost ? 'can-buy' : ''}`} key={d.id}>
-              <DressPic d={d} />
-              <div className="u-main"><b>{d.name}</b><span>{d.effect}</span></div>
-              {owned ? <span className="owned">Owned</span>
-                : <button className={`btn ${g.cash >= d.cost ? 'primary' : ''}`} disabled={g.cash < d.cost} onClick={() => setNote(g.buyDressing(d.id))} data-testid={`dress-${d.id}`}>{fmt(d.cost)}</button>}
-            </div>
-          );
-        })}
-      </div>
-      </Fold>
-    </>
-  );
-}
+import { StallDressing } from './DressStall';
 
 /** Which upgrades you could buy right now: reputation met, the one before owned, and the cash in hand. */
 export function upgradeState(u: Upgrade, g: { upgrades: string[]; reputation: number; cash: number }) {
@@ -53,6 +17,7 @@ export function StallUpgrades() {
   const g = useGame();
   return (
     <>
+      <StallDressing />
       <div className="upgrades" data-testid="stall-upgrades">
         {UPGRADES.map((u) => {
           const st = upgradeState(u, g);
@@ -80,7 +45,6 @@ export function StallUpgrades() {
       <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 10 }}>
         Your stall: {stallName(g.upgrades)}. Growing it raises the rent.
       </p>
-      <StallDressing />
     </>
   );
 }

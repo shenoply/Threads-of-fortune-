@@ -22,8 +22,9 @@ const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
 // lantern flames in each painting, as fractions of the image (see Atmosphere)
 const SELLER_LAMPS = '0.537,0.124;0.412,0.252;0.949,0.287';
 
-import { PROP_SPOTS, CAT_VARIANTS, CAT_REPLACES, dayPick } from '../../game/stallDressing';
+import { CAT_VARIANTS, catPose, placedPieces, spotsOf } from '../../game/stallDressing';
 import { dressingArt } from '../../data/shops';
+import { StallSky } from '../Atmosphere/StallSky';
 
 interface SceneProps {
   enc: Encounter | null;
@@ -155,8 +156,8 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px`, ['--crop' as string]: `${crop}px` }}>
         <img className="stage-bg" src={STAGE_IMG} alt="The stall at Giza: the counter, the shelves and the pyramids beyond" data-lamps={SELLER_LAMPS} draggable={false} />
+        <StallSky />
         <StallProps />
-        <StallDressingArt />
         <StallGramophone />
         {/* The base stall body is always painted, so he always shows dressed in whatever pieces
             already have a stall-pose layer; a piece without one yet just doesn't draw (see
@@ -180,7 +181,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, upgrades = [] }: Sc
       {upgrades.includes('bazaar') && <div className="awning" aria-hidden="true" />}
       {/* a buyer who gives up gets up and goes, and the picture says so in words too */}
       {enc?.outcome === 'walked' && buyer && !enc.mocked && <div className="left-banner" data-testid="left-banner">{buyer.name.split(' ')[0]} {enc.letGo ? 'has gone' : 'walked away'}</div>}
-      <Atmosphere />
+      <Atmosphere sheltered />
       {text && (
         <div
           className={`bubble top ${who === 'seller' ? 'tail-left' : 'tail-right'} ${who === 'buyer' ? moodRing : ''}`}
@@ -332,43 +333,30 @@ function ScenePerson({ id }: { id: string }) {
     : <img src={src} alt="" className="buyer-art" style={{ objectFit: 'contain', objectPosition: '100% 100%' }} onError={() => setFailed(true)} />;
 }
 
-/** The daily shelf dressing: one prop per named spot, each a full-canvas cut-out already positioned, so it just layers over the empty stall. */
-function StallProps() {
-  const day = useGame((st) => st.day);
-  return (
-    <>
-      {Object.entries(PROP_SPOTS).map(([spot, options]) => {
-        if (spot === CAT_REPLACES[dayPick(day, 'cat', Object.keys(CAT_VARIANTS))]) return null;
-        const pick = dayPick(day, spot, options);
-        return <img key={spot} className="stall-prop" src={`art/stall2/props/${pick}.webp`} alt="" draggable={false} />;
-      })}
-    </>
-  );
-}
-
-/** The pieces bought to dress the stall (data/shops.ts): full-canvas overlays like the shelf props. A
- *  piece whose picture has not been painted yet simply does not draw. */
-function StallDressingArt() {
-  const own = useGame((st) => st.dressing);
+/** What stands in the stall: one piece per spot, as the player dressed it (game/stallDressing.ts). Each
+ *  is a full-canvas cut-out already positioned, so it just layers over the empty stall; a piece whose
+ *  picture has not been painted yet does not draw here (the Dress your stall screen shows its icon). */
+export function StallProps() {
+  const placed = useGame((st) => placedPieces(st).join(','));
   const [missing, setMissing] = useState<string[]>([]);
   return (
     <>
-      {(own ?? []).filter((id) => !missing.includes(id)).map((id) => (
-        <img key={id} className="stall-prop stall-dressing-art" src={dressingArt(id)} alt="" draggable={false} data-testid={`dressing-art-${id}`} onError={() => setMissing((m) => [...m, id])} />
+      {placed.split(',').filter((id) => id && !missing.includes(id)).map((id) => (
+        <img key={id} className="stall-prop" src={dressingArt(id)} alt="" draggable={false} data-testid={`stall-piece-${id}`} onError={() => setMissing((m) => [...m, id])} />
       ))}
     </>
   );
 }
 
-/** Saffron the cat: one of four daily poses (doorway, counter, top shelf, by the radio), also a full-canvas overlay. Tap her. */
+/** Saffron the cat: one of her poses for the day (doorway, counter, top shelf, by the radio), never on a
+ *  spot that holds a piece; also a full-canvas overlay. Tap her. */
 function StallCat({ onCat, rugOnCounter }: { onCat: () => void; rugOnCounter: boolean }) {
-  const day = useGame((st) => st.day);
+  const variant = useGame((st) => catPose(st.day, spotsOf(st)));
   const [ok, setOk] = useState(true);
-  const variant = dayPick(day, 'cat', Object.keys(CAT_VARIANTS));
   const rule = CAT_VARIANTS[variant];
   if (!ok || (rule.hideWhileRugOnCounter && rugOnCounter)) return null;
   return (
-    <button className="stall-prop stall-cat" aria-label="Saffron the cat" data-testid="saffron" onClick={(e) => { e.stopPropagation(); onCat(); }}>
+    <button className="stall-prop stall-cat" aria-label="Saffron the cat" data-testid="saffron" data-pose={variant} onClick={(e) => { e.stopPropagation(); onCat(); }}>
       <img src={`art/stall2/props/${variant}.webp`} alt="" onError={() => setOk(false)} />
     </button>
   );

@@ -38,18 +38,22 @@ export function lightAt(hour: number): Omit<Key, 'h'> {
 
 const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function Atmosphere({ indoor = false, hour }: { indoor?: boolean; hour?: number }) {
+/** sheltered: the Giza stall, whose view outside has its own sky (StallSky): the hour's tint falls more
+ *  lightly under the awning, and after dark the lamps keep the inside warm */
+export function Atmosphere({ indoor = false, hour, sheltered = false }: { indoor?: boolean; hour?: number; sheltered?: boolean }) {
   const gameHour = useGame((s) => s.world.hour);
   const h = hour ?? gameHour;
   const L = lightAt(h);
-  const k = indoor ? 0.5 : 1;
+  const k = indoor ? 0.5 : sheltered ? 0.6 : 1;
+  const night = Math.min(1, Math.max(0, (0.9 - L.sun) / 0.75));
   const hourRef = useRef(h);
   hourRef.current = h;
   return (
     <div className={`atmo ${indoor ? 'indoor' : ''}`} aria-hidden="true">
       <div className="atmo-tint" style={{ background: css(L.tint, k) }} />
       <div className="atmo-glow" style={{ background: `radial-gradient(ellipse 75% 90% at ${L.gx}% ${L.gy}%, ${css(L.glow, indoor ? 0.7 : 1)}, transparent 70%)` }} />
-      <Lamps night={Math.min(1, Math.max(0, (0.9 - L.sun) / 0.75))} />
+      {sheltered && night > 0.05 && <div className="atmo-warm" style={{ opacity: night, background: 'radial-gradient(ellipse 42% 55% at 36% 40%, rgba(255,176,96,.26), rgba(255,150,70,.08) 60%, transparent 80%)' }} />}
+      <Lamps night={night} />
       <Air hourRef={hourRef} indoor={indoor} />
       {!indoor && hour === undefined && <DustHaze />}
       {!indoor && hour === undefined && <Weather />}

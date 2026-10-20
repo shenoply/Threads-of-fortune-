@@ -547,13 +547,13 @@ export default function App() {
   // the night's summary card is up (the same test DaySummary makes before it shows itself)
   const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
   // the purse and reputation roll to their new value (feel.ts); tests read data-pt / data-v
-  // the stall's shelf dressing for today and the rugs you carry, fetched as soon as the game is open, so
+  // the stall as it is dressed and the rugs you carry, fetched as soon as the game is open, so
   // the stall shows dressed at once instead of filling in piece by piece
   useEffect(() => {
     if (phase !== 'game' && phase !== 'title') return;
-    const srcs = [...stallDressing(g.day), ...g.inventory.slice(0, 8).map((it) => RUGS[it.typeId]).filter(Boolean).map((t) => rugThumb(t))];
+    const srcs = [...stallDressing(g), ...g.inventory.slice(0, 8).map((it) => RUGS[it.typeId]).filter(Boolean).map((t) => rugThumb(t))];
     for (const src of srcs) { const im = new Image(); (im as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'high'; im.src = src; }
-  }, [phase, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, g.day, g.stallSpots]); // eslint-disable-line react-hooks/exhaustive-deps
   const cashT = useTween(g.cash);
   const repT = useTween(g.reputation);
   const vibrate = useVibration();

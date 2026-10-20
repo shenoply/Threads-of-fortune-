@@ -123,7 +123,7 @@ if (await p.locator('[data-testid=continue]').count()) await p.click('[data-test
 await p.waitForTimeout(1200);
 const mig = await p.evaluate(async (u) => { const m = await import(u); const s = m.useGame.getState(); return { version: m.SAVE_VERSION, keys: Object.keys(s.shops ?? {}), alex: s.shops?.alexandria?.agent?.name ?? null, gift: !!s.shops?.alexandria?.gift, cairo: !!s.shops?.cairo?.khan, dressing: s.dressing, day: s.day }; }, await storeUrl());
 console.log(JSON.stringify(mig));
-check(mig.version === 24 && mig.alex === 'Ibrahim Nahhas' && mig.gift && mig.cairo && Array.isArray(mig.dressing), 'an old save loads with its Alexandria and Cairo shops');
+check(mig.version >= 24 && mig.alex === 'Ibrahim Nahhas' && mig.gift && mig.cairo && Array.isArray(mig.dressing), 'an old save loads with its Alexandria and Cairo shops');
 for (const okId of ['day-summary-ok', 'big-news-ok', 'mission-ok']) { const x = p.locator(`[data-testid=${okId}]`); if (await x.count()) await x.first().click({ timeout: 1500 }).catch(() => {}); }
 await p.locator('[data-testid=nav-map]').click({ timeout: 3000 }).catch(() => {});
 await p.waitForTimeout(1000);

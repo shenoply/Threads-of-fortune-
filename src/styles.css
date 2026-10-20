@@ -1858,6 +1858,7 @@ body.travelling .mission-strip{display:none}
 .atmo { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .atmo > * { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .atmo-tint { mix-blend-mode: multiply; transition: background-color 4s ease; }
+.atmo-warm { mix-blend-mode: screen; }
 .atmo-glow { mix-blend-mode: screen; }
 .title-screen .atmo { inset: -4%; }
 .skip-lesson{flex:none;align-self:center;margin:2px auto 4px;z-index:40;padding:6px 14px;border-radius:14px;border:1px solid var(--line-strong);background:#1b110aee;color:var(--parchment);font-family:var(--label);font-size:13.5px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.5)}
@@ -3179,10 +3180,42 @@ body.travelling .world-hud { display: none; }
 .objective-bar .ob-text > svg { display: none; }
 
 /* the stall's dressing pieces in the Improve sheet: an icon stands in until the piece's picture exists */
-.dress-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .upgrade .dress-pic, .dress-pic { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--line); background: #0e0905; display: flex; align-items: center; justify-content: center; color: var(--brass-hi); overflow: hidden; }
-.dress-pic img { width: 100%; height: 100%; object-fit: cover; }
 .dress-pic svg { width: 22px; height: 22px; }
-.stall-dressing-art { pointer-events: none; }
+.upgrade.dress-entry { margin-bottom: 10px; border-color: var(--brass-hi); }
+/* Dress your stall (DressStall.tsx): the painting large, each spot outlined, the pieces for a spot below */
+.overlay.dress-screen { z-index: 56; background: #0d0805; }
+.dress-scroll { flex: 0 0 auto; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
+.dress-stage { position: relative; width: min(960px, max(320px, calc((100dvh - 340px) * 1.5))); margin: 0 auto; aspect-ratio: 3 / 2; overflow: hidden; }
+.dress-stage .dress-bg, .dress-stage .dress-piece { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 1; }
+.dress-stage .dress-bg { z-index: 0; }
+.dress-stage .dress-piece.preview { opacity: .55; filter: drop-shadow(0 0 6px rgba(255, 214, 140, .9)); }
+.dress-icon { position: absolute; z-index: 2; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(20, 12, 6, .82); border: 1.5px solid var(--brass-hi); color: var(--brass-hi); pointer-events: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+.dress-icon svg { width: 18px; height: 18px; }
+.dress-icon.preview { opacity: .65; border-style: dashed; }
+.dress-spot { position: absolute; z-index: 3; padding: 0; margin: 0; background: rgba(255, 220, 160, .04); border: 1.5px dashed rgba(255, 226, 170, .7); border-radius: 5px; cursor: pointer; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+.dress-spot.full { border-style: dotted; border-color: rgba(255, 226, 170, .45); background: none; }
+.dress-spot.on { border: 2.5px solid #f0a040; background: rgba(240, 160, 64, .1); box-shadow: 0 0 0 2px rgba(0, 0, 0, .45), 0 0 14px rgba(240, 160, 64, .55); z-index: 4; }
+.dress-panel { flex: 1 1 auto; overflow-y: auto; padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px)); }
+.dress-hint, .dress-fx { color: var(--text-dim); font-size: 15px; margin: 4px 0 8px; }
+.dress-fx { color: var(--text); }
+.dress-spot-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.dress-spot-head b { font-family: var(--display); font-weight: 500; color: var(--brass-hi); font-size: 17px; }
+.dress-spot-head span { color: var(--text-dim); font-size: 14px; }
+.dress-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.dress-card { flex: 0 0 150px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 3px; align-items: stretch; text-align: left; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #150e08; color: var(--text); cursor: pointer; font: inherit; }
+.dress-card.on { border-color: #f0a040; box-shadow: 0 0 0 1px #f0a040 inset; }
+.dress-card.here em { color: var(--good, #9cc27a); }
+.dress-card b { font-family: var(--display); font-weight: 500; font-size: 14px; line-height: 1.2; color: var(--parchment, #f1e3c4); }
+.dress-card small { font-size: 12.5px; line-height: 1.25; color: var(--text-dim); }
+.dress-card em { font-style: normal; font-family: var(--label); font-size: 14px; color: var(--brass-hi); margin-top: auto; }
+.dress-thumb { display: grid; place-items: center; width: 134px; height: 74px; border-radius: 4px; background: #0e0905; overflow: hidden; }
+.dress-thumb-in { position: relative; display: block; overflow: hidden; border-radius: 3px; }
+.dress-thumb-in img { position: absolute; max-width: none; display: block; }
+.dress-thumb.icon { display: grid; place-items: center; background: #0e0905; color: var(--brass-hi); border: 1px solid var(--line); }
+.dress-thumb.icon svg { width: 28px; height: 28px; }
+.dress-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; min-height: 44px; }
+.dress-actions .btn { min-height: 44px; }
+.dress-note { color: var(--brass-hi); font-size: 14.5px; margin: 8px 0 0; }
 .shop-fold .shop-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .shop-fold .shop-row small { display: block; color: var(--text-dim); font-size: 12.5px; }

@@ -83,8 +83,9 @@ import type { LicenceState } from '../systems/inspector';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
 import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
+import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -335,6 +336,9 @@ export interface GameState {
   shops?: Shops;
   /** pieces bought to dress the Giza stall (data/shops.ts DRESSING) */
   dressing?: string[];
+  /** Dress your stall (save 25): what stands in each spot (game/stallDressing.ts SPOTS); absent on a new
+   *  stall, which has its father's things (DEFAULT_SPOTS); a spot set to '' is cleared */
+  stallSpots?: Record<string, string>;
   /** the season's tables of rug sales, city by city, with the named rival houses (systems/ranks.ts) */
   ranks?: RanksState;
   // transient (not persisted)
@@ -541,6 +545,8 @@ interface Actions {
   buyUpgrade: (id: string) => void;
   /** a piece to dress the Giza stall (data/shops.ts DRESSING) */
   buyDressing: (id: string) => string;
+  /** put an owned piece (or your father's) in its spot, or clear the spot (id null) */
+  placeDressing: (spot: string, id: string | null) => string;
   /** shops in other cities: each returns a line for the player */
   buyShop: (sid: string) => string;
   hireAgent: (sid: string, agentId: string) => string;
@@ -992,7 +998,7 @@ export const useGame = create<GameState & Actions>()(
         hour: s.world.hour,
         inventory: s.inventory,
         upgrades: s.upgrades,
-        dressing: s.dressing,
+        dressing: placedPieces(s),
         reputation: s.reputation,
         rel: s.relationships[buyerId] ?? emptyRel(),
         rng,
@@ -1559,7 +1565,7 @@ export const useGame = create<GameState & Actions>()(
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
           const lane = laneDay(day);
-          queue = queue.slice(0, Math.max(1, 3 + (s.missions?.['ms-regulars'] === 'done' ? 1 : 0) + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + ((s.dressing ?? []).some((d) => DRESSING_BY_ID[d]?.buyerWeek) && rng() < 1 / 7 ? 1 : 0) + lane.extra));
+          queue = queue.slice(0, Math.max(1, 3 + (s.missions?.['ms-regulars'] === 'done' ? 1 : 0) + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + (placedPieces(s).some((d) => DRESSING_BY_ID[d]?.buyerWeek) && rng() < 1 / 7 ? 1 : 0) + lane.extra));
           if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
           // Cohen: a promise missed closes that order and costs his trust; never on his Sabbath
@@ -4015,16 +4021,34 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const d = DRESSING_BY_ID[id];
           if (!d) return '';
-          if ((s.dressing ?? []).includes(id)) return `You already have ${lowerName(d.name)}.`;
+          // bought (or your father's): put it out instead
+          if (ownsPiece(s, id)) return get().placeDressing(d.spot, id);
           if (s.cash < d.cost) return `${d.name}: ${fmt(d.cost)}. You have ${fmt(s.cash)}.`;
           set({
             cash: s.cash - d.cost,
             dressing: [...(s.dressing ?? []), id],
+            stallSpots: { ...spotsOf(s), [d.spot]: id },
             ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: d.name, amount: -d.cost }],
             journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(d.name)} for the stall.` }],
           });
           audio.sfx('chest');
-          return `${d.name} for the stall: ${fmt(d.cost)}.`;
+          return `${d.name} for the stall: ${fmt(d.cost)}. It stands on ${lowerName(SPOT_BY_ID[d.spot]?.label ?? 'the stall')}.`;
+        },
+
+        placeDressing: (spot, id) => {
+          const s = get();
+          if (!SPOT_BY_ID[spot]) return '';
+          const cur = spotsOf(s)[spot];
+          if (id === null) {
+            if (!cur) return '';
+            set({ stallSpots: { ...spotsOf(s), [spot]: '' } });
+            return `${DRESSING_BY_ID[cur]?.name ?? 'It'} put away.`;
+          }
+          const d = DRESSING_BY_ID[id];
+          if (!d || d.spot !== spot || !ownsPiece(s, id)) return '';
+          if (cur === id) return '';
+          set({ stallSpots: { ...spotsOf(s), [spot]: id } });
+          return `${d.name} put out.`;
         },
 
         buyShop: (sid) => {
@@ -4343,6 +4367,10 @@ export const useGame = create<GameState & Actions>()(
         if (version < 24) {
           if (p.started && !p.ranks) p.ranks = freshRanks(p.day ?? 1);
         }
+        // Dress your stall arrived with save 25: every spot holds one piece, chosen by the player. Before,
+        // each bought piece stood in the stall at once and the shelves were dressed afresh each day: an
+        // older stall keeps everything it bought, each piece put in its spot over his father's things
+        if (version < 25 && (p.dressing ?? []).length) p.stallSpots = spotsFromOwned(p.dressing);
         if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
           const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };

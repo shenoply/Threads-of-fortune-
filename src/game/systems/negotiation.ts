@@ -142,7 +142,7 @@ export interface Ctx {
   hour?: number;
   inventory: RugItem[];
   upgrades: string[];
-  /** pieces dressing the Giza stall (data/shops.ts DRESSING) */
+  /** the pieces standing in the Giza stall (data/shops.ts DRESSING; game/stallDressing.ts placedPieces) */
   dressing?: string[];
   reputation: number;
   rel: Relationship;

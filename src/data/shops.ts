@@ -116,15 +116,25 @@ export const wageWord = (a: AgentOffer) => (a.share ? `keeps ${Math.round(a.shar
 export const RAIL_FEE = { egypt: 50, abroad: 150 } as const;
 export const RAIL_DAYS = { egypt: 2, abroad: 5 } as const;
 
-// ---- Stall dressing ----------------------------------------------------------------------------
+// ---- Dress your stall --------------------------------------------------------------------------
+// One system for everything on the Giza stall's shelves, walls and floor. Every spot (game/stallDressing.ts
+// SPOTS) holds one piece at a time; a piece belongs to one spot. A few of your father's things are
+// there from the first day (father: true); everything else is bought, and stays where you put it.
 export interface DressingPiece {
   id: string;
   name: string;
+  /** piastres (0 for your father's things, which are not for sale) */
   cost: number;
+  /** the spot it stands in (game/stallDressing.ts SPOTS) */
+  spot: string;
   /** what it does, in one short line */
   effect: string;
   /** an icon (components/Icon.tsx) shown until the piece's picture exists */
   icon: string;
+  /** the full-canvas cut-out, when it is not art/stall2/dressing/stall-<id>.webp */
+  art?: string;
+  /** one of your father's things: on the stall from the start, never sold */
+  father?: boolean;
   /** encounter effects: added at the start of every sale (rich: only buyers of the Fine trade and up) */
   patience?: number;
   interest?: number;
@@ -135,28 +145,50 @@ export interface DressingPiece {
   buyerWeek?: boolean;
 }
 
+const PROP = (id: string) => `art/stall2/props/${id}.webp`;
 export const DRESSING: DressingPiece[] = [
-  { id: 'lamps', name: 'Brass lamps', cost: 800, icon: 'sun', patience: 4, effect: 'The stall stays bright after dark: buyers linger (+4 patience)' },
-  { id: 'kilims', name: 'Kilims on the ground', cost: 1000, icon: 'room', interest: 4, effect: 'A buyer steps onto colour: +4 interest from the start' },
-  { id: 'tray', name: 'A brass tray and glasses', cost: 600, icon: 'tea', trust: 3, effect: 'Tea served properly: +3 trust' },
-  { id: 'sign', name: 'A painted sign board', cost: 1200, icon: 'scroll', buyerWeek: true, effect: 'Your name over the stall: one more buyer a week' },
-  { id: 'glasscase', name: 'A glass case', cost: 3500, icon: 'eye', richTrust: 6, effect: 'Small pieces under glass: rich buyers start with +6 trust' },
-  { id: 'bench', name: 'A bench for buyers', cost: 900, icon: 'users', patience: 6, effect: 'Somewhere to sit: +6 patience' },
-  { id: 'copper', name: 'Copper ware on the shelf', cost: 1400, icon: 'coin', interest: 3, effect: 'The shelf catches the eye: +3 interest' },
-  { id: 'curtain', name: 'A curtain against the sun', cost: 700, icon: 'moon', patience: 3, effect: 'Shade in the afternoon: +3 patience' },
-  { id: 'cushions', name: 'Cushions', cost: 500, icon: 'hand', patience: 3, effect: 'A softer seat: +3 patience' },
-  { id: 'mirror', name: 'A gilt mirror', cost: 1800, icon: 'search', richInterest: 4, effect: 'Rich buyers like what they see: +4 interest' },
-  { id: 'flowers', name: 'Flowers in a jar', cost: 500, icon: 'star', trust: 2, effect: 'A kept stall: +2 trust' },
-  { id: 'scale', name: 'A brass scale', cost: 2200, icon: 'scale', trust: 4, effect: 'Honest weights on show: +4 trust' },
+  // the shelves: top
+  { id: 'prop-clock', name: "Your father's clock", cost: 0, spot: 'top-left', icon: 'hourglass', art: PROP('prop-clock'), father: true, effect: 'It was always on this shelf' },
+  { id: 'prop-lamp', name: 'An oil lamp', cost: 300, spot: 'top-left', icon: 'sun', art: PROP('prop-lamp'), patience: 2, effect: 'A light on the shelf: +2 patience' },
+  { id: 'prop-photo', name: "Your father's photograph of Cairo", cost: 0, spot: 'top-mid', icon: 'eye', art: PROP('prop-photo'), father: true, effect: 'He took it the year you were born' },
+  { id: 'prop-vase', name: 'An Iznik vase', cost: 1200, spot: 'top-mid', icon: 'star', art: PROP('prop-vase'), trust: 2, effect: 'Old blue-and-red ware: +2 trust' },
+  { id: 'prop-birdcage', name: 'A canary in a cage', cost: 600, spot: 'top-mid', icon: 'star', art: PROP('prop-birdcage'), patience: 3, effect: 'Birdsong over the stall: +3 patience' },
+  { id: 'prop-astrolabe', name: 'A brass astrolabe', cost: 2500, spot: 'top-right', icon: 'search', art: PROP('prop-astrolabe'), richInterest: 4, effect: 'Collectors stop to look: rich buyers +4 interest' },
+  { id: 'prop-incense', name: 'An incense burner', cost: 200, spot: 'top-right', icon: 'sun', art: PROP('prop-incense'), patience: 2, effect: 'Sweet smoke: +2 patience' },
+  // the middle shelf (the gramophone keeps its place at the left end)
+  { id: 'prop-camera', name: 'A plate camera', cost: 1800, spot: 'mid-mid', icon: 'eye', art: PROP('prop-camera'), interest: 2, effect: 'Visitors ask about it: +2 interest' },
+  { id: 'prop-tawla', name: 'A tawla board', cost: 500, spot: 'mid-mid', icon: 'users', art: PROP('prop-tawla'), patience: 2, effect: 'A game to hand: +2 patience' },
+  // the bottom shelf
+  { id: 'prop-books', name: "Your father's books", cost: 0, spot: 'bottom-left', icon: 'book', art: PROP('prop-books'), father: true, effect: 'His ledgers, and the rug books he learned from' },
+  { id: 'prop-cashbox', name: 'An inlaid cashbox', cost: 700, spot: 'bottom-left', icon: 'coin', art: PROP('prop-cashbox'), trust: 2, effect: 'Takings kept properly: +2 trust' },
+  { id: 'prop-hookah', name: 'A water pipe', cost: 900, spot: 'bottom-right', icon: 'tea', art: PROP('prop-hookah'), patience: 3, effect: 'A pipe for a long talk: +3 patience' },
+  { id: 'copper', name: 'Copper ware on the shelf', cost: 1400, spot: 'bottom-right', icon: 'coin', art: PROP('prop-copper'), interest: 3, effect: 'The shelf catches the eye: +3 interest' },
+  // the wall above the shelves, and the hooks under the beam
+  { id: 'prop-herbs', name: 'Bunches of dried herbs', cost: 100, spot: 'above-shelves', icon: 'star', art: PROP('prop-herbs'), patience: 1, effect: 'The stall smells fresh: +1 patience' },
+  { id: 'prop-calligraphy', name: 'A framed calligraphy', cost: 1500, spot: 'above-shelves', icon: 'scroll', art: PROP('prop-calligraphy'), trust: 2, effect: 'A blessing over the door: +2 trust' },
+  { id: 'prop-prayerrug', name: 'A silk prayer rug on the wall', cost: 3000, spot: 'above-shelves', icon: 'room', art: PROP('prop-prayerrug'), interest: 3, effect: 'Your best piece on show: +3 interest' },
+  { id: 'prop-swords', name: 'Crossed swords', cost: 2800, spot: 'above-shelves', icon: 'sword', art: PROP('prop-swords'), richTrust: 3, effect: 'Old Damascus blades: rich buyers +3 trust' },
+  { id: 'lamps', name: 'Brass lamps', cost: 800, spot: 'hooks', icon: 'sun', art: PROP('prop-lanterns'), patience: 4, effect: 'The stall stays bright after dark: buyers linger (+4 patience)' },
+  // the floor, the brass table, the seat, the opening
+  { id: 'kilims', name: 'Kilims on the ground', cost: 1000, spot: 'floor', icon: 'room', interest: 4, effect: 'A buyer steps onto colour: +4 interest from the start' },
+  { id: 'tray', name: 'A brass tray and glasses', cost: 600, spot: 'table', icon: 'tea', trust: 3, effect: 'Tea served properly: +3 trust' },
+  { id: 'scale', name: 'A brass scale', cost: 2200, spot: 'table', icon: 'scale', trust: 4, effect: 'Honest weights on show: +4 trust' },
+  { id: 'flowers', name: 'Flowers in a jar', cost: 500, spot: 'table', icon: 'star', trust: 2, effect: 'A kept stall: +2 trust' },
+  { id: 'bench', name: 'A bench for buyers', cost: 900, spot: 'seat', icon: 'users', patience: 6, effect: 'Somewhere to sit: +6 patience' },
+  { id: 'cushions', name: 'Cushions', cost: 500, spot: 'seat', icon: 'hand', patience: 3, effect: 'A softer seat: +3 patience' },
+  { id: 'glasscase', name: 'A glass case', cost: 3500, spot: 'wall', icon: 'eye', richTrust: 6, effect: 'Small pieces under glass: rich buyers start with +6 trust' },
+  { id: 'mirror', name: 'A gilt mirror', cost: 1800, spot: 'wall', icon: 'search', richInterest: 4, effect: 'Rich buyers like what they see: +4 interest' },
+  { id: 'curtain', name: 'A curtain against the sun', cost: 700, spot: 'curtain', icon: 'moon', patience: 3, effect: 'Shade in the afternoon: +3 patience' },
+  { id: 'sign', name: 'A painted sign board', cost: 1200, spot: 'sign', icon: 'scroll', buyerWeek: true, effect: 'Your name over the stall: one more buyer a week' },
 ];
 export const DRESSING_BY_ID: Record<string, DressingPiece> = Object.fromEntries(DRESSING.map((d) => [d.id, d]));
 /** the full-canvas overlay for a piece (aligned with the stall canvas, like the shelf props) */
-export const dressingArt = (id: string) => `art/stall2/dressing/stall-${id}.webp`;
+export const dressingArt = (id: string) => DRESSING_BY_ID[id]?.art ?? `art/stall2/dressing/stall-${id}.webp`;
 
-/** the sum of the dressing's effects at the start of a sale */
-export function dressingFx(owned: string[] | undefined, rich: boolean) {
+/** the sum of the effects of these pieces (the ones standing in the stall) at the start of a sale */
+export function dressingFx(placed: string[] | undefined, rich: boolean) {
   const fx = { patience: 0, interest: 0, trust: 0 };
-  for (const id of owned ?? []) {
+  for (const id of placed ?? []) {
     const d = DRESSING_BY_ID[id];
     if (!d) continue;
     fx.patience += d.patience ?? 0;

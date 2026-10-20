@@ -1,0 +1,27 @@
+/* the view through the stall's opening (StallSky.tsx): cut to the opening by a clip-path polygon */
+/* no box of its own (display: contents): each layer blends straight onto the painting under it */
+.stall-sky { display: contents; }
+.stall-sky > i { position: absolute; inset: 0; display: block; pointer-events: none; }
+.stall-sky .sky-shade { mix-blend-mode: multiply; transition: background-color 4s ease; }
+.stall-sky .sky-glow { mix-blend-mode: screen; }
+/* night: the sky lifted towards the horizon, the land darkened under it, so the pyramids show as shapes */
+.stall-sky .sky-night { background: linear-gradient(180deg, transparent 12%, rgba(64,84,146,.22) 22%, rgba(78,98,160,.5) 33%, rgba(70,90,150,.3) 40%, transparent 48%); }
+.stall-sky .sky-land { background: linear-gradient(180deg, rgba(5,7,20,.62) 20%, rgba(5,7,20,.5) 45%, rgba(10,10,22,.35) 68%); }
+/* stars: small points in the sky part of the opening, breathing slowly */
+.stall-sky .sky-stars { background: radial-gradient(circle at 63.3% 13.6%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 75.2% 12.3%, rgba(255,250,235,0.95) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 60.7% 12.1%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.8px), radial-gradient(circle at 61.3% 23.2%, rgba(255,250,235,0.95) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 58.5% 15.4%, rgba(255,250,235,0.95) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 69.6% 11.2%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 68.9% 13.2%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.8px), radial-gradient(circle at 68.5% 23.7%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 69.5% 25.3%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.4px), radial-gradient(circle at 68.6% 11.5%, rgba(255,250,235,0.95) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 60.4% 26.3%, rgba(255,250,235,0.8) 0, rgba(255,250,235,0) 1.8px), radial-gradient(circle at 66.7% 32.2%, rgba(255,250,235,0.8) 0, rgba(255,250,235,0) 1.4px), radial-gradient(circle at 61.5% 14.3%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 90.4% 22.6%, rgba(255,250,235,0.95) 0, rgba(255,250,235,0) 1.4px), radial-gradient(circle at 90.1% 24.6%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.0px), radial-gradient(circle at 90.3% 14.0%, rgba(255,250,235,0.65) 0, rgba(255,250,235,0) 1.4px); animation: sky-twinkle 5s steps(10) infinite alternate; }
+@keyframes sky-twinkle { from { filter: brightness(.8); } to { filter: brightness(1.25); } }
+/* the day's weather: the colour drained (a saturation blend), darkened (multiply), and a wash of its colour */
+.stall-sky .sky-wx-shade { mix-blend-mode: multiply; }
+.stall-sky .sky-wx-grey { background: hsl(0 0% 50%); mix-blend-mode: saturation; }
+.stall-sky .sky-wx-shade.khamsin { background: rgb(222,170,104); }
+.stall-sky .sky-wx-grey.khamsin { opacity: .3; }
+.stall-sky .sky-wx-wash.khamsin { background: linear-gradient(180deg, rgba(196,146,78,.78) 10%, rgba(182,130,64,.68) 45%, rgba(160,112,54,.5) 68%); }
+.stall-sky .sky-wx-shade.grey { background: rgb(196,200,208); }
+.stall-sky .sky-wx-grey.grey { opacity: .65; }
+.stall-sky .sky-wx-wash.grey { background: linear-gradient(180deg, rgba(186,190,198,.55) 10%, rgba(160,165,172,.32) 45%, rgba(140,144,150,.18) 68%); }
+.stall-sky .sky-wx-shade.rain { background: rgb(146,154,168); }
+.stall-sky .sky-wx-grey.rain { opacity: .8; }
+.stall-sky .sky-wx-wash.rain { background: linear-gradient(180deg, rgba(100,108,122,.66) 10%, rgba(92,98,110,.45) 45%, rgba(80,86,96,.3) 68%); }
+.stall-sky .sky-rain-cut { overflow: hidden; }
+.stall-sky .sky-rain { position: absolute; display: block;  inset: -10% -4%; background-image: repeating-linear-gradient(102deg, transparent 0 13px, rgba(214,224,236,.22) 13px 14px, transparent 14px 37px), repeating-linear-gradient(98deg, transparent 0 23px, rgba(214,224,236,.15) 23px 24px, transparent 24px 57px); animation: rainfall .45s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .stall-sky .sky-stars, .stall-sky .sky-rain { animation: none; } .stall-sky .sky-shade { transition: none; } }
