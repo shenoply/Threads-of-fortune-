@@ -18,7 +18,7 @@ async function sha256(s: string) {
 /** Beta codes for testers: typed into "Have a code?" in Settings. Plain words, any case. Each one is
  *  written in the journal as a beta code, so a tester's save shows what was used. Not in Ironman. */
 type S = ReturnType<typeof useGame.getState>;
-const CHEATS: Record<string, { what: string; run: (s: S) => Partial<S> }> = {
+export const CHEATS: Record<string, { what: string; run: (s: S) => Partial<S> }> = {
   purse: { what: '£100 in your purse', run: (s) => ({ cash: s.cash + 10000 }) },
   fortune: { what: '£1,000 in your purse', run: (s) => ({ cash: s.cash + 100000 }) },
   goodname: { what: 'reputation +10', run: (s) => ({ reputation: s.reputation + 10 }) },

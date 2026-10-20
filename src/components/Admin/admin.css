@@ -1,0 +1,22 @@
+/* the tester's sheet: full screen over the game, one fold per feature, big buttons for a thumb */
+.admin-sheet { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--night, #120c07); color: var(--text, #eadbbd); animation: fade .2s ease; }
+.adm-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); border-bottom: 1px solid var(--line-strong); background: repeating-linear-gradient(135deg, #2a1c10 0 12px, #241709 12px 24px); }
+.adm-head > div { flex: 1; min-width: 0; }
+.adm-head small { display: inline-block; font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: #1b1006; background: var(--warn, #d49a3a); padding: 1px 6px; border-radius: 2px; }
+.adm-head h2 { margin: 2px 0 0; font-family: var(--display); font-weight: 500; font-size: 21px; color: var(--brass-hi); }
+.adm-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.adm-intro { margin: 0 0 10px; font-size: 15px; line-height: 1.35; color: var(--text-dim); }
+.adm-warn { color: var(--bad, #c0553f); }
+.admin-sheet .fold-row { min-height: 54px; }
+.admin-sheet .fold-row > b { font-size: 17px; }
+.adm-desc { margin: 0 0 8px; font-size: 15px; line-height: 1.35; color: var(--text-dim); }
+.adm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.adm-btn { min-height: 52px; padding: 8px 10px; font-size: 16px; line-height: 1.2; text-align: center; display: flex; align-items: center; justify-content: center; }
+.adm-btns .adm-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.adm-res { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--brass); background: #1d130b; font-size: 14.5px; line-height: 1.35; color: var(--parchment); }
+.adm-note { margin: 8px 0 0; font-size: 14px; color: var(--text-dim); }
+.adm-pick { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-family: var(--label); font-size: 15px; }
+.adm-pick select { flex: 1; min-width: 0; min-height: 48px; font-size: 16px; background: #2a1c10; color: var(--parchment); border: 1px solid var(--line-strong); border-radius: 4px; padding: 6px 8px; }
+.adm-save { display: grid; gap: 8px; margin-top: 8px; }
+.adm-save textarea { width: 100%; font-size: 14px; background: #1d130b; color: var(--parchment); border: 1px solid var(--line-strong); border-radius: 4px; padding: 8px; resize: vertical; }
+.adm-save label.adm-btn { cursor: pointer; }

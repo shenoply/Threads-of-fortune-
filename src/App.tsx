@@ -70,6 +70,8 @@ const Radio = lazy(() => withWires(import('./components/Radio/Radio')).then((m) 
 const Gramophone = lazy(() => import('./components/Radio/Gramophone').then((m) => ({ default: m.Gramophone })));
 const Calendar = lazy(() => import('./components/Calendar/Calendar').then((m) => ({ default: m.Calendar })));
 const HeroHub = lazy(() => import('./components/Hero/HeroHub').then((m) => ({ default: m.HeroHub })));
+// the tester's sheet (beta build): loaded only when opened from Settings
+const AdminSheet = lazy(() => import('./components/Admin/AdminSheet').then((m) => ({ default: m.AdminSheet })));
 
 type Tab = 'stall' | 'supplier' | 'inventory' | 'ledger' | 'map' | 'caravan' | 'hero';
 const TITLE_BGS: { src: string; place: string; pos?: string }[] = [
@@ -255,6 +257,7 @@ export default function App() {
   const mainRef = useRef<HTMLElement>(null);
   useEnterAnimation(mainRef, tab);
   const [settings, setSettings] = useState(false);
+  const [admin, setAdmin] = useState(false);
   // the settings panel keeps the keyboard inside it (Tab cycles, Esc closes) and takes focus when it opens
   const settingsRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (settings) setTimeout(() => settingsRef.current?.querySelector<HTMLElement>('[data-testid=settings-close]')?.focus(), 0); }, [settings]);
@@ -295,7 +298,7 @@ export default function App() {
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
   // the map clock stops while you read, listen, or look at a menu
-  const frozen = radioOpen || gramophoneOpen || paper !== null || settings || cal || guide || g.dayOver;
+  const frozen = radioOpen || gramophoneOpen || paper !== null || settings || admin || cal || guide || g.dayOver;
   // the stall upgrades sheet: opened from the stall, Stock, or the reminder chip
   const [upgradesOpen, setUpgradesOpen] = useState(false);
   useEffect(() => {
@@ -492,6 +495,7 @@ export default function App() {
   const backRef = useRef<() => boolean>(() => false);
   backRef.current = () => {
     if (settings) { setSettings(false); return true; }
+    if (admin) { setAdmin(false); return true; }
     if (paper !== null) { setPaper(null); return true; }
     if (radioOpen) { setRadioOpen(false); return true; }
     if (gramophoneOpen) { setGramophoneOpen(false); return true; }
@@ -866,6 +870,8 @@ export default function App() {
               <h2>Your game <small>{g.ironman ? '☠ Ironman' : g.playMode === 'sandbox' ? 'Sandbox' : 'Campaign'}</small></h2>
               <button className="btn" onClick={() => setSettings(false)} data-testid="settings-close" aria-label="Close">Close ×</button>
             </div>
+            {/* the tester's sheet: every new feature, one tap away (this beta build only; never in Ironman) */}
+            <button className="btn" style={{ width: '100%', margin: '4px 0 10px', borderStyle: 'dashed', borderColor: 'var(--warn)' }} disabled={!!g.ironman} onClick={() => { setSettings(false); setAdmin(true); }} data-testid="admin-open">Tester's sheet <small style={{ display: 'block', opacity: 0.7 }}>{g.ironman ? 'Not in an Ironman game' : 'For testing this beta: every new feature, one tap away'}</small></button>
             {/* saving, in plain words: what happens on its own, one Save button, separate games in slots,
                 and a backup file for moving to another phone (folded away: most people never need it) */}
             <h3 className="set-h">Saving</h3>
@@ -942,6 +948,7 @@ export default function App() {
 
 
       {finance && <FinancePanel onClose={() => setFinance(false)} />}
+      {admin && <Suspense fallback={null}><AdminSheet onClose={() => setAdmin(false)} nav={{ tab: setTab, map: mapGo, merchant: (sub) => { setMsub(sub); setTab('ledger'); }, upgrades: () => setUpgradesOpen(true), toast, backup: downloadSave, openFile: loadSave, restart: () => { audio.stopAll(); freshGame(false); setPhase(introSeen() ? 'dayone' : 'documentary'); } }} /></Suspense>}
       {g.ended && phase === 'game' && (
         <div className="overlay ending" data-testid="ending">
           <div className="modal-card ending-card">
