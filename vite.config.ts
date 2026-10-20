@@ -8,7 +8,8 @@ import { BOOT_ART, COLD_TITLES } from './src/game/bootArt';
 // - the pictures the loading screen waits for are asked for as soon as the code has downloaded, while
 //   it is still being read and started (a second or more of an idle line on a slow phone before);
 // - on a first visit the title picture is picked here (one of the title's own, lighter paintings) and
-//   asked for with them; App.tsx shows that one.
+//   asked for with them; App.tsx shows that one. On a later visit it is one of the title pictures already
+//   kept on the phone (preload.ts keepTitle), so the title is not held up by a picture still to download.
 const quickStart = (): Plugin => ({
   name: 'quick-start', apply: 'build',
   transformIndexHtml: { order: 'post', handler(html) {
@@ -16,7 +17,7 @@ const quickStart = (): Plugin => ({
     // the pictures start the moment the code and stylesheet are in (before the code has run): on a
     // slow line they then neither hold the code back nor wait for it to start
     const code = (html.match(/\.\/assets\/[^"]+\.(?:js|css)/g) ?? []).map((u) => u.slice(2));
-    const boot = `<script>(function(){var go=false,pics=${JSON.stringify(BOOT_ART)};try{if(!(navigator.serviceWorker&&navigator.serviceWorker.controller)){var t=${JSON.stringify(COLD_TITLES)};window.__tofTitle=t[Math.floor(Math.random()*t.length)];pics.unshift(window.__tofTitle);}}catch(e){}
+    const boot = `<script>(function(){var go=false,pics=${JSON.stringify(BOOT_ART)};try{var k=null;try{k=JSON.parse(localStorage.getItem('tof-titles-kept')||'null');}catch(e){}var sw=navigator.serviceWorker&&navigator.serviceWorker.controller,t=!sw?${JSON.stringify(COLD_TITLES)}:(k&&k.length?k:null);if(t){window.__tofTitle=t[Math.floor(Math.random()*t.length)];pics.unshift(window.__tofTitle);}}catch(e){}
 function start(){if(go)return;go=true;pics.forEach(function(s,i){var l=document.createElement('link');l.rel='preload';l.as='image';l.href=s;if(!i)l.setAttribute('fetchpriority','high');document.head.appendChild(l);});}
 var code=${JSON.stringify(code)},got={};
 function check(es){es.forEach(function(e){code.forEach(function(c){if(e.name.indexOf(c)>=0)got[c]=1;});});if(code.every(function(c){return got[c];}))start();}

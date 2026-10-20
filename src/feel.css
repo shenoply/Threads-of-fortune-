@@ -37,16 +37,29 @@
 :where(img.fade-img, img.buyer-big, img.buyer-framed, img.buyer-art, img.troop-page__pic, img.camp-art, img.tm-art,
   img.yard-hero, img.amb-rob-art, img.court-img, img.pass-card__art, img.mroom__img, img.cl-room, img.arran-scene,
   img.audience-art, img.overhead-img, img.cafe-room__bg, img.cab-bg, img.stage-bg, img.auction-bg, img.malek-door__bg,
-  img.arran-lab__room, img.arran-lab__backdrop, img.arran-door__art, img.chess-table__img, img.cat__plate) {
+  img.arran-lab__room, img.arran-lab__backdrop, img.arran-door__art, img.chess-table__img, img.cat__plate, img.overhead-img,
+  [data-testid=rugstrip] img, .idle-scene > img) {
   transition: opacity .22s ease-out;
 }
 :where(img.fade-img, img.buyer-big, img.buyer-framed, img.buyer-art, img.troop-page__pic, img.camp-art, img.tm-art,
   img.yard-hero, img.amb-rob-art, img.court-img, img.pass-card__art, img.mroom__img, img.cl-room, img.arran-scene,
   img.audience-art, img.overhead-img, img.cafe-room__bg, img.cab-bg, img.stage-bg, img.auction-bg, img.malek-door__bg,
-  img.arran-lab__room, img.arran-lab__backdrop, img.arran-door__art, img.chess-table__img, img.cat__plate):not(.ff-ok) {
+  img.arran-lab__room, img.arran-lab__backdrop, img.arran-door__art, img.chess-table__img, img.cat__plate, img.overhead-img,
+  [data-testid=rugstrip] img, .idle-scene > img):not(.ff-ok) {
   opacity: 0; animation: ff-show .2s ease-out 1.6s forwards;
 }
 }
+
+/* the stall shown whole (feel.ts installCompose): while its layers download and decode, a tiny blurred
+   copy of the room and counter (360 bytes, in this file) stands in, laid out as the stage is (3:2,
+   bottom-anchored, covering); then the stage fades in once (a layer that came too late for it fades in by itself). */
+.scene.stall::before { content: ''; position: absolute; inset: -14px; pointer-events: none; filter: blur(10px);
+  background: #6a4428 url("data:image/webp;base64,UklGRl4BAABXRUJQVlA4IFIBAADwBwCdASokABgAPsFcoU2npSKiKrgKAPAYCWYAtRtHPJEIOf/Luf+Bpd2jBdPUgnWy+JlmKgGx/hW3PdCVd6Q0zHK53OzyXAAA/u8Rmqd0Ij/oU/5Pch2iBcryD+X0QuO41x6MOG2Gwqk4M9OOY0w4wNJg1QpdkjBaJAyeePCbrp72nmb/qP3ZUlvMiuvYarJYpqTfqSN15OE9KqZNhsqQfsg6GgF78+Gv3d6KW7UkzpMs/bfqkvVPtL5rvih426XFIe9NFsLW76nAPDrdsEU8TP3Cj0NXCu+4kMkVBwAuv6lseYHPbquNAS4z88WdMsBNwFAANSm/RpO3rC+QMMSqWzHllC9guuJ+//GiU17hr4gmJv9YXNRd2D5+qZXrrfhuAx2hvUdQMek4yMuMe3LSiZQQER9yIEcB0d5y3T/UbImo96yBBZEEZPrDU1pYiZeAAA==") 50% 100% / cover no-repeat; }
+.scene.stall > .stage[data-cmp="wait"] { opacity: 0; }
+.scene.stall > .stage[data-cmp="ready"] { animation: ff-fade .26s ease-out; }
+
+/* the stall sheet's picture: a tiny blurred copy under it while it is unpacked, then it fades in over it */
+.idle-scene { background: #6a4428 url("data:image/webp;base64,UklGRmYBAABXRUJQVlA4IFoBAACQBwCdASokABgAPsFcpU4npSOiKrgIAPAYCWgAnTKEdrgmKgc/+RgDr8n+xASrVsEROwbB609LXewV8EXQj9+IeVij2/AA/u8Rmvdp0t68TzayDgJx5c+UBPW7xUiSE2ZNRQ4PiN8F8vKmhAp7bZCGbtYoONhRjX5BcDvaaU5LnsXdxPewLrVvODr9qeyTF1xN/GUqYRq2t0qLLRbSa7GISDRZixBAS+boiwULz7XuvISNQXOf3I36ejTYhcpWFUx+3I7WjgmR+f+hA2e7VEnBz/8hOi0CcUA+hkF96PHCAHYuUaTbB80/ffrSgN/o2EojCcGOpZ2vCPjeVWFAUN6lgWa9F3Ev2tVWyqrt1nim99VqgErC6VrVhQXhWWBcRAq3WzIRt73Bb+XLy7lxbtJqj0zE8MAQ4X5S5kv3yK2jf0jewHBojOhXGchKndlRdOomHJPj6unqQAAA") 50% 45% / cover no-repeat; }
 
 /* the small rewards (feel.ts floatSale, stampOn, starTick): one layer over everything, never taking a tap */
 .ff-layer { position: fixed; inset: 0; pointer-events: none; z-index: 9000; overflow: hidden; }

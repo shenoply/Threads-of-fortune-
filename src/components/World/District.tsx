@@ -1,6 +1,7 @@
 import { Catalogue } from '../Wardrobe/Catalogue';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { streetRoute } from '../../game/systems/streets';
+import { crossfadeCanvas } from '../../game/feel';
 import { createPortal } from 'react-dom';
 import { takeMalekRequest, travelTo } from '../../game/nav';
 import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
@@ -656,6 +657,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     let bg: HTMLCanvasElement | null = planCache;
     let bgImg: HTMLImageElement | null = paintingCache;
     let small: HTMLImageElement | null = smallCache;
+    let shownPic: HTMLImageElement | HTMLCanvasElement | null | undefined;
     // a dropped download (patchy phone signal) must not leave a stand-in up for good: keep trying,
     // and the painting replaces it the moment it arrives
     let bgTries = 0, bgTimer = 0, planTimer = 0, alive = true;
@@ -664,7 +666,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     const loadBg = () => {
       const im = new Image();
       im.decoding = 'async';
-      im.onload = () => { paintingCache = im; if (alive) { bgImg = im; clearTimeout(planTimer); request(); } };
+      // unpacked before it is drawn (drawing a picture still packed unpacks it there and then: a stall on a phone)
+      im.onload = () => { void (im.decode?.() ?? Promise.resolve()).catch(() => {}).then(() => { paintingCache = im; if (alive) { bgImg = im; clearTimeout(planTimer); request(); } }); };
       im.onerror = () => {
         if (!alive) return;
         fallBack();
@@ -779,11 +782,14 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       let ox = W / 2 - cm.cx * sc, oy = H / 2 - cm.cy * sc;
       ox = Math.min(0, Math.max(W - DW * sc, ox));
       oy = Math.min(0, Math.max(H - DH * sc, oy));
+      const pic = bgImg ?? small ?? bg;
+      // the sharp painting replacing the soft copy (or either replacing the empty frame): a short dissolve
+      if (shownPic !== undefined && pic !== shownPic) crossfadeCanvas(c);
+      shownPic = pic;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = '#120c07'; ctx.fillRect(0, 0, W, H);
       ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy);
       ctx.imageSmoothingEnabled = true;
-      const pic = bgImg ?? small ?? bg;
       if (pic) ctx.drawImage(pic, 0, 0, DW, DH);
       // passers-by are painted into the map; only the drawn plan needs moving figures
       const plan = !bgImg && !small && !!bg;

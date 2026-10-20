@@ -9,6 +9,7 @@ import { installImageFade } from './game/feel';
 import { installRewards } from './game/rewards';
 import { BOOT_ART, BOOT_LATER } from './game/bootArt';
 import { loadWorldMap } from './components/World/Campaign';
+import { installLookahead, keepTitle } from './game/preload';
 
 // watch the save for failed writes and for another tab writing it (src/game/state/saveGuard.ts)
 installSaveGuard();
@@ -16,6 +17,8 @@ installSaveGuard();
 installImageFade();
 // the coins, seals and stars on the moments that matter (src/game/rewards.ts)
 installRewards();
+// fetch ahead what the next screens show: the rugs' small pictures, the town ahead, the world map (src/game/preload.ts)
+installLookahead();
 
 // keep the pictures and sounds on the phone after the first visit (public/sw.js)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
@@ -87,7 +90,8 @@ async function bootGate() {
   const track = (p: Promise<unknown>, weight = 1) => { total += weight; jobs.push(p.finally(() => { done += weight; W.__bootP = 30 + Math.round((done / total) * 68); })); };
   say('Unrolling the rugs…');
   track(capped(document.fonts?.ready ?? Promise.resolve(), 6000));
-  track(capped(titlePicture().then(imgLoad), 15000), 4);
+  // (a title picture that has come in is noted, so a later visit opens on one already on the phone)
+  track(capped(titlePicture().then((src) => imgLoad(src).then(() => keepTitle(src))), 15000), 4);
   // the first things the game shows after the title: the Giza lane (its small copy) and the stall
   for (const src of BOOT_ART) track(imgLoad(src), /\.jpg$/.test(src) ? 4 : 1);
   window.setTimeout(() => say('Opening the stall…'), 1500);

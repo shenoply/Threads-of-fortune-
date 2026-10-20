@@ -499,7 +499,7 @@ export function StallOverhead({ onOpen, compact }: { onOpen?: () => void; compac
 
   return (
     <div className={`overhead ${compact ? 'compact' : ''}`} data-testid="stall-overhead">
-      <img className="overhead-img" src="art/world/stall-top.jpg" alt="Your rug stall in the Giza bazaar, seen from above, with Saffron asleep on a rug" onClick={onOpen} />
+      <img className="overhead-img" src="art/opt/stall-top-1024.webp" width={1024} height={682} decoding="async" alt="Your rug stall in the Giza bazaar, seen from above, with Saffron asleep on a rug" onClick={onOpen} />
       <span className="overhead-label">Your stall · {stallName(upgrades)}</span>
       {!compact && onOpen && <button className="btn overhead-open" onClick={onOpen}>Step into your stall</button>}
     </div>
