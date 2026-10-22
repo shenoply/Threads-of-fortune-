@@ -5,6 +5,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 import './feel.css';
+import './palette.css';
 import { installImageFade } from './game/feel';
 import { installRewards } from './game/rewards';
 import { BOOT_ART, BOOT_LATER } from './game/bootArt';
