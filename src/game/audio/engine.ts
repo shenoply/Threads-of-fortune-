@@ -381,6 +381,24 @@ class AudioEngine {
     src.stop(t + 0.4);
   }
 
+  /** one clear struck note at a given pitch (the reward bells) */
+  private chime(delay: number, base: number, gain = 0.06) {
+    const c = this.ctx!;
+    const t = c.currentTime + delay;
+    [[1, 1, 1.1], [2.76, 0.35, 0.6], [5.4, 0.15, 0.3]].forEach(([m, a, len]) => {
+      const o = c.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = base * m;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain * a, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g).connect(this.gains.sfx);
+      o.start(t);
+      o.stop(t + len + 0.05);
+    });
+  }
+
   /** A small brass bell, the kind on a shop counter: a struck partial or three, a long soft ring. */
   private till(delay: number, gain = 0.05) {
     const c = this.ctx!;
@@ -500,6 +518,11 @@ class AudioEngine {
       }
       case 'sold':
         this.sfx('coins');
+        break;
+      case 'reward':
+        // a gift or an errand paid: three bells rising, and the coins
+        [0, 0.12, 0.26].forEach((at, i) => this.chime(at, 1180 * [1, 1.26, 1.5][i], 0.07));
+        setTimeout(() => this.sfx('coins'), 260);
         break;
       case 'soldBig':
         // a good sale: the coins, then the counter bell

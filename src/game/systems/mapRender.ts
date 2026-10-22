@@ -70,6 +70,17 @@ function askSmall() {
     .catch(() => {})
     .finally(() => { smallDone = true; if (wantSharp) loadSharp(); });
 }
+// Persia's painting: asked for with the sharp western copy, drawn over x = 855..1265 (feathered in its
+// first 30 units so the two paintings meet without a seam)
+let eastImg: CanvasImageSource | null = null, eastAsked = false;
+function paintedEast(): CanvasImageSource | null {
+  if (!eastAsked && typeof Image !== 'undefined') {
+    eastAsked = true;
+    loadPicture('art/world/persia-painted.webp').then((p) => { eastImg = p; artListeners.forEach((f) => f()); }).catch(() => {});
+  }
+  return eastImg;
+}
+
 /** The painting, once it has loaded (the sharp copy when it is in, the small one before that). */
 export function paintedMap(): CanvasImageSource | null {
   if (typeof Image === 'undefined') return null;
@@ -246,8 +257,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(art, 0, 0, PAINT_W, MAP_H);
-    // Persia, east of the painting, drawn in code and faded into its edge (persiaArt.ts)
-    const east = persiaCanvas(() => artListeners.forEach((f) => f()));
+    // Persia, east of the painting: its own painting (art/world/persia-painted.webp, its left 30 units
+    // fading in over the western one), or until that is in, the one drawn in code (persiaArt.ts)
+    const east = paintedEast() ?? persiaCanvas(() => artListeners.forEach((f) => f()));
     if (east) ctx.drawImage(east, PERSIA_X0, 0, MAP_W - PERSIA_X0, MAP_H);
     else { ctx.fillStyle = 'rgb(208,158,96)'; ctx.fillRect(PAINT_W, 0, MAP_W - PAINT_W, MAP_H); }
     screen();

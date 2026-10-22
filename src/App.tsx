@@ -1,3 +1,4 @@
+import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
 import { BigNews, freshNews } from './components/Newspaper/BigNews';
 import { DaySummary } from './components/Ledger/DaySummary';
@@ -746,6 +747,7 @@ export default function App() {
           </button>
           {/* always there; while the opening runs they don't pulse, so the step's own button is the one that calls */}
           <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
+          {g.started && !tutorialActive && <GiftButton />}
           <button className={`icon-btn radio-btn ${(g.radioHeard ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'radio' ? 'tour-target' : ''}`} onClick={() => setRadioOpen(true)} aria-label="The radio" data-testid="radio-btn"><Icon name="radio" /></button>
           <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={openPaper} aria-label="Today's newspaper (a quarter of an hour)" data-testid="paper-btn"><Icon name="news" /></button>
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">

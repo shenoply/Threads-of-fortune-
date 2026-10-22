@@ -1,0 +1,51 @@
+/* the gift chest in the top bar: a soft glow while something waits in it */
+.gift-btn { position: relative; }
+.gift-btn.calling { color: #ffd27a; animation: gift-call 2.2s ease-in-out infinite; }
+.gift-btn .gift-run { position: absolute; right: -3px; bottom: -3px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #b5521f; color: #fff3dc; font: 700 10.5px/16px var(--body, serif); text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+@keyframes gift-call { 0%, 100% { filter: drop-shadow(0 0 0 rgba(255,190,90,0)); } 50% { filter: drop-shadow(0 0 7px rgba(255,190,90,.95)); } }
+@media (prefers-reduced-motion: reduce) { .gift-btn.calling { animation: none; filter: drop-shadow(0 0 5px rgba(255,190,90,.9)); } }
+
+.daily-sheet .daily-body { overflow-y: auto; padding: 12px 14px 28px; display: flex; flex-direction: column; gap: 18px; max-width: 560px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.daily-sheet h3 { margin: 0 0 8px; font-family: var(--display); font-weight: 500; color: var(--brass-hi); font-size: 18px; display: flex; align-items: baseline; gap: 10px; }
+.daily-sheet h3 small { font-family: var(--body); font-size: 13.5px; color: var(--text-dim); font-weight: 400; }
+
+.gift-week { list-style: none; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.gift-week li { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 7px; border: 1px solid var(--line); background: rgba(255,240,210,.03); font-size: 11.5px; color: var(--text-dim); text-align: center; line-height: 1.15; }
+.gift-week li b { font-family: var(--display); font-size: 15px; color: var(--text); }
+.gift-week li.had { opacity: .55; background: rgba(140,190,110,.08); border-color: rgba(140,190,110,.35); }
+.gift-week li.now { border: 2px solid #f0a040; background: rgba(240,160,64,.14); color: var(--text); box-shadow: 0 0 12px rgba(240,160,64,.35); }
+.gift-week li:last-child span { color: #ffd27a; }
+
+.gift-chest-row { display: flex; align-items: center; gap: 14px; }
+.gift-chest { position: relative; flex: 0 0 auto; width: 84px; height: 84px; border-radius: 14px; border: 2px solid var(--brass-hi); background: radial-gradient(circle at 50% 40%, rgba(255,200,110,.35), rgba(60,30,10,.85)); color: #ffd27a; display: grid; place-items: center; cursor: pointer; }
+.gift-chest svg { width: 46px; height: 46px; }
+.gift-chest.ready { animation: chest-bob 1.6s ease-in-out infinite; box-shadow: 0 0 18px rgba(255,190,90,.55); }
+.gift-chest.opened { opacity: .7; cursor: default; }
+@keyframes chest-bob { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-3px) rotate(-3deg); } 60% { transform: translateY(0) rotate(3deg); } }
+.gift-says { display: flex; flex-direction: column; gap: 3px; font-size: 15px; }
+.gift-says b { color: var(--text); font-weight: 600; }
+.gift-says span { color: var(--text-dim); font-size: 14px; }
+.gift-got { color: #ffd27a !important; animation: got-in .5s ease-out; }
+@keyframes got-in { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.gift-next { margin: 10px 0 0; font-size: 14px; color: var(--text-dim); }
+.gift-next b { color: #ffd27a; }
+
+/* coins thrown up out of the chest */
+.gift-burst { position: absolute; left: 50%; top: 45%; width: 0; height: 0; pointer-events: none; }
+.gift-burst i { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff1b8, #e0a62f 55%, #8a5a12); box-shadow: 0 1px 2px rgba(0,0,0,.5); animation: coin-fly .9s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes coin-fly { 0% { transform: rotate(var(--a)) translateY(0) scale(.6); opacity: 1; } 70% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(1); opacity: 0; } }
+
+.errand { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 6px; background: rgba(255,240,210,.03); }
+.errand.done { border-color: rgba(140,190,110,.55); background: rgba(140,190,110,.08); }
+.errand.paid { opacity: .6; }
+.errand.all { border-style: dashed; }
+.errand.all.done { border-style: solid; border-color: #f0a040; background: rgba(240,160,64,.1); }
+.errand-tick { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; color: #9fd07a; }
+.errand-tick svg { width: 14px; height: 14px; }
+.errand.all .errand-tick { color: #ffd27a; }
+.errand-text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.errand-text b { font-weight: 600; font-size: 15px; color: var(--text); }
+.errand-text small { font-size: 13px; color: var(--text-dim); }
+.errand em { font-style: normal; color: var(--text-dim); font-size: 14px; white-space: nowrap; }
+.overlay.daily-sheet { background: rgb(14, 9, 5); }
+.gift-chest svg, .gift-btn svg { stroke: currentColor; }

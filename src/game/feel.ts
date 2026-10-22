@@ -316,3 +316,52 @@ export function starTick(delta = 1, sel = '[data-testid="hud-rep"]') {
     window.setTimeout(() => chip.classList.remove('ff-tick'), 600);
   }
 }
+
+/** The moment of a sale, over the stall picture for about two seconds: a brass ribbon with the price
+ *  and what it means (a record, the profit on cost), and a handful of coins flying from it into the
+ *  purse in the top bar. It takes no tap and covers nothing for long. `note` is a line under the price. */
+export function saleMoment(amount: number, note: string, grand: boolean) {
+  if (!hasWindow || amount <= 0) return;
+  const scene = visibleRect(document.querySelector('.stall > .scene, [data-testid="scene"]'));
+  const W = window.innerWidth;
+  const x = scene ? scene.left + scene.width / 2 : W / 2;
+  const y = scene ? scene.top + Math.min(scene.height * 0.38, 150) : 160;
+  const el = document.createElement('div');
+  el.className = `ff-ribbon ${grand ? 'ff-grand' : ''}`;
+  el.dataset.testid = 'sale-moment';
+  const b = document.createElement('b');
+  b.textContent = `Sold · ${fmt(amount)}`;
+  el.appendChild(b);
+  if (note) { const s = document.createElement('span'); s.textContent = note; el.appendChild(s); }
+  drop(el, x, y, grand ? 2150 : 1900);
+  if (reducedMotion()) return;
+  const purse = visibleRect(document.querySelector('[data-testid="hud-cash"]'));
+  if (!purse) return;
+  const tx = purse.left + 14, ty = purse.top + purse.height / 2;
+  const n = grand ? 12 : 7;
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('i');
+    c.className = 'ff-coin';
+    const sx = x + (Math.random() - 0.5) * 120, sy = y + (Math.random() - 0.3) * 30;
+    c.style.setProperty('--dx', `${Math.round(tx - sx)}px`);
+    c.style.setProperty('--dy', `${Math.round(ty - sy)}px`);
+    c.style.animationDelay = `${350 + i * 55}ms`;
+    drop(c, sx, sy, 1500 + i * 55);
+  }
+}
+
+/** A thing done for the first time, or a mark passed: a small brass plate under the top bar for a
+ *  couple of seconds. */
+export function feat(title: string, line: string) {
+  if (!hasWindow) return;
+  const el = document.createElement('div');
+  el.className = 'ff-feat';
+  el.dataset.testid = 'feat';
+  const b = document.createElement('b');
+  b.textContent = title;
+  const s = document.createElement('span');
+  s.textContent = line;
+  el.append(b, s);
+  const hud = visibleRect(document.querySelector('.hud'));
+  drop(el, window.innerWidth / 2, (hud ? hud.bottom : 50) + 34, 3200);
+}

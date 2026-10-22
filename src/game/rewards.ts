@@ -4,7 +4,7 @@
 // stops the clock or waits for a tap; a loaded save or a new game is not mistaken for any of them.
 import { useGame } from './state/store';
 import { audio } from './audio/engine';
-import { BIG_SALE, floatSale, stampOn, starTick, trackTaps } from './feel';
+import { BIG_SALE, floatSale, saleMoment, stampOn, starTick, trackTaps } from './feel';
 import { MAIN_ORDER } from '../data/missions';
 
 type S = ReturnType<typeof useGame.getState>;
@@ -37,7 +37,24 @@ export function installRewards() {
       const extra = sold > 0 ? fresh.filter((l) => l.kind === 'bonus' && l.amount > 0 && /^Commission/.test(l.label)).reduce((a, l) => a + l.amount, 0) : 0;
       if (sold > 0) {
         sold += extra;
-        audio.sfx(sold >= BIG_SALE ? 'soldBig' : 'sold');
+        // what this sale means: a record, the best of the day, or the profit on what the rug cost
+        const isSale = (l: { kind: string; amount: number; label: string }) => l.kind === 'sale' && l.amount > 0 && !/^Seized/.test(l.label);
+        const before = (p.ledger ?? []).filter(isSale);
+        const best = before.reduce((m, l) => Math.max(m, l.amount), 0);
+        const dayBest = before.filter((l) => l.day === s.day).reduce((m, l) => Math.max(m, l.amount), 0);
+        const mine = fresh.filter(isSale);
+        const cost = mine.reduce((a, l) => a + (l.cost ?? 0), 0);
+        const pct = cost > 0 ? Math.round(((sold - extra - cost) / cost) * 100) : 0;
+        const record = before.length >= 3 && sold > best;
+        // marks passed: the first sale, the tenth, three in one day... said on the ribbon itself
+        const n = before.length + mine.length, today = before.filter((l) => l.day === s.day).length + mine.length;
+        const marks: Record<number, string> = { 1: 'Your first sale. Your father would be glad', 10: 'Your tenth sale', 25: 'Twenty-five sales', 50: 'Fifty sales', 100: 'A hundred sales', 250: 'Two hundred and fifty sales' };
+        const hit = Object.keys(marks).map(Number).find((m) => before.length < m && n >= m);
+        const dayHit = [3, 5, 8].find((m) => today - mine.length < m && today >= m);
+        const mark = hit ? marks[hit] : dayHit ? `${dayHit === 3 ? 'Three' : dayHit === 5 ? 'Five' : 'Eight'} sales today` : '';
+        const note = mark || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : '');
+        audio.sfx(record || mark ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
+        saleMoment(sold, note, record || !!mark || sold >= BIG_SALE);
         floatSale(sold);
       }
       const won = fresh.filter((l) => l.kind === 'purchase' && /^Auction:/.test(l.label)).reduce((a, l) => a + (l.cost ?? -l.amount), 0);

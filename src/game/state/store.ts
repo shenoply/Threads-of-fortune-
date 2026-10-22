@@ -13,6 +13,7 @@ import { NARRATOR, RASHID } from '../../data/dialogue';
 import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
 import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import { ALL_THREE, errandsFor, giftFor, giftToday, type DailyState, type Gift } from '../systems/daily';
 import type { HeroLook } from '../heroLook';
 import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
 import { applyAuctionObservation, type MarketIntelRecord } from '../auction/marketIntel';
@@ -225,6 +226,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
+  /** the daily gift's run of days and the errands paid for (systems/daily.ts) */
+  daily?: DailyState;
   /** prices you have seen rugs fetch at auction, by rug type */
   intel?: Record<string, MarketIntelRecord>;
   /** unsold lots that will come back cheaper at the same house */
@@ -550,6 +553,10 @@ interface Actions {
   /** put an owned piece (or your father's) in its spot, or clear the spot (id null) */
   placeDressing: (spot: string, id: string | null) => string;
   setSignName: (name: string) => void;
+  /** open today's gift (once a real day): what was in it, or null */
+  openGift: () => Gift | null;
+  /** be paid for a finished errand ('all' for the three together) */
+  payErrand: (id: string) => boolean;
   /** shops in other cities: each returns a line for the player */
   buyShop: (sid: string) => string;
   hireAgent: (sid: string, agentId: string) => string;
@@ -4036,6 +4043,41 @@ export const useGame = create<GameState & Actions>()(
           });
           audio.sfx('chest');
           return `${d.name} for the stall: ${fmt(d.cost)}. It stands on ${lowerName(SPOT_BY_ID[d.spot]?.label ?? 'the stall')}.`;
+        },
+
+        openGift: () => {
+          const s = get();
+          const t = giftToday(s.daily);
+          if (!t.open) return null;
+          const gift = giftFor(t.run, rankOf(s).idx, s.dressing ?? []);
+          const patch: Partial<GameState> = { daily: { ...(s.daily ?? { streak: 0, best: 0 }), last: t.today, streak: t.run, best: Math.max(s.daily?.best ?? 0, t.run) } };
+          if (gift.kind === 'cash') { patch.cash = s.cash + gift.amount; patch.ledger = [...s.ledger, { day: s.day, kind: 'bonus', label: `Gift: ${gift.text}`, amount: gift.amount }]; }
+          if (gift.kind === 'rep') patch.reputation = s.reputation + gift.amount;
+          if (gift.kind === 'rug') {
+            const t2 = RUGS[gift.typeId];
+            patch.inventory = [...s.inventory, { uid: newUid('r'), typeId: gift.typeId, condition: 'Good', restored: false, provenance: t2?.provenance ?? 'Likely', paid: 0, notes: ['A gift from Uncle Rashid.'], stored: true }];
+          }
+          if (gift.kind === 'piece') {
+            const d = DRESSING_BY_ID[gift.id];
+            patch.dressing = [...(s.dressing ?? []), gift.id];
+            if (d && !spotsOf(s)[d.spot]) patch.stallSpots = { ...spotsOf(s), [d.spot]: gift.id };
+          }
+          patch.journal = [...s.journal, { day: s.day, text: `Day ${t.run} in a row: ${gift.text}.` }];
+          set(patch);
+          return gift;
+        },
+
+        payErrand: (id) => {
+          const s = get();
+          const rk = rankOf(s).idx;
+          const errs = errandsFor(s.day, s.ledger, rk);
+          const paid = (s.daily?.paid ?? []).filter((k) => k.startsWith(`${s.day}:`));
+          const key = `${s.day}:${id}`;
+          if (paid.includes(key)) return false;
+          const amount = id === 'all' ? (errs.every((e) => e.done) ? ALL_THREE(rk) : 0) : (errs.find((e) => e.id === id && e.done)?.reward ?? 0);
+          if (!amount) return false;
+          set({ cash: s.cash + amount, daily: { ...(s.daily ?? { streak: 0, best: 0 }), paid: [...paid, key] }, ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: id === 'all' ? "All three of the day's errands" : `Errand: ${errs.find((e) => e.id === id)?.text ?? id}`, amount }] });
+          return true;
         },
 
         setSignName: (name) => set({ signName: name.replace(/[\u0000-\u001f]/g, '').slice(0, 28).trim() || undefined }),

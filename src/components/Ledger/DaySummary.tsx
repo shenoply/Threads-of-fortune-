@@ -1,3 +1,4 @@
+import { useDailyWaiting } from '../Daily/Daily';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
@@ -5,6 +6,12 @@ import { dateFor } from '../../game/economy/economy';
 /** What happened overnight after "Next day": the bills, Rashid, the men, how you slept. Shown once
  *  as a small card in the morning and put away when read. Nights on the road are not shown here:
  *  their notes already appear on the map as you travel. */
+/** the morning's reason to look: today's errands are new, and the gift may be waiting */
+function DailyTeaser() {
+  const w = useDailyWaiting();
+  return <p className="daily-teaser" data-testid="daily-teaser"><b>Three new errands today.</b>{w.gift ? ` Your gift is waiting in the chest at the top${w.run > 0 ? ` (${w.run + 1} days in a row)` : ''}.` : ''}</p>;
+}
+
 export function DaySummary() {
   const sum = useGame((s) => s.lastSummary);
   const dismiss = useGame((s) => s.dismissSummary);
@@ -35,6 +42,7 @@ export function DaySummary() {
             {notes.map((n, i) => <li key={i} style={{ marginBottom: 6 }}>{n}</li>)}
           </ul>
         )}
+        <DailyTeaser />
         <button className="btn primary" onClick={dismiss} data-testid="day-summary-ok">Open the day</button>
       </div>
     </div>
