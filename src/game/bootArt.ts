@@ -4,8 +4,8 @@
 
 /** Fetched behind the loading screen: the district's small copy and the stall screens of day one. */
 export const BOOT_ART = [
-  'art/world/giza-district-small.webp', 'art/stall-empty.webp', 'art/stall2/stall-empty-patched.webp',
-  'art/counter-stall.webp', 'art/hero/outfits/classic-stall-stall.webp',
+  'art/world/giza-district-small.webp', 'art/stalls/giza-borrowed-768.webp', 'art/stalls/giza-borrowed.webp',
+  'art/stalls/giza-borrowed-fg.webp', 'art/hero/outfits/classic-stall-stall.webp',
 ];
 /** The full district painting (half a megabyte): the small copy stands in for it until it is in, so it
  *  follows as soon as the title is up rather than holding the title back. */

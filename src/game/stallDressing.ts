@@ -1,16 +1,17 @@
-// Dress your stall: the spots on the Giza stall's shelves, walls and floor, and what stands in each.
-// Every piece is a full 1536x1024 cut-out already aligned to the stall painting
-// (art/stall2/stall-empty-patched.webp), so a placed piece just layers over the stage. Nothing here
+// Dress your stall: the spots on the stall's shelves, walls and counter, and what stands in each.
+// Every piece is a full 1536x1024 cut-out painted for the old Giza stall; each stall's painting says
+// where each spot is in it (game/stallScenes.ts), and the cut-out is scaled and moved there. Nothing here
 // changes by itself: a spot holds what the player put there (or his father's things, on a new stall)
 // until he changes it. Only Saffron moves about, and never onto a spot that holds something.
 import { DRESSING, DRESSING_BY_ID, type DressingPiece } from '../data/shops';
+import { stallSceneFor, unpaintedSpot } from './stallScenes';
 
 export interface Spot {
   id: string;
   /** plain words for the spot */
   label: string;
-  /** where it is on the painting, in % of the 1536x1024 canvas: [left, top, right, bottom]. Measured from
-   *  the cut-outs' painted bounding boxes (the union of the pieces that go there) */
+  /** where it was on the old Giza painting the cut-outs were made for, in % of the 1536x1024 canvas:
+   *  [left, top, right, bottom] (each stall now places its spots itself: game/stallScenes.ts) */
   rect: [number, number, number, number];
 }
 
@@ -39,10 +40,16 @@ export const DEFAULT_SPOTS: Record<string, string> = Object.fromEntries(DRESSING
 
 /** what stands in each spot (a spot missing or '' is empty) */
 export const spotsOf = (s: { stallSpots?: Record<string, string> }): Record<string, string> => s.stallSpots ?? DEFAULT_SPOTS;
-/** the pieces standing in the stall now, in drawing order: what buyers see, and what helps a sale */
-export const placedPieces = (s: { stallSpots?: Record<string, string> }): string[] => {
+/** the spots this stall has room for (a borrowed corner has few; each stall's painting has its own) */
+export const spotsHere = (upgrades: string[] | undefined): Spot[] => {
+  const sc = stallSceneFor(upgrades ?? []);
+  return SPOTS.filter((x) => sc.spots[x.id] || unpaintedSpot(x.id));
+};
+/** the pieces standing in the stall now, in drawing order: what buyers see, and what helps a sale. A
+ *  piece put out at a spot this stall has no room for waits there, and stands again in a bigger stall. */
+export const placedPieces = (s: { stallSpots?: Record<string, string>; upgrades?: string[] }): string[] => {
   const sp = spotsOf(s);
-  return SPOTS.map((x) => sp[x.id]).filter((id): id is string => !!id && !!DRESSING_BY_ID[id]);
+  return spotsHere(s.upgrades).map((x) => sp[x.id]).filter((id): id is string => !!id && !!DRESSING_BY_ID[id]);
 };
 /** pieces the player may put out: everything bought, and his father's things */
 export const ownsPiece = (s: { dressing?: string[] }, id: string) => !!DRESSING_BY_ID[id]?.father || (s.dressing ?? []).includes(id);

@@ -1,3 +1,4 @@
+import { sceneIdFor, sceneSmall } from '../../game/stallScenes';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../Icon';
@@ -35,7 +36,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   return (
     <div className="screen idle" data-testid="stall-idle">
       <div className="idle-scene" aria-hidden="true">
-        <img src="art/stall-empty.webp" alt="" draggable={false} />
+        <img src={sceneSmall(sceneIdFor(g.upgrades))} alt="" draggable={false} data-testid="idle-stall-pic" />
         <span className="idle-clock-chip">{clock(h)}</span>
       </div>
       <div className="idle-next" data-testid="idle-next">

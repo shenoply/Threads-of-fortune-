@@ -1,3 +1,4 @@
+import { sceneSmall } from '../../game/stallScenes';
 import { useState } from 'react';
 import { useGame, keptBack } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -119,7 +120,7 @@ function ShopPicture({ sid, owned }: { sid: string; owned: boolean }) {
   if (!ok) return null;
   return (
     <div className={`shop-pic${owned ? '' : ' for-sale'}`} data-testid="shop-pic">
-      <img src={`art/shops/${sid}.webp`} alt="" draggable={false} onError={() => setOk(false)} />
+      <img src={sceneSmall(sid)} alt="" draggable={false} onError={() => setOk(false)} />
       {!owned && <span className="shop-pic__tag">For lease</span>}
     </div>
   );

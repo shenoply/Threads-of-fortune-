@@ -223,6 +223,8 @@ export interface GameState {
   radioHeard?: number;
   /** true once you have opened the gramophone at the stall; a hint shows over it until then */
   gramoSeen?: boolean;
+  /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
+  signName?: string;
   /** prices you have seen rugs fetch at auction, by rug type */
   intel?: Record<string, MarketIntelRecord>;
   /** unsold lots that will come back cheaper at the same house */
@@ -547,6 +549,7 @@ interface Actions {
   buyDressing: (id: string) => string;
   /** put an owned piece (or your father's) in its spot, or clear the spot (id null) */
   placeDressing: (spot: string, id: string | null) => string;
+  setSignName: (name: string) => void;
   /** shops in other cities: each returns a line for the player */
   buyShop: (sid: string) => string;
   hireAgent: (sid: string, agentId: string) => string;
@@ -4034,6 +4037,8 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('chest');
           return `${d.name} for the stall: ${fmt(d.cost)}. It stands on ${lowerName(SPOT_BY_ID[d.spot]?.label ?? 'the stall')}.`;
         },
+
+        setSignName: (name) => set({ signName: name.replace(/[\u0000-\u001f]/g, '').slice(0, 28).trim() || undefined }),
 
         placeDressing: (spot, id) => {
           const s = get();

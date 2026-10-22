@@ -3224,3 +3224,8 @@ body.travelling .world-hud { display: none; }
 .shop-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .shop-pic.for-sale img { filter: saturate(.6) brightness(.75); }
 .shop-pic__tag { position: absolute; left: 12px; bottom: 10px; padding: 3px 10px; border-radius: 4px; background: rgba(20,12,6,.85); border: 1px solid #b8893a; color: #f3e2bd; font-size: 13px; letter-spacing: .04em; }
+/* Dress your stall on the stall's own painting: pieces placed at their spot (game/stallScenes.ts) */
+.dress-stage { container-type: size; }
+.dress-stage .dress-piece.placed { inset: auto; }
+.dress-signname { display: flex; flex-direction: column; gap: 4px; margin: 0 0 8px; font-size: 14px; color: var(--text-dim); }
+.dress-signname input { font: inherit; font-size: 16px; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--brass-hi); background: rgba(20, 12, 6, .7); color: var(--text); max-width: 320px; }

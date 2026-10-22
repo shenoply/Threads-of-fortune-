@@ -6,13 +6,27 @@ import { createPortal } from 'react-dom';
 import { fmt } from '../../game/economy/money';
 import { useGame } from '../../game/state/store';
 import { DRESSING_BY_ID, dressingArt, dressingFx, type DressingPiece } from '../../data/shops';
-import { SPOTS, SPOT_BY_ID, piecesFor, spotsOf, ownsPiece, placedPieces, type Spot } from '../../game/stallDressing';
+import { SPOT_BY_ID, piecesFor, spotsOf, spotsHere, ownsPiece, placedPieces } from '../../game/stallDressing';
+import { PROP_BOX, markAt, placeStyle, placedRect, propKey, sceneImg, stallSceneFor, type StallScene } from '../../game/stallScenes';
 import { StallSky } from '../Atmosphere/StallSky';
+import { DEFAULT_SIGN, SignLetters } from '../StallEncounter/Scene';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
 
-const STAGE_IMG = 'art/stall2/stall-empty-patched.webp';
 const GRAMO = 'art/stall2/props/prop-gramophone.webp';
+
+/** where a spot is on this stall's painting, for its tap target: the room its pieces take at their
+ *  place, or a small square round the mark of a spot whose pieces have no picture yet */
+function spotRect(sc: StallScene, spot: string): [number, number, number, number] | null {
+  const at = sc.spots[spot];
+  if (at) {
+    const rs = piecesFor(spot).map((d) => placedRect(dressingArt(d.id), at)).filter((r): r is [number, number, number, number] => !!r);
+    if (rs.length) return [Math.min(...rs.map((r) => r[0])), Math.min(...rs.map((r) => r[1])), Math.max(...rs.map((r) => r[2])), Math.max(...rs.map((r) => r[3]))];
+  }
+  if (spot === 'sign') return sc.sign;
+  const m = markAt(sc, spot);
+  return m ? [m[0] - 3.5, m[1] - 5, m[0] + 3.5, m[1] + 5] : null;
+}
 
 /** what the stall's pieces do together, in a few words */
 export function fxWords(placed: string[]) {
@@ -23,15 +37,16 @@ export function fxWords(placed: string[]) {
   return [bits.join(', '), rich.length ? `rich buyers ${rich.join(', ')} more` : ''].filter(Boolean).join('; ') || 'nothing yet';
 }
 
-/** a piece's picture cropped to its spot (the cut-outs are full-canvas), on the painting behind it, or its
- *  icon while it has no picture */
+/** a piece's picture cropped to its own painted extent (the cut-outs are full-canvas), or its icon
+ *  while it has no picture */
 const TW = 134, TH = 74;
-function PieceThumb({ d, spot }: { d: DressingPiece; spot: Spot }) {
-  const [x0, y0, x1, y1] = spot.rect;
-  const w = x1 - x0, h = y1 - y0;
+function PieceThumb({ d }: { d: DressingPiece }) {
   const [ok, setOk] = useState(true);
-  if (!ok) return <span className="dress-thumb icon" aria-hidden="true"><Icon name={d.icon} /></span>;
-  // fit the spot's rectangle into the thumbnail, and scale the whole canvas to match
+  const box = PROP_BOX[propKey(dressingArt(d.id))];
+  if (!ok || !box) return <span className="dress-thumb icon" aria-hidden="true"><Icon name={d.icon} /></span>;
+  const [x0, y0, x1, y1] = box;
+  const w = x1 - x0, h = y1 - y0;
+  // fit the piece into the thumbnail, and scale the whole canvas to match
   const a = (w * 1536) / (h * 1024);
   const iw = a > TW / TH ? TW : TH * a, ih = iw / a;
   const cw = (iw * 100) / w; // the full canvas's width at this scale
@@ -39,34 +54,41 @@ function PieceThumb({ d, spot }: { d: DressingPiece; spot: Spot }) {
   return (
     <span className="dress-thumb" aria-hidden="true">
       <span className="dress-thumb-in" style={{ width: iw, height: ih }}>
-        <img src={STAGE_IMG} alt="" style={pos} />
         <img src={dressingArt(d.id)} alt="" onError={() => setOk(false)} style={pos} />
       </span>
     </span>
   );
 }
 
-/** one piece standing on the painting: its cut-out, or its icon at the spot while it has no picture */
-function OnStage({ id, preview }: { id: string; preview?: boolean }) {
+/** one piece standing on the painting at its place in this stall: its cut-out, or its icon at the
+ *  spot while it has no picture */
+function OnStage({ id, sc, preview }: { id: string; sc: StallScene; preview?: boolean }) {
   const d = DRESSING_BY_ID[id];
   const [ok, setOk] = useState(true);
   useEffect(() => setOk(true), [id]);
   if (!d) return null;
-  const sp = SPOT_BY_ID[d.spot];
-  if (!ok && sp) {
-    const [x0, y0, x1, y1] = sp.rect;
+  const at = sc.spots[d.spot];
+  const pos = at ? placeStyle(dressingArt(id), at) : null;
+  if (!ok || !pos) {
+    if (d.spot === 'sign') return null;
+    const r = spotRect(sc, d.spot);
+    if (!r) return null;
     return (
-      <span className={`dress-icon ${preview ? 'preview' : ''}`} style={{ left: `${(x0 + x1) / 2}%`, top: `${(y0 + y1) / 2}%` }} data-testid={`dress-on-${id}`} aria-hidden="true">
+      <span className={`dress-icon ${preview ? 'preview' : ''}`} style={{ left: `${(r[0] + r[2]) / 2}%`, top: `${(r[1] + r[3]) / 2}%` }} data-testid={`dress-on-${id}`} aria-hidden="true">
         <Icon name={d.icon} />
       </span>
     );
   }
-  return <img className={`dress-piece ${preview ? 'preview' : ''}`} src={dressingArt(id)} alt="" draggable={false} onError={() => setOk(false)} data-testid={`dress-on-${id}`} />;
+  return <img className={`dress-piece placed ${preview ? 'preview' : ''}`} src={dressingArt(id)} alt="" style={pos} draggable={false} onError={() => setOk(false)} data-testid={`dress-on-${id}`} />;
 }
 
 export function DressStall({ onClose }: { onClose: () => void }) {
   const g = useGame();
+  const sc = stallSceneFor(g.upgrades);
+  const SPOTS = useMemo(() => spotsHere(g.upgrades).filter((x) => spotRect(sc, x.id)), [g.upgrades, sc]);
+  const rectOf = (id: string) => spotRect(sc, id) ?? [0, 0, 0, 0];
   const spots = spotsOf(g);
+  const [signDraft, setSignDraft] = useState(g.signName ?? '');
   const [sel, setSel] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -90,11 +112,12 @@ export function DressStall({ onClose }: { onClose: () => void }) {
     setSel(id);
     setPreview(null);
     setNote('');
-    const r = SPOT_BY_ID[id].rect;
+    const r = rectOf(id);
     centre((r[0] + r[2]) / 2, true);
   };
   // spots in tapping order: the big ones first, so a small spot inside a big one stays on top
-  const tapOrder = useMemo(() => [...SPOTS].sort((a, b) => (b.rect[2] - b.rect[0]) * (b.rect[3] - b.rect[1]) - (a.rect[2] - a.rect[0]) * (a.rect[3] - a.rect[1])), []);
+  const area = (id: string) => { const r = rectOf(id); return (r[2] - r[0]) * (r[3] - r[1]); };
+  const tapOrder = [...SPOTS].sort((a, b) => area(b.id) - area(a.id));
   const spot = sel ? SPOT_BY_ID[sel] : null;
   const cur = sel ? spots[sel] || '' : '';
   const shown = preview ?? cur;
@@ -107,26 +130,28 @@ export function DressStall({ onClose }: { onClose: () => void }) {
       <div className="overlay-head">
         <h2>Dress your stall</h2>
         <span className="sub">{fmt(g.cash)}</span>
-        <button className="btn close" onClick={onClose} data-testid="dress-close">Done</button>
+        <button className="btn close" onClick={() => { if (signDraft !== (g.signName ?? '')) g.setSignName(signDraft); onClose(); }} data-testid="dress-close">Done</button>
       </div>
       <div className="dress-scroll" ref={scroller}>
         <div className="dress-stage" ref={stage} data-testid="dress-stage">
-          <img className="dress-bg" src={STAGE_IMG} alt="Your stall at Giza" draggable={false} />
-          <StallSky />
+          <img className="dress-bg" src={sceneImg(sc.id)} alt={`Your stall: ${sc.label}`} draggable={false} data-scene={sc.id} />
+          {sc.sky && <StallSky scene={sc.id} />}
           {SPOTS.map((s) => {
             const id = s.id === sel ? shown : spots[s.id];
-            return id ? <OnStage key={s.id + id} id={id} preview={s.id === sel && !!preview && !owned} /> : null;
+            return id ? <OnStage key={s.id + id} id={id} sc={sc} preview={s.id === sel && !!preview && !owned} /> : null;
           })}
-          <img className="dress-piece" src={GRAMO} alt="" draggable={false} />
-          {tapOrder.map((s) => (
-            <button key={s.id} className={`dress-spot ${s.id === sel ? 'on' : ''} ${spots[s.id] ? 'full' : ''}`} style={{ left: `${s.rect[0]}%`, top: `${s.rect[1]}%`, width: `${s.rect[2] - s.rect[0]}%`, height: `${s.rect[3] - s.rect[1]}%` }} onClick={() => pick(s.id)} aria-label={s.label} aria-pressed={s.id === sel} data-testid={`spot-${s.id}`} />
-          ))}
+          {(sel === 'sign' ? shown : spots.sign) && <SignLetters sc={sc} name={(sel === 'sign' ? signDraft : g.signName) || DEFAULT_SIGN} />}
+          {sc.gramophone && <img className="dress-piece placed" src={GRAMO} alt="" style={placeStyle(GRAMO, sc.gramophone) ?? undefined} draggable={false} />}
+          {tapOrder.map((s) => {
+            const r = rectOf(s.id);
+            return <button key={s.id} className={`dress-spot ${s.id === sel ? 'on' : ''} ${spots[s.id] ? 'full' : ''}`} style={{ left: `${r[0]}%`, top: `${r[1]}%`, width: `${r[2] - r[0]}%`, height: `${r[3] - r[1]}%` }} onClick={() => pick(s.id)} aria-label={s.label} aria-pressed={s.id === sel} data-testid={`spot-${s.id}`} />;
+          })}
         </div>
       </div>
       <div className="dress-panel">
         {!spot ? (
           <>
-            <p className="dress-hint">Tap a place on the stall to see what could stand there. Each place holds one piece; you can change them round whenever you like.</p>
+            <p className="dress-hint">Tap a place on the stall to see what could stand there. Each place holds one piece; you can change them round whenever you like.{SPOTS.length < spotsHere(['mat', 'bazaar', 'khan']).length ? ' A bigger stall has more places.' : ''}</p>
             <p className="dress-fx" data-testid="dress-fx">Your stall helps every sale: {fxWords(placed)}.</p>
           </>
         ) : (
@@ -137,7 +162,7 @@ export function DressStall({ onClose }: { onClose: () => void }) {
                 const mine = ownsPiece(g, d.id);
                 return (
                   <button key={d.id} className={`dress-card ${shown === d.id ? 'on' : ''} ${d.id === cur ? 'here' : ''}`} onClick={() => { audio.sfx('tap'); setNote(''); setPreview(d.id === cur ? null : d.id); }} data-testid={`piece-${d.id}`} aria-pressed={shown === d.id}>
-                    <PieceThumb d={d} spot={spot} />
+                    <PieceThumb d={d} />
                     <b>{d.name}</b>
                     <small>{d.effect}</small>
                     <em>{d.id === cur ? 'On the stall' : d.father ? "Your father's" : mine ? 'Yours' : fmt(d.cost)}</em>
@@ -145,6 +170,12 @@ export function DressStall({ onClose }: { onClose: () => void }) {
                 );
               })}
             </div>
+            {spot.id === 'sign' && (cur || pd) && (
+              <label className="dress-signname">
+                <span>The name on the board</span>
+                <input value={signDraft} maxLength={28} placeholder={DEFAULT_SIGN} onChange={(e) => setSignDraft(e.target.value)} onBlur={() => g.setSignName(signDraft)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} data-testid="dress-signname" />
+              </label>
+            )}
             <div className="dress-actions">
               {pd && !owned && <button className="btn primary" disabled={g.cash < pd.cost} onClick={() => act(g.buyDressing(pd.id))} data-testid="dress-buy">Buy and put out · {fmt(pd.cost)}</button>}
               {pd && owned && <button className="btn primary" onClick={() => act(g.placeDressing(spot.id, pd.id))} data-testid="dress-place">Put it out</button>}
@@ -167,10 +198,11 @@ export function StallDressing() {
   const g = useGame();
   const [open, setOpen] = useState(false);
   const placed = placedPieces(g);
+  const room = spotsHere(g.upgrades).length;
   return (
     <div className="upgrade dress-entry" data-testid="dressing-fold">
       <span className="dress-pic" aria-hidden="true"><Icon name="room" /></span>
-      <div className="u-main"><b>Dress your stall</b><span>{placed.length} of {SPOTS.length} places dressed · {fxWords(placed)}</span></div>
+      <div className="u-main"><b>Dress your stall</b><span>{placed.length} of {room} places dressed · {fxWords(placed)}</span></div>
       <button className="btn primary" onClick={() => { audio.sfx('tap'); setOpen(true); }} data-testid="dress-open">Dress</button>
       {open && <DressStall onClose={() => setOpen(false)} />}
     </div>

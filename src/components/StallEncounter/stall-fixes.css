@@ -68,3 +68,19 @@
   div.stall.in-talk .band .plate-buyer > .values { grid-column: 2; grid-row: 1; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   div.stall.in-talk .band .plate-buyer > .meters { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* The stall's own painting (game/stallScenes.ts): pieces placed at their spot, the counter's front
+   over the people, the name lettered on the board */
+.scene.stall .stage { container-type: size; }
+.scene.stall .counter { bottom: auto; }
+.scene.stall .stall-prop.placed { right: auto; bottom: auto; inset: auto; }
+.scene.stall .stall-prop.placed.front { z-index: 3; }
+.scene.stall .stall-radio, .scene.stall .stall-paper { z-index: 3; }
+.scene.stall .stall-cat-hit { position: absolute; z-index: 5; padding: 0; border: 0; background: none; cursor: pointer; }
+.stall-signname { position: absolute; z-index: 1; display: flex; align-items: center; justify-content: center; pointer-events: none; overflow: hidden; }
+.stall-signname span { font-family: var(--display); font-weight: 700; letter-spacing: .04em; white-space: nowrap; line-height: 1; color: #f1d9a0; text-shadow: 0 1px 0 rgba(60,30,8,.75), 0 0 .3em rgba(0,0,0,.25); mix-blend-mode: normal; opacity: .93; }
+.stall-signname.dark span { color: #4a2a12; text-shadow: 0 1px 0 rgba(255,240,210,.45); opacity: .88; }
+/* Samira leans on the counter: her picture stands a fixed share under its back edge */
+.scene.stall .stage .buyer-figure.has-photo[data-buyer="samira"] { bottom: calc(var(--edge, 22.5%) - var(--fig-h, 150px) * .86 * .22); }
+/* the rug is laid on the counter top, its near edge at the top's front */
+.scene.stall .stage .split-rug { bottom: var(--rug-b, 6%); }

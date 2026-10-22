@@ -3,6 +3,7 @@
 // at night; a khamsin's yellow-brown, a grey winter day, rain). It lies over the painting inside the
 // stage, cut to the open part of the stall (OPENING, in % of the 1536x1024 canvas, so it scales with
 // the stage at any size), under the shelves, the people and the counter. Nothing to tap.
+import type { CSSProperties } from 'react';
 import { useGame } from '../../game/state/store';
 import { dustToday } from '../../game/economy/seasons';
 import { skyOn } from './Weather';
@@ -64,7 +65,15 @@ export function stallWeather(s: { day: number; world: { at: string | null } }): 
   return skyOn(s.day, s.world.at);
 }
 
-export function StallSky({ hour, weather }: { hour?: number; weather?: SkyWeather }) {
+/** a layer cut to one of a stall painting's masks (art/stalls/<scene>-open|land|sky.png), or to the
+ *  old Giza painting's polygons when no scene is given */
+const masked = (scene: string | undefined, part: 'open' | 'land' | 'sky', poly: string): CSSProperties => {
+  if (!scene) return { clipPath: poly, WebkitClipPath: poly };
+  const url = `url(art/stalls/${scene}-${part}.png)`;
+  return { maskImage: url, WebkitMaskImage: url, maskSize: '100% 100%', WebkitMaskSize: '100% 100%', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' } as CSSProperties;
+};
+
+export function StallSky({ hour, weather, scene }: { hour?: number; weather?: SkyWeather; scene?: string }) {
   const gameHour = useGame((s) => s.world.hour);
   const gameWeather = useGame(stallWeather);
   const h = hour ?? gameHour;
@@ -73,7 +82,7 @@ export function StallSky({ hour, weather }: { hour?: number; weather?: SkyWeathe
   const overcast = w !== 'clear';
   // every layer is cut to the opening by itself: a clip-path on a common parent would make it an
   // isolated group, and the multiply / screen / saturation blends would then mix with nothing
-  const cut = { clipPath: OPENING, WebkitClipPath: OPENING };
+  const cut = masked(scene, 'open', OPENING);
   const low = (f: number) => rgba([...k.low.slice(0, 3), k.low[3] * f]);
   return (
     <div className="stall-sky" aria-hidden="true" data-testid="stall-sky" data-weather={w} data-hour={h.toFixed(1)}>
@@ -82,14 +91,14 @@ export function StallSky({ hour, weather }: { hour?: number; weather?: SkyWeathe
       {k.glow[3] > 0.01 && !overcast && <i className="sky-glow" style={{ ...cut, background: `linear-gradient(180deg, ${rgba(k.glow)} 10%, ${rgba([...k.glow.slice(0, 3), k.glow[3] * 0.6])} 45%, transparent 68%)` }} />}
       {k.stars > 0.02 && <>
         <i className="sky-night" style={{ ...cut, opacity: k.stars * (overcast ? 0.4 : 1) }} />
-        <i className="sky-land" style={{ clipPath: LAND, WebkitClipPath: LAND, opacity: k.stars }} />
+        <i className="sky-land" style={{ ...masked(scene, 'land', LAND), opacity: k.stars }} />
       </>}
       {overcast && <>
         <i className={`sky-wx-shade ${w}`} style={cut} />
         <i className={`sky-wx-grey ${w}`} style={cut} />
         <i className={`sky-wx-wash ${w}`} style={cut} />
       </>}
-      {k.stars > 0.02 && w !== 'khamsin' && w !== 'rain' && <i className="sky-stars" style={{ clipPath: SKY, WebkitClipPath: SKY, opacity: k.stars * (w === 'grey' ? 0.15 : 1) }} />}
+      {k.stars > 0.02 && w !== 'khamsin' && w !== 'rain' && <i className="sky-stars" style={{ ...masked(scene, 'sky', SKY), opacity: k.stars * (w === 'grey' ? 0.15 : 1) }} />}
       {w === 'rain' && <i className="sky-rain-cut" style={cut}><b className="sky-rain" /></i>}
     </div>
   );

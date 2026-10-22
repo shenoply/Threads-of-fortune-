@@ -4,6 +4,7 @@
 const STALL2 = new Set(['abuhamid', 'nabil', 'cohen', 'malek', 'antonios', 'benakis', 'hassan', 'hollister', 'kasparian', 'kassab', 'levy', 'mariam', 'martel', 'rustam', 'salem', 'shivakiar', 'wasif', 'whitcombe', 'yusuf']);
 const STALL = new Set(['samira', 'nadia-wahba']);
 
+import { sceneLayers } from '../../game/stallScenes';
 /** The picture of this buyer at the counter: the redrawn cut-out, the older one, or the framed portrait. */
 export function stallFigure(id: string): { src: string; framed: boolean } {
   if (STALL2.has(id)) return { src: `art/portraits/${id}-stall2.webp`, framed: false };
@@ -21,9 +22,9 @@ let laterAsked = false;
 
 const asked = new Set<string>();
 /** Fetch the stall painting, the counter, the merchant, the next buyers and the props before they are needed. */
-export function preloadStall(buyerIds: string[]) {
+export function preloadStall(buyerIds: string[], upgrades: string[] = []) {
   if (typeof Image === 'undefined') return;
-  for (const src of ['art/stall2/stall-empty-patched.webp', 'art/counter-stall.webp', 'art/hero/outfits/classic-stall-stall.webp', ...buyerIds.map((id) => stallFigure(id).src), ...EXTRAS]) {
+  for (const src of [...sceneLayers(upgrades), 'art/hero/outfits/classic-stall-stall.webp', ...buyerIds.map((id) => stallFigure(id).src), ...EXTRAS]) {
     if (asked.has(src)) continue;
     asked.add(src);
     const im = new Image(); im.decoding = 'async'; im.src = src;

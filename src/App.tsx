@@ -202,7 +202,7 @@ export default function App() {
     clearSlot(n); refreshSlots();
   };
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
-  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3)); }, [g.started, g.queue, g.visitIdx]);
+  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3), g.upgrades); }, [g.started, g.queue, g.visitIdx, g.upgrades]);
   const [phase, setPhase] = useState<Phase>('title');
   const [titleOpts, setTitleOpts] = useState(false);
   const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
