@@ -1,3 +1,4 @@
+import { NextOnRoad } from '../Road/Road';
 import { sceneIdFor, sceneSmall } from '../../game/stallScenes';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -39,6 +40,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         <img src={sceneSmall(sceneIdFor(g.upgrades))} alt="" draggable={false} data-testid="idle-stall-pic" />
         <span className="idle-clock-chip">{clock(h)}</span>
       </div>
+      <NextOnRoad compact onOpen={() => window.dispatchEvent(new Event('tof:open-road'))} />
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {malekHere && hungry && !(next !== null && mins >= 60) && (

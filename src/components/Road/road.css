@@ -1,0 +1,54 @@
+.road { padding: 4px 14px 30px; max-width: 640px; margin: 0 auto; }
+.road-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; font-size: 15px; }
+.road-head b { color: var(--brass-hi); font-family: var(--display); font-weight: 500; }
+.road-head .dim { font-size: 13.5px; }
+
+/* the next thing worth working for */
+.road-next { display: flex; gap: 12px; padding: 12px; border-radius: 10px; border: 1.5px solid #c99a4a; background: linear-gradient(180deg, rgba(70,42,16,.55), rgba(30,18,8,.6)); box-shadow: 0 0 18px rgba(240,170,70,.15); margin-bottom: 16px; }
+.road-next .road-pic { flex: 0 0 132px; height: 88px; }
+.road-next-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.road-next-body small { font-family: var(--label, serif); text-transform: uppercase; letter-spacing: .12em; font-size: 11.5px; color: #e0b25c; }
+.road-next-body > b { font-family: var(--display); font-weight: 500; font-size: 19px; color: var(--text); line-height: 1.15; }
+.road-next-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.road-next.compact { margin: 10px 0 0; padding: 9px; }
+.road-next.compact .road-pic { flex-basis: 96px; height: 64px; }
+.road-next.compact .road-next-body > b { font-size: 16.5px; }
+@media (max-width: 380px) { .road-next .road-pic { flex-basis: 96px; height: 66px; } }
+
+.road-pic { position: relative; display: block; border-radius: 7px; overflow: hidden; background: rgba(255,240,210,.05); border: 1px solid var(--line); }
+.road-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.road-pic svg { width: 22px; height: 22px; margin: auto; position: absolute; inset: 0; color: var(--brass-hi); }
+.road-pic.locked img { filter: saturate(.7) brightness(.8); }
+.road-lock { position: absolute; right: 4px; bottom: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(14,9,5,.82); display: grid; place-items: center; color: #e8cf9a; }
+.road-lock svg { position: static; width: 13px; height: 13px; }
+
+.road-line { font-size: 14px; color: var(--text-dim); line-height: 1.3; }
+.road-needs { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.road-need { display: grid; grid-template-columns: 82px 1fr auto; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); }
+.road-need i { display: block; height: 7px; border-radius: 4px; background: rgba(255,240,210,.1); overflow: hidden; }
+.road-need i b { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #a8752c, #e8b65a); transition: width .6s ease; }
+.road-need.met i b { background: linear-gradient(90deg, #6f9a4e, #9fd07a); }
+.road-need em { font-style: normal; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 18px; text-align: right; }
+.road-need.met em { color: #9fd07a; }
+.road-need em svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* the track: a line down the side, a dot for each step */
+.road-track, .road-track ol { list-style: none; margin: 0; padding: 0; }
+.road-chapter { margin-bottom: 14px; }
+.road-chapter h4 { margin: 0 0 8px; font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--brass-hi); }
+.road-chapter.later h4 { color: var(--text-dim); }
+.road-chapter > ol { position: relative; padding-left: 22px; }
+.road-chapter > ol::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, rgba(201,154,74,.6), rgba(201,154,74,.15)); }
+.road-step { position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+.road-dot { position: absolute; left: -22px; top: 12px; width: 18px; height: 18px; border-radius: 50%; background: rgb(24,15,8); border: 2px solid rgba(201,154,74,.55); display: grid; place-items: center; color: #9fd07a; }
+.road-dot svg { width: 11px; height: 11px; }
+.road-step.done .road-dot { border-color: #6f9a4e; background: rgba(60,90,40,.6); }
+.road-step.next .road-dot { border-color: #f0a040; box-shadow: 0 0 10px rgba(240,160,64,.7); }
+.road-step.rank .road-dot { color: #ffd27a; border-color: #e0b25c; }
+.road-step .road-pic { flex: 0 0 86px; height: 58px; }
+.road-step-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.road-step-body > b { font-weight: 600; font-size: 15.5px; color: var(--text); }
+.road-step.rank .road-step-body > b { font-family: var(--display); font-weight: 500; color: #ffd27a; font-size: 16.5px; }
+.road-step.done .road-step-body > b { color: var(--text-dim); }
+.road-done { font-size: 13px; color: #9fd07a; }
+.road-step .btn { align-self: flex-start; margin-top: 5px; }

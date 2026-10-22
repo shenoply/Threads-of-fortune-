@@ -271,7 +271,7 @@ export default function App() {
     if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
   };
   useEffect(() => { if (settings) refreshSlots(); }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [msub, setMsub] = useState<MerchantSub>('customers');
+  const [msub, setMsub] = useState<MerchantSub>('road');
   const [guide, setGuide] = useState(false);
   const [guideAt, setGuideAt] = useState(0);
   // a "?" anywhere opens How to play on its page
@@ -308,6 +308,9 @@ export default function App() {
     return () => window.removeEventListener(OPEN_UPGRADES, on);
   }, []);
   const mapGo = (m: Omit<MapIntent, 'n'>) => { setMapIntent({ ...m, n: Date.now() }); setTab('map'); };
+  // the road's 'Your buyers' (components/Road)
+  useEffect(() => { const on = () => { setMsub('customers'); setTab('ledger'); }; window.addEventListener('tof:open-buyers', on); return () => window.removeEventListener('tof:open-buyers', on); }, []);
+  useEffect(() => { const on = () => { setMsub('road'); setTab('ledger'); }; window.addEventListener('tof:open-road', on); return () => window.removeEventListener('tof:open-road', on); }, []);
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
   useEffect(() => {
     const on = (e: Event) => { const d = (e as CustomEvent<string | { town: string; go?: boolean | 'train' }>).detail; const t = typeof d === 'string' ? d : d?.town; const go = typeof d === 'object' ? (d?.go === 'train' ? 'train' as const : !!d?.go) : false; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t, go }); };
