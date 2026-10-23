@@ -1,3 +1,5 @@
+import { RecordSeller } from '../Radio/RecordSeller';
+import { recordsIn, recordsOwned } from '../../data/records';
 import { Gunsmith } from './Gunsmith';
 import { GUNSMITH_TOWN } from '../../data/arms';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -197,6 +199,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [myShop, setMyShop] = useState(false);
   const [wanted, setWanted] = useState(false);
   const [gunsmith, setGunsmith] = useState(false);
+  const [records, setRecords] = useState(false);
   // a long town menu shows its main places first; the rest wait behind "More in …"
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { setMoreOpen(false); }, [id]);
@@ -237,7 +240,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // leaves it. A street, a shop, a talk or a film open over the panel deals with the key itself.
   // the first time you come into a telegraph town: a word on its office, and its tile marked until used
   const wireWord = useOnce('telegraph', on('abroad') && menu && !inCity && !inVenue && !inAuction && !talkTo && !shop && TELEGRAPH_TOWNS.includes(id) && !g.border && !g.journey);
-  const busy = wanted || domino || wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
+  const busy = records || wanted || domino || wardrobe || !!shop || inCity || inVenue || !!inAuction || !!houseWalk || !!cabaret || !!look || !!talkTo || finance || wire || library || !!cairoPlace || clinic || cityFilm || audience || !!sailing;
   // a note that arrives while the panel is scrolled down (a talk's outcome, a sale) is brought into view
   useEffect(() => {
     if (!note || menu) return;
@@ -309,6 +312,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
     // Ali Hafez, armourer, in the Muski (data/arms.ts)
     ...(id === GUNSMITH_TOWN ? [['sword', 'The gunsmith in the Muski', g.carry?.side || g.carry?.long ? 'Blades, pistols and rifles · trade yours in' : 'Blades, pistols and rifles for the road', () => setGunsmith(true), 'menu-gunsmith'] as [string, string, string, () => void, string]] : []),
+    // the record seller in the souq: the town's own records for the gramophone at the stall (data/records.ts)
+    ...(recordsIn(id).length ? [['radio', 'The record seller', (() => { const have = recordsOwned(g); const n = recordsIn(id).filter((r) => !have.includes(r.id)).length; return n ? `${n} ${n === 1 ? 'record' : 'records'} of ${st.name} for your gramophone` : 'You have all his records'; })(), () => setRecords(true), 'menu-records'] as [string, string, string, () => void, string]] : []),
     // the police post: the bands' leaders on its wall, and a desk for prisoners (systems/combat.ts)
     ...(['city', 'town', 'port', 'home'].includes(st.kind) ? [['scroll', 'Police post · Wanted', (() => { const n = (g.combat?.prisoners ?? []).reduce((a, p) => a + p.n + (p.leader ? 1 : 0), 0); return n ? `Hand over your ${n === 1 ? 'prisoner' : `${n} prisoners`} for the bounty` : 'Rewards for the leaders of the road bands'; })(), () => setWanted(true), 'menu-wanted'] as [string, string, string, () => void, string]] : []),
     ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
@@ -687,6 +692,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {myShop && <EscLayer onEsc={() => setMyShop(false)}><ShopPanel sid={id} onClose={() => setMyShop(false)} /></EscLayer>}
       {wanted && <EscLayer onEsc={() => setWanted(false)}><WantedCard town={st.name} onClose={() => setWanted(false)} /></EscLayer>}
       {gunsmith && <Gunsmith onClose={() => setGunsmith(false)} />}
+      {records && <RecordSeller town={id} onClose={() => setRecords(false)} />}
       {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
       {wire && <EscLayer onEsc={() => setWire(false)}><Suspense fallback={null}><TelegraphOffice id={id} onClose={() => setWire(false)} /></Suspense></EscLayer>}
       {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}

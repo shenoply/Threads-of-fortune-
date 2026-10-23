@@ -84,7 +84,7 @@ check(spotsNext.spots?.['top-right'] === 'prop-astrolabe' && spotsNext.spots?.['
 await p.waitForTimeout(1200);
 await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(1000); await close();
 const reloaded = await st((m) => ({ spots: m.useGame.getState().stallSpots, owned: m.useGame.getState().dressing, v: m.SAVE_VERSION }));
-check(reloaded.spots?.['top-right'] === 'prop-astrolabe' && reloaded.owned?.includes('prop-astrolabe') && reloaded.v === 25, 'it is still there after a reload (save 25)');
+check(reloaded.spots?.['top-right'] === 'prop-astrolabe' && reloaded.owned?.includes('prop-astrolabe') && reloaded.v === 26, 'it is still there after a reload (save 26)');
 
 // 5. swap between owned pieces for nothing, and put one away
 const sw = await st((m) => {

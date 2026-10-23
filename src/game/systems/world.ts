@@ -549,8 +549,8 @@ export function spawnParties(rng: () => number): Party[] {
   const raidHomes = [paint(760, 740), paint(1020, 600)];
   raidHomes.forEach((h, i) => {
     const p = randomLand(h, 30, rng);
-    const size = 4 + Math.floor(rng() * 5);
-    out.push({ id: `r${i}`, kind: 'raiders', name: 'Raiders', size, strength: size * 2, x: p.x, y: p.y, path: [p, randomLand(h, 40, rng)], travelled: 0, speed: 30, home: h });
+    const size = bandSize(4 + Math.floor(rng() * 4), rng);
+    out.push({ id: `r${i}`, kind: 'raiders', name: 'Raiders', size, strength: bandStrength(size), x: p.x, y: p.y, path: [p, randomLand(h, 40, rng)], travelled: 0, speed: 30, home: h });
   });
   // a free company of guards looking for work
   [paint(720, 620), paint(430, 700)].forEach((h, i) => {
@@ -576,14 +576,24 @@ const ROAD_BANDS: [string, string, number, string][] = [
   ['khanaqin', 'kermanshah', 7, 'Zagros Raiders'],
   ['kermanshah', 'hamadan', 6, 'Zagros Raiders'],
 ];
+/** Most bands are a handful of men; now and then one is twice the size, and once in a long while a
+ *  great band of fifteen or more rides together, hardened men (each counts for more). */
+export function bandSize(base: number, rng: () => number) {
+  const r = rng();
+  if (r < 0.06) return Math.round(base * 2.6 + rng() * 4);
+  if (r < 0.22) return Math.round(base * 1.6 + rng() * 2);
+  return Math.max(2, Math.round(base * (0.75 + rng() * 0.4)));
+}
+export const bandStrength = (size: number) => Math.round(size * (size >= 14 ? 2.6 : size >= 9 ? 2.3 : 2));
 export function spawnRoadBands(rng: () => number): Party[] {
-  return ROAD_BANDS.map(([a, b, size, name], i) => {
+  return ROAD_BANDS.map(([a, b, base, name], i) => {
+    const size = bandSize(base, rng);
     const A = settlementById(a), B = settlementById(b);
     // they sit on the road itself, halfway along it
     const road = findPath(A, B) ?? [A, B];
     const mid = along(road, pathLength(road) / 2).pos;
     const p = randomLand(mid, 6, rng);
-    return { id: `rb${i}`, kind: 'raiders' as const, name, size, strength: size * 2, x: p.x, y: p.y, path: [p, randomLand(mid, 18, rng)], travelled: 0, speed: 26, home: mid };
+    return { id: `rb${i}`, kind: 'raiders' as const, name, size, strength: bandStrength(size), x: p.x, y: p.y, path: [p, randomLand(mid, 18, rng)], travelled: 0, speed: 26, home: mid };
   });
 }
 

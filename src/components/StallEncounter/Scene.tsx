@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Icon } from '../Icon';
 import { fmt } from '../../game/economy/money';
 import type { Encounter } from '../../game/systems/negotiation';
 import { STAGES, prefsFor } from '../../game/systems/negotiation';
@@ -196,9 +197,21 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
             <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
           </div>
         )}
-        <StallRadio at={sc.radio} hide={inFront(sc.radio.x)} />
-        <StallPaper at={sc.paper} hide={inFront(sc.paper.x)} />
-        <StallCat sc={sc} onCat={onCat} rugOnCounter={!!(rugT && presented)} />
+        {(() => {
+          // a radio or paper that would stand in front of someone moves along the counter to a free
+          // place in view (on a phone, with no buyer, the right of the counter is clear)
+          const freeAt = (a: Anchor, alts: number[]) => (!inFront(a.x) ? a : { ...a, x: alts.find((x) => !inFront(x) && x > visL + 4 && x < visR - 4) ?? a.x });
+          const ra = freeAt(sc.radio, [71, 77, 83]), pa = freeAt(sc.paper, [80, 86, 66]);
+          return (
+            <>
+              <StallRadio at={ra} hide={inFront(ra.x)} />
+              <StallPaper at={pa} hide={inFront(pa.x)} />
+              {!buyer && !inFront(ra.x) && <TapTag id="radio" x={ra.x} y={ra.y - 9} icon="radio" label="Radio" />}
+              {!buyer && !inFront(pa.x) && <TapTag id="paper" x={pa.x} y={pa.y - 7} icon="news" label="Today's paper" />}
+            </>
+          );
+        })()}
+        <StallCat sc={sc} onCat={onCat} rugOnCounter={!!(rugT && presented)} tag={!buyer} />
       </div>
       {/* a buyer who gives up gets up and goes, and the picture says so in words too */}
       {enc?.outcome === 'walked' && buyer && !enc.mocked && <div className="left-banner" data-testid="left-banner">{buyer.name.split(' ')[0]} {enc.letGo ? 'has gone' : 'walked away'}</div>}
@@ -398,7 +411,7 @@ export function SignLetters({ sc, name }: { sc: StallScene; name: string }) {
 
 /** Saffron the cat: one of her poses for the day, at its place in this painting (a pose this stall
  *  has no place for sits her on the counter instead), never on a spot that holds a piece. Tap her. */
-function StallCat({ sc, onCat, rugOnCounter }: { sc: StallScene; onCat: () => void; rugOnCounter: boolean }) {
+function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () => void; rugOnCounter: boolean; tag?: boolean }) {
   const variant = useGame((st) => catPose(st.day, spotsOf(st)));
   const [ok, setOk] = useState(true);
   const { pose, at } = catAt(sc, variant);
@@ -410,7 +423,8 @@ function StallCat({ sc, onCat, rugOnCounter }: { sc: StallScene; onCat: () => vo
   return (
     <>
       <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}`} src={src} alt="" style={pos} onError={() => setOk(false)} draggable={false} />
-      <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); onCat(); }} />
+      <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); tapUsed('cat'); onCat(); }} />
+      {tag && <TapTag id="cat" x={(hit[0] + hit[2]) / 2} y={hit[1] - 1} icon="paw" label="Stroke Saffron" />}
     </>
   );
 }
@@ -431,7 +445,7 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
       <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}`} src={src} alt="" style={pos} draggable={false} />
       {/* the first time, a bright pulsing note calls attention to it; after that a small, steady
        *  note stays put so the horn is never just a picture */}
-      <span className={`stall-gramophone-hint ${seen ? 'faint' : ''}`} style={{ left: `${(r[0] + r[2]) / 2}%`, top: `${r[1] - 3}%` }} aria-hidden="true">♪</span>
+      <TapTag id="gramo" x={(r[0] + r[2]) / 2} y={r[1] - 1} icon="sound" label="Play a record" used={!!seen} />
       <button
         className="stall-gramophone-hit"
         style={{ left: `${r[0]}%`, top: `${r[1]}%`, width: `${r[2] - r[0]}%`, height: `${r[3] - r[1]}%` }}
@@ -447,13 +461,30 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
   );
 }
 
+/** A small brass tag over something on the stall that does something when tapped. Until it has
+ *  been used once it says what (Radio, Play a record, Stroke Saffron) and breathes; after that only
+ *  the little icon stays, faint, so the stall never looks like a picture you cannot touch. */
+const tapKey = (id: string) => `tof-tap-${id}`;
+const tapSeen = (id: string) => { try { return localStorage.getItem(tapKey(id)) === '1'; } catch { return false; } };
+function tapUsed(id: string) { try { localStorage.setItem(tapKey(id), '1'); } catch { /* private mode */ } window.dispatchEvent(new Event('tof:tap-used')); }
+function TapTag({ id, x, y, icon, label, used }: { id: string; x: number; y: number; icon: string; label: string; used?: boolean }) {
+  const [seen, setSeen] = useState(() => used || tapSeen(id));
+  useEffect(() => { const f = () => setSeen(used || tapSeen(id)); window.addEventListener('tof:tap-used', f); return () => window.removeEventListener('tof:tap-used', f); }, [id, used]);
+  useEffect(() => { if (used) setSeen(true); }, [used]);
+  return (
+    <span className={`tap-tag ${seen ? 'seen' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" data-testid={`tap-${id}`}>
+      <Icon name={icon} />{!seen && <em>{label}</em>}
+    </span>
+  );
+}
+
 /** a small picture standing on the counter: its width in % of the stage, centred on the anchor, its foot on it */
 const standAt = (a: Anchor, w: number) => ({ left: `${a.x - w / 2}%`, bottom: `${100 - a.y}%`, width: `${w * a.s}%` });
 
 /** This morning's paper folded on the counter, with a coffee. Tap it to pick it up and read. */
 function StallPaper({ at, hide }: { at: Anchor; hide?: boolean }) {
   return (
-    <button className={`stall-paper${hide ? ' kept-out' : ''}`} style={standAt(at, 9)} aria-label="Read today's paper" data-testid="stall-paper" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new Event('tof:paper')); }}>
+    <button className={`stall-paper${hide ? ' kept-out' : ''}`} style={standAt(at, 9)} aria-label="Read today's paper" data-testid="stall-paper" onClick={(e) => { e.stopPropagation(); tapUsed('paper'); window.dispatchEvent(new Event('tof:paper')); }}>
       <img src="art/newspaper-stall.webp" alt="" />
     </button>
   );
@@ -476,6 +507,7 @@ function StallRadio({ at, hide }: { at: Anchor; hide?: boolean }) {
   };
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    tapUsed('radio');
     if (radio.playing) { radio.stop(); setOn(false); setLine(-1); return; }
     let l: Lang = 'en';
     try { l = (localStorage.getItem('tof-radio-lang') as Lang) || 'en'; } catch { /* private mode */ }

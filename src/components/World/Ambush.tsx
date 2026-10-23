@@ -16,8 +16,11 @@ import { lookFor } from '../../game/heroLook';
 import { groundsAt, winOdds, isWin, type GroundId } from '../../game/systems/combat';
 import { terrainAt, dist } from '../../game/systems/world';
 import { ROAD_WELLS, SETTLEMENTS } from '../../data/world';
+import { Chase } from './Chase';
+import { speedInfo } from '../../game/systems/caravan';
+import type { ChaseSetup, ChaseState } from '../../game/systems/chase';
 
-type Stage = 'standoff' | 'demand' | 'battle' | 'result';
+type Stage = 'standoff' | 'demand' | 'battle' | 'result' | 'chase';
 interface Unit { id: string; name: string; img: string; str: number; n: number; start: number }
 
 /** a name mid-sentence: lower case, but places and peoples keep their capital ("2 Giza watchmen", "the Syrian rebel band") */
@@ -135,6 +138,51 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // the chance shown on the Fight button: on the ground and in the order the men would take by themselves
   const winPct = useMemo(() => (rebels ? null : winOdds({ myPow: clashInfo.myPow, enPow: clashInfo.enPow, temper: clashInfo.temper, known: clashInfo.known, scout: clashInfo.scout, ground: clashInfo.grounds.includes('camels') ? 'camels' : clashInfo.grounds[clashInfo.grounds.length - 1], formation: 'line', sergeant: !!clashInfo.sergeant, seed: clashInfo.seed })), [clashInfo, rebels]);
   const [clashSpoils, setClashSpoils] = useState<ClashSpoils | null>(null);
+  // ---- the chase (Chase.tsx, systems/chase.ts): running from them, or riding after a beaten band ----
+  const [chase, setChase] = useState<ChaseSetup | null>(null);
+  const [fled, setFled] = useState<{ size: number; leader?: string; chased?: boolean } | null>(null);
+  const mountedBand = /raiders|smuggler/.test(threat.id);
+  const theirPace = mountedBand ? party.speed ?? 30 : 14;
+  const run = () => {
+    const sp = speedInfo(g.world.party, g.inventory);
+    audio.sfx('unfold');
+    // the quickest of them come after you; on foot, all of them try
+    setChase({ mode: 'flee', seed: `${party.id}:${g.day}:flee`, bandId: threat.id, men: mountedBand ? Math.max(2, Math.ceil(size * 0.6)) : Math.max(2, Math.ceil(size / 2)), mine: sp.pxPerDay, theirs: theirPace, overloaded: sp.over || carried.length > 2 });
+    setStage('chase');
+  };
+  const pursue = () => {
+    if (!fled) return;
+    const riders = Object.entries(g.world.party.troops).reduce((a, [id, n]) => a + (TROOPS[id]?.mounted ? n ?? 0 : 0), 0);
+    const sp = speedInfo(g.world.party, g.inventory);
+    // mounted men ride light; without them you follow on what you have
+    setChase({ mode: 'pursue', seed: `${party.id}:${g.day}:pursue`, bandId: threat.id, men: fled.size, mine: riders > 0 ? 32 : Math.max(16, sp.pxPerDay * 1.2), theirs: theirPace, riders, leader: fled.leader });
+    setFled({ ...fled, chased: true });
+    setStage('chase');
+  };
+  const chaseEnd = (c: ChaseState) => {
+    const mode = chase?.mode;
+    setChase(null);
+    if (mode === 'flee') {
+      if (c.over === 'clear') {
+        const msg = `You turn the animals and run for it, and they cannot keep up.${c.dropped ? ` ${c.dropped === 1 ? 'One load' : `${c.dropped} loads`} left in the road to do it.` : ''}`;
+        g.ambushOutcome(party.id, { text: msg, rugsLost: Math.min(c.dropped, carried.length) });
+        onTurnBack(msg);
+      } else {
+        setText(`They run you down.${c.dropped ? ` You lost ${c.dropped === 1 ? 'a load' : `${c.dropped} loads`} on the way for nothing.` : ''} They surround you and name their price.`);
+        if (c.dropped) useGame.getState().ambushOutcome(party.id, { text: 'Loads dropped in the chase.', rugsLost: Math.min(c.dropped, carried.length) });
+        setStage('demand');
+      }
+      return;
+    }
+    const caught = c.runners.filter((r) => r.state === 'caught');
+    const lead = caught.some((r) => r.leader);
+    const n = caught.filter((r) => !r.leader).length;
+    const note = useGame.getState().chaseCaught(party.id, n, lead);
+    const esc = c.runners.filter((r) => r.state === 'escaped').map((r) => r.name);
+    setResult((r) => `${r} ${caught.length ? `You ride after them and take ${caught.map((x) => x.name).join(', ')}.` : 'You ride after them, but they are gone.'}${esc.length ? ` ${esc.join(', ')} got away.` : ''}`);
+    if (note) setClashSpoils((sp) => (sp ? { ...sp, prisoners: sp.prisoners + n, leader: sp.leader ?? (lead ? fled?.leader : undefined) } : sp));
+    setStage('result');
+  };
   const [recruitNote, setRecruitNote] = useState('');
   const fight = () => {
     audio.sfx('chest');
@@ -158,6 +206,11 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       const head = res === 'yield' ? `${by}${who} throws down his rifle, and his men follow.` : res === 'run' ? `${by}The ${band} break and run.` : `${by}They pull back out of range and ride off. Not a clean win, but the road is yours.`;
       base = st.ambushOutcome(party.id, { rep: res === 'yield' ? 3 : res === 'run' ? 2 : 1, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${head}${lostList ? lostLine : ' None of your men fell.'}` });
       extra = useGame.getState().clashAfter(party.id, { result: res, kills, size, rebels });
+      // those who ran can be ridden after
+      const left = Math.max(0, size - (extra?.prisoners ?? 0));
+      // a band that breaks scatters: the wounded and the slow are counted as fallen, the rest ride off
+      const scattered = res === 'yield' ? 0 : Math.min(left, Math.max(Math.ceil(size / 3), size - kills - (extra?.prisoners ?? 0)));
+      if (scattered > 0 && !rebels) setFled({ size: Math.min(8, scattered), leader: extra?.leader ? undefined : leader?.name });
     } else if (res === 'draw') {
       base = st.ambushOutcome(party.id, { delayHours: 6, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${by}Neither side will give way, and in the end both pull back. You lose half a day.${lostLine}` });
       extra = useGame.getState().clashAfter(party.id, { result: res, kills, size, rebels });
@@ -190,7 +243,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {place}</small><b>{threat.displayName}</b></div>
-        {stage !== 'battle' && <div className="amb-sides">
+        {stage !== 'battle' && stage !== 'chase' && <div className="amb-sides">
           <div className="amb-side amb-me">
             <img className="amb-face" src="art/troops/escort-road.jpg" alt="" />
             <b>Your caravan</b>
@@ -213,6 +266,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         </div>}
         <div className="amb-bar" aria-label={`Your share of the fighting strength: ${share}%`}><i style={{ width: `${share}%` }} /></div>
 
+        {stage === 'chase' && chase && <Chase setup={chase} onEnd={chaseEnd} />}
         {stage === 'standoff' && (
           <>
             <p className="amb-text">{text}</p>
@@ -224,7 +278,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
               {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
-              <button className="btn" onClick={() => { if (Math.random() < (rebels ? 0.9 : 0.55)) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> Turn back <small>{rebels ? 'usually allowed' : 'they may chase you'}</small></button>
+              <button className="btn" onClick={() => { if (!rebels) { run(); return; } if (Math.random() < 0.9) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> {rebels ? 'Turn back' : 'Run for it'} <small>{rebels ? 'usually allowed' : theirPace > speedInfo(g.world.party, g.inventory).pxPerDay * 1.1 ? 'they are faster: they will chase you' : 'you can outpace them'}</small></button>
             </div>
           </>
         )}
@@ -270,6 +324,11 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               </button>
             )}
             {recruitNote && <p className="amb-note" data-testid="recruit-note">{recruitNote}</p>}
+            {fled && !fled.chased && fled.size > 0 && (
+              <button className="btn amb-recruit" onClick={pursue} data-testid="amb-pursue">
+                <Icon name="run" /> Ride after them <small>{fled.size} {fled.size === 1 ? 'man is' : 'men are'} running{fled.leader ? `, ${fled.leader} with them` : ''}</small>
+              </button>
+            )}
             <button className="btn primary big" onClick={() => onDone(result)} data-testid="encounter-continue">Continue</button>
           </div>
         )}

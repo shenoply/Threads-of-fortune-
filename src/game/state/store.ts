@@ -88,10 +88,11 @@ import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
 import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
+import { RECORD_BY_ID, recordsOwned } from '../../data/records';
 import { BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -229,6 +230,8 @@ export interface GameState {
   radioHeard?: number;
   /** true once you have opened the gramophone at the stall; a hint shows over it until then */
   gramoSeen?: boolean;
+  /** gramophone records you own (data/records.ts); unset means the three that came with it */
+  records?: string[];
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
   /** sealed customs bales bought at Rashid's warehouse */
@@ -418,6 +421,8 @@ interface Actions {
   clashAfter: (partyId: string, end: { result: ClashResult; kills: number; size?: number; rebels?: boolean }) => ClashSpoils;
   /** willing prisoners taken on as reformed raiders, as far as the troop limit allows */
   recruitPrisoners: (n: number) => string;
+  /** men run down after a fight (Chase): tied with the other prisoners; their leader too, if he was one */
+  chaseCaught: (partyId: string, n: number, leader: boolean) => string;
   /** hand your prisoners to the police post: bounty for all, or ransom their leader back to his band */
   policePost: (leader: 'bounty' | 'ransom') => string;
   buyRifle: () => string;
@@ -585,6 +590,8 @@ interface Actions {
   openGift: () => Gift | null;
   /** buy (or, from the week's gift, be given) a sealed bale and cut it open: what was inside */
   buyBale: (free?: boolean) => { msg: string; result?: BaleResult; items?: RugItem[] };
+  /** buy a record from the record seller of the town you are in */
+  buyRecord: (id: string) => string;
   /** the last bale opened from the daily gift, for the gift's reveal */
   lastBale?: { result: BaleResult; items: RugItem[] };
   /** be paid for a finished errand ('all' for the three together) */
@@ -2168,6 +2175,17 @@ export const useGame = create<GameState & Actions>()(
           return out;
         },
 
+        chaseCaught: (partyId, n, leader) => {
+          const s = get();
+          if (n <= 0 && !leader) return '';
+          const c0 = combatOf(s);
+          const c: CombatState = { ...c0, leaders: { ...c0.leaders }, prisoners: [...c0.prisoners, { band: partyId, n, leader: leader || undefined, day: s.day }] };
+          const lead = leader ? c.leaders[partyId] : undefined;
+          if (lead) c.leaders[partyId] = { ...lead, status: 'held' };
+          const text = `Run down after the fight: ${n} ${n === 1 ? 'man' : 'men'}${leader && lead ? `, and ${lead.name} himself` : ''}. Hand them in at a police post.`;
+          set({ combat: c, reputation: s.reputation + (leader ? 2 : n >= 2 ? 1 : 0), journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] });
+          return text;
+        },
         recruitPrisoners: (n) => {
           const s = get();
           const take = Math.min(n, troopRoom(s));
@@ -4134,24 +4152,38 @@ export const useGame = create<GameState & Actions>()(
           return gift;
         },
 
+        buyRecord: (id) => {
+          const s = get();
+          const r = RECORD_BY_ID[id];
+          if (!r) return '';
+          const have = recordsOwned(s);
+          if (have.includes(id)) return `You have ${r.title} already.`;
+          if (s.world.at !== r.home) return 'That record is sold elsewhere.';
+          if (s.cash < r.price) return `${r.title} is ${fmt(r.price)}. You have ${fmt(s.cash)}.`;
+          set({ cash: s.cash - r.price, records: [...have, id], ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: `Record: ${r.title}`, amount: -r.price }], journal: [...s.journal, { day: s.day, text: `Bought a record, ${r.title}, for the gramophone at the stall.` }] });
+          audio.sfx('chest');
+          return `${r.title} (${r.performer}) is wrapped in paper for the gramophone at the stall.`;
+        },
         buyBale: (free = false) => {
           const s = get();
           const b = s.bales ?? { opened: 0, dry: 0, treasures: 0 };
           if (!free && b.lastDay === s.day) return { msg: "Rashid's man brings one bale a day. Come back tomorrow." };
           if (!free && s.cash < BALE_PRICE) return { msg: `A bale is ${fmt(BALE_PRICE)}.` };
-          const result = openBale(b, Math.random, s.dressing ?? []);
+          const result = openBale(b, Math.random, s.dressing ?? [], recordsOwned(s));
           const ex = result.extra;
           const piece = ex?.kind === 'piece' ? DRESSING_BY_ID[ex.id] : undefined;
           const coins = ex?.kind === 'coins' ? ex.amount : 0;
+          const rec = ex?.kind === 'record' ? RECORD_BY_ID[ex.id] : undefined;
           const items: RugItem[] = result.lots.map((l) => ({ uid: newUid('r'), typeId: l.typeId, condition: l.condition, restored: false, provenance: 'Uncertain', paid: free ? 0 : Math.round(BALE_PRICE / result.lots.length), notes: ['Out of a sealed bale from the Port Said customs sheds.'], stored: s.world.at !== 'giza' }));
           const treasure = result.grade === 'treasure';
           set({
             cash: (free ? s.cash : s.cash - BALE_PRICE) + coins,
             inventory: [...s.inventory, ...items],
+            ...(rec ? { records: [...recordsOwned(s), rec.id] } : {}),
             ...(piece ? { dressing: [...(s.dressing ?? []), piece.id], ...(!spotsOf(s)[piece.spot] ? { stallSpots: { ...spotsOf(s), [piece.spot]: piece.id } } : {}) } : {}),
             bales: { lastDay: free ? b.lastDay : s.day, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
             ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
-            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
+            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(rec ? [`a gramophone record, ${rec.title}`] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
           });
           return { msg: '', result, items };
         },
@@ -4694,6 +4726,12 @@ export const useGame = create<GameState & Actions>()(
         // towns go on the map, greyed until the road opens (unlocks.ts); the fog grows to cover Persia,
         // unexplored; the Zagros raiders and a Persian carpet caravan join the roads. persianVisa and
         // shops are optional and start empty.
+        if (version < 26 && p.world?.parties) {
+          // bands now come in different sizes: the roads' bands are mustered afresh (the rest stay as they are)
+          const fresh = spawnParties(Math.random).filter((x) => x.kind === 'raiders');
+          const ids = new Set(fresh.map((x) => x.id));
+          p.world = { ...p.world, parties: [...p.world.parties.filter((x) => !ids.has(x.id)), ...fresh] };
+        }
         if (version < 24 && p.world) {
           const w = p.world;
           const have = new Set((w.parties ?? []).map((x) => x.id));

@@ -10,8 +10,8 @@ const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(1200);
 await p.evaluate(() => window.dispatchEvent(new Event('tof:gramophone')));
-await p.waitForTimeout(1500); await p.waitForSelector('[data-testid=gramophone-list] .gramo-track', { timeout: 8000 });
-const ids = await p.locator('.gramo-track').evaluateAll((els) => els.map((e) => e.dataset.testid));
+await p.waitForTimeout(1500); await p.waitForSelector('[data-testid=gramophone-list] .gramo-rec[data-testid]', { timeout: 8000 });
+const ids = await p.locator('.gramo-rec[data-testid]').evaluateAll((els) => els.map((e) => e.dataset.testid));
 // measured against full volume (music now defaults to 45%), as audio-mix does
 await p.evaluate(() => window.__tofAudio.setVolumes({ master: 1, music: 1, sfx: 1, dialogue: 1 }));
 await p.click(`[data-testid=${ids[0]}]`); await p.waitForTimeout(1700);

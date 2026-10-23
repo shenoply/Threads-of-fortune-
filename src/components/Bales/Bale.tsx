@@ -8,6 +8,7 @@ import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { reveal } from '../Reveal/Reveal';
 import { DRESSING_BY_ID } from '../../data/shops';
+import { RECORD_BY_ID } from '../../data/records';
 import type { RugItem } from '../../game/types';
 import './bale.css';
 
@@ -27,6 +28,10 @@ export function showBale(result: BaleResult, items: RugItem[], from = 'Out of a 
   if (ex?.kind === 'piece') {
     const d = DRESSING_BY_ID[ex.id];
     if (d) reveal({ kicker: 'Packed in with it', title: d.name, line: `${d.effect}. It is with your stall things: Dress your stall puts it out.`, pic: d.art, picKind: 'prop' });
+  }
+  if (ex?.kind === 'record') {
+    const r = RECORD_BY_ID[ex.id];
+    if (r) reveal({ kicker: 'Wrapped in paper at the bottom', title: `A record: ${r.title}`, line: `${r.performer} · ${r.company}. It goes with the others by the gramophone at the stall.` });
   }
   if (ex?.kind === 'coins') reveal({ kicker: 'At the bottom of the bale', title: fmt(ex.amount), amount: ex.amount, line: 'A purse of old Ottoman coins. The changer on the corner gave you this for them.' });
 }

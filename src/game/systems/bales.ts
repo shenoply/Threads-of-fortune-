@@ -6,13 +6,14 @@
 // them): a game of chance played the way a merchant would, with goods, not cards.
 import { RUGS, RUG_IDS } from '../../data/rugs';
 import { DRESSING } from '../../data/shops';
+import { RECORDS } from '../../data/records';
 import type { Condition, RugType } from '../types';
 
 export const BALE_PRICE = 1200;
 export interface BaleState { lastDay?: number; opened: number; /** bales since the last treasure */ dry: number; treasures: number }
 export type BaleLot = { typeId: string; condition: Condition };
 /** not every bale is all carpet: a curio for the stall, or a purse of old coins, packed in with it */
-export type BaleExtra = { kind: 'piece'; id: string } | { kind: 'coins'; amount: number };
+export type BaleExtra = { kind: 'piece'; id: string } | { kind: 'coins'; amount: number } | { kind: 'record'; id: string };
 export interface BaleResult { lots: BaleLot[]; grade: 'everyday' | 'trade' | 'city' | 'treasure'; extra?: BaleExtra }
 
 /** the chance a bale holds a treasure: one in two hundred, a little more after a very long dry run */
@@ -23,7 +24,7 @@ const pool = (tier: number) => RUG_IDS.map((id) => RUGS[id]).filter((t): t is Ru
 /** curios the customs shed might hold that the stall does not have yet */
 const curios = (owned: string[], most: number) => DRESSING.filter((d) => !d.father && d.cost > 0 && d.cost <= most && !owned.includes(d.id));
 
-export function openBale(state: BaleState | undefined, rnd: () => number = Math.random, owned: string[] = []): BaleResult {
+export function openBale(state: BaleState | undefined, rnd: () => number = Math.random, owned: string[] = [], records: string[] = []): BaleResult {
   const dry = state?.dry ?? 0;
   const roll = rnd();
   const pick = (tier: number) => { const p = pool(tier); return p[Math.floor(rnd() * p.length)]?.id ?? RUG_IDS[0]; };
@@ -39,6 +40,9 @@ export function openBale(state: BaleState | undefined, rnd: () => number = Math.
   // everyday: two plain rugs, or one and something else packed in with it
   const r = rnd(), c = curios(owned, 1500);
   if (r < 0.22 && c.length) return { grade: 'everyday', lots: [{ typeId: pick(1), condition: cond() }], extra: { kind: 'piece', id: c[Math.floor(rnd() * c.length)].id } };
+  // a gramophone record someone shipped and never claimed
+  const recs = RECORDS.filter((x) => x.home !== 'stall' && !records.includes(x.id));
+  if (r >= 0.36 && r < 0.46 && recs.length) return { grade: 'everyday', lots: [{ typeId: pick(1), condition: cond() }], extra: { kind: 'record', id: recs[Math.floor(rnd() * recs.length)].id } };
   if (r < 0.36) return { grade: 'everyday', lots: [{ typeId: pick(1), condition: cond() }], extra: { kind: 'coins', amount: 150 + Math.round(rnd() * 7) * 50 } };
   return { grade: 'everyday', lots: [{ typeId: pick(1), condition: cond() }, { typeId: pick(1), condition: cond() }] };
 }
