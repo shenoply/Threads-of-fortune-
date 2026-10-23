@@ -8,10 +8,11 @@ import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { rankOf } from '../../game/economy/progress';
 import { audio } from '../../game/audio/engine';
-import { costOf, daysOf, defaultName, loomsFree, newDesign, parts, valueOf, withPalette, type Design } from '../../game/loom/design';
+import { daysFor, defaultName, loomsFree, needsWorkshop, newDesign, parts, priceOf, valueOf, withPalette, WORKSHOP_LINE, WORKSHOP_PRICE, type Design } from '../../game/loom/design';
 import { renderDesign } from '../../game/loom/render';
 import { BORDER, FIELD, GUARD, KNOTS, LAYOUT, MEDALLION, PALETTES, SIZES, WOOL } from '../../game/loom/patterns';
 import { reveal } from '../Reveal/Reveal';
+import { Icon } from '../Icon';
 import { RUGS } from '../../data/rugs';
 import './loom.css';
 
@@ -20,13 +21,13 @@ const STEPS: [Step, string][] = [['size', 'Size'], ['layout', 'Layout'], ['colou
 type Place = 'ground' | 'main' | 'accent' | 'border' | 'ground2';
 const PLACES: [Place, string][] = [['ground', 'Field'], ['main', 'Figures'], ['accent', 'Second'], ['border', 'Border'], ['ground2', 'Corners']];
 
-function Option({ on, pic, name, line, delta, onPick, testid, dyes }: { on: boolean; pic?: string; name: string; line?: string; delta?: number; onPick: () => void; testid: string; dyes?: string[] }) {
+function Option({ on, pic, name, line, delta, onPick, testid, dyes, lock }: { on: boolean; pic?: string; name: string; line?: string; delta?: number; onPick: () => void; testid: string; dyes?: string[]; lock?: boolean }) {
   return (
     <button className={`lm-opt ${on ? 'on' : ''} ${pic ? 'pic' : ''}`} onClick={onPick} aria-pressed={on} data-testid={testid}>
       {pic && <img src={pic} alt="" draggable={false} />}
       {dyes && <span className="lm-dyes">{dyes.map((h) => <i key={h} style={{ background: h }} />)}</span>}
-      <b>{name}</b>
-      {line && <small>{line}</small>}
+      <b>{lock && <Icon name="lock" className="lm-lock" />}{name}</b>
+      {line && <small>{lock ? 'Needs your own loom house. ' : ''}{line}</small>}
       {delta !== undefined && delta !== 0 && <em>{delta > 0 ? '+' : '−'}{fmt(Math.abs(delta))}</em>}
     </button>
   );
@@ -47,10 +48,10 @@ function useBox() {
 }
 
 /** a long carpet stood on end when the screen is tall, so it is shown as large as it can be */
-function FitRug({ src, alt, aspect = 1.6 }: { src: string; alt: string; aspect?: number }) {
+function FitRug({ src, alt, aspect = 1.6, upright }: { src: string; alt: string; aspect?: number; upright?: boolean }) {
   const [ref, { w, h }] = useBox();
   const flatW = Math.min(w, h * aspect), upW = Math.min(h, w * aspect);
-  const up = upW > flatW * 1.12;
+  const up = upright === undefined ? upW > flatW * 1.12 : upright;
   const iw = Math.max(1, Math.floor(up ? upW : flatW));
   return (
     <div className="lm-fit" ref={ref}>
@@ -117,10 +118,12 @@ export function Loom({ onClose }: { onClose: () => void }) {
   }, [onClose, zoom]);
   useEffect(() => { strip.current?.scrollTo({ left: 0 }); }, [step]);
   const pic = useMemo(() => renderDesign(d, 820, 0.88), [d]);
-  const cost = costOf(d), days = daysOf(d), [lo, hi] = valueOf(d);
-  const free = loomsFree(rankOf(g).idx) - lm.weaving.length;
+  const owned = !!lm.owned;
+  const cost = priceOf(d, owned), days = daysFor(d, owned), [lo, hi] = valueOf(d);
+  const free = loomsFree(rankOf(g).idx, owned) - lm.weaving.length;
+  const locked = needsWorkshop(d) && !owned;
   const set = (patch: Partial<Design>) => { audio.sfx('tap'); setNote(''); setD((x) => ({ ...x, ...patch })); };
-  const delta = (patch: Partial<Design>) => costOf({ ...d, ...patch }) - cost;
+  const delta = (patch: Partial<Design>) => priceOf({ ...d, ...patch }, owned) - cost;
   const thumb = (patch: Partial<Design>) => renderDesign({ ...d, ...patch }, 300, 0.8);
   const p = parts(d);
   const name = d.name.trim() || defaultName(d);
@@ -142,9 +145,10 @@ export function Loom({ onClose }: { onClose: () => void }) {
   };
 
   return createPortal(
-    <div className="overlay loom-screen" data-testid="loom" onClick={(e) => e.stopPropagation()}>
+    <div className="overlay loom-screen" data-testid="loom" onClick={(e) => e.stopPropagation()}
+      style={{ backgroundImage: 'linear-gradient(180deg, rgba(15,10,6,.5), rgba(15,10,6,.9) 34%, #0f0a06 62%), url(art/loom/workshop-768.webp), radial-gradient(ellipse 120% 60% at 50% 22%, #2e1f12, #0f0a06 70%)', backgroundSize: 'auto, 100% auto, auto', backgroundRepeat: 'no-repeat', backgroundPosition: 'top center' }}>
       <div className="lm-head">
-        <h2>The weaver</h2>
+        <h2>{owned ? 'Your loom house' : 'The weavers of Kerdasa'}</h2>
         <span className="lm-cash">{fmt(g.cash)}</span>
         <button className="btn close" onClick={onClose} data-testid="loom-close">Done</button>
       </div>
@@ -167,9 +171,14 @@ export function Loom({ onClose }: { onClose: () => void }) {
       )}
 
       <button className="lm-preview" onClick={() => setZoom({ src: renderDesign(d, 1640, 0.9), name })} aria-label="Look closely at the carpet" data-testid="loom-preview-btn">
-        <FitRug src={pic} alt={`Your design: ${name}`} aspect={p.size.cols / p.size.rows * 1.07} />
+        <FitRug src={pic} alt={`Your design: ${name}`} aspect={p.size.cols / p.size.rows * 1.07} upright={d.orient === 'up'} />
         <span className="lm-zoomhint" aria-hidden="true">⤢</span>
       </button>
+      <div className="lm-orient" role="radiogroup" aria-label="How the carpet lies">
+        {(['side', 'up'] as const).map((o) => (
+          <button key={o} role="radio" aria-checked={(d.orient ?? 'side') === o} className={(d.orient ?? 'side') === o ? 'on' : ''} onClick={() => set({ orient: o })} data-testid={`loom-orient-${o}`}>{o === 'side' ? 'Sideways' : 'Upright'}</button>
+        ))}
+      </div>
 
       <div className="lm-sum">
         <label className="lm-name">
@@ -207,16 +216,23 @@ export function Loom({ onClose }: { onClose: () => void }) {
           {step === 'centre' && MEDALLION.filter((x) => x.id !== 'none').map((x) => <Option key={x.id} on={d.medallion === x.id} pic={thumb({ medallion: x.id })} name={x.name} delta={delta({ medallion: x.id })} onPick={() => set({ medallion: x.id })} testid={`loom-med-${x.id}`} />)}
           {step === 'border' && BORDER.map((x) => <Option key={x.id} on={d.band === x.id} pic={thumb({ band: x.id })} name={x.name} delta={delta({ band: x.id })} onPick={() => set({ band: x.id })} testid={`loom-band-${x.id}`} />)}
           {step === 'border' && GUARD.map((x) => <Option key={x.id} on={d.guard === x.id} pic={thumb({ guard: x.id })} name={`${x.name} stripe`} delta={delta({ guard: x.id })} onPick={() => set({ guard: x.id })} testid={`loom-guard-${x.id}`} />)}
-          {step === 'wool' && KNOTS.map((x) => <Option key={x.id} on={d.knots === x.id} name={x.name} line={x.line} delta={delta({ knots: x.id })} onPick={() => set({ knots: x.id })} testid={`loom-knots-${x.id}`} />)}
-          {step === 'wool' && WOOL.map((x) => <Option key={x.id} on={d.wool === x.id} name={x.name} line={x.line} delta={delta({ wool: x.id })} onPick={() => set({ wool: x.id })} testid={`loom-wool-${x.id}`} />)}
+          {step === 'wool' && !owned && (
+            <button className="lm-opt lm-house" onClick={() => { const msg = g.buyWorkshop(); setNote(msg || WORKSHOP_LINE); }} disabled={g.cash < WORKSHOP_PRICE} data-testid="loom-buy-house">
+              <b>A loom house of your own</b>
+              <small>A fifth cheaper, a quarter sooner, a second loom, the city knot and silk.</small>
+              <em>{g.cash < WORKSHOP_PRICE ? `${fmt(WORKSHOP_PRICE)} · you have ${fmt(g.cash)}` : `Buy it · ${fmt(WORKSHOP_PRICE)}`}</em>
+            </button>
+          )}
+          {step === 'wool' && KNOTS.map((x) => <Option key={x.id} on={d.knots === x.id} name={x.name} lock={needsWorkshop({ knots: x.id, wool: 'village' }) && !owned} line={x.line} delta={delta({ knots: x.id })} onPick={() => set({ knots: x.id })} testid={`loom-knots-${x.id}`} />)}
+          {step === 'wool' && WOOL.map((x) => <Option key={x.id} on={d.wool === x.id} name={x.name} lock={needsWorkshop({ knots: 'coarse', wool: x.id }) && !owned} line={x.line} delta={delta({ wool: x.id })} onPick={() => set({ wool: x.id })} testid={`loom-wool-${x.id}`} />)}
           {step === 'colours' && PALETTES.map((x) => <Option key={x.id} on={d.palette === x.id} dyes={x.dyes.map((y) => y.hex)} name={x.name} delta={delta(withPalette(d, x.id))} onPick={() => { audio.sfx('tap'); setD((y) => withPalette(y, x.id)); }} testid={`loom-pal-${x.id}`} />)}
         </div>
       </div>
 
       <div className="lm-foot">
         {note && <p className="lm-msg" data-testid="loom-note">{note}</p>}
-        <button className="btn primary" disabled={free <= 0 || g.cash < cost} onClick={weave} data-testid="loom-weave">
-          {free <= 0 ? 'No loom free' : g.cash < cost ? `You need ${fmt(cost)}` : `Weave it · ${fmt(cost)}`}
+        <button className="btn primary" disabled={free <= 0 || g.cash < cost || locked} onClick={weave} data-testid="loom-weave">
+          {locked ? 'The city knot and silk need your own loom house' : free <= 0 ? 'Every loom is busy' : g.cash < cost ? `You need ${fmt(cost)}` : `Weave it · ${fmt(cost)}`}
         </button>
       </div>
       {zoom && <Zoom src={zoom.src} name={zoom.name} onClose={() => setZoom(null)} />}

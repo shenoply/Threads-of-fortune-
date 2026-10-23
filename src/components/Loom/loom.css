@@ -66,3 +66,10 @@
 .lm-fit img { max-width: none; max-height: none; position: absolute; left: 50%; top: 50%; display: block; object-fit: fill; box-shadow: 0 14px 30px rgba(0, 0, 0, .65), 0 2px 6px rgba(0, 0, 0, .5); }
 .lm-zoom-scroll.tall { justify-content: flex-start; }
 .lm-zoom-scroll.tall img { width: auto; margin: 0 auto; }
+/* the workshop's own picture behind the screen, when there is one (art/loom/workshop-768.webp) */
+.lm-orient { flex: none; align-self: center; display: flex; gap: 0; margin: -2px 0 2px; border: 1px solid rgba(234, 219, 189, .3); border-radius: 16px; overflow: hidden; }
+.lm-orient button { padding: 4px 12px; background: #1a110a; color: #cdb995; border: 0; font-size: 13px; }
+.lm-orient button.on { background: rgba(246, 181, 74, .22); color: #ffe2a0; }
+.lm-lock { width: 13px; height: 13px; margin-right: 4px; vertical-align: -1px; color: #f2b13c; }
+.lm-house { flex-basis: 170px; border-color: #c9973d; background: linear-gradient(180deg, #2b1d0f, #1d140c); }
+.lm-house:disabled { opacity: .75; }

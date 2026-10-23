@@ -54,6 +54,17 @@ const after = await st((m) => m.useGame.getState().inventory.filter((i) => i.typ
 check(after === 1, 'still in stock after a reload');
 await p.click('[data-testid=nav-inventory]').catch(() => {}); await p.waitForTimeout(500);
 check(await p.locator('text=Test Garden').count() > 0, 'and still shown with its name');
+// your own loom house: the city knot is locked until it is bought, then a fifth cheaper
+await p.click('[data-testid=stock-loom]'); await p.waitForSelector('[data-testid=loom-preview]');
+await p.click('[data-testid=loom-step-wool]'); await p.click('[data-testid=loom-knots-fine]');
+check(await p.isDisabled('[data-testid=loom-weave]'), 'the city knot needs your own loom house');
+await p.click('[data-testid=loom-buy-house]');
+const own = await st((m) => !!m.useGame.getState().loom?.owned);
+check(own, 'the loom house can be bought');
+check(!(await p.isDisabled('[data-testid=loom-weave]')), 'and then the city knot can be woven');
+await p.click('[data-testid=loom-orient-up]');
+check(await p.locator('[data-testid=loom-orient-up][aria-checked=true]').count() === 1, 'a carpet can be set upright');
+await p.click('[data-testid=loom-close]'); await p.waitForTimeout(300);
 p.once('dialog', (dl) => dl.accept('Renamed Garden'));
 await p.locator('[data-testid^=rename-]').first().click();
 await p.waitForTimeout(400);

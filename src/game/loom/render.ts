@@ -131,7 +131,8 @@ export function knotMap(d: Design): Map {
   const fx0 = f0x + 1, fy0 = f0y + 1, fx1 = w - f0x - 1, fy1 = h - f0y - 1;
   fill(fx0, fy0, fx1, fy1, 'ground');
   const FW = fx1 - fx0, FH = fy1 - fy0;
-  const FS = Math.max(1, Math.round(FH / 46)); // the small fillers grow with the knot count
+  const FS = Math.max(1, Math.round(FH / 46));
+  const up = d.orient === 'up'; // figures point along the carpet // the small fillers grow with the knot count
   const inField = (x: number, y: number) => x >= fx0 && x < fx1 && y >= fy0 && y < fy1;
   const figA: Record<Role, Slot | null> = { 0: null, 1: 'main', 2: 'accent', 3: 'outline', 4: 'light' };
   const figB: Record<Role, Slot | null> = { 0: null, 1: 'accent', 2: 'main', 3: 'outline', 4: 'light' };
@@ -178,7 +179,7 @@ export function knotMap(d: Design): Map {
         if (hasMed) for (let yy = Math.round(by) - 1; yy < by + rh * box + 1 && !clash; yy++) for (let xx = Math.round(bx) - 1; xx < bx + cw * box + 1; xx++) if (medMask(xx, yy) || spandrel(xx, yy)) { clash = true; break; }
         if (clash) continue;
         if (bx < fx0 - 0.5 || bx + cw * box > fx1 + 0.5) continue;
-        stamp(m, p.field, bx, by, Math.min(cw, rh) * box, rh * box, (r + c) % 2 ? figB : figA, inField);
+        stamp(m, p.field, bx, by, Math.min(cw, rh) * box, rh * box, (r + c) % 2 ? figB : figA, inField, up);
       }
     }
     if (hasMed) {
@@ -195,7 +196,7 @@ export function knotMap(d: Design): Map {
       sprinkle(m, mx, my, mx + mw, my + mh, 'main', [['light', 'accent'], ['accent', 'outline'], ['outline', 'light']], 7, 1, undefined, FS);
       // a small figure in each corner piece
       const s2 = Math.round(Math.min(sw, sh) * 0.62);
-      for (const [cx, cy] of [[fx0 + 1, fy0 + 1], [fx1 - 1 - s2, fy0 + 1], [fx0 + 1, fy1 - 1 - s2], [fx1 - 1 - s2, fy1 - 1 - s2]]) stamp(m, p.field, cx, cy, s2, s2, figB, (x, y) => spandrel(x, y) && inField(x, y));
+      for (const [cx, cy] of [[fx0 + 1, fy0 + 1], [fx1 - 1 - s2, fy0 + 1], [fx0 + 1, fy1 - 1 - s2], [fx1 - 1 - s2, fy1 - 1 - s2]]) stamp(m, p.field, cx, cy, s2, s2, figB, (x, y) => spandrel(x, y) && inField(x, y), up);
     }
   } else if (p.layout.id === 'prayer') {
     // the niche: a stepped arch, its point towards one end, a light ground outside it
@@ -224,7 +225,7 @@ export function knotMap(d: Design): Map {
       fill(x0, fy0, x1, fy1, g);
       if (b > 0) { fill(x0, fy0, x0 + 1, fy1, 'outline'); fill(x0 + 1, fy0, x0 + 2, fy1, 'light'); }
       const inner = x1 - x0 - 2, size = Math.min(inner * 0.84, cs * 0.86);
-      for (let r = 0; r < nRows; r++) stamp(m, p.field, x0 + 2 + (inner - size) / 2, fy0 + r * (FH / nRows) + (FH / nRows - size) / 2, size, size, (b + r) % 2 ? figB : figA, inField);
+      for (let r = 0; r < nRows; r++) stamp(m, p.field, x0 + 2 + (inner - size) / 2, fy0 + r * (FH / nRows) + (FH / nRows - size) / 2, size, size, (b + r) % 2 ? figB : figA, inField, up);
     }
   }
   // every empty stretch of the field and the corner pieces gets its small figures

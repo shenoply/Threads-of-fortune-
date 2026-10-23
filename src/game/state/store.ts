@@ -88,7 +88,7 @@ import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
 import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
-import { costOf, daysOf, defaultName, loomsFree, type Design } from '../loom/design';
+import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 export const SAVE_VERSION = 25;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
@@ -231,7 +231,7 @@ export interface GameState {
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
   /** carpets of your own design: the designs, and those still on the weaver's loom */
-  loom?: { designs: Design[]; weaving: { id: string; ready: number }[]; next: number };
+  loom?: { designs: Design[]; weaving: { id: string; ready: number; paid?: number }[]; next: number; /** your own loom house at Kerdasa */ owned?: boolean };
   /** what the merchant carries from the gunsmith (data/arms.ts): one thing at his side, one long arm */
   carry?: { side?: string; long?: string };
   /** the daily gift's run of days and the errands paid for (systems/daily.ts) */
@@ -567,6 +567,8 @@ interface Actions {
   commissionCarpet: (d: Design) => string;
   /** take a finished carpet off the loom into your stock */
   collectCarpet: (id: string) => string;
+  /** buy your own loom house at Kerdasa */
+  buyWorkshop: () => string;
   /** give a carpet of your own design a new name */
   renameCarpet: (id: string, name: string) => void;
   /** buy from the gunsmith in the Muski; the piece in the same place is traded in at half its price */
@@ -4143,15 +4145,16 @@ export const useGame = create<GameState & Actions>()(
         commissionCarpet: (d) => {
           const s = get();
           const lm = s.loom ?? { designs: [], weaving: [], next: 1 };
-          if (lm.weaving.length >= loomsFree(rankOf(s).idx)) return 'The weaver has no loom free. Wait for the carpet on it.';
-          const cost = costOf(d);
+          if (lm.weaving.length >= loomsFree(rankOf(s).idx, !!lm.owned)) return 'Every loom is busy. Wait for the carpet on it.';
+          if (needsWorkshop(d) && !lm.owned) return 'The city knot and silk need a loom house of your own.';
+          const cost = priceOf(d, !!lm.owned);
           if (s.cash < cost) return `You need ${fmt(cost)}.`;
           const id = `own-${lm.next}`;
           const design: Design = { ...d, id, name: (d.name.trim() || defaultName(d)).slice(0, 40) };
           if (!validDesign(design)) return '';
           registerDesigns([design]);
-          const ready = s.day + daysOf(design);
-          set({ cash: s.cash - cost, loom: { designs: [...lm.designs, design], weaving: [...lm.weaving, { id, ready }], next: lm.next + 1 },
+          const ready = s.day + daysFor(design, !!lm.owned);
+          set({ cash: s.cash - cost, loom: { designs: [...lm.designs, design], weaving: [...lm.weaving, { id, ready, paid: cost }], next: lm.next + 1 },
             ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Weaver: ${design.name}`, amount: -cost }] });
           audio.sfx('coins');
           return `The weaver takes your drawing and ${fmt(cost)}. ${design.name} will be off the loom on day ${ready}.`;
@@ -4163,9 +4166,18 @@ export const useGame = create<GameState & Actions>()(
           const d = lm?.designs.find((x) => x.id === id);
           if (!lm || !w || !d || s.day < w.ready) return '';
           registerDesigns([d]);
-          const item: RugItem = { uid: newUid('r'), typeId: id, condition: 'Excellent', restored: false, provenance: 'Documented', paid: costOf(d), notes: ['Woven to your own design by the weavers of Kerdasa.'], stored: s.world.at !== 'giza' ? true : false };
+          const item: RugItem = { uid: newUid('r'), typeId: id, condition: 'Excellent', restored: false, provenance: 'Documented', paid: w.paid ?? costOf(d), notes: [lm.owned ? 'Woven to your own design in your loom house at Kerdasa.' : 'Woven to your own design by the weavers of Kerdasa.'], stored: s.world.at !== 'giza' ? true : false };
           set({ inventory: [...s.inventory, item], loom: { ...lm, weaving: lm.weaving.filter((x) => x.id !== id) }, journal: [...s.journal, { day: s.day, text: `${d.name} came off the weaver's loom.` }].slice(-200) });
           return `${d.name} is off the loom and in your stock.`;
+        },
+        buyWorkshop: () => {
+          const s = get();
+          const lm = s.loom ?? { designs: [], weaving: [], next: 1 };
+          if (lm.owned) return '';
+          if (s.cash < WORKSHOP_PRICE) return `You need ${fmt(WORKSHOP_PRICE)}.`;
+          set({ cash: s.cash - WORKSHOP_PRICE, loom: { ...lm, owned: true }, ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: 'A loom house at Kerdasa', amount: -WORKSHOP_PRICE }], journal: [...s.journal, { day: s.day, text: 'Bought a loom house at Kerdasa, with two looms and a weaver who knows the city knot.' }].slice(-200) });
+          audio.sfx('coins');
+          return 'The loom house is yours: two looms, the city knot and silk, and every carpet a fifth cheaper.';
         },
         renameCarpet: (id, name) => {
           const s = get();

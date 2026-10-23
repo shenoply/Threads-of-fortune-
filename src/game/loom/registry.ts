@@ -14,6 +14,7 @@ export function validDesign(d: unknown): d is Design {
   const x = d as Record<string, unknown>;
   if (typeof x.id !== 'string' || !/^own-\d+$/.test(x.id) || typeof x.name !== 'string') return false;
   for (const [k, set] of Object.entries(OK)) if (typeof x[k] !== 'string' || !set.has(x[k] as string)) return false;
+  if (x.orient !== undefined && x.orient !== 'side' && x.orient !== 'up') return false;
   return ['ground', 'ground2', 'main', 'accent', 'light', 'border'].every((k) => Number.isInteger(x[k]) && (x[k] as number) >= 0 && (x[k] as number) < 8);
 }
 

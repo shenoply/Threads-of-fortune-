@@ -17,6 +17,8 @@ export interface Design {
   guard: string;
   knots: string;
   wool: string;
+  /** shown and woven upright (figures pointing along the carpet) or sideways (across it) */
+  orient?: 'side' | 'up';
 }
 
 const by = <T extends { id: string }>(list: T[], id: string) => list.find((x) => x.id === id) ?? list[0];
@@ -125,5 +127,14 @@ export function defaultName(d: Design) {
   return `${p.palette.name} ${what}`.replace(/\b(\w)/g, (m) => m.toUpperCase());
 }
 
-/** how many carpets the weaver will have on his looms for you at once: more as your name grows */
-export const loomsFree = (rank: number) => 1 + (rank >= 2 ? 1 : 0) + (rank >= 4 ? 1 : 0);
+/** your own loom house at Kerdasa: what it costs, and what it changes */
+export const WORKSHOP_PRICE = 6000;
+export const WORKSHOP_LINE = 'A loom house of your own at Kerdasa: carpets cost a fifth less, come off the loom a quarter sooner, a second loom, and the fine city knot and silk.';
+/** what needs your own workshop: the finest knot and silk */
+export const needsWorkshop = (d: Pick<Design, 'knots' | 'wool'>) => d.knots === 'fine' || d.wool === 'silk' || d.wool === 'allsilk';
+/** what you pay: the weaver's price, a fifth less in your own workshop */
+export const priceOf = (d: Design, owned: boolean) => (owned ? Math.round((costOf(d) * 0.8) / 5) * 5 : costOf(d));
+/** days on the loom, a quarter fewer in your own workshop */
+export const daysFor = (d: Design, owned: boolean) => (owned ? Math.max(1, Math.round(daysOf(d) * 0.75)) : daysOf(d));
+/** how many carpets can be on the looms at once: one at the weaver's, two in your own house, and one more as your name grows */
+export const loomsFree = (rank: number, owned = false) => 1 + (owned ? 1 : 0) + (rank >= 3 ? 1 : 0);
