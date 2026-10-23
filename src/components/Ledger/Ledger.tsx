@@ -126,21 +126,6 @@ export function Ledger() {
       </div>
       <LicenceCard />
 
-
-      <div className="section-label">TODAY'S GOALS</div>
-      <div className="goals">
-        {g.goals.map((goal) => {
-          const [p, done] = goalProgress(g, goal);
-          return (
-            <div className={`goal ${done ? 'done' : ''}`} key={goal.id}>
-              <span className="tick">{done ? '✓' : ''}</span>
-              {goal.label}
-              <span className="prog">{goal.kind === 'payRashid' ? `${fmt(p)} owed` : goal.kind === 'gross' ? `${fmt(Math.min(p, goal.target))}/${fmt(goal.target)}` : `${Math.min(p, goal.target)}/${goal.target}`}</span>
-            </div>
-          );
-        })}
-      </div>
-
       <Fold id="pr-book-customers" title="Customers" gist={`${met} met · ${bought} purchase${bought === 1 ? '' : 's'}`}>
       <div className="people">
         {BUYER_ORDER.map((id) => {

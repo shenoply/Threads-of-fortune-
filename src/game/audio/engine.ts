@@ -139,18 +139,22 @@ class AudioEngine {
       g.connect(this.master);
       this.gains[c] = g;
     });
-    const len = this.ctx.sampleRate * 2;
+    // one second of noise is plenty for every one-shot (they start at a random point in it)
+    const len = this.ctx.sampleRate;
     this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const d = this.noiseBuf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    // a shared room for indoor one-shots
-    const sr = this.ctx.sampleRate, n = Math.floor(sr * 1.8);
-    const ir = this.ctx.createBuffer(2, n, sr);
-    for (let c = 0; c < 2; c++) { const x = ir.getChannelData(c); for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
+    // a shared room for indoor one-shots: its echo is built a moment later, off the tap that woke the sound
     this.hall = this.ctx.createConvolver();
-    this.hall.buffer = ir;
     const hg = this.ctx.createGain(); hg.gain.value = 0.35;
     this.hall.connect(hg).connect(this.gains.ambience);
+    const ctx = this.ctx, hall = this.hall;
+    window.setTimeout(() => {
+      const sr = ctx.sampleRate, n = Math.floor(sr * 1.8);
+      const ir = ctx.createBuffer(2, n, sr);
+      for (let c = 0; c < 2; c++) { const x = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = 1 - i / n; x[i] = (Math.random() * 2 - 1) * t * t * t; } }
+      hall.buffer = ir;
+    }, 600);
     this.loadBank();
     return true;
   }
@@ -342,6 +346,7 @@ class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     if (opts.f2) filt.frequency.exponentialRampToValueAtTime(opts.f2, t + dur);
     src.connect(filt).connect(g).connect(dest);
+    src.loop = true; // a short noise buffer, started anywhere in it, never runs out
     src.start(t, Math.random());
     src.stop(t + dur + 0.05);
   }
@@ -377,6 +382,7 @@ class AudioEngine {
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35 - k * 0.06);
       strike.connect(bpf).connect(g).connect(this.gains.sfx);
     });
+    src.loop = true;
     src.start(t, Math.random());
     src.stop(t + 0.4);
   }

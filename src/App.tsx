@@ -11,7 +11,7 @@ import { UnlockNotice } from './components/Tips/Unlocks';
 import { guideTarget } from './game/guide';
 import { HealthStrip } from './components/Health/HealthStrip';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { OPEN_UPGRADES, UpgradeNudge, UpgradesSheet } from './components/Inventory/StallUpgrades';
+import { OPEN_UPGRADES, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
 import { eventsStarting, laneDay } from './game/economy/life';
 import { fmt } from './game/economy/money';
@@ -793,7 +793,6 @@ export default function App() {
       {phase === 'game' && !(tab === 'stall' && g.encounter) && !tutorialActive && (() => {
         return <SideTasks onGo={(t) => planTrip(t)} />;
       })()}
-      {phase === 'game' && !tutorialActive && !(tab === 'stall' && g.encounter) && !firstHourStep(g) && tab !== 'map' && <UpgradeNudge />}
       {phase === 'game' && tutorialActive && tab !== 'map' && !(tab === 'stall' && g.encounter) && (
         <button className="skip-lesson" onClick={() => g.skipTutorial()} data-testid="skip-lesson-nav">Skip the lesson</button>
       )}

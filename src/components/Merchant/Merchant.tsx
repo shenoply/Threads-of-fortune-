@@ -21,7 +21,7 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
         {([['road', 'Road'], ['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Ledger'], ['post', 'Post']] as [MerchantSub, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)} data-testid={`msub-${k}`}>{label}{k === 'post' && unread(g.post, g.day) > 0 && <b className="msub-badge">{unread(g.post, g.day)}</b>}</button>
         ))}
-        <button className="merchant-help" onClick={() => openGuide()} data-testid="progress-how-to-play">How to play</button>
+        <button className="merchant-help" aria-label="How to play" title="How to play" onClick={() => openGuide()} data-testid="progress-how-to-play">How to play</button>
       </div>
       {(sub === 'me' || sub === 'skills') && <Customers />}
       {sub === 'road' && <Road />}

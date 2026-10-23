@@ -47,9 +47,11 @@ export function GuideFlash() {
       const r = el.getBoundingClientRect();
       if (r.top < 60 || r.bottom > innerHeight - 90) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     };
-    mark();
+    // first mark after the frame has painted, so measuring never holds up the first picture
+    const r0 = requestAnimationFrame(() => { r1 = window.setTimeout(mark, 0); });
+    let r1 = 0;
     const t = window.setInterval(mark, 500);
-    return () => { window.clearInterval(t); clear(); };
+    return () => { cancelAnimationFrame(r0); window.clearTimeout(r1); window.clearInterval(t); clear(); };
   }, [step]);
   return null;
 }

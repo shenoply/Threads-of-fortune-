@@ -98,8 +98,8 @@ export function Road() {
                   {!st.rank && <Pic src={st.pic} locked={!st.done && nearness(st) < 1} />}
                   <div className="road-step-body">
                     <b>{st.title}</b>
-                    {st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : <><span className="road-line">{st.line}</span><Bars needs={st.needs} /></>}
-                    {!st.done && nearness(st) >= 1 && st.go && <button className="btn primary small" onClick={() => goTo(st)}>{goWord(st)}</button>}
+                    {st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : next?.id === st.id ? <span className="road-done">Next, shown above</span> : <><span className="road-line">{st.line}</span><Bars needs={st.needs} /></>}
+                    {!st.done && next?.id !== st.id && nearness(st) >= 1 && st.go && <button className="btn primary small" onClick={() => goTo(st)}>{goWord(st)}</button>}
                   </div>
                 </li>
               ))}

@@ -142,8 +142,8 @@ function FilmShelf() {
   useDialogEscape(cutBox, () => setCut(false), cut);
   if (!films.length && !backRoom) return null;
   return (
-    <div className="film-shelf" data-testid="film-shelf">
-      <span>Films</span>
+    <details className="film-shelf" data-testid="film-shelf">
+      <summary>Films you have seen · {films.length + (backRoom ? 1 : 0)}</summary>
       {films.map((id) => <button key={id} className="btn small" onClick={() => setPlay(id)} data-testid={`film-again-${id}`}>▶ {FILMS[id].name}</button>)}
       {backRoom && <button className="btn small" onClick={() => setCut(true)} data-testid="film-again-backroom">▶ The Back Room (Malek)</button>}
       {play && createPortal(<IntroFilm id={play} onDone={() => setPlay(null)} />, document.body)}
@@ -152,6 +152,6 @@ function FilmShelf() {
           <Cutscene shots={STORY_FILM[3]} title="The Back Room Opens" />
           <button className="btn" onClick={() => setCut(false)} data-testid="film-cut-close">Close</button>
         </div>, document.body)}
-    </div>
+    </details>
   );
 }
