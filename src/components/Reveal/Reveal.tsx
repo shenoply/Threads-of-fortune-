@@ -7,12 +7,14 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
+import { RugViewer } from '../RugViewer/RugViewer';
 import './reveal.css';
 
 export interface RevealItem {
-  kicker: string; title: string; line?: string; pic?: string; picKind?: 'rug' | 'photo' | 'icon';
+  kicker: string; title: string; line?: string; pic?: string; picKind?: 'rug' | 'photo' | 'icon' | 'prop';
   /** no unrolling: the thing is shown at once, laid flat */ instant?: boolean;
   /** money: the title counts up to it */ amount?: number;
+  /** a rug now in your stock: a button opens it in the inspector to turn over and look at */ uid?: string;
 }
 
 let push: ((it: RevealItem) => void) | null = null;
@@ -51,6 +53,7 @@ function CountUp({ to, run }: { to: number; run: boolean }) {
 export function RevealHost() {
   const [queue, setQueue] = useState<RevealItem[]>([]);
   const [stage, setStage] = useState<'roll' | 'open' | 'done'>('roll');
+  const [look, setLook] = useState<string | null>(null);
   useEffect(() => {
     push = (it) => setQueue((q) => [...q, it]);
     if (waiting.length) setQueue((q) => [...q, ...waiting.splice(0)]);
@@ -69,6 +72,7 @@ export function RevealHost() {
     const t3 = window.setTimeout(() => setStage('done'), ROLL_MS + OPEN_MS + (cur.amount ? 450 : 0));
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [cur]);
+  if (look) return createPortal(<div className="venue-overlay reveal-look"><RugViewer uid={look} onClose={() => setLook(null)} /></div>, document.body);
   if (!cur) return null;
   const tap = () => {
     if (stage !== 'done') { audio.sfx('prize'); setStage('done'); return; }
@@ -90,6 +94,9 @@ export function RevealHost() {
           <small>{cur.kicker}</small>
           <b className={cur.amount ? 'rv-money' : ''}>{cur.amount ? <CountUp to={cur.amount} run={counting} /> : cur.title}</b>
           {cur.line && <span>{cur.line}</span>}
+          {cur.uid && stage === 'done' && (
+            <button className="btn rv-look" onClick={(e) => { e.stopPropagation(); audio.sfx('tap'); setLook(cur.uid!); setQueue((q) => q.slice(1)); }} data-testid="reveal-look">Look at it</button>
+          )}
           <em>{stage === 'done' ? 'Tap to close' : 'Tap to skip'}</em>
         </div>
       </div>

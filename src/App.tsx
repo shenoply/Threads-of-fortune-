@@ -323,6 +323,7 @@ export default function App() {
   useEffect(() => { const on = () => { setMsub('customers'); setTab('ledger'); }; window.addEventListener('tof:open-buyers', on); return () => window.removeEventListener('tof:open-buyers', on); }, []);
   useEffect(() => { const on = () => { setMsub('road'); setTab('ledger'); }; window.addEventListener('tof:open-road', on); return () => window.removeEventListener('tof:open-road', on); }, []);
   // Uncle Rashid's warehouse on the Giza map opens his stock
+  useEffect(() => { const on = () => setTab('inventory'); window.addEventListener('tof:open-stock', on); return () => window.removeEventListener('tof:open-stock', on); }, []);
   useEffect(() => { const on = () => setTab('supplier'); window.addEventListener('tof:open-rashid', on); return () => window.removeEventListener('tof:open-rashid', on); }, []);
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
   useEffect(() => {

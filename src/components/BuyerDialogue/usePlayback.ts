@@ -64,7 +64,7 @@ export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
     const speaker = next.speaker === 'seller' ? 'seller' : next.speaker === 'buyer' ? buyerRef.current : 'narrator';
     // If this character's voice file is still downloading, wait a moment rather than skip the recording.
     const waited = (next as Line & { _w?: number })._w ?? 0;
-    if (voice.isLoading(speaker) && waited < 20) {
+    if (voice.isLoading(speaker) && waited < 40) {
       (next as Line & { _w?: number })._w = waited + 1;
       queue.current.unshift(next);
       activeRef.current = null;

@@ -86,3 +86,8 @@
 .reveal.unroll .reveal-pic.rug { width: 100%; height: auto; background: none; box-shadow: none; }
 .reveal.unroll .reveal-pic.rug img { width: 100%; height: auto; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.6); }
 .reveal.unroll .reveal-card:has(.reveal-pic.rug) { width: min(270px, 74vw); }
+
+.reveal-pic.prop { width: 150px; height: 150px; background: radial-gradient(circle, #3a2814, #1a1008); }
+.reveal-pic.prop img { object-fit: contain; padding: 10px; box-sizing: border-box; }
+.rv-look { display: block; margin: 10px auto 2px; min-width: 150px; }
+.reveal-look { z-index: 1200; }

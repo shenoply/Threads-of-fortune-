@@ -96,7 +96,16 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           const kids = (Array.from(c.children) as HTMLElement[]).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed' && k.getBoundingClientRect().height > 0);
           const own = kids.reduce((a, k) => a + k.getBoundingClientRect().height, 0) + Math.max(0, kids.length - 1) * (parseFloat(st.rowGap) || 0)
             + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom) + parseFloat(st.borderTopWidth) + parseFloat(st.borderBottomWidth);
-          bandMost = Math.max(bandMost, Math.ceil(own));
+          // from the first line on, room is kept for a usual exchange (three lines said and two of the
+          // narrator's) so the picture is sized once and does not shrink as the talk fills in
+          let floor = 0;
+          // (on a tall phone only: a short one keeps every pixel it can for the picture)
+          if (el.clientWidth < 600 && el.clientHeight > 780) {
+            const plate = c.querySelector('.plate-buyer') as HTMLElement | null;
+            floor = (plate?.getBoundingClientRect().height ?? 0) + 15.5 * 1.3 * 3 + 18 + 4 + 14 * 1.3 * 2 + 9 + 2 * (parseFloat(st.rowGap) || 0)
+              + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom);
+          }
+          bandMost = Math.max(bandMost, Math.ceil(own), Math.ceil(floor));
           bandNow = Math.ceil(own);
           rest += bandMost;
           continue;

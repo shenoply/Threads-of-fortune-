@@ -13,6 +13,7 @@ import { RugFlags } from '../Inventory/RugFlags';
 import { KnotCount } from '../KnotCount/KnotCount';
 import { countable, knotVerdict } from '../../game/knots';
 import { RollingRug } from './RollingRug';
+import { ExamineRug } from './ExamineRug';
 
 /** the carpet unrolls as the inspector opens; not for players who asked for less motion, nor in automated runs */
 const mayRoll = () => typeof window !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!navigator.webdriver || !!(window as { __tofRoll?: boolean }).__tofRoll);
@@ -44,6 +45,31 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const pinch = useRef<{ d: number; z: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  // turning it over by hand: a drag across spins it round, a drag up or down tips it; let go and it
+  // carries on a little with the flick, then comes back to lie straight as it was
+  const [turn, setTurn] = useState<{ yaw: number; pitch: number } | null>(null);
+  const tw = useRef<{ yaw: number; pitch: number; vy: number; vp: number; t: number; raf: number; grab?: { x: number; y: number; yaw: number; pitch: number; lx: number; ly: number; lt: number; on: boolean } }>({ yaw: 0, pitch: 0, vy: 0, vp: 0, t: 0, raf: 0 });
+  useEffect(() => () => cancelAnimationFrame(tw.current.raf), []);
+  const home = () => {
+    const w = tw.current, base = (rot * Math.PI) / 180;
+    cancelAnimationFrame(w.raf);
+    let last = 0;
+    const step = (now: number) => {
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
+      last = now;
+      if (Math.abs(w.vy) > 0.6) { w.yaw += w.vy * dt; w.vy *= Math.exp(-2.6 * dt); w.pitch += (0 - w.pitch) * (1 - Math.exp(-3 * dt)); }
+      else {
+        const goal = base + Math.round((w.yaw - base) / (2 * Math.PI)) * 2 * Math.PI;
+        // a weighty spring back: it comes round and settles, no bounce
+        w.vy += ((goal - w.yaw) * 30 - w.vy * 10) * dt; w.yaw += w.vy * dt;
+        w.vp += ((0 - w.pitch) * 30 - w.vp * 10) * dt; w.pitch += w.vp * dt;
+        if (Math.abs(goal - w.yaw) < 0.002 && Math.abs(w.pitch) < 0.002 && Math.abs(w.vy) < 0.02) { w.vy = w.vp = 0; setTurn(null); return; }
+      }
+      setTurn({ yaw: w.yaw, pitch: w.pitch });
+      w.raf = requestAnimationFrame(step);
+    };
+    w.raf = requestAnimationFrame(step);
+  };
   const tut = !g.tutorial.done && !!g.encounter?.tutorial;
   const used = g.tutorial.inspected;
 
@@ -100,7 +126,16 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
             const [a, b] = [...pointers.current.values()];
             pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom };
             drag.current = null;
-          } else drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+            if (tw.current.grab) { tw.current.grab = undefined; if (turn) home(); }
+          } else {
+            drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+            if (zoom === 1) {
+              const w = tw.current; cancelAnimationFrame(w.raf);
+              if (!turn) { w.yaw = (rot * Math.PI) / 180; w.pitch = 0; }
+              w.vy = w.vp = 0;
+              w.grab = { x: e.clientX, y: e.clientY, yaw: w.yaw, pitch: w.pitch, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, on: !!turn };
+            }
+          }
         }}
         onPointerMove={(e) => {
           if (!pointers.current.has(e.pointerId)) return;
@@ -108,6 +143,16 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           if (pinch.current && pointers.current.size === 2) {
             const [a, b] = [...pointers.current.values()];
             setZ(pinch.current.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.d));
+          } else if (tw.current.grab && zoom === 1) {
+            const w = tw.current, gr = w.grab!;
+            const dx = e.clientX - gr.x, dy = e.clientY - gr.y;
+            if (!gr.on && Math.hypot(dx, dy) < 7) return;
+            if (!gr.on) { gr.on = true; measure(); mark(); }
+            const dt = Math.max(1, e.timeStamp - gr.lt) / 1000;
+            const yaw = gr.yaw + dx * 0.011, pitch = Math.max(-1.05, Math.min(1.05, gr.pitch + dy * 0.008));
+            w.vy = 0.6 * w.vy + 0.4 * ((yaw - w.yaw) / dt); w.vp = 0;
+            w.yaw = yaw; w.pitch = pitch; gr.lx = e.clientX; gr.ly = e.clientY; gr.lt = e.timeStamp;
+            setTurn({ yaw, pitch });
           } else if (drag.current && zoom > 1) {
             setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) });
             mark();
@@ -117,7 +162,11 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           pointers.current.delete(e.pointerId);
           if (pointers.current.size < 2) pinch.current = null;
           drag.current = null;
+          const gr = tw.current.grab;
+          tw.current.grab = undefined;
+          if (gr?.on) { if (e.timeStamp - gr.lt > 90) tw.current.vy = 0; tw.current.vy = Math.max(-14, Math.min(14, tw.current.vy)); home(); }
         }}
+        onPointerCancel={(e) => { pointers.current.delete(e.pointerId); pinch.current = null; drag.current = null; if (tw.current.grab?.on) home(); tw.current.grab = undefined; }}
         onDoubleClick={() => setZ(zoom > 1.5 ? 1 : 2.2)}
       >
         {back && <div className="sim-label">Simulated reverse · illustration, not a photograph</div>}
@@ -127,7 +176,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           src={back ? backSrc || rugSrc(t) : rugSrc(t)}
           alt={back ? `Simulated reverse of ${t.name}` : t.name}
           draggable={false}
-          style={{ transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) rotate(${rot}deg) scale(${zoom})`, filter: item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined, visibility: roll ? 'hidden' : undefined }}
+          style={{ transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) rotate(${rot}deg) scale(${zoom})`, filter: item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined, visibility: roll || turn ? 'hidden' : undefined }}
           data-testid="inspector-img"
           data-zoom={zoom.toFixed(2)}
         />
@@ -135,6 +184,10 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           <RollingRug src={rugSrc(t)} fit={fit} from={roll.from} target={roll.target} skip={skip}
             filter={item.condition === 'Dirty' ? 'sepia(0.45) brightness(0.8)' : undefined}
             onSettled={(at) => { if (at === 'flat') setRoll(null); }} />
+        )}
+        {turn && !roll && fit && (
+          <ExamineRug src={back ? backSrc || rugSrc(t) : rugSrc(t)} fit={fit} yaw={turn.yaw} pitch={turn.pitch}
+            filter={item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined} />
         )}
         <div className="insp-tools">
           <button onClick={() => {
@@ -149,7 +202,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           <button onClick={() => { setRot((r) => r + 90); mark(); }} aria-label="Rotate" data-testid="rotate"><Icon name="rotate" /></button>
           <button onClick={() => { setBack((b) => !b); mark(); }} aria-label={back ? 'Show front' : 'Show reverse'} data-testid="flip"><Icon name="flip" /></button>
         </div>
-        <div className="insp-zoom">{roll ? (roll.target === 'rolled' ? 'Rolled up · the roll button lays it out again' : 'Unrolling · tap to skip') : <>{back ? 'Reverse (simulated)' : 'Front'} · {zoom.toFixed(1)}×{zoom === 1 ? ' · pinch or tap + to zoom' : ' · drag to pan'}</>}</div>
+        <div className="insp-zoom">{roll ? (roll.target === 'rolled' ? 'Rolled up · the roll button lays it out again' : 'Unrolling · tap to skip') : <>{back ? 'Reverse (simulated)' : 'Front'} · {zoom.toFixed(1)}×{zoom === 1 ? ' · drag to turn it, pinch to zoom' : ' · drag to pan'}</>}</div>
       </div>
       <div className="insp-panel">
         <div className="tabs" role="tablist">

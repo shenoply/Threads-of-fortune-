@@ -101,9 +101,16 @@ class Voice {
         this.sprites = j.sprites ?? {};
         this.loadedOnce = true;
         this.count = Object.values(this.sprites).reduce((s, sp) => s + Object.keys(sp.clips).length, 0);
+        if (!this.count) this.retry();
       })
-      .catch(() => {});
+      .catch(() => { this.retry(); });
     return this.loading;
+  }
+  /** a failed manifest (a dropped connection on the phone) is fetched again a little later, not given up on */
+  private retries = 0;
+  private retry() {
+    if (this.retries++ > 4) return;
+    window.setTimeout(() => { this.loading = null; void this.load(); }, 1500 * this.retries);
   }
 
   private audioCtx() {
@@ -114,7 +121,7 @@ class Voice {
       this.gain.gain.value = this.volume;
       this.gain.connect(this.ctx.destination);
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {});
     return this.ctx;
   }
 
@@ -232,8 +239,16 @@ class Voice {
       }
     })();
     this.clips.set(key, p);
+    // a line that failed to fetch or decode is tried afresh next time, not silent for the rest of the session
+    void p.then((r) => { if (!r && this.clips.get(key) === p) this.clips.delete(key); });
     if (this.clips.size > CLIP_CACHE) this.clips.delete(this.clips.keys().next().value!);
     return p;
+  }
+
+  /** wake the sound device (made on the first touch, so the phone lets it run) */
+  wake() {
+    if (!this.enabled) return;
+    if (!this.ctx || this.ctx.state !== 'running') this.audioCtx();
   }
 
   /** True when this line will actually be heard: recorded, loaded, and the sound device running. */
@@ -278,7 +293,12 @@ class Voice {
         fade.gain.linearRampToValueAtTime(0, t0 + len);
         src.connect(fade);
         fade.connect(this.gain!);
-        src.onended = () => { fade.disconnect(); next(); };
+        let ended = false;
+        const end = () => { if (ended) return; ended = true; window.clearTimeout(guard); fade.disconnect(); next(); };
+        src.onended = end;
+        // if the sound device is held (the phone paused it, or it never got going) the line must not
+        // hold the conversation up: it is let go a little after it would have finished
+        const guard = window.setTimeout(() => { if (my === this.token) { try { src.stop(); } catch { /* */ } end(); } }, (len + 1.5) * 1000);
         this.current = src;
         src.start(0, c.lead, len);
       };
@@ -315,4 +335,14 @@ export const filmLock = {
 };
 
 export const voice = new Voice();
+
+// Phones hold a sound device until the player touches the screen, and may hold it again after the
+// screen locks or the app is put aside. Every touch wakes the voices' device if it has been held, so
+// a conversation never plays on in silence.
+if (typeof window !== 'undefined') {
+  const wake = () => voice.wake();
+  window.addEventListener('pointerdown', wake, { capture: true, passive: true });
+  window.addEventListener('keydown', wake, { capture: true });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
+}
 if (typeof window !== 'undefined') (window as unknown as { __tofVoice: Voice }).__tofVoice = voice;

@@ -446,6 +446,8 @@ interface Actions {
   /** an injury from a fight, a fall or a beating; returns a sentence for the result screen */
   hurt: (kind: string, injuryId?: string) => string;
   buyFood: (n: number) => string;
+  /** leave food behind to lighten the load */
+  dropFood: (n: number) => string;
   /** buy n units of a souk item (src/data/provisions.ts): rations into party.food, comforts lift morale a little once a day */
   buyProvision: (id: string, n: number) => string;
   butcherAnimal: (breed: string) => string;
@@ -2778,6 +2780,14 @@ export const useGame = create<GameState & Actions>()(
           return pick.go();
         },
 
+        dropFood: (n) => {
+          const s = get();
+          const p = s.world.party;
+          const k = Math.max(0, Math.min(p.food, Math.floor(n)));
+          if (!k) return '';
+          set({ world: { ...s.world, party: { ...p, food: p.food - k } } });
+          return `You leave ${k} ration${k === 1 ? '' : 's'} behind. ${p.food - k} left.`;
+        },
         buyFood: (n) => {
           const s = get();
           const sid = s.world.at;
@@ -4129,15 +4139,19 @@ export const useGame = create<GameState & Actions>()(
           const b = s.bales ?? { opened: 0, dry: 0, treasures: 0 };
           if (!free && b.lastDay === s.day) return { msg: "Rashid's man brings one bale a day. Come back tomorrow." };
           if (!free && s.cash < BALE_PRICE) return { msg: `A bale is ${fmt(BALE_PRICE)}.` };
-          const result = openBale(b);
+          const result = openBale(b, Math.random, s.dressing ?? []);
+          const ex = result.extra;
+          const piece = ex?.kind === 'piece' ? DRESSING_BY_ID[ex.id] : undefined;
+          const coins = ex?.kind === 'coins' ? ex.amount : 0;
           const items: RugItem[] = result.lots.map((l) => ({ uid: newUid('r'), typeId: l.typeId, condition: l.condition, restored: false, provenance: 'Uncertain', paid: free ? 0 : Math.round(BALE_PRICE / result.lots.length), notes: ['Out of a sealed bale from the Port Said customs sheds.'], stored: s.world.at !== 'giza' }));
           const treasure = result.grade === 'treasure';
           set({
-            cash: free ? s.cash : s.cash - BALE_PRICE,
+            cash: (free ? s.cash : s.cash - BALE_PRICE) + coins,
             inventory: [...s.inventory, ...items],
+            ...(piece ? { dressing: [...(s.dressing ?? []), piece.id], ...(!spotsOf(s)[piece.spot] ? { stallSpots: { ...spotsOf(s), [piece.spot]: piece.id } } : {}) } : {}),
             bales: { lastDay: free ? b.lastDay : s.day, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
             ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
-            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${items.map((i) => RUGS[i.typeId].name).join(' and ')}.` }].slice(-200),
+            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
           });
           return { msg: '', result, items };
         },

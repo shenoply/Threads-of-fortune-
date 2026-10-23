@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useGame } from '../../game/state/store';
+import { FOOD_PER_LOAD } from '../../data/caravan';
 import { Icon } from '../Icon';
 import { fmt } from '../../game/economy/money';
-import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dailyFood } from '../../game/systems/caravan';
+import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dailyFood, carried } from '../../game/systems/caravan';
 import { BREEDS } from '../../data/animals';
 import { milesPx } from '../../game/systems/mapRender';
 import { CaravanRoster, TownSupplies } from './CaravanPanels';
@@ -14,6 +16,7 @@ export const milesPerDay = (pxPerDay: number) => Math.round((pxPerDay * 100) / m
 /** Your caravan at a glance: food, pace, strength, animals and guards, and where to buy more. */
 export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
   const g = useGame();
+  const [note, setNote] = useState('');
   const p = g.world.party;
   const sp = speedInfo(p, g.inventory);
   const food = foodDaysLeft(p);
@@ -42,6 +45,19 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
           </div>
         ))}
       </div>
+      {sp.over && (
+        <div className="cv-over" data-testid="cv-over">
+          <p><b>Overloaded:</b> {Math.round(sp.load * 10) / 10} loads, and the caravan can carry {sp.cap}. You move slowly until you lighten it.</p>
+          <small>{carried(g.inventory).length} rug{carried(g.inventory).length === 1 ? '' : 's'} carried · food {Math.round((p.food / FOOD_PER_LOAD) * 10) / 10} loads ({p.food} rations)</small>
+          <div className="cv-over-acts">
+            {p.food >= 5 && <button className="btn" onClick={() => setNote(g.dropFood(5))} data-testid="drop-food-5">Leave 5 rations</button>}
+            {p.food > dailyFood(p) * 3 && <button className="btn" onClick={() => setNote(g.dropFood(p.food - dailyFood(p) * 3))} data-testid="drop-food-keep3">Keep 3 days of food</button>}
+            {g.world.at === 'giza' && <button className="btn" onClick={() => window.dispatchEvent(new Event('tof:open-stock'))} data-testid="cv-leave-rugs">Leave rugs at the stall</button>}
+          </div>
+          {note && <p className="dim small" data-testid="cv-over-note">{note}</p>}
+          {!town && <p className="dim small">An animal from any town or village carries more; rugs can be left at the Giza stall or at a shop of your own.</p>}
+        </div>
+      )}
       {town ? (
         <TownSupplies fold />
       ) : (

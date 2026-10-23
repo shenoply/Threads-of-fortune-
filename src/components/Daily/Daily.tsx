@@ -1,5 +1,6 @@
 // The gift chest in the top bar, and the page it opens: today's gift (a week of days in a row, a
 // little more each day), and the day's three errands with their pay. It never opens by itself.
+import { DRESSING_BY_ID } from '../../data/shops';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
@@ -72,7 +73,10 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
     setGot(r);
     if (r.kind === 'bale') { const lb = useGame.getState().lastBale; if (lb) showBale(lb.result, lb.items, `Your gift · day ${gift.run} in a row`); return; }
     const t = r.kind === 'rug' ? RUGS[r.typeId] : null;
-    reveal({ kicker: `Today's gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', pic: t ? rugSrc(t) : undefined, picKind: 'rug' });
+    const inv = useGame.getState().inventory;
+    const uid = r.kind === 'rug' ? inv[inv.length - 1]?.uid : undefined;
+    const piece = r.kind === 'piece' ? DRESSING_BY_ID[r.id] : undefined;
+    reveal({ uid, ...(piece ? { pic: piece.art, picKind: 'prop' as const } : {}), kicker: `Today's gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', ...(t ? { pic: rugSrc(t), picKind: 'rug' as const } : {}) });
   };
   const collect = (id: string) => {
     const amt = id === 'all' ? ALL_THREE(rk) : errs.find((e) => e.id === id)?.reward ?? 0;

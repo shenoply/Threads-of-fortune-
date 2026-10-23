@@ -7,6 +7,7 @@ import { BALE_PRICE, type BaleResult } from '../../game/systems/bales';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { reveal } from '../Reveal/Reveal';
+import { DRESSING_BY_ID } from '../../data/shops';
 import type { RugItem } from '../../game/types';
 import './bale.css';
 
@@ -19,9 +20,15 @@ export function showBale(result: BaleResult, items: RugItem[], from = 'Out of a 
       kicker: result.grade === 'treasure' ? 'A treasure, out of a sealed bale' : from,
       title: t.name,
       line: `${it.condition === 'Good' ? 'In good order' : it.condition === 'Dirty' ? 'Dusty from the shed: a wash will bring it up' : 'Worn: it wants mending'} · usually ${fmt(t.valueBand[0])}–${fmt(t.valueBand[1])}`,
-      pic: rugSrc(t), picKind: 'rug',
+      pic: rugSrc(t), picKind: 'rug', uid: it.uid,
     });
   });
+  const ex = result.extra;
+  if (ex?.kind === 'piece') {
+    const d = DRESSING_BY_ID[ex.id];
+    if (d) reveal({ kicker: 'Packed in with it', title: d.name, line: `${d.effect}. It is with your stall things: Dress your stall puts it out.`, pic: d.art, picKind: 'prop' });
+  }
+  if (ex?.kind === 'coins') reveal({ kicker: 'At the bottom of the bale', title: fmt(ex.amount), amount: ex.amount, line: 'A purse of old Ottoman coins. The changer on the corner gave you this for them.' });
 }
 
 export function BaleCard({ toast }: { toast?: (m: string) => void }) {

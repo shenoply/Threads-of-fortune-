@@ -3286,3 +3286,13 @@ body.travelling .world-hud { display: none; }
 .cv-part[open] > summary::after { content: '⌄'; }
 .cv-part > summary::-webkit-details-marker { display: none; }
 .cv-part > :not(summary) { margin-left: 10px; margin-right: 10px; }
+.cv-over { border: 1px solid #c4632c; background: rgba(196, 99, 44, .1); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+.cv-over p { margin: 0 0 4px; font-size: 14.5px; }
+.cv-over small { color: var(--text-dim); }
+.cv-over-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* the talk under the picture on a phone: every line starts at the same edge, the said line on top,
+   the stage direction under it, and the buyer's plate always at the foot of the band */
+.stall.in-talk > .band > .caption { text-align: left; padding: 0 0 0 11px; font-size: 14.5px; line-height: 1.3; color: var(--parchment-2); }
+.stall.in-talk > .band > .plate-buyer { margin-top: auto !important; padding-top: 4px; }
+.stall.in-talk > .band > .speech + .caption, .stall.in-talk > .band > .speech + .narrator { margin-top: 2px; }
