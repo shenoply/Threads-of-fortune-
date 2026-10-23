@@ -18,7 +18,7 @@ try {
     Object.assign(s.world, { at: 'giza', hour: 7.3 }); s.cash = 0; s.queue = []; s.visitIdx = 0; s.arrivals = [];`);
   await reload();
   await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(800);
-  await p.click('[data-testid=idle-auctions]'); await p.waitForSelector('[data-testid=auction-board]');
+  await p.evaluate(() => { if (!document.querySelector('[data-testid=idle-auctions]')) document.querySelector('[data-testid=idle-more-toggle]')?.click(); }); await p.waitForTimeout(150); await p.click('[data-testid=idle-auctions]'); await p.waitForSelector('[data-testid=auction-board]');
   const target = await p.evaluate(() => [...document.querySelectorAll('.board-row')].find((r) => /on foot/i.test(r.querySelector('.board-go')?.textContent ?? ''))?.getAttribute('data-testid')?.replace('board-row-', ''));
   await p.click(`[data-testid=board-go-${target}]`); await p.waitForTimeout(2500);
   await p.click('[data-testid=speed-0]'); await p.waitForTimeout(600);

@@ -45,6 +45,7 @@ export function Newspaper({ day, onClose }: { day: number; onClose: () => void }
     <div className="paper-wrap" role="dialog" aria-label="The Giza Courier" data-testid="newspaper" onClick={onClose}>
       <article className="paper" onClick={(e) => e.stopPropagation()}>
         <button className="paper-close" onClick={onClose} aria-label="Put the paper down" data-testid="newspaper-close">×</button>
+        <button className="paper-radio" onClick={() => { onClose(); window.dispatchEvent(new Event('tof:radio')); }} data-testid="radio-btn">The wireless ›</button>
         <header className="paper-mast">
           <div className="paper-ear"><span>No. {p.number}</span><span>Price five millièmes</span></div>
           <h1>The Giza Courier</h1>

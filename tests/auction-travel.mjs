@@ -18,7 +18,7 @@ try {
     Object.assign(s.world, { at: 'giza', hour: 7.3 }); s.cash = 3000; s.queue = []; s.visitIdx = 0; s.arrivals = [9.5, 10.5, 15.5, 17.5, 19];`);
   await reload();
   await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(800);
-  await p.click('[data-testid=idle-auctions]'); await p.waitForSelector('[data-testid=auction-board]');
+  await p.evaluate(() => { if (!document.querySelector('[data-testid=idle-auctions]')) document.querySelector('[data-testid=idle-more-toggle]')?.click(); }); await p.waitForTimeout(150); await p.click('[data-testid=idle-auctions]'); await p.waitForSelector('[data-testid=auction-board]');
   const rows = await p.evaluate(() => [...document.querySelectorAll('.board-row')].map((r) => `${r.querySelector('b').textContent} | ${r.querySelector('.board-reach').textContent} | ${r.querySelector('.board-go')?.textContent ?? '-'}`));
   console.log('board:\n  ' + rows.join('\n  '));
   await p.screenshot({ path: `${S}/board.png` });

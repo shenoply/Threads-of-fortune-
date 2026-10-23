@@ -1,3 +1,4 @@
+import { Book } from '../Book/Book';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { BUYERS, LISTED_BUYERS as BUYER_ORDER } from '../../data/buyers';
@@ -19,7 +20,7 @@ import { RanksFold } from '../World/RankTable';
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
-function sourcesOf(id: string) {
+export function sourcesOf(id: string) {
   const out: string[] = [];
   const r = RASHID_POOL.find((p) => p.typeId === id);
   if (r) out.push(`Rashid${r.minRep ? ` (rep ${r.minRep})` : ''}`);
@@ -38,12 +39,6 @@ export function Standing() {
         <div className="worth"><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b>{liabilities(g) > 0 && <small data-testid="net-worth-debts">after what you owe: {owedParts(g)}</small>}</div>
         <div className="worth"><small>REPUTATION</small><b>{g.reputation}</b></div>
       </div>
-      {next && (
-        <div className="rank-next">
-          <span>Next: <b>{next.name}</b> · {next.note}</span>
-          <i className="bar"><em style={{ width: `${Math.min(100, Math.max(0, netWorth(g) / next.worth) * 100)}%` }} /></i>
-        </div>
-      )}
       <CurrentGoal />
     </div>
   );
@@ -56,6 +51,7 @@ export function Fortune() {
   const have = RUG_IDS.filter((id) => reg.includes(id)).length;
   return (
     <>
+      <Book />
       <Fold id="pr-house" testid="fortune" title={house.done ? 'The House of Fortune stands.' : 'The House of Fortune'} gist={`${house.parts.filter((p) => p.done).length} of ${house.parts.length}`}>
         <div className="house">
           <small>{house.done ? 'Your name is over a door in Khan el-Khalili, and kings know it.' : 'The life\'s work of a carpet merchant. All four, at once.'}</small>
@@ -70,28 +66,6 @@ export function Fortune() {
       <ShopsFold />
       <RanksFold />
 
-      <Fold id="pr-register" testid="register-fold" rowTestid="register-toggle" title="Carpet Register" gist={`${have}/${RUG_IDS.length}`}>
-        <div className="register" data-testid="register">
-          {[1, 2, 3, 4].map((tier) => (
-            <div key={tier} className="reg-tier">
-              <div className="reg-tier-head"><b>{['', 'I', 'II', 'III', 'IV'][tier]} · {TIERS[tier].name}</b><small>{TIERS[tier].note}</small></div>
-              <div className="reg-grid">
-                {RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier).map((id) => {
-                  const t = RUGS[id];
-                  const got = reg.includes(id);
-                  return (
-                    <div key={id} className={`reg-card ${got ? 'got' : ''} ${tier === 4 ? 'treasure' : ''}`} data-testid={`reg-${id}`}>
-                      <div className="reg-img">{got ? <img src={rugSrc(t)} alt="" loading="lazy" /> : <span>?</span>}</div>
-                      <b>{got || tier < 4 ? t.name : 'Unknown treasure'}</b>
-                      <small>{got ? `${t.origin.split(',')[0]} · ${fmt(t.valueBand[0])}–${fmt(t.valueBand[1])}` : tier < 4 ? sourcesOf(id) : t.origin.split(',').slice(-1)[0].trim()}</small>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Fold>
     </>
   );
 }
@@ -270,15 +244,8 @@ export function CurrentGoal() {
       </div>
     );
   }
-  const left = g.goals.map((goal) => [goal, ...goalProgress(g, goal)] as const).filter(([, , done]) => !done);
-  const first = left[0];
-  return (
-    <div className="cur-goal" data-testid="current-goal">
-      <small>TODAY · {g.goals.length - left.length}/{g.goals.length} GOALS</small>
-      {first ? <b>{first[0].label}</b> : <b>Today's goals are met.</b>}
-      {!first && g.day < MILESTONE_FROM_DAY && <span>The first business goal opens on day {MILESTONE_FROM_DAY}.</span>}
-    </div>
-  );
+  // the day's errands are in the gift chest at the top; nothing more to say here
+  return null;
 }
 
 /** Your shops in other cities, in one folded row: who keeps each, what is on its wall, what it has sent. */

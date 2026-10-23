@@ -49,3 +49,5 @@
 .errand em { font-style: normal; color: var(--text-dim); font-size: 14px; white-space: nowrap; }
 .overlay.daily-sheet { background: rgb(14, 9, 5); }
 .gift-chest svg, .gift-btn svg { stroke: currentColor; }
+.gift-btn .gift-dot { position: absolute; right: 4px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--k-saffron, #f2b13c); box-shadow: 0 0 0 2px rgb(20, 13, 7); }
+.icon-btn.gift-btn:not(.calling) { border-color: var(--quiet-line, rgba(234,219,189,.2)); }

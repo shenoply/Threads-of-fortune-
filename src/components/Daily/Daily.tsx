@@ -26,15 +26,22 @@ export function useDailyWaiting() {
   return { gift: gift.open, unpaid, run: gift.open ? gift.run - 1 : gift.run };
 }
 
+// the chest glows only until it has been looked into today; after that a small dot stays while
+// something is still there to take, and nothing at all once it is all taken
+const lookedKey = () => `tof-gift-looked-${new Date().toDateString()}`;
+const lookedToday = () => { try { return localStorage.getItem(lookedKey()) === '1'; } catch { return false; } };
+
 export function GiftButton() {
   const [open, setOpen] = useState(false);
+  const [looked, setLooked] = useState(lookedToday);
   const w = useDailyWaiting();
-  const calling = w.gift || w.unpaid > 0;
+  const waiting = w.gift || w.unpaid > 0;
+  const calling = waiting && !looked;
   return (
     <>
-      <button className={`icon-btn gift-btn ${calling ? 'calling' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); }} aria-label={calling ? 'Your gift and errands: something is waiting' : 'Your gift and errands'} data-testid="gift-btn">
+      <button className={`icon-btn gift-btn ${calling ? 'calling' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); try { localStorage.setItem(lookedKey(), '1'); } catch { /* private mode */ } setLooked(true); }} aria-label={waiting ? 'Your gift and errands: something is waiting' : 'Your gift and errands'} data-testid="gift-btn" data-waiting={waiting ? '1' : undefined}>
         <Icon name="gift" />
-        {w.run > 0 && <span className="gift-run" data-testid="gift-run">{w.run}</span>}
+        {waiting && <span className="gift-dot" aria-hidden="true" />}
       </button>
       {open && <DailySheet onClose={() => setOpen(false)} />}
     </>

@@ -15,7 +15,7 @@ try {
   await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1'); Object.assign(s.world, { at: 'giza', hour: 10 }); s.queue = ['yusuf']; s.arrivals = [10.05]; s.visitIdx = 0;`);
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
-  await p.click('[data-testid=radio-btn]'); await p.waitForTimeout(400);
+  await p.evaluate(() => window.dispatchEvent(new Event('tof:radio'))); await p.waitForTimeout(400);
   console.log('before playing: skip button', await has('radio-skip-news'));
   await p.click('[data-testid=radio-power]'); await p.waitForTimeout(2500);
   console.log('playing, at:', (await onLine()).slice(0, 60), '| skip shown', await has('radio-skip-news'));

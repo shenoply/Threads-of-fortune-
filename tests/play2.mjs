@@ -106,7 +106,7 @@ for (let day = 1; day <= 6; day++) {
   if (!(await has('[data-testid=day-end]'))) { // the bot gave up on the day: shut the stall
     if (await has('[data-testid=step-away]')) await p.click('[data-testid=step-away]').catch(() => {});
     if (!(await has('[data-testid=stall-close-early]'))) await p.click('[data-testid=nav-stall]', { timeout: 4000 }).catch(() => {});
-    await p.click('[data-testid=stall-close-early]', { timeout: 6000 }).catch(() => {}); await p.waitForTimeout(400);
+    await p.evaluate(() => { if (!document.querySelector('[data-testid=idle-auctions]')) document.querySelector('[data-testid=idle-more-toggle]')?.click(); }); await p.waitForTimeout(150); await p.click('[data-testid=stall-close-early]', { timeout: 6000 }).catch(() => {}); await p.waitForTimeout(400);
   }
   await shot(`d${day}-end`);
   let st = await S();

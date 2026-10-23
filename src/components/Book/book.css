@@ -1,0 +1,45 @@
+.book { padding: 4px 14px 28px; max-width: 760px; margin: 0 auto; }
+.book-parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 4px 0 14px; }
+.book-parts button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--quiet-line, rgba(234,219,189,.2)); background: #19110a; color: var(--text-dim); text-align: left; }
+.book-parts button b { font-family: var(--display); font-weight: 500; font-size: 15.5px; color: var(--text); }
+.book-parts button span { font-size: 12.5px; }
+.book-parts button i { display: block; width: 100%; height: 4px; border-radius: 2px; background: rgba(234, 219, 189, .1); overflow: hidden; margin-top: 3px; }
+.book-parts button i em { display: block; height: 100%; background: var(--k-saffron, #f2b13c); }
+.book-parts button.on { border-color: var(--k-saffron, #f2b13c); background: rgba(242, 177, 60, .1); }
+
+.book-sec { margin-bottom: 16px; }
+.book-sec h4 { margin: 0 0 8px; font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--parchment); display: flex; align-items: baseline; gap: 8px; }
+.book-sec h4 small { font-family: var(--body); font-size: 13px; color: var(--text-dim); }
+.book-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.book-grid.bk-places { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.book-card { display: flex; flex-direction: column; gap: 2px; padding: 0 0 7px; border-radius: 8px; border: 1px solid var(--quiet-line, rgba(234,219,189,.2)); background: #1a120b; color: var(--text); text-align: left; overflow: hidden; }
+.book-card b { font-weight: 600; font-size: 13px; line-height: 1.2; padding: 0 7px; }
+.book-card small { font-size: 12px; color: var(--text-dim); padding: 0 7px; line-height: 1.25; }
+.book-pic { display: block; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; background: #241810; margin-bottom: 4px; position: relative; }
+.book-pic.wide { aspect-ratio: 16 / 9; }
+.book-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.book-pic svg { position: absolute; inset: 0; margin: auto; width: 22px; height: 22px; color: var(--text-dim); }
+.book-card.not .book-pic img { filter: grayscale(.85) brightness(.45) blur(1px); }
+.book-card.not b { color: var(--text-dim); }
+.book-card.got { border-color: rgba(162, 192, 95, .35); }
+.book-card.treasure.got { border-color: var(--k-gold, #e6b552); box-shadow: 0 0 10px rgba(230, 181, 82, .25); }
+.book-card.bk-person { align-items: center; text-align: center; padding-top: 10px; }
+.book-card.bk-person b, .book-card.bk-person small { padding: 0 5px; }
+.book-face { display: block; margin-bottom: 5px; border-radius: 50%; }
+.book-card.bk-person.not .book-face { filter: grayscale(.9) brightness(.55); }
+.book-card.bk-person.got .book-face { box-shadow: 0 0 0 2px var(--k-turq, #4fbcae); }
+
+.book-entry-wrap { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(8, 5, 3, .86); padding: 16px; }
+.book-entry { width: min(440px, 100%); max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid var(--quiet-line-hi, rgba(234,219,189,.36)); background: #1a120b; padding: 0 0 14px; }
+.book-entry-pic { display: block; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; }
+.book-entry-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.book-entry-pic.dim img { filter: grayscale(.8) brightness(.55); }
+.book-entry h3 { margin: 12px 14px 6px; font-family: var(--display); font-weight: 500; font-size: 20px; color: var(--parchment); }
+.book-entry p { margin: 0 14px 8px; font-size: 15px; line-height: 1.4; color: var(--text); }
+.book-entry .btn { margin: 6px 14px 0; }
+/* inside the Progress screen's column */
+.book { width: 100%; box-sizing: border-box; align-self: stretch; }
+.book-grid { width: 100%; }
+.book-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; }
+.book-card .book-pic, .book-card .book-face { flex: none; }
+.book-pic img { position: absolute; inset: 0; max-width: 100%; }

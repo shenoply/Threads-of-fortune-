@@ -1,4 +1,5 @@
 import { NextOnRoad } from '../Road/Road';
+import { openingDone } from '../../game/opening';
 import { sceneIdFor, sceneSmall } from '../../game/stallScenes';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,6 +21,9 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   const g = useGame();
   const [board, setBoard] = useState(false);
   const [tidy, setTidy] = useState(false);
+  // the stall's lesser things, folded away; open once and they stay open
+  const [more, setMore] = useState(() => { try { return localStorage.getItem('tof-idle-more') === '1'; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem('tof-idle-more', more ? '1' : '0'); } catch { /* private mode */ } }, [more]);
   const canBuy = affordableUpgrades(g);
   const h = g.world.hour;
   const left = Math.max(0, g.queue.length - g.visitIdx);
@@ -40,7 +44,6 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         <img src={sceneSmall(sceneIdFor(g.upgrades))} alt="" draggable={false} data-testid="idle-stall-pic" />
         <span className="idle-clock-chip">{clock(h)}</span>
       </div>
-      <NextOnRoad compact onOpen={() => window.dispatchEvent(new Event('tof:open-road'))} />
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
@@ -69,16 +72,25 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}
       </div>
 
-      {/* the other things to do at the stall, small and side by side, so the one big button stands out */}
+      {/* the next thing worth working for, once the opening's own steps are done */}
+      {openingDone(g) && <NextOnRoad compact onOpen={() => window.dispatchEvent(new Event('tof:open-road'))} />}
+      {/* the other things to do at the stall: Improve, and the rest folded away so the one big button stands out */}
       <div className="idle-more">
-        <button className="btn small" onClick={() => setBoard(true)} data-testid="idle-auctions"><Icon name="calendar" /> Auctions</button>
         <button className={`btn small idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve" title={canBuy.length ? `You can afford: ${canBuy[0].name}` : undefined}>
           <Icon name="star" /> Improve{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}
         </button>
-        <button className="btn small idle-tidy" onClick={() => { audio.sfx('tap'); setTidy(true); }} data-testid="idle-tidy">Tidy up</button>
-        {!shut && <button className="btn small" onClick={() => useGame.setState({ dayOver: true })} data-testid="stall-close-early"><Icon name="lock" /> Shut the stall</button>}
+        <button className={`btn small idle-more-toggle ${more ? 'on' : ''}`} onClick={() => setMore((m) => !m)} aria-expanded={more} data-testid="idle-more-toggle">More {more ? '▴' : '▾'}</button>
       </div>
-      <ShopBoyCard />
+      {more && (
+        <>
+          <div className="idle-more">
+            <button className="btn small" onClick={() => setBoard(true)} data-testid="idle-auctions"><Icon name="calendar" /> Auctions</button>
+            <button className="btn small idle-tidy" onClick={() => { audio.sfx('tap'); setTidy(true); }} data-testid="idle-tidy">Tidy up</button>
+            {!shut && <button className="btn small" onClick={() => useGame.setState({ dayOver: true })} data-testid="stall-close-early"><Icon name="lock" /> Shut the stall</button>}
+          </div>
+          <ShopBoyCard />
+        </>
+      )}
       {tidy && <TidyFilm onClose={() => setTidy(false)} />}
       {board && <AuctionBoard onClose={() => setBoard(false)} onMap={() => { setBoard(false); onGo('map'); }} />}
     </div>

@@ -27,7 +27,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         <div>
           <div className="eyebrow">STOCK AND STALL</div>
           <h2>Stock</h2>
-          <p>{g.inventory.length} rug{g.inventory.length === 1 ? '' : 's'}, {g.inventory.filter((i) => !i.stored).length} packed for the road. Rugs left at the stall do not slow the caravan. Packing and unpacking can only be done at the Giza stall.</p>
+          <p>{g.inventory.length} rug{g.inventory.length === 1 ? '' : 's'}, {g.inventory.filter((i) => !i.stored).length} packed for the road.</p>
         </div>
         <div className="stock-head-btns">
           {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
@@ -61,15 +61,10 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   ) : (
                     <span className={`cond ${i.condition}`} data-testid="condition">{i.condition}{i.restored ? ' · restored' : ''}</span>
                   )}{' '}
-                  · {t.origin.split(',')[0]} · paid {fmt(i.paid)} · <b className="inv-val" data-testid="stock-value">usually ≈ {fmt(typicalSale(i))}</b>
-                  <br />
-                  Provenance: {i.provenance}
+                  · paid {fmt(i.paid)} · <b className="inv-val" data-testid="stock-value">usually ≈ {fmt(typicalSale(i))}</b>
                   {g.intel?.[i.typeId] && <><br /><span className="intel" data-testid="intel">Seen at auction: about {fmt(Math.round((g.intel[i.typeId].movingAveragePt ?? 0) * CONDITION_FACTOR[i.condition]))} in this condition ({g.intel[i.typeId].observations} sale{g.intel[i.typeId].observations === 1 ? '' : 's'})</span></>}
                 </div>
                 <RugFlags item={i} />
-                {i.notes.slice(-1).map((n) => (
-                  <div className="note" key={n}>{n}</div>
-                ))}
                 <div className="btns">
                   <button className="btn" onClick={() => setView(i.uid)}>Inspect</button>
                   {g.world.at === 'giza' ? (

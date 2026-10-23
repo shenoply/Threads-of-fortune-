@@ -101,7 +101,7 @@ for (const [tag, viewport] of [['phone', { width: 390, height: 844 }], ['desktop
     // and on the Films shelf, to watch again
     await p.click('[data-testid=malek-leave]').catch(() => {}); await p.waitForTimeout(300);
     await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
-    await p.click('text=Customers').catch(() => {}); await p.waitForTimeout(500);
+    await p.click('[data-testid=msub-customers]').catch(() => {}); await p.waitForTimeout(500);
     await p.click('[data-testid=film-again-backroom]'); await p.waitForSelector('[data-testid=cutscene][data-state=playing]', { timeout: 10000 });
     console.log('   Films shelf: the back room plays', await p.locator('[data-testid=cutscene]').getAttribute('data-state'));
     await p.click('[data-testid=film-cut-close]'); await p.waitForTimeout(300);

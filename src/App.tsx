@@ -382,7 +382,7 @@ export default function App() {
   const caravanOpen = isOpen(g, 'caravan');
   // the first-day tour points at the button to press next
   // (not while the opening runs: its own steps say what to do, and two guides glowing at once confused testers)
-  const tourStep = g.tutorial.done && !firstDays ? (['buyers', 'news', 'radio', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
+  const tourStep = g.tutorial.done && !firstDays ? (['news', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
   const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
   useEffect(() => {
     // the music follows where you are (in a town, or out on the road), not which screen is open:
@@ -750,9 +750,7 @@ export default function App() {
             <Icon name="star" /><span className="ff-num">{repT.shown}</span>
           </button>
           {/* always there; while the opening runs they don't pulse, so the step's own button is the one that calls */}
-          <button className={`icon-btn buyers-btn ${tourStep === 'buyers' ? 'tour-target' : ''}`} onClick={() => { setMsub('customers'); setTab('ledger'); }} aria-label="Your buyers" disabled={tutorialActive} data-testid="buyers-btn"><Icon name="people" /></button>
           {g.started && !tutorialActive && <GiftButton />}
-          <button className={`icon-btn radio-btn ${(g.radioHeard ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'radio' ? 'tour-target' : ''}`} onClick={() => setRadioOpen(true)} aria-label="The radio" data-testid="radio-btn"><Icon name="radio" /></button>
           <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={openPaper} aria-label="Today's newspaper (a quarter of an hour)" data-testid="paper-btn"><Icon name="news" /></button>
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />
@@ -860,7 +858,7 @@ export default function App() {
             ['ledger', 'Progress', 'star'],
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
-          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'ledger' && tourStep === 'buyers') setMsub('customers'); if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
+          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
             {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /> : <Icon name={icon} />}
             {label}
           </button>

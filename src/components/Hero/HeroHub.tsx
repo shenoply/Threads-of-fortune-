@@ -10,7 +10,6 @@ import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { MeSection, SkillsSection } from '../Character/Character';
 import { HouseholdSection } from '../Character/Household';
-import { CurrentGoal } from '../Ledger/Ledger';
 import './HeroHub.css';
 
 /** Everything about the merchant himself: how he looks, what he has, how he is growing. */
@@ -44,7 +43,6 @@ export function HeroHub() {
           <button className="btn primary" onClick={() => setOpen(true)} data-testid="hh-wardrobe">Wardrobe</button>
         </div>
       </section>
-      <CurrentGoal />
       <MeSection hideDress />
       <HouseholdSection />
       <SkillsSection />

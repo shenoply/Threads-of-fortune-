@@ -106,7 +106,7 @@ try {
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(900);
   await closeCards();
   await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(1200);
-  await p.locator('[data-testid=boy-card]').scrollIntoViewIfNeeded();
+  await p.evaluate(() => { if (!document.querySelector('[data-testid=idle-auctions]')) document.querySelector('[data-testid=idle-more-toggle]')?.click(); }); await p.waitForTimeout(150); await p.locator('[data-testid=boy-card]').scrollIntoViewIfNeeded();
   await shot('1-card');
   await p.click('[data-testid=boy-hire]'); await p.waitForTimeout(200);
   await p.click('[data-testid=boy-toggle]'); await p.click('[data-testid=boy-mode-sell]'); await p.click('[data-testid=boy-pct-down]');
