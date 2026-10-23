@@ -27,7 +27,7 @@ export function ShopBoyCard() {
     return (
       <div className={`boy-card${fresh ? ' once-mark' : ''}`} data-testid="boy-card" data-fresh={fresh ? '1' : undefined} onClickCapture={fresh ? () => g.seeTip(BOY_CARD_USED) : undefined}>
         <div className="boy-head">
-          <i className="boy-face" aria-hidden="true">S</i>
+          <i className="boy-face" aria-hidden="true"><img src="art/portraits/small/sami.webp" alt="" /></i>
           <span><b>A boy to mind the stall</b><small>{b ? `${BOY.name} is back at his uncle's shop. He would come back.` : `${BOY.who}, will sit at your stall when you are away.`} {BOY.wage} piastres a day.</small></span>
           <button className="btn small" onClick={() => hireBoy()} data-testid="boy-hire">{b ? 'Take him back' : `Hire ${BOY.name}`}</button>
         </div>
@@ -42,7 +42,7 @@ export function ShopBoyCard() {
   return (
     <div className="boy-card" data-testid="boy-card">
       <div className="boy-head">
-        <i className="boy-face" aria-hidden="true">S</i>
+        <i className="boy-face" aria-hidden="true"><img src="art/portraits/small/sami.webp" alt="" /></i>
         <span><b>{BOY.name} minds the stall</b><small>{b.mode === 'sell' ? 'Sells plain rugs at your price' : 'Keeps buyers waiting for you'} · {trustWord(b.trust)}{b.owed ? ` · owed ${b.owed} day${b.owed > 1 ? 's' : ''}` : ''}</small></span>
         <button className="btn small" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="boy-toggle">{open ? 'Close' : 'Orders'}</button>
       </div>

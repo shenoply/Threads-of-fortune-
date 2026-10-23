@@ -12,3 +12,6 @@
 .bale-body small { font-size: 13px; color: #cdb995; line-height: 1.35; }
 .bale-body .btn { align-self: flex-start; }
 .bale-count { color: #a9946f !important; font-size: 12px !important; }
+.bale-pic.art { background: none; box-shadow: none; border: 0; display: grid; place-items: center; }
+.bale-pic.art::before, .bale-pic.art::after { display: none; }
+.bale-pic.art img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0,0,0,.5)); }

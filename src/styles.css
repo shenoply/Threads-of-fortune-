@@ -3380,3 +3380,4 @@ body.travelling .world-hud { display: none; }
   .stall:not(.in-talk) > .band { max-height: 38vh; overflow-y: auto; }
   .stall:not(.in-talk) > .band > :first-child, .stall:not(.in-talk) > .band > :last-child { margin-top: 0; margin-bottom: 0; }
 }
+.boy-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
