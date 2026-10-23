@@ -1,7 +1,8 @@
-// The weaver's workshop: draw a carpet of your own, place by place, and have it woven. The carpet
-// at the top changes with every choice; each choice shows what it adds to the price. The weaver
+// The weaver's workshop: draw a carpet of your own, place by place, and have it woven. Everything
+// fits one phone screen: the carpet at the top (tap it to look closely), its name and price, the
+// steps, one row of choices and the button. Each choice shows what it adds to the price. The weaver
 // keeps the proportions and outlines, so whatever you choose is woven properly.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -15,17 +16,88 @@ import { RUGS } from '../../data/rugs';
 import './loom.css';
 
 type Step = 'size' | 'layout' | 'colours' | 'field' | 'centre' | 'border' | 'wool';
-const STEPS: [Step, string][] = [['size', 'Size'], ['layout', 'Layout'], ['colours', 'Colours'], ['field', 'Figures'], ['centre', 'Medallion'], ['border', 'Border'], ['wool', 'Wool & knot']];
-const PLACES: [keyof Design & ('ground' | 'ground2' | 'main' | 'accent' | 'light' | 'border'), string][] = [['ground', 'Field'], ['main', 'Figures'], ['accent', 'Second colour'], ['border', 'Border'], ['ground2', 'Corners and stripes']];
+const STEPS: [Step, string][] = [['size', 'Size'], ['layout', 'Layout'], ['colours', 'Colours'], ['field', 'Figures'], ['centre', 'Medallion'], ['border', 'Border'], ['wool', 'Wool']];
+type Place = 'ground' | 'main' | 'accent' | 'border' | 'ground2';
+const PLACES: [Place, string][] = [['ground', 'Field'], ['main', 'Figures'], ['accent', 'Second'], ['border', 'Border'], ['ground2', 'Corners']];
 
-function Option({ on, pic, name, line, delta, onPick, testid }: { on: boolean; pic?: string; name: string; line: string; delta?: number; onPick: () => void; testid: string }) {
+function Option({ on, pic, name, line, delta, onPick, testid, dyes }: { on: boolean; pic?: string; name: string; line?: string; delta?: number; onPick: () => void; testid: string; dyes?: string[] }) {
   return (
-    <button className={`lm-opt ${on ? 'on' : ''}`} onClick={onPick} aria-pressed={on} data-testid={testid}>
+    <button className={`lm-opt ${on ? 'on' : ''} ${pic ? 'pic' : ''}`} onClick={onPick} aria-pressed={on} data-testid={testid}>
       {pic && <img src={pic} alt="" draggable={false} />}
+      {dyes && <span className="lm-dyes">{dyes.map((h) => <i key={h} style={{ background: h }} />)}</span>}
       <b>{name}</b>
-      <small>{line}</small>
+      {line && <small>{line}</small>}
       {delta !== undefined && delta !== 0 && <em>{delta > 0 ? '+' : '−'}{fmt(Math.abs(delta))}</em>}
     </button>
+  );
+}
+
+/** the size of a box on screen, kept up to date */
+function useBox() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, box] as const;
+}
+
+/** a long carpet stood on end when the screen is tall, so it is shown as large as it can be */
+function FitRug({ src, alt, aspect = 1.6 }: { src: string; alt: string; aspect?: number }) {
+  const [ref, { w, h }] = useBox();
+  const flatW = Math.min(w, h * aspect), upW = Math.min(h, w * aspect);
+  const up = upW > flatW * 1.12;
+  const iw = Math.max(1, Math.floor(up ? upW : flatW));
+  return (
+    <div className="lm-fit" ref={ref}>
+      {w > 0 && <img src={src} alt={alt} data-testid="loom-preview" draggable={false} style={{ width: iw, height: iw / aspect, transform: up ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)' }} />}
+    </div>
+  );
+}
+
+const turned = new Map<string, string>();
+/** the picture turned a quarter round, for looking closely on a tall screen */
+function useTurned(src: string, on: boolean) {
+  const [out, setOut] = useState(on ? turned.get(src) ?? '' : src);
+  useEffect(() => {
+    if (!on) { setOut(src); return; }
+    const hit = turned.get(src);
+    if (hit) { setOut(hit); return; }
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.height; c.height = img.width;
+      const g = c.getContext('2d')!;
+      g.translate(c.width, 0); g.rotate(Math.PI / 2); g.drawImage(img, 0, 0);
+      const u = c.toDataURL('image/jpeg', 0.9);
+      turned.set(src, u); setOut(u);
+    };
+    img.src = src;
+  }, [src, on]);
+  return out;
+}
+
+/** the carpet full screen, to look closely: pinch, or the buttons, to zoom */
+function Zoom({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
+  const [z, setZ] = useState(1);
+  const tall = typeof innerHeight !== 'undefined' && innerHeight > innerWidth * 1.15;
+  const pic = useTurned(src, tall);
+  return (
+    <div className="lm-zoom" onClick={onClose} data-testid="loom-zoom">
+      <div className={`lm-zoom-scroll ${tall ? 'tall' : ''}`} onClick={(e) => e.stopPropagation()}>
+        {pic && <img src={pic} alt={name} style={tall ? { height: `${z * 100}%` } : { width: `${z * 100}%` }} draggable={false} />}
+      </div>
+      <div className="lm-zoom-bar" onClick={(e) => e.stopPropagation()}>
+        <button className="btn" onClick={() => setZ((x) => Math.max(1, x / 1.5))} disabled={z <= 1} aria-label="Zoom out">−</button>
+        <span>{name}</span>
+        <button className="btn" onClick={() => setZ((x) => Math.min(4, x * 1.5))} disabled={z >= 4} aria-label="Zoom in">+</button>
+        <button className="btn primary" onClick={onClose} data-testid="loom-zoom-close">Close</button>
+      </div>
+    </div>
   );
 }
 
@@ -34,110 +106,120 @@ export function Loom({ onClose }: { onClose: () => void }) {
   const lm = g.loom ?? { designs: [], weaving: [], next: 1 };
   const [d, setD] = useState<Design>(() => newDesign(lm.next));
   const [step, setStep] = useState<Step>('size');
+  const [place, setPlace] = useState<Place>('ground');
   const [note, setNote] = useState('');
+  const [zoom, setZoom] = useState<{ src: string; name: string } | null>(null);
+  const strip = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (zoom) setZoom(null); else onClose(); } };
     addEventListener('keydown', k);
     return () => removeEventListener('keydown', k);
-  }, [onClose]);
-  const pic = useMemo(() => renderDesign(d, 4, 0.86), [d]);
+  }, [onClose, zoom]);
+  useEffect(() => { strip.current?.scrollTo({ left: 0 }); }, [step]);
+  const pic = useMemo(() => renderDesign(d, 820, 0.88), [d]);
   const cost = costOf(d), days = daysOf(d), [lo, hi] = valueOf(d);
   const free = loomsFree(rankOf(g).idx) - lm.weaving.length;
   const set = (patch: Partial<Design>) => { audio.sfx('tap'); setNote(''); setD((x) => ({ ...x, ...patch })); };
   const delta = (patch: Partial<Design>) => costOf({ ...d, ...patch }) - cost;
-  const thumb = (patch: Partial<Design>) => renderDesign({ ...d, ...patch }, 2, 0.8);
+  const thumb = (patch: Partial<Design>) => renderDesign({ ...d, ...patch }, 300, 0.8);
   const p = parts(d);
+  const name = d.name.trim() || defaultName(d);
   const weave = () => {
     const msg = g.commissionCarpet(d);
     setNote(msg);
-    if (msg.startsWith('The weaver takes')) setD(newDesign((useGame.getState().loom?.next ?? lm.next)));
+    if (msg.startsWith('The weaver takes')) setD(newDesign(useGame.getState().loom?.next ?? lm.next));
   };
   const collect = (id: string) => {
     const msg = g.collectCarpet(id);
     if (!msg) return;
     const t = RUGS[id];
-    reveal({ kicker: 'Off the loom', title: t.name, line: `${t.size} · your own design`, pic: renderDesign(t.art.kind === 'design' ? t.art.design : d, 5), picKind: 'rug', instant: true });
+    reveal({ kicker: 'Off the loom', title: t.name, line: `${t.size} · your own design`, pic: renderDesign(t.art.kind === 'design' ? t.art.design : d, 820), picKind: 'rug', instant: true });
     setNote(msg);
+  };
+  const rename = (id: string, old: string) => {
+    const n = window.prompt('A name for this carpet', old);
+    if (n && n.trim()) { g.renameCarpet(id, n); audio.sfx('pen'); }
   };
 
   return createPortal(
     <div className="overlay loom-screen" data-testid="loom" onClick={(e) => e.stopPropagation()}>
-      <div className="overlay-head">
+      <div className="lm-head">
         <h2>The weaver</h2>
-        <span className="sub">{fmt(g.cash)}</span>
+        <span className="lm-cash">{fmt(g.cash)}</span>
         <button className="btn close" onClick={onClose} data-testid="loom-close">Done</button>
       </div>
-      <div className="lm-body">
-        {lm.weaving.length > 0 && (
-          <section className="lm-onloom" data-testid="loom-weaving">
-            {lm.weaving.map((w) => {
-              const des = lm.designs.find((x) => x.id === w.id);
-              if (!des) return null;
-              const ready = g.day >= w.ready;
-              return (
-                <div key={w.id} className="lm-wip">
-                  <img src={renderDesign(des, 1, 0.8)} alt="" className={ready ? '' : 'wip'} />
-                  <span><b>{des.name}</b><small>{ready ? 'Off the loom' : `On the loom · ready day ${w.ready}`}</small></span>
-                  {ready && <button className="btn primary small" onClick={() => collect(w.id)} data-testid={`loom-collect-${w.id}`}>Collect</button>}
-                </div>
-              );
-            })}
-          </section>
-        )}
-        <div className="lm-preview"><img src={pic} alt={`Your design: ${d.name || defaultName(d)}`} data-testid="loom-preview" /></div>
-        <div className="lm-sum">
-          <input value={d.name} maxLength={40} placeholder={defaultName(d)} onChange={(e) => setD({ ...d, name: e.target.value })} aria-label="Name of the carpet" data-testid="loom-name" />
-          <span><b>{fmt(cost)}</b> · {days} day{days === 1 ? '' : 's'} on the loom · sells for about {fmt(lo)}–{fmt(hi)}</span>
+
+      {lm.weaving.length > 0 && (
+        <div className="lm-onloom" data-testid="loom-weaving">
+          {lm.weaving.map((w) => {
+            const des = lm.designs.find((x) => x.id === w.id);
+            if (!des) return null;
+            const ready = g.day >= w.ready;
+            return (
+              <div key={w.id} className="lm-wip">
+                <img src={renderDesign(des, 200, 0.8)} alt="" className={ready ? '' : 'wip'} onClick={() => setZoom({ src: renderDesign(des, 1640, 0.9), name: des.name })} />
+                <button className="lm-wip-name" onClick={() => rename(des.id, des.name)} data-testid={`loom-rename-${des.id}`}><b>{des.name} ✎</b><small>{ready ? 'Off the loom' : `On the loom · day ${w.ready}`}</small></button>
+                {ready && <button className="btn primary small" onClick={() => collect(w.id)} data-testid={`loom-collect-${w.id}`}>Collect</button>}
+              </div>
+            );
+          })}
         </div>
-        <div className="lm-steps" role="tablist">
-          {STEPS.filter(([s]) => s !== 'centre' || d.layout === 'medallion').map(([s, label]) => (
-            <button key={s} role="tab" aria-selected={step === s} className={step === s ? 'on' : ''} onClick={() => { audio.sfx('tap'); setStep(s); }} data-testid={`loom-step-${s}`}>{label}</button>
-          ))}
-        </div>
-        <div className="lm-opts">
-          {step === 'size' && SIZES.map((x) => <Option key={x.id} on={d.size === x.id} name={x.name} line={x.cm} delta={delta({ size: x.id })} onPick={() => set({ size: x.id })} testid={`loom-size-${x.id}`} />)}
-          {step === 'layout' && LAYOUT.map((x) => <Option key={x.id} on={d.layout === x.id} pic={thumb({ layout: x.id })} name={x.name} line={x.line} delta={delta({ layout: x.id })} onPick={() => set({ layout: x.id })} testid={`loom-layout-${x.id}`} />)}
-          {step === 'field' && FIELD.map((x) => <Option key={x.id} on={d.field === x.id} pic={thumb({ field: x.id, layout: d.layout === 'medallion' ? 'allover' : d.layout })} name={x.name} line={x.line} delta={delta({ field: x.id })} onPick={() => set({ field: x.id })} testid={`loom-field-${x.id}`} />)}
-          {step === 'centre' && MEDALLION.filter((x) => x.id !== 'none').map((x) => <Option key={x.id} on={d.medallion === x.id} pic={thumb({ medallion: x.id })} name={x.name} line={x.line} delta={delta({ medallion: x.id })} onPick={() => set({ medallion: x.id })} testid={`loom-med-${x.id}`} />)}
-          {step === 'border' && (<>
-            {BORDER.map((x) => <Option key={x.id} on={d.band === x.id} pic={thumb({ band: x.id })} name={x.name} line={x.line} delta={delta({ band: x.id })} onPick={() => set({ band: x.id })} testid={`loom-band-${x.id}`} />)}
-            <h4 className="lm-sub">Guard stripes</h4>
-            {GUARD.map((x) => <Option key={x.id} on={d.guard === x.id} name={x.name} line={x.line} delta={delta({ guard: x.id })} onPick={() => set({ guard: x.id })} testid={`loom-guard-${x.id}`} />)}
-          </>)}
-          {step === 'wool' && (<>
-            {KNOTS.map((x) => <Option key={x.id} on={d.knots === x.id} name={x.name} line={x.line} delta={delta({ knots: x.id })} onPick={() => set({ knots: x.id })} testid={`loom-knots-${x.id}`} />)}
-            <h4 className="lm-sub">Wool</h4>
-            {WOOL.map((x) => <Option key={x.id} on={d.wool === x.id} name={x.name} line={x.line} delta={delta({ wool: x.id })} onPick={() => set({ wool: x.id })} testid={`loom-wool-${x.id}`} />)}
-          </>)}
-          {step === 'colours' && (<>
-            {PALETTES.map((x) => (
-              <button key={x.id} className={`lm-opt lm-pal ${d.palette === x.id ? 'on' : ''}`} onClick={() => { audio.sfx('tap'); setD((y) => withPalette(y, x.id)); }} aria-pressed={d.palette === x.id} data-testid={`loom-pal-${x.id}`}>
-                <span className="lm-dyes">{x.dyes.map((y) => <i key={y.name} style={{ background: y.hex }} title={y.name} />)}</span>
-                <b>{x.name}</b><small>{x.line}</small>
-                {delta(withPalette(d, x.id)) !== 0 && <em>{delta(withPalette(d, x.id)) > 0 ? '+' : '−'}{fmt(Math.abs(delta(withPalette(d, x.id))))}</em>}
+      )}
+
+      <button className="lm-preview" onClick={() => setZoom({ src: renderDesign(d, 1640, 0.9), name })} aria-label="Look closely at the carpet" data-testid="loom-preview-btn">
+        <FitRug src={pic} alt={`Your design: ${name}`} aspect={p.size.cols / p.size.rows * 1.07} />
+        <span className="lm-zoomhint" aria-hidden="true">⤢</span>
+      </button>
+
+      <div className="lm-sum">
+        <label className="lm-name">
+          <span aria-hidden="true">✎</span>
+          <input value={d.name} maxLength={40} placeholder={defaultName(d)} onChange={(e) => setD({ ...d, name: e.target.value })} aria-label="Name your carpet" data-testid="loom-name" />
+        </label>
+        <span className="lm-price"><b>{fmt(cost)}</b> · {days} day{days === 1 ? '' : 's'} · sells {fmt(lo)}–{fmt(hi)}</span>
+      </div>
+
+      <div className="lm-steps" role="tablist">
+        {STEPS.filter(([s]) => s !== 'centre' || d.layout === 'medallion').map(([s, label]) => (
+          <button key={s} role="tab" aria-selected={step === s} className={step === s ? 'on' : ''} onClick={() => { audio.sfx('tap'); setStep(s); }} data-testid={`loom-step-${s}`}>{label}</button>
+        ))}
+      </div>
+
+      <div className="lm-choices">
+        {step === 'colours' && (<>
+          <div className="lm-places">
+            {PLACES.map(([k, label]) => (
+              <button key={k} className={place === k ? 'on' : ''} onClick={() => { audio.sfx('tap'); setPlace(k); }} data-testid={`loom-place-${k}`}>
+                <i style={{ background: p.palette.dyes[d[k]]?.hex }} />{label}
               </button>
             ))}
-            <h4 className="lm-sub">Each place, in the {p.palette.name} dyes</h4>
-            {PLACES.map(([k, label]) => (
-              <div key={k} className="lm-place" data-testid={`loom-place-${k}`}>
-                <span>{label}</span>
-                <span className="lm-swatches">
-                  {p.palette.dyes.map((y, i) => (
-                    <button key={y.name} className={d[k] === i ? 'on' : ''} style={{ background: y.hex }} onClick={() => set({ [k]: i } as Partial<Design>)} aria-label={`${label}: ${y.name}`} aria-pressed={d[k] === i} title={y.name} data-testid={`loom-dye-${k}-${i}`}>{y.dear ? '·' : ''}</button>
-                  ))}
-                </span>
-              </div>
+          </div>
+          <div className="lm-swatches" data-testid={`loom-swatches-${place}`}>
+            {p.palette.dyes.map((y, i) => (
+              <button key={y.name} className={d[place] === i ? 'on' : ''} style={{ background: y.hex }} onClick={() => set({ [place]: i } as Partial<Design>)} aria-label={`${place}: ${y.name}`} aria-pressed={d[place] === i} title={y.name} data-testid={`loom-dye-${place}-${i}`}>{y.dear ? '·' : ''}</button>
             ))}
-            <p className="lm-note">A dot marks a costly dye: indigo, cochineal and saffron. The weaver lifts any figure that would vanish into its ground.</p>
-          </>)}
+          </div>
+        </>)}
+        <div className="lm-strip" ref={strip}>
+          {step === 'size' && SIZES.map((x) => <Option key={x.id} on={d.size === x.id} pic={thumb({ size: x.id })} name={x.name} line={x.cm} delta={delta({ size: x.id })} onPick={() => set({ size: x.id })} testid={`loom-size-${x.id}`} />)}
+          {step === 'layout' && LAYOUT.map((x) => <Option key={x.id} on={d.layout === x.id} pic={thumb({ layout: x.id })} name={x.name} delta={delta({ layout: x.id })} onPick={() => set({ layout: x.id })} testid={`loom-layout-${x.id}`} />)}
+          {step === 'field' && FIELD.map((x) => <Option key={x.id} on={d.field === x.id} pic={thumb({ field: x.id, layout: d.layout === 'medallion' ? 'allover' : d.layout })} name={x.name} delta={delta({ field: x.id })} onPick={() => set({ field: x.id })} testid={`loom-field-${x.id}`} />)}
+          {step === 'centre' && MEDALLION.filter((x) => x.id !== 'none').map((x) => <Option key={x.id} on={d.medallion === x.id} pic={thumb({ medallion: x.id })} name={x.name} delta={delta({ medallion: x.id })} onPick={() => set({ medallion: x.id })} testid={`loom-med-${x.id}`} />)}
+          {step === 'border' && BORDER.map((x) => <Option key={x.id} on={d.band === x.id} pic={thumb({ band: x.id })} name={x.name} delta={delta({ band: x.id })} onPick={() => set({ band: x.id })} testid={`loom-band-${x.id}`} />)}
+          {step === 'border' && GUARD.map((x) => <Option key={x.id} on={d.guard === x.id} pic={thumb({ guard: x.id })} name={`${x.name} stripe`} delta={delta({ guard: x.id })} onPick={() => set({ guard: x.id })} testid={`loom-guard-${x.id}`} />)}
+          {step === 'wool' && KNOTS.map((x) => <Option key={x.id} on={d.knots === x.id} name={x.name} line={x.line} delta={delta({ knots: x.id })} onPick={() => set({ knots: x.id })} testid={`loom-knots-${x.id}`} />)}
+          {step === 'wool' && WOOL.map((x) => <Option key={x.id} on={d.wool === x.id} name={x.name} line={x.line} delta={delta({ wool: x.id })} onPick={() => set({ wool: x.id })} testid={`loom-wool-${x.id}`} />)}
+          {step === 'colours' && PALETTES.map((x) => <Option key={x.id} on={d.palette === x.id} dyes={x.dyes.map((y) => y.hex)} name={x.name} delta={delta(withPalette(d, x.id))} onPick={() => { audio.sfx('tap'); setD((y) => withPalette(y, x.id)); }} testid={`loom-pal-${x.id}`} />)}
         </div>
       </div>
+
       <div className="lm-foot">
         {note && <p className="lm-msg" data-testid="loom-note">{note}</p>}
         <button className="btn primary" disabled={free <= 0 || g.cash < cost} onClick={weave} data-testid="loom-weave">
           {free <= 0 ? 'No loom free' : g.cash < cost ? `You need ${fmt(cost)}` : `Weave it · ${fmt(cost)}`}
         </button>
       </div>
+      {zoom && <Zoom src={zoom.src} name={zoom.name} onClose={() => setZoom(null)} />}
     </div>,
     document.body,
   );

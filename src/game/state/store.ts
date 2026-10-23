@@ -567,6 +567,8 @@ interface Actions {
   commissionCarpet: (d: Design) => string;
   /** take a finished carpet off the loom into your stock */
   collectCarpet: (id: string) => string;
+  /** give a carpet of your own design a new name */
+  renameCarpet: (id: string, name: string) => void;
   /** buy from the gunsmith in the Muski; the piece in the same place is traded in at half its price */
   buyArm: (id: string) => string;
   /** open today's gift (once a real day): what was in it, or null */
@@ -4164,6 +4166,15 @@ export const useGame = create<GameState & Actions>()(
           const item: RugItem = { uid: newUid('r'), typeId: id, condition: 'Excellent', restored: false, provenance: 'Documented', paid: costOf(d), notes: ['Woven to your own design by the weavers of Kerdasa.'], stored: s.world.at !== 'giza' ? true : false };
           set({ inventory: [...s.inventory, item], loom: { ...lm, weaving: lm.weaving.filter((x) => x.id !== id) }, journal: [...s.journal, { day: s.day, text: `${d.name} came off the weaver's loom.` }].slice(-200) });
           return `${d.name} is off the loom and in your stock.`;
+        },
+        renameCarpet: (id, name) => {
+          const s = get();
+          const lm = s.loom;
+          const clean = name.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40);
+          if (!lm || !clean) return;
+          const designs = lm.designs.map((x) => (x.id === id ? { ...x, name: clean } : x));
+          registerDesigns(designs.filter((x) => x.id === id));
+          set({ loom: { ...lm, designs } });
         },
         setSignName: (name) => set({ signName: name.replace(/[\u0000-\u001f]/g, '').slice(0, 28).trim() || undefined }),
 

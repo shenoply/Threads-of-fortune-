@@ -74,6 +74,40 @@ function bandAround(m: Map, band: Band, x0: number, y0: number, x1: number, y1: 
 const CORNER: Motif = { id: 'corner', name: '', line: '', cost: 0, layers: [
   { shape: (u, v) => Math.abs(u) + Math.abs(v) <= 0.8, role: 2, edge: true }, { shape: (u, v) => Math.abs(u) + Math.abs(v) <= 0.36, role: 4 }] };
 
+// the little things weavers scatter in every gap: stars, dots, small diamonds and rosettes
+const TINY: string[][] = [
+  ['..a..', '.aba.', 'abbba', '.aba.', '..a..'],
+  ['a...a', '.a.a.', '..b..', '.a.a.', 'a...a'],
+  ['.a.a.', 'aabaa', '.bbb.', 'aabaa', '.a.a.'],
+  ['.a.', 'aba', '.a.'],
+  ['..a..', '..a..', 'aabaa', '..a..', '..a..'],
+  ['.aaa.', 'a.b.a', 'abbba', 'a.b.a', '.aaa.'],
+];
+/** fill the empty stretches of one colour inside an area with small figures, without touching anything */
+function sprinkle(m: Map, x0: number, y0: number, x1: number, y1: number, slot: Slot, inks: [Slot, Slot][], seed: number, gap = 2, where?: (x: number, y: number) => boolean, fs = 1) {
+  const r = rand(seed), want = SLOTS.indexOf(slot);
+  gap *= fs;
+  const free = (x: number, y: number, w: number, h: number) => {
+    for (let yy = y - gap; yy < y + h + gap; yy++) for (let xx = x - gap; xx < x + w + gap; xx++) {
+      if (xx < x0 || yy < y0 || xx >= x1 || yy >= y1 || m.k[yy * m.w + xx] !== want || (where && !where(xx, yy))) return false;
+    }
+    return true;
+  };
+  let n = 0;
+  for (let y = y0 + gap; y < y1 - 3; y += 2 * fs) for (let x = x0 + gap + ((y >> 1) % 2); x < x1 - 3; x += 2 * fs) {
+    const t = TINY[(Math.floor(r() * TINY.length) + n) % TINY.length];
+    const h = t.length * fs, w = t[0].length * fs;
+    if (!free(x, y, w, h)) continue;
+    const [a, b] = inks[n % inks.length];
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const ch = t[Math.floor(j / fs)][Math.floor(i / fs)];
+      if (ch === '.') continue;
+      m.k[(y + j) * m.w + x + i] = SLOTS.indexOf(ch === 'a' ? a : b);
+    }
+    n++;
+  }
+}
+
 export function knotMap(d: Design): Map {
   const p = parts(d);
   const sc = p.knots.scale;
@@ -97,6 +131,7 @@ export function knotMap(d: Design): Map {
   const fx0 = f0x + 1, fy0 = f0y + 1, fx1 = w - f0x - 1, fy1 = h - f0y - 1;
   fill(fx0, fy0, fx1, fy1, 'ground');
   const FW = fx1 - fx0, FH = fy1 - fy0;
+  const FS = Math.max(1, Math.round(FH / 46)); // the small fillers grow with the knot count
   const inField = (x: number, y: number) => x >= fx0 && x < fx1 && y >= fy0 && y < fy1;
   const figA: Record<Role, Slot | null> = { 0: null, 1: 'main', 2: 'accent', 3: 'outline', 4: 'light' };
   const figB: Record<Role, Slot | null> = { 0: null, 1: 'accent', 2: 'main', 3: 'outline', 4: 'light' };
@@ -148,6 +183,16 @@ export function knotMap(d: Design): Map {
     }
     if (hasMed) {
       stamp(m, med, mx, my, mw, mh, figA, inField);
+      // little hooks all round the medallion's edge, as the village weavers do
+      const OUTL = SLOTS.indexOf('outline'), GRD = SLOTS.indexOf('ground');
+      const hooked: number[] = [];
+      for (let y = my - 2; y < my + mh + 2; y++) for (let x = mx - 2; x < mx + mw + 2; x++) {
+        if (!inField(x, y) || m.k[y * w + x] !== GRD) continue;
+        const nb = [m.k[y * w + x - 1], m.k[y * w + x + 1], m.k[(y - 1) * w + x], m.k[(y + 1) * w + x]];
+        if (nb.includes(OUTL) && medMask(x + 1, y) !== medMask(x - 1, y) || nb.includes(OUTL) && medMask(x, y + 1) !== medMask(x, y - 1)) if ((x + y) % 3 === 0) hooked.push(y * w + x);
+      }
+      for (const i of hooked) m.k[i] = OUTL;
+      sprinkle(m, mx, my, mx + mw, my + mh, 'main', [['light', 'accent'], ['accent', 'outline'], ['outline', 'light']], 7, 1, undefined, FS);
       // a small figure in each corner piece
       const s2 = Math.round(Math.min(sw, sh) * 0.62);
       for (const [cx, cy] of [[fx0 + 1, fy0 + 1], [fx1 - 1 - s2, fy0 + 1], [fx0 + 1, fy1 - 1 - s2], [fx1 - 1 - s2, fy1 - 1 - s2]]) stamp(m, p.field, cx, cy, s2, s2, figB, (x, y) => spandrel(x, y) && inField(x, y));
@@ -182,6 +227,9 @@ export function knotMap(d: Design): Map {
       for (let r = 0; r < nRows; r++) stamp(m, p.field, x0 + 2 + (inner - size) / 2, fy0 + r * (FH / nRows) + (FH / nRows - size) / 2, size, size, (b + r) % 2 ? figB : figA, inField);
     }
   }
+  // every empty stretch of the field and the corner pieces gets its small figures
+  sprinkle(m, fx0, fy0, fx1, fy1, 'ground', [['light', 'accent'], ['accent', 'main'], ['main', 'light']], 11, 2, undefined, FS);
+  sprinkle(m, fx0, fy0, fx1, fy1, 'ground2', [['main', 'light'], ['accent', 'main']], 13, 1, undefined, FS);
   return m;
 }
 
@@ -193,9 +241,10 @@ function rand(seed: number) { let a = seed >>> 0; return () => { a = (a + 0x6d2b
 const cache = new Map<string, string>();
 export const designKey = (d: Design) => JSON.stringify({ ...d, name: '' });
 
-/** the woven carpet as a picture, `k` pixels to a knot (lengthways across the screen, fringe at the ends) */
-export function renderDesign(d: Design, k = 7, quality = 0.9): string {
-  const key = designKey(d) + '|' + k;
+/** the woven carpet as a picture, `width` pixels across like the game's carpet photographs
+ *  (lengthways across the screen, fringe at the ends) */
+export function renderDesign(d: Design, width = 820, quality = 0.9): string {
+  const key = designKey(d) + '|' + width;
   const hit = cache.get(key);
   if (hit) return hit;
   if (typeof document === 'undefined') return '';
@@ -203,8 +252,10 @@ export function renderDesign(d: Design, k = 7, quality = 0.9): string {
   const col = colours(d);
   const pal = SLOTS.map((s) => rgb(col[s].hex));
   const sheen = parts(d).wool.sheen;
-  const fr = Math.round(k * 4.2), end = Math.max(2, Math.round(k * 0.9));
-  const W = m.w * k + 2 * (fr + end), H = m.h * k + 4;
+  // the fringe is a set share of the picture, the carpet the rest; a knot is k pixels, not always whole
+  const fr = Math.round(width * 0.03), end = Math.max(2, Math.round(width * 0.006));
+  const k = (width - 2 * (fr + end)) / m.w;
+  const W = width, H = Math.round(m.h * k) + 4;
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d')!;
@@ -218,34 +269,42 @@ export function renderDesign(d: Design, k = 7, quality = 0.9): string {
   const jitter = new Float32Array(m.w * m.h).map(() => 1 + (r() - 0.5) * 0.07);
   // the selvedge wanders by a pixel or so
   const wob = new Float32Array(m.w).map((_, i) => Math.sin(i * 0.31) * 0.6 + (r() - 0.5) * 0.8);
-  const ox = fr + end;
-  for (let y = 0; y < H; y++) for (let x = ox; x < ox + m.w * k; x++) {
-    const kx = Math.floor((x - ox) / k);
-    const yy = y - 2 - wob[kx];
+  const ox = fr + end, bodyW = Math.round(m.w * k);
+  // slow patches of light and shade over the whole carpet, as on one that has lain on a floor
+  const GX = 7, GY = 5, mott = new Float32Array((GX + 1) * (GY + 1)).map(() => 1 + (r() - 0.5) * 0.12);
+  const mottAt = (fx: number, fy: number) => { const X = fx * GX, Y = fy * GY, i = Math.min(GX - 1, Math.floor(X)), j = Math.min(GY - 1, Math.floor(Y)), a = X - i, b = Y - j;
+    const q = (ii: number, jj: number) => mott[jj * (GX + 1) + ii]; return (q(i, j) * (1 - a) + q(i + 1, j) * a) * (1 - b) + (q(i, j + 1) * (1 - a) + q(i + 1, j + 1) * a) * b; };
+  for (let y = 0; y < H; y++) for (let x = ox; x < ox + bodyW; x++) {
+    const kx = Math.min(m.w - 1, Math.floor((x - ox) / k));
+    const yy = y - 2 - wob[kx] * k / 6;
     const ky = Math.floor(yy / k);
     if (ky < 0 || ky >= m.h) continue;
     const s = m.k[ky * m.w + kx];
     const [R, G, B] = pal[s];
     // one tuft: lit from above-left, a soft shadow where it meets the next
     const a = (x - ox) / k - kx, b = yy / k - ky;
-    let f = 1.07 - 0.13 * (b - 0.35) * (b - 0.35) - 0.12 * (a - 0.4) * (a - 0.4) - (b > 0.84 ? 0.07 : 0) - (a > 0.86 ? 0.05 : 0);
-    f *= abrash[s][kx] * jitter[ky * m.w + kx];
+    let f = 1.06 - 0.12 * (b - 0.35) * (b - 0.35) - 0.1 * (a - 0.4) * (a - 0.4) - (b > 0.82 ? 0.06 : 0) - (a > 0.85 ? 0.04 : 0);
+    f *= abrash[s][kx] * jitter[ky * m.w + kx] * mottAt((x - ox) / bodyW, y / H) * (0.965 + r() * 0.07);
+    // the edge cords are worn a little darker
+    if (ky === 0 || ky === m.h - 1) f *= 0.86;
     // silk catches the light along the carpet
-    if (sheen && s !== 6) f *= 1 + sheen * 0.1 * Math.max(0, Math.sin(((x - ox) / (m.w * k)) * Math.PI)) * (s === 4 ? 1.8 : 0.8);
+    if (sheen && s !== 6) f *= 1 + sheen * 0.1 * Math.max(0, Math.sin(((x - ox) / bodyW) * Math.PI)) * (s === 4 ? 1.8 : 0.8);
+    // aged dye: a little greyed and warmed, like the carpets in the photographs
+    const L = 0.3 * R + 0.59 * G + 0.11 * B;
     const i = (y * W + x) * 4;
-    px[i] = Math.min(255, R * f); px[i + 1] = Math.min(255, G * f); px[i + 2] = Math.min(255, B * f); px[i + 3] = 255;
+    px[i] = Math.min(255, (R * 0.8 + L * 0.2) * f * 0.99); px[i + 1] = Math.min(255, (G * 0.8 + L * 0.2) * f * 0.96); px[i + 2] = Math.min(255, (B * 0.8 + L * 0.2) * f * 0.89); px[i + 3] = 255;
   }
   // the flat-woven ends, in the ground colour with a stripe, then the fringe of cotton warps
   const endCol = pal[SLOTS.indexOf('ground2')], fringe = [232, 220, 196];
   for (const side of [0, 1]) {
-    const x0 = side ? ox + m.w * k : fr, x1 = side ? x0 + end : ox;
+    const x0 = side ? ox + bodyW : fr, x1 = side ? x0 + end : ox;
     for (let y = 2; y < H - 2; y++) for (let x = x0; x < x1; x++) {
       const f = 0.82 + ((y >> 1) % 2) * 0.06 + (r() - 0.5) * 0.05;
       const i = (y * W + x) * 4;
       px[i] = endCol[0] * f; px[i + 1] = endCol[1] * f; px[i + 2] = endCol[2] * f; px[i + 3] = 255;
     }
-    const fx = side ? ox + m.w * k + end : 0;
-    const step = Math.max(3, Math.round(k * 0.75));
+    const fx = side ? ox + bodyW + end : 0;
+    const step = Math.max(2, Math.round(k * 1.1));
     for (let y = 3; y < H - 3; y += step) {
       const len = fr * (0.72 + r() * 0.28), bend = (r() - 0.5) * 2.2;
       for (let t = 0; t < len; t++) {
@@ -262,6 +321,8 @@ export function renderDesign(d: Design, k = 7, quality = 0.9): string {
     }
   }
   g.putImageData(img, 0, 0);
+  // the pile softens the knot steps a little, as wool does
+  if ('filter' in g && k > 2.2) { g.save(); g.globalAlpha = 0.55; g.filter = `blur(${Math.min(1.4, k * 0.2).toFixed(2)}px)`; g.drawImage(c, 0, 0); g.restore(); }
   // a little warmth and a soft fall-off of light towards the corners
   const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
   v.addColorStop(0, 'rgba(255,240,210,0.05)');

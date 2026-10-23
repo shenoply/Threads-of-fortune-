@@ -138,10 +138,10 @@ export const PALETTES: Palette[] = [
 // ---------- the loom: sizes, knots and wool ----------
 export interface Size { id: string; name: string; cm: string; cols: number; rows: number; area: number; days: number }
 export const SIZES: Size[] = [
-  { id: 'mat', name: 'Small mat', cm: '120 × 80 cm', cols: 96, rows: 64, area: 1, days: 2 },
-  { id: 'rug', name: 'Rug', cm: '190 × 125 cm', cols: 126, rows: 84, area: 2.4, days: 4 },
-  { id: 'runner', name: 'Runner', cm: '300 × 85 cm', cols: 168, rows: 56, area: 2.6, days: 4 },
-  { id: 'carpet', name: 'Room carpet', cm: '300 × 200 cm', cols: 150, rows: 100, area: 6, days: 8 },
+  { id: 'mat', name: 'Small mat', cm: '120 × 80 cm', cols: 132, rows: 88, area: 1, days: 2 },
+  { id: 'rug', name: 'Rug', cm: '190 × 125 cm', cols: 174, rows: 116, area: 2.4, days: 4 },
+  { id: 'runner', name: 'Runner', cm: '300 × 85 cm', cols: 228, rows: 76, area: 2.6, days: 4 },
+  { id: 'carpet', name: 'Room carpet', cm: '300 × 200 cm', cols: 204, rows: 136, area: 6, days: 8 },
 ];
 export interface Knots { id: string; name: string; line: string; scale: number; price: number; days: number; kpsi: string }
 export const KNOTS: Knots[] = [

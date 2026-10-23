@@ -69,6 +69,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                 <RugFlags item={i} />
                 <div className="btns">
                   <button className="btn" onClick={() => setView(i.uid)}>Inspect</button>
+                  {i.typeId.startsWith('own-') && <button className="btn" onClick={() => { const n = window.prompt('A name for this carpet', RUGS[i.typeId]?.name ?? ''); if (n && n.trim()) g.renameCarpet(i.typeId, n); }} data-testid={`rename-${i.uid}`}>Rename</button>}
                   {g.world.at === 'giza' ? (
                     <button className="btn" onClick={() => g.toggleStored(i.uid)} data-testid="toggle-stored">{i.stored ? 'Pack for the road' : 'Leave at the stall'}</button>
                   ) : (

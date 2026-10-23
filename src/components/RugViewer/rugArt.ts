@@ -260,14 +260,14 @@ export function wovenRug(t: RugType, W = 900, H = 560): string {
 }
 
 export function rugSrc(t: RugType): string {
-  return t.art.kind === 'photo' ? t.art.src : t.art.kind === 'design' ? renderDesign(t.art.design, 7) : wovenRug(t);
+  return t.art.kind === 'photo' ? t.art.src : t.art.kind === 'design' ? renderDesign(t.art.design, 820) : wovenRug(t);
 }
 
 /** A 400-px copy of the rug photo, for rugs shown small (cards, lists, strips): a fifth of the bytes.
  *  Photos live at art/rugs/<id>.jpg, their thumbnails at art/rugs/thumbs/<id>.webp. Use rugSrc for
  *  the inspector and any view that zooms in. */
 export function rugThumb(t: RugType): string {
-  if (t.art.kind === 'design') return renderDesign(t.art.design, 3, 0.85);
+  if (t.art.kind === 'design') return renderDesign(t.art.design, 400, 0.85);
   if (t.art.kind !== 'photo') return wovenRug(t);
   const m = /^art\/rugs\/([^/]+)\.jpg$/.exec(t.art.src);
   return m ? `art/rugs/thumbs/${m[1]}.webp` : t.art.src;

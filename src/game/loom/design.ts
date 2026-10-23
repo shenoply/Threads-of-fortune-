@@ -29,7 +29,7 @@ export const parts = (d: Design) => ({
 export function newDesign(n: number): Design {
   const p = PALETTES[0];
   const [ground, ground2, main, accent, light, , border] = p.roles;
-  return { id: `own-${n}`, name: '', size: 'rug', layout: 'medallion', palette: p.id, ground, ground2, main, accent, light, border, field: 'lozenge', medallion: 'stepped', band: 'meander', guard: 'barber', knots: 'coarse', wool: 'village' };
+  return { id: `own-${n}`, name: '', size: 'rug', layout: 'medallion', palette: p.id, ground, ground2, main, accent, light, border, field: 'lozenge', medallion: 'stepped', band: 'meander', guard: 'dots', knots: 'coarse', wool: 'village' };
 }
 
 /** put a palette's own colours in their places */

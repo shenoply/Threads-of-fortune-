@@ -54,6 +54,10 @@ const after = await st((m) => m.useGame.getState().inventory.filter((i) => i.typ
 check(after === 1, 'still in stock after a reload');
 await p.click('[data-testid=nav-inventory]').catch(() => {}); await p.waitForTimeout(500);
 check(await p.locator('text=Test Garden').count() > 0, 'and still shown with its name');
+p.once('dialog', (dl) => dl.accept('Renamed Garden'));
+await p.locator('[data-testid^=rename-]').first().click();
+await p.waitForTimeout(400);
+check(await p.locator('text=Renamed Garden').count() > 0, 'a carpet of yours can be renamed from the stockroom');
 check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
 console.log(ok ? 'ALL OK' : 'SOME FAILED');
 await b.close();
