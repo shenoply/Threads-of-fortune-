@@ -86,3 +86,5 @@
 .scene.stall .stage .split-rug { bottom: var(--rug-b, 6%); }
 /* the people breathe (a slow transform): kept on their own layer so their shadows are not redrawn every frame */
 .scene.stall .hero-at-stall, .scene.stall .buyer-figure { will-change: transform; }
+/* nothing on the counter stands in front of the people while they talk */
+.stall .scene.stall .kept-out { visibility: hidden; pointer-events: none; }

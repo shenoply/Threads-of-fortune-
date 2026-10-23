@@ -81,6 +81,8 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   // the hero as the player dressed him, once every piece he wears is painted for the stall
   const outfit = wornOutfit(useGame((st) => st.wardrobe) ?? START_WARDROBE).id;
   const box = useRef<HTMLDivElement>(null);
+  // the tallest this frame has been during this conversation (see Href below)
+  const tallest = useRef({ id: '', h: 0 });
   const { w: W, h: H } = useSize(box);
   const buyer = enc ? BUYERS[enc.buyerId] : null;
   const [unfoldKey, setUnfoldKey] = useState(0);
@@ -138,9 +140,18 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   // what must be in view on a wide, short frame: from over the people's heads (42% of the stage above
   // the edge) down to the counter top's front (14% under it). The stage grows no taller than that
   // window allows, and if it still overhangs the frame the counter's front is cut off first.
-  const sh = Math.min(Math.max(W, H * 1.5) / 1.5, H / 0.56), sw = sh * 1.5;
+  // On a phone the frame's height changes as the talk below it grows and the rug tray folds. The
+  // painting and the people are sized for the tallest the frame will be (a set share of the screen),
+  // so they keep one scale for the whole conversation; a shorter frame only cuts off more of the
+  // counter's front, never shrinks the stall or the people.
+  if (tallest.current.id !== (enc?.id ?? '')) tallest.current = { id: enc?.id ?? '', h: 0 };
+  tallest.current.h = Math.max(tallest.current.h, H);
+  // no more than a quarter taller than the frame is now, so the people's heads always stay in shot
+  const Href = W < 600 && typeof window !== 'undefined' ? Math.min(H * 1.25, Math.max(H, tallest.current.h)) : H;
+  const sh = Math.min(Math.max(W, Href * 1.5) / 1.5, Href / 0.56), sw = sh * 1.5;
+  const cbRef = Math.min(Math.max(0, sh - Href), Math.max(0, edge - 0.14) * sh);
   const cb = Math.min(Math.max(0, sh - H), Math.max(0, edge - 0.14) * sh);
-  const Hv = H + cb; // the frame's top, measured up from the stage's bottom
+  const Hv = Href + cbRef; // the frame's top, measured up from the stage's bottom, at the scale's frame
   // on a tall, narrow frame (a phone) the painting is cropped at both sides; the figures are kept at
   // the edges of what is shown, not of the painting, and no wider than the frame leaves room for
   const crop = Math.max(0, (sw - W) / 2);
@@ -155,6 +166,11 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   // and their head (the top 5% of the picture is air) must stay inside the visible frame
   const buyerH = Math.min(heroH * 1.3, (Hv * 0.97 - sh * edge) / 0.55);
   const buyerB = sh * edge - buyerH * 0.4;
+  // where the two people stand, in % of the stage across: nothing on the counter is drawn in front of
+  // them (on a phone that is the whole counter in view; on a wide screen the middle stays dressed)
+  const visL = (crop / sw) * 100, visR = 100 - visL;
+  const people: [number, number][] = [[visL - 2, visL + ((heroH * 0.85) / sw) * 100 + 2], ...(buyer ? [[visR - ((buyerH * 0.62) / sw) * 100 - 2, visR + 2] as [number, number]] : [])];
+  const inFront = (x: number) => people.some(([a, b]) => x > a && x < b);
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
@@ -173,15 +189,15 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
           </div>
         )}
         <img className="counter" src={sceneFg(sc.id)} alt="" style={{ top: `${sc.fgTop}%` }} draggable={false} data-testid="stall-counter" />
-        <StallProps sc={sc} front />
-        <StallGramophone sc={sc} />
+        <StallProps sc={sc} front inFront={inFront} />
+        <StallGramophone sc={sc} inFront={inFront} />
         {rugT && presented && (
           <div className="split-rug" key={unfoldKey} data-testid="table-rug">
             <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
           </div>
         )}
-        <StallRadio at={sc.radio} />
-        <StallPaper at={sc.paper} />
+        <StallRadio at={sc.radio} hide={inFront(sc.radio.x)} />
+        <StallPaper at={sc.paper} hide={inFront(sc.paper.x)} />
         <StallCat sc={sc} onCat={onCat} rugOnCounter={!!(rugT && presented)} />
       </div>
       {/* a buyer who gives up gets up and goes, and the picture says so in words too */}
@@ -343,7 +359,7 @@ function ScenePerson({ id }: { id: string }) {
  *  shifted so its painted part stands there. Pieces on the shelves and walls are drawn behind the
  *  people, pieces on the counter (front) in front of them. A spot this stall has no room for, or a
  *  piece whose picture has not been painted yet, does not draw. */
-export function StallProps({ sc, front = false }: { sc: StallScene; front?: boolean }) {
+export function StallProps({ sc, front = false, inFront }: { sc: StallScene; front?: boolean; inFront?: (x: number) => boolean }) {
   const sp = useGame((st) => JSON.stringify(spotsOf(st)));
   const up = useGame((st) => st.upgrades);
   const spots = JSON.parse(sp) as Record<string, string>;
@@ -355,7 +371,7 @@ export function StallProps({ sc, front = false }: { sc: StallScene; front?: bool
         if (!id || !at || !DRESSING_BY_ID[id] || !!at.front !== front || missing.includes(id)) return null;
         const src = dressingArt(id), pos = placeStyle(src, at);
         if (!pos) return null;
-        return <img key={id} className={`stall-prop placed${front ? ' front' : ''}`} src={src} alt="" style={pos} draggable={false} data-testid={`stall-piece-${id}`} onError={() => setMissing((m) => [...m, id])} />;
+        return <img key={id} className={`stall-prop placed${front ? ' front' : ''}${inFront?.(at.x) ? ' kept-out' : ''}`} src={src} alt="" style={pos} draggable={false} data-testid={`stall-piece-${id}`} onError={() => setMissing((m) => [...m, id])} />;
       })}
     </>
   );
@@ -402,13 +418,14 @@ function StallCat({ sc, onCat, rugOnCounter }: { sc: StallScene; onCat: () => vo
 /** The gramophone, always there. Tap it to pick a record from what you have collected. The picture is
  *  the full-canvas cut-out placed at this stall's spot for it; a small invisible button over the
  *  horn-and-cabinet is the tap target. */
-function StallGramophone({ sc }: { sc: StallScene }) {
+function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number) => boolean }) {
   const seen = useGame((st) => st.gramoSeen);
   const src = 'art/stall2/props/prop-gramophone.webp';
   const at = sc.gramophone;
   const pos = at && placeStyle(src, at);
   const r = at && placedRect(src, at);
   if (!pos || !r) return null;
+  if (at.front && inFront?.(at.x)) return null;
   return (
     <>
       <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}`} src={src} alt="" style={pos} draggable={false} />
@@ -434,16 +451,16 @@ function StallGramophone({ sc }: { sc: StallScene }) {
 const standAt = (a: Anchor, w: number) => ({ left: `${a.x - w / 2}%`, bottom: `${100 - a.y}%`, width: `${w * a.s}%` });
 
 /** This morning's paper folded on the counter, with a coffee. Tap it to pick it up and read. */
-function StallPaper({ at }: { at: Anchor }) {
+function StallPaper({ at, hide }: { at: Anchor; hide?: boolean }) {
   return (
-    <button className="stall-paper" style={standAt(at, 9)} aria-label="Read today's paper" data-testid="stall-paper" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new Event('tof:paper')); }}>
+    <button className={`stall-paper${hide ? ' kept-out' : ''}`} style={standAt(at, 9)} aria-label="Read today's paper" data-testid="stall-paper" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new Event('tof:paper')); }}>
       <img src="art/newspaper-stall.webp" alt="" />
     </button>
   );
 }
 
 /** The wireless on the counter at your end. Tap it and the morning bulletin plays quietly while you trade; tap again to switch it off. */
-function StallRadio({ at }: { at: Anchor }) {
+function StallRadio({ at, hide }: { at: Anchor; hide?: boolean }) {
   const g = useGame();
   const [on, setOn] = useState(radio.playing);
   const [line, setLine] = useState(-1);
@@ -469,7 +486,7 @@ function StallRadio({ at }: { at: Anchor }) {
   const news = newsStart(bulletin(g.day, lang));
   return (
     <>
-      <button className={`stall-radio ${on ? 'on' : ''}`} style={standAt(at, 8)} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
+      <button className={`stall-radio ${on ? 'on' : ''}${hide ? ' kept-out' : ''}`} style={standAt(at, 8)} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
         <img src="art/radio-stall-small.webp" alt="" />
       </button>
       {/* the greeting and the date first: straight to the news */}
