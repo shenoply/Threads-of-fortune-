@@ -2,13 +2,13 @@ import type { BuyerDef } from '../game/types';
 import type { MannerKind, Reaction } from './manners';
 import type { Grooming } from './grooming';
 
-// Historical celebrity buyers, wave 3. Public identities and 1925 roles are historical;
-// the rug purchases, budgets, tastes and all dialogue are fictional.
+// Celebrity buyers, wave 3. Fictional people of the Cairo stage and the Levant, 1925;
+// names, careers, rug purchases, budgets, tastes and dialogue are all invented.
 
 export const CELEBS_3: Record<string, BuyerDef> = {
   'youssef-wahbi': {
-    id: 'youssef-wahbi', name: 'Youssef Wahbi', role: 'Actor-manager of the Ramses Troupe, dressing his theatre on Emad el-Din', roomWord: 'theatre',
-    bio: 'Founded the Ramses Troupe in 1923 and made Emad el-Din take drama seriously. Wants carpets that play to the back row.',
+    id: 'youssef-wahbi', name: 'Rafiq al-Najjar', role: 'Actor-manager of his own troupe, dressing his theatre on Emad el-Din', roomWord: 'theatre',
+    bio: 'Founded his own troupe two seasons ago and has made Emad el-Din take drama seriously. Wants carpets that play to the back row.',
     budget: [3000, 9000], patience: 60, trust: 50, interest: 55,
     values: { bold: 3, ornate: 2, darkField: 2, rare: 2, warm: 1, fineWeave: 1, humble: -3, lightField: -2, flatweave: -2, restrained: -1 },
     colourPref: { crimson: 3, gold: 1, indigo: 1, ivory: -2, mixed: 0 },
@@ -41,9 +41,9 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       { id: 'tired', when: (_t, i) => i.condition === 'Worn' || i.condition === 'Damaged' || i.condition === 'Dirty', text: 'It looks like the last night of a long tour. I need opening night.', honest: 'Honest. Then the price must look tired too.', facts: 'Restored, it would shine? Everyone promises me a second act.', factsWorks: true },
       { id: 'price', when: () => true, text: 'You price it like a star. Convince me it will earn its billing.', honest: 'A merchant who admits his margins. Now that is a rare role.', facts: 'Every night for twenty years, you say. Very well, that is a long run.', factsWorks: true },
     ],
-    commission: { traits: ['bold', 'rare'], label: 'A bold, rare carpet for the Ramses Theatre stage', bonus: 1100, wants: (t) => t.traits.includes('bold') && t.traits.includes('rare') },
+    commission: { traits: ['bold', 'rare'], label: 'A bold, rare carpet for the Najjar Theatre stage', bonus: 1100, wants: (t) => t.traits.includes('bold') && t.traits.includes('rare') },
     lines: {
-      arrival: ['A man in an immaculate suit sweeps into the stall, cane in one gloved hand, and pauses as if waiting for applause.', 'Youssef Wahbi arrives, removes his gloves one finger at a time, and surveys the stock like a full house.'],
+      arrival: ['A man in an immaculate suit sweeps into the stall, cane in one gloved hand, and pauses as if waiting for applause.', 'Rafiq al-Najjar arrives, removes his gloves one finger at a time, and surveys the stock like a full house.'],
       greeting: ['Good morning! No, do not bow. Well, a little.', 'I am told you have the finest carpets at Giza. I have come to audition them.'],
       repeat: ['I have returned. The public demands an encore.', 'Your last carpet has had better notices than some of my actors.'],
       room: ['My theatre on Emad el-Din. Red velvet, gilt, and a foyer that must make a clerk feel like a pasha.', 'A stage. Every night, under the lights, before a thousand eyes.'],
@@ -51,7 +51,7 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       budgetEarly: ['Money in the first scene? You have no sense of structure.'],
       budgetLate: ['For the foyer, seventy pounds. For a carpet worthy of the stage, ninety, and I will call it an investment.'],
       decider: ['I decide. In my theatre I decide everything, down to the colour of the ushers\' buttons.'],
-      smallTalk: ['I trained in Italy, you know. In Milan they taught me that a room is half the performance.', 'The audiences on Emad el-Din are the hardest in the world. If they are bored, they tell you. Loudly.'],
+      smallTalk: ['I learned my trade with a touring company, you know. In a tent theatre at Tanta they taught me that a room is half the performance.', 'The audiences on Emad el-Din are the hardest in the world. If they are bored, they tell you. Loudly.'],
       tea: ['Tea. Very well. Between acts one must keep up one\'s strength.'],
       earlyPresent: ['You raise the curtain before the audience is seated. Patience, my friend.'],
       rugGood: ['Now that is a leading carpet. Unroll it fully, let me see it breathe.', 'Yes! That has presence. That would stop a crowd.'],
@@ -75,7 +75,7 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       holdRefuse: ['Then we close the show here.', 'No. I know when to leave the stage.'],
       sweetener: ['You will deliver to the theatre before the evening performance? Then I can be generous.'],
       impatience: ['Rehearsal starts at noon, and the company will not wait. Actually they will, but they will complain.', 'Quickly, please. I have a costume fitting.'],
-      success: ['Bravo. A triumph for us both.', 'Send it to the Ramses Theatre, with my compliments to your weaver.'],
+      success: ['Bravo. A triumph for us both.', 'Send it to the Najjar Theatre, with my compliments to your weaver.'],
       badSale: ['Well. Every season has one production we do not discuss.'],
       walkAway: ['Not today. The performance is cancelled.', 'I shall return when the repertoire improves.'],
       saffron: ['The cat has chosen it! Animals have perfect instinct for a leading role.'],
@@ -91,8 +91,8 @@ export const CELEBS_3: Record<string, BuyerDef> = {
   },
 
   'aziza-amir': {
-    id: 'aziza-amir', name: 'Aziza Amir', role: 'Stage actress on Emad el-Din, furnishing her salon', roomWord: 'salon',
-    bio: 'A rising actress of the Cairo stage with an eye on the new cinema. Wants a salon that looks like a picture.',
+    id: 'aziza-amir', name: 'Muna al-Sayegh', role: 'Stage actress on Emad el-Din, furnishing her salon', roomWord: 'salon',
+    bio: 'A rising actress of the Cairo stage who never misses a new picture. Wants a salon that looks like a picture.',
     budget: [800, 2500], patience: 70, trust: 50, interest: 45,
     values: { soft: 3, ornate: 2, lightField: 1, warm: 1, fineWeave: 1, story: 1, hardwearing: -1, humble: -2, bold: -1, flatweave: -2 },
     colourPref: { crimson: 1, ivory: 2, gold: 1, indigo: 0, mixed: -1 },
@@ -125,9 +125,9 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       { id: 'dull', when: (t) => t.traits.includes('restrained') && !t.traits.includes('ornate'), text: 'It is very sensible. I am not a sensible woman, not in my salon.', honest: 'Ha. You understand me. Something with more romance, then.', facts: 'Elegant simplicity? That is what they say in Paris when there is no money.', factsWorks: false },
       { id: 'price', when: () => true, text: 'An actress is paid in applause first and pounds a long time afterwards. Why this price?', honest: 'You are honest. That is more charming than flattery.', facts: 'It keeps its value? Then perhaps it is a sort of jewellery.', factsWorks: true },
     ],
-    commission: { traits: ['soft', 'ornate'], label: 'A soft, ornate rug for Aziza Amir\'s dressing room', bonus: 300, wants: (t) => t.traits.includes('soft') && t.traits.includes('ornate') },
+    commission: { traits: ['soft', 'ornate'], label: 'A soft, ornate rug for Muna al-Sayegh\'s dressing room', bonus: 300, wants: (t) => t.traits.includes('soft') && t.traits.includes('ornate') },
     lines: {
-      arrival: ['A young woman in pearls and a fashionable evening wave steps into the stall and looks at everything at once.', 'Aziza Amir arrives, a small clutch under her arm, and lifts the corner of the nearest rug with one finger.'],
+      arrival: ['A young woman in pearls and a fashionable evening wave steps into the stall and looks at everything at once.', 'Muna al-Sayegh arrives, a small clutch under her arm, and lifts the corner of the nearest rug with one finger.'],
       greeting: ['Good morning. Everyone at the theatre says you have taste. I want to see if they are right.', 'Hello! Show me something beautiful. I have had a very ordinary morning.'],
       repeat: ['I am back. My friends keep asking where I found the last one.', 'Hello again. I dreamed about your carpets. Is that silly?'],
       room: ['My salon. Silk curtains, a gramophone, and far too many photographs.', 'A small room that I want to look like the pictures I see at the cinema.'],
@@ -175,8 +175,8 @@ export const CELEBS_3: Record<string, BuyerDef> = {
   },
 
   'rose-al-youssef': {
-    id: 'rose-al-youssef', name: 'Rose al-Youssef', role: 'Leading stage actress, furnishing the office of her new magazine', roomWord: 'office',
-    bio: 'Born in Tripoli, famous on the Cairo stage, and about to launch a magazine under her own name. Wants a rug people will talk about.',
+    id: 'rose-al-youssef', name: 'Dalia Barakat', role: 'Leading stage actress, furnishing the office of her new magazine', roomWord: 'office',
+    bio: 'A favourite of the Cairo stage, and about to launch a magazine of her own. Wants a rug people will talk about.',
     budget: [2500, 8500], patience: 70, trust: 45, interest: 55,
     values: { story: 3, bold: 2, rare: 2, ornate: 1, fineWeave: 1, antique: 1, humble: -2, washable: -1, fragile: -1 },
     colourPref: { crimson: 2, indigo: 1, gold: 1, ivory: 0, mixed: 1 },
@@ -209,16 +209,16 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       { id: 'dirty', when: (_t, i) => i.condition === 'Dirty' || i.condition === 'Damaged', text: 'It has a stain. My visitors will notice before they notice the pattern.', honest: 'Fine. Take it off the price and we will talk.', facts: 'It cleans up well, you say. Everything does, in advertisements.', factsWorks: true },
       { id: 'price', when: () => true, text: 'You know I am about to spend every pound I have on paper and printers. Why should I spend it here?', honest: 'Honest answer. I like that. It is rarer than good ink.', facts: 'It holds its value? A magazine does not, until it succeeds. Go on.', factsWorks: true },
     ],
-    commission: { traits: ['a documented story', 'fine weave'], label: 'A fine rug with a true history for Rose al-Youssef\'s salon', bonus: 1000, wants: (t, i) => t.traits.includes('story') && t.traits.includes('fineWeave') && (i.provenance === 'Documented' || i.provenance === 'Likely') },
+    commission: { traits: ['a documented story', 'fine weave'], label: 'A fine rug with a true history for Dalia Barakat\'s salon', bonus: 1000, wants: (t, i) => t.traits.includes('story') && t.traits.includes('fineWeave') && (i.provenance === 'Documented' || i.provenance === 'Likely') },
     lines: {
-      arrival: ['A woman with a cigarette case in one hand and a sharp look in her eye steps in, already smiling at something.', 'Rose al-Youssef arrives, glances at the stock, then at you, as if deciding which is more interesting.'],
+      arrival: ['A woman with a cigarette case in one hand and a sharp look in her eye steps in, already smiling at something.', 'Dalia Barakat arrives, glances at the stock, then at you, as if deciding which is more interesting.'],
       greeting: ['Good morning. I hear you are the only honest carpet man at Giza. That would make a good headline.', 'Hello. Show me your best, and please, no speeches.'],
       repeat: ['I am back. Everyone who visits asks about the last rug. You are good for conversation.', 'Here again. Consider it a review: favourable.'],
       room: ['An office. Desks, ink, and people who argue for a living.', 'My salon, where half of Cairo comes to disagree over coffee.'],
       drawnTo: ['Something bold, but with manners. And a history I can repeat without blushing.', 'A rug that makes a clever person stop mid-sentence.'],
       budgetEarly: ['You ask straight away. I respect that. I will not answer yet.'],
       budgetLate: ['For the office, sixty pounds. For the salon, a true piece, eighty-five. My printers will forgive me.'],
-      decider: ['I decide. I have been deciding for myself since I was a girl in Tripoli.'],
+      decider: ['I decide. I have been deciding for myself since I was a girl in Port Said.'],
       smallTalk: ['Years on the stage teach you one thing: an audience can smell a lie from the gallery.', 'Everyone asks why an actress wants a magazine. Why not? I know what the public likes.'],
       tea: ['Tea, thank you. Strong, like the gossip on Emad el-Din.'],
       earlyPresent: ['A rug before a question? That is putting the headline before the story.'],
@@ -259,7 +259,7 @@ export const CELEBS_3: Record<string, BuyerDef> = {
   },
 
   'fatma-rushdi': {
-    id: 'fatma-rushdi', name: 'Fatma Rushdi', role: 'Young actress from Alexandria, making her name on the Cairo stage', roomWord: 'flat',
+    id: 'fatma-rushdi', name: 'Lamia Shafiq', role: 'Young actress from Alexandria, making her name on the Cairo stage', roomWord: 'flat',
     bio: 'An Alexandrian girl who took the Cairo stage by storm. Buys with her heart, and fast.',
     budget: [700, 2400], patience: 55, trust: 55, interest: 60,
     values: { warm: 3, ornate: 2, bold: 1, soft: 1, story: 1, restrained: -2, cool: -1, humble: -1, lightField: -1 },
@@ -293,9 +293,9 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       { id: 'dirty', when: (_t, i) => i.condition === 'Dirty' || i.condition === 'Damaged', text: 'Oh, it is hurt. Look, just there.', honest: 'Poor thing. Then a kinder price, and I will love it anyway.', facts: 'It can be mended? Promise me.', factsWorks: true },
       { id: 'price', when: () => true, text: 'I earn it on stage, one night at a time. Tell me why it costs so much.', honest: 'You are honest. My heart says yes. My purse is still thinking.', facts: 'For always, you say. I like things that stay.', factsWorks: true },
     ],
-    commission: { traits: ['warm', 'ornate'], label: 'A warm, ornate rug for Fatma Rushdi\'s mother', bonus: 280, wants: (t) => t.traits.includes('warm') && t.traits.includes('ornate') },
+    commission: { traits: ['warm', 'ornate'], label: 'A warm, ornate rug for Lamia Shafiq\'s mother', bonus: 280, wants: (t) => t.traits.includes('warm') && t.traits.includes('ornate') },
     lines: {
-      arrival: ['A young woman in a bright shawl hurries into the stall, stops, and presses a hand to her heart at the colours.', 'Fatma Rushdi arrives, bracelets chiming, and goes straight to the reddest rug in sight.'],
+      arrival: ['A young woman in a bright shawl hurries into the stall, stops, and presses a hand to her heart at the colours.', 'Lamia Shafiq arrives, bracelets chiming, and goes straight to the reddest rug in sight.'],
       greeting: ['Good morning! Oh, look at all of them. I want everything.', 'Hello! Forgive me, I am always in a hurry and always in love with something.'],
       repeat: ['I came back! I could not stop thinking about your stall.', 'Hello again. The last rug makes me happy every morning.'],
       room: ['My little flat in Cairo. Bare floors, one lamp, and my costumes everywhere.', 'My mother\'s sitting room in Alexandria. She deserves something beautiful.'],
@@ -343,8 +343,8 @@ export const CELEBS_3: Record<string, BuyerDef> = {
   },
 
   'charles-corm': {
-    id: 'charles-corm', name: 'Charles Corm', role: 'Beirut writer and businessman, in Cairo buying for his new salon', roomWord: 'salon',
-    bio: 'Poet, founder of La Revue Phénicienne and Ford agent for the Levant. In Cairo on business, buying one fine piece for a modern Beirut salon.',
+    id: 'charles-corm', name: 'Georges Haddad', role: 'Beirut writer and businessman, in Cairo buying for his new salon', roomWord: 'salon',
+    bio: 'Poet, editor of a small Beirut review and motorcar agent on the coast. In Cairo on business, buying one fine piece for a modern Beirut salon.',
     budget: [3000, 9000], patience: 75, trust: 50, interest: 50,
     values: { fineWeave: 3, restrained: 2, rare: 1, story: 1, cool: 1, antique: 1, ornate: -1, humble: -2, flatweave: -1 },
     colourPref: { indigo: 2, ivory: 1, crimson: 1, gold: 0, mixed: -1 },
@@ -377,9 +377,9 @@ export const CELEBS_3: Record<string, BuyerDef> = {
       { id: 'provenance', when: (_t, i) => i.provenance === 'Uncertain' || i.provenance === 'Disputed', text: 'Where exactly was it woven? I would like to write about it one day, and I prefer to write the truth.', honest: 'An honest answer. That is worth more to me than a legend.', facts: 'A good account. I would like it better with a document.', factsWorks: false },
       { id: 'price', when: () => true, text: 'Let us be exact. What am I paying for: the wool, the hours, or the name?', honest: 'Clear. I appreciate a clear account.', facts: 'Twenty years of wear, divided into the price. Yes, the arithmetic holds.', factsWorks: true },
     ],
-    commission: { traits: ['fine weave', 'restrained'], label: 'A fine, restrained carpet for Charles Corm\'s Beirut salon', bonus: 1100, wants: (t) => t.traits.includes('fineWeave') && t.traits.includes('restrained') },
+    commission: { traits: ['fine weave', 'restrained'], label: 'A fine, restrained carpet for Georges Haddad\'s Beirut salon', bonus: 1100, wants: (t) => t.traits.includes('fineWeave') && t.traits.includes('restrained') },
     lines: {
-      arrival: ['A neatly dressed gentleman with a silk pocket square and a fountain pen clipped inside his jacket steps in and studies the stock with quiet attention.', 'Charles Corm arrives, straight from the station, and folds a French newspaper under his arm.'],
+      arrival: ['A neatly dressed gentleman with a silk pocket square and a fountain pen clipped inside his jacket steps in and studies the stock with quiet attention.', 'Georges Haddad arrives, straight from the station, and folds a French newspaper under his arm.'],
       greeting: ['Good morning. Bonjour. I have heard the carpets at Giza are worth the journey from the city.', 'Good day. I have an hour between appointments, and I would like to spend it well.'],
       repeat: ['Good day again. The last carpet has become the centre of my salon.', 'I am back in Cairo, and so, naturally, I am back here.'],
       room: ['A salon in Beirut. White walls, clean lines, a window onto the sea.', 'My study. Books, papers, and the whole Phoenician coast on the shelves.'],
@@ -572,9 +572,9 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_3_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'youssef-wahbi': { category: 'theatre', city: 'Cairo', role: 'Egyptian actor, director and theatre entrepreneur', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/youssef-wahbi.jpg' },
-  'aziza-amir': { category: 'theatre_cinema', city: 'Cairo', role: 'Egyptian actress who became an early film pioneer', prestige: 'FINE', portrait: 'art/historical-buyers/aziza-amir.jpg' },
-  'rose-al-youssef': { category: 'theatre_press', city: 'Cairo', role: 'Stage actress and emerging Egyptian press figure', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/rose-al-youssef.jpg' },
-  'fatma-rushdi': { category: 'theatre', city: 'Cairo / Alexandria', role: 'Egyptian stage actress active in the 1920s', prestige: 'FINE', portrait: 'art/historical-buyers/fatma-rushdi.jpg' },
-  'charles-corm': { category: 'intellectual_business', city: 'Beirut', role: 'Lebanese writer, businessman and cultural figure', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/charles-corm.jpg' },
+  'youssef-wahbi': { category: 'theatre', city: 'Cairo', role: 'Actor-manager of an Emad el-Din theatre company', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/youssef-wahbi.jpg' },
+  'aziza-amir': { category: 'theatre_cinema', city: 'Cairo', role: 'Stage actress on Emad el-Din', prestige: 'FINE', portrait: 'art/historical-buyers/aziza-amir.jpg' },
+  'rose-al-youssef': { category: 'theatre_press', city: 'Cairo', role: 'Stage actress about to launch a magazine', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/rose-al-youssef.jpg' },
+  'fatma-rushdi': { category: 'theatre', city: 'Cairo / Alexandria', role: 'Young Alexandrian actress on the Cairo stage', prestige: 'FINE', portrait: 'art/historical-buyers/fatma-rushdi.jpg' },
+  'charles-corm': { category: 'intellectual_business', city: 'Beirut', role: 'Beirut writer and businessman', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/charles-corm.jpg' },
 };
