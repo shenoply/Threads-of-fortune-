@@ -334,7 +334,7 @@ const LEADER_NAMES: Record<string, string[]> = {
   'egypt-rural-highway-robbers': ['Abdel-Al the Cudgel', 'Mahmoud Abu Shusha', 'Sayed the Lame', 'Khamis Abu Daif'],
   'sinai-transjordan-desert-raiders': ['Mutlaq ibn Hamad', 'Farhan the Grey', 'Sweilim Abu Rabia', 'Hamad al-Ghanim'],
   'palestine-road-thieves': ['Khalil Abu Rish', 'Daoud the Lean', 'Yusuf Abu Shanab', 'Salim the Fox'],
-  'syria-1925-rebels': ['Commander Nasib', 'Commander Fawzi', 'Commander Ramadan'],
+  'syria-1925-rebels': ['Commander Hamdi', 'Commander Shukri', 'Commander Ramadan'],
   'iraq-border-smuggler-brigands': ['Jassim al-Hadid', 'Abu Zaid the Smuggler', 'Ghazi the One-Eyed', 'Kadhim Abu Tabar'],
 };
 /** bands of the same kind start from different names */
