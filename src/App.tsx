@@ -666,7 +666,7 @@ export default function App() {
           {g.started && (
             <div className="whatsnew" data-testid="whatsnew">
               <b>New · Royal courts</b>
-              <span>Sell to King Fuad at Abdeen (Cairo), Queen Nazli at Ras el-Tin (Alexandria), Emir Abdullah in Amman, King Faisal in Baghdad and Mustafa Kemal at Çankaya (Angora). Look for the crown on the World map, then open the town's Royal Court card.</span>
+              <span>Sell to the buyers of the royal households at Abdeen (Cairo), Ras el-Tin (Alexandria), Raghadan (Amman), the court in Baghdad and Çankaya (Angora). Look for the crown on the World map, then open the town's Royal Court card.</span>
               <button className="ghost-btn" onClick={() => { enterGame(); setGuide(true); }} data-testid="take-tour">Take the quick tour</button>
             </div>
           )}

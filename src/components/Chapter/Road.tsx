@@ -3,7 +3,7 @@ import { rankOf, RANKS } from '../../game/economy/progress';
 import { MAIN_ORDER, MISSIONS, missionsDone } from '../../data/missions';
 import { fmt } from '../../game/economy/money';
 
-const UNLOCKS = ['', 'Fine households start coming to your stall (£6–£18 budgets). Rashid gives credit.', 'Rich collectors and famous names of 1925 come to you. Visitors ask for Exceptional rugs.', 'The title the great houses of the Levant deal with. (Palaces go by reputation, not rank: Queen Nazli receives you from 15.)', 'The Khan shop and the last warrants are within reach.'];
+const UNLOCKS = ['', 'Fine households start coming to your stall (£6–£18 budgets). Rashid gives credit.', 'Rich collectors and famous names of 1925 come to you. Visitors ask for Exceptional rugs.', 'The title the great houses of the Levant deal with. (Palaces go by reputation, not rank: Ras el-Tin receives you from 15.)', 'The Khan shop and the last warrants are within reach.'];
 
 /** The road ahead: what the next rank asks for and what it opens. Always visible on the stall panel. */
 export function RoadCard({ onMap }: { onMap?: () => void }) {

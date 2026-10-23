@@ -1,7 +1,8 @@
 import type { BuyerDef, DialoguePool } from '../game/types';
 
-// Prestige buyers of 1925. They are received at court, never at the stall. Lines stay with carpets,
-// rooms and taste. Their households, residences and dates follow the record for 1925.
+// Prestige buyers of 1925: the purchasing agents of the great households. They receive the merchant at court,
+// never at the stall. The agents are fictional; the monarch is an unnamed employer and never speaks.
+// Lines stay with carpets, rooms and taste. The residences and dates follow the record for 1925.
 
 const base = (p: Partial<DialoguePool>): DialoguePool => ({
   arrival: [], greeting: [], repeat: [], room: [], drawnTo: [], budgetEarly: [], budgetLate: [], decider: [], smallTalk: [], tea: [],
@@ -20,9 +21,9 @@ const priceObjection = (text: string, honest: string, facts: string) => ({ id: '
 export const ROYALS: Record<string, BuyerDef> = {
   fuad: {
     id: 'fuad',
-    name: 'King Fuad I',
-    role: 'King of Egypt, receiving at Abdeen Palace',
-    bio: 'Educated in Italy, founder of the Egyptian University, and a patient collector. He expects a merchant to know his trade.',
+    name: 'Samir al-Masri',
+    role: 'Carpet purchasing agent to the household at Abdeen Palace',
+    bio: 'He has bought the carpets for Abdeen for twenty years. Patient, exact and hard to impress, he expects a merchant to know his trade.',
     budget: [15000, 50000],
     patience: 54,
     trust: 40,
@@ -46,18 +47,18 @@ export const ROYALS: Record<string, BuyerDef> = {
     objections: [
       { id: 'humble', when: (t) => t.traits.includes('humble') || t.traits.includes('flatweave'), text: 'This is a village piece. You have brought a village piece to Abdeen.', honest: 'At least you do not call it something it is not. Show me what else you carried here.', facts: 'Sturdy, yes. The palace has corridors enough for sturdy things.', factsWorks: false },
       { id: 'worn', when: (_t, i) => i.condition === 'Worn' || i.condition === 'Dirty' || i.condition === 'Damaged', text: 'The pile is tired. I will not put a tired rug before an ambassador.', honest: 'Honest. Rare, in this building.', facts: 'Restored or not, it has been walked on by someone else.', factsWorks: false },
-      priceObjection('It is fine work. Whether it is fine work at that price is another question.', 'You answer plainly. My chamberlain could learn from you.', 'The knots I can count myself. Go on.'),
+      priceObjection('It is fine work. Whether it is fine work at that price is another question.', 'You answer plainly. The Chamberlain could learn from you.', 'The knots I can count myself. Go on.'),
     ],
     lines: base({
-      arrival: ['A chamberlain in a gold-frogged coat announces you. King Fuad looks up from a portfolio of drawings.'],
-      greeting: ['You are the carpet man from Giza. My chamberlain says you do not exaggerate. We shall see.'],
+      arrival: ['A chamberlain in a gold-frogged coat announces you. Samir al-Masri, who buys the carpets for the household, looks up from a portfolio of drawings.'],
+      greeting: ['You are the carpet man from Giza. The Chamberlain says you do not exaggerate. We shall see.'],
       repeat: ['The merchant from Giza again. The last visit was not a waste of my afternoon. Begin.'],
-      room: ['There is a reception salon on the east side where the diplomatic corps waits to be received. The floor is bare marble. It should not be.', 'I want a carpet for the salon outside the throne room. Men will stand on it for an hour composing what they wish to say to me.'],
-      drawnTo: ['Mastery. I studied in Turin, where they taught us that a thing is either done properly or it is not done.', 'Provenance. Tell me who made it and where, and do not decorate the answer.'],
-      budgetEarly: ['You ask a king his budget before you have shown him anything? Show me first.'],
+      room: ['There is a reception salon on the east side where the diplomatic corps waits to be received. The floor is bare marble. It should not be.', 'I want a carpet for the salon outside the throne room. Men will stand on it for an hour composing what they wish to say to His Majesty.'],
+      drawnTo: ['Mastery. In this household I was taught that a thing is either done properly or it is not done.', 'Provenance. Tell me who made it and where, and do not decorate the answer.'],
+      budgetEarly: ['You ask the palace its budget before you have shown it anything? Show me first.'],
       budgetLate: ['For a piece worthy of the room, the household will pay. Perhaps five hundred pounds. Not for anything less than worthy.'],
-      decider: ['The Grand Chamberlain keeps the accounts. I choose what enters the palace.'],
-      smallTalk: ['The university has two new faculties this year. Carpets, I am told, are easier to finish.', 'Alexandria is cooler, but the work is here. Continue.'],
+      decider: ['The Grand Chamberlain keeps the accounts. I choose the carpets that enter the palace.'],
+      smallTalk: ['The university has two new faculties this year. His Majesty says carpets are easier to finish.', 'Alexandria is cooler, but the work is here. Continue.'],
       earlyPresent: ['You unroll before you know the room. Merchants in the Khan do that for tourists.'],
       rugGood: ['Now that is a carpet. Bring it nearer the window.', 'Yes. That has the weight of something made carefully.'],
       rugNeutral: ['It is good. The palace is full of good things.', 'Hmm. Turn the corner over.'],
@@ -74,8 +75,8 @@ export const ROYALS: Record<string, BuyerDef> = {
       priceLow: ['Agreed. The household will send for it this afternoon.'],
       priceFair: ['That is a fair price. The Chamberlain will settle with you.'],
       priceHigh: ['That is a price for a foreigner at Shepheard\'s Hotel.'],
-      priceInsult: ['You have mistaken the King for a tourist. The audience is over.'],
-      counter: ['The household will pay {price}.', 'Let us say {price}. My Chamberlain will not approve of more.'],
+      priceInsult: ['You have taken Abdeen for a tourist hotel. The audience is over.'],
+      counter: ['The household will pay {price}.', 'Let us say {price}. The Chamberlain will not approve of more.'],
       holdGive: ['You are firm. Good. {price}, and let it be the end of it.'],
       holdRefuse: ['Firmness is not a virtue when it is only stubbornness.'],
       sweetener: ['Laid by your own men and the fringe dressed. That is correct.'],
@@ -92,9 +93,9 @@ export const ROYALS: Record<string, BuyerDef> = {
 
   nazli: {
     id: 'nazli',
-    name: 'Queen Nazli',
-    role: 'Queen of Egypt, summering at Ras el-Tin in Alexandria',
-    bio: 'Queen since 1919. She follows Paris fashion, reads the Paris magazines, and furnishes her own apartments.',
+    name: 'Laila Haddad',
+    role: 'Purchasing agent to the household at Ras el-Tin Palace, Alexandria',
+    bio: 'She buys for the summer apartments at Ras el-Tin. She follows Paris fashion, reads the Paris magazines, and has firm views on every room.',
     budget: [8000, 35000],
     patience: 60,
     trust: 42,
@@ -120,14 +121,14 @@ export const ROYALS: Record<string, BuyerDef> = {
       priceObjection('It is lovely. I only wonder what the Chamberlain will say when he sees the price.', 'Then we will not tell him everything at once.', 'Well. The silk does catch the light.'),
     ],
     lines: base({
-      arrival: ['A lady-in-waiting leads you into a white salon above the harbour. Queen Nazli is seated by the open window.'],
+      arrival: ['A lady-in-waiting leads you into a white salon above the harbour. Laila Haddad, who buys for the household, is seated by the open window.'],
       greeting: ['You are the merchant from Giza. Someone in Cairo says your carpets have better manners than most of the court. Show me.'],
       repeat: ['Our carpet man again. Good. The sea air has made me want to change everything in this room.'],
-      room: ['These are my summer apartments. White walls, tall windows, the sea all afternoon. Everything here should feel light.', 'It is for my sitting room above the harbour. Paris silks on the chairs and a bare floor that looks like a hospital.'],
-      drawnTo: ['Something with a story I can tell at dinner. And soft. I walk barefoot here when nobody is looking.', 'Elegance. Not the Ottoman kind, all weight and gilding. The kind they have in Paris.'],
+      room: ['These are Her Majesty\'s summer apartments. White walls, tall windows, the sea all afternoon. Everything here should feel light.', 'It is for Her Majesty\'s sitting room above the harbour. Paris silks on the chairs and a bare floor that looks like a hospital.'],
+      drawnTo: ['Something with a story Her Majesty can tell at dinner. And soft. She walks barefoot here when nobody is looking.', 'Elegance. Not the Ottoman kind, all weight and gilding. The kind they have in Paris.'],
       budgetEarly: ['You ask the price of the room before you have seen it? Show me a carpet first.'],
       budgetLate: ['For the right piece, three hundred pounds and a little more. The Chamberlain will sigh. He always sighs.'],
-      decider: ['I choose for my own apartments. His Majesty has his palaces, I have my rooms.'],
+      decider: ['I choose for Her Majesty\'s apartments. The Chamberlain may have the rest of the palace.'],
       smallTalk: ['Have you seen the new French magazines? No, of course, you sell carpets.', 'The harbour is full of yachts this week. Everyone comes to Alexandria in the summer.'],
       earlyPresent: ['You unroll before I have said a word. Patience, monsieur.'],
       rugGood: ['Oh, yes. Bring it into the light.', 'That is charming. Truly.'],
@@ -136,7 +137,7 @@ export const ROYALS: Record<string, BuyerDef> = {
       colour: { indigo: 'Blue, like the harbour at evening. Yes.', crimson: 'So much red. The room would feel smaller.', ivory: 'Ivory. That is the colour of this summer.', gold: 'Pale gold. It would be lovely with the white walls.', mixed: 'Too many colours. It looks like a market.' },
       condition: { dirty: 'It needs washing. I can almost smell the lane.', worn: 'It is tired at one end.', damaged: 'There is a tear. No, thank you.' },
       story: { good: ['That is a story I will tell tonight. They will all want one.'], flat: ['Every carpet has a grandmother. Tell me something new.'] },
-      craft: { good: ['I will take your word for the knots. They look very fine.'], flat: ['You sound like my husband\'s engineers.'] },
+      craft: { good: ['I will take your word for the knots. They look very fine.'], flat: ['You sound like the palace engineers.'] },
       fit: { good: ['Yes, by the window, with the curtains moving. I can see it.'], flat: ['You have not listened to me at all.'] },
       durability: { good: ['It will last. Good. I do not like to buy twice.'], flat: ['I am not furnishing a barracks.'] },
       repeatArg: ['You said that already, monsieur.'],
@@ -163,9 +164,9 @@ export const ROYALS: Record<string, BuyerDef> = {
 
   abdullah: {
     id: 'abdullah',
-    name: 'Emir Abdullah',
-    role: 'Emir of Transjordan, holding court at Amman',
-    bio: 'Son of Sharif Hussein of Mecca. A poet and a chess player who prefers the tent to the palace, but is building one anyway.',
+    name: 'Nadir al-Khatib',
+    role: 'Carpet purchasing agent to the diwan at Raghadan Palace, Amman',
+    bio: 'He buys the carpets for the diwan at Raghadan. A poet and a chess player who prefers the tent to the palace, but is furnishing one anyway.',
     budget: [4000, 20000],
     patience: 72,
     trust: 48,
@@ -191,14 +192,14 @@ export const ROYALS: Record<string, BuyerDef> = {
       priceObjection('Your price has come a long way to reach Amman. So have you.', 'Honesty is a guest I welcome in this house.', 'Well spoken. I am still thinking.'),
     ],
     lines: base({
-      arrival: ['You are shown into a long room with cushions along the walls. Emir Abdullah sets down a chess piece and rises to greet you.'],
+      arrival: ['You are shown into a long room with cushions along the walls. Nadir al-Khatib, who buys the carpets for the diwan, sets down a chess piece and rises to greet you.'],
       greeting: ['Welcome, welcome. A merchant who crosses the Jordan with carpets must either be very brave or very poor. Sit.'],
       repeat: ['The carpet man returns. Sit, have coffee. Tell me what the road to Amman was like this time.'],
       room: ['It is for the majlis. Every morning the sheikhs come to sit and argue, and every evening their boots are on my floor.', 'The new rooms are cold stone and the winter here is not kind. I want the floor to feel like a tent.'],
       drawnTo: ['A rug should have a story, as a poem should have a journey in it.', 'Honest wool. Rugs from people who live in tents understand what a floor is for.'],
       budgetEarly: ['Coffee first, merchant. In this house we talk about price after we have talked about everything else.'],
       budgetLate: ['For a rug that deserves the majlis, two hundred pounds. Transjordan is not a rich country.'],
-      decider: ['I decide. But my father in Mecca would have an opinion, and he would send it by telegram.'],
+      decider: ['I decide. But His Highness would have an opinion, and he would send it by note.'],
       smallTalk: ['Do you play chess? A pity. Nobody in Amman will lose to me gracefully.', 'I wrote four lines of poetry this morning. Three of them were good.'],
       earlyPresent: ['You have unrolled a carpet before the coffee. Sit, sit.'],
       rugGood: ['Ah. Now that has a voice.', 'That one I like. Bring it closer.'],
@@ -235,9 +236,9 @@ export const ROYALS: Record<string, BuyerDef> = {
 
   faisal: {
     id: 'faisal',
-    name: 'King Faisal I',
-    role: 'King of Iraq, receiving at the royal court in Baghdad',
-    bio: 'Crowned in Baghdad in 1921. A patient diplomat who lived in Damascus and Constantinople and knows fine things from every one of them.',
+    name: 'Karim al-Rashid',
+    role: 'Carpet purchasing agent to the royal court household in Baghdad',
+    bio: 'He buys the carpets for the court in Baghdad. Patient and careful, he has bought in Damascus and Constantinople and knows fine things from both.',
     budget: [12000, 45000],
     patience: 64,
     trust: 44,
@@ -259,15 +260,15 @@ export const ROYALS: Record<string, BuyerDef> = {
     roomWord: 'audience hall',
     royal: { venue: 'baghdad', minRep: 30, focusY: 22, warrant: 'Carpets supplied to the Royal Court of Iraq' },
     objections: [
-      { id: 'loud', when: (t) => t.traits.includes('bold') || t.traits.includes('ornate'), text: 'It is splendid. Splendour is easy. I am trying to build a court that does not shout.', honest: 'You understand me. That is rarer than you would think.', facts: 'Splendid work, I agree. Still, it shouts.', factsWorks: false },
+      { id: 'loud', when: (t) => t.traits.includes('bold') || t.traits.includes('ornate'), text: 'It is splendid. Splendour is easy. His Majesty is trying to build a court that does not shout.', honest: 'You understand me. That is rarer than you would think.', facts: 'Splendid work, I agree. Still, it shouts.', factsWorks: false },
       priceObjection('Baghdad sits on the Persian carpet road. I know what a fine carpet costs here.', 'You do not pretend. Good. Go on.', 'I will grant you the weave.'),
     ],
     lines: base({
-      arrival: ['An aide leads you through a courtyard of orange trees into the audience hall. King Faisal waits by a low table, turning a string of amber beads.'],
+      arrival: ['An aide leads you through a courtyard of orange trees into the audience hall. Karim al-Rashid, who buys for the court household, waits by a low table, turning a string of amber beads.'],
       greeting: ['You have come a long way from Giza. Sit, please. Tell me what you have carried across the desert.'],
       repeat: ['The merchant from Giza again. The last carpet you sold me is still admired. Sit.'],
-      room: ['It is for the audience hall. Sheikhs, British officers and deputies from the new parliament all stand on that floor. It must belong to none of them and please all of them.', 'A carpet for my study. I receive very few people there and think a great deal.'],
-      drawnTo: ['A true history. I have lived in Mecca, Istanbul and Damascus. I can tell when a story has been invented on the road.', 'Fine weave and a quiet colour. The best things in a room do not ask to be noticed.'],
+      room: ['It is for the audience hall. Sheikhs, British officers and deputies from the new parliament all stand on that floor. It must belong to none of them and please all of them.', 'A carpet for His Majesty\'s study. He receives very few people there and thinks a great deal.'],
+      drawnTo: ['A true history. I have bought in Tabriz, Istanbul and Damascus. I can tell when a story has been invented on the road.', 'Fine weave and a quiet colour. The best things in a room do not ask to be noticed.'],
       budgetEarly: ['You go straight to money. In Baghdad that is considered a little rude.'],
       budgetLate: ['For the right piece, the court will pay four hundred pounds. For the wrong one, nothing.'],
       decider: ['I decide, and the treasury complains. That is how it has always worked.'],
@@ -306,9 +307,9 @@ export const ROYALS: Record<string, BuyerDef> = {
 
   ataturk: {
     id: 'ataturk',
-    name: 'Mustafa Kemal Pasha',
-    role: 'President of the Republic of Turkey, at Çankaya in Angora',
-    bio: 'President since the Republic was declared in 1923. He is furnishing the house at Çankaya and prefers Anatolian work to palace carpets.',
+    name: 'Meryem Arslan',
+    role: 'Procurement secretary to the household at Çankaya, Angora',
+    bio: 'She keeps the accounts and buys the furnishings for the President\'s residence at Çankaya. She prefers Anatolian work to palace carpets.',
     budget: [3000, 12000],
     patience: 50,
     trust: 42,
@@ -334,10 +335,10 @@ export const ROYALS: Record<string, BuyerDef> = {
       priceObjection('Tell me why it is worth that. Plainly.', 'A plain answer. Good.', 'Reasonable. Go on.'),
     ],
     lines: base({
-      arrival: ['You are shown into a plain study at Çankaya. Mustafa Kemal Pasha, in a grey European suit, looks up from a desk covered with papers.'],
+      arrival: ['You are shown into a plain study at Çankaya. Meryem Arslan, the household\'s procurement secretary, in a grey European suit, looks up from a desk covered with papers.'],
       greeting: ['You are the carpet merchant from Egypt. I have a quarter of an hour. Use it well.'],
       repeat: ['The merchant from Egypt again. You were useful last time. Quickly, please.'],
-      room: ['It is for this study. I work here until late at night. I want a floor that is warm and does not distract me.', 'The house is modern and plain. The carpet must be the same.'],
+      room: ['It is for the President\'s study. He works there until late at night. He wants a floor that is warm and does not distract him.', 'The house is modern and plain. The carpet must be the same.'],
       drawnTo: ['Straight answers. Tell me what it is, where it was made and what it costs.', 'A thing made to be used. Anatolian women have made such carpets for centuries.'],
       budgetEarly: ['Thirty pounds, perhaps a hundred. I prefer to know the numbers first. Now show me.'],
       budgetLate: ['For the right one, a hundred and twenty pounds. Not for luxury.'],
@@ -351,7 +352,7 @@ export const ROYALS: Record<string, BuyerDef> = {
       condition: { dirty: 'It is dirty.', worn: 'It has been used. That is not always bad.', damaged: 'It is damaged. No.' },
       story: { good: ['A real history. Good.'], flat: ['Stories. I asked for facts.'] },
       craft: { good: ['Yes. Well made. Explained clearly.'], flat: ['You are reciting.'] },
-      fit: { good: ['Yes, under this desk. Warm and plain. You understood.'], flat: ['You were not listening.'] },
+      fit: { good: ['Yes, under the President\'s desk. Warm and plain. You understood.'], flat: ['You were not listening.'] },
       durability: { good: ['It will last. Good.'], flat: ['Everything lasts if nobody uses it.'] },
       repeatArg: ['You said that already.'],
       embellishBelieved: ['A pasha\'s house. Pashas had too many carpets.'],
@@ -370,7 +371,7 @@ export const ROYALS: Record<string, BuyerDef> = {
       walkAway: ['Thank you. That is all.'],
       rare: ['A rare piece. Where did you find it?'],
       embellishLater: ['The history you gave me was not true. I checked.'],
-      previousRug: ['The {rug} is under my desk. It has survived many long nights.'],
+      previousRug: ['The {rug} is under the President\'s desk. It has survived many long nights.'],
       concession: ['Good.'],
     }),
   },
@@ -378,11 +379,11 @@ export const ROYALS: Record<string, BuyerDef> = {
 
 export const ROYAL_IDS = Object.keys(ROYALS);
 
-/** Seller lines for "speak to their room", one per royal. */
+/** Seller lines for "speak to their room", one per royal household. */
 export const ROYAL_FIT: Record<string, string> = {
   fuad: 'Under the chandeliers of the east salon, {rug} will make an ambassador lower his voice.',
   nazli: 'By the open window, with the sea behind it, {rug} will make the room feel like summer.',
   abdullah: 'Along the cushions of the majlis, {rug} will take the sheikhs\' boots and still be there for their grandsons.',
   faisal: 'In the audience hall, {rug} belongs to no one and makes everyone feel welcome.',
-  ataturk: 'Under this desk, {rug} is warm, plain and made by Anatolian hands.',
+  ataturk: 'Under the President\'s desk, {rug} is warm, plain and made by Anatolian hands.',
 };

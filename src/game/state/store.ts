@@ -2994,7 +2994,7 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const b = BUYERS[buyerId];
           if (!b?.royal) return '';
-          if (s.reputation < b.royal.minRep) return `The chamberlain regrets that the ${b.name.startsWith('Queen') ? 'Queen' : b.name.includes('President') || b.name.includes('Kemal') ? 'President' : b.name.startsWith('Emir') ? 'Emir' : 'King'} receives merchants of greater standing. Come back with reputation ${b.royal.minRep} (you have ${s.reputation}).`;
+          if (s.reputation < b.royal.minRep) return `The chamberlain regrets that ${b.name} receives merchants of greater standing. Come back with reputation ${b.royal.minRep} (you have ${s.reputation}).`;
           const ch = heroCharisma(s.wardrobe ?? START_WARDROBE, s.attire?.clean ?? 100);
           if (ch < 6) return (s.attire?.clean ?? 100) < 40 && (s.attire?.worn ?? 'galabiya') !== 'galabiya'
             ? 'The chamberlain looks at the road dust on your coat and does not write your name down. Wash at a hammam first.'

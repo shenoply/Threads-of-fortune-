@@ -59,7 +59,7 @@ const soonestSale = (city: string, day: number): [string, number] | null => {
   if (!hs.length) return null;
   return hs.map((h) => [h.id, saleOn(h.id, day) ? day : nextSale(h.id, day)] as [string, number]).sort((a, b) => a[1] - b[1])[0];
 };
-/** Queen Nazli at Ras el-Tin, Alexandria, is the court that receives a merchant first (data/royals.ts) */
+/** Ras el-Tin, Alexandria (Laila Haddad), is the court that receives a merchant first (data/royals.ts) */
 export const FIRST_COURT_REP = 15;
 const charismaOf = (s: MissionState) => {
   const x = s as unknown as { wardrobe?: WardrobeState; attire?: { clean?: number } };
@@ -158,8 +158,8 @@ export const MISSIONS: Record<string, Mission> = {
   },
   warrant: {
     id: 'warrant', title: 'By royal appointment', giver: 'Your own ambition',
-    brief: 'Kings, queens and emirs buy carpets too. A royal warrant would put your name above every dealer in the lane. Dress for court, bring an Exceptional rug, and win a royal sale. Queen Nazli at Ras el-Tin palace in Alexandria receives merchants first, from reputation 15.',
-    steps: [`Reach reputation ${FIRST_COURT_REP}: Queen Nazli at Ras el-Tin, Alexandria. Other courts ask 20 to 35`, 'Buy court dress from a tailor in Cairo or Alexandria, and keep it clean', 'Pack an Exceptional rug or better, in good condition, and sell it at the palace for a fair price. Courts do not look at Common or Fine rugs'],
+    brief: 'Royal households buy carpets too. A royal warrant would put your name above every dealer in the lane. Dress for court, bring an Exceptional rug, and win a royal sale. Laila Haddad, who buys for Ras el-Tin palace in Alexandria, receives merchants first, from reputation 15.',
+    steps: [`Reach reputation ${FIRST_COURT_REP}: Laila Haddad at Ras el-Tin, Alexandria. Other courts ask 20 to 35`, 'Buy court dress from a tailor in Cairo or Alexandria, and keep it clean', 'Pack an Exceptional rug or better, in good condition, and sell it at the palace for a fair price. Courts do not look at Common or Fine rugs'],
     target: 'alexandria',
     locks: 'Purveyor to Kings asks for three royal warrants. This is the first.',
     reward: { cash: 0, rep: 5, trust: 10, text: 'The warrant hangs above your stall in a gilt frame. Buyers read it before they read your prices.' },
@@ -168,7 +168,7 @@ export const MISSIONS: Record<string, Mission> = {
       if (rep < FIRST_COURT_REP) return `Reach reputation ${FIRST_COURT_REP} (you have ${rep}).`;
       if (charismaOf(s) < 6) return 'Buy court dress (Cairo or Alexandria).';
       if (!courtRug(s)) return 'Pack an Exceptional rug for the palace.';
-      return s.world.at === 'alexandria' ? 'Sell to Queen Nazli at Ras el-Tin.' : 'Sell to Queen Nazli in Alexandria.';
+      return s.world.at === 'alexandria' ? 'Sell to Laila Haddad at Ras el-Tin.' : 'Sell to Laila Haddad in Alexandria.';
     },
     // only packed rugs reach a palace, and packing is done at the Giza stall
     next: (s) => (!courtRug(s) && ((s as unknown as { reputation?: number }).reputation ?? 0) >= FIRST_COURT_REP && charismaOf(s) >= 6 ? { btn: s.world.at === 'giza' ? 'Stock' : 'To Giza', go: s.world.at === 'giza' ? 'stock' : 'district' } : null),
@@ -193,17 +193,17 @@ export const MISSIONS: Record<string, Mission> = {
   },
   warrant2: {
     id: 'warrant2', title: 'A second court', giver: 'Your own ambition',
-    brief: 'One warrant hangs above your stall. The great dealers of the Levant hold several. King Fuad at Abdeen palace in Cairo receives merchants from reputation 25, and the Emir Abdullah at Raghadan in Amman from 20. Each court wants an Exceptional rug, at a fair price.',
-    steps: ['Reach reputation 20 for the Emir in Amman, or 25 for King Fuad in Cairo', 'Keep your court dress clean', 'Pack an Exceptional rug in good condition and sell it to a court that has not yet given you a warrant'],
+    brief: 'One warrant hangs above your stall. The great dealers of the Levant hold several. Samir al-Masri at Abdeen palace in Cairo receives merchants from reputation 25, and Nadir al-Khatib at Raghadan in Amman from 20. Each court wants an Exceptional rug, at a fair price.',
+    steps: ['Reach reputation 20 for Raghadan in Amman, or 25 for Abdeen in Cairo', 'Keep your court dress clean', 'Pack an Exceptional rug in good condition and sell it to a court that has not yet given you a warrant'],
     target: 'cairo',
     locks: 'Purveyor to Kings asks for three royal warrants. This is the second.',
     reward: { cash: 0, rep: 5, trust: 5, text: 'A second warrant goes up beside the first. Hagop writes from the Khan: "Two courts. Now they will start to ask you for things."' },
     hint: (s) => {
       const rep = repOf(s);
-      if (rep < 20) return `Reach reputation 20: the Emir in Amman (you have ${rep}).`;
+      if (rep < 20) return `Reach reputation 20: Raghadan in Amman (you have ${rep}).`;
       if (charismaOf(s) < 6) return 'Court dress first (Cairo or Alexandria).';
       if (!courtRug(s)) return 'Pack an Exceptional rug for a second court.';
-      return rep >= 25 ? 'Sell to King Fuad (Cairo) or the Emir (Amman).' : 'Sell to the Emir Abdullah in Amman.';
+      return rep >= 25 ? 'Sell to Samir al-Masri (Cairo) or Nadir al-Khatib (Amman).' : 'Sell to Nadir al-Khatib in Amman.';
     },
     next: (s) => (!courtRug(s) && charismaOf(s) >= 6 && repOf(s) >= 20 ? { btn: s.world.at === 'giza' ? 'Stock' : 'To Giza', go: s.world.at === 'giza' ? 'stock' : 'district' } : null),
     waits: (s) => repOf(s) < 20,

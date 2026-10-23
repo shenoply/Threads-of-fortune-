@@ -319,18 +319,18 @@ export const GROOMING: Record<string, Grooming> = {
   },
   fuad: {
     smell: [
-      'You come before your king unwashed? That is either very brave or very foolish.',
+      'You come to Abdeen unwashed? That is either very brave or very foolish.',
       'The chamberlain will air this room when you are gone. For some days.',
       'A merchant at Abdeen should smell of rosewater, not of the road.',
     ],
     ragged: [
-      'My palace guards are better dressed, and they stand in the sun all day.',
+      'The palace guards are better dressed, and they stand in the sun all day.',
       'You come to Abdeen in a galabiya fit for the field. Remarkable.',
-      'In Italy they taught me that a man is known by his linen. What should I know of you?',
+      'In this household a man is known by his linen. What should I know of you?',
     ],
     mockStock: [
       'This is a village piece. You have brought village pieces to Abdeen.',
-      'I founded a university, merchant. I know a doormat when I see one.',
+      'I have bought for this palace for twenty years, merchant. I know a doormat when I see one.',
       'Come back with a carpet from a palace loom, or do not come back.',
     ],
     mockLeave: [
@@ -350,7 +350,7 @@ export const GROOMING: Record<string, Grooming> = {
       'Such a sad little galabiya. Did it come with the rugs?',
     ],
     mockStock: [
-      'These would not do for my maid\'s bedroom, let alone mine.',
+      'These would not do for a maid\'s bedroom, let alone Her Majesty\'s.',
       'In Paris they would call this charming. In Cairo we call it firewood.',
       'I read the Paris magazines, darling. Nothing in them looks like this.',
     ],
@@ -371,9 +371,9 @@ export const GROOMING: Record<string, Grooming> = {
       'You look like a man who lost a chess game and his coat with it.',
     ],
     mockStock: [
-      'I am building a palace, merchant. You show me what goes under a goat.',
+      'I am furnishing a palace, merchant. You show me what goes under a goat.',
       'In chess one does not open with a pawn and call it a queen.',
-      'Bring me a carpet worthy of my father\'s house in Mecca. These are worthy of a stable.',
+      'Bring me a carpet worthy of the house of Mecca. These are worthy of a stable.',
     ],
     mockLeave: [
       'Checkmate, merchant. You never had the pieces.',
@@ -382,8 +382,8 @@ export const GROOMING: Record<string, Grooming> = {
   },
   faisal: {
     smell: [
-      'I have ridden with Bedouin through the whole war. None smelled quite like this.',
-      'Forgive me. A king learns to be polite. But not this polite.',
+      'I have travelled with Bedouin caravans for years. None smelled quite like this.',
+      'Forgive me. A court learns to be polite. But not this polite.',
       'In Damascus the merchants bathed before the Friday market. It was a good custom.',
     ],
     ragged: [
@@ -392,7 +392,7 @@ export const GROOMING: Record<string, Grooming> = {
       'A merchant should look like his best carpet. I hope your best carpet looks better.',
     ],
     mockStock: [
-      'I lived in Istanbul, merchant. I have seen what a real palace carpet is.',
+      'I have bought in Istanbul, merchant. I have seen what a real palace carpet is.',
       'These are fine for a guardroom. I did not come to furnish a guardroom.',
       'Come back when you have something from the old courts, not the old market.',
     ],
@@ -405,16 +405,16 @@ export const GROOMING: Record<string, Grooming> = {
     smell: [
       'The Republic has abolished many old customs. Bathing was not one of them.',
       'A modern nation begins with a clean man. Start with yourself.',
-      'I have smelled the trenches at Gallipoli. You are a close second.',
+      'I have smelled the Angora tanneries in August. You are a close second.',
     ],
     ragged: [
-      'We have banned the fez. Do not tempt me to ban that galabiya.',
+      'The Republic has banned the fez. Do not tempt it to ban that galabiya.',
       'A man in a clean collar can build a country. A man in that can barely sell a rug.',
       'Dress for the century you live in, merchant. It is 1925.',
     ],
     mockStock: [
       'I want good Anatolian work, not the sweepings of a sleepy village.',
-      'The Republic has abolished the old ways, and it seems you have abolished the good carpets. Answer quickly, I have a country to run.',
+      'The Republic has abolished the old ways, and it seems you have abolished the good carpets. Answer quickly, I have a household to run.',
       'Bring me the finest loom in Anatolia. Not the tiredest.',
     ],
     mockLeave: [

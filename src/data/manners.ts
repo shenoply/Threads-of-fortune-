@@ -53,8 +53,8 @@ export const BUYER_MANNER: Record<string, Record<MannerKind, Reaction>> = {
     firm: { like: -1, good: 'Hm.', bad: 'Firm with me? My friend, I am the customer.' },
   },
   fuad: {
-    charm: { like: 1, good: 'You have the manners of a Turin shopkeeper. I mean that as praise.', bad: 'Enough ceremony.' },
-    kind: { like: 0, good: 'Your concern is noted.', bad: 'The King does not need your sympathy.' },
+    charm: { like: 1, good: 'You have the manners of an Italian shopkeeper. I mean that as praise.', bad: 'Enough ceremony.' },
+    kind: { like: 0, good: 'Your concern is noted.', bad: 'The household does not need your sympathy.' },
     firm: { like: -1, good: 'Hm.', bad: 'You forget where you are standing, merchant.' },
   },
   nazli: {
