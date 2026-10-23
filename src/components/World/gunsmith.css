@@ -1,0 +1,31 @@
+.overlay.gunsmith { background: rgb(14, 9, 5); }
+.gun-body { overflow-y: auto; padding: 0 0 24px; max-width: 760px; width: 100%; margin: 0 auto; }
+.gun-pic { position: relative; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; background: #1a110a; }
+.gun-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.gun-pic .gun-prev { animation: gun-out .35s ease forwards; z-index: 1; }
+.gun-pic .gun-now { z-index: 0; }
+@keyframes gun-out { to { opacity: 0; } }
+.gun-back { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 2; padding: 5px 12px; border-radius: 14px; background: rgba(14, 9, 5, .85); font-size: 13.5px; color: var(--text); white-space: nowrap; }
+.gun-says { margin: 10px 14px 8px; font-size: 15px; line-height: 1.4; color: var(--text); font-style: italic; min-height: 2.8em; }
+.gun-slots { display: flex; gap: 6px; padding: 0 14px; }
+.gun-slots button { flex: 1; min-height: 40px; background: transparent; border: 0; border-bottom: 2px solid var(--quiet-line, rgba(234,219,189,.2)); color: var(--text-dim); font-family: var(--label); font-size: 15px; letter-spacing: .03em; }
+.gun-slots button.on { color: var(--parchment); border-bottom: 3px solid var(--k-terra, #dc8558); background: rgba(234, 219, 189, .08); font-weight: 700; }
+.gun-strip { display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px 6px; scrollbar-width: none; }
+.gun-card { flex: 0 0 132px; display: flex; flex-direction: column; gap: 2px; padding: 0 0 7px; border-radius: 8px; border: 1px solid var(--quiet-line, rgba(234,219,189,.2)); background: #1c140c; color: var(--text); text-align: left; overflow: hidden; cursor: pointer; }
+.gun-card .gun-thumb { padding: 0; }
+.gun-thumb { display: block; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; margin-bottom: 4px; }
+.gun-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.75); transform-origin: 50% 46%; }
+.gun-card b { font-weight: 600; font-size: 13.5px; line-height: 1.2; padding: 0 7px; min-height: 2.4em; }
+.gun-card span { padding: 0 7px; font-size: 13.5px; color: var(--k-gold, #e6b552); font-variant-numeric: tabular-nums; }
+.gun-card em { padding: 0 7px; font-style: normal; font-size: 12.5px; color: var(--k-terra, #dc8558); }
+.gun-card.on { border-color: var(--k-gold, #e6b552); box-shadow: 0 0 0 1px var(--k-gold, #e6b552), 0 0 12px rgba(230, 181, 82, .3); }
+.gun-card.mine span { color: var(--k-olive, #a2c05f); }
+.gun-buy { display: flex; align-items: center; gap: 12px; margin: 8px 14px 0; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--quiet-line-hi, rgba(234,219,189,.36)); background: rgba(255, 240, 210, .04); }
+.gun-buy > div { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gun-buy b { font-weight: 600; font-size: 15.5px; }
+.gun-buy span { font-size: 13.5px; color: var(--text-dim); line-height: 1.35; }
+.gun-buy .gun-trade { color: var(--k-olive, #a2c05f); }
+.gun-buy .btn { flex: none; }
+.gun-mine { flex: none; color: var(--k-olive, #a2c05f); font-family: var(--label); }
+.gun-note { margin: 10px 14px 0; font-size: 14.5px; color: var(--text); font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .gun-pic .gun-prev { animation-duration: .01s; } }

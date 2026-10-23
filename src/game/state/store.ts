@@ -13,6 +13,7 @@ import { NARRATOR, RASHID } from '../../data/dialogue';
 import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
 import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import { ARM_BY_ID, GUNSMITH_TOWN } from '../../data/arms';
 import { ALL_THREE, errandsFor, giftFor, giftToday, type DailyState, type Gift } from '../systems/daily';
 import type { HeroLook } from '../heroLook';
 import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
@@ -226,6 +227,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
+  /** what the merchant carries from the gunsmith (data/arms.ts): one thing at his side, one long arm */
+  carry?: { side?: string; long?: string };
   /** the daily gift's run of days and the errands paid for (systems/daily.ts) */
   daily?: DailyState;
   /** prices you have seen rugs fetch at auction, by rug type */
@@ -553,6 +556,8 @@ interface Actions {
   /** put an owned piece (or your father's) in its spot, or clear the spot (id null) */
   placeDressing: (spot: string, id: string | null) => string;
   setSignName: (name: string) => void;
+  /** buy from the gunsmith in the Muski; the piece in the same place is traded in at half its price */
+  buyArm: (id: string) => string;
   /** open today's gift (once a real day): what was in it, or null */
   openGift: () => Gift | null;
   /** be paid for a finished errand ('all' for the three together) */
@@ -4078,6 +4083,28 @@ export const useGame = create<GameState & Actions>()(
           if (!amount) return false;
           set({ cash: s.cash + amount, daily: { ...(s.daily ?? { streak: 0, best: 0 }), paid: [...paid, key] }, ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: id === 'all' ? "All three of the day's errands" : `Errand: ${errs.find((e) => e.id === id)?.text ?? id}`, amount }] });
           return true;
+        },
+
+        buyArm: (id) => {
+          const s = get();
+          const a = ARM_BY_ID[id];
+          if (!a) return '';
+          if (s.world.at !== GUNSMITH_TOWN) return 'Ali Hafez keeps his shop in Cairo.';
+          const old = ARM_BY_ID[s.carry?.[a.slot] ?? ''];
+          if (old?.id === id) return 'You already carry it.';
+          const back = old ? Math.round(old.price / 2) : 0;
+          const pay = a.price - back;
+          if (s.cash < pay) return `${a.name}: ${fmt(a.price)}${back ? `, less ${fmt(back)} for yours` : ''}. You have ${fmt(s.cash)}.`;
+          const arms = Math.max(0, (s.world.party.arms ?? 0) - (old?.power ?? 0) + a.power);
+          set({
+            cash: s.cash - pay,
+            carry: { ...(s.carry ?? {}), [a.slot]: id },
+            world: { ...s.world, party: { ...s.world.party, arms } },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `The gunsmith: ${lowerName(a.name)}${old ? ` (${lowerName(old.name)} traded in)` : ''}`, amount: -pay }],
+            journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(a.name)} from Ali Hafez in the Muski${old ? `, and left ${lowerName(old.name)} with him` : ''}.` }],
+          });
+          audio.sfx('coins');
+          return a.kind === 'pistol' || a.kind === 'rifle' || a.kind === 'shotgun' ? '"The permit is in your name. Keep it dry and keep it clean."' : '"Wear it where men can see it. That is half its use."';
         },
 
         setSignName: (name) => set({ signName: name.replace(/[\u0000-\u001f]/g, '').slice(0, 28).trim() || undefined }),

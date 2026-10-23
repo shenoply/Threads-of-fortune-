@@ -1,3 +1,5 @@
+import { Gunsmith } from './Gunsmith';
+import { GUNSMITH_TOWN } from '../../data/arms';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 // the telegraph counter is opened rarely: loaded when first asked for
 const DominoTable = lazy(() => import('../Cafe/DominoTable').then((m) => ({ default: m.DominoTable })));
@@ -194,6 +196,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [station, setStation] = useState(false);
   const [myShop, setMyShop] = useState(false);
   const [wanted, setWanted] = useState(false);
+  const [gunsmith, setGunsmith] = useState(false);
   // a long town menu shows its main places first; the rest wait behind "More in …"
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { setMoreOpen(false); }, [id]);
@@ -304,6 +307,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ['bag', 'The market', hasMarket && id !== 'giza' ? 'Buy rugs and food' : 'Buy food for the road', () => goTo('market'), 'menu-market'],
     ['camel', 'Animals', 'Camels, horses, donkeys and mules', () => goTo('animals'), 'menu-animals'],
     ['shield', 'Hire guards', 'Men for the road, and your roster', () => goTo('guards', 'sec-hire'), 'menu-guards'],
+    // Ali Hafez, armourer, in the Muski (data/arms.ts)
+    ...(id === GUNSMITH_TOWN ? [['sword', 'The gunsmith in the Muski', g.carry?.side || g.carry?.long ? 'Blades, pistols and rifles · trade yours in' : 'Blades, pistols and rifles for the road', () => setGunsmith(true), 'menu-gunsmith'] as [string, string, string, () => void, string]] : []),
     // the police post: the bands' leaders on its wall, and a desk for prisoners (systems/combat.ts)
     ...(['city', 'town', 'port', 'home'].includes(st.kind) ? [['scroll', 'Police post · Wanted', (() => { const n = (g.combat?.prisoners ?? []).reduce((a, p) => a + p.n + (p.leader ? 1 : 0), 0); return n ? `Hand over your ${n === 1 ? 'prisoner' : `${n} prisoners`} for the bounty` : 'Rewards for the leaders of the road bands'; })(), () => setWanted(true), 'menu-wanted'] as [string, string, string, () => void, string]] : []),
     ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
@@ -681,6 +686,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {station && <EscLayer onEsc={() => setStation(false)}><StationBoard from={id} name={walk?.pois.find((p) => p.id === 'station')?.name ?? `${st.name} station`} onClose={() => setStation(false)} onLeft={() => { setStation(false); setInCity(false); onClose(); }} /></EscLayer>}
       {myShop && <EscLayer onEsc={() => setMyShop(false)}><ShopPanel sid={id} onClose={() => setMyShop(false)} /></EscLayer>}
       {wanted && <EscLayer onEsc={() => setWanted(false)}><WantedCard town={st.name} onClose={() => setWanted(false)} /></EscLayer>}
+      {gunsmith && <Gunsmith onClose={() => setGunsmith(false)} />}
       {finance && <EscLayer onEsc={() => setFinance(false)}><FinancePanel onClose={() => setFinance(false)} /></EscLayer>}
       {wire && <EscLayer onEsc={() => setWire(false)}><Suspense fallback={null}><TelegraphOffice id={id} onClose={() => setWire(false)} /></Suspense></EscLayer>}
       {library && <EscLayer onEsc={() => setLibrary(false)}><LibraryView town={id} onClose={() => setLibrary(false)} /></EscLayer>}
