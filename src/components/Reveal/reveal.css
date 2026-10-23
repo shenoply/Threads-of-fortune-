@@ -83,3 +83,6 @@
 .reveal.unroll .reveal-pic { width: 150px; height: 100px; margin: 2px auto 8px; }
 .reveal.unroll .reveal-pic.rug { width: 120px; height: 170px; }
 .reveal.unroll .reveal-card em { margin-top: 8px; }
+.reveal.unroll .reveal-pic.rug { width: 100%; height: auto; background: none; box-shadow: none; }
+.reveal.unroll .reveal-pic.rug img { width: 100%; height: auto; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.6); }
+.reveal.unroll .reveal-card:has(.reveal-pic.rug) { width: min(270px, 74vw); }

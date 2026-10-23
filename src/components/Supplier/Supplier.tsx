@@ -1,3 +1,4 @@
+import { BaleCard } from '../Bales/Bale';
 import { openingStep } from '../../game/opening';
 import { createPortal } from 'react-dom';
 import { IntroFilm, filmDue, filmReady } from '../IntroFilm/IntroFilm';
@@ -104,6 +105,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
       </div>
 
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
+      <BaleCard toast={toast} />
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
       {/* (where bought rugs go is said once, in the opening) */}
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}

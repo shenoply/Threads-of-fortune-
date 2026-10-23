@@ -88,6 +88,7 @@ import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
 import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
+import { BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 export const SAVE_VERSION = 25;
@@ -230,6 +231,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
+  /** sealed customs bales bought at Rashid's warehouse */
+  bales?: BaleState;
   /** which of your stalls you show your goods in (an older one may be chosen); unset: the newest */
   stallLook?: string;
   /** carpets of your own design: the designs, and those still on the weaver's loom */
@@ -578,6 +581,10 @@ interface Actions {
   buyArm: (id: string) => string;
   /** open today's gift (once a real day): what was in it, or null */
   openGift: () => Gift | null;
+  /** buy (or, from the week's gift, be given) a sealed bale and cut it open: what was inside */
+  buyBale: (free?: boolean) => { msg: string; result?: BaleResult; items?: RugItem[] };
+  /** the last bale opened from the daily gift, for the gift's reveal */
+  lastBale?: { result: BaleResult; items: RugItem[] };
   /** be paid for a finished errand ('all' for the three together) */
   payErrand: (id: string) => boolean;
   /** shops in other cities: each returns a line for the player */
@@ -4100,6 +4107,13 @@ export const useGame = create<GameState & Actions>()(
             const t2 = RUGS[gift.typeId];
             patch.inventory = [...s.inventory, { uid: newUid('r'), typeId: gift.typeId, condition: 'Good', restored: false, provenance: t2?.provenance ?? 'Likely', paid: 0, notes: ['A gift from Uncle Rashid.'], stored: true }];
           }
+          if (gift.kind === 'bale') {
+            patch.journal = [...s.journal, { day: s.day, text: `Day ${t.run} in a row: ${gift.text}.` }];
+            set(patch);
+            const r = get().buyBale(true);
+            if (r.result && r.items) useGame.setState({ lastBale: { result: r.result, items: r.items } });
+            return gift;
+          }
           if (gift.kind === 'piece') {
             const d = DRESSING_BY_ID[gift.id];
             patch.dressing = [...(s.dressing ?? []), gift.id];
@@ -4108,6 +4122,24 @@ export const useGame = create<GameState & Actions>()(
           patch.journal = [...s.journal, { day: s.day, text: `Day ${t.run} in a row: ${gift.text}.` }];
           set(patch);
           return gift;
+        },
+
+        buyBale: (free = false) => {
+          const s = get();
+          const b = s.bales ?? { opened: 0, dry: 0, treasures: 0 };
+          if (!free && b.lastDay === s.day) return { msg: "Rashid's man brings one bale a day. Come back tomorrow." };
+          if (!free && s.cash < BALE_PRICE) return { msg: `A bale is ${fmt(BALE_PRICE)}.` };
+          const result = openBale(b);
+          const items: RugItem[] = result.lots.map((l) => ({ uid: newUid('r'), typeId: l.typeId, condition: l.condition, restored: false, provenance: 'Uncertain', paid: free ? 0 : Math.round(BALE_PRICE / result.lots.length), notes: ['Out of a sealed bale from the Port Said customs sheds.'], stored: s.world.at !== 'giza' }));
+          const treasure = result.grade === 'treasure';
+          set({
+            cash: free ? s.cash : s.cash - BALE_PRICE,
+            inventory: [...s.inventory, ...items],
+            bales: { lastDay: free ? b.lastDay : s.day, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
+            ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
+            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${items.map((i) => RUGS[i.typeId].name).join(' and ')}.` }].slice(-200),
+          });
+          return { msg: '', result, items };
         },
 
         payErrand: (id) => {

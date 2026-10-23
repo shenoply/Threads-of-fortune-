@@ -35,7 +35,8 @@ export type Gift =
   | { kind: 'cash'; amount: number; text: string }
   | { kind: 'rep'; amount: number; text: string }
   | { kind: 'rug'; typeId: string; text: string }
-  | { kind: 'piece'; id: string; text: string };
+  | { kind: 'piece'; id: string; text: string }
+  | { kind: 'bale'; text: string };
 
 /** What the gift of the nth day in a row is (the week goes round; each week round pays a little more). */
 export function giftFor(run: number, rankIdx: number, owned: string[]): Gift {
@@ -51,11 +52,15 @@ export function giftFor(run: number, rankIdx: number, owned: string[]): Gift {
       return { kind: 'rug', typeId: r.id, text: `A rug from Uncle Rashid: ${r.name}` };
     }
     case 4: return { kind: 'cash', amount: cash(250), text: 'A tip from a grateful buyer' };
-    case 5: return { kind: 'rep', amount: 3, text: 'The lane speaks well of you' };
+    case 5: {
+      // the first week, a piece for the stall; after that the lane's good word
+      const piece = week === 0 ? DRESSING.filter((p) => !p.father && !owned.includes(p.id) && p.art).sort((a, b) => a.cost - b.cost)[0] : undefined;
+      return piece ? { kind: 'piece', id: piece.id, text: `For the stall: ${piece.name.replace(/^An? /, 'a ').replace(/^a /, 'A ')}` } : { kind: 'rep', amount: 3, text: 'The lane speaks well of you' };
+    }
     case 6: return { kind: 'cash', amount: cash(400), text: 'A merchant\'s commission paid in advance' };
     default: {
-      const piece = DRESSING.filter((p) => !p.father && !owned.includes(p.id) && p.art).sort((a, b) => a.cost - b.cost)[0];
-      return piece ? { kind: 'piece', id: piece.id, text: `For the stall: ${piece.name.replace(/^An? /, 'a ').replace(/^a /, 'A ')}` } : { kind: 'cash', amount: cash(1500), text: 'A purse from the guild for a week of trade' };
+      // the seventh day: a sealed bale from the customs sheds, opened on the spot: it may hold anything
+      return { kind: 'bale', text: 'A sealed bale from the customs sheds' };
     }
   }
 }

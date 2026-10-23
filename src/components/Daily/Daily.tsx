@@ -8,12 +8,13 @@ import { fmt } from '../../game/economy/money';
 import { ALL_THREE, errandsFor, giftFor, giftToday, type Gift } from '../../game/systems/daily';
 import { Icon } from '../Icon';
 import { reveal } from '../Reveal/Reveal';
+import { showBale } from '../Bales/Bale';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import './daily.css';
 
-const giftShort = (g: Gift) => (g.kind === 'cash' ? fmt(g.amount) : g.kind === 'rep' ? `+${g.amount}★` : g.kind === 'rug' ? 'A rug' : 'For the stall');
+const giftShort = (g: Gift) => (g.kind === 'cash' ? fmt(g.amount) : g.kind === 'rep' ? `+${g.amount}★` : g.kind === 'rug' ? 'A rug' : g.kind === 'bale' ? 'Sealed bale' : 'For the stall');
 
 /** whether anything waits: today's gift unopened, or a finished errand not yet paid */
 export function useDailyWaiting() {
@@ -69,6 +70,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
     const r = g.openGift();
     if (!r) return;
     setGot(r);
+    if (r.kind === 'bale') { const lb = useGame.getState().lastBale; if (lb) showBale(lb.result, lb.items, `Your gift · day ${gift.run} in a row`); return; }
     const t = r.kind === 'rug' ? RUGS[r.typeId] : null;
     reveal({ kicker: `Today's gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', pic: t ? rugSrc(t) : undefined, picKind: 'rug' });
   };
@@ -108,7 +110,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
             </button>
             <div className="gift-says" aria-live="polite">
               {gift.open ? <><b>{giftFor(gift.run, rk, owned).text}</b><span>Tap the chest.</span></>
-                : got ? <><b className="gift-got" data-testid="gift-got">{got.text}</b><span>{got.kind === 'cash' ? `${fmt(got.amount)} in your purse.` : got.kind === 'rep' ? `+${got.amount} reputation.` : got.kind === 'rug' ? 'It waits at the stall.' : 'Put it out from Dress your stall.'}</span></>
+                : got ? <><b className="gift-got" data-testid="gift-got">{got.text}</b><span>{got.kind === 'cash' ? `${fmt(got.amount)} in your purse.` : got.kind === 'rep' ? `+${got.amount} reputation.` : got.kind === 'rug' ? 'It waits at the stall.' : got.kind === 'bale' ? 'Cut open: what was inside is in your stock.' : 'Put it out from Dress your stall.'}</span></>
                 : <><b>Opened today.</b><span>Come back tomorrow for day {gift.run + 1}: {next.text.toLowerCase()}.</span></>}
             </div>
           </div>
