@@ -16,7 +16,8 @@ export const PERSIAN_PHOTOS: string[] = [
   'persian-afshar', 'persian-bakhtiari', 'persian-baluch', 'persian-hamadan', 'persian-heriz', 'persian-isfahan', 'persian-joshaghan', 'persian-kashan', 'persian-kerman', 'persian-mashhad', 'persian-qashqai', 'persian-sarouk', 'persian-senneh', 'persian-tabriz',
 ];
 const persian = (id: string, seed: number, layout: 'medallion' | 'lattice' | 'kilim', palette: string[], d: Def): [string, RugType] => (PERSIAN_PHOTOS.includes(id)
-  ? rug(id, d)
+  // transparent pictures (no ground behind the rug and its fringe), 1024 px, at art/rugs/<id>.webp
+  ? [id, { id, ...d, rarity: RARITY[d.tier], art: { kind: 'photo', src: `art/rugs/${id}.webp` } }]
   : [id, { id, ...d, rarity: RARITY[d.tier], art: { kind: 'woven', seed, layout, palette } }]);
 
 const knots = {

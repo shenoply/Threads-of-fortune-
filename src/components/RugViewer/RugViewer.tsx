@@ -42,34 +42,43 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const imgRef = useRef<HTMLImageElement>(null);
   const measure = () => { const el = imgRef.current; if (el && el.offsetWidth) setFit({ w: el.offsetWidth, h: el.offsetHeight }); };
   useEffect(() => { if (imgRef.current?.complete) measure(); }, []);
-  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
-  const pinch = useRef<{ d: number; z: number } | null>(null);
+  const pinch = useRef<{ d: number; z: number; mx: number; my: number; px: number; py: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  // turning it over by hand: a drag across spins it round, a drag up or down tips it; let go and it
-  // carries on a little with the flick, then comes back to lie straight as it was
+  // In the hands: one finger turns it (across spins it round, up or down tips it towards you), and it
+  // stays as you leave it; two fingers zoom and move it, at whatever angle it lies; a finger on a rolled
+  // carpet pushes it open, and a finger on its far end pulls it up into a roll.
   const [turn, setTurn] = useState<{ yaw: number; pitch: number } | null>(null);
-  const tw = useRef<{ yaw: number; pitch: number; vy: number; vp: number; t: number; raf: number; grab?: { x: number; y: number; yaw: number; pitch: number; lx: number; ly: number; lt: number; on: boolean } }>({ yaw: 0, pitch: 0, vy: 0, vp: 0, t: 0, raf: 0 });
+  const tw = useRef<{ yaw: number; pitch: number; vy: number; vp: number; raf: number }>({ yaw: 0, pitch: 0, vy: 0, vp: 0, raf: 0 });
+  const grab = useRef<{ kind: 'turn' | 'roll'; x: number; y: number; yaw: number; pitch: number; p0: number; lt: number; v: number; on: boolean } | null>(null);
+  const hand = useRef<number | null>(null); // where a finger holds the roll (0 rolled … 1 flat)
+  const rollAt = useRef(roll ? 0 : 1); // where the roll is now, kept by the drawing
+  const [hint, setHint] = useState(() => { try { const n = +(localStorage.getItem('tof-insp-hint') ?? 0); localStorage.setItem('tof-insp-hint', String(n + 1)); return n < 4; } catch { return false; } });
   useEffect(() => () => cancelAnimationFrame(tw.current.raf), []);
-  const home = () => {
+  const animate = (straighten: boolean) => {
     const w = tw.current, base = (rot * Math.PI) / 180;
     cancelAnimationFrame(w.raf);
     let last = 0;
     const step = (now: number) => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now;
-      if (Math.abs(w.vy) > 0.6) { w.yaw += w.vy * dt; w.vy *= Math.exp(-2.6 * dt); w.pitch += (0 - w.pitch) * (1 - Math.exp(-3 * dt)); }
-      else {
-        const goal = base + Math.round((w.yaw - base) / (2 * Math.PI)) * 2 * Math.PI;
-        // a weighty spring back: it comes round and settles, no bounce
-        w.vy += ((goal - w.yaw) * 30 - w.vy * 10) * dt; w.yaw += w.vy * dt;
-        w.vp += ((0 - w.pitch) * 30 - w.vp * 10) * dt; w.pitch += w.vp * dt;
-        if (Math.abs(goal - w.yaw) < 0.002 && Math.abs(w.pitch) < 0.002 && Math.abs(w.vy) < 0.02) { w.vy = w.vp = 0; setTurn(null); return; }
+      if (!straighten) {
+        // a flick carries it round a little further, slowing as cloth would on the floor
+        w.yaw += w.vy * dt; w.vy *= Math.exp(-3.2 * dt);
+        setTurn({ yaw: w.yaw, pitch: w.pitch });
+        if (Math.abs(w.vy) > 0.05) w.raf = requestAnimationFrame(step);
+        return;
       }
+      const goal = base + Math.round((w.yaw - base) / (2 * Math.PI)) * 2 * Math.PI;
+      // a weighty spring back: it comes round and settles, no bounce
+      w.vy += ((goal - w.yaw) * 30 - w.vy * 10) * dt; w.yaw += w.vy * dt;
+      w.vp += ((0 - w.pitch) * 30 - w.vp * 10) * dt; w.pitch += w.vp * dt;
+      if (Math.abs(goal - w.yaw) < 0.002 && Math.abs(w.pitch) < 0.002 && Math.abs(w.vy) < 0.02) { w.vy = w.vp = 0; setTurn(null); return; }
       setTurn({ yaw: w.yaw, pitch: w.pitch });
       w.raf = requestAnimationFrame(step);
     };
     w.raf = requestAnimationFrame(step);
   };
+  const straighten = () => { tw.current.vy = tw.current.vp = 0; animate(true); };
   const tut = !g.tutorial.done && !!g.encounter?.tutorial;
   const used = g.tutorial.inspected;
 
@@ -118,56 +127,99 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
         className="inspector-stage"
         onWheel={(e) => setZ(zoom * (e.deltaY < 0 ? 1.15 : 0.87))}
         onPointerDown={(e) => {
-          if (roll && roll.target === 'flat') { setSkip((k) => k + 1); return; }
-          if (roll) return;
-          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+          // the tool buttons keep their own taps (capturing the pointer would take their click away)
+          if ((e.target as Element).closest('button')) return;
+          setHint(false);
+          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
           pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           if (pointers.current.size === 2) {
+            // a second finger: zoom and move, whatever angle it lies at; a roll held by the first is let go
+            const gr = grab.current; grab.current = null;
+            if (gr?.kind === 'roll') { hand.current = null; setRoll({ from: 'rolled', target: rollAt.current > 0.5 ? 'flat' : 'rolled' }); }
+            if (gr?.kind === 'turn' && gr.on) animate(false);
             const [a, b] = [...pointers.current.values()];
-            pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom };
-            drag.current = null;
-            if (tw.current.grab) { tw.current.grab = undefined; if (turn) home(); }
-          } else {
-            drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
-            if (zoom === 1) {
-              const w = tw.current; cancelAnimationFrame(w.raf);
-              if (!turn) { w.yaw = (rot * Math.PI) / 180; w.pitch = 0; }
-              w.vy = w.vp = 0;
-              w.grab = { x: e.clientX, y: e.clientY, yaw: w.yaw, pitch: w.pitch, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, on: !!turn };
-            }
+            pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, px: pan.x, py: pan.y };
+            return;
           }
+          if (pointers.current.size > 2) return;
+          const w = tw.current; cancelAnimationFrame(w.raf);
+          const base = { x: e.clientX, y: e.clientY, yaw: w.yaw, pitch: w.pitch, lt: e.timeStamp, v: 0, on: false };
+          if (roll) { grab.current = { kind: 'roll', ...base, p0: rollAt.current }; return; }
+          // the far end of a carpet lying straight: take hold of it and it rolls up under your finger
+          const r = imgRef.current?.getBoundingClientRect();
+          const straight = !turn && rot % 360 === 0 && zoom === 1 && !back;
+          if (straight && r && e.clientX > r.right - r.width * 0.2 && e.clientX < r.right + 24 && e.clientY > r.top - 16 && e.clientY < r.bottom + 16) {
+            grab.current = { kind: 'roll', ...base, p0: 1, on: false };
+            return;
+          }
+          if (!turn) { w.yaw = (rot * Math.PI) / 180; w.pitch = 0; }
+          w.vy = w.vp = 0;
+          grab.current = { kind: 'turn', ...base, yaw: w.yaw, pitch: w.pitch, p0: 1, on: !!turn };
         }}
         onPointerMove={(e) => {
           if (!pointers.current.has(e.pointerId)) return;
           pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          if (pinch.current && pointers.current.size === 2) {
+          const pc = pinch.current;
+          if (pc && pointers.current.size === 2) {
             const [a, b] = [...pointers.current.values()];
-            setZ(pinch.current.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.d));
-          } else if (tw.current.grab && zoom === 1) {
-            const w = tw.current, gr = w.grab!;
-            const dx = e.clientX - gr.x, dy = e.clientY - gr.y;
-            if (!gr.on && Math.hypot(dx, dy) < 7) return;
-            if (!gr.on) { gr.on = true; measure(); mark(); }
-            const dt = Math.max(1, e.timeStamp - gr.lt) / 1000;
-            const yaw = gr.yaw + dx * 0.011, pitch = Math.max(-1.05, Math.min(1.05, gr.pitch + dy * 0.008));
-            w.vy = 0.6 * w.vy + 0.4 * ((yaw - w.yaw) / dt); w.vp = 0;
-            w.yaw = yaw; w.pitch = pitch; gr.lx = e.clientX; gr.ly = e.clientY; gr.lt = e.timeStamp;
-            setTurn({ yaw, pitch });
-          } else if (drag.current && zoom > 1) {
-            setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) });
+            const nz = Math.max(1, Math.min(4, pc.z * (Math.hypot(a.x - b.x, a.y - b.y) / pc.d)));
+            setZoom(nz);
+            setPan({ x: pc.px + ((a.x + b.x) / 2 - pc.mx), y: pc.py + ((a.y + b.y) / 2 - pc.my) });
             mark();
+            return;
           }
+          const gr = grab.current;
+          if (!gr) return;
+          const dx = e.clientX - gr.x, dy = e.clientY - gr.y;
+          if (!gr.on && Math.hypot(dx, dy) < 7) return;
+          const dt = Math.max(1, e.timeStamp - gr.lt) / 1000;
+          if (!gr.on) {
+            gr.on = true; measure(); mark();
+            if (gr.kind === 'roll' && !roll) { hand.current = 1; rollAt.current = 1; setRoll({ from: 'flat', target: 'flat' }); }
+          }
+          if (gr.kind === 'roll') {
+            // the roll follows the finger along the carpet's length
+            const len = (fit?.w ?? 300) * 0.9;
+            const p = Math.max(0, Math.min(1, gr.p0 + dx / len));
+            gr.v = 0.6 * gr.v + 0.4 * ((p - (hand.current ?? p)) / dt);
+            hand.current = p;
+          } else {
+            const w = tw.current;
+            const yaw = gr.yaw + dx * 0.011, pitch = Math.max(-1.05, Math.min(1.05, gr.pitch + dy * 0.008));
+            w.vy = 0.6 * w.vy + 0.4 * ((yaw - w.yaw) / dt);
+            w.yaw = yaw; w.pitch = pitch;
+            setTurn({ yaw, pitch });
+          }
+          gr.lt = e.timeStamp;
         }}
         onPointerUp={(e) => {
           pointers.current.delete(e.pointerId);
           if (pointers.current.size < 2) pinch.current = null;
-          drag.current = null;
-          const gr = tw.current.grab;
-          tw.current.grab = undefined;
-          if (gr?.on) { if (e.timeStamp - gr.lt > 90) tw.current.vy = 0; tw.current.vy = Math.max(-14, Math.min(14, tw.current.vy)); home(); }
+          if (pointers.current.size === 0 && zoom === 1 && !turn) setPan({ x: 0, y: 0 });
+          const gr = grab.current;
+          grab.current = null;
+          if (!gr) return;
+          const late = e.timeStamp - gr.lt > 90;
+          if (gr.kind === 'roll') {
+            if (!gr.on) {
+              // a tap: the opening unroll jumps to its end; a carpet lying rolled lays itself out
+              if (roll?.target === 'flat') setSkip((k) => k + 1);
+              else if (roll) setRoll({ from: 'rolled', target: 'flat' });
+              return;
+            }
+            const p = hand.current ?? rollAt.current, v = late ? 0 : gr.v;
+            hand.current = null;
+            setRoll({ from: 'rolled', target: v > 1.2 ? 'flat' : v < -1.2 ? 'rolled' : p > 0.5 ? 'flat' : 'rolled' });
+            return;
+          }
+          if (gr.on) { if (late) tw.current.vy = 0; tw.current.vy = Math.max(-14, Math.min(14, tw.current.vy)); animate(false); }
         }}
-        onPointerCancel={(e) => { pointers.current.delete(e.pointerId); pinch.current = null; drag.current = null; if (tw.current.grab?.on) home(); tw.current.grab = undefined; }}
-        onDoubleClick={() => setZ(zoom > 1.5 ? 1 : 2.2)}
+        onPointerCancel={(e) => {
+          pointers.current.delete(e.pointerId); pinch.current = null;
+          if (grab.current?.kind === 'roll' && hand.current !== null) { hand.current = null; setRoll({ from: 'rolled', target: rollAt.current > 0.5 ? 'flat' : 'rolled' }); }
+          grab.current = null;
+        }}
+        onDoubleClick={() => { if (turn) { straighten(); setZ(1); } else setZ(zoom > 1.5 ? 1 : 2.2); }}
       >
         {back && <div className="sim-label">Simulated reverse · illustration, not a photograph</div>}
         <img
@@ -181,28 +233,35 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           data-zoom={zoom.toFixed(2)}
         />
         {roll && fit && (
-          <RollingRug src={rugSrc(t)} fit={fit} from={roll.from} target={roll.target} skip={skip}
+          <RollingRug src={rugSrc(t)} fit={fit} from={roll.from} target={roll.target} skip={skip} hand={hand} at={rollAt}
             filter={item.condition === 'Dirty' ? 'sepia(0.45) brightness(0.8)' : undefined}
-            onSettled={(at) => { if (at === 'flat') setRoll(null); }} />
+            onSettled={(at) => { if (at === 'flat') { setRoll(null); rollAt.current = 1; } }} />
         )}
         {turn && !roll && fit && (
-          <ExamineRug src={back ? backSrc || rugSrc(t) : rugSrc(t)} fit={fit} yaw={turn.yaw} pitch={turn.pitch}
+          <ExamineRug src={back ? backSrc || rugSrc(t) : rugSrc(t)} fit={fit} yaw={turn.yaw} pitch={turn.pitch} zoom={zoom} pan={pan}
             filter={item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined} />
+        )}
+        {hint && !counting && (
+          <div className={`insp-hint ${roll ? 'roll' : ''}`} aria-hidden="true" data-testid="insp-hint">
+            <span className="ih-track"><i className="ih-finger" /></span>
+            <small>{roll ? 'Push it open with your finger' : 'Drag to turn it · pinch to zoom · pull the far end to roll it'}</small>
+          </div>
         )}
         <div className="insp-tools">
           <button onClick={() => {
             mark();
             if (roll?.target === 'rolled') { setRoll({ from: 'rolled', target: 'flat' }); return; }
             if (roll) return;
-            setZoom(1); setPan({ x: 0, y: 0 }); setRot(0); setBack(false); measure();
+            setZoom(1); setPan({ x: 0, y: 0 }); setRot(0); setBack(false); cancelAnimationFrame(tw.current.raf); setTurn(null); measure();
             setRoll({ from: 'flat', target: 'rolled' });
           }} aria-label={roll?.target === 'rolled' ? 'Unroll it' : 'Roll it up'} data-testid="roll-toggle"><Icon name="scroll" /></button>
+          {turn && <button className="on" onClick={() => { straighten(); mark(); }} aria-label="Lay it straight" data-testid="straighten"><Icon name="locate" /></button>}
           <button onClick={() => setZ(zoom + 0.5)} aria-label="Zoom in" data-testid="zoom-in"><Icon name="zoomin" /></button>
           <button onClick={() => setZ(zoom - 0.5)} aria-label="Zoom out"><Icon name="zoomout" /></button>
-          <button onClick={() => { setRot((r) => r + 90); mark(); }} aria-label="Rotate" data-testid="rotate"><Icon name="rotate" /></button>
+          <button onClick={() => { if (turn) { tw.current.yaw += Math.PI / 2; setTurn({ yaw: tw.current.yaw, pitch: tw.current.pitch }); } else setRot((r) => r + 90); mark(); }} aria-label="Rotate" data-testid="rotate"><Icon name="rotate" /></button>
           <button onClick={() => { setBack((b) => !b); mark(); }} aria-label={back ? 'Show front' : 'Show reverse'} data-testid="flip"><Icon name="flip" /></button>
         </div>
-        <div className="insp-zoom">{roll ? (roll.target === 'rolled' ? 'Rolled up · the roll button lays it out again' : 'Unrolling · tap to skip') : <>{back ? 'Reverse (simulated)' : 'Front'} · {zoom.toFixed(1)}×{zoom === 1 ? ' · drag to turn it, pinch to zoom' : ' · drag to pan'}</>}</div>
+        <div className="insp-zoom">{roll ? (roll.target === 'rolled' ? 'Rolled up · push it open, or the roll button' : 'Unrolling · tap to skip, or take hold of it') : <>{back ? 'Reverse (simulated)' : 'Front'} · {zoom.toFixed(1)}×{turn ? ' · double-tap to lay it straight' : ' · drag to turn, pinch to zoom'}</>}</div>
       </div>
       <div className="insp-panel">
         <div className="tabs" role="tablist">

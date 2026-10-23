@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 
 const F = 2.4; // camera distance in carpet lengths
 
-export function ExamineRug({ src, fit, yaw, pitch, filter }: { src: string; fit: { w: number; h: number }; yaw: number; pitch: number; filter?: string }) {
+export function ExamineRug({ src, fit, yaw, pitch, filter, zoom = 1, pan = { x: 0, y: 0 } }: { src: string; fit: { w: number; h: number }; yaw: number; pitch: number; filter?: string; zoom?: number; pan?: { x: number; y: number } }) {
   const cv = useRef<HTMLCanvasElement>(null);
   const img = useRef<HTMLImageElement | null>(null);
   const draw = () => {
@@ -19,14 +19,14 @@ export function ExamineRug({ src, fit, yaw, pitch, filter }: { src: string; fit:
     if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
-    const iw = im.naturalWidth, ih = im.naturalHeight, wz = ih / iw, S = fit.w;
+    const iw = im.naturalWidth, ih = im.naturalHeight, wz = ih / iw, S = fit.w * zoom;
     const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), spp = Math.sin(pitch);
     // the carpet lies in x (length) and z (width); spin it round the upright axis, then tip it about the screen's horizontal
     const proj = (x: number, z: number) => {
       const X = x * cy - z * sy, Z = x * sy + z * cy;
       const sy2 = Z * cp, depth = -Z * spp; // toward the camera
       const k = F / (F - depth);
-      return { x: W / 2 + X * S * k, y: H / 2 + sy2 * S * k };
+      return { x: W / 2 + pan.x + X * S * k, y: H / 2 + pan.y + sy2 * S * k };
     };
     // which side faces us: the pile, or the back
     const facing = cp >= 0;

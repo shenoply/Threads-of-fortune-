@@ -23,7 +23,7 @@ import { audio } from '../../game/audio/engine';
 import './stall-fixes.css';
 
 // the most height the talk and the buttons under the stall picture have needed, per screen size
-const REST_KEY = 'tof-stall-rest';
+const REST_KEY = 'tof-stall-rest2';
 let restMemo: Record<string, number> | null = null;
 function restMost(key: string) {
   if (!restMemo) { try { restMemo = JSON.parse(localStorage.getItem(REST_KEY) || '{}'); } catch { restMemo = {}; } }
@@ -84,7 +84,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     // The talk under the picture (the line, the narrator, the buyer's plate) takes the height of the
     // longest it has been this visit, so the picture does not jump with every line; any height the
     // band is given beyond its words is kept between the line and the buyer's plate.
-    let bandMost = 0;
+    let bandMost = 0, bandSeen = 0, spare = 0;
     const locked = { key: '', enc: '', h: 0 };
     const fit = () => {
       let rest = 0, bandNow = bandMost;
@@ -96,16 +96,17 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           const kids = (Array.from(c.children) as HTMLElement[]).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed' && k.getBoundingClientRect().height > 0);
           const own = kids.reduce((a, k) => a + k.getBoundingClientRect().height, 0) + Math.max(0, kids.length - 1) * (parseFloat(st.rowGap) || 0)
             + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom) + parseFloat(st.borderTopWidth) + parseFloat(st.borderBottomWidth);
-          // from the first line on, room is kept for a usual exchange (three lines said and two of the
-          // narrator's) so the picture is sized once and does not shrink as the talk fills in
+          // from the first line on, room is kept for a usual exchange (three lines said) so the picture is sized once and does not shrink as the talk fills in
           let floor = 0;
           // (on a tall phone only: a short one keeps every pixel it can for the picture)
-          if (el.clientWidth < 600 && el.clientHeight > 780) {
+          if (el.clientWidth < 600 && el.clientHeight > 680) {
             const plate = c.querySelector('.plate-buyer') as HTMLElement | null;
-            floor = (plate?.getBoundingClientRect().height ?? 0) + 15.5 * 1.3 * 3 + 18 + 4 + 14 * 1.3 * 2 + 9 + 2 * (parseFloat(st.rowGap) || 0)
+            floor = (plate?.getBoundingClientRect().height ?? 0) + 15.5 * 1.3 * 3 + 18 + 4 + 2 * (parseFloat(st.rowGap) || 0)
               + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom);
           }
           bandMost = Math.max(bandMost, Math.ceil(own), Math.ceil(floor));
+          spare = Math.max(0, bandMost - Math.max(Math.ceil(own), bandSeen));
+          bandSeen = Math.max(bandSeen, Math.ceil(own));
           bandNow = Math.ceil(own);
           rest += bandMost;
           continue;
@@ -128,7 +129,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       if (most > restMost(key)) keepRestMost(key, most);
       if (locked.key !== key || locked.enc !== enc?.id) {
         locked.key = key; locked.enc = enc?.id ?? '';
-        locked.h = Math.max(96, Math.min(natural, el.clientHeight - most));
+        // the room kept ahead for longer lines never squeezes the picture below 200px (heads and all)
+        locked.h = Math.max(96, Math.min(natural, el.clientHeight - most), Math.min(natural, el.clientHeight - (most - spare), 200));
       }
       // never at the cost of the buttons: if the talk has grown past what was kept for it, give way
       if (el.clientHeight - locked.h < rest - 1) locked.h = Math.max(96, el.clientHeight - rest);

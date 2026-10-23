@@ -23,9 +23,13 @@ export interface RollingRugProps {
   onSettled: (at: 'flat' | 'rolled') => void;
   /** a tap: jump to the end */
   skip?: number;
+  /** a finger holding the roll: while set, the carpet is exactly this far open (0 rolled, 1 flat) */
+  hand?: { current: number | null };
+  /** told, every frame, how far open it is */
+  at?: { current: number };
 }
 
-export function RollingRug({ src, fit, target, from, filter, onSettled, skip = 0 }: RollingRugProps) {
+export function RollingRug({ src, fit, target, from, filter, onSettled, skip = 0, hand, at }: RollingRugProps) {
   const cv = useRef<HTMLCanvasElement>(null);
   const st = useRef({ p: from === 'flat' ? 1 : 0, v: 0, settle: 0, settleAmp: 0, done: false, sound: false });
   const tgt = useRef(target);
@@ -50,6 +54,17 @@ export function RollingRug({ src, fit, target, from, filter, onSettled, skip = 0
       last = now;
       const s = st.current;
       const goal = tgt.current === 'flat' ? 1 : 0;
+      const held = hand?.current;
+      if (held != null) {
+        // under the finger: no spring, it is where the hand has it, and lets go with the hand's speed
+        const np = Math.max(0, Math.min(1, held));
+        s.v = 0.5 * s.v + 0.5 * ((np - s.p) / dt);
+        s.p = np; s.done = false; s.settle = 0; s.sound = true;
+        if (at) at.current = s.p;
+        draw(s.p, 0);
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       if (!s.done) {
         if (!s.sound && Math.abs(goal - s.p) > 0.05) { s.sound = true; audio.sfx('unfold'); }
         [s.p, s.v] = springStep(s.p, s.v, goal, dt, 4.4, 0.8);
@@ -66,6 +81,7 @@ export function RollingRug({ src, fit, target, from, filter, onSettled, skip = 0
           return;
         }
       }
+      if (at) at.current = s.p;
       draw(s.p, s.settle > 0 ? s.settleAmp * Math.exp(-s.settle * 5.5) * Math.sin(s.settle * 15) : 0);
       raf = requestAnimationFrame(frame);
     };

@@ -269,7 +269,7 @@ export function rugSrc(t: RugType): string {
 export function rugThumb(t: RugType): string {
   if (t.art.kind === 'design') return renderDesign(t.art.design, 400, 0.85);
   if (t.art.kind !== 'photo') return wovenRug(t);
-  const m = /^art\/rugs\/([^/]+)\.jpg$/.exec(t.art.src);
+  const m = /^art\/rugs\/([^/]+)\.(jpg|webp)$/.exec(t.art.src);
   return m ? `art/rugs/thumbs/${m[1]}.webp` : t.art.src;
 }
 
