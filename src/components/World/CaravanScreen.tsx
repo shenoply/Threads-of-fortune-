@@ -43,7 +43,7 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
         ))}
       </div>
       {town ? (
-        <TownSupplies />
+        <TownSupplies fold />
       ) : (
         <>
           <p className="set-demand">You can buy food, animals and guards in any town or village.</p>
@@ -59,12 +59,6 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
             </div>
           )}
         </>
-      )}
-      {g.world.at === 'giza' && (
-        <div className="cv-go">
-          <button className="btn" onClick={() => onGo('animals')} data-testid="cv-animals"><Icon name="camel" /> Animal market</button>
-          <button className="btn" onClick={() => onGo('guards')} data-testid="cv-guards"><Icon name="sword" /> Hire guards</button>
-        </div>
       )}
       <CaravanRoster />
     </div>

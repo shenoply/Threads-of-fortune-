@@ -13,7 +13,7 @@ const pct = (v: number) => `${Math.max(3, Math.min(100, v * 100))}%`;
 
 export function MeNext({ onWardrobe }: { onWardrobe: () => void }) {
   const g = useGame();
-  const { next, worth } = rankOf(g);
+  const { next, worth, blockedByStory, blockingMission } = rankOf(g);
   const w = g.wardrobe ?? START_WARDROBE;
   const clean = g.attire?.clean ?? 100;
   const ch = heroCharisma(w, clean);
@@ -40,6 +40,7 @@ export function MeNext({ onWardrobe }: { onWardrobe: () => void }) {
             <b>{next.name}</b>
             <i className="mn-bar"><em style={{ width: pct(Math.min(repP, worthP)) }} /></i>
             <small>Reputation {g.reputation}/{next.rep}{repP >= 1 ? ' ✓' : ''} · worth {fmt(worth)}/{fmt(next.worth)}{worthP >= 1 ? ' ✓' : ''}</small>
+            {blockedByStory && blockingMission && <small className="mn-held" data-testid="rank-story-lock">Held back until you settle: {blockingMission.title}</small>}
           </span>
         </button>
       )}

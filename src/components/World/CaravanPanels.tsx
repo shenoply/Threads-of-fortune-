@@ -33,7 +33,20 @@ export function CaravanStrip() {
 
 /** Food, animals and volunteers for the settlement you are in. */
 export type SupplyPart = 'food' | 'animals' | 'recruits';
-export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?: SupplyPart[] }) {
+/** a part of the town's supplies, folded to one line on the Caravan tab (remembered open or shut) */
+function Part({ fold, id, title, children }: { fold?: boolean; id: string; title: React.ReactNode; children: React.ReactNode }) {
+  const key = `tof-cv-${id}`;
+  if (!fold) return <>{children}</>;
+  let open = false; try { open = localStorage.getItem(key) === '1'; } catch { /* private mode */ }
+  return (
+    <details className="cv-part" open={open} onToggle={(e) => { try { localStorage.setItem(key, (e.currentTarget as HTMLDetailsElement).open ? '1' : '0'); } catch { /* private mode */ } }} data-testid={`cv-part-${id}`}>
+      <summary><span>{title}</span></summary>
+      {children}
+    </details>
+  );
+}
+
+export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = false }: { show?: SupplyPart[]; fold?: boolean }) {
   const g = useGame();
   const [note, setNote] = useState('');
   const sid = g.world.at;
@@ -76,14 +89,15 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
         })}
       </div>
       </>)}
-      {show.includes('animals') && <BreedMarket sid={sid} onNote={setNote} />}
-      {show.includes('recruits') && pool.length === 0 && (
+      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /></Part>}
+      {show.includes('recruits') && <Part fold={fold} id="guards" title={<><b>Guards</b> · {troopCount(p)} with you{pool.length ? ` · ${pool.reduce((n, r) => n + r.available, 0)} for hire here` : ''}</>}>
+      {pool.length === 0 && (
         <>
           <div className="section-label">HIRE GUARDS</div>
           <p className="set-demand">Nobody here hires out as a guard. Try Giza's guard yard, Cairo, Alexandria or the Bedouin camp.</p>
         </>
       )}
-      {show.includes('recruits') && pool.length > 0 && (
+      {pool.length > 0 && (
         <>
           <div className="section-label" id="sec-hire">HIRE GUARDS</div>
           <p className="set-demand">Guards fight off raiders on the road. Each is paid every morning and eats a ration a day; unpaid men go home. Tap a man to read about his kind. <b data-testid="troop-cap">{capLine(troopCount(p), g.reputation)}.</b></p>
@@ -101,9 +115,10 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
             {pool.every((r) => !r.available) && <p className="set-demand">Nobody else wants work today. Come back tomorrow.</p>}
           </div>
           {YARD_ART[sid] && <RifleRack onNote={setNote} />}
-          {YARD_ART[sid] && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
+          {YARD_ART[sid] && !fold && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
         </>
       )}
+      </Part>}
     </div>
   );
 }

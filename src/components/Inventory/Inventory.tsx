@@ -94,11 +94,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         })}
       </div>
 
-      <CaravanRoster />
-
-      <BillCard />
-      <div className="section-label" id="sec-upgrades">STALL UPGRADES</div>
-      <StallUpgrades />
+      <BillCard folded />
       {view && <RugViewer uid={view} onClose={() => setView(null)} />}
     </div>
   );

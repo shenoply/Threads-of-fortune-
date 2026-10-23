@@ -43,3 +43,4 @@
 .mn-bar { display: block; height: 5px; border-radius: 3px; background: rgba(234, 219, 189, .12); overflow: hidden; }
 .mn-bar em { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #c98a2a, #f2c25a); }
 button.mn-row:not(.static)::after { content: '›'; align-self: center; font-size: 20px; color: var(--text-dim); }
+.mn-held { color: #e7a35a !important; }

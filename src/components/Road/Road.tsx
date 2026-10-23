@@ -88,8 +88,22 @@ export function Road() {
       </div>
       <NextOnRoad />
       <ol className="road-track">
-        {chapters.map((ch) => (
-          <li key={ch} className={`road-chapter ${ch < rk ? 'past' : ch === rk ? 'now' : 'later'}`}>
+        {chapters.map((ch) => ch !== rk ? (
+          <li key={ch} className={`road-chapter ${ch < rk ? 'past' : 'later'} folded`}>
+            <details data-testid={`road-chapter-${ch}`}>
+              <summary><h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4><span className="dim">{ch < rk ? 'done' : `${steps.filter((x) => x.chapter === ch).length} steps`}</span></summary>
+              <ol>
+                {steps.filter((x) => x.chapter === ch).map((st) => (
+                  <li key={st.id} className={`road-step ${st.done ? 'done' : ''} ${st.rank ? 'rank' : ''}`} data-testid={`road-${st.id}`}>
+                    <span className="road-dot" aria-hidden="true">{st.done ? <Icon name="check" /> : st.rank ? <Icon name="crown" /> : null}</span>
+                    <div className="road-step-body"><b>{st.title}</b>{st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : <span className="road-line">{st.line}</span>}</div>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </li>
+        ) : (
+          <li key={ch} className="road-chapter now">
             <h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4>
             <ol>
               {steps.filter((x) => x.chapter === ch).map((st) => (

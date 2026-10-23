@@ -3274,3 +3274,15 @@ body.travelling .world-hud { display: none; }
 .look { flex: 0 0 132px; display: flex; flex-direction: column; gap: 4px; padding: 5px; border-radius: 6px; border: 1px solid rgba(234,219,189,.26); background: #1d140c; color: #f1e3c4; text-align: left; font-size: 13px; }
 .look img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 3px; display: block; }
 .look.on { border-color: #f6b54a; box-shadow: 0 0 0 1px #f6b54a inset; }
+.billcard.folded { padding: 0; }
+.billcard.folded > summary { list-style: none; cursor: pointer; padding: 10px 12px; font-size: 14.5px; color: var(--text); display: flex; justify-content: space-between; }
+.billcard.folded > summary::after { content: '›'; color: var(--text-dim); }
+.billcard.folded[open] > summary::after { content: '⌄'; }
+.billcard.folded > summary::-webkit-details-marker { display: none; }
+.billcard.folded > p { margin: 0 12px 6px; }
+.cv-part { border: 1px solid var(--line); border-radius: 6px; margin: 8px 0; background: rgba(255,240,210,.02); }
+.cv-part > summary { list-style: none; cursor: pointer; padding: 11px 12px; font-size: 15px; color: var(--text); display: flex; justify-content: space-between; }
+.cv-part > summary::after { content: '›'; color: var(--text-dim); }
+.cv-part[open] > summary::after { content: '⌄'; }
+.cv-part > summary::-webkit-details-marker { display: none; }
+.cv-part > :not(summary) { margin-left: 10px; margin-right: 10px; }

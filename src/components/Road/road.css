@@ -52,3 +52,9 @@
 .road-step.done .road-step-body > b { color: var(--text-dim); }
 .road-done { font-size: 13px; color: #9fd07a; }
 .road-step .btn { align-self: flex-start; margin-top: 5px; }
+.road-chapter.folded details > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.road-chapter.folded details > summary::-webkit-details-marker { display: none; }
+.road-chapter.folded details > summary h4 { margin: 0; }
+.road-chapter.folded details > summary::after { content: '›'; color: var(--text-dim); }
+.road-chapter.folded details[open] > summary::after { content: '⌄'; }
+.road-chapter.folded { padding-bottom: 6px; }

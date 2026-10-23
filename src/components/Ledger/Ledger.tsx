@@ -29,9 +29,16 @@ export function sourcesOf(id: string) {
 }
 
 /** The top of Progress: rank, net worth and reputation, the next rank, and the goal in front of you. */
-export function Standing() {
+export function Standing({ compact = false }: { compact?: boolean } = {}) {
   const g = useGame();
   const { idx, rank, next, worth } = rankOf(g);
+  if (compact) return (
+    <div className="standing compact" data-testid="standing">
+      <span><b data-testid="rank">{rank.name}</b> <small>rank {idx + 1} of {RANKS.length}</small></span>
+      <span><small>worth</small> <b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b></span>
+      <span><small>rep</small> <b>{g.reputation}</b></span>
+    </div>
+  );
   return (
     <div className="standing" data-testid="standing">
       <div className="rank-row">
@@ -51,7 +58,6 @@ export function Fortune() {
   const have = RUG_IDS.filter((id) => reg.includes(id)).length;
   return (
     <>
-      <Book />
       <Fold id="pr-house" testid="fortune" title={house.done ? 'The House of Fortune stands.' : 'The House of Fortune'} gist={`${house.parts.filter((p) => p.done).length} of ${house.parts.length}`}>
         <div className="house">
           <small>{house.done ? 'Your name is over a door in Khan el-Khalili, and kings know it.' : 'The life\'s work of a carpet merchant. All four, at once.'}</small>
@@ -66,6 +72,7 @@ export function Fortune() {
       <ShopsFold />
       <RanksFold />
 
+      <Book />
     </>
   );
 }

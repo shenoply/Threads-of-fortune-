@@ -58,6 +58,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
           <div><small>THE MERCHANT OF GIZA</small><h2>{rank.name}</h2><span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span></div>
         </div>
       )}
+{hideDress ? null : (
       <Fold id="me-rep" title="Reputation" attention={lockStory || lockWorth}
         gist={<><span data-testid="rep-value">{g.reputation}{next ? ` / ${repNext} for ${next.name}` : ''}</span>{lockStory || lockWorth ? ' · held back' : ''}</>}>
         <i className="cs-bar rep"><em style={{ width: `${Math.min(100, (g.reputation / Math.max(1, repNext)) * 100)}%` }} /></i>
@@ -77,6 +78,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
           ].filter(Boolean).join(', ')}.</p>
         )}
       </Fold>
+)}
       <Fold id="me-manner" title="How the bazaar sees you" gist={leanings.length ? leanings.join(', ') : 'No leaning yet'}>
         {MANNER_AXES.map((a) => {
           const v = m[a.id];

@@ -40,8 +40,7 @@ export function Customers() {
   const unlockOf = (id: string) => (id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? BUYERS[id]?.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0);
   return (
     <div className="customers" data-testid="customers">
-      <FilmShelf />
-      {(g.buyersSeen?.length ?? 0) < 3 ? <p className="cust-goal" data-testid="cust-goal">Tap a buyer to open their card · {g.buyersSeen?.length ?? 0} of 3 opened</p> : <p className="cust-intro">Tap anyone to see what they buy and spend.</p>}
+      {(g.buyersSeen?.length ?? 0) < 1 && <p className="cust-goal" data-testid="cust-goal">Tap a buyer to see what they buy and spend.</p>}
       {groups.map((gr, gi) => {
         const ids = gr.ids.filter((id) => BUYERS[id]);
         const metN = ids.filter((id) => (g.relationships[id]?.visits ?? 0) > 0).length;
@@ -80,6 +79,7 @@ export function Customers() {
           onNext={allIds.indexOf(open) < allIds.length - 1 ? () => show(allIds[allIds.indexOf(open) + 1]) : undefined}
         />
       )}
+      <FilmShelf />
     </div>
   );
 }
