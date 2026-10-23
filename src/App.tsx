@@ -63,6 +63,15 @@ import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
 import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlot';
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 import { HeirButton } from './components/Character/Household';
+import { Loom } from './components/Loom/Loom';
+
+/** a link with ?weaver opens the weaver's workshop straight away, once a game is going */
+function WeaverLink() {
+  const started = useGame((g) => g.started);
+  const [open, setOpen] = useState(() => typeof location !== 'undefined' && /[?&]weaver\b/.test(location.search));
+  if (!open || !started) return null;
+  return <Loom onClose={() => { setOpen(false); history.replaceState(null, '', location.pathname); }} />;
+}
 // screens opened later (the paper, the wireless, the gramophone, the calendar, your character) load
 // when first opened, so a phone starts the game without downloading and parsing them
 // the paper and the radio wait for the researched wires (fetched after the title is up) so the day's news is complete
@@ -758,6 +767,7 @@ export default function App() {
         </div>
       </header>
       <RevealHost />
+      <WeaverLink />
 
       {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (
         <button className={`ruin-banner ${finalStrike ? 'final' : ''}`} onClick={() => setFinance(true)} data-testid="ruin-banner">
