@@ -48,22 +48,12 @@ export function GiftButton() {
   );
 }
 
-function Burst() {
-  // a handful of coins thrown up out of the chest
-  return (
-    <span className="gift-burst" aria-hidden="true">
-      {Array.from({ length: 14 }, (_, i) => <i key={i} style={{ ['--a' as string]: `${(i / 14) * 360 + (i % 3) * 9}deg`, ['--d' as string]: `${70 + (i % 4) * 22}px`, animationDelay: `${(i % 5) * 0.03}s` }} />)}
-    </span>
-  );
-}
-
 export function DailySheet({ onClose }: { onClose: () => void }) {
   const g = useGame();
   const rk = rankOf(g).idx;
   const gift = giftToday(g.daily);
   const owned = g.dressing ?? [];
   const [got, setGot] = useState<Gift | null>(null);
-  const [burst, setBurst] = useState(0);
   const paid = g.daily?.paid ?? [];
   const errs = errandsFor(g.day, g.ledger, rk);
   const allDone = errs.every((e) => e.done);
@@ -79,12 +69,14 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
     const r = g.openGift();
     if (!r) return;
     setGot(r);
-    setBurst((b) => b + 1);
     const t = r.kind === 'rug' ? RUGS[r.typeId] : null;
-    reveal({ kicker: `Your gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), line: r.kind === 'cash' || r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'For your stall: put it out from Dress your stall.', pic: t ? rugSrc(t) : undefined, picKind: 'rug' });
+    reveal({ kicker: `Today's gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', pic: t ? rugSrc(t) : undefined, picKind: 'rug' });
   };
   const collect = (id: string) => {
-    if (g.payErrand(id)) { setBurst((b) => b + 1); audio.sfx(id === 'all' ? 'reward' : 'coins'); }
+    const amt = id === 'all' ? ALL_THREE(rk) : errs.find((e) => e.id === id)?.reward ?? 0;
+    if (!g.payErrand(id)) return;
+    if (id === 'all') reveal({ kicker: 'All three errands done', title: fmt(amt), amount: amt, line: 'Paid in full. New errands tomorrow.' });
+    else audio.sfx('coins');
   };
   const next = giftFor(gift.open ? gift.run : gift.run + 1, rk, owned);
   return createPortal(
@@ -113,7 +105,6 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
           <div className="gift-chest-row">
             <button className={`gift-chest ${gift.open ? 'ready' : 'opened'}`} onClick={open} disabled={!gift.open} data-testid="gift-open" aria-label={gift.open ? 'Open today\'s gift' : 'Opened'}>
               <Icon name="gift" />
-              {burst > 0 && <Burst key={burst} />}
             </button>
             <div className="gift-says" aria-live="polite">
               {gift.open ? <><b>{giftFor(gift.run, rk, owned).text}</b><span>Tap the chest.</span></>

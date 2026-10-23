@@ -534,6 +534,12 @@ class AudioEngine {
         this.noise(0.18, d, { type: 'bandpass', f: 900, f2: 2600, q: 0.8, gain: 0.24, attack: 0.02, delay: 0.3 });
         this.noise(0.06, d, { type: 'bandpass', f: 700, q: 3, gain: 0.3, attack: 0.002, delay: 0.62 });
         break;
+      case 'prize':
+        // a gift opened: four warm bells rising, the counter bell, and a pour of coins
+        [0, 0.11, 0.22, 0.36].forEach((at, i) => this.chime(at, 880 * [1, 1.25, 1.5, 2][i], i === 3 ? 0.09 : 0.075));
+        this.till(0.5, 0.045);
+        setTimeout(() => { this.coinsAt = 0; this.sfx('coins'); }, 180);
+        break;
       case 'reward':
         // a gift or an errand paid: three bells rising, and the coins
         [0, 0.12, 0.26].forEach((at, i) => this.chime(at, 1180 * [1, 1.26, 1.5][i], 0.07));

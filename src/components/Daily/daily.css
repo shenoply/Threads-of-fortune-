@@ -51,3 +51,8 @@
 .gift-chest svg, .gift-btn svg { stroke: currentColor; }
 .gift-btn .gift-dot { position: absolute; right: 4px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--k-saffron, #f2b13c); box-shadow: 0 0 0 2px rgb(20, 13, 7); }
 .icon-btn.gift-btn:not(.calling) { border-color: var(--quiet-line, rgba(234,219,189,.2)); }
+/* quiet: no bobbing, pulsing or flying coins; the small dot says something waits */
+.gift-chest.ready { animation: none; border-color: var(--k-saffron, #f2b13c); box-shadow: 0 0 0 1px rgba(242,177,60,.4), 0 0 16px rgba(242,177,60,.35); }
+.gift-chest { background: #1d140c; border-width: 1.5px; border-color: var(--quiet-line-hi, rgba(234,219,189,.36)); }
+.gift-got { animation: none; }
+.gift-week li.now { box-shadow: none; border-width: 1.5px; }

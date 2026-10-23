@@ -49,3 +49,37 @@
 .reveal.instant .reveal-pic.rug img { width: auto; height: auto; max-width: 90vw; max-height: 54vh; min-width: 180px; object-fit: contain; box-shadow: 0 10px 28px rgba(0, 0, 0, .65); }
 .reveal.instant .reveal-stage { width: 100vw; }
 .reveal.instant .reveal-stage { height: auto; min-height: 380px; }
+
+/* ---- the unrolling carpet (gifts, errands paid) ---- */
+.reveal.unroll { background: radial-gradient(ellipse 70% 55% at 50% 48%, rgba(70, 42, 16, .96), rgba(10, 6, 3, .985) 70%); }
+.reveal.unroll .reveal-parcel, .reveal.unroll .reveal-threads { display: none; }
+.reveal.unroll .reveal-stage { width: min(360px, 92vw); height: 420px; }
+.reveal.unroll .reveal-rays { top: 50%; opacity: 0; transform: scale(.6); background: radial-gradient(circle, rgba(255, 206, 120, .42), rgba(255, 180, 80, .1) 45%, transparent 68%); }
+.reveal.unroll.open .reveal-rays, .reveal.unroll.done .reveal-rays { opacity: 1; transform: scale(1.15); transition: opacity .9s ease, transform 1.4s cubic-bezier(.2, .8, .3, 1); }
+.rv-rug { position: absolute; left: 50%; top: 50%; width: min(350px, 90vw); height: 236px; transform: translate(-50%, -50%) perspective(900px) rotateX(18deg); }
+.rv-rug-flat { position: absolute; inset: 0; background-size: cover; background-position: center; border-radius: 2px; clip-path: inset(0 100% 0 0); box-shadow: 0 18px 40px rgba(0, 0, 0, .7); filter: saturate(.95) brightness(.92); }
+.rv-rug-roll { position: absolute; top: -5px; bottom: -5px; left: 0; width: 30px; border-radius: 15px / 8px; background-size: 30px 100%; transform: translateX(-50%);
+  box-shadow: inset 7px 0 9px rgba(0, 0, 0, .55), inset -7px 0 9px rgba(0, 0, 0, .55), 0 10px 22px rgba(0, 0, 0, .7); }
+.rv-rug-roll::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, rgba(0,0,0,.45), rgba(255, 230, 180, .25) 45%, rgba(0,0,0,.5)); }
+.reveal.unroll.roll .rv-rug-roll { animation: rv-rock .38s ease-in-out; }
+@keyframes rv-rock { 0%, 100% { transform: translateX(-50%); } 40% { transform: translateX(-38%) rotate(-1.5deg); } 70% { transform: translateX(-56%); } }
+.reveal.unroll.open .rv-rug-flat, .reveal.unroll.done .rv-rug-flat { clip-path: inset(0 0 0 0); transition: clip-path .75s cubic-bezier(.3, .1, .25, 1); }
+.reveal.unroll.open .rv-rug-roll { left: 100%; width: 12px; background-size: 12px 100%; opacity: 0; transition: left .75s cubic-bezier(.3, .1, .25, 1), width .75s, background-size .75s, opacity .2s .7s; }
+.reveal.unroll.done .rv-rug-roll { opacity: 0; }
+
+/* the brass-edged plaque that rises on the carpet */
+.reveal.unroll .reveal-card { top: 50%; left: 50%; right: auto; width: min(220px, 60vw); transform: translate(-50%, -40%) scale(.9); opacity: 0;
+  padding: 16px 16px 12px; background: linear-gradient(180deg, rgba(28, 17, 8, .94), rgba(16, 10, 5, .96)); border: 1px solid #c9973d; border-radius: 4px;
+  box-shadow: 0 0 0 3px rgba(16, 10, 5, .9), 0 0 0 4px rgba(201, 151, 61, .55), 0 16px 40px rgba(0, 0, 0, .75); overflow: hidden; }
+.reveal.unroll.open .reveal-card { opacity: 1; transform: translate(-50%, -50%) scale(1); transition: opacity .35s .5s, transform .55s .5s cubic-bezier(.2, .9, .3, 1.15); }
+.reveal.unroll.done .reveal-card { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.reveal.unroll .reveal-card::after { content: ''; position: absolute; top: 0; bottom: 0; width: 60%; left: -80%; background: linear-gradient(100deg, transparent, rgba(255, 228, 160, .28), transparent); transform: skewX(-18deg); pointer-events: none; }
+.reveal.unroll.open .reveal-card::after { animation: rv-shine 1s 1.05s ease-out forwards; }
+@keyframes rv-shine { to { left: 130%; } }
+.reveal.unroll .reveal-card b { font-size: 24px; }
+.reveal.unroll .reveal-card b.rv-money { font-size: 44px; font-weight: 600; letter-spacing: .01em; font-variant-numeric: tabular-nums; line-height: 1.05; background: linear-gradient(180deg, #fff1c2, #f2c25a 55%, #b9802a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .6)); }
+.reveal.unroll.done .reveal-card b.rv-money { animation: rv-pop .35s ease-out; }
+@keyframes rv-pop { 40% { transform: scale(1.08); } }
+.reveal.unroll .reveal-pic { width: 150px; height: 100px; margin: 2px auto 8px; }
+.reveal.unroll .reveal-pic.rug { width: 120px; height: 170px; }
+.reveal.unroll .reveal-card em { margin-top: 8px; }

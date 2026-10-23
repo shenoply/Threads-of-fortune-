@@ -1,13 +1,19 @@
-// Opening something good: a parcel in striped cloth, tied with cord, that shakes, comes untied and
-// opens, letting out a spray of coloured wool and light, with what was in it rising on a card. About
-// two seconds; a tap jumps to the end, another closes it. Shown over the screen for gifts and for a
-// rug new to the Carpet Register; nothing in the game waits on it.
-import { useEffect, useState } from 'react';
+// Opening something good. A rolled carpet lies on a dark floor in a pool of lamplight; it unrolls
+// across the screen with the sound of heavy cloth, and on it a brass-edged plaque rises with what
+// you got: money counts up in gold, coin by coin, and ends on the bells. About two seconds; a tap
+// jumps to the end, another closes it. A rug new to the Carpet Register skips all that and is shown
+// flat at once (`instant`). Nothing in the game waits on it.
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { audio } from '../../game/audio/engine';
+import { fmt } from '../../game/economy/money';
 import './reveal.css';
 
-export interface RevealItem { kicker: string; title: string; line?: string; pic?: string; picKind?: 'rug' | 'photo' | 'icon'; /** no parcel: the thing is shown at once, laid flat */ instant?: boolean }
+export interface RevealItem {
+  kicker: string; title: string; line?: string; pic?: string; picKind?: 'rug' | 'photo' | 'icon';
+  /** no unrolling: the thing is shown at once, laid flat */ instant?: boolean;
+  /** money: the title counts up to it */ amount?: number;
+}
 
 let push: ((it: RevealItem) => void) | null = null;
 const waiting: RevealItem[] = [];
@@ -18,11 +24,33 @@ export function reveal(it: RevealItem) {
   if (push) push(it); else waiting.push(it);
 }
 
-const THREADS = ['#c4482f', '#e3a53a', '#3d5f9c', '#3a9a8f', '#7a4f86', '#e8d9b5', '#8a9a48'];
+const WRAP = 'art/rugs/baghdad-night.jpg';
+const ROLL_MS = 380, OPEN_MS = 1100, COUNT_MS = 900;
+
+/** money counting up from nothing, a coin's tick as it goes */
+function CountUp({ to, run }: { to: number; run: boolean }) {
+  const [v, setV] = useState(run ? 0 : to);
+  const raf = useRef(0);
+  useEffect(() => {
+    if (!run) { setV(to); return; }
+    const t0 = performance.now() + 520; // once the plaque is up
+    let lastTick = 0;
+    const step = (now: number) => {
+      const k = Math.max(0, Math.min(1, (now - t0) / COUNT_MS));
+      const e = 1 - Math.pow(1 - k, 3);
+      setV(Math.round(to * e));
+      if (k > 0 && now - lastTick > 95 && k < 0.92) { lastTick = now; audio.sfx('coin'); }
+      if (k < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.current);
+  }, [to, run]);
+  return <>{fmt(v)}</>;
+}
 
 export function RevealHost() {
   const [queue, setQueue] = useState<RevealItem[]>([]);
-  const [stage, setStage] = useState<'shake' | 'open' | 'done'>('shake');
+  const [stage, setStage] = useState<'roll' | 'open' | 'done'>('roll');
   useEffect(() => {
     push = (it) => setQueue((q) => [...q, it]);
     if (waiting.length) setQueue((q) => [...q, ...waiting.splice(0)]);
@@ -32,35 +60,35 @@ export function RevealHost() {
   useEffect(() => {
     if (!cur) return;
     if (cur.instant) { setStage('done'); audio.sfx('reward'); return; }
-    setStage('shake');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    audio.sfx('unwrap');
-    const t1 = window.setTimeout(() => { setStage('open'); audio.sfx('reward'); }, reduce ? 0 : 750);
-    const t2 = window.setTimeout(() => setStage('done'), reduce ? 50 : 1700);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    if (reduce) { setStage('done'); audio.sfx('prize'); return; }
+    setStage('roll');
+    const t1 = window.setTimeout(() => { setStage('open'); audio.sfx('unfold'); }, ROLL_MS);
+    // the bells land as the plaque settles (and as money finishes counting)
+    const t2 = window.setTimeout(() => audio.sfx('prize'), ROLL_MS + (cur.amount ? 520 + COUNT_MS : 650));
+    const t3 = window.setTimeout(() => setStage('done'), ROLL_MS + OPEN_MS + (cur.amount ? 450 : 0));
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [cur]);
   if (!cur) return null;
   const tap = () => {
-    if (stage !== 'done') { if (stage === 'shake') audio.sfx('reward'); setStage('done'); return; }
+    if (stage !== 'done') { audio.sfx('prize'); setStage('done'); return; }
     setQueue((q) => q.slice(1));
   };
+  const counting = !!cur.amount && stage === 'open';
   return createPortal(
-    <div className={`reveal ${stage} ${cur.instant ? 'instant' : ''}`} onClick={tap} role="dialog" aria-label={`${cur.kicker}: ${cur.title}`} data-testid="reveal">
+    <div className={`reveal ${stage} ${cur.instant ? 'instant' : 'unroll'}`} onClick={tap} role="dialog" aria-label={`${cur.kicker}: ${cur.title}`} data-testid="reveal">
       <div className="reveal-stage">
         <div className="reveal-rays" aria-hidden="true" />
-        <div className="reveal-threads" aria-hidden="true">
-          {Array.from({ length: 22 }, (_, i) => (
-            <i key={i} style={{ ['--a' as string]: `${(i / 22) * 360 + (i % 3) * 7}deg`, ['--d' as string]: `${90 + (i % 5) * 28}px`, ['--c' as string]: THREADS[i % THREADS.length], animationDelay: `${(i % 4) * 0.035}s` }} />
-          ))}
-        </div>
-        <div className="reveal-parcel" aria-hidden="true">
-          <span className="rp-flap rp-n" /><span className="rp-flap rp-e" /><span className="rp-flap rp-s" /><span className="rp-flap rp-w" />
-          <span className="rp-cord rp-h" /><span className="rp-cord rp-v" /><span className="rp-knot" />
-        </div>
+        {!cur.instant && (
+          <div className="rv-rug" aria-hidden="true">
+            <span className="rv-rug-flat" style={{ backgroundImage: `url(${WRAP})` }} />
+            <span className="rv-rug-roll" style={{ backgroundImage: `url(${WRAP})` }} />
+          </div>
+        )}
         <div className="reveal-card">
           {cur.pic && <span className={`reveal-pic ${cur.picKind ?? 'photo'}`}><img src={cur.pic} alt="" /></span>}
           <small>{cur.kicker}</small>
-          <b>{cur.title}</b>
+          <b className={cur.amount ? 'rv-money' : ''}>{cur.amount ? <CountUp to={cur.amount} run={counting} /> : cur.title}</b>
           {cur.line && <span>{cur.line}</span>}
           <em>{stage === 'done' ? 'Tap to close' : 'Tap to skip'}</em>
         </div>
