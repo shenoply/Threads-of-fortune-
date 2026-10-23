@@ -125,7 +125,18 @@ function recheck(c, r, hit) {
 }
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim().then(() => tidy())));
+// Pictures replaced under the same name (the fictional cast's portraits, the court scenes, the stall
+// poses and the carpet pictures) are dropped from the phone once, so the new ones are fetched instead
+// of the kept old copies. Bump the mark when another set is replaced.
+const REPLACED = { mark: 'replaced-2026-10-23', paths: /\/art\/(portraits|royal|rugs|stalls)\// };
+async function dropReplaced() {
+  const c = await caches.open(CACHE);
+  const markUrl = new URL('__sw-' + REPLACED.mark + '__', self.registration.scope).href;
+  if (await c.match(markUrl)) return;
+  for (const req of await c.keys()) if (REPLACED.paths.test(new URL(req.url).pathname)) await c.delete(req);
+  await c.put(markUrl, new Response('1'));
+}
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim().then(() => dropReplaced()).catch(() => {}).then(() => tidy())));
 
 self.addEventListener('fetch', (e) => {
   const r = e.request;
