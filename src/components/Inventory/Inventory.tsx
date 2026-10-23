@@ -1,3 +1,4 @@
+import { LoomButton } from '../Loom/Loom';
 import { CONDITION_FACTOR } from '../../data/rugs';
 import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
@@ -31,6 +32,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         </div>
         <div className="stock-head-btns">
           {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
+          <LoomButton />
           <button className="btn" onClick={openUpgrades} data-testid="stock-upgrades">Improve your stall{affordableUpgrades(g).length ? ` · ${affordableUpgrades(g).length}` : ''}</button>
         </div>
       </div>

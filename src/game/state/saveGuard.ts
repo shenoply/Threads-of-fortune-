@@ -6,6 +6,7 @@
 //  - checks a backup file before it replaces the game;
 //  - keeps a copy of the game that a backup file replaced, so it can be brought back.
 // It wraps Storage.prototype.setItem rather than the store, so it works whatever the store does.
+import { registerDesigns } from '../loom/registry';
 import { SETTLEMENTS } from '../../data/world';
 import { RUGS } from '../../data/rugs';
 
@@ -105,6 +106,7 @@ export function checkSave(txt: string, saveVersion: number): SaveCheck {
   if (!isNum(s.cash)) return bad('the money');
   if (s.reputation !== undefined && !isNum(s.reputation)) return bad('the reputation');
   if (s.started !== undefined && typeof s.started !== 'boolean') return bad('the game state');
+  if (isObj(s.loom)) registerDesigns(s.loom.designs);
   if (!Array.isArray(s.inventory) || !s.inventory.every((i) => isObj(i) && typeof i.uid === 'string' && typeof i.typeId === 'string' && i.typeId in RUGS)) return bad('the rugs in stock');
   // saves older than version 3 had a different map: the game draws a fresh one for them
   const w = s.world;

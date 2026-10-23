@@ -46,7 +46,7 @@ export function giftFor(run: number, rankIdx: number, owned: string[]): Gift {
     case 1: return { kind: 'cash', amount: cash(100), text: 'A purse of coins left at the stall' };
     case 2: return { kind: 'cash', amount: cash(150), text: 'An old debt repaid by a neighbour' };
     case 3: {
-      const pool = Object.values(RUGS).filter((r) => (r.tier ?? 1) <= Math.min(3, 1 + Math.floor(rankIdx / 2)) && r.id !== 'start-cg');
+      const pool = Object.values(RUGS).filter((r) => (r.tier ?? 1) <= Math.min(3, 1 + Math.floor(rankIdx / 2)) && r.id !== 'start-cg' && !r.own);
       const r = pool[(run * 7 + rankIdx * 3) % Math.max(1, pool.length)] ?? Object.values(RUGS)[0];
       return { kind: 'rug', typeId: r.id, text: `A rug from Uncle Rashid: ${r.name}` };
     }

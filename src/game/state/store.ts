@@ -88,6 +88,8 @@ import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
 import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
+import { costOf, daysOf, defaultName, loomsFree, type Design } from '../loom/design';
+import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 export const SAVE_VERSION = 25;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
@@ -228,6 +230,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
+  /** carpets of your own design: the designs, and those still on the weaver's loom */
+  loom?: { designs: Design[]; weaving: { id: string; ready: number }[]; next: number };
   /** what the merchant carries from the gunsmith (data/arms.ts): one thing at his side, one long arm */
   carry?: { side?: string; long?: string };
   /** the daily gift's run of days and the errands paid for (systems/daily.ts) */
@@ -559,6 +563,10 @@ interface Actions {
   /** put an owned piece (or your father's) in its spot, or clear the spot (id null) */
   placeDressing: (spot: string, id: string | null) => string;
   setSignName: (name: string) => void;
+  /** have the weaver weave a design: pay now, collect it when it is off the loom */
+  commissionCarpet: (d: Design) => string;
+  /** take a finished carpet off the loom into your stock */
+  collectCarpet: (id: string) => string;
   /** buy from the gunsmith in the Muski; the piece in the same place is traded in at half its price */
   buyArm: (id: string) => string;
   /** open today's gift (once a real day): what was in it, or null */
@@ -1009,6 +1017,7 @@ export function tutorialAllows(s: GameState, id: string) {
 let robArt: string | null = null;
 export const takeRobArt = () => { const a = robArt; robArt = null; return a; };
 
+registerFromSave('threads-of-fortune-save');
 export const useGame = create<GameState & Actions>()(
   persist(
     (set, get) => {
@@ -2099,7 +2108,7 @@ export const useGame = create<GameState & Actions>()(
               const rich = /smuggler|raiders/.test(threat?.id ?? '');
               const roll = rng();
               const tier = rich && roll < 0.05 ? 4 : roll < (rich ? 0.25 : 0.12) ? 3 : roll < 0.6 ? 2 : 1;
-              const pool = Object.values(RUGS).filter((t) => t.tier === tier);
+              const pool = Object.values(RUGS).filter((t) => t.tier === tier && !t.own);
               const t = pool[Math.floor(rng() * pool.length)];
               if (t) {
                 inventory = [...inventory, { uid: newUid('r'), typeId: t.id, condition: rng() < 0.5 ? 'Worn' : 'Dirty', restored: false, provenance: 'Uncertain', paid: 0, notes: ['Taken back from a band on the road. No papers.'], stored: false }];
@@ -4129,6 +4138,33 @@ export const useGame = create<GameState & Actions>()(
           return a.kind === 'pistol' || a.kind === 'rifle' || a.kind === 'shotgun' ? '"The permit is in your name. Keep it dry and keep it clean."' : '"Wear it where men can see it. That is half its use."';
         },
 
+        commissionCarpet: (d) => {
+          const s = get();
+          const lm = s.loom ?? { designs: [], weaving: [], next: 1 };
+          if (lm.weaving.length >= loomsFree(rankOf(s).idx)) return 'The weaver has no loom free. Wait for the carpet on it.';
+          const cost = costOf(d);
+          if (s.cash < cost) return `You need ${fmt(cost)}.`;
+          const id = `own-${lm.next}`;
+          const design: Design = { ...d, id, name: (d.name.trim() || defaultName(d)).slice(0, 40) };
+          if (!validDesign(design)) return '';
+          registerDesigns([design]);
+          const ready = s.day + daysOf(design);
+          set({ cash: s.cash - cost, loom: { designs: [...lm.designs, design], weaving: [...lm.weaving, { id, ready }], next: lm.next + 1 },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Weaver: ${design.name}`, amount: -cost }] });
+          audio.sfx('coins');
+          return `The weaver takes your drawing and ${fmt(cost)}. ${design.name} will be off the loom on day ${ready}.`;
+        },
+        collectCarpet: (id) => {
+          const s = get();
+          const lm = s.loom;
+          const w = lm?.weaving.find((x) => x.id === id);
+          const d = lm?.designs.find((x) => x.id === id);
+          if (!lm || !w || !d || s.day < w.ready) return '';
+          registerDesigns([d]);
+          const item: RugItem = { uid: newUid('r'), typeId: id, condition: 'Excellent', restored: false, provenance: 'Documented', paid: costOf(d), notes: ['Woven to your own design by the weavers of Kerdasa.'], stored: s.world.at !== 'giza' ? true : false };
+          set({ inventory: [...s.inventory, item], loom: { ...lm, weaving: lm.weaving.filter((x) => x.id !== id) }, journal: [...s.journal, { day: s.day, text: `${d.name} came off the weaver's loom.` }].slice(-200) });
+          return `${d.name} is off the loom and in your stock.`;
+        },
         setSignName: (name) => set({ signName: name.replace(/[\u0000-\u001f]/g, '').slice(0, 28).trim() || undefined }),
 
         placeDressing: (spot, id) => {

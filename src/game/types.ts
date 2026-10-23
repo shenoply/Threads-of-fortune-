@@ -9,11 +9,14 @@ export type ColourFamily = 'crimson' | 'indigo' | 'ivory' | 'gold' | 'mixed';
 
 export type RugArt =
   | { kind: 'photo'; src: string }
-  | { kind: 'woven'; seed: number; layout: 'medallion' | 'lattice' | 'kilim'; palette: string[] };
+  | { kind: 'woven'; seed: number; layout: 'medallion' | 'lattice' | 'kilim'; palette: string[] }
+  | { kind: 'design'; design: import('./loom/design').Design };
 
 export interface RugType {
   id: string;
   name: string;
+  /** a carpet of the player's own design (src/game/loom) */
+  own?: boolean;
   origin: string;
   material: string;
   age: string;
