@@ -22,6 +22,20 @@ import { RugViewer } from '../RugViewer/RugViewer';
 import { audio } from '../../game/audio/engine';
 import './stall-fixes.css';
 
+// the most height the talk and the buttons under the stall picture have needed, per screen size
+const REST_KEY = 'tof-stall-rest';
+let restMemo: Record<string, number> | null = null;
+function restMost(key: string) {
+  if (!restMemo) { try { restMemo = JSON.parse(localStorage.getItem(REST_KEY) || '{}'); } catch { restMemo = {}; } }
+  const [w, h] = key.split('x').map(Number);
+  // a first visit starts from a share of the screen that has room for the usual talk and buttons
+  return restMemo![key] ?? (w < 600 ? Math.round(h * 0.5) : 0);
+}
+function keepRestMost(key: string, v: number) {
+  restMemo = { ...(restMemo ?? {}), [key]: v };
+  try { localStorage.setItem(REST_KEY, JSON.stringify(restMemo)); } catch { /* private mode */ }
+}
+
 export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supplier') => void; onLeaveAudience?: () => void }) {
   const g = useGame();
   const enc = g.encounter;
@@ -71,6 +85,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     // longest it has been this visit, so the picture does not jump with every line; any height the
     // band is given beyond its words is kept between the line and the buyer's plate.
     let bandMost = 0;
+    const locked = { key: '', enc: '', h: 0 };
     const fit = () => {
       let rest = 0, bandNow = bandMost;
       for (const c of Array.from(el.children) as HTMLElement[]) {
@@ -94,8 +109,21 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       // on a short phone the picture never gives up its own shape's height to a line said earlier:
       // there it follows the talk as it is now
       const shape = el.clientWidth * 470 / 780;
-      const h = Math.max(96, Math.min(natural, Math.max(el.clientHeight - rest, Math.min(shape, el.clientHeight - rest + bandMost - bandNow))));
-      el.style.setProperty('--scene-h', `${Math.floor(h)}px`);
+      void bandNow; void shape;
+      // The picture keeps one size for the whole conversation: it is sized once, for the most room
+      // the talk and the buttons have ever needed on this screen size (remembered between visits), so
+      // asking, showing a rug or haggling never makes it jump. Only turning or resizing the screen
+      // sizes it again.
+      const key = `${el.clientWidth}x${el.clientHeight}`;
+      const most = Math.max(rest, restMost(key));
+      if (most > restMost(key)) keepRestMost(key, most);
+      if (locked.key !== key || locked.enc !== enc?.id) {
+        locked.key = key; locked.enc = enc?.id ?? '';
+        locked.h = Math.max(96, Math.min(natural, el.clientHeight - most));
+      }
+      // never at the cost of the buttons: if the talk has grown past what was kept for it, give way
+      if (el.clientHeight - locked.h < rest - 1) locked.h = Math.max(96, el.clientHeight - rest);
+      el.style.setProperty('--scene-h', `${Math.floor(locked.h)}px`);
     };
     fit();
     // Set up once per conversation (and when the rug tray folds), not on every render: the dialogue
