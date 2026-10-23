@@ -7,6 +7,9 @@ import { rankOf } from '../../game/economy/progress';
 import { fmt } from '../../game/economy/money';
 import { ALL_THREE, errandsFor, giftFor, giftToday, type Gift } from '../../game/systems/daily';
 import { Icon } from '../Icon';
+import { reveal } from '../Reveal/Reveal';
+import { RUGS } from '../../data/rugs';
+import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import './daily.css';
 
@@ -70,7 +73,8 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
     if (!r) return;
     setGot(r);
     setBurst((b) => b + 1);
-    audio.sfx('reward');
+    const t = r.kind === 'rug' ? RUGS[r.typeId] : null;
+    reveal({ kicker: `Your gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), line: r.kind === 'cash' || r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'For your stall: put it out from Dress your stall.', pic: t ? rugSrc(t) : undefined, picKind: 'rug' });
   };
   const collect = (id: string) => {
     if (g.payErrand(id)) { setBurst((b) => b + 1); audio.sfx(id === 'all' ? 'reward' : 'coins'); }

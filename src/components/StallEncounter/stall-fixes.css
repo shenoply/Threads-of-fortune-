@@ -84,3 +84,5 @@
 .scene.stall .stage .buyer-figure.has-photo[data-buyer="samira"] { bottom: calc(var(--edge, 22.5%) - var(--fig-h, 150px) * .86 * .22); }
 /* the rug is laid on the counter top, its near edge at the top's front */
 .scene.stall .stage .split-rug { bottom: var(--rug-b, 6%); }
+/* the people breathe (a slow transform): kept on their own layer so their shadows are not redrawn every frame */
+.scene.stall .hero-at-stall, .scene.stall .buyer-figure { will-change: transform; }

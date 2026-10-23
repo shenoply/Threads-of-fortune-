@@ -1,3 +1,4 @@
+import { RevealHost } from './components/Reveal/Reveal';
 import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
 import { BigNews, freshNews } from './components/Newspaper/BigNews';
@@ -758,6 +759,7 @@ export default function App() {
           </button>
         </div>
       </header>
+      <RevealHost />
 
       {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (
         <button className={`ruin-banner ${finalStrike ? 'final' : ''}`} onClick={() => setFinance(true)} data-testid="ruin-banner">

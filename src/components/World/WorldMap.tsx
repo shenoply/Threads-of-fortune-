@@ -40,7 +40,7 @@ import { dateFor } from '../../game/economy/economy';
 import { CaravanStrip } from './CaravanPanels';
 import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
-import { cityLocked, lockedWhy, openingStep } from '../../game/opening';
+import { cityLocked, lockedWhy, lockNeeds, openingStep } from '../../game/opening';
 import { persiaOpen, persiaWhy } from '../../game/unlocks';
 import { inPersia, PERSIA_ROADS } from '../../data/persiaMap';
 import { guideTarget } from '../../game/guide';
@@ -307,6 +307,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // (arrival, a halt, a fight) takes the question with it
   useEffect(() => { if (!moving) setNightfall(false); }, [moving]);
   const [report, setReport] = useState<string>('');
+  // a closed place tapped: what opens it (game/opening.ts lockNeeds)
+  const [lock, setLock] = useState<{ id: string | null; name: string } | null>(null);
   // your men stop you on the road when the bread is nearly gone or their patience is wearing thin
   // (once a day for each reason), so you can deal with it before someone walks
   const [menStop, setMenStop] = useState(false);
@@ -482,10 +484,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   const planTo = (to: Pt, st?: Settlement, reroute = false): Plan | undefined => {
     if (moving && !reroute) return;
+    setLock(null);
     // the opening keeps the wider world shut until the first errand is done
-    if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(`${st.name}: ${lockedWhy(useGame.getState(), st.id)}`); audio.sfx('tap'); return; }
+    if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(''); setLock({ id: st.id, name: st.name }); audio.sfx('tap'); return; }
     // open country beyond the Persian frontier is shut the same way as its towns
-    if (!st && inPersia(to) && !persiaOpen(useGame.getState())) { setPlan(null); setReport(persiaWhy(useGame.getState())); audio.sfx('tap'); return; }
+    if (!st && inPersia(to) && !persiaOpen(useGame.getState())) { setPlan(null); setReport(''); setLock({ id: null, name: 'Persia' }); audio.sfx('tap'); return; }
     const from = { x: w.x, y: w.y };
     const target = st ? { x: st.x, y: st.y } : to;
     const fp = { people: partySize(w.party), animals: w.party.animals ?? {} };
@@ -509,7 +512,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   /** Tap and go: the caravan sets off at once. Faster ways (train, ferry, ship) stay offered on the card while you walk. */
   const goTo = (to: Pt, st?: Settlement) => {
     // a city the opening keeps shut: say why, and nothing more
-    if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(`${st.name}: ${lockedWhy(useGame.getState(), st.id)}`); audio.sfx('tap'); return; }
+    if (st && cityLocked(useGame.getState(), st.id)) { setPlan(null); setReport(''); setLock({ id: st.id, name: st.name }); audio.sfx('tap'); return; }
     // already under way: a tap never turns the caravan by itself. Ask first, or say why it cannot turn.
     if (moving) { askReroute(to, st); return; }
     // while the opening guides a new player, a stray tap on a city must not send the caravan off:
@@ -1090,6 +1093,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               data-testid={`place-${st.id}`}
             >
               <span className="pdot"><Icon name={kindIcon[st.kind] ?? 'pin'} /></span>
+              {cityLocked(g, st.id) && <span className="plock" aria-label="Closed to you" data-testid={`lock-${st.id}`}><Icon name="lock" /></span>}
               {missionTarget === st.id && <span className="pmission" data-testid="mission-pin"><Icon name="star" /> Mission</span>}
               {visit && flag ? <span className={`pjob visit ${flag}`} title={visit.who} data-testid={`visit-pin-${st.id}`}><Icon name="hourglass" />{flag === 'icon' ? null : <> {flag === 'full' ? visit.who : st.name}</>}</span>
                 : job && flag && <span className={`pjob ${flag}`} title={job.title} data-testid={`job-pin-${st.id}`}><Icon name="scroll" />{flag === 'icon' ? null : <> {flag === 'full' ? job.title : st.name}</>}</span>}
@@ -1239,6 +1243,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       )}
       <div className="world-card" data-testid="world-card">
         {report && <p className="world-report" data-testid="world-report">{report}</p>}
+        {lock && (() => {
+          const L = lockNeeds(g, lock.id, lock.name);
+          return (
+            <div className="lock-card" data-testid="lock-card">
+              <div className="lock-head"><span className="lock-ico"><Icon name="lock" /></span><b>{L.title}</b><button className="lock-x" onClick={() => setLock(null)} aria-label="Close" data-testid="lock-close"><Icon name="x" /></button></div>
+              <p>{L.line}</p>
+              <ul>{L.items.map((it) => <li key={it.text} className={it.done ? 'done' : ''}><span aria-hidden="true">{it.done ? <Icon name="check" /> : null}</span>{it.text}</li>)}</ul>
+              {L.opening && <p className="dim small">Or skip the opening from the bar at the top, and every city opens now.</p>}
+            </div>
+          );
+        })()}
         {moving && nightfall && (
           <div className="wc-col nightfall" data-testid="nightfall">
             <div className="wc-main">

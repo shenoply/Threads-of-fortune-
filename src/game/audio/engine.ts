@@ -419,7 +419,10 @@ class AudioEngine {
   }
   private coinsAt = 0;
 
+  /** when a sound was last asked for (the soft tap for a silent button checks it) */
+  lastSfxAt = 0;
   sfx(name: string) {
+    this.lastSfxAt = performance.now();
     // the important moments also buzz on a phone that can (feel.ts), with or without sound
     buzzFor(name);
     if (!this.ensure() || !this.toggles.sfx) return;
@@ -518,6 +521,12 @@ class AudioEngine {
       }
       case 'sold':
         this.sfx('coins');
+        break;
+      case 'unwrap':
+        // cloth and cord: a rustle, a pull, the knot giving
+        this.noise(0.22, d, { type: 'bandpass', f: 1400, f2: 3600, q: 0.7, gain: 0.28, attack: 0.03 });
+        this.noise(0.18, d, { type: 'bandpass', f: 900, f2: 2600, q: 0.8, gain: 0.24, attack: 0.02, delay: 0.3 });
+        this.noise(0.06, d, { type: 'bandpass', f: 700, q: 3, gain: 0.3, attack: 0.002, delay: 0.62 });
         break;
       case 'reward':
         // a gift or an errand paid: three bells rising, and the coins

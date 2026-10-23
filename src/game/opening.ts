@@ -3,7 +3,7 @@
 // Giza, Cairo and, later, Alexandria are open on the map, so nothing pulls a newcomer off the path.
 import type { GameState } from './state/store';
 import { isPersian } from '../data/persiaMap';
-import { persiaOpen, persiaWhy } from './unlocks';
+import { persiaOpen, persiaWhy, shopTowns } from './unlocks';
 
 export const OPENING_TIP = 'first-hour'; // the old first-hour hint's id: dismissing either skips both
 type S = GameState;
@@ -71,4 +71,35 @@ export function lockedWhy(s: S, id: string): string {
   if (isPersian(id) && !persiaOpen(s)) return persiaWhy(s);
   if (id === 'alexandria') return 'Alexandria opens once you have a guard and have reached Cairo.';
   return 'Opens once the opening is done (Rashid\'s errand in Alexandria). You can skip the opening in the objective bar.';
+}
+
+/** What opens a closed place, as a list to tick off: shown when a locked town (or Persia's ground) is
+ *  tapped on the map. `opening` says the opening can be skipped to open it now. */
+export interface LockNeeds { title: string; line: string; items: { text: string; done: boolean }[]; opening?: boolean }
+export function lockNeeds(s: S, id: string | null, name: string): LockNeeds {
+  if (!id || isPersian(id)) {
+    const shops = shopTowns(s);
+    const others = shops.filter((t) => t !== 'baghdad').length;
+    return {
+      title: `${id ? name : 'Persia'} is closed to you`,
+      line: 'The road over the Zagros is open to a merchant the Persian consulate will vouch for.',
+      items: [
+        { text: 'A shop of your own in Baghdad', done: shops.includes('baghdad') },
+        { text: `Shops in two other cities (${Math.min(others, 2)} of 2)`, done: others >= 2 },
+        { text: 'A Persian visa from the consulate in Baghdad', done: !!s.persianVisa },
+      ],
+    };
+  }
+  const cur = openingStep(s);
+  if (id === 'alexandria') return {
+    title: 'Alexandria is closed to you', line: 'Not yet: Rashid wants you ready for the road first.', opening: true,
+    items: [
+      { text: 'Hire a guard at the guard yard', done: troops(s) > 0 },
+      { text: 'Take the ferry to Cairo', done: been(s, 'cairo') },
+    ],
+  };
+  return {
+    title: `${name} is closed to you`, line: 'The rest of the map opens once your first days are behind you.', opening: !!cur,
+    items: OPENING.map((st, i) => ({ text: st.text(s), done: !!cur && i < cur.n })).filter((_, i) => !cur || i >= Math.max(0, cur.n - 1)).slice(0, 4),
+  };
 }

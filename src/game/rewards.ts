@@ -6,6 +6,9 @@ import { useGame } from './state/store';
 import { audio } from './audio/engine';
 import { BIG_SALE, floatSale, saleMoment, stampOn, starTick, trackTaps } from './feel';
 import { MAIN_ORDER } from '../data/missions';
+import { RUGS } from '../data/rugs';
+import { rugSrc } from '../components/RugViewer/rugArt';
+import { reveal } from '../components/Reveal/Reveal';
 
 type S = ReturnType<typeof useGame.getState>;
 /** a jump bigger than this (a load, a new game, a save's quiet catch-up) is not one moment */
@@ -15,6 +18,14 @@ let installed = false;
 export function installRewards() {
   if (installed || typeof window === 'undefined') return;
   installed = true;
+  // every button answers a tap: one that plays no sound of its own gets the soft tap, after its own
+  // handler has run (so a button with its own sound is never doubled)
+  document.addEventListener('click', (e) => {
+    const el = (e.target as Element | null)?.closest?.('button, [role="tab"], .btn');
+    if (!el || (el as HTMLButtonElement).disabled) return;
+    const before = audio.lastSfxAt;
+    window.setTimeout(() => { if (audio.lastSfxAt === before) audio.sfx('tap'); }, 0);
+  }, true);
   trackTaps();
   let prev: S = useGame.getState();
   useGame.subscribe(() => {
@@ -59,6 +70,13 @@ export function installRewards() {
       }
       const won = fresh.filter((l) => l.kind === 'purchase' && /^Auction:/.test(l.label)).reduce((a, l) => a + (l.cost ?? -l.amount), 0);
       if (won > 0) floatSale(won, 'won');
+    }
+
+    // ---- a rug new to the Carpet Register ----
+    const r0 = p.register ?? [], r1 = s.register ?? [];
+    if (r1.length > r0.length && r1.length - r0.length <= 2) {
+      const fresh = r1.filter((id) => !r0.includes(id));
+      fresh.forEach((id, i) => { const t = RUGS[id]; if (t) window.setTimeout(() => reveal({ kicker: 'New for your Carpet Register', title: t.name, line: `${t.origin.split(',')[0]} · ${t.tier === 4 ? 'a treasure' : `tier ${['', 'I', 'II', 'III'][t.tier ?? 1]}`}`, pic: rugSrc(t), picKind: 'rug' }), 600 + i * 200); });
     }
 
     // ---- a mission or goal finished ----

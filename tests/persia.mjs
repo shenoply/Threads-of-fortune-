@@ -72,9 +72,9 @@ ok(await mod('game/opening.ts', 'return m.cityLocked(store.useGame.getState(), "
 const cls = await p.locator('[data-testid=place-kermanshah]').getAttribute('class');
 ok(/\blocked\b/.test(cls ?? ''), 'Kermanshah is greyed on the map');
 await p.locator('[data-testid=place-tehran]').dispatchEvent('click'); await p.waitForTimeout(500);
-const why = await p.locator('[data-testid=world-report]').textContent().catch(() => '');
+const why = await p.locator('[data-testid=lock-card]').textContent().catch(() => '');
 console.log('   ', why);
-ok(/shops in Baghdad and two other cities/.test(why) && /Persian visa/.test(why), 'a tap on Tehran says what opens Persia');
+ok(/shop of your own in Baghdad/.test(why) && /two other cities/.test(why) && /Persian visa/.test(why), 'a tap on Tehran says what opens Persia, as a list');
 ok(!(await has('travel')), 'and no trip is planned');
 await shot('1-locked');
 

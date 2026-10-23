@@ -1,0 +1,43 @@
+.reveal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 45%, rgba(40, 24, 10, .95), rgba(8, 5, 3, .98)); animation: rv-in .25s ease; cursor: pointer; }
+@keyframes rv-in { from { opacity: 0; } }
+.reveal-stage { position: relative; width: min(320px, 86vw); height: 380px; display: grid; place-items: center; }
+
+/* the parcel: striped cloth, a cord tied across it */
+.reveal-parcel { position: absolute; width: 132px; height: 132px; left: 50%; top: 42%; transform: translate(-50%, -50%); }
+.rp-flap { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, #b8432e 0 14px, #e3c48a 14px 20px, #3d5f9c 20px 30px, #e3c48a 30px 36px); border-radius: 6px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.18), 0 10px 24px rgba(0,0,0,.5); transform-origin: 50% 50%; }
+.rp-n { clip-path: polygon(0 0, 100% 0, 50% 50%); }
+.rp-e { clip-path: polygon(100% 0, 100% 100%, 50% 50%); filter: brightness(.88); }
+.rp-s { clip-path: polygon(0 100%, 100% 100%, 50% 50%); filter: brightness(.8); }
+.rp-w { clip-path: polygon(0 0, 0 100%, 50% 50%); filter: brightness(.94); }
+.rp-cord { position: absolute; background: #6b4a22; box-shadow: 0 1px 0 rgba(255, 230, 180, .35); }
+.rp-h { left: -4px; right: -4px; top: 50%; height: 5px; margin-top: -2.5px; }
+.rp-v { top: -4px; bottom: -4px; left: 50%; width: 5px; margin-left: -2.5px; }
+.rp-knot { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #7d5626; box-shadow: 0 0 0 2px #4d3214; }
+.reveal.shake .reveal-parcel { animation: rv-shake .75s ease-in-out; }
+@keyframes rv-shake { 0%, 100% { transform: translate(-50%, -50%) rotate(0); } 20% { transform: translate(-50%, -52%) rotate(-6deg); } 40% { transform: translate(-50%, -50%) rotate(5deg); } 60% { transform: translate(-50%, -53%) rotate(-4deg) scale(1.04); } 80% { transform: translate(-50%, -50%) rotate(3deg) scale(1.06); } }
+.reveal.open .rp-cord, .reveal.open .rp-knot, .reveal.done .rp-cord, .reveal.done .rp-knot { opacity: 0; transition: opacity .12s; }
+.reveal.open .rp-n, .reveal.done .rp-n { transform: translateY(-70px) rotateX(70deg); opacity: 0; transition: transform .5s ease-out, opacity .5s .1s; }
+.reveal.open .rp-s, .reveal.done .rp-s { transform: translateY(70px) rotateX(-70deg); opacity: 0; transition: transform .5s ease-out, opacity .5s .1s; }
+.reveal.open .rp-e, .reveal.done .rp-e { transform: translateX(70px) rotateY(70deg); opacity: 0; transition: transform .5s ease-out, opacity .5s .1s; }
+.reveal.open .rp-w, .reveal.done .rp-w { transform: translateX(-70px) rotateY(-70deg); opacity: 0; transition: transform .5s ease-out, opacity .5s .1s; }
+
+/* light, then a spray of coloured wool */
+.reveal-rays { position: absolute; left: 50%; top: 42%; width: 340px; height: 340px; margin: -170px 0 0 -170px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 214, 140, .55), rgba(255, 190, 90, .12) 45%, transparent 68%); opacity: 0; transform: scale(.4); }
+.reveal.open .reveal-rays, .reveal.done .reveal-rays { opacity: 1; transform: scale(1); transition: opacity .4s, transform .7s cubic-bezier(.2, .8, .3, 1); }
+.reveal-threads { position: absolute; left: 50%; top: 42%; width: 0; height: 0; }
+.reveal-threads i { position: absolute; left: -2px; top: -11px; width: 4px; height: 22px; border-radius: 3px; background: var(--c); opacity: 0; }
+.reveal.open .reveal-threads i { animation: rv-thread 1s cubic-bezier(.15, .7, .3, 1) forwards; }
+@keyframes rv-thread { 0% { opacity: 1; transform: rotate(var(--a)) translateY(0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) rotate(160deg); } }
+
+/* what was inside */
+.reveal-card { position: absolute; left: 0; right: 0; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; opacity: 0; transform: translateY(30px) scale(.9); }
+.reveal.open .reveal-card { opacity: 1; transform: translateY(-44%) scale(1); transition: opacity .35s .15s, transform .6s .15s cubic-bezier(.2, .9, .3, 1.2); }
+.reveal.done .reveal-card { opacity: 1; transform: translateY(-44%) scale(1); }
+.reveal-pic { display: block; width: 190px; height: 126px; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 26px rgba(0, 0, 0, .6), 0 0 0 2px rgba(230, 181, 82, .7); margin-bottom: 8px; background: #2a1c10; }
+.reveal-pic.rug { width: 150px; height: 220px; }
+.reveal-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.reveal-card small { font-family: var(--label); text-transform: uppercase; letter-spacing: .14em; font-size: 12px; color: #e6b552; }
+.reveal-card b { font-family: var(--display); font-weight: 500; font-size: 22px; color: #f6e7c4; line-height: 1.15; padding: 0 10px; }
+.reveal-card span { font-size: 15px; color: #d9c7a1; padding: 0 16px; }
+.reveal-card em { margin-top: 10px; font-style: normal; font-size: 12.5px; color: rgba(234, 219, 189, .55); }
+@media (prefers-reduced-motion: reduce) { .reveal * { animation: none !important; transition: none !important; } }
