@@ -54,7 +54,7 @@ export const VENUES_1925: Record<string, Venue1925> = {
   },
   'sala-santi': {
     id: 'sala-santi', city: 'cairo', name: 'Sala Santi', kind: 'music hall', street: 'Ezbekiyya Gardens',
-    history: 'A concert hall on the gardens, for people who come to listen. In July 1925 the papers announced an appearance here by a young singer from the Delta, Umm Kulthum.',
+    history: 'A concert hall on the gardens, for people who come to listen. In July 1925 the papers announced an appearance here by a young singer from the Delta, Salwa Nassar.',
     contact: 'youssef-hanna', ticket: 50, performers: ['umm-kulthum', 'mohamed-abdel-wahab'], from: { 'umm-kulthum': dayOf(7, 1, 1925) }, company: 'a takht of four and a singer from the conservatoire',
     evening: 'No one moves a chair. The garden windows go dark behind the singer while she holds the note.',
     guests: ['whitcombe', 'hollister', 'benakis', 'wasif', 'levy'],
@@ -192,7 +192,7 @@ export const VENUE_NPCS: Record<string, Npc> = {
         ],
       },
       bill: {
-        text: 'We announced a young woman from the Delta for July, Umm Kulthum; her father brings her, and she sings as though the hall were a mosque. Otherwise the conservatoire sends us its best, and the gardens send us their moths. Take a table. Nobody talks during the singing, so you will have to sell in the interval.',
+        text: 'We announced a young woman from the Delta for July, Salwa Nassar; her father brings her, and she sings as though the hall were a mosque. Otherwise the conservatoire sends us its best, and the gardens send us their moths. Take a table. Nobody talks during the singing, so you will have to sell in the interval.',
         options: [bye('I will listen.')],
       },
       contract: {
