@@ -334,6 +334,9 @@ export function saleMoment(amount: number, note: string, grand: boolean) {
   el.appendChild(b);
   if (note) { const s = document.createElement('span'); s.textContent = note; el.appendChild(s); }
   drop(el, x, y, grand ? 2150 : 1900);
+  // the stall picture can be wider than the screen: keep the whole ribbon on it
+  const half = el.offsetWidth / 2 + 8;
+  el.style.left = `${Math.round(Math.min(Math.max(x, half), W - half))}px`;
   if (reducedMotion()) return;
   const purse = visibleRect(document.querySelector('[data-testid="hud-cash"]'));
   if (!purse) return;

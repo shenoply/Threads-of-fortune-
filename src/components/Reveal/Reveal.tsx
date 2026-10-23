@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { audio } from '../../game/audio/engine';
 import './reveal.css';
 
-export interface RevealItem { kicker: string; title: string; line?: string; pic?: string; picKind?: 'rug' | 'photo' | 'icon' }
+export interface RevealItem { kicker: string; title: string; line?: string; pic?: string; picKind?: 'rug' | 'photo' | 'icon'; /** no parcel: the thing is shown at once, laid flat */ instant?: boolean }
 
 let push: ((it: RevealItem) => void) | null = null;
 const waiting: RevealItem[] = [];
@@ -31,6 +31,7 @@ export function RevealHost() {
   const cur = queue[0];
   useEffect(() => {
     if (!cur) return;
+    if (cur.instant) { setStage('done'); audio.sfx('reward'); return; }
     setStage('shake');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     audio.sfx('unwrap');
@@ -44,7 +45,7 @@ export function RevealHost() {
     setQueue((q) => q.slice(1));
   };
   return createPortal(
-    <div className={`reveal ${stage}`} onClick={tap} role="dialog" aria-label={`${cur.kicker}: ${cur.title}`} data-testid="reveal">
+    <div className={`reveal ${stage} ${cur.instant ? 'instant' : ''}`} onClick={tap} role="dialog" aria-label={`${cur.kicker}: ${cur.title}`} data-testid="reveal">
       <div className="reveal-stage">
         <div className="reveal-rays" aria-hidden="true" />
         <div className="reveal-threads" aria-hidden="true">

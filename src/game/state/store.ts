@@ -1,5 +1,6 @@
 import { PERSIA_IDS } from '../../data/persiaMap';
 import { motorLorry } from '../../data/world';
+import { provisionById, provisionPrice, COMFORT_CAP } from '../../data/provisions';
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
 import { migrateOpen, ALL_OPEN } from '../unlocks';
@@ -436,6 +437,8 @@ interface Actions {
   /** an injury from a fight, a fall or a beating; returns a sentence for the result screen */
   hurt: (kind: string, injuryId?: string) => string;
   buyFood: (n: number) => string;
+  /** buy n units of a souk item (src/data/provisions.ts): rations into party.food, comforts lift morale a little once a day */
+  buyProvision: (id: string, n: number) => string;
   butcherAnimal: (breed: string) => string;
   trade: (breed: string, delta: number) => string;
   recruit: (troop: string, key: string, n: number) => string;
@@ -2761,6 +2764,25 @@ export const useGame = create<GameState & Actions>()(
           set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, food: s.world.party.food + n } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `${n} rations in ${settlementById(sid).name}`, amount: -price }] });
           audio.sfx('coin');
           return `Bought ${n} ration${n === 1 ? '' : 's'} of bread and dates for ${fmt(price)}.`;
+        },
+
+        buyProvision: (id, n) => {
+          const s = get();
+          const sid = s.world.at;
+          const item = provisionById(id);
+          if (!sid || !item || n <= 0) return '';
+          const price = provisionPrice(item, n, MARKETS[sid]?.food ?? 2);
+          if (s.cash < price) return 'Not enough cash.';
+          const p = s.world.party as PartyState & { comfortDay?: number };
+          const food = p.food + item.rations * n;
+          // a comfort lifts the men once a day, by a point or two, and never past COMFORT_CAP
+          const m0 = p.morale ?? MORALE_START;
+          const lifts = !!item.morale && Object.values(p.troops ?? {}).some((k) => k > 0) && p.comfortDay !== s.day && m0 < COMFORT_CAP;
+          const party = lifts ? { ...p, food, morale: Math.min(COMFORT_CAP, m0 + Math.min(2, item.morale!)), comfortDay: s.day } : { ...p, food };
+          set({ cash: s.cash - price, world: { ...s.world, party }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `${item.name} in ${settlementById(sid).name}`, amount: -price }] });
+          audio.sfx('coin');
+          const got = item.rations ? `${item.rations * n} ration${item.rations * n === 1 ? '' : 's'}` : 'enough for the evening';
+          return `Bought ${item.name}, ${got}, for ${fmt(price)}.${lifts ? ' The men are pleased.' : ''}`;
         },
 
         /** A last resort on the road with the sacks empty: butcher a pack animal for rations. You lose the animal for good. */

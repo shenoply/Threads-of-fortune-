@@ -41,3 +41,11 @@
 .reveal-card span { font-size: 15px; color: #d9c7a1; padding: 0 16px; }
 .reveal-card em { margin-top: 10px; font-style: normal; font-size: 12.5px; color: rgba(234, 219, 189, .55); }
 @media (prefers-reduced-motion: reduce) { .reveal * { animation: none !important; transition: none !important; } }
+/* a new carpet: no parcel, the whole rug laid out flat at once */
+.reveal.instant .reveal-parcel, .reveal.instant .reveal-threads { display: none; }
+.reveal.instant .reveal-rays { opacity: .7; transform: none; transition: none; }
+.reveal.instant .reveal-card { opacity: 1; transform: translateY(-50%); transition: none; }
+.reveal.instant .reveal-pic.rug { display: flex; justify-content: center; width: 100%; height: auto; max-width: 90vw; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+.reveal.instant .reveal-pic.rug img { width: auto; height: auto; max-width: 90vw; max-height: 54vh; min-width: 180px; object-fit: contain; box-shadow: 0 10px 28px rgba(0, 0, 0, .65); }
+.reveal.instant .reveal-stage { width: 100vw; }
+.reveal.instant .reveal-stage { height: auto; min-height: 380px; }

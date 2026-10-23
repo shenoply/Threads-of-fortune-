@@ -268,10 +268,19 @@ class Voice {
         if (segs[i]) this.clip(speaker, segs[i]);
         const src = ctx.createBufferSource();
         src.buffer = c.buf;
-        src.connect(this.gain!);
-        src.onended = next;
+        // a few ms of fade at each end: a cut that lands mid-sound, or the first breath of the next
+        // line in the file, would otherwise be heard as a click
+        const fade = ctx.createGain();
+        const t0 = ctx.currentTime, len = seg[1];
+        fade.gain.setValueAtTime(0, t0);
+        fade.gain.linearRampToValueAtTime(1, t0 + 0.012);
+        fade.gain.setValueAtTime(1, t0 + Math.max(0.02, len - 0.06));
+        fade.gain.linearRampToValueAtTime(0, t0 + len);
+        src.connect(fade);
+        fade.connect(this.gain!);
+        src.onended = () => { fade.disconnect(); next(); };
         this.current = src;
-        src.start(0, c.lead, seg[1] + 0.02);
+        src.start(0, c.lead, len);
       };
       next();
     });

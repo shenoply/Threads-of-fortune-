@@ -99,7 +99,7 @@
 }
 
 /* the moment of a sale (feel.ts saleMoment): a brass ribbon over the stall, coins into the purse */
-.ff-ribbon { position: fixed; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 22px 8px; min-width: 170px;
+.ff-ribbon { position: fixed; max-width: calc(100vw - 24px); box-sizing: border-box; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 22px 8px; min-width: 170px;
   background: linear-gradient(180deg, rgba(58,34,14,.95), rgba(32,18,8,.95)); border: 1.5px solid #c99a4a; border-radius: 4px; box-shadow: 0 0 0 3px rgba(32,18,8,.55), 0 6px 22px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,230,170,.25);
   color: #f3dfb2; text-align: center; pointer-events: none; animation: ff-ribbon 1.9s cubic-bezier(.2,.8,.3,1) forwards; }
 .ff-ribbon b { font-family: var(--display, serif); font-weight: 700; font-size: 22px; letter-spacing: .05em; color: #ffe1a0; text-shadow: 0 1px 0 rgba(0,0,0,.6); font-variant-numeric: tabular-nums; }
@@ -115,3 +115,7 @@
 .ff-feat span { font-size: 13.5px; }
 @keyframes ff-feat { 0% { opacity: 0; transform: translate(-50%, -80%); } 10% { opacity: 1; transform: translate(-50%, -50%); } 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .ff-ribbon, .ff-feat { animation-duration: 2s; } }
+/* these two centre themselves with transform; the layer's own translate would move them a second
+   half-width to the left, off the screen */
+.ff-layer > .ff-ribbon, .ff-layer > .ff-feat { translate: none; }
+.ff-ribbon span { white-space: normal; }

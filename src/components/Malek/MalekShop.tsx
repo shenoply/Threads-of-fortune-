@@ -305,7 +305,7 @@ export default function MalekShop({ onLeave }: { onLeave: () => void }) {
     audio.sfx('tap');
   };
 
-  if (film && open) return <IntroFilm id="malek" title="Malek's grill · Giza, 1925" onDone={() => { useGame.getState().markIntroSeen('malek'); setFilm(false); setBonus(true); }} />;
+  if (film && open) return <IntroFilm id="malek" title="Malek's grill · Giza, 1925" onDone={() => { useGame.getState().markIntroSeen('malek'); setFilm(false); }} />;
   if (bonus && open) return <MalekBonusClip onDone={() => setBonus(false)} />;
 
   // ---------------- the door: closed, or the visit picture ----------------

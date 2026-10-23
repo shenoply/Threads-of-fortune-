@@ -93,7 +93,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
           <p className="cs-note">Your manner moves with what you say at the stall: a true word or a tall story, holding your price or giving way.</p>
         </Why>
       </Fold>
-      <Fold id="me-charisma" title={`Charisma ${ch}`} gist={`${dress} · ${att.clean >= 70 ? 'clean' : att.clean >= 35 ? 'dusty' : 'filthy from the road'}`}>
+      {!hideDress && <Fold id="me-charisma" title={`Charisma ${ch}`} gist={`${dress} · ${att.clean >= 70 ? 'clean' : att.clean >= 35 ? 'dusty' : 'filthy from the road'}`}>
         <i className="cs-bar clean"><em style={{ width: `${att.clean}%` }} /></i>
         {!hideDress && <div className="cs-dress">
           <HeroBadge outfitId={wornOutfit(wr).id} size={64} />
@@ -106,7 +106,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
           ['crown', 'No palace admits a man in a work galabiya.'],
         ]} />
         <Why id="charisma"><p className="cs-note">Clothes and cleanliness set your charisma. Every piece is sold separately: hats, coats, shoes, rings, even rifles.</p></Why>
-      </Fold>
+      </Fold>}
       <Titles />
     </div>
   );

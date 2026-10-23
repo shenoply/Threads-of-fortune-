@@ -11,6 +11,8 @@ import { AnimalPlate } from './AnimalPlate';
 import { TroopPage, MenTalk, capLine } from './Troops';
 import { troopCount, troopCap, animalCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
+import { provisionsAt, stapleAt, provisionPrice } from '../../data/provisions';
+import './provisions.css';
 
 /** One-line caravan status used on the map and in towns. */
 export function CaravanStrip() {
@@ -49,12 +51,29 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'] }: { show?
       {note && <p className="set-note" data-testid="supply-note">{note}</p>}
       {show.includes('food') && (<>
       <div className="section-label">PROVISIONS</div>
-      <div className="mkt">
-        <div className="mkt-row">
-          <span><b>Bread, dates and water</b><small>{localMoney(m.food, sid, g.day)} a ration · you have {p.food}, the caravan eats {dailyFood(p)} a day</small></span>
-          <button className="btn" onClick={() => setNote(g.buyFood(5))} disabled={g.cash < Math.ceil(5 * m.food)} data-testid="buy-food-5">+5</button>
-          <button className="btn primary" onClick={() => setNote(g.buyFood(dailyFood(p) * 5))} disabled={g.cash < Math.ceil(dailyFood(p) * 5 * m.food)} data-testid="buy-food-days">5 days</button>
-        </div>
+      <p className="set-demand prov-sum" data-testid="food-summary">You have {p.food} ration{p.food === 1 ? '' : 's'}, the caravan eats {dailyFood(p)} a day ({foodDaysLeft(p)} day{foodDaysLeft(p) === 1 ? '' : 's'}).</p>
+      <div className="mkt prov">
+        {provisionsAt(sid).map((it) => {
+          const staple = it.id === stapleAt(sid)?.id;
+          const each = provisionPrice(it, 1, m.food);
+          const gives = it.rations ? `${localMoney(each, sid, g.day)} a ration` : `${localMoney(each, sid, g.day)}, cheers the men`;
+          const buy = (n: number, testid?: string, label = `+${n}`, primary = false) => (
+            <button className={primary ? 'btn primary' : 'btn'} onClick={() => setNote(g.buyProvision(it.id, n))} disabled={g.cash < provisionPrice(it, n, m.food)} data-testid={testid ?? `buy-prov-${it.id}-${n}`}>{label}</button>
+          );
+          return (
+            <div className="mkt-row prov-row" key={it.id} data-testid={`prov-${it.id}`}>
+              <img className="prov-pic" src={`art/food/${it.id}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              <span><b>{it.name}</b><small>{it.line} {gives}.</small></span>
+              {staple ? (<>
+                {buy(5, 'buy-food-5')}
+                {buy(dailyFood(p) * 5, 'buy-food-days', '5 days', true)}
+              </>) : (<>
+                {buy(1)}
+                {it.rations > 0 && buy(5)}
+              </>)}
+            </div>
+          );
+        })}
       </div>
       </>)}
       {show.includes('animals') && <BreedMarket sid={sid} onNote={setNote} />}

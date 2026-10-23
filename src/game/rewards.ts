@@ -76,7 +76,7 @@ export function installRewards() {
     const r0 = p.register ?? [], r1 = s.register ?? [];
     if (r1.length > r0.length && r1.length - r0.length <= 2) {
       const fresh = r1.filter((id) => !r0.includes(id));
-      fresh.forEach((id, i) => { const t = RUGS[id]; if (t) window.setTimeout(() => reveal({ kicker: 'New for your Carpet Register', title: t.name, line: `${t.origin.split(',')[0]} · ${t.tier === 4 ? 'a treasure' : `tier ${['', 'I', 'II', 'III'][t.tier ?? 1]}`}`, pic: rugSrc(t), picKind: 'rug' }), 600 + i * 200); });
+      fresh.forEach((id, i) => { const t = RUGS[id]; if (t) window.setTimeout(() => reveal({ kicker: 'New for your Carpet Register', title: t.name, line: `${t.origin.split(',')[0]} · ${t.tier === 4 ? 'a treasure' : `tier ${['', 'I', 'II', 'III'][t.tier ?? 1]}`}`, pic: rugSrc(t), picKind: 'rug', instant: true }), 250 + i * 200); });
     }
 
     // ---- a mission or goal finished ----

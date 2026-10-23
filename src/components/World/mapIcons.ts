@@ -255,19 +255,11 @@ const BAND: Record<BandIcon, (c: Ctx) => void> = {
     sword(1); sword(-1);
   },
   bale: (c) => {
-    // a roped bale of goods
-    c.fillStyle = PAPER;
-    c.beginPath(); c.moveTo(4, 8); c.quadraticCurveTo(12, 5.4, 20, 8); c.lineTo(20, 17.6); c.quadraticCurveTo(12, 20.2, 4, 17.6); c.closePath();
-    c.fill(); c.lineWidth = 1.2; c.stroke();
-    c.beginPath(); c.moveTo(4, 8); c.quadraticCurveTo(12, 5.4, 20, 8); c.lineTo(20, 17.6); c.quadraticCurveTo(12, 20.2, 4, 17.6); c.closePath();
-    hatch(c, 4, 5, 20, 20, 1.5);
-    c.fillStyle = INK;
-    c.lineWidth = 1.3;
-    line(c, [9, 6.6, 9, 19]); line(c, [15, 6.6, 15, 19]);
-    c.beginPath(); c.moveTo(4, 12.8); c.quadraticCurveTo(12, 15.2, 20, 12.8); c.stroke();
-    // the knot and its loose ends
-    circle(c, 12, 14.0, 1, true);
-    c.lineWidth = 0.8; line(c, [12, 14, 10.6, 17.2]); line(c, [12, 14, 13.6, 17.0]);
+    // a trader: one tall camel under its bales, its driver walking ahead with the rope
+    camel(c, 8.6, 19.0, 0.98);
+    walker(c, 20.6, 19.6, 0.62);
+    c.lineWidth = 0.5; line(c, [15.2, 11.6, 19.6, 13.6]);
+    c.lineWidth = 0.6; for (let x = 1; x < 23; x += 3) line(c, [x, 20.4, x + 1.6, 20.4]);
   },
   rifle: (c) => {
     // a long rifle laid diagonally, with a sling

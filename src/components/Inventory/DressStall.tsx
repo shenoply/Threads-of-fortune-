@@ -40,11 +40,14 @@ export function fxWords(placed: string[]) {
 /** a piece's picture cropped to its own painted extent (the cut-outs are full-canvas), or its icon
  *  while it has no picture */
 const TW = 134, TH = 74;
-function PieceThumb({ d }: { d: DressingPiece }) {
+function PieceThumb({ d, sc }: { d: DressingPiece; sc: StallScene }) {
   const [ok, setOk] = useState(true);
   const box = PROP_BOX[propKey(dressingArt(d.id))];
-  if (!ok || !box) return <span className="dress-thumb icon" aria-hidden="true"><Icon name={d.icon} /></span>;
-  const [x0, y0, x1, y1] = box;
+  const r = !ok || !box ? spotRect(sc, d.spot) : null;
+  if ((!ok || !box) && !r) return <span className="dress-thumb icon" aria-hidden="true"><Icon name={d.icon} /></span>;
+  // no cut-out of its own: the place on this stall where it goes, cut from the painting
+  const src = r ? sceneImg(sc.id) : dressingArt(d.id);
+  const [x0, y0, x1, y1] = r ?? box!;
   const w = x1 - x0, h = y1 - y0;
   // fit the piece into the thumbnail, and scale the whole canvas to match
   const a = (w * 1536) / (h * 1024);
@@ -54,8 +57,9 @@ function PieceThumb({ d }: { d: DressingPiece }) {
   return (
     <span className="dress-thumb" aria-hidden="true">
       <span className="dress-thumb-in" style={{ width: iw, height: ih }}>
-        <img src={dressingArt(d.id)} alt="" onError={() => setOk(false)} style={pos} />
+        <img src={src} alt="" onError={() => setOk(false)} style={pos} />
       </span>
+      {r && <Icon name={d.icon} />}
     </span>
   );
 }
@@ -85,7 +89,7 @@ function OnStage({ id, sc, preview }: { id: string; sc: StallScene; preview?: bo
 export function DressStall({ onClose }: { onClose: () => void }) {
   const g = useGame();
   const sc = stallSceneFor(g.upgrades);
-  const SPOTS = useMemo(() => spotsHere(g.upgrades).filter((x) => spotRect(sc, x.id)), [g.upgrades, sc]);
+  const SPOTS = useMemo(() => spotsHere(g.upgrades).filter((x) => spotRect(sc, x.id)).sort((a, b) => { const ra = spotRect(sc, a.id)!, rb = spotRect(sc, b.id)!; return (ra[0] + ra[2]) - (rb[0] + rb[2]); }), [g.upgrades, sc]);
   const rectOf = (id: string) => spotRect(sc, id) ?? [0, 0, 0, 0];
   const spots = spotsOf(g);
   const [signDraft, setSignDraft] = useState(g.signName ?? '');
@@ -146,12 +150,24 @@ export function DressStall({ onClose }: { onClose: () => void }) {
             const r = rectOf(s.id);
             return <button key={s.id} className={`dress-spot ${s.id === sel ? 'on' : ''} ${spots[s.id] ? 'full' : ''}`} style={{ left: `${r[0]}%`, top: `${r[1]}%`, width: `${r[2] - r[0]}%`, height: `${r[3] - r[1]}%` }} onClick={() => pick(s.id)} aria-label={s.label} aria-pressed={s.id === sel} data-testid={`spot-${s.id}`} />;
           })}
+          {SPOTS.map((s, i) => {
+            const r = rectOf(s.id);
+            return <span key={s.id} className={`dress-pin ${s.id === sel ? 'on' : ''} ${spots[s.id] ? 'full' : ''}`} style={{ left: `${(r[0] + r[2]) / 2}%`, top: `${(r[1] + r[3]) / 2}%` }} aria-hidden="true">{spots[s.id] ? <Icon name="check" /> : i + 1}</span>;
+          })}
         </div>
+      </div>
+      <div className="dress-places" role="tablist" aria-label="Places on the stall">
+        {SPOTS.map((s, i) => (
+          <button key={s.id} role="tab" aria-selected={s.id === sel} className={`dress-place ${s.id === sel ? 'on' : ''} ${spots[s.id] ? 'full' : ''}`} onClick={() => pick(s.id)} data-testid={`place-${s.id}`}>
+            <i>{spots[s.id] ? <Icon name="check" /> : i + 1}</i>
+            <span><b>{s.label}</b><small>{spots[s.id] ? DRESSING_BY_ID[spots[s.id]!]?.name : 'Empty'}</small></span>
+          </button>
+        ))}
       </div>
       <div className="dress-panel">
         {!spot ? (
           <>
-            <p className="dress-hint">Tap a place on the stall to see what could stand there. Each place holds one piece; you can change them round whenever you like.{SPOTS.length < spotsHere(['mat', 'bazaar', 'khan']).length ? ' A bigger stall has more places.' : ''}</p>
+            <p className="dress-hint">Pick a place, above or on the picture, then a piece for it.{SPOTS.length < spotsHere(['mat', 'bazaar', 'khan']).length ? ' A bigger stall has more places.' : ''}</p>
             <p className="dress-fx" data-testid="dress-fx">Your stall helps every sale: {fxWords(placed)}.</p>
           </>
         ) : (
@@ -162,7 +178,7 @@ export function DressStall({ onClose }: { onClose: () => void }) {
                 const mine = ownsPiece(g, d.id);
                 return (
                   <button key={d.id} className={`dress-card ${shown === d.id ? 'on' : ''} ${d.id === cur ? 'here' : ''}`} onClick={() => { audio.sfx('tap'); setNote(''); setPreview(d.id === cur ? null : d.id); }} data-testid={`piece-${d.id}`} aria-pressed={shown === d.id}>
-                    <PieceThumb d={d} />
+                    <PieceThumb d={d} sc={sc} />
                     <b>{d.name}</b>
                     <small>{d.effect}</small>
                     <em>{d.id === cur ? 'On the stall' : d.father ? "Your father's" : mine ? 'Yours' : fmt(d.cost)}</em>
