@@ -12,6 +12,10 @@ import { FLAW_CLUES, eyeOf, flawFactorFor, flawNotes } from '../../game/systems/
 import { RugFlags } from '../Inventory/RugFlags';
 import { KnotCount } from '../KnotCount/KnotCount';
 import { countable, knotVerdict } from '../../game/knots';
+import { RollingRug } from './RollingRug';
+
+/** the carpet unrolls as the inspector opens; not for players who asked for less motion, nor in automated runs */
+const mayRoll = () => typeof window !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!navigator.webdriver || !!(window as { __tofRoll?: boolean }).__tofRoll);
 
 const TABS = ['Overview', 'Condition', 'Weave', 'Fringe', 'Provenance', 'Estimate'] as const;
 
@@ -30,6 +34,13 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const [back, setBack] = useState(false);
   const [backSrc, setBackSrc] = useState('');
   const [counting, setCounting] = useState(false);
+  // the carpet in motion: unrolling into view, rolling up, or lying rolled; null once it lies flat as a picture
+  const [roll, setRoll] = useState<{ from: 'flat' | 'rolled'; target: 'flat' | 'rolled' } | null>(() => (mayRoll() ? { from: 'rolled', target: 'flat' } : null));
+  const [fit, setFit] = useState<{ w: number; h: number } | null>(null);
+  const [skip, setSkip] = useState(0);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const measure = () => { const el = imgRef.current; if (el && el.offsetWidth) setFit({ w: el.offsetWidth, h: el.offsetHeight }); };
+  useEffect(() => { if (imgRef.current?.complete) measure(); }, []);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const pinch = useRef<{ d: number; z: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -81,6 +92,8 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
         className="inspector-stage"
         onWheel={(e) => setZ(zoom * (e.deltaY < 0 ? 1.15 : 0.87))}
         onPointerDown={(e) => {
+          if (roll && roll.target === 'flat') { setSkip((k) => k + 1); return; }
+          if (roll) return;
           (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
           pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           if (pointers.current.size === 2) {
@@ -109,20 +122,34 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
       >
         {back && <div className="sim-label">Simulated reverse · illustration, not a photograph</div>}
         <img
+          ref={imgRef}
+          onLoad={measure}
           src={back ? backSrc || rugSrc(t) : rugSrc(t)}
           alt={back ? `Simulated reverse of ${t.name}` : t.name}
           draggable={false}
-          style={{ transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) rotate(${rot}deg) scale(${zoom})`, filter: item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined }}
+          style={{ transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) rotate(${rot}deg) scale(${zoom})`, filter: item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined, visibility: roll ? 'hidden' : undefined }}
           data-testid="inspector-img"
           data-zoom={zoom.toFixed(2)}
         />
+        {roll && fit && (
+          <RollingRug src={rugSrc(t)} fit={fit} from={roll.from} target={roll.target} skip={skip}
+            filter={item.condition === 'Dirty' ? 'sepia(0.45) brightness(0.8)' : undefined}
+            onSettled={(at) => { if (at === 'flat') setRoll(null); }} />
+        )}
         <div className="insp-tools">
+          <button onClick={() => {
+            mark();
+            if (roll?.target === 'rolled') { setRoll({ from: 'rolled', target: 'flat' }); return; }
+            if (roll) return;
+            setZoom(1); setPan({ x: 0, y: 0 }); setRot(0); setBack(false); measure();
+            setRoll({ from: 'flat', target: 'rolled' });
+          }} aria-label={roll?.target === 'rolled' ? 'Unroll it' : 'Roll it up'} data-testid="roll-toggle"><Icon name="scroll" /></button>
           <button onClick={() => setZ(zoom + 0.5)} aria-label="Zoom in" data-testid="zoom-in"><Icon name="zoomin" /></button>
           <button onClick={() => setZ(zoom - 0.5)} aria-label="Zoom out"><Icon name="zoomout" /></button>
           <button onClick={() => { setRot((r) => r + 90); mark(); }} aria-label="Rotate" data-testid="rotate"><Icon name="rotate" /></button>
           <button onClick={() => { setBack((b) => !b); mark(); }} aria-label={back ? 'Show front' : 'Show reverse'} data-testid="flip"><Icon name="flip" /></button>
         </div>
-        <div className="insp-zoom">{back ? 'Reverse (simulated)' : 'Front'} · {zoom.toFixed(1)}×{zoom === 1 ? ' · pinch or tap + to zoom' : ' · drag to pan'}</div>
+        <div className="insp-zoom">{roll ? (roll.target === 'rolled' ? 'Rolled up · the roll button lays it out again' : 'Unrolling · tap to skip') : <>{back ? 'Reverse (simulated)' : 'Front'} · {zoom.toFixed(1)}×{zoom === 1 ? ' · pinch or tap + to zoom' : ' · drag to pan'}</>}</div>
       </div>
       <div className="insp-panel">
         <div className="tabs" role="tablist">
