@@ -7,7 +7,7 @@ import { rugThumb } from '../components/RugViewer/rugArt';
 import { warmPaintedMap } from './systems/mapRender';
 import { stallLayersSeen } from './feel';
 import { START_WARDROBE, stallSrc } from '../data/wardrobe';
-import { sceneLayers } from './stallScenes';
+import { lookUps, sceneLayers } from './stallScenes';
 // Warm the browser cache for paintings the player is about to see: one at a time, in idle moments,
 // so a scene opens with its picture already there instead of popping in.
 const seen = new Set<string>();
@@ -160,7 +160,7 @@ export function predecodeStall(buyerId?: string) {
   const fig = buyerId ? stallFigure(buyerId).src : '';
   // (people only as the next buyer: whoever stood at the counter last time is not coming back now)
   const person = (u: string) => /art\/portraits\//.test(u) && u !== fig;
-  const want = [...new Set([...sceneLayers(useGame.getState().upgrades ?? []), stallSrc(worn),
+  const want = [...new Set([...sceneLayers(lookUps(useGame.getState())), stallSrc(worn),
     ...(fig ? [fig] : []), 'art/radio-stall-small.webp', 'art/newspaper-stall.webp', prop('prop-gramophone'), ...stallLayersSeen()])]
     .filter((u) => !person(u) && !held.has(u) && !toDecode.includes(u));
   // a buyer who has been and gone is let go

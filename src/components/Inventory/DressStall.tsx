@@ -7,7 +7,7 @@ import { fmt } from '../../game/economy/money';
 import { useGame } from '../../game/state/store';
 import { DRESSING_BY_ID, dressingArt, dressingFx, type DressingPiece } from '../../data/shops';
 import { SPOT_BY_ID, piecesFor, spotsOf, spotsHere, ownsPiece, placedPieces } from '../../game/stallDressing';
-import { PROP_BOX, markAt, placeStyle, placedRect, propKey, sceneImg, stallSceneFor, type StallScene } from '../../game/stallScenes';
+import { PROP_BOX, lookUps, markAt, placeStyle, placedRect, propKey, sceneImg, stallSceneFor, type StallScene } from '../../game/stallScenes';
 import { StallSky } from '../Atmosphere/StallSky';
 import { DEFAULT_SIGN, SignLetters } from '../StallEncounter/Scene';
 import { Icon } from '../Icon';
@@ -88,8 +88,9 @@ function OnStage({ id, sc, preview }: { id: string; sc: StallScene; preview?: bo
 
 export function DressStall({ onClose }: { onClose: () => void }) {
   const g = useGame();
-  const sc = stallSceneFor(g.upgrades);
-  const SPOTS = useMemo(() => spotsHere(g.upgrades).filter((x) => spotRect(sc, x.id)).sort((a, b) => { const ra = spotRect(sc, a.id)!, rb = spotRect(sc, b.id)!; return (ra[0] + ra[2]) - (rb[0] + rb[2]); }), [g.upgrades, sc]);
+  const look = lookUps(g);
+  const sc = stallSceneFor(look);
+  const SPOTS = useMemo(() => spotsHere(look).filter((x) => spotRect(sc, x.id)).sort((a, b) => { const ra = spotRect(sc, a.id)!, rb = spotRect(sc, b.id)!; return (ra[0] + ra[2]) - (rb[0] + rb[2]); }), [JSON.stringify(look), sc]);
   const rectOf = (id: string) => spotRect(sc, id) ?? [0, 0, 0, 0];
   const spots = spotsOf(g);
   const [signDraft, setSignDraft] = useState(g.signName ?? '');
@@ -214,7 +215,7 @@ export function StallDressing() {
   const g = useGame();
   const [open, setOpen] = useState(false);
   const placed = placedPieces(g);
-  const room = spotsHere(g.upgrades).length;
+  const room = spotsHere(lookUps(g)).length;
   return (
     <div className="upgrade dress-entry" data-testid="dressing-fold">
       <span className="dress-pic" aria-hidden="true"><Icon name="room" /></span>

@@ -58,6 +58,7 @@ import { rentFor } from './data/suppliers';
 import { paintedMap } from './game/systems/mapRender';
 import { Atmosphere } from './components/Atmosphere/Atmosphere';
 import { preloadStall } from './components/StallEncounter/stallArt';
+import { lookUps } from './game/stallScenes';
 import { FinancePanel } from './components/World/Finance';
 import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
 import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlot';
@@ -213,7 +214,7 @@ export default function App() {
     clearSlot(n); refreshSlots();
   };
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
-  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3), g.upgrades); }, [g.started, g.queue, g.visitIdx, g.upgrades]);
+  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3), lookUps(g)); }, [g.started, g.queue, g.visitIdx, g.upgrades, g.stallLook]);
   const [phase, setPhase] = useState<Phase>('title');
   const [titleOpts, setTitleOpts] = useState(false);
   const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
@@ -321,6 +322,8 @@ export default function App() {
   // the road's 'Your buyers' (components/Road)
   useEffect(() => { const on = () => { setMsub('customers'); setTab('ledger'); }; window.addEventListener('tof:open-buyers', on); return () => window.removeEventListener('tof:open-buyers', on); }, []);
   useEffect(() => { const on = () => { setMsub('road'); setTab('ledger'); }; window.addEventListener('tof:open-road', on); return () => window.removeEventListener('tof:open-road', on); }, []);
+  // Uncle Rashid's warehouse on the Giza map opens his stock
+  useEffect(() => { const on = () => setTab('supplier'); window.addEventListener('tof:open-rashid', on); return () => window.removeEventListener('tof:open-rashid', on); }, []);
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
   useEffect(() => {
     const on = (e: Event) => { const d = (e as CustomEvent<string | { town: string; go?: boolean | 'train' }>).detail; const t = typeof d === 'string' ? d : d?.town; const go = typeof d === 'object' ? (d?.go === 'train' ? 'train' as const : !!d?.go) : false; if (t) mapGo(useGame.getState().world.at === t ? (t === 'giza' ? { view: 'district' } : { view: 'world', panel: t, tab: 'town' }) : { view: 'world', plan: t, go }); };

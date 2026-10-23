@@ -2,6 +2,7 @@ import { fmt } from '../../game/economy/money';
 import { stallName, useGame } from '../../game/state/store';
 import { UPGRADES, type Upgrade } from '../../data/suppliers';
 import { StallDressing } from './DressStall';
+import { LOOKS, lookUps, sceneIdFor, sceneSmall } from '../../game/stallScenes';
 
 /** Which upgrades you could buy right now: reputation met, the one before owned, and the cash in hand. */
 export function upgradeState(u: Upgrade, g: { upgrades: string[]; reputation: number; cash: number }) {
@@ -15,8 +16,24 @@ export const affordableUpgrades = (g: { upgrades: string[]; reputation: number; 
 /** The stall's upgrades: what each does, what it costs, and what stands in the way. Shown in Stock and from the stall. */
 export function StallUpgrades() {
   const g = useGame();
+  const looks = LOOKS.filter((l) => !l.needs || g.upgrades.includes(l.needs));
+  const shown = sceneIdFor(lookUps(g));
   return (
     <>
+      {looks.length > 1 && (
+        <div className="look-pick" data-testid="look-pick">
+          <div className="section-label">WHICH STALL TO SHOW YOUR GOODS IN</div>
+          <div className="look-row">
+            {looks.map((l) => (
+              <button key={l.id} className={`look ${shown === l.id ? 'on' : ''}`} onClick={() => g.setStallLook(l.id === looks[looks.length - 1].id ? undefined : l.id)} aria-pressed={shown === l.id} data-testid={`look-${l.id}`}>
+                <img src={sceneSmall(l.id)} alt="" loading="lazy" />
+                <span>{l.name}</span>
+              </button>
+            ))}
+          </div>
+          <p className="dim small">The newest earns the most: an older stall has fewer places to dress, but every upgrade you own still works.</p>
+        </div>
+      )}
       <StallDressing />
       <div className="upgrades" data-testid="stall-upgrades">
         {UPGRADES.map((u) => {

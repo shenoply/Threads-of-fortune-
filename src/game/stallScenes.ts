@@ -143,6 +143,19 @@ export const STALL_SCENES: Record<string, StallScene> = {
 export const sceneIdFor = (upgrades: string[]) =>
   upgrades.includes('khan') ? 'cairo' : upgrades.includes('bazaar') ? 'giza-bazaar' : upgrades.includes('mat') ? 'giza-mat' : 'giza-borrowed';
 export const stallSceneFor = (upgrades: string[]) => STALL_SCENES[sceneIdFor(upgrades)];
+/** the stalls you can show your goods in: every one you have had, the old ones too */
+export const LOOKS: { id: string; ups: string[]; name: string; needs?: string }[] = [
+  { id: 'giza-borrowed', ups: [], name: 'The borrowed corner' },
+  { id: 'giza-mat', ups: ['mat'], name: 'A rug mat of your own', needs: 'mat' },
+  { id: 'giza-bazaar', ups: ['mat', 'bazaar'], name: 'The bazaar stall', needs: 'bazaar' },
+  { id: 'cairo', ups: ['mat', 'bazaar', 'khan'], name: 'The Khan shop', needs: 'khan' },
+];
+/** the upgrades the stall looks like it has: the one you chose to show, or the newest you own */
+export const lookUps = (s: { upgrades?: string[]; stallLook?: string }): string[] => {
+  const up = s.upgrades ?? [];
+  const l = LOOKS.find((x) => x.id === s.stallLook);
+  return l && (!l.needs || up.includes(l.needs)) ? l.ups : up;
+};
 
 export const sceneImg = (id: string) => `art/stalls/${id}.webp`;
 export const sceneSmall = (id: string) => `art/stalls/${id}-768.webp`;

@@ -46,6 +46,7 @@ export function ShopPanel({ sid, onClose }: { sid: string; onClose: () => void }
         ) : !sh ? (
           <>
             <p className="dim">A narrow shop {c.place}, with a shutter, a wall for rugs and a room behind. You hire a man to keep it; he sells what you leave with him and writes to you every Monday with the week's takings.</p>
+            <p className="dim small" data-testid="shop-how"><b>How it works:</b> you take the lease here, in {st.name}. After that the shop trades without you; come back only to leave rugs on its wall. On the map, a shop sign on a city's pin shows where shops can be had: outlined when you can buy, faint when you need more reputation, gold when it is yours.</p>
             <div className="mkt">
               <div className="mkt-row">
                 <span><b>The lease and fittings</b><small>{g.reputation < c.rep ? `The landlords want reputation ${c.rep} (yours is ${g.reputation})` : 'Yours for as long as you trade'}</small></span>

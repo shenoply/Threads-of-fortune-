@@ -21,7 +21,7 @@ import { BuyerCard } from '../Merchant/Customers';
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';
 import { dressingArt, DRESSING_BY_ID } from '../../data/shops';
 import { StallSky } from '../Atmosphere/StallSky';
-import { catAt, placeStyle, placedRect, sceneFg, sceneImg, stallSceneFor, type Anchor, type StallScene } from '../../game/stallScenes';
+import { STALL_SCENES, catAt, lookUps, sceneIdFor, placeStyle, placedRect, sceneFg, sceneImg, stallSceneFor, type Anchor, type StallScene } from '../../game/stallScenes';
 
 interface SceneProps {
   enc: Encounter | null;
@@ -76,7 +76,7 @@ export function Dust() {
 }
 
 export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
-  const sc = stallSceneFor(useGame((st) => st.upgrades));
+  const sc = STALL_SCENES[useGame((st) => sceneIdFor(lookUps(st)))];
   const STAGE_IMG = sceneImg(sc.id);
   // the hero as the player dressed him, once every piece he wears is painted for the stall
   const outfit = wornOutfit(useGame((st) => st.wardrobe) ?? START_WARDROBE).id;
@@ -361,7 +361,7 @@ function ScenePerson({ id }: { id: string }) {
  *  piece whose picture has not been painted yet, does not draw. */
 export function StallProps({ sc, front = false, inFront }: { sc: StallScene; front?: boolean; inFront?: (x: number) => boolean }) {
   const sp = useGame((st) => JSON.stringify(spotsOf(st)));
-  const up = useGame((st) => st.upgrades);
+  const up = JSON.parse(useGame((st) => JSON.stringify(lookUps(st)))) as string[];
   const spots = JSON.parse(sp) as Record<string, string>;
   const [missing, setMissing] = useState<string[]>([]);
   return (

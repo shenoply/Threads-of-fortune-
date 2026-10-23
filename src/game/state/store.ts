@@ -230,6 +230,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
+  /** which of your stalls you show your goods in (an older one may be chosen); unset: the newest */
+  stallLook?: string;
   /** carpets of your own design: the designs, and those still on the weaver's loom */
   loom?: { designs: Design[]; weaving: { id: string; ready: number; paid?: number }[]; next: number; /** your own loom house at Kerdasa */ owned?: boolean };
   /** what the merchant carries from the gunsmith (data/arms.ts): one thing at his side, one long arm */
@@ -563,6 +565,7 @@ interface Actions {
   /** put an owned piece (or your father's) in its spot, or clear the spot (id null) */
   placeDressing: (spot: string, id: string | null) => string;
   setSignName: (name: string) => void;
+  setStallLook: (id: string | undefined) => void;
   /** have the weaver weave a design: pay now, collect it when it is off the loom */
   commissionCarpet: (d: Design) => string;
   /** take a finished carpet off the loom into your stock */
@@ -4188,6 +4191,7 @@ export const useGame = create<GameState & Actions>()(
           registerDesigns(designs.filter((x) => x.id === id));
           set({ loom: { ...lm, designs } });
         },
+        setStallLook: (id) => set({ stallLook: id }),
         setSignName: (name) => set({ signName: name.replace(/[\u0000-\u001f]/g, '').slice(0, 28).trim() || undefined }),
 
         placeDressing: (spot, id) => {

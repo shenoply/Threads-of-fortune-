@@ -1,6 +1,6 @@
 import { NextOnRoad } from '../Road/Road';
 import { openingDone } from '../../game/opening';
-import { sceneIdFor, sceneSmall } from '../../game/stallScenes';
+import { lookUps, sceneIdFor, sceneSmall } from '../../game/stallScenes';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../Icon';
@@ -41,7 +41,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   return (
     <div className="screen idle" data-testid="stall-idle">
       <div className="idle-scene" aria-hidden="true">
-        <img src={sceneSmall(sceneIdFor(g.upgrades))} alt="" draggable={false} data-testid="idle-stall-pic" />
+        <img src={sceneSmall(sceneIdFor(lookUps(g)))} alt="" draggable={false} data-testid="idle-stall-pic" />
         <span className="idle-clock-chip">{clock(h)}</span>
       </div>
       <div className="idle-next" data-testid="idle-next">

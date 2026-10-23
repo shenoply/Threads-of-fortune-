@@ -4,7 +4,7 @@
 // changes by itself: a spot holds what the player put there (or his father's things, on a new stall)
 // until he changes it. Only Saffron moves about, and never onto a spot that holds something.
 import { DRESSING, DRESSING_BY_ID, type DressingPiece } from '../data/shops';
-import { stallSceneFor, unpaintedSpot } from './stallScenes';
+import { stallSceneFor, unpaintedSpot, lookUps } from './stallScenes';
 
 export interface Spot {
   id: string;
@@ -47,9 +47,9 @@ export const spotsHere = (upgrades: string[] | undefined): Spot[] => {
 };
 /** the pieces standing in the stall now, in drawing order: what buyers see, and what helps a sale. A
  *  piece put out at a spot this stall has no room for waits there, and stands again in a bigger stall. */
-export const placedPieces = (s: { stallSpots?: Record<string, string>; upgrades?: string[] }): string[] => {
+export const placedPieces = (s: { stallSpots?: Record<string, string>; upgrades?: string[]; stallLook?: string }): string[] => {
   const sp = spotsOf(s);
-  return spotsHere(s.upgrades).map((x) => sp[x.id]).filter((id): id is string => !!id && !!DRESSING_BY_ID[id]);
+  return spotsHere(lookUps(s)).map((x) => sp[x.id]).filter((id): id is string => !!id && !!DRESSING_BY_ID[id]);
 };
 /** pieces the player may put out: everything bought, and his father's things */
 export const ownsPiece = (s: { dressing?: string[] }, id: string) => !!DRESSING_BY_ID[id]?.father || (s.dressing ?? []).includes(id);

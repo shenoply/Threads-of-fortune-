@@ -44,13 +44,14 @@ export const POIS: Poi[] = [
   { id: 'lab', name: "Arran's laboratory", sub: 'Textile tests: fibre, dyes, fastness', x: 553, y: 318, glyph: 'L' },
   { id: 'clothes', name: "Haj Mahmoud's cloth shop", sub: 'Galabiyas, tarbooshes and slippers', x: 985, y: 365, glyph: 'H' },
   { id: 'malek', name: "Malek's grill", sub: 'Kofta, kebab, tea and road parcels', x: 690, y: 420, glyph: 'M' },
+  { id: 'rashid', name: "Uncle Rashid's warehouse", sub: 'Buy stock, on credit if he trusts you', x: 905, y: 560, glyph: 'U' },
   { id: 'looms', name: 'The weavers of Kerdasa', sub: 'Have a carpet woven to your own design', x: 395, y: 600, glyph: 'K' },
   // the buyers who say "the hammam is only two streets away" mean this one, behind the market
   { id: 'hammam', name: HAMMAMS.giza.name, sub: `Steam, a scrub and a barber · ${fmt(HAMMAMS.giza.cost)}`, x: 640, y: 610, glyph: 'B' },
   { id: 'pyramids', name: 'The pyramids', sub: 'Tourists, guides and gossip', x: 225, y: 385, glyph: 'P' },
   { id: 'gate', name: 'Desert road', sub: 'Leave for the wider world', x: 90, y: 870, glyph: 'W' },
 ];
-const START_SEEN = ['stall', 'coffee', 'looms'];
+const START_SEEN = ['stall', 'coffee', 'looms', 'rashid'];
 
 function mulberry(seed: number) {
   let a = seed >>> 0;
@@ -490,7 +491,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const st = useRef({
     x: d0?.x ?? 760, y: d0?.y ?? 468, tx: d0?.x ?? 760, ty: d0?.y ?? 468,
-    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek', 'clothes', 'hammam', 'looms']),
+    fog: initFog, seen: new Set<string>([...(d0?.seen?.length ? d0.seen : START_SEEN), 'lab', 'malek', 'clothes', 'hammam', 'looms', 'rashid']),
     target: null as string | null, route: [] as { x: number; y: number }[], dirty: true,
   });
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
@@ -575,6 +576,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       case 'malek': setMalek(true); break;
       case 'clothes': setClothes(true); break;
       case 'looms': setLooms(true); break;
+      case 'rashid': window.dispatchEvent(new Event('tof:open-rashid')); break;
       case 'hammam': {
         const g0 = useGame.getState(), clean = Math.round(g0.attire?.clean ?? 100);
         setNote(`${HAMMAMS.giza.name}. Steam, a scrub and a barber, an hour and a half, ${fmt(HAMMAMS.giza.cost)}. Your clothes are ${clean >= 70 ? 'clean' : clean >= 35 ? 'dusty' : 'filthy'} (${clean}%), and clean clothes mean charisma.`);

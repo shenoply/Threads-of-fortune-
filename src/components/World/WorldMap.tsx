@@ -24,6 +24,7 @@ import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../g
 import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf } from '../../game/systems/caravan';
 import { MenTalk } from './Troops';
 import { Icon } from '../Icon';
+import { SHOP_CITIES } from '../../data/shops';
 import { audio } from '../../game/audio/engine';
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { SettlementPanel, type SetTab } from './Settlement';
@@ -347,7 +348,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // out further, down to the whole map fitted on screen with dark margins round it
   // (zoom 1 is measured against the painting, so Persia, drawn east of it, does not change the usual view)
   const base = Math.max(size.w / PAINT_W, size.h / MAP_H);
-  const minZ = Math.min(1, Math.min(size.w / MAP_W, size.h / MAP_H) / base);
+  // zoomed right out the map still fills the screen (on a tall phone it fills the height and pans sideways), never a thin strip
+  const minZ = Math.min(1, Math.max(size.w / MAP_W, size.h / MAP_H) / base);
   const s = base * z;
   const sRef = useRef(s);
   sRef.current = s;
@@ -1098,6 +1100,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               {visit && flag ? <span className={`pjob visit ${flag}`} title={visit.who} data-testid={`visit-pin-${st.id}`}><Icon name="hourglass" />{flag === 'icon' ? null : <> {flag === 'full' ? visit.who : st.name}</>}</span>
                 : job && flag && <span className={`pjob ${flag}`} title={job.title} data-testid={`job-pin-${st.id}`}><Icon name="scroll" />{flag === 'icon' ? null : <> {flag === 'full' ? job.title : st.name}</>}</span>}
               {venueFor(st.id) && <span className="pcrown" title="Royal court" data-testid={`crown-${st.id}`}><Icon name="crown" /></span>}
+              {SHOP_CITIES[st.id] && (() => {
+                const c = SHOP_CITIES[st.id], mine = !!g.shops?.[st.id], ready = !mine && g.reputation >= c.rep;
+                return <span className={`pshop ${mine ? 'mine' : ready ? 'ready' : 'later'}`} title={mine ? 'Your shop' : `A shop to buy here: ${fmt(c.cost)}, reputation ${c.rep}${ready ? '' : ` (you have ${g.reputation})`}`} data-testid={`shop-pin-${st.id}`}><Icon name="store" /></span>;
+              })()}
               {news[st.id] && shown && (tier > 0 || key) && (
                 <span className="pnews" data-testid={`news-pin-${st.id}`}>
                   {news[st.id].map((m) => <i key={m} className={`pn-${m}`} title={NEWS_TIP[m]} aria-label={NEWS_TIP[m]}><Icon name={NEWS_ICON[m]} /></i>)}
