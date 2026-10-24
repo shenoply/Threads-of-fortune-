@@ -69,6 +69,8 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
             </div>
           </div>
         )}
+        {/* the flying-carpet dream, on demand (components/Dream) */}
+        <button className="btn small idle-dream" onClick={() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'nap' }))} data-testid="idle-dream"><Icon name="moon" /> Doze with Saffron</button>
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}
       </div>
 
