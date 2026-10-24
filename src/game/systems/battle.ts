@@ -118,11 +118,11 @@ export function startBattle(o: { me: SideSpec; band: BandSpec; ground: GroundId;
   const rifles = mineList.filter((m) => m.group === 'rifles');
   const foot = mineList.filter((m) => m.group === 'foot');
   const riders = mineList.filter((m) => m.group === 'riders');
-  lineOf(rifles, sq ? 74 : 72, sq ? 5 : 9);
-  lineOf(foot, sq ? 78 : 77, sq ? 5 : 8);
+  lineOf(rifles, sq ? 74 : 72.5, sq ? 6 : 15);
+  lineOf(foot, sq ? 78 : 78, sq ? 6 : 13);
   if (wings) {
     riders.forEach((m, i) => { const base = KIND[m.kind]; const left = i % 2 === 0; const x = left ? 12 + (i >> 1) * 5 : 88 - (i >> 1) * 5; add({ side: 0, group: 'riders', kind: m.kind, name: TROOPS[m.kind].name.toLowerCase(), x, y: 70, hp: base.hp, maxHp: base.hp, melee: base.melee, aim: base.aim, speed: 7, reloadT: 3.2, rifle: true, mounted: true }); });
-  } else lineOf(riders, 82, sq ? 6 : 10);
+  } else lineOf(riders, 83, sq ? 7 : 14);
   // Hassan, with the camels
   add({ side: 0, group: 'foot', kind: 'hero', name: 'Hassan', x: W / 2, y: 87, hp: 3, maxHp: 3, melee: 0.58, aim: o.me.heroArmed ? 0.3 : 0, speed: 4.3, reloadT: 3, rifle: o.me.heroArmed, mounted: false, hero: true });
   // ---- their band ----
@@ -136,9 +136,9 @@ export function startBattle(o: { me: SideSpec; band: BandSpec; ground: GroundId;
     const x = W / 2 + (i - (n - 1) / 2) * Math.min(spread, 84 / Math.max(1, n - 1 || 1));
     add({ side: 1, group, kind: b.man, name: WORD[b.man] ?? 'raider', x, y: y + (rng() - 0.5) * 3, hp: 1, maxHp: 1, melee: Math.min(0.85, base.melee * st), aim: group === 'foot' ? 0 : Math.min(0.42, (base.aim + 0.06) * st), speed: group === 'riders' ? 7 : 4.2, reloadT: 3.6, rifle: group !== 'foot', mounted: group === 'riders' });
   } };
-  theirs(nFoot, 'foot', 20, 8);
-  theirs(nRifles, 'rifles', 14, 9);
-  theirs(nRiders, 'riders', 10, 10);
+  theirs(nFoot, 'foot', 20, 13);
+  theirs(nRifles, 'rifles', 14, 15);
+  theirs(nRiders, 'riders', 10, 14);
   add({ side: 1, group: nRiders ? 'riders' : 'rifles', kind: b.leader, name: b.leaderName ?? 'their leader', x: W / 2, y: 5, hp: 2, maxHp: 2, melee: Math.min(0.9, base.melee * st + 0.2), aim: 0.32, speed: nRiders ? 7 : 4.2, reloadT: 3, rifle: true, mounted: !!nRiders, leader: true });
   const start: [number, number] = [100 + (o.me.sergeant ? 10 : 0), 100];
   const hold: Record<Group, GroupOrder> = { foot: { o: 'hold' }, rifles: { o: 'hold' }, riders: { o: 'hold' } };

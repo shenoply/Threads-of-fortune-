@@ -128,7 +128,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const myPow = mine + Math.min(combat.rifles, men) + (combat.sergeant ? 2 : 0);
     return {
       bandId: threat.id, bandName: threat.displayName, place, field, size, enPow: theirs + (leader?.grudge ? 2 : 0), myPow,
-      leader, leaderImg: threat.leaderImage, heroImg: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', heroArt: (g.world.party.arms ?? 0) > 0 ? 'hero-armed' : 'hero',
+      leader, leaderImg: threat.leaderImage, heroImg: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', heroArt: 'hero',
       temper, known: !!leader?.seen || close, scout: scouted, grounds, camels,
       mountedMen: Object.entries(g.world.party.troops).some(([id, n]) => (n ?? 0) > 0 && TROOPS[id].mounted),
       sergeant: combat.sergeant?.name, arms: g.world.party.arms ?? 0, armsLine, seed: `${party.id}:${g.day}:${combat.wins + combat.losses}`,

@@ -87,8 +87,8 @@ export function FieldCanvas({ battle, bandId, field, camels, wall, selected, onT
       x.save(); x.globalAlpha = alpha; x.translate(cx, cy); x.rotate(rot); x.drawImage(s.img, s.sx, s.sy, s.sw, s.sh, -size / 2, -size / 2, size, size); x.restore();
     };
     // the camels: knelt in a line as a wall, or standing with the loads behind the men
-    if (wall) { const n = Math.max(2, Math.min(5, camels)); for (let i = 0; i < n; i++) tok('camel', X(50 + (i - (n - 1) / 2) * 17), Y(67), unit * 0.15, Math.PI / 2); }
-    else { const n = Math.min(3, camels); for (let i = 0; i < n; i++) tok('camel', X(50 + (i - (n - 1) / 2) * 14), Y(94), unit * 0.15, 0); }
+    if (wall) { const n = Math.max(2, Math.min(5, camels)); for (let i = 0; i < n; i++) tok('camel', X(50 + (i - (n - 1) / 2) * 22), Y(66), unit * 0.22, Math.PI / 2); }
+    else { const n = Math.min(3, camels); for (let i = 0; i < n; i++) tok('camel', X(50 + (i - (n - 1) / 2) * 16), Y(94), unit * 0.2, 0); }
     // the fallen first, then the living, then the smoke over them
     const order = [...b.men].sort((a, c2) => (a.state === 'up' ? 1 : 0) - (c2.state === 'up' ? 1 : 0));
     for (const m of order) {
