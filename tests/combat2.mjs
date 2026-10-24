@@ -60,20 +60,17 @@ const meet = async (band, edit) => {
 const toFight = async () => { await p.click('[data-testid=amb-fight]'); await p.waitForSelector('[data-testid=clash-prep]'); };
 const begin = async () => { await p.click('[data-testid=clash-begin]'); await p.waitForSelector('[data-testid=clash-orders]'); };
 const morale = async () => ({ me: +(await p.textContent('[data-testid=morale-me]')), them: +(await p.textContent('[data-testid=morale-them]')) });
-const readTell = async () => ({ tell: await p.getAttribute('[data-testid=clash]', 'data-tell'), best: await p.getAttribute('[data-testid=clash]', 'data-best') });
-const WORST = { rush: 'flank', feint: 'charge', snipe: 'volley', circle: 'charge', waver: 'hold' };
-/** play orders until it ends; `pick(tell)` gives the order; stops early when the duel is on offer and `duel` is set */
-const play = async (pick, duel = false) => {
-  for (let i = 0; i < 6; i++) {
-    if (await has('[data-testid=clash-over]')) return 'over';
-    if (await has('[data-testid=clash-next]')) { await p.click('[data-testid=clash-next]'); await p.waitForTimeout(200); continue; }
-    await p.waitForSelector('[data-testid=clash-orders], [data-testid=clash-over]');
+const battle = (fn, arg) => p.evaluate(fn, arg);
+/** let the fight run (fast) until it ends or the duel is on offer */
+const play = async (orders = ['charge'], duel = false) => {
+  await p.evaluate(() => { window.__tofBattleSpeed = 6; });
+  for (const o of orders) { if (!(await has('[data-testid=grp-all]'))) break; await p.click('[data-testid=grp-all]'); await p.click(`[data-testid=ord-${o}]`).catch(() => {}); }
+  for (let i = 0; i < 400; i++) {
     if (await has('[data-testid=clash-over]')) return 'over';
     if (duel && await has('[data-testid=order-duel]')) return 'duel';
-    const { tell } = await readTell();
-    await p.click(`[data-testid=order-${pick(tell)}]`); await p.waitForTimeout(250);
+    await p.waitForTimeout(100);
   }
-  return await has('[data-testid=clash-over]') ? 'over' : 'stuck';
+  return 'stuck';
 };
 /** strike in the duel at the moment his guard is open (or shut): a tap timed in the page itself */
 const strike = async (open) => {
@@ -109,21 +106,23 @@ const o2 = await p.textContent('[data-testid=clash-odds]');
 check(grounds >= 2 && o1 !== o2, `ground to choose (${grounds} kinds) and the formation moves the odds (${o1.replace(/\D+/g, '')}% → ${o2.replace(/\D+/g, '')}%)`);
 await p.click('[data-testid=form-line]');
 await p.screenshot({ path: `${SHOTS}/combat2-prep.png` });
+check(/win/i.test(await p.textContent('[data-testid=clash-stakes]')) && /lose/i.test(await p.textContent('[data-testid=clash-stakes]')), 'what rides on it is shown before the fight');
 await begin();
-const t1 = await readTell();
-const tellText = await p.textContent('[data-testid=clash-tell]');
-check(!!t1.tell && tellText.length > 30, `round 1 shows what they are doing: "${tellText.slice(0, 90)}…" (${t1.tell})`);
-check((await p.getAttribute('[data-testid=battlefield]', 'data-cue')) === t1.tell, 'their men move on the field to match the tell');
-await p.waitForTimeout(1500); await p.screenshot({ path: `${SHOTS}/combat2-round1.png` });
+check(await has('[data-testid=battlefield]') && await has('[data-testid=grp-rifles]') && await has('[data-testid=grp-foot]'), 'the field and the groups to order');
+await p.click('[data-testid=grp-rifles]'); await p.click('[data-testid=fire-toggle]');
+check(/Holding/.test(await p.textContent('[data-testid=fire-toggle]')), 'rifles hold their fire for a volley');
+await p.evaluate(() => { window.__tofBattleSpeed = 3; });
+await p.waitForFunction(() => { const b = document.querySelector('[data-testid=volley]'); return b && !b.disabled && b.classList.contains('ready'); }, null, { timeout: 30000 }).catch(() => {});
+await p.screenshot({ path: `${SHOTS}/combat2-round1.png` });
 const m0 = await morale();
-await p.click(`[data-testid=order-${t1.best}]`); await p.waitForSelector('[data-testid=clash-outcome]');
-const m1 = await morale();
-check(m0.them - m1.them >= 30 && m0.me - m1.me < 20, `the right order (${t1.best}) breaks their nerve (them ${m0.them}→${m1.them}, you ${m0.me}→${m1.me})`);
-await p.waitForTimeout(1000); await p.screenshot({ path: `${SHOTS}/combat2-outcome.png` });
-const r1 = await play((t) => ({ rush: 'volley', feint: 'hold', snipe: 'flank', circle: 'hold', waver: 'charge' })[t]);
+await p.click('[data-testid=volley]').catch(() => {}); await p.waitForTimeout(150);
+const feed = await p.textContent('[data-testid=clash-feed]');
+check(/Volley/.test(feed), `the volley goes off together: ${feed.slice(-80)}`);
+await p.click('[data-testid=grp-riders]').catch(() => {}); await p.click('[data-testid=ord-flank]').catch(() => {});
+const r1 = await play(['charge']);
 const banner = await p.textContent('[data-testid=clash-banner]').catch(() => '');
-check(r1 === 'over' && /run|arms|pull back/.test(banner), `two or three good rounds and they break (${banner})`);
-await p.waitForTimeout(1200); await p.screenshot({ path: `${SHOTS}/combat2-over.png` });
+check(r1 === 'over' && /run|arms|pull back/.test(banner), `they break (${banner}; their nerve was ${m0.them})`);
+await p.waitForTimeout(400); await p.screenshot({ path: `${SHOTS}/combat2-over.png` });
 const txt1 = await finish();
 let st = await state();
 check(st.combat.wins === 3, 'the win is counted');
@@ -137,12 +136,8 @@ await meet('rb0', { party: { size: 6, strength: 16 }, troops: { guard: 3, fellah
 await toFight();
 check(await has('[data-testid=clash-sergeant]'), `the sergeant has a word before the fight: ${(await p.textContent('[data-testid=clash-sergeant]').catch(() => '')).slice(0, 80)}`);
 await begin();
-const t2 = await readTell(); const before = await morale();
-await p.click(`[data-testid=order-${WORST[t2.tell]}]`); await p.waitForSelector('[data-testid=clash-outcome]');
-const after = await morale();
-check(before.me - after.me >= 20 && (100 - after.them) < 15, `the wrong order against "${t2.tell}" (${WORST[t2.tell]}) shakes your own men (${before.me}→${after.me})`);
-await p.click('[data-testid=clash-next]');
-const r2 = await play((t) => ({ rush: 'volley', feint: 'hold', snipe: 'flank', circle: 'hold', waver: 'charge' })[t], true);
+await p.evaluate(() => { window.__tofBattle.morale[1] = 40; });
+const r2 = await play(['hold'], true);
 if (r2 === 'duel') {
   const pre = await morale();
   await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
@@ -151,7 +146,7 @@ if (r2 === 'duel') {
   await p.waitForSelector('[data-testid=clash-orders], [data-testid=clash-over]');
   const post = await morale();
   check(post.me < pre.me && post.them > pre.them, `the duel lost: he beats you back and his men take heart (you ${pre.me}→${post.me}, them ${pre.them}→${post.them})`);
-  await play((t) => ({ rush: 'volley', feint: 'hold', snipe: 'flank', circle: 'hold', waver: 'charge' })[t]);
+  await play(['charge']);
 } else check(false, `the duel was offered (${r2})`);
 await finish(); await leave();
 
@@ -159,11 +154,12 @@ await finish(); await leave();
 await meet('rb0', { party: { size: 6, strength: 22 }, troops: { guard: 2, veteran: 1 }, combat: { ...(await state()).combat, prisoners: [] } });
 const lead = await p.textContent('[data-testid=amb-leader]').catch(() => '');
 await toFight(); await begin();
-let r3 = await play((t) => ({ rush: 'volley', feint: 'hold', snipe: 'flank', circle: 'hold', waver: 'charge' })[t], true);
+await p.evaluate(() => { window.__tofBattle.morale[1] = 40; });
+let r3 = await play(['hold'], true);
 if (r3 === 'duel') {
   await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
   await strike(true);
-  await p.waitForSelector('[data-testid=clash-over]');
+  await play(['charge']);
   await p.screenshot({ path: `${SHOTS}/combat2-yield.png` });
   check(/lay down/.test(await p.textContent('[data-testid=clash-banner]')), 'the duel won: they lay down their arms');
 } else check(false, `the duel was offered again (${r3})`);
@@ -210,7 +206,7 @@ await p.waitForTimeout(400);
 // 5. beaten: it costs men, a bale or a day, never the game, and the band that did it is a named enemy
 await meet('rb2', { party: { size: 8, strength: 30 }, troops: { fellah: 1 } });
 await toFight(); await begin();
-await play((t) => WORST[t]);
+await play(['charge']);
 const txt5 = await finish();
 st = await state();
 check(/give ground|line breaks/.test(txt5) && !(await has('[data-testid=death], [data-testid=game-over]')), `a beating: ${txt5.slice(0, 110)}`);

@@ -130,3 +130,47 @@
 .amb-recruit { width: 100%; margin-bottom: 10px; }
 .clash-retreat { font-size: 14px; padding: 8px; }
 .bf.cue-flee .bf-tok.flip:not(.down) { opacity: 0; transition: top 1.6s ease-in, left 1.6s ease-in, opacity 1.6s ease-in; }
+
+/* ---- the field battle: the ground fills the screen, the orders sit under the thumb ---- */
+.clash-fight.fb { overflow: hidden; height: 100vh; height: 100dvh; gap: 6px; padding-left: 8px; padding-right: 8px; }
+.fb .clash-bars { flex: none; }
+.fb-time { display: inline-flex; gap: 6px; margin-left: auto; }
+.fb .clash-title { align-items: center; }
+.fb-mini { min-width: 40px; height: 32px; border-radius: 6px; border: 1px solid #6a4826; background: #22160b; color: #f3e3c2; font: 600 13px/1 var(--label, sans-serif); }
+.fb-mini.on { border-color: #f0b35a; color: #ffd27a; }
+.fb-field { flex: 1 1 auto; min-height: 260px; border-radius: 10px; overflow: hidden; border: 1px solid #5a3b20; box-shadow: 0 6px 20px #0008 inset; }
+.fb-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.fb-feed { position: absolute; left: 8px; top: 8px; right: 30%; margin: 0; padding: 0; list-style: none; pointer-events: none; display: flex; flex-direction: column; gap: 3px; }
+.fb-feed li { align-self: flex-start; padding: 3px 8px; border-radius: 4px; background: #140c06c8; font-size: 13px; line-height: 1.25; color: #f3e3c2; border-left: 2px solid #c9a35a; transition: opacity .4s; }
+.fb-feed li.theirs { border-left-color: #c0553f; }
+.fb-feed li.big { font-weight: 700; font-size: 14px; color: #ffe2a8; }
+.fb-feed li.theirs.big { color: #ffb39a; }
+.fb-hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: max-content; max-width: 88%; margin: 0; padding: 6px 12px; border-radius: 6px; background: #140c06d0; color: #f3e3c2; font-size: 13.5px; text-align: center; pointer-events: none; }
+.fb-paused { position: absolute; inset: 0; display: grid; place-items: center; background: #0006; font: 600 20px/1 var(--display, Georgia), serif; letter-spacing: .12em; color: #ffe2a8; pointer-events: none; }
+.fb-orders { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.fb-groups { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.fb-grp { flex: 1 0 auto; min-width: 64px; min-height: 46px; padding: 5px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: 8px; border: 1px solid #5a3b20; background: #22160bdd; color: var(--parchment); }
+.fb-grp b { font-size: 14px; }
+.fb-grp small { font-size: 11.5px; color: #cdb48a; white-space: nowrap; }
+.fb-grp.on { border-color: #f0b35a; background: #3a250fee; box-shadow: 0 0 0 1px #f0b35a inset; }
+.fb-acts { display: flex; gap: 6px; }
+.fb-acts .btn { flex: 1 1 0; min-width: 0; min-height: 48px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.fb-acts .btn b { font-size: 14.5px; }
+.fb-acts .btn small { font-size: 11px; opacity: .8; line-height: 1.2; text-align: center; }
+.fb-acts .btn.on { border-color: #f0b35a; color: #ffd27a; box-shadow: 0 0 0 1px #f0b35a inset; }
+.fb-special:empty { display: none; }
+.fb-acts .btn.ready { animation: fb-ready 1.1s ease-in-out infinite; }
+@keyframes fb-ready { 50% { box-shadow: 0 0 0 2px #ffd27a, 0 0 18px #f0b35a90; } }
+.fb .clash-retreat { align-self: center; padding: 2px 8px; font-size: 13px; }
+.fb .clash-over { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.fb-recap { margin: 0; padding: 9px 12px; border-radius: 8px; background: #1d1209; border: 1px solid #7a4a2a; font-size: 15px; line-height: 1.35; color: #f3e3c2; }
+.fb .clash-duelbox { flex: none; }
+/* before the fight: who stands on each side, and what rides on it */
+.clash-forces { padding: 8px 12px; border-radius: 8px; background: #1d1209cc; border: 1px solid #5a3b20; font-size: 14px; line-height: 1.35; color: #e2cda2; }
+.clash-forces b { color: #fff0d2; margin-right: 4px; }
+.clash-stakes { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.clash-stakes > div { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 8px; background: #1d1209dd; border: 1px solid #5a3b20; }
+.clash-stakes b { font-family: var(--label); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; }
+.clash-stakes span { font-size: 13.5px; line-height: 1.3; color: #ecdcbc; }
+.clash-stakes .win { border-color: #7a8a3a; } .clash-stakes .win b { color: #c9dc8a; }
+.clash-stakes .lose { border-color: #8a3a2a; } .clash-stakes .lose b { color: #ff9d7a; }

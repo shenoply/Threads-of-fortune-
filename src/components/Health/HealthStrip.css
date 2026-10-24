@@ -28,3 +28,7 @@
 /* the older flat-bar rules in styles.css (.hs-m height, .hs-m b) do not apply to the gauges */
 .hs .hs-m { height: auto; }
 .hs .hs-m .hs-g b { font: 600 10.5px/1 var(--label, sans-serif); padding: 0; text-shadow: none; letter-spacing: .07em; }
+
+/* off the Me tab only the meters that need seeing to show, as a slim line, never a full band */
+.hs-slim .hs-row { padding: 3px 12px; }
+.hs-slim .hs-m { flex: 0 1 140px; }

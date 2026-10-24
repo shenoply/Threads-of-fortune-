@@ -67,11 +67,11 @@ export function HealthStrip({ always = false }: { always?: boolean }) {
   if (!notable && !(always && (needsOn || ills.length))) return null;
   const tip = !needsOn ? '' : w.tired === 'bad' ? 'You are close to collapsing. Rest in a town.' : w.tired ? 'You are tired. Sleep in a town or at camp before you push on.' : w.hungry ? 'You are hungry. Eat at Malek’s grill or carry parcels.' : w.thirsty ? 'You are thirsty. Find a well or carry water.' : '';
   return (
-    <div className="hs" data-testid="health-strip">
+    <div className={`hs ${always ? '' : 'hs-slim'}`} data-testid="health-strip">
       <button className="hs-row" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="health-toggle">
-        {needsOn && <Meter label="Tired" icon="bed" pct={w.fatigue} level={w.tired} />}
-        {needsOn && <Meter label="Fed" icon="bread" pct={w.fed} level={w.hungry ? w.hungry : ''} />}
-        {needsOn && <Meter label="Water" icon="jar" pct={w.water} level={w.thirsty} />}
+        {needsOn && (always || w.tired) && <Meter label="Tired" icon="bed" pct={w.fatigue} level={w.tired} />}
+        {needsOn && (always || w.hungry) && <Meter label="Fed" icon="bread" pct={w.fed} level={w.hungry ? w.hungry : ''} />}
+        {needsOn && (always || w.thirsty) && <Meter label="Water" icon="jar" pct={w.water} level={w.thirsty} />}
         {ills.length > 0 && <span className="hs-ill" data-testid="ill-banner"><HsIcon n={ills.every((il) => DISEASE(il.id)?.kind === 'injury') ? 'bandage' : 'phial'} /><span>{ills.length === 1 ? DISEASE(ills[0].id)?.name : `${ills.length} ailments`}</span></span>}
       </button>
       {open && (

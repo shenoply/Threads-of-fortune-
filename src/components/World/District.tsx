@@ -973,6 +973,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
           <div className="map-tools district-tools">
             <button onClick={() => zoom(1.25)} aria-label="Zoom in" data-testid="district-zoom-in">+</button>
             <button onClick={() => zoom(0.8)} aria-label="Zoom out">−</button>
+            <button className="dt-world" onClick={() => { save(); if (onZoomOut) onZoomOut(); else onWorld(); }} aria-label="Zoom out to the world" title="The world map" data-testid="district-world">⤢</button>
           </div>
         </div>
         {toast && <div className="district-toast" data-testid="district-toast">{toast}</div>}
@@ -998,7 +999,6 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
           ))}
           {unknown > 0 && <div className="dplace unknown"><i>?</i><span><b>{unknown} more to find</b><small>Walk the lanes to discover them</small></span></div>}
         </div>
-        <button className="btn primary" onClick={() => { save(); if (onZoomOut) onZoomOut(); else onWorld(); }} data-testid="district-world">⤢ Zoom out to the world</button>
       </div>
       {panel && <SettlementPanel id="giza" tab={panel} onClose={() => { setPanel(null); onPanelClosed?.(); }} onStall={onStall} />}
       {lab && <Suspense fallback={null}><ArranLab onLeave={() => setLab(false)} onFilm={filmReady('arran') ? () => setFilm('arran') : undefined} /></Suspense>}
