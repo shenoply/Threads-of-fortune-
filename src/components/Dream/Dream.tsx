@@ -22,11 +22,11 @@ import { filmLock } from '../../game/audio/voice';
 import { recordPlayer } from '../../game/audio/recordPlayer';
 import './dream.css';
 
-const LENGTH = 55; // seconds of flight
+const LENGTH = 55; // seconds over each stretch of the map; the flight itself goes on until the third knock
 const MAP = 'art/world/travel-map-3k.webp', MAP_PX = 2048 / 885; // map units to picture pixels
 const SAFFRON = 'art/saffron-stall.webp';
-/** the flight's own music: the road theme in hijaz, a journey by night (from the game's own score) */
-const FLIGHT_TRACK = 'audio/music/road-hijaz.mp3';
+/** the flight's own music: the solo nay, breathy and airy like the night wind, heard nowhere else but a desert camp */
+const FLIGHT_TRACK = 'audio/music/solo-nay-flute.mp3';
 const JUMP_T = 1.15; // seconds in the air: long enough to steer while up
 const CAT_COOL = 9; // seconds before Saffron can glare again
 /** painted poses, when they exist (art/dream/hassan-<pose>.webp); until then his standing figure is used */
@@ -99,9 +99,18 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const doneBefore = d?.done ?? [];
   const leg = LEGS[Math.min(LEGS.length - 1, level)];
   // painted night skylines (art/dream/bg-<region>-<far|mid|near>.webp): used in place of the map once they exist
-  const region = (['egypt', 'coast', 'levant', 'anatolia', 'anatolia'] as const)[Math.min(4, level)];
+  // the flight never ends by itself: past each stretch it carries on to the next, round the map again and again
+  const [stretch, setStretch] = useState(0);
+  const legNow = LEGS[(Math.min(LEGS.length - 1, level) + stretch) % LEGS.length];
+  const region = (['egypt', 'coast', 'levant', 'anatolia', 'anatolia'] as const)[(Math.min(4, level) + stretch) % 5];
   const [skyline, setSkyline] = useState(false);
-  useEffect(() => { const im = new Image(); im.onload = () => setSkyline(true); im.src = `art/dream/bg-${region}-near.webp`; }, [region]);
+  useEffect(() => {
+    const im = new Image(); im.onload = () => setSkyline(true); im.src = `art/dream/bg-${region}-near.webp`;
+    // the next stretch's skylines, fetched while this one is flown, so the change is seamless
+    const nx = (['egypt', 'coast', 'levant', 'anatolia', 'anatolia'] as const)[(Math.min(4, level) + stretch + 1) % 5];
+    const t = window.setTimeout(() => { for (const k of ['far', 'mid', 'near']) new Image().src = `art/dream/bg-${nx}-${k}.webp`; }, 4000);
+    return () => window.clearTimeout(t);
+  }, [region]); // eslint-disable-line react-hooks/exhaustive-deps
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const pts = routePts(leg);
   const rug = [...g.inventory].sort((a, b) => (RUGS[b.typeId]?.valueBand[1] ?? 0) - (RUGS[a.typeId]?.valueBand[1] ?? 0))[0];
@@ -161,9 +170,17 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const r = runRef.current;
     const inp = input.current;
-    // the route: distance along it, the camera's place and heading
-    const segs = pts.slice(1).map((p, i) => ({ a: pts[i], b: p, len: Math.hypot(p.x - pts[i].x, p.y - pts[i].y) }));
-    const total = segs.reduce((s, x) => s + x.len, 0);
+    // the route: distance along it, the camera's place and heading (each stretch in turn, without end)
+    let legI = -1, segs: { a: { x: number; y: number }; b: { x: number; y: number }; len: number }[] = [], total = 1, legPts = pts;
+    const useLeg = (i: number) => {
+      if (i === legI) return;
+      legI = i; legPts = routePts(LEGS[(Math.min(LEGS.length - 1, level) + i) % LEGS.length]);
+      segs = legPts.slice(1).map((p, k) => ({ a: legPts[k], b: p, len: Math.hypot(p.x - legPts[k].x, p.y - legPts[k].y) }));
+      total = Math.max(1, segs.reduce((a, x) => a + x.len, 0));
+      if (i > 0) { setStretch(i); setPlace(LEGS[(Math.min(LEGS.length - 1, level) + i) % LEGS.length].name); window.setTimeout(() => setPlace(''), 3200); }
+    };
+    useLeg(0);
+    let newBest = false;
     const at = (dist: number) => {
       let rem = Math.max(0, Math.min(total - 0.01, dist));
       for (const s of segs) { if (rem <= s.len) { const k = rem / s.len; return { x: s.a.x + (s.b.x - s.a.x) * k, y: s.a.y + (s.b.y - s.a.y) * k, h: Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x) }; } rem -= s.len; }
@@ -183,15 +200,17 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       boost = Math.max(0, boost - dt);
-      const speed = (0.18 + Math.min(0.08, t * 0.0015)) * (boost > 0 ? 1.55 : 1);
+      // it quickens the longer you stay up, to a limit
+      const speed = (0.18 + Math.min(0.16, t * 0.0016)) * (boost > 0 ? 1.55 : 1);
       scroll += speed * dt;
       // the map passing under you: the route, followed at the pace of the flight, turning gently at each town
-      const cam = at((t / LENGTH) * total);
+      useLeg(Math.floor(t / LENGTH));
+      const cam = at(((t % LENGTH) / LENGTH) * total);
       let dh = cam.h - head; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
       head += dh * Math.min(1, dt * 1.2);
       layers.current.forEach((el, i) => { if (el) el.style.backgroundPositionX = `${(-scroll * W * [0.1, 0.25, 0.6][i]).toFixed(1)}px`; });
       if (plane.current) plane.current.style.transform = `translate(${(W * 0.34).toFixed(1)}px, ${(H * 0.9).toFixed(1)}px) rotateX(66deg) rotateZ(${(-head).toFixed(4)}rad) scale(1.25) translate(${(-cam.x).toFixed(1)}px, ${(-cam.y).toFixed(1)}px)`;
-      const near = pts.find((p) => Math.hypot(p.x - cam.x, p.y - cam.y) < 60);
+      const near = legPts.find((p) => Math.hypot(p.x - cam.x, p.y - cam.y) < 60);
       if (near && near.name !== named) { named = near.name; setPlace(near.name); window.setTimeout(() => setPlace(''), 2600); }
       // the moves: hold to rise; a jump off the carpet; lying flat
       if (inp.jump && jumpT <= 0) { jumpT = JUMP_T; duckT = 0; audio.sfx('step'); }
@@ -230,7 +249,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
 
       // what comes: lanterns in curving lines, rings of light, a falling star and flocks of birds
       next -= dt;
-      if (next <= 0 && t < LENGTH - 2.5) {
+      if (next <= 0) {
         const roll = Math.random();
         if (roll < 0.42) {
           const high = Math.random() < 0.3;
@@ -251,6 +270,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           things.push({ x: 1.1, y: (H * y - w * 0.33) / H, kind: 'birds', ph: Math.random() * 6 }); next = 1.4 + Math.random() * 0.6; }
         else { // a low flock at the riders' knees: jump it (or steer)
           things.push({ x: 1.1, y: (H * y - w * 0.12) / H, kind: 'birds', ph: Math.random() * 6, low: true }); next = 1.4 + Math.random() * 0.6; }
+        next *= Math.max(0.62, 1 - t / 360);
       }
       const cx = W * 0.34, cy = H * y;
       // where Hassan's body is: on the carpet, up in a jump, or flat on it (the box follows the drawn figure)
@@ -258,7 +278,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       const ph = 1 - jumpT / JUMP_T;
       const arc = jumpT > 0 ? Math.pow(Math.sin(ph * Math.PI), 0.7) : 0;
       const jumpH = arc * Math.max(jumpClear, Math.min(jumpMax, cy - w * 0.46 - 8)); // never off the top of the screen
-      (window as unknown as { __tofDreamDbg?: object }).__tofDreamDbg = { jumpH, cy, w, H, yMin, jumpMax };
+      (window as unknown as { __tofDreamDbg?: object }).__tofDreamDbg = { jumpH, cy, w, H, yMin, jumpMax, t };
       const bodyTop = duckT > 0 ? cy - w * 0.1 : cy - w * 0.46 - jumpH;
       const bodyBot = (duckT > 0 ? cy : cy - jumpH) + 4;
       // Saffron, tapped: a gleam from her eyes sends the nearest flock ahead of her scattering
@@ -299,7 +319,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
             o.passed = true;
             const band = w * 0.07;
             const clash = oy + band > bodyTop && oy - band < bodyBot;
-            if (clash) { r.hits += 1; r.chain = 0; wobble = 1; lives -= 1; audio.sfx('tap'); setToast(lives > 0 ? 'Saffron digs her claws into the fringe' : ''); window.setTimeout(() => setToast(''), 1600); }
+            if (clash) { r.hits += 1; r.chain = 0; wobble = 1; if (!(window as unknown as { __tofDreamGod?: boolean }).__tofDreamGod) lives -= 1; audio.sfx('tap'); setToast(lives > 0 ? 'Saffron digs her claws into the fringe' : ''); window.setTimeout(() => setToast(''), 1600); }
             else if (duckT > 0 && oy < bodyTop) { r.ducks += 1; }
             else if (jumpT > 0 && oy > bodyBot) { r.jumps += 1; }
           }
@@ -328,7 +348,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       if (catCool === 0) { ctx.save(); ctx.strokeStyle = `rgba(255,214,140,${(0.35 + 0.2 * Math.sin(t * 3)).toFixed(2)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(inp.cat.x, inp.cat.y, inp.cat.r * 0.8, inp.cat.r * 0.6, 0, 0, 7); ctx.stroke(); ctx.restore(); }
       if (hint < 1 && t > 0.5) hint = 1;
       goals.forEach((gl, i) => { if (!announced.has(i) && gl.kind !== 'clean' && met(gl, r, false)) { announced.add(i); audio.sfx('prize'); setToast(`${gl.text} ✓`); window.setTimeout(() => setToast(''), 2200); } });
-      if (t >= LENGTH || lives <= 0) { setStage('wake'); return; }
+      if (!newBest && best > 0 && r.lanterns > best) { newBest = true; audio.sfx('prize'); setToast('A new best'); window.setTimeout(() => setToast(''), 1800); }
+      if (lives <= 0) { setStage('wake'); return; }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
@@ -381,7 +402,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
         <div className={`fc-plane${skyline ? ' gone' : ''}`} ref={plane} style={{ backgroundImage: `url(${MAP})` }}>
           {SETTLEMENTS.filter((s) => s.x < 885).map((s) => <i key={s.id} className={`fc-town ${s.kind}`} style={{ left: s.x * MAP_PX, top: s.y * MAP_PX }} />)}
         </div>
-        <div className="fc-night" style={{ background: `linear-gradient(180deg, transparent 0%, ${leg.tint}cc 30%, ${leg.tint}99 100%)` }} />
+        <div className="fc-night" style={{ background: `linear-gradient(180deg, transparent 0%, ${legNow.tint}cc 30%, ${legNow.tint}99 100%)` }} />
         <div className="fc-fog" />
       </div>
       <canvas ref={cv} className="dream-canvas" aria-hidden="true" />
@@ -390,7 +411,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           <img className="dream-key" src="art/dream/flying-carpet-card.webp" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <small>{mode === 'play' ? 'THE FLYING CARPET' : nap ? 'SAFFRON PURRS' : 'THAT NIGHT'}</small>
           <b>{leg.name}</b>
-          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> over low flocks, <em>lie flat</em> under high ones. The <em>Saffron</em> button (or a tap on her) sees a flock off with a glare.</span>
+          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. It goes on as long as you stay up: three knocks and you wake. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> over low flocks, <em>lie flat</em> under high ones. The <em>Saffron</em> button (or a tap on her) sees a flock off with a glare.</span>
           <ul className="dream-goals">{goals.map((gl, i) => <li key={i} className={doneBefore.includes(i) ? 'done' : ''}>{doneBefore.includes(i) ? '★' : '☆'} {gl.text}</li>)}</ul>
           {typeof innerHeight !== 'undefined' && innerHeight > innerWidth && <p className="dream-turn">Best with your phone turned on its side.</p>}
           <div className="dream-btns">
@@ -421,7 +442,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
         <div className="dream-card dawn">
           <small>{mode === 'play' ? 'LANDED' : nap ? 'A MOMENT LATER' : 'DAWN'}</small>
           <b>{knocked ? 'Knocked awake' : mode === 'play' ? 'Down on the mat' : nap ? 'You wake at the stall' : 'You wake on the mat'}</b>
-          <span>{knocked ? 'One flock too many. ' : ''}{nap ? 'Saffron is washing her paw as if nothing happened.' : mode === 'play' ? '' : 'Saffron is asleep on your feet.'} {r.lanterns ? `${r.lanterns} lantern${r.lanterns === 1 ? '' : 's'}${r.lanterns > best ? ', more than ever before' : ''}.` : ''}</span>
+          <span>{knocked ? 'One flock too many. ' : ''}{nap ? 'Saffron is washing her paw as if nothing happened.' : mode === 'play' ? '' : 'Saffron is asleep on your feet.'} {r.lanterns ? `${r.lanterns} lantern${r.lanterns === 1 ? '' : 's'}${r.lanterns > best ? ', more than ever before' : best ? ` (best ${best})` : ''}.` : ''}{stretch > 0 ? ` ${stretch + 1} stretches of the map flown.` : ''}</span>
           <ul className="dream-goals">{goals.map((gl, i) => <li key={i} className={nowDone[i] ? 'done' : ''}>{nowDone[i] ? '★' : '☆'} {gl.text}</li>)}</ul>
           {nextLeg && <p className="dream-next">Next time: <b>{nextLeg.name}</b>.</p>}
           <button className="btn primary big" onClick={wake} data-testid="dream-done">{mode === 'play' ? 'Done' : 'Get up'}</button>
