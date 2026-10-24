@@ -104,6 +104,14 @@ function Zoom({ src, name, onClose }: { src: string; name: string; onClose: () =
 
 export function Loom({ onClose }: { onClose: () => void }) {
   const g = useGame();
+  // the loom house: beaters and shuttles in the next room, quietly, while you draw
+  useEffect(() => {
+    if (navigator.webdriver) return;
+    const a = audio.attach(new Audio('audio/moments/loom-house-bed.mp3'), 'sfx', 0.35);
+    a.loop = true;
+    a.play().catch(() => {});
+    return () => { a.pause(); audio.detach(a); };
+  }, []);
   const lm = g.loom ?? { designs: [], weaving: [], next: 1 };
   const [d, setD] = useState<Design>(() => newDesign(lm.next));
   const [step, setStep] = useState<Step>('size');
