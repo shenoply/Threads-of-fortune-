@@ -298,6 +298,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       <canvas ref={cv} className="dream-canvas" aria-hidden="true" />
       {stage === 'intro' && (
         <div className="dream-card">
+          <img className="dream-key" src="art/dream/flying-carpet-card.webp" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <small>{mode === 'play' ? 'THE FLYING CARPET' : nap ? 'SAFFRON PURRS' : 'THAT NIGHT'}</small>
           <b>{leg.name}</b>
           <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Hold</em> to rise, let go to glide. <em>Swipe up</em> to jump, <em>down</em> to lie flat.</span>
@@ -435,7 +436,9 @@ function rider(c: CanvasRenderingContext2D, ims: Ims, cx: number, cy: number, w:
   if (painted) {
     // every pose is painted on the same 768 square, the carpet line at 700: one scale for all of them
     const S = w * 0.95;
-    c.drawImage(painted, hx - S / 2, hy - S * (700 / 768) - jumpH, S, S);
+    // the jump is painted already springing (feet ~120px above the line): only the rest of the rise is added
+    const lift = pose === 'jump' ? Math.max(0, jumpH - S * (120 / 768)) : jumpH;
+    c.drawImage(painted, hx - S / 2, hy - S * (700 / 768) - lift, S, S);
   } else if (heroIm.naturalWidth) {
     // his own painted figure, in the clothes he wears: standing, springing up, or flat on the mat
     const fh = w * 0.82, fw = fh * (heroIm.naturalWidth / heroIm.naturalHeight);
@@ -448,9 +451,15 @@ function rider(c: CanvasRenderingContext2D, ims: Ims, cx: number, cy: number, w:
   const catPose = hit ? poseIm['cat-cling'] : poseIm['cat-alert'];
   const catArt = catPose?.naturalWidth && (hit || jumpH > 1 || duck) ? catPose : catIm;
   if (catArt.naturalWidth) {
-    const cw = w * 0.34, ch = cw * (catArt.naturalHeight / catArt.naturalWidth);
     const sx = cx + w * 0.3, sy = cy + wave(0.82) + h * 0.55;
-    c.drawImage(catArt, sx - cw / 2, sy - ch, cw, ch);
+    if (catArt !== catIm) {
+      // her painted poses share one 512 square, paws on the line at 470: drawn at one scale
+      const S = w * 0.36;
+      c.drawImage(catArt, sx - S / 2, sy - S * (470 / 512), S, S);
+    } else {
+      const cw = w * 0.34, ch = cw * (catArt.naturalHeight / catArt.naturalWidth);
+      c.drawImage(catArt, sx - cw / 2, sy - ch, cw, ch);
+    }
   }
   c.restore();
 }
