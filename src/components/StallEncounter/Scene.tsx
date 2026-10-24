@@ -421,6 +421,13 @@ function catDream() {
   if (catTaps.length >= 7 && s.dreams?.last !== s.day && !s.encounter) { catTaps.length = 0; window.setTimeout(() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'nap' })), 900); }
 }
 
+/** An animated cut-out drawn over its still at the same place: hidden until it has loaded (no flash),
+ *  and never in the way of a tap. */
+function AnimOver({ src, className, style }: { src: string; className: string; style: React.CSSProperties }) {
+  const [ready, setReady] = useState<string | null>(null);
+  return <img className={className} src={src} alt="" style={{ ...style, opacity: ready === src ? 1 : 0, pointerEvents: 'none' }} onLoad={() => setReady(src)} onError={() => setReady(null)} draggable={false} data-testid="stall-anim" />;
+}
+
 /** Saffron the cat: one of her poses for the day, at its place in this painting (a pose this stall
  *  has no place for sits her on the counter instead), never on a spot that holds a piece. Tap her. */
 function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () => void; rugOnCounter: boolean; tag?: boolean }) {
@@ -435,6 +442,8 @@ function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () 
   return (
     <>
       <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={src} alt="" style={pos} onError={() => setOk(false)} draggable={false} />
+      {/* she breathes: the matching loop on the same full canvas, laid over the still once it has loaded */}
+      <AnimOver className={`stall-prop placed stall-cat-art stall-anim${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={`art/stall2/props/${pose}-animated.webp`} style={pos} />
       <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); tapUsed('cat'); onCat(); catDream(); }} />
 
     </>
@@ -458,6 +467,8 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
   return (
     <>
       <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}${!seen ? ' beckon' : ''}${rp.playing ? ' playing' : ''}`} src={src} alt="" style={pos} draggable={false} />
+      {/* the record turning: only while one is playing; stopped, ended or failed, the still shows again */}
+      {rp.playing && <AnimOver className={`stall-prop placed stall-gramophone-art stall-anim${at.front ? ' front' : ''}`} src="art/stall2/props/prop-gramophone-animated.webp" style={pos} />}
       {/* the first time, a bright pulsing note calls attention to it; after that a small, steady
        *  note stays put so the horn is never just a picture */}
       {mini && <RecordMini x={(r[0] + r[2]) / 2} y={r[1] - 2} onShelf={() => { setMini(false); window.dispatchEvent(new Event('tof:gramophone')); }} onClose={() => setMini(false)} />}

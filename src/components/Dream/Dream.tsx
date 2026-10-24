@@ -198,7 +198,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           next = 1.5 + Math.random() * 0.5;
         } else if (roll < 0.55) { things.push({ x: 1.1, y: 0.2 + Math.random() * 0.55, kind: 'ring', ph: 0 }); next = 0.9; }
         else if (roll < 0.6) { things.push({ x: 1.0, y: 0.04, kind: 'star', ph: 0, vy: 0.2 }); next = 0.8; }
-        else if (roll < 0.8) { things.push({ x: 1.1, y: Math.max(0.2, Math.min(0.78, y - 0.05 + (Math.random() - 0.5) * 0.08)), kind: 'line', ph: Math.random() * 6 }); next = 1.3 + Math.random() * 0.6; }
+        else if (roll < 0.8) { // washing lines hang low, strung between two rooftop poles: you meet them skimming the roofs
+          things.push({ x: 1.1, y: 0.64 + Math.random() * 0.14, kind: 'line', ph: Math.random() * 6 }); next = 1.3 + Math.random() * 0.6; }
         else { things.push({ x: 1.1, y: Math.max(0.18, Math.min(0.76, y - 0.07)), kind: 'birds', ph: Math.random() * 6 }); next = 1.2 + Math.random() * 0.6; }
       }
       const cx = W * 0.34, cy = H * y;
@@ -239,7 +240,11 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
         if (o.kind === 'lantern') lantern(ctx, ox, oy, t + o.ph);
         else if (o.kind === 'ring') ring(ctx, ox, oy, H * 0.065, t);
         else if (o.kind === 'star') star(ctx, ox, oy, t);
-        else if (o.kind === 'line') { if (lineIm.naturalWidth) { const lw = W * 0.34, lh = lw * (lineIm.naturalHeight / lineIm.naturalWidth); ctx.drawImage(lineIm, ox - lw / 2, oy - lh * 0.25, lw, lh); } else washLine(ctx, ox, oy, W, t + o.ph); }
+        else if (o.kind === 'line') {
+          const lw = W * 0.34;
+          poles(ctx, ox, oy, lw, H);
+          if (lineIm.naturalWidth) { const lh = lw * (lineIm.naturalHeight / lineIm.naturalWidth); ctx.drawImage(lineIm, ox - lw / 2, oy - lh * 0.25, lw, lh); } else washLine(ctx, ox, oy, W, t + o.ph);
+        }
         else if (birdIm.naturalWidth) { const bw = W * 0.16, bh = bw * (birdIm.naturalHeight / birdIm.naturalWidth); ctx.drawImage(birdIm, ox - bw / 2, oy - bh / 2 + Math.sin(t * 2 + o.ph) * 4, bw, bh); }
         else birds(ctx, ox, oy, t + o.ph);
       }
@@ -392,6 +397,21 @@ function star(c: CanvasRenderingContext2D, x: number, y: number, t: number) {
   c.fillStyle = '#fffbe8'; c.shadowColor = '#fff2c0'; c.shadowBlur = 16 + Math.sin(t * 10) * 4; c.beginPath(); c.arc(x, y, 4, 0, 7); c.fill(); c.restore();
 }
 /** a washing line strung between two roofs that have dropped away below, linen hanging from it */
+/** the two roofs a washing line is strung between: a pole on each, rising from a parapet at the foot of the screen */
+function poles(c: CanvasRenderingContext2D, x: number, y: number, lw: number, H: number) {
+  const top = y - lw * (320 / 1024) * 0.25 + lw * (60 / 1024);
+  c.save();
+  for (const px of [x - lw / 2 + 3, x + lw / 2 - 3]) {
+    const roof = H * 0.93 + ((px * 7) % 13);
+    c.fillStyle = 'rgba(24,17,20,.96)';
+    c.fillRect(px - lw * 0.09, roof, lw * 0.18, H - roof + 2); // the parapet
+    c.fillStyle = 'rgba(150,110,70,.55)'; c.fillRect(px - lw * 0.1, roof - 3, lw * 0.2, 3);
+    c.strokeStyle = 'rgba(104,76,52,1)'; c.lineWidth = 3.5; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(px, roof); c.lineTo(px, top - 6); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.moveTo(px - 5, top - 2); c.lineTo(px + 5, top - 2); c.stroke(); // a crosspiece
+  }
+  c.restore();
+}
 function washLine(c: CanvasRenderingContext2D, x: number, y: number, W: number, t: number) {
   const half = W * 0.16;
   c.save();

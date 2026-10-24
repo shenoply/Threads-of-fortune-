@@ -3425,3 +3425,6 @@ body.travelling .world-hud { display: none; }
 .district-tools .dt-world { font-size: 19px; }
 .venue-doors { padding: 7px 10px calc(7px + env(safe-area-inset-bottom)); gap: 8px; }
 .venue-doors .door-btn { min-height: 44px; font-size: 15px; padding: 6px 10px; border-radius: 10px; }
+
+/* the stall's animated loops (Saffron breathing, the record turning) sit over their stills */
+@media (prefers-reduced-motion: reduce) { .stall-anim { display: none; } }
