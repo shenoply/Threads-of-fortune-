@@ -81,6 +81,12 @@ export const FILMS: Record<FilmId, Film> = {
   },
   rashid: {
     title: 'Uncle Rashid · the khan, Cairo', name: 'Uncle Rashid',
+    // the film is silent; the narrator speaks over it and goes on over his portrait after
+    video: { mp4: 'video/rashid-intro.mp4', poster: 'video/rashid-intro-poster.webp', last: 'video/rashid-intro-last.webp' },
+    after: [
+      { src: 'video/rashid-intro-last.webp', fit: 'cover', from: [1, 50, 40], to: [1.35, 50, 30] },
+      { src: 'art/portraits/rashid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
+    ],
     stills: [
       { src: 'art/cities/cairo-1925-map.webp', fit: 'cover', from: [1, 50, 50], to: [1.6, 55, 45] },
       { src: 'art/portraits/rashid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },

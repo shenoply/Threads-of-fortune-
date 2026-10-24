@@ -1,9 +1,12 @@
+import { LIVESTOCK_BY_ID, flockOf } from '../../data/livestock';
 import { TROOPS, FOOD_PER_LOAD, WALKER_LOAD, BASE_SPEED, MARKETS } from '../../data/caravan';
 import { BREEDS } from '../../data/animals';
 import type { RugItem } from '../types';
 
 export interface PartyState {
   animals: Record<string, number>; // breed id -> count
+  /** sheep, goats and hens driven along for food (data/livestock.ts) */
+  flock?: Record<string, number>;
   food: number; // rations: one feeds one person for a day
   troops: Record<string, number>;
   /** a personal weapon with a permit (Arran's cabinet): counts toward strength everywhere */
@@ -69,7 +72,7 @@ export const capacity = (p: PartyState) => {
   return Math.round((WALKER_LOAD + troopCount(p) + list.reduce((s, a) => s + BREEDS[a.id].load * (a.ridden ? 0.4 : 1), 0)) * (1 + healthMods.carry / 100) * 10) / 10;
 };
 export const carried = (inv: RugItem[]) => inv.filter((i) => !i.stored);
-export const load = (p: PartyState, inv: RugItem[]) => carried(inv).length + p.food / FOOD_PER_LOAD;
+export const load = (p: PartyState, inv: RugItem[]) => carried(inv).length + p.food / FOOD_PER_LOAD + flockOf(p).reduce((a, [id, n]) => a + (LIVESTOCK_BY_ID[id]?.load ?? 0) * n, 0);
 
 /** A caravan moves at the pace of its slowest member: walkers, riders and loaded pack animals. */
 export function speedInfo(p: PartyState, inv: RugItem[]) {
@@ -79,7 +82,9 @@ export function speedInfo(p: PartyState, inv: RugItem[]) {
     ...list.map((a) => (a.ridden ? BREEDS[a.id].ride : Math.max(1, BREEDS[a.id].ride * 0.85))),
     ...(mountedTroops ? [1.7] : []),
   ];
-  const pace = paces.length ? Math.min(...paces) : 1;
+  // a flock sets its own pace: sheep will not be hurried
+  const flockPace = flockOf(p).reduce((a, [id]) => Math.min(a, LIVESTOCK_BY_ID[id]?.pace ?? 1), 1);
+  const pace = (paces.length ? Math.min(...paces) : 1) * flockPace;
   const size = partySize(p);
   const mounted = (size - walkers) / size;
   const cap = capacity(p);
@@ -89,7 +94,7 @@ export function speedInfo(p: PartyState, inv: RugItem[]) {
   const hungry = p.food <= 0 ? Math.max(0.4, 0.75 - (p.hungryDays ?? 0) * 0.05) : 1;
   const tired = fatiguePace();
   const mult = pace * over * hungry * tired * SKILL_MODS.speed * Math.max(0.2, 1 + healthMods.speed / 100);
-  const slowest = walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name : 'nobody';
+  const slowest = flockPace < 0.99 && flockPace <= (paces.length ? Math.min(...paces) : 1) ? 'the sheep' : walkers > 0 ? 'people on foot' : list.length ? BREEDS[list.reduce((a, b) => ((a.ridden ? BREEDS[a.id].ride : BREEDS[a.id].ride * 0.85) <= (b.ridden ? BREEDS[b.id].ride : BREEDS[b.id].ride * 0.85) ? a : b)).id].name : 'nobody';
   return { pxPerDay: BASE_SPEED * mult, mult, mounted, over: l > cap, hungry: p.food <= 0, tired: tired < 1, cap, load: l, slowest };
 }
 

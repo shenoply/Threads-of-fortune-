@@ -89,6 +89,7 @@ import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID }
 import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
 import { RECORD_BY_ID, recordsOwned } from '../../data/records';
+import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } from '../../data/livestock';
 import { BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
@@ -232,6 +233,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** gramophone records you own (data/records.ts); unset means the three that came with it */
   records?: string[];
+  /** short films already shown once (components/Moment) */
+  momentsSeen?: string[];
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
   signName?: string;
   /** sealed customs bales bought at Rashid's warehouse */
@@ -589,6 +592,9 @@ interface Actions {
   /** open today's gift (once a real day): what was in it, or null */
   openGift: () => Gift | null;
   /** buy (or, from the week's gift, be given) a sealed bale and cut it open: what was inside */
+  /** a sheep, goat or crate of hens from the town you are in, to drive along for food */
+  buyLivestock: (id: string) => string;
+  slaughterLivestock: (id: string) => string;
   buyBale: (free?: boolean) => { msg: string; result?: BaleResult; items?: RugItem[] };
   /** buy a record from the record seller of the town you are in */
   buyRecord: (id: string) => string;
@@ -1301,6 +1307,22 @@ export const useGame = create<GameState & Actions>()(
           let moraleV = party.morale ?? MORALE_START;
           const troopIds = () => Object.keys(party.troops).filter((k) => party.troops[k] > 0);
           const aGuard = (ids: string[]) => ids[Math.floor(rng() * ids.length)];
+          // the flock: milk and eggs each morning, and when the sacks will not stretch, one goes to the pot
+          if (flockCount(party)) {
+            const fl = { ...(party.flock ?? {}) };
+            const milk = flockOf(party).reduce((a, [id, n]) => a + (LIVESTOCK_BY_ID[id]?.daily ?? 0) * n, 0);
+            const got = Math.floor(milk + ((s.day % 2) ? 0.5 : 0));
+            if (got > 0) party.food += got;
+            while (party.food < need) {
+              const pick = flockOf({ flock: fl }).sort((a, b) => (LIVESTOCK_BY_ID[a[0]]?.daily ?? 0) - (LIVESTOCK_BY_ID[b[0]]?.daily ?? 0) || (LIVESTOCK_BY_ID[b[0]]?.meat ?? 0) - (LIVESTOCK_BY_ID[a[0]]?.meat ?? 0))[0];
+              if (!pick) break;
+              const l = LIVESTOCK_BY_ID[pick[0]];
+              fl[pick[0]] = pick[1] - 1;
+              party.food += l.meat;
+              notes.push(`The sacks are empty, so one of the ${l.plural} goes to the pot: ${l.meat} rations.`);
+            }
+            party.flock = fl;
+          }
           if (party.food >= need) {
             party.food -= need; party.hungryDays = 0;
             // on the road your own supper comes out of the same sacks: it fills you, if not as well as Malek
@@ -2817,6 +2839,26 @@ export const useGame = create<GameState & Actions>()(
           return `Bought ${n} ration${n === 1 ? '' : 's'} of bread and dates for ${fmt(price)}.`;
         },
 
+        buyLivestock: (id) => {
+          const s = get();
+          const l = LIVESTOCK_BY_ID[id];
+          const sid = s.world.at;
+          if (!l || !sid || !livestockAt(sid).some((x) => x.id === id)) return '';
+          const price = livestockPrice(l, MARKETS[sid]?.food ?? 1);
+          if (s.cash < price) return `${l.name}: ${fmt(price)}. You have ${fmt(s.cash)}.`;
+          const party = s.world.party;
+          set({ cash: s.cash - price, world: { ...s.world, party: { ...party, flock: { ...(party.flock ?? {}), [id]: (party.flock?.[id] ?? 0) + 1 } } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: l.name, amount: -price }] });
+          audio.sfx('coin');
+          return `${l.name} joins the caravan.${l.pace < 0.99 ? ' It sets a slower pace.' : ''}${l.daily ? ` ${l.daily >= 1 ? 'A ration' : 'Half a ration'} of ${id.startsWith('hens') ? 'eggs' : 'milk'} a day.` : ''}`;
+        },
+        slaughterLivestock: (id) => {
+          const s = get();
+          const l = LIVESTOCK_BY_ID[id];
+          const party = s.world.party;
+          if (!l || !(party.flock?.[id] ?? 0)) return '';
+          set({ world: { ...s.world, party: { ...party, food: party.food + l.meat, flock: { ...party.flock, [id]: (party.flock?.[id] ?? 0) - 1 } } } });
+          return `One ${l.name.toLowerCase()} goes to the pot: ${l.meat} rations.`;
+        },
         buyProvision: (id, n) => {
           const s = get();
           const sid = s.world.at;
@@ -4103,6 +4145,8 @@ export const useGame = create<GameState & Actions>()(
             journal: [...s.journal, { day: s.day, text: `Bought ${lowerName(u.name)} for the stall.` }],
           });
           audio.sfx('chest');
+          // the new stall's short film (components/Moment)
+          if (['mat', 'bazaar', 'khan'].includes(id) && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('tof:moment', { detail: `up-${id}` }));
         },
 
         buyDressing: (id) => {

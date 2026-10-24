@@ -12,6 +12,7 @@ import { TroopPage, MenTalk, capLine } from './Troops';
 import { troopCount, troopCap, animalCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 import { provisionsAt, stapleAt, provisionPrice } from '../../data/provisions';
+import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } from '../../data/livestock';
 import './provisions.css';
 
 /** One-line caravan status used on the map and in towns. */
@@ -75,7 +76,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
           );
           return (
             <div className="mkt-row prov-row" key={it.id} data-testid={`prov-${it.id}`}>
-              <img className="prov-pic" src={`art/food/${it.id}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              <img className="prov-pic" src={`art/food/${it.id}-128.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               <span><b>{it.name}</b><small>{it.line} {gives}.</small></span>
               {staple ? (<>
                 {buy(5, 'buy-food-5')}
@@ -88,6 +89,24 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
           );
         })}
       </div>
+      {livestockAt(sid).length > 0 && (<>
+        <div className="section-label">FOR THE POT · LIVESTOCK</div>
+        <p className="set-demand">They walk with you and graze as they go. Milk and eggs come each morning, and when the sacks run out one is slaughtered.{flockCount(p) ? ` With you: ${flockOf(p).map(([id, n]) => `${n} ${n === 1 ? LIVESTOCK_BY_ID[id].name.toLowerCase() : LIVESTOCK_BY_ID[id].plural}`).join(', ')}.` : ''}</p>
+        <div className="mkt prov">
+          {livestockAt(sid).map((l) => {
+            const price = livestockPrice(l, m.food);
+            const have = p.flock?.[l.id] ?? 0;
+            return (
+              <div className="mkt-row prov-row" key={l.id} data-testid={`stock-${l.id}`}>
+                <img className="prov-pic" src={`art/animals/${l.id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span><b>{l.name}{have ? ` · ${have} with you` : ''}</b><small>{l.line} {l.meat} rations of meat{l.daily ? `, ${l.daily >= 1 ? 'a ration' : 'half a ration'} a day of ${l.id.startsWith('hens') ? 'eggs' : 'milk'}` : ''}{l.pace < 0.99 ? '; slows the caravan' : ''}.</small></span>
+                <button className="btn" onClick={() => setNote(g.buyLivestock(l.id))} disabled={g.cash < price} data-testid={`buy-${l.id}`}>{localMoney(price, sid, g.day)}</button>
+                {have > 0 && <button className="btn" onClick={() => setNote(g.slaughterLivestock(l.id))} data-testid={`pot-${l.id}`}>To the pot</button>}
+              </div>
+            );
+          })}
+        </div>
+      </>)}
       </>)}
       {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /></Part>}
       {show.includes('recruits') && <Part fold={fold} id="guards" title={<><b>Guards</b> · {troopCount(p)} with you{pool.length ? ` · ${pool.reduce((n, r) => n + r.available, 0)} for hire here` : ''}</>}>

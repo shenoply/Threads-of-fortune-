@@ -1,6 +1,7 @@
 import { recordPlayer } from './game/audio/recordPlayer';
 import { recordsOwned } from './data/records';
 import { RevealHost } from './components/Reveal/Reveal';
+import { MomentHost } from './components/Moment/Moment';
 import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
 import { BigNews, freshNews } from './components/Newspaper/BigNews';
@@ -312,6 +313,11 @@ export default function App() {
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   // a record that ends goes on to the next on your shelf
   useEffect(() => { recordPlayer.setShelf(() => recordsOwned(useGame.getState())); }, []);
+  // the short films (components/Moment): the first sale once the buyer has gone, the first caravan out
+  const firstSold = g.ledger.filter((l) => l.kind === 'sale').length === 1;
+  useEffect(() => { if (firstSold && !g.encounter && !(g.momentsSeen ?? []).includes('first-sale')) window.dispatchEvent(new CustomEvent('tof:moment', { detail: 'first-sale' })); }, [firstSold, g.encounter]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onRoad = !!g.journey && !g.journey.train && !g.journey.mode;
+  useEffect(() => { if (onRoad && !(g.momentsSeen ?? []).includes('caravan-road')) window.dispatchEvent(new CustomEvent('tof:moment', { detail: 'caravan-road' })); }, [onRoad]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
   // the map clock stops while you read, listen, or look at a menu
   const frozen = radioOpen || gramophoneOpen || paper !== null || settings || admin || cal || guide || g.dayOver;
@@ -775,6 +781,7 @@ export default function App() {
         </div>
       </header>
       <RevealHost />
+      <MomentHost />
       <WeaverLink />
 
       {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (
