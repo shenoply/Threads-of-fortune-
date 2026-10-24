@@ -1,4 +1,4 @@
-.dream { position: fixed; inset: 0; z-index: 96; background: linear-gradient(180deg, #060a1f 0%, #1a1838 60%, #3a2a3a 85%, #1a1210 100%); touch-action: none; user-select: none; -webkit-user-select: none; animation: dream-in 1.2s ease; }
+.dream { position: fixed; inset: 0; z-index: 96; background: linear-gradient(180deg, var(--sky0, #060a1f) 0%, var(--sky1, #1a1838) 60%, var(--sky2, #3a2a3a) 86%, #120c0a 100%); touch-action: none; user-select: none; -webkit-user-select: none; animation: dream-in 1.2s ease; }
 .dream-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .dream-card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, 86vw); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 22px 20px; border-radius: 14px; background: rgba(10,12,32,.82); border: 1px solid rgba(231,206,140,.35); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .dream-card small { font-family: var(--label); letter-spacing: .24em; color: #c9b3ff; font-size: 12px; }
@@ -11,3 +11,32 @@
 .dream-wake { position: absolute; right: 12px; top: calc(10px + env(safe-area-inset-top, 0px)); font-family: var(--label); font-size: 12.5px; padding: 6px 12px; border-radius: 16px; border: 1px solid rgba(231,206,140,.35); background: rgba(10,12,32,.6); color: #e8dcc0; }
 @keyframes dream-in { from { opacity: 0; } }
 @keyframes dream-dawn { to { background: #e8c690; } }
+
+.dream-goals { list-style: none; margin: 2px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 4px; align-self: stretch; text-align: left; }
+.dream-goals li { font-size: 14px; color: #cfc6dc; padding: 5px 10px; border-radius: 8px; background: rgba(255,255,255,.04); border: 1px solid rgba(231,206,140,.15); }
+.dream-goals li.done { color: #ffd98a; border-color: rgba(231,206,140,.45); }
+.dream-next { margin: 0; color: #f6e6c0; font-size: 14px; }
+.dream-score em { font-style: normal; color: #ffd98a; margin-left: 4px; }
+.dream-score small { color: #bfb4d0; font-size: 12px; }
+.dream-toast { position: absolute; left: 50%; top: calc(54px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); padding: 6px 14px; border-radius: 16px; background: rgba(20,16,40,.75); border: 1px solid rgba(231,206,140,.5); color: #ffd98a; font-family: var(--label); font-size: 13px; letter-spacing: .04em; pointer-events: none; animation: dream-toast 2.2s ease forwards; white-space: nowrap; }
+@keyframes dream-toast { 0% { opacity: 0; transform: translate(-50%, -6px); } 12%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+/* the map below, at night (Dream.tsx) */
+.fc-world { position: absolute; inset: 0; overflow: hidden; perspective: 620px; perspective-origin: 34% 8%; background: #070a1e; }
+.fc-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #050818 0%, #0f1434 22%, #24204a 34%, #3a2a48 40%, transparent 46%); z-index: 1; pointer-events: none; }
+.fc-plane { position: absolute; left: 0; top: 0; width: 2048px; height: 1365px; background-size: 100% 100%; transform-origin: 0 0; filter: brightness(.58) saturate(.7) contrast(1.05); will-change: transform; }
+.fc-town { position: absolute; width: 0; height: 0; }
+.fc-town::after { content: ''; position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle, rgba(255,214,140,.95) 0, rgba(255,190,110,.45) 30%, transparent 70%); }
+.fc-town.city::after, .fc-town.home::after { left: -28px; top: -28px; width: 56px; height: 56px; }
+.fc-night { position: absolute; inset: 0; mix-blend-mode: multiply; pointer-events: none; z-index: 2; }
+.fc-fog { position: absolute; inset: 0; background: linear-gradient(180deg, #0c1030 0%, #1a1a40 30%, rgba(40,32,70,.6) 38%, transparent 52%); pointer-events: none; z-index: 2; }
+.dream .dream-canvas { z-index: 3; }
+.dream-card, .dream-score, .dream-wake, .dream-toast, .dream-place { z-index: 5; }
+.dream-card em { font-style: normal; color: #ffd98a; }
+.dream-btns { display: flex; gap: 8px; align-self: stretch; }
+.dream-btns .btn.primary { flex: 1; }
+.dream-lives { margin-left: 10px; color: #ffcf86; letter-spacing: 2px; }
+.dream-lives i { font-style: normal; color: rgba(255,207,134,.25); }
+.dream-place { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font-family: var(--display); font-size: 30px; color: #f6e6c0; letter-spacing: .06em; text-shadow: 0 2px 16px #000, 0 0 30px rgba(0,0,0,.8); pointer-events: none; animation: dream-place 2.6s ease forwards; white-space: nowrap; }
+@keyframes dream-place { 0% { opacity: 0; transform: translate(-50%, 8px); } 15%, 75% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+.dream-turn { font-size: 12.5px; color: #bfb4d0; margin: 0; }
+.fc-sky { background-size: 100% 46%, 100% 100%; background-repeat: no-repeat; background-position: top center; }

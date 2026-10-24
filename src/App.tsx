@@ -705,6 +705,7 @@ export default function App() {
   if (phase === 'title') {
     return (
       <div className="title-screen" data-testid="title">
+        <DreamHost />
         <div className="bg" key={titleBg.src} style={{ backgroundImage: `url(${titleBg.src})`, backgroundPosition: titleBg.pos ?? '50% 45%' }} />
         <Atmosphere hour={17.4} />
         <div className="title-card">
@@ -737,6 +738,7 @@ export default function App() {
                 </button>
                 <button className="ghost-btn iron-open" onClick={() => setChooser('ironman')} data-testid="open-ironman">☠ Ironman · one life</button>
                 <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · free play</button>
+                <button className="ghost-btn sbx-open" onClick={() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'play' }))} data-testid="open-carpet">The flying carpet</button>
               </>
             )}
             <div className="title-links">
