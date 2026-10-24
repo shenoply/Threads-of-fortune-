@@ -7,6 +7,7 @@ import { Icon } from '../Icon';
 import { AuctionBoard } from '../Auction/AuctionBoard';
 import type { Target } from '../World/Campaign';
 import { BUYERS } from '../../data/buyers';
+import { RUGS } from '../../data/rugs';
 import { useGame, arrivalAt, clock } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { useFilmSound } from '../../game/audio/useFilmSound';
@@ -46,6 +47,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       </div>
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
+        {!shut && <TodaysChance />}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
         )}
@@ -121,4 +123,30 @@ function TidyFilm({ onClose }: { onClose: () => void }) {
     </div>,
     document.body,
   );
+}
+
+// what the day holds worth knowing: who is coming next and what pleases them, and Rashid's rug for
+// today only. A line or two of the information the game already has, so each morning has its hook.
+const LIKES: Record<string, string> = {
+  restrained: 'quiet patterns', story: 'a rug with a story', fineWeave: 'a fine weave', antique: 'age', warm: 'warm colours', bold: 'bold patterns',
+  ornate: 'ornate work', silk: 'silk', hardwearing: 'a rug that wears well', darkField: 'a dark ground', lightField: 'a light ground', humble: 'plain village work',
+  rare: 'something rare', flatweave: 'kilims', geometric: 'geometric designs', floral: 'flowers', tribal: 'tribal work', large: 'a large carpet', small: 'a small rug',
+};
+const COLOUR: Record<string, string> = { indigo: 'indigo', ivory: 'ivory', crimson: 'red', gold: 'gold', mixed: 'many colours' };
+function TodaysChance() {
+  const g = useGame();
+  const id = g.queue[g.visitIdx];
+  const b = id ? BUYERS[id] : undefined;
+  const lines: string[] = [];
+  if (b) {
+    const likes = Object.entries(b.values ?? {}).filter(([k, v]) => v >= 2 && LIKES[k]).sort((a, c) => c[1] - a[1]).map(([k]) => LIKES[k]).slice(0, 2);
+    const col = Object.entries(b.colourPref ?? {}).sort((a, c) => c[1] - a[1])[0];
+    const colour = col && col[1] > 0 ? COLOUR[col[0]] : '';
+    const want = [...likes, ...(colour ? [colour] : [])];
+    if (want.length) lines.push(`Next at the stall: ${b.name}, who looks for ${want.length > 1 ? `${want.slice(0, -1).join(', ')} and ${want[want.length - 1]}` : want[0]}.`);
+  }
+  const deal = g.supplier?.offers?.find((o) => o.tag === 'Limited');
+  if (deal) lines.push(`Uncle Rashid has ${RUGS[deal.typeId]?.name ?? 'a rug'} at a price for today only.`);
+  if (!lines.length) return null;
+  return <p className="idle-chance" data-testid="todays-chance"><b>Today</b> {lines.join(' ')}</p>;
 }

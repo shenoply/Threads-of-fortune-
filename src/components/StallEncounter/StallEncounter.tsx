@@ -5,7 +5,7 @@ import { IntroFilm, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 import { STALL_FILMS } from '../IntroFilm/films';
 import { RugPicker, rugNames, typicalSale, type BuyerTaste } from './RugPicker';
 import { openGuide } from '../Guide/Guide';
-import { BUYER_TIERS } from '../../data/buyers';
+import { BUYER_TIERS, CELEB_INFO } from '../../data/buyers';
 import { hasPerk } from '../../data/character';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { stallFigure } from './stallArt';
@@ -35,6 +35,9 @@ function keepRestMost(key: string, v: number) {
   restMemo = { ...(restMemo ?? {}), [key]: v };
   try { localStorage.setItem(REST_KEY, JSON.stringify(restMemo)); } catch { /* private mode */ }
 }
+
+/** buyers of everyday stock (not the famous, the courts or a story's buyers): a quick deal is offered */
+const everyday = (id: string) => !CELEB_INFO[id as keyof typeof CELEB_INFO] && !BUYERS[id]?.royal && (BUYER_TIERS[id]?.[0] ?? 1) <= 1 && !['cohen', 'malek', 'nabil'].includes(id);
 
 export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supplier') => void; onLeaveAudience?: () => void }) {
   const g = useGame();
@@ -461,6 +464,18 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <div className="act-note">{enc.presented ? 'Choose what to say.' : 'Tap a rug to lay it on the table.'}</div>
         ) : (
           <>
+            {/* an everyday buyer: one tap lays out the plain rug that suits them best and sells it at a fair
+                price, so the day's routine trade does not have to be haggled every time */}
+            {!enc.presented && !enc.outcome && !tut && everyday(enc.buyerId) && (() => {
+              const prefs = prefsFor(enc);
+              const pick = avail.filter((i) => RUGS[i.typeId]?.tier === 1).sort((a, b) => fitScore(prefs, RUGS[b.typeId], b) - fitScore(prefs, RUGS[a.typeId], a))[0];
+              if (!pick) return null;
+              return (
+                <button className="quick-sale" onClick={() => { g.present(pick.uid); window.setTimeout(() => { const e = useGame.getState().encounter; if (e && !e.outcome && e.presented === pick.uid) g.act('quick_sale'); }, 60); }} data-testid="quick-deal">
+                  <Icon name="coin" /> Quick deal · {RUGS[pick.typeId].name}<small>the plain rug that suits them, a fair price, no haggling</small>
+                </button>
+              );
+            })()}
             {canQuickSell(enc, presented) && presented && (() => {
               const qp = quickPrice(enc, presented);
               const cmp = enc.buyerOffer
