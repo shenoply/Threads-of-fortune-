@@ -69,3 +69,17 @@
 /* Saffron's state, small and quiet by the score */
 .dream-cat { position: absolute; left: 14px; top: calc(40px + env(safe-area-inset-top, 0px)); font-family: var(--label); font-size: 12px; letter-spacing: .04em; color: rgba(246,230,192,.55); pointer-events: none; z-index: 5; text-shadow: 0 1px 3px #000; }
 .dream-cat.ready { color: #ffd98a; }
+
+/* Saffron beside Jump and Lie flat: her face, a gold edge when ready, a ring that fills while she rests */
+.dream-pad { flex-direction: row; align-items: flex-end; }
+.dream-pad-col { display: flex; flex-direction: column; gap: 12px; }
+.dream-act.cat { position: relative; overflow: hidden; }
+.dream-cat-face { width: 40px; height: 34px; background: url(art/dream/saffron-alert.webp) 52% 8% / 150% auto no-repeat; border-radius: 50%; }
+.dream-act.cat.ready { border-color: #ffd98a; box-shadow: 0 0 0 2px rgba(255,217,138,.25), 0 4px 18px rgba(0,0,0,.45); }
+.dream-act.cat.cooling { opacity: .7; }
+.dream-act.cat.cooling .dream-cat-face { filter: grayscale(.6) brightness(.8); }
+.dream-cool { position: absolute; inset: -2px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(rgba(255,217,138,.35) var(--p, 0%), transparent 0); animation: dream-cool var(--cool, 9s) linear forwards;
+  -webkit-mask: radial-gradient(circle, transparent 33px, #000 34px); mask: radial-gradient(circle, transparent 33px, #000 34px); }
+@property --p { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@keyframes dream-cool { to { --p: 100%; } }

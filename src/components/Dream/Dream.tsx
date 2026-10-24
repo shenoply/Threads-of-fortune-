@@ -27,7 +27,7 @@ const MAP = 'art/world/travel-map-3k.webp', MAP_PX = 2048 / 885; // map units to
 const SAFFRON = 'art/saffron-stall.webp';
 /** the flight's own music: the road theme in hijaz, a journey by night (from the game's own score) */
 const FLIGHT_TRACK = 'audio/music/road-hijaz.mp3';
-const JUMP_T = 0.9; // seconds in the air
+const JUMP_T = 1.15; // seconds in the air: long enough to steer while up
 const CAT_COOL = 9; // seconds before Saffron can glare again
 /** painted poses, when they exist (art/dream/hassan-<pose>.webp); until then his standing figure is used */
 const POSES = ['sit', 'jump', 'duck', 'hit'] as const;
@@ -91,7 +91,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const [place, setPlace] = useState('');
   const runRef = useRef<Run>({ lanterns: 0, chain: 0, bestChain: 0, rings: 0, stars: 0, hits: 0, ducks: 0, jumps: 0 });
   // steering: the carpet goes where your finger takes it (dragged, never under your thumb) and stays there when you let go
-  const input = useRef({ drag: false, sy: 0, from: 0.5, target: 0.5, jump: 0, flat: false, keyUp: false, keyDown: false, yMin: 0.3, zap: 0, cat: { x: 0, y: 0, r: 0 } });
+  const input = useRef({ drag: false, sy: 0, from: 0.6, target: 0.6, jump: 0, flat: false, keyUp: false, keyDown: false, yMin: 0.3, zap: 0, cat: { x: 0, y: 0, r: 0 } });
   const [catReady, setCatReady] = useState(true);
   const d = g.dreams as DreamState | undefined;
   const level = levelOf(d);
@@ -169,7 +169,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       for (const s of segs) { if (rem <= s.len) { const k = rem / s.len; return { x: s.a.x + (s.b.x - s.a.x) * k, y: s.a.y + (s.b.y - s.a.y) * k, h: Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x) }; } rem -= s.len; }
       const s = segs[segs.length - 1]; return { x: s.b.x, y: s.b.y, h: Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x) };
     };
-    let raf = 0, last = 0, t = 0, y = 0.5, vy = 0, catCool = 0, zapT = 0, zapAt = { x: 0, y: 0 }, hint = 0, wobble = 0, next = 0.6, boost = 0, chainT = 0, scroll = 0, head = at(0).h, jumpT = 0, duckT = 0, lives = 3, named = '';
+    let raf = 0, last = 0, t = 0, y = 0.6, vy = 0, catCool = 0, zapT = 0, zapAt = { x: 0, y: 0 }, hint = 0, wobble = 0, next = 0.6, boost = 0, chainT = 0, scroll = 0, head = at(0).h, jumpT = 0, duckT = 0, lives = 3, named = '';
     const things: Thing[] = [];
     const sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
     const stars = Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random() * 0.28, r: Math.random() * 1.1 + 0.3, tw: Math.random() * 6 }));
@@ -202,10 +202,13 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       if (inp.keyUp) inp.target -= 0.75 * dt;
       if (inp.keyDown) inp.target += 0.75 * dt;
       // sized to the screen: the carpet and its riders never crowd it, upright or sideways
-      const w = Math.min(W * 0.34, H * 0.42, 210);
+      const w = Math.min(W * 0.34, H * 0.34, 210);
       // the highest he may fly: high enough that a full jump still stays on the screen
-      const jumpMax = Math.min(H * 0.22, w * 0.85);
-      const yMin = Math.min(0.5, Math.max(0.22, (w * 0.46 + jumpMax * 0.8 + 16) / H));
+      // a real leap: about one and a half carpet-widths, or two fifths of the screen
+      const jumpMax = Math.min(H * 0.4, w * 1.5);
+      // what clears a low flock at the riders' knees, with room to spare
+      const jumpClear = w * 0.34;
+      const yMin = Math.min(0.5, Math.max(0.2, (w * 0.46 + jumpClear + 16) / H));
       inp.yMin = yMin;
       inp.target = Math.max(yMin, Math.min(0.8, inp.target));
       // the carpet glides to where it is steered, quick but never jerky, and hovers there
@@ -232,10 +235,17 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
         if (roll < 0.42) {
           const high = Math.random() < 0.3;
           // most chains where the carpet can fly; some high enough to need a jump
-          const y0 = high ? yMin - 0.12 - Math.random() * 0.05 : yMin + Math.random() * (0.78 - yMin), amp = (high ? 0.02 : 0.05) + Math.random() * 0.05, ph = Math.random() * 6;
+          // jump chains hang where only a leap reaches them: at Hassan's head height at the top of a jump
+          const top = Math.max(0.05, (H * y - w * 0.4 - Math.min(jumpMax, H * y - w * 0.46 - 16) * 0.75) / H);
+          const y0 = high ? top : yMin + Math.random() * (0.78 - yMin), amp = (high ? 0.02 : 0.05) + Math.random() * 0.05, ph = Math.random() * 6;
           for (let i = 0; i < 6; i++) things.push({ x: 1.06 + i * 0.075, y: y0 + Math.sin(ph + i * 0.7) * amp, kind: 'lantern', ph: ph + i, high });
           next = 1.5 + Math.random() * 0.5;
-        } else if (roll < 0.55) { things.push({ x: 1.1, y: Math.max(0.12, yMin - 0.06 + Math.random() * (0.78 - yMin)), kind: 'ring', ph: 0 }); next = 0.9; }
+        } else if (roll < 0.55) {
+          // half the rings are jump rings, up where his body passes at the top of a leap
+          const up = Math.random() < 0.5;
+          const ry = up ? Math.max(0.08, (H * y - w * 0.25 - Math.min(jumpMax, H * y - w * 0.46 - 16) * 0.8) / H) : Math.max(0.12, yMin - 0.06 + Math.random() * (0.78 - yMin));
+          things.push({ x: 1.1, y: ry, kind: 'ring', ph: 0, high: up }); next = 0.9;
+        }
         else if (roll < 0.6) { things.push({ x: 1.0, y: 0.04, kind: 'star', ph: 0, vy: 0.2 }); next = 0.8; }
         else if (roll < 0.8) { // a high flock at head height: lie flat (or steer) and it passes over
           things.push({ x: 1.1, y: (H * y - w * 0.33) / H, kind: 'birds', ph: Math.random() * 6 }); next = 1.4 + Math.random() * 0.6; }
@@ -244,7 +254,11 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       }
       const cx = W * 0.34, cy = H * y;
       // where Hassan's body is: on the carpet, up in a jump, or flat on it (the box follows the drawn figure)
-      const jumpH = jumpT > 0 ? Math.sin((1 - jumpT / JUMP_T) * Math.PI) * Math.max(0, Math.min(jumpMax, cy - w * 0.46 - 16)) : 0; // never off the top of the screen
+      // the arc: up quickly, a hang at the top, down; as high as the screen allows, never less than a flock's clearance
+      const ph = 1 - jumpT / JUMP_T;
+      const arc = jumpT > 0 ? Math.pow(Math.sin(ph * Math.PI), 0.7) : 0;
+      const jumpH = arc * Math.max(jumpClear, Math.min(jumpMax, cy - w * 0.46 - 8)); // never off the top of the screen
+      (window as unknown as { __tofDreamDbg?: object }).__tofDreamDbg = { jumpH, cy, w, H, yMin, jumpMax };
       const bodyTop = duckT > 0 ? cy - w * 0.1 : cy - w * 0.46 - jumpH;
       const bodyBot = (duckT > 0 ? cy : cy - jumpH) + 4;
       // Saffron, tapped: a gleam from her eyes sends the nearest flock ahead of her scattering
@@ -279,7 +293,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
               else { r.stars += 1; r.lanterns += 5; audio.sfx('prize'); for (let k = 0; k < 18; k++) sparks.push({ x: ox, y: oy, vx: (Math.random() - 0.5) * 140, vy: (Math.random() - 0.5) * 140, life: 0.9 }); }
             }
           } else if (o.kind === 'ring') {
-            if (Math.abs(oy - (cy - w * 0.25)) < H * 0.07) { o.got = true; r.rings += 1; boost = 2.2; audio.sfx('unfold'); }
+            if (Math.abs(oy - (cy - w * 0.25 - jumpH)) < Math.max(H * 0.07, w * 0.22)) { o.got = true; r.rings += 1; boost = 2.2; audio.sfx('unfold'); }
           } else if (Math.abs(ox - cx) < 8 && !o.scared) {
             // a flock across your way: clear if it passes over or under Hassan (and Saffron at the front)
             o.passed = true;
@@ -376,7 +390,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           <img className="dream-key" src="art/dream/flying-carpet-card.webp" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <small>{mode === 'play' ? 'THE FLYING CARPET' : nap ? 'SAFFRON PURRS' : 'THAT NIGHT'}</small>
           <b>{leg.name}</b>
-          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> over low flocks, <em>lie flat</em> under high ones. <em>Tap Saffron</em> and she sees a flock off.</span>
+          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> over low flocks, <em>lie flat</em> under high ones. The <em>Saffron</em> button (or a tap on her) sees a flock off with a glare.</span>
           <ul className="dream-goals">{goals.map((gl, i) => <li key={i} className={doneBefore.includes(i) ? 'done' : ''}>{doneBefore.includes(i) ? '★' : '☆'} {gl.text}</li>)}</ul>
           {typeof innerHeight !== 'undefined' && innerHeight > innerWidth && <p className="dream-turn">Best with your phone turned on its side.</p>}
           <div className="dream-btns">
@@ -391,10 +405,15 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           {place && <div className="dream-place">{place}</div>}
           {toast && <div className="dream-toast">{toast}</div>}
           <button className="dream-wake" onClick={() => setStage('wake')} data-testid="dream-wake">Wake up</button>
-          <div className={`dream-cat ${catReady ? 'ready' : ''}`} aria-live="polite">{catReady ? 'Saffron is ready: tap her' : 'Saffron is catching her breath'}</div>
           <div className="dream-pad">
+            <button className={`dream-act cat ${catReady ? 'ready' : 'cooling'}`} onPointerDown={(e) => { e.stopPropagation(); input.current.zap = 1; }} aria-label={catReady ? 'Saffron: glare a flock away' : 'Saffron is catching her breath'} data-testid="dream-saffron" style={{ ['--cool' as string]: `${CAT_COOL}s` }}>
+              <i className="dream-cat-face" aria-hidden="true" /><small>Saffron</small>
+              {!catReady && <span className="dream-cool" aria-hidden="true" />}
+            </button>
+            <div className="dream-pad-col">
             <button className="dream-act jump" onPointerDown={(e) => { e.stopPropagation(); input.current.jump = 1; }} aria-label="Jump" data-testid="dream-jump"><b>↑</b><small>Jump</small></button>
             <button className="dream-act flat" onPointerDown={flat(true)} onPointerUp={flat(false)} onPointerCancel={flat(false)} onLostPointerCapture={() => { input.current.flat = false; }} aria-label="Lie flat" data-testid="dream-flat"><b>↓</b><small>Lie flat</small></button>
+            </div>
           </div>
         </>
       )}
