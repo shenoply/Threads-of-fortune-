@@ -1168,6 +1168,11 @@ export const useGame = create<GameState & Actions>()(
           rel.affinity = Math.max(-100, rel.affinity - (enc.insulted ? 12 : 4));
           if (enc.insulted || enc.embellishCaught) rel.bad += 1;
           journal.push({ day: s.day, text: `${b.name} left without buying.` });
+          // a second chance: someone who left without a quarrel often comes back in a few days to look again
+          if (!enc.insulted && !enc.embellishCaught && !enc.venue && !enc.tutorial && rel.bad < 2 && Math.random() < 0.55 && !(s.appointments ?? []).some((a) => a.buyerId === enc.buyerId)) {
+            patch.appointments = [...(s.appointments ?? []), { buyerId: enc.buyerId, day: s.day + 2 + Math.floor(Math.random() * 3), venue: 'back' }];
+            journal.push({ day: s.day, text: `${b.name} may come back in a day or two, once they have thought about it.` });
+          }
         }
         if (enc.embellishCaught) rep -= 1;
         if (s.relationships[enc.buyerId]?.embellishedSale && !s.relationships[enc.buyerId]?.embellishMentioned && rel.visits > 1) {
@@ -1633,8 +1638,8 @@ export const useGame = create<GameState & Actions>()(
           // they come to the stall in Giza, so they wait for the first morning you are there to open it
           const atStall = s.world.at === 'giza';
           const due = (s.appointments ?? []).filter((a) => a.day <= day);
-          if (atStall) for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
-          else for (const a of due) if (a.day === day) notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'the other night'} will call at your stall the first morning you are back in Giza.`);
+          if (atStall) for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(a.venue === 'back' ? `${BUYERS[a.buyerId]?.name ?? 'A buyer'} is coming back to the stall today for another look.` : `${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
+          else for (const a of due) if (a.day === day && a.venue !== 'back') notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'the other night'} will call at your stall the first morning you are back in Giza.`);
           const appointments = (s.appointments ?? []).filter((a) => a.day > day || !atStall);
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
