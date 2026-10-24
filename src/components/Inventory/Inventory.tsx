@@ -33,7 +33,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         <div className="stock-head-btns">
           {onRashid && <button className="btn primary" onClick={onRashid} data-testid="stock-rashid">Buy from Rashid</button>}
           <LoomButton />
-          <button className="btn" onClick={openUpgrades} data-testid="stock-upgrades">Improve your stall{affordableUpgrades(g).length ? ` · ${affordableUpgrades(g).length}` : ''}</button>
+
         </div>
       </div>
       {(g.papers ?? []).length > 0 && (

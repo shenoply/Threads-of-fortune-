@@ -3375,9 +3375,14 @@ body.travelling .world-hud { display: none; }
 /* on a phone, between buyers and after a sale: the picture takes the room, the words under it only
    what they need (no empty band between the picture and the buttons) */
 @media (max-width: 600px) {
-  .stall:not(.in-talk) { grid-template-rows: auto minmax(160px, 1fr) auto auto auto auto; }
-  .stall:not(.in-talk) > .scene { aspect-ratio: auto; height: 100%; max-height: none; min-height: 160px; }
-  .stall:not(.in-talk) > .band { max-height: 38vh; overflow-y: auto; }
+  .stall:not(.in-talk) > .scene { aspect-ratio: auto; height: min(98vw, 56vh); max-height: none; min-height: 160px; }
+  .stall:not(.in-talk) > .band { justify-content: center; }
   .stall:not(.in-talk) > .band > :first-child, .stall:not(.in-talk) > .band > :last-child { margin-top: 0; margin-bottom: 0; }
 }
 .boy-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+/* the paper is new every day: a small steady dot says so, without a pulsing ring on every screen */
+.icon-btn.paper-btn.nav-new { animation: none; border-color: var(--line-strong, rgba(201,151,74,.5)); }
+.paper-btn.nav-new::after { animation: none !important; width: 7px; height: 7px; box-shadow: none; }
+/* the paper on the counter stays where it is put (the bigger tap area rule above makes it relative) */
+.scene.stall .stall-paper { position: absolute; }
+.scene.stall .tap-tag.quiet { padding: 2px; animation: none; box-shadow: 0 2px 6px rgba(0,0,0,.5); }

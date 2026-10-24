@@ -105,7 +105,6 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
       </div>
 
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
-      <BaleCard toast={toast} />
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
       {/* (where bought rugs go is said once, in the opening) */}
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}
@@ -144,6 +143,8 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           );
         })}
       </div>
+      {/* the day's sealed bale, after his stock: the rugs are what you came for */}
+      <BaleCard toast={toast} />
       {/* his rugs come first; the family debt and the bazaar news follow, so a newcomer sent here to restock
           does not spend the stock money on the debt by mistake */}
       {fam.left > 0 ? (

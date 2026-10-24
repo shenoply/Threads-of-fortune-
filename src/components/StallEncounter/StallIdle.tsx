@@ -73,7 +73,6 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       </div>
 
       {/* the next thing worth working for, once the opening's own steps are done */}
-      {openingDone(g) && <NextOnRoad compact onOpen={() => window.dispatchEvent(new Event('tof:open-road'))} />}
       {/* the other things to do at the stall: Improve, and the rest folded away so the one big button stands out */}
       <div className="idle-more">
         <button className={`btn small idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve" title={canBuy.length ? `You can afford: ${canBuy[0].name}` : undefined}>

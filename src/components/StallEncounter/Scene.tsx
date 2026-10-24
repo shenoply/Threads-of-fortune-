@@ -206,8 +206,8 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
             <>
               <StallRadio at={ra} hide={inFront(ra.x)} />
               <StallPaper at={pa} hide={inFront(pa.x)} />
-              {!buyer && !inFront(ra.x) && <TapTag id="radio" x={ra.x} y={ra.y - 9} icon="radio" label="Radio" />}
-              {!buyer && !inFront(pa.x) && <TapTag id="paper" x={pa.x} y={pa.y - 7} icon="news" label="Today's paper" />}
+              {!buyer && !inFront(ra.x) && <TapTag id="radio" x={ra.x} y={ra.y - 12} icon="radio" label="Radio" />}
+              {!buyer && !inFront(pa.x) && <TapTag id="paper" x={pa.x} y={pa.y - 9} icon="news" label="Today's paper" />}
             </>
           );
         })()}
@@ -467,13 +467,16 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
 const tapKey = (id: string) => `tof-tap-${id}`;
 const tapSeen = (id: string) => { try { return localStorage.getItem(tapKey(id)) === '1'; } catch { return false; } };
 function tapUsed(id: string) { try { localStorage.setItem(tapKey(id), '1'); } catch { /* private mode */ } window.dispatchEvent(new Event('tof:tap-used')); }
+const TAP_ORDER = ['gramo', 'radio', 'cat', 'paper'];
 function TapTag({ id, x, y, icon, label, used }: { id: string; x: number; y: number; icon: string; label: string; used?: boolean }) {
   const [seen, setSeen] = useState(() => used || tapSeen(id));
+  // one word at a time: only the first thing not yet tried says what it is; the rest show their icon
+  const first = TAP_ORDER.find((k) => !(k === 'gramo' ? useGame.getState().gramoSeen : tapSeen(k)));
   useEffect(() => { const f = () => setSeen(used || tapSeen(id)); window.addEventListener('tof:tap-used', f); return () => window.removeEventListener('tof:tap-used', f); }, [id, used]);
   useEffect(() => { if (used) setSeen(true); }, [used]);
   return (
-    <span className={`tap-tag ${seen ? 'seen' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" data-testid={`tap-${id}`}>
-      <Icon name={icon} />{!seen && <em>{label}</em>}
+    <span className={`tap-tag ${seen ? 'seen' : first === id ? '' : 'quiet'}`} style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" data-testid={`tap-${id}`}>
+      <Icon name={icon} />{!seen && first === id && <em>{label}</em>}
     </span>
   );
 }
