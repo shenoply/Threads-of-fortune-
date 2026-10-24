@@ -436,14 +436,27 @@ function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () 
   const { pose, at } = catAt(sc, variant);
   const rule = CAT_VARIANTS[pose];
   const src = `art/stall2/props/${pose}.webp`;
+  const [chase, setChase] = useState(0);
+  const [chasing, setChasing] = useState(false);
+  const quiet = !rugOnCounter && pose === 'cat-counter';
+  useEffect(() => {
+    if (!quiet || (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    let id = 0;
+    const next = () => { id = window.setTimeout(() => { if (!document.hidden) setChase(Date.now()); next(); }, 22000 + Math.random() * 20000); };
+    id = window.setTimeout(() => { setChase(Date.now()); next(); }, 6000 + Math.random() * 6000);
+    (window as unknown as { __tofChase?: () => void }).__tofChase = () => setChase(Date.now());
+    return () => window.clearTimeout(id);
+  }, [quiet]);
   const pos = at && placeStyle(src, at);
   const hit = at && placedRect(src, at);
   if (!ok || !pos || !hit || (rule?.hideWhileRugOnCounter && rugOnCounter)) return null;
   return (
     <>
-      <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={src} alt="" style={pos} onError={() => setOk(false)} draggable={false} />
-      {/* she breathes: the matching loop on the same full canvas, laid over the still once it has loaded */}
-      <AnimOver className={`stall-prop placed stall-cat-art stall-anim${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={`art/stall2/props/${pose}-animated.webp`} style={pos} />
+      <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={src} alt="" style={{ ...pos, opacity: chasing ? 0 : 1 }} onError={() => setOk(false)} draggable={false} />
+      {/* on the counter she sits still and now and then goes after a sparrow (one two-second leap, while
+       *  no rug is laid out); in her other places she breathes, the matching loop laid over the still */}
+      {pose !== 'cat-counter' && <AnimOver className={`stall-prop placed stall-cat-art stall-anim${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={`art/stall2/props/${pose}-animated.webp`} style={pos} />}
+      {pose === 'cat-counter' && chase > 0 && <img key={chase} className={`stall-prop placed stall-cat-art stall-anim${at.front ? ' front' : ''}`} src={`art/stall2/props/cat-counter-chase.webp?n=${chase}`} alt="" style={{ ...pos, pointerEvents: 'none', opacity: chasing ? 1 : 0 }} onLoad={() => { setChasing(true); window.setTimeout(() => { setChasing(false); setChase(0); }, 1990); }} onError={() => setChase(0)} draggable={false} data-testid="saffron-chase" />}
       <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); tapUsed('cat'); onCat(); catDream(); }} />
 
     </>
@@ -458,8 +471,9 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
   const rp = useRecord();
   const [mini, setMini] = useState(false);
   useEffect(() => { if (!mini) return; const t = window.setTimeout(() => setMini(false), 6000); return () => clearTimeout(t); }, [mini, rp.current, rp.playing]);
-  const src = 'art/stall2/props/prop-gramophone.webp';
-  const at = sc.gramophone;
+  const src = 'art/stall2/props/prop-turntable.webp';
+  // the record player is drawn wider than the old horn gramophone: the same spot, scaled to sit level on it
+  const at = sc.gramophone && { ...sc.gramophone, s: sc.gramophone.s * 0.44 };
   const pos = at && placeStyle(src, at);
   const r = at && placedRect(src, at);
   if (!pos || !r) return null;
@@ -468,7 +482,7 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
     <>
       <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}${!seen ? ' beckon' : ''}${rp.playing ? ' playing' : ''}`} src={src} alt="" style={pos} draggable={false} />
       {/* the record turning: only while one is playing; stopped, ended or failed, the still shows again */}
-      {rp.playing && <AnimOver className={`stall-prop placed stall-gramophone-art stall-anim${at.front ? ' front' : ''}`} src="art/stall2/props/prop-gramophone-animated.webp" style={pos} />}
+      {rp.playing && <AnimOver className={`stall-prop placed stall-gramophone-art stall-anim${at.front ? ' front' : ''}`} src="art/stall2/props/prop-turntable-animated.webp" style={pos} />}
       {/* the first time, a bright pulsing note calls attention to it; after that a small, steady
        *  note stays put so the horn is never just a picture */}
       {mini && <RecordMini x={(r[0] + r[2]) / 2} y={r[1] - 2} onShelf={() => { setMini(false); window.dispatchEvent(new Event('tof:gramophone')); }} onClose={() => setMini(false)} />}

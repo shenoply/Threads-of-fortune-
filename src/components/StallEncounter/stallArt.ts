@@ -14,7 +14,7 @@ export function stallFigure(id: string): { src: string; framed: boolean } {
 
 // everything else the stall scene can show: the shelf props (a different pick each day), the cats,
 // the gramophone, the radio and the paper. Small files (~430 KB together), fetched once up front.
-const PROPS = ['prop-astrolabe', 'prop-birdcage', 'prop-books', 'prop-calligraphy', 'prop-camera', 'prop-cashbox', 'prop-clock', 'prop-copper', 'prop-gramophone', 'prop-herbs', 'prop-hookah', 'prop-incense', 'prop-lamp', 'prop-lanterns', 'prop-photo', 'prop-prayerrug', 'prop-swords', 'prop-tawla', 'prop-telephone', 'prop-vase', 'cat-counter', 'cat-doorway', 'cat-radio', 'cat-topshelf'];
+const PROPS = ['prop-astrolabe', 'prop-birdcage', 'prop-books', 'prop-calligraphy', 'prop-camera', 'prop-cashbox', 'prop-clock', 'prop-copper', 'prop-turntable', 'prop-herbs', 'prop-hookah', 'prop-incense', 'prop-lamp', 'prop-lanterns', 'prop-photo', 'prop-prayerrug', 'prop-swords', 'prop-tawla', 'prop-telephone', 'prop-vase', 'cat-counter', 'cat-doorway', 'cat-radio', 'cat-topshelf'];
 // the props come a few seconds later, so they never queue in front of the buyer's picture
 const EXTRAS = ['art/newspaper-stall.webp', 'art/radio-stall-small.webp'];
 const LATER = PROPS.map((p) => `art/stall2/props/${p}.webp`);

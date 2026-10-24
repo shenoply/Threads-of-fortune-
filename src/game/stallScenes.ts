@@ -179,6 +179,8 @@ export const PROP_BOX: Record<string, [number, number, number, number]> = {
   'prop-clock': [27.34, 10.35, 32.1, 21.48],
   'prop-copper': [39.32, 38.96, 52.15, 46.78],
   'prop-gramophone': [26.43, 23.05, 35.48, 33.79],
+  // the level, low record player from the Blender pack (on the base painting's upper shelf)
+  'prop-turntable': [25.2, 10.35, 51.17, 20.02],
   'prop-herbs': [33.07, 4.1, 47.01, 20.31],
   'prop-hookah': [43.62, 33.89, 51.43, 47.27],
   'prop-incense': [45.44, 13.38, 49.74, 20.7],

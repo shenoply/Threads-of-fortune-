@@ -101,7 +101,7 @@ const STALL_PROPS = [
 // counter, the merchant, the wireless, the paper and the gramophone that is always on the shelf.
 // The first buyer's own pictures come from buyerArt.
 // (the first of them are the ones the loading screen waits for: src/game/bootArt.ts)
-export const STALL_ART = [BOOT_ART[0], ...BOOT_LATER, ...BOOT_ART.slice(1), 'art/radio-stall-small.webp', 'art/newspaper-stall.webp', prop('prop-gramophone')];
+export const STALL_ART = [BOOT_ART[0], ...BOOT_LATER, ...BOOT_ART.slice(1), 'art/radio-stall-small.webp', 'art/newspaper-stall.webp', prop('prop-turntable')];
 // The rest, once the line is clear: the shelf dressing (a different pick each day). The paper held
 // up to read and the stall seen from above wait for the first sale to be over.
 const STALL_LATER = [...STALL_PROPS, 'art/radio-stall.webp']; // (the big wireless is for its own sheet, Radio.tsx)
@@ -161,7 +161,7 @@ export function predecodeStall(buyerId?: string) {
   // (people only as the next buyer: whoever stood at the counter last time is not coming back now)
   const person = (u: string) => /art\/portraits\//.test(u) && u !== fig;
   const want = [...new Set([...sceneLayers(lookUps(useGame.getState())), stallSrc(worn),
-    ...(fig ? [fig] : []), 'art/radio-stall-small.webp', 'art/newspaper-stall.webp', prop('prop-gramophone'), ...stallLayersSeen()])]
+    ...(fig ? [fig] : []), 'art/radio-stall-small.webp', 'art/newspaper-stall.webp', prop('prop-turntable'), ...stallLayersSeen()])]
     .filter((u) => !person(u) && !held.has(u) && !toDecode.includes(u));
   // a buyer who has been and gone is let go
   for (const [u] of held) if (person(u)) held.delete(u);

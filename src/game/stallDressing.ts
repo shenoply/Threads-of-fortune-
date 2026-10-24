@@ -95,5 +95,5 @@ export function catPose(day: number, spots: Record<string, string>): string {
  *  game opens so the stall is fully dressed the moment it is seen. */
 export function stallDressing(s: { day: number; stallSpots?: Record<string, string> }): string[] {
   const pieces = placedPieces(s).map((id) => DRESSING_BY_ID[id]).filter((d) => d.art).map((d) => d.art!);
-  return [...pieces, `art/stall2/props/${catPose(s.day, spotsOf(s))}.webp`, 'art/stall2/props/prop-gramophone.webp'];
+  return [...pieces, `art/stall2/props/${catPose(s.day, spotsOf(s))}.webp`, 'art/stall2/props/prop-turntable.webp'];
 }
