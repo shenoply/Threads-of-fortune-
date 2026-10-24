@@ -1,5 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon';
+import { useRecord } from '../Radio/Gramophone';
+import { RECORD_BY_ID } from '../../data/records';
+import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
 import type { Encounter } from '../../game/systems/negotiation';
 import { STAGES, prefsFor } from '../../game/systems/negotiation';
@@ -206,8 +209,6 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
             <>
               <StallRadio at={ra} hide={inFront(ra.x)} />
               <StallPaper at={pa} hide={inFront(pa.x)} />
-              {!buyer && !inFront(ra.x) && <TapTag id="radio" x={ra.x} y={ra.y - 12} icon="radio" label="Radio" />}
-              {!buyer && !inFront(pa.x) && <TapTag id="paper" x={pa.x} y={pa.y - 9} icon="news" label="Today's paper" />}
             </>
           );
         })()}
@@ -422,9 +423,9 @@ function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () 
   if (!ok || !pos || !hit || (rule?.hideWhileRugOnCounter && rugOnCounter)) return null;
   return (
     <>
-      <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}`} src={src} alt="" style={pos} onError={() => setOk(false)} draggable={false} />
+      <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={src} alt="" style={pos} onError={() => setOk(false)} draggable={false} />
       <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); tapUsed('cat'); onCat(); }} />
-      {tag && <TapTag id="cat" x={(hit[0] + hit[2]) / 2} y={hit[1] - 1} icon="paw" label="Stroke Saffron" />}
+
     </>
   );
 }
@@ -434,6 +435,9 @@ function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () 
  *  horn-and-cabinet is the tap target. */
 function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number) => boolean }) {
   const seen = useGame((st) => st.gramoSeen);
+  const rp = useRecord();
+  const [mini, setMini] = useState(false);
+  useEffect(() => { if (!mini) return; const t = window.setTimeout(() => setMini(false), 6000); return () => clearTimeout(t); }, [mini, rp.current, rp.playing]);
   const src = 'art/stall2/props/prop-gramophone.webp';
   const at = sc.gramophone;
   const pos = at && placeStyle(src, at);
@@ -442,10 +446,10 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
   if (at.front && inFront?.(at.x)) return null;
   return (
     <>
-      <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}`} src={src} alt="" style={pos} draggable={false} />
+      <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}${!seen ? ' beckon' : ''}${rp.playing ? ' playing' : ''}`} src={src} alt="" style={pos} draggable={false} />
       {/* the first time, a bright pulsing note calls attention to it; after that a small, steady
        *  note stays put so the horn is never just a picture */}
-      <TapTag id="gramo" x={(r[0] + r[2]) / 2} y={r[1] - 1} icon="sound" label="Play a record" used={!!seen} />
+      {mini && <RecordMini x={(r[0] + r[2]) / 2} y={r[1] - 2} onShelf={() => { setMini(false); window.dispatchEvent(new Event('tof:gramophone')); }} onClose={() => setMini(false)} />}
       <button
         className="stall-gramophone-hit"
         style={{ left: `${r[0]}%`, top: `${r[1]}%`, width: `${r[2] - r[0]}%`, height: `${r[3] - r[1]}%` }}
@@ -454,30 +458,35 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
         onClick={(e) => {
           e.stopPropagation();
           if (!seen) useGame.setState({ gramoSeen: true });
-          window.dispatchEvent(new Event('tof:gramophone'));
+          // with a record on (or one chosen before), a small control pops up over the horn; the first
+          // time, the shelf opens
+          if (rp.current) setMini((m) => !m); else window.dispatchEvent(new Event('tof:gramophone'));
         }}
       />
     </>
   );
 }
 
-/** A small brass tag over something on the stall that does something when tapped. Until it has
- *  been used once it says what (Radio, Play a record, Stroke Saffron) and breathes; after that only
- *  the little icon stays, faint, so the stall never looks like a picture you cannot touch. */
+/** Things on the stall that do something when tapped glow softly now and then, until each has been
+ *  tried once (no labels over the picture). */
 const tapKey = (id: string) => `tof-tap-${id}`;
 const tapSeen = (id: string) => { try { return localStorage.getItem(tapKey(id)) === '1'; } catch { return false; } };
 function tapUsed(id: string) { try { localStorage.setItem(tapKey(id), '1'); } catch { /* private mode */ } window.dispatchEvent(new Event('tof:tap-used')); }
-const TAP_ORDER = ['gramo', 'radio', 'cat', 'paper'];
-function TapTag({ id, x, y, icon, label, used }: { id: string; x: number; y: number; icon: string; label: string; used?: boolean }) {
-  const [seen, setSeen] = useState(() => used || tapSeen(id));
-  // one word at a time: only the first thing not yet tried says what it is; the rest show their icon
-  const first = TAP_ORDER.find((k) => !(k === 'gramo' ? useGame.getState().gramoSeen : tapSeen(k)));
-  useEffect(() => { const f = () => setSeen(used || tapSeen(id)); window.addEventListener('tof:tap-used', f); return () => window.removeEventListener('tof:tap-used', f); }, [id, used]);
-  useEffect(() => { if (used) setSeen(true); }, [used]);
+/** the little control over the gramophone: play or pause, the next record, and the shelf */
+function RecordMini({ x, y, onShelf, onClose }: { x: number; y: number; onShelf: () => void; onClose: () => void }) {
+  const rp = useRecord();
+  const rec = rp.current ? RECORD_BY_ID[rp.current] : null;
+  const stop = (e: React.MouseEvent | React.PointerEvent) => e.stopPropagation();
   return (
-    <span className={`tap-tag ${seen ? 'seen' : first === id ? '' : 'quiet'}`} style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" data-testid={`tap-${id}`}>
-      <Icon name={icon} />{!seen && first === id && <em>{label}</em>}
-    </span>
+    <div className="rec-mini" style={{ left: `${x}%`, top: `${y}%` }} onClick={stop} onPointerDown={stop} data-testid="rec-mini">
+      <small>{rec ? rec.title : 'No record'}</small>
+      <span>
+        <button onClick={() => { audio.sfx('tap'); rp.toggle(); }} aria-label={rp.playing ? 'Pause' : 'Play'} data-testid="rec-mini-toggle">{rp.playing ? '❚❚' : '▶'}</button>
+        <button onClick={() => { audio.sfx('tap'); rp.next(); }} aria-label="Next record" data-testid="rec-mini-next">⏭</button>
+        <button onClick={() => { audio.sfx('tap'); onShelf(); }} aria-label="Your records" data-testid="rec-mini-shelf">☰</button>
+        <button onClick={onClose} aria-label="Close" className="x">×</button>
+      </span>
+    </div>
   );
 }
 
@@ -488,7 +497,7 @@ const standAt = (a: Anchor, w: number) => ({ left: `${a.x - w / 2}%`, bottom: `$
 function StallPaper({ at, hide }: { at: Anchor; hide?: boolean }) {
   return (
     <button className={`stall-paper${hide ? ' kept-out' : ''}`} style={standAt(at, 9)} aria-label="Read today's paper" data-testid="stall-paper" onClick={(e) => { e.stopPropagation(); tapUsed('paper'); window.dispatchEvent(new Event('tof:paper')); }}>
-      <img src="art/newspaper-stall.webp" alt="" />
+      <img src="art/newspaper-stall.webp" alt="" className={!tapSeen('paper') ? 'beckon' : ''} />
     </button>
   );
 }
@@ -522,7 +531,7 @@ function StallRadio({ at, hide }: { at: Anchor; hide?: boolean }) {
   return (
     <>
       <button className={`stall-radio ${on ? 'on' : ''}${hide ? ' kept-out' : ''}`} style={standAt(at, 8)} aria-label={on ? 'Switch the radio off' : 'Switch the radio on'} aria-pressed={on} data-testid="stall-radio" onClick={toggle}>
-        <img src="art/radio-stall-small.webp" alt="" />
+        <img src="art/radio-stall-small.webp" alt="" className={!tapSeen('radio') ? 'beckon' : ''} />
       </button>
       {/* the greeting and the date first: straight to the news */}
       {on && line < news && <button className="stall-radio-skip" onClick={(e) => { e.stopPropagation(); play(lang, news); }} data-testid="stall-radio-skip">News ⏭</button>}

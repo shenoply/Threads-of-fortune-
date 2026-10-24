@@ -16,11 +16,11 @@ const ids = await p.locator('.gramo-rec[data-testid]').evaluateAll((els) => els.
 await p.evaluate(() => window.__tofAudio.setVolumes({ master: 1, music: 1, sfx: 1, dialogue: 1 }));
 await p.click(`[data-testid=${ids[0]}]`); await p.waitForTimeout(1700);
 const out = {};
-out.recordVol = await p.evaluate(() => { const a = window.__tofAudio; return [...a.els].find(([, e]) => e.kind === 'music')?.[0].volume; });
-out.master0 = await p.evaluate(() => { const a = window.__tofAudio; a.setVolumes({ master: 0, music: 1, sfx: 1, dialogue: 1 }); return [...a.els].find(([, e]) => e.kind === 'music')?.[0].volume; });
+out.recordVol = await p.evaluate(() => { const a = window.__tofAudio; return [...a.els].find(([, e]) => e.kind === 'record')?.[0].volume; });
+out.master0 = await p.evaluate(() => { const a = window.__tofAudio; a.setVolumes({ master: 0, music: 1, sfx: 1, dialogue: 1 }); return [...a.els].find(([, e]) => e.kind === 'record')?.[0].volume; });
 await p.evaluate(() => window.__tofAudio.setVolumes({ master: 1, music: 1, sfx: 1, dialogue: 1 }));
 // switch to record B, then fire A's ended late
-const firstEl = await p.evaluateHandle(() => [...window.__tofAudio.els].find(([, e]) => e.kind === 'music')[0]);
+const firstEl = await p.evaluateHandle(() => [...window.__tofAudio.els].find(([, e]) => e.kind === 'record')[0]);
 await p.click(`[data-testid=${ids[1]}]`); await p.waitForTimeout(200);
 await firstEl.evaluate((el) => el.onended?.());
 out.bStillOn = await p.locator(`[data-testid=${ids[1]}].on`).count();

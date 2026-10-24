@@ -143,7 +143,7 @@ export function RollingRug({ src, fit, target, from, filter, onSettled, skip = 0
       };
       // the flat part in a few pieces (enough for the gentle perspective), the end lifting as it settles
       const flatEnd = Math.min(1, p);
-      const nFlat = p >= 0.9999 && wobble ? 24 : phi > 0.005 ? Math.max(2, Math.ceil(flatEnd * 18)) : 1;
+      const nFlat = p >= 0.9999 && wobble ? 24 : phi > 0.005 ? Math.max(4, Math.ceil(flatEnd * 48)) : 1;
       for (let i = 0; i < nFlat; i++) {
         const u0 = (flatEnd * i) / nFlat, u1 = (flatEnd * (i + 1)) / nFlat;
         const lift = (u: number) => (p >= 0.9999 && wobble ? wobble * Math.max(0, (u - 0.72) / 0.28) ** 2 : 0);

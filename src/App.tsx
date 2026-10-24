@@ -1,3 +1,5 @@
+import { recordPlayer } from './game/audio/recordPlayer';
+import { recordsOwned } from './data/records';
 import { RevealHost } from './components/Reveal/Reveal';
 import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
@@ -308,6 +310,8 @@ export default function App() {
   const openPaper = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) { useGame.setState({ paperSeen: st.day }); st.passTime(15); toastRef.current?.('You read the paper over a glass of tea: a quarter of an hour passes.'); } };
   const [radioOpen, setRadioOpen] = useState(false);
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
+  // a record that ends goes on to the next on your shelf
+  useEffect(() => { recordPlayer.setShelf(() => recordsOwned(useGame.getState())); }, []);
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
   // the map clock stops while you read, listen, or look at a menu
   const frozen = radioOpen || gramophoneOpen || paper !== null || settings || admin || cal || guide || g.dayOver;

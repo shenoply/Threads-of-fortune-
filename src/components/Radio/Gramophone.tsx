@@ -5,82 +5,67 @@ import { useGame } from '../../game/state/store';
 import { RECORDS, RECORD_BY_ID, recordsOwned } from '../../data/records';
 import { settlementById } from '../../game/systems/world';
 import { RecordDisc } from './RecordDisc';
+import { recordPlayer } from '../../game/audio/recordPlayer';
 
 const label = (id: string) => RECORD_BY_ID[id]?.title ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 /** where a record not yet found can be had */
 const whereOf = (home: string) => { try { return `the record seller in ${settlementById(home).name}`; } catch { return 'somewhere on the road'; } };
 
-/** Ramp a record's own level (the sliders still apply on top, through the audio engine), so a
- *  chosen record rises in and falls out instead of slamming in. */
-function fadeEl(el: HTMLAudioElement, from: number, to: number, ms: number) {
-  const start = performance.now();
-  const tick = () => {
-    const t = Math.min(1, (performance.now() - start) / ms);
-    audio.setElLevel(el, from + (to - from) * t);
-    if (t < 1) requestAnimationFrame(tick);
-  };
-  tick();
+/** a brass tonearm: a round base at the platter's corner, the arm, and the head with its needle */
+function Tonearm({ down }: { down: boolean }) {
+  return (
+    <svg className={`gramo-tonearm ${down ? 'down' : ''}`} viewBox="0 0 60 130" aria-hidden="true">
+      <defs><linearGradient id="brass" x1="0" x2="1"><stop offset="0" stopColor="#8a6224" /><stop offset=".5" stopColor="#f2d48a" /><stop offset="1" stopColor="#7a5420" /></linearGradient></defs>
+      <circle cx="30" cy="18" r="15" fill="#2a1a0c" stroke="url(#brass)" strokeWidth="3" />
+      <circle cx="30" cy="18" r="5" fill="url(#brass)" />
+      <path d="M30 22 L30 92 Q30 104 22 112" fill="none" stroke="url(#brass)" strokeWidth="5" strokeLinecap="round" />
+      <rect x="11" y="108" width="16" height="11" rx="2" transform="rotate(35 19 113)" fill="url(#brass)" />
+    </svg>
+  );
 }
 
-/** The gramophone on the shelf: pick any record you have collected and it plays through the horn.
- *  The game's own score and ambience go fully quiet while it plays, so the two never overlap, and
- *  come back once the lid is closed. */
+/** keeps a screen in step with the record playing */
+export function useRecord() {
+  const [, tick] = useState(0);
+  useEffect(() => recordPlayer.subscribe(() => tick((n) => n + 1)), []);
+  return recordPlayer;
+}
+
+/** The gramophone's shelf: your records, the one playing on the turntable. Closing the lid leaves the
+ *  record playing while you work; pause or change it here or from the little control at the stall. */
 export function Gramophone({ onClose }: { onClose: () => void }) {
   const [tracks, setTracks] = useState<string[] | null>(null);
-  const [playing, setPlaying] = useState<string | null>(null);
   const owned = useGame((st) => recordsOwned(st));
   const [peek, setPeek] = useState<string | null>(null);
-  const elRef = useRef<HTMLAudioElement | null>(null);
-
+  const rp = useRecord();
+  const on = rp.playing ? rp.current : null;
+  const shown = rp.current;
   useEffect(() => {
     fetch('audio/music/tracks.json')
       .then((r) => r.json())
       .then((m: Record<string, number>) => setTracks(RECORDS.map((r) => r.id).filter((id) => id in m)))
       .catch(() => setTracks([]));
   }, []);
-
-  const [failed, setFailed] = useState<string | null>(null);
-  useEffect(() => () => { elRef.current?.pause(); if (elRef.current) audio.detach(elRef.current); audio.muteMusic(false); }, []);
-
-  const let_go = (el: HTMLAudioElement, ms: number) => {
-    fadeEl(el, 0.85, 0, ms);
-    setTimeout(() => { el.pause(); audio.detach(el); }, ms + 20);
-  };
-  const play = (id: string) => {
-    audio.sfx('tap');
-    audio.ensure();
-    setFailed(null);
-    // switching records: the old one drops out quickly, the new one still rises on its own fade-in
-    if (elRef.current) let_go(elRef.current, 300);
-    audio.muteMusic(true, 1.1);
-    const el = audio.attach(new Audio(`audio/music/${id}.mp3`), 'music', 0);
-    elRef.current = el;
-    // only the record that is on now may end the session or bring the score back
-    const mine = () => elRef.current === el;
-    el.onended = () => { if (!mine()) return; elRef.current = null; setPlaying(null); audio.muteMusic(false); };
-    const fail = () => { if (!mine()) return; elRef.current = null; audio.detach(el); setPlaying(null); setFailed(id); audio.muteMusic(false); };
-    el.onerror = fail;
-    el.play().catch(fail);
-    fadeEl(el, 0, 0.85, 1400);
-    setPlaying(id);
-  };
-  const stop = () => {
-    const el = elRef.current;
-    if (el) let_go(el, 500);
-    elRef.current = null;
-    setPlaying(null);
-    audio.muteMusic(false);
-  };
-
+  const playing = on;
+  const failed = rp.failed;
+  const play = (id: string) => { audio.sfx('tap'); rp.play(id); };
+  const stop = () => rp.pause();
   return (
-    <div className="radio-wrap" role="dialog" aria-label="Gramophone" data-testid="gramophone" onClick={() => { stop(); onClose(); }}>
+    <div className="radio-wrap" role="dialog" aria-label="Gramophone" data-testid="gramophone" onClick={onClose}>
       <div className="radio-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="radio-set gramo-set">
           <div className={`gramo-platter ${playing ? 'on' : ''}`} data-testid="gramo-now">
-            {playing && RECORD_BY_ID[playing] ? <RecordDisc rec={RECORD_BY_ID[playing]} owned spinning size={150} /> : <span className="gramo-felt" />}
-            <i className="gramo-arm" />
+            {shown && RECORD_BY_ID[shown] ? <RecordDisc rec={RECORD_BY_ID[shown]} owned spinning={!!playing} size={150} /> : <span className="gramo-felt" />}
+            <Tonearm down={!!playing} />
           </div>
-          <p className="gramo-playing">{playing ? <><b>{label(playing)}</b><small>{RECORD_BY_ID[playing]?.performer} · {RECORD_BY_ID[playing]?.company}</small></> : <small>Pick a record from your shelf</small>}</p>
+          <p className="gramo-playing">{shown ? <><b>{label(shown)}</b><small>{RECORD_BY_ID[shown]?.performer} · {RECORD_BY_ID[shown]?.company}</small></> : <small>Pick a record from your shelf</small>}</p>
+          {shown && (
+            <div className="gramo-ctl">
+              <button className="btn small" onClick={() => { audio.sfx('tap'); rp.toggle(); }} data-testid="gramo-toggle">{playing ? 'Pause' : 'Play'}</button>
+              <button className="btn small" onClick={() => { audio.sfx('tap'); rp.next(); }} data-testid="gramo-next">Next record</button>
+              <button className="btn small" onClick={() => { audio.sfx('tap'); rp.stop(); }} data-testid="gramo-stop">Lift the needle</button>
+            </div>
+          )}
         </div>
         <div className="radio-captions gramo-shelf" data-testid="gramophone-list">
           <p className="gramo-count"><b>Your records</b> {owned.length} of {RECORDS.length}</p>
@@ -103,7 +88,7 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
           </div>
           {peek && RECORD_BY_ID[peek] && <p className="hint gramo-peek" data-testid="gramo-peek">Not found yet. Try {whereOf(RECORD_BY_ID[peek].home)}, or a sealed bale.</p>}
         </div>
-        <button className="btn radio-close" onClick={() => { stop(); onClose(); }} data-testid="gramophone-close">Close the lid</button>
+        <button className="btn radio-close" onClick={onClose} data-testid="gramophone-close">{playing ? 'Close the lid · it keeps playing' : 'Close the lid'}</button>
       </div>
     </div>
   );

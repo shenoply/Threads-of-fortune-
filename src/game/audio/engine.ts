@@ -213,15 +213,17 @@ class AudioEngine {
   // Plain <audio> and <video> players (the gramophone, Malek's recorded lines, film voices, the films
   // themselves) are not on the Web Audio graph, so the engine keeps a list of them and sets their
   // volume itself: the master, the channel's slider and its on/off all apply to one already playing.
-  private els = new Map<HTMLMediaElement, { kind: 'dialogue' | 'music' | 'sfx'; f: number; film: boolean }>();
+  private els = new Map<HTMLMediaElement, { kind: 'dialogue' | 'music' | 'sfx' | 'record'; f: number; film: boolean }>();
   /** what a plain player of this kind should be at, before its own level */
-  elVolume(kind: 'dialogue' | 'music' | 'sfx') {
+  elVolume(kind: 'dialogue' | 'music' | 'sfx' | 'record') {
     const v = this.volumes;
+    // a record you put on yourself plays whether the score is switched on or not, never too faint to hear
+    if (kind === 'record') return Math.max(0, Math.min(1, v.master * (this.toggles.music ? Math.max(v.music, 0.65) : 0.65)));
     const on = kind === 'dialogue' ? this.toggles.dialogue : kind === 'music' ? this.toggles.music : this.toggles.sfx;
     return on ? Math.max(0, Math.min(1, v.master * (kind === 'dialogue' ? v.dialogue : kind === 'music' ? v.music : v.sfx))) : 0;
   }
   /** look after a plain player: its volume follows the sliders until it ends or is let go */
-  attach<T extends HTMLMediaElement>(el: T, kind: 'dialogue' | 'music' | 'sfx', f = 1): T {
+  attach<T extends HTMLMediaElement>(el: T, kind: 'dialogue' | 'music' | 'sfx' | 'record', f = 1): T {
     this.els.set(el, { kind, f, film: false });
     el.volume = Math.min(1, f * this.elVolume(kind));
     const drop = () => { if (!this.els.get(el)?.film) this.els.delete(el); };

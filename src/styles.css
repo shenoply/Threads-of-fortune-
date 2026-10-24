@@ -3386,3 +3386,20 @@ body.travelling .world-hud { display: none; }
 /* the paper on the counter stays where it is put (the bigger tap area rule above makes it relative) */
 .scene.stall .stall-paper { position: absolute; }
 .scene.stall .tap-tag.quiet { padding: 2px; animation: none; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+/* a soft glint on the stall's things until each is tried (Scene.tsx beckon) */
+.scene.stall img.beckon, .scene.stall .stall-prop.beckon { animation: stall-glint 3.2s ease-in-out infinite; }
+@keyframes stall-glint { 0%, 55%, 100% { filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); } 75% { filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)) drop-shadow(0 0 7px rgba(255,214,140,.85)); } }
+@media (prefers-reduced-motion: reduce) { .scene.stall img.beckon, .scene.stall .stall-prop.beckon { animation: none; filter: drop-shadow(0 0 5px rgba(255,214,140,.6)); } }
+.scene.stall .stall-gramophone-art.playing { filter: drop-shadow(0 0 6px rgba(255,190,110,.55)); }
+/* the little record control over the gramophone */
+.scene.stall .rec-mini { position: absolute; z-index: 9; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 6px 6px; border-radius: 12px; background: rgba(20,12,6,.92); border: 1px solid rgba(231,189,110,.55); box-shadow: 0 6px 16px rgba(0,0,0,.6); animation: rec-mini-in .18s ease; }
+.scene.stall .rec-mini small { font-family: var(--label); font-size: 11px; color: var(--brass); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene.stall .rec-mini span { display: flex; gap: 4px; }
+.scene.stall .rec-mini button { min-width: 38px; min-height: 34px; border-radius: 9px; border: 1px solid rgba(231,189,110,.4); background: #2a1a0c; color: #f6dfa8; font-size: 14px; padding: 0 8px; cursor: pointer; }
+.scene.stall .rec-mini button.x { min-width: 30px; color: var(--text-dim); }
+@keyframes rec-mini-in { from { opacity: 0; transform: translate(-50%, -90%); } }
+/* the gramophone sheet: brass tonearm and controls */
+.gramo-arm { display: none; }
+.gramo-tonearm { position: absolute; right: -14px; top: -10px; width: 46px; height: 100px; transform-origin: 23px 14px; transform: rotate(-24deg); transition: transform .9s cubic-bezier(.3,.7,.3,1); filter: drop-shadow(0 4px 4px rgba(0,0,0,.55)); }
+.gramo-tonearm.down { transform: rotate(4deg); }
+.gramo-ctl { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
