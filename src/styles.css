@@ -3401,5 +3401,12 @@ body.travelling .world-hud { display: none; }
 /* the gramophone sheet: brass tonearm and controls */
 .gramo-arm { display: none; }
 .gramo-tonearm { position: absolute; right: -14px; top: -10px; width: 46px; height: 100px; transform-origin: 23px 14px; transform: rotate(-24deg); transition: transform .9s cubic-bezier(.3,.7,.3,1); filter: drop-shadow(0 4px 4px rgba(0,0,0,.55)); }
-.gramo-tonearm.down { transform: rotate(4deg); }
+.gramo-tonearm.down { transform: rotate(16deg); }
 .gramo-ctl { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.rec-disc.painted { background: none; box-shadow: none; }
+.rec-disc.painted::after { display: none; }
+.rec-disc .rec-base { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.55)); }
+.rec-disc.painted .rec-label { width: 38%; height: 38%; box-shadow: none; }
+.rec-disc.sleeve { background: none; box-shadow: none; opacity: .75; }
+.rec-disc.sleeve::after { display: none; }
+.rec-disc.sleeve img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 6px rgba(0,0,0,.5)) sepia(.2); }
