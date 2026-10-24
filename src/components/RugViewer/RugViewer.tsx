@@ -54,6 +54,8 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const rollAt = useRef(roll ? 0 : 1); // where the roll is now, kept by the drawing
   const [hint, setHint] = useState(() => { try { const n = +(localStorage.getItem('tof-insp-hint') ?? 0); localStorage.setItem('tof-insp-hint', String(n + 1)); return n < 4; } catch { return false; } });
   useEffect(() => () => cancelAnimationFrame(tw.current.raf), []);
+  // the hint shows itself for a few seconds, then gets out of the way
+  useEffect(() => { if (!hint) return; const t = window.setTimeout(() => setHint(false), 6000); return () => clearTimeout(t); }, [hint]);
   const animate = (straighten: boolean) => {
     const w = tw.current, base = (rot * Math.PI) / 180;
     cancelAnimationFrame(w.raf);
@@ -244,7 +246,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
         {hint && !counting && (
           <div className={`insp-hint ${roll ? 'roll' : ''}`} aria-hidden="true" data-testid="insp-hint">
             <span className="ih-track"><i className="ih-finger" /></span>
-            <small>{roll ? 'Push it open with your finger' : 'Drag to turn it · pinch to zoom · pull the far end to roll it'}</small>
+            <small>{roll ? 'Push it open with your finger' : 'Drag to turn · pinch to zoom · pull the end to roll'}</small>
           </div>
         )}
         <div className="insp-tools">

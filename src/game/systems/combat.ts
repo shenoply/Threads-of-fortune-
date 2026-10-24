@@ -35,12 +35,13 @@ export const moveOf = (t: Tell): Move => (t === 'feint' ? 'circle' : t);
 /** the best answer to what you see */
 export const bestOrder = (t: Tell): Order => (ORDERS.reduce((a, o) => (SCORE[moveOf(t)][o] > SCORE[moveOf(t)][a] ? o : a), 'volley' as Order));
 
+// what each order is, not what it beats: reading the band is the game (the outcome lines teach it)
 export const ORDER_INFO: Record<Order, { name: string; hint: string }> = {
-  volley: { name: 'Volley', hint: 'Fire together. Stops men who come at you' },
-  hold: { name: 'Hold', hint: 'Close up behind the loads. Beats men going round' },
-  charge: { name: 'Charge', hint: 'Go in at them. Breaks men who falter' },
-  flank: { name: 'Flank', hint: 'Send men round the side. Turns men out of cover' },
-  parley: { name: 'Parley', hint: 'Call out terms. Only for men ready to quit' },
+  volley: { name: 'Volley', hint: 'Every rifle fires at once' },
+  hold: { name: 'Hold', hint: 'Close up behind the loads and wait' },
+  charge: { name: 'Charge', hint: 'Go in at them with everything' },
+  flank: { name: 'Flank', hint: 'Send men round the side' },
+  parley: { name: 'Parley', hint: 'Stand up and call out terms' },
 };
 
 /** What each move looks like from your side of the field. */
