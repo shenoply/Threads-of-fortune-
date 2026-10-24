@@ -148,7 +148,8 @@ export function Loom({ onClose }: { onClose: () => void }) {
     <div className="overlay loom-screen" data-testid="loom" onClick={(e) => e.stopPropagation()}
       style={{ backgroundImage: 'linear-gradient(180deg, rgba(15,10,6,.5), rgba(15,10,6,.9) 34%, #0f0a06 62%), url(art/loom/workshop-768.webp), radial-gradient(ellipse 120% 60% at 50% 22%, #2e1f12, #0f0a06 70%)', backgroundSize: 'auto, 100% auto, auto', backgroundRepeat: 'no-repeat', backgroundPosition: 'top center' }}>
       <div className="lm-head">
-        <h2>{owned ? 'Your loom house' : 'The weavers of Kerdasa'}</h2>
+        <img className="lm-weaver" src="art/portraits/small/weaver-kerdasa.webp" alt="" />
+        <h2>{owned ? 'Your loom house' : 'The weavers of Kerdasa'}<small>Sitt Zeinab, master weaver</small></h2>
         <span className="lm-cash">{fmt(g.cash)}</span>
         <button className="btn close" onClick={onClose} data-testid="loom-close">Done</button>
       </div>
@@ -161,7 +162,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
             const ready = g.day >= w.ready;
             return (
               <div key={w.id} className="lm-wip">
-                <img src={renderDesign(des, 200, 0.8)} alt="" className={ready ? '' : 'wip'} onClick={() => setZoom({ src: renderDesign(des, 1640, 0.9), name: des.name })} />
+                <OnLoom src={renderDesign(des, 420, 0.85)} done={ready ? 1 : Math.max(0.05, Math.min(0.97, 1 - (w.ready - g.day) / Math.max(1, daysFor(des, owned))))} onClick={() => setZoom({ src: renderDesign(des, 1640, 0.9), name: des.name })} />
                 <button className="lm-wip-name" onClick={() => rename(des.id, des.name)} data-testid={`loom-rename-${des.id}`}><b>{des.name} ✎</b><small>{ready ? 'Off the loom' : `On the loom · day ${w.ready}`}</small></button>
                 {ready && <button className="btn primary small" onClick={() => collect(w.id)} data-testid={`loom-collect-${w.id}`}>Collect</button>}
               </div>
@@ -205,7 +206,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
           </div>
           <div className="lm-swatches" data-testid={`loom-swatches-${place}`}>
             {p.palette.dyes.map((y, i) => (
-              <button key={y.name} className={d[place] === i ? 'on' : ''} style={{ background: y.hex }} onClick={() => set({ [place]: i } as Partial<Design>)} aria-label={`${place}: ${y.name}`} aria-pressed={d[place] === i} title={y.name} data-testid={`loom-dye-${place}-${i}`}>{y.dear ? '·' : ''}</button>
+              <button key={y.name} className={`skein ${d[place] === i ? 'on' : ''}`} style={{ ['--dye' as string]: y.hex }} onClick={() => set({ [place]: i } as Partial<Design>)} aria-label={`${place}: ${y.name}`} aria-pressed={d[place] === i} title={y.name} data-testid={`loom-dye-${place}-${i}`}><i aria-hidden="true" />{y.dear ? <em>·</em> : null}</button>
             ))}
           </div>
         </>)}
@@ -251,5 +252,19 @@ export function LoomButton() {
       <button className={`btn ${ready ? 'primary' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); }} data-testid="stock-loom">{ready ? 'The weaver · ready' : 'Design a carpet'}</button>
       {open && <Loom onClose={() => setOpen(false)} />}
     </>
+  );
+}
+
+/** The carpet on the loom: the frame (art/loom/loom-frame.webp) with the carpet woven up from the
+ *  bottom as far as the days have gone, plain cotton warps above it. The drawing area in the frame is
+ *  760 by 520 at 220, 150 of 1200 by 900. */
+function OnLoom({ src, done, onClick }: { src: string; done: number; onClick: () => void }) {
+  return (
+    <button className="lm-frame" onClick={onClick} aria-label={done >= 1 ? 'The carpet, off the loom' : `On the loom, ${Math.round(done * 100)}% woven`}>
+      <span className="lm-warp" />
+      <img className="lm-woven" src={src} alt="" style={{ clipPath: `inset(${((1 - done) * 100).toFixed(1)}% 0 0 0)` }} />
+      {done < 1 && <i className="lm-beater" style={{ top: `${(16.67 + (1 - done) * 57.78).toFixed(2)}%` }} />}
+      <img className="lm-frame-art" src="art/loom/loom-frame.webp" alt="" draggable={false} />
+    </button>
   );
 }

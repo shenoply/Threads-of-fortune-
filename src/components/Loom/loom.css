@@ -73,3 +73,19 @@
 .lm-lock { width: 13px; height: 13px; margin-right: 4px; vertical-align: -1px; color: #f2b13c; }
 .lm-house { flex-basis: 170px; border-color: #c9973d; background: linear-gradient(180deg, #2b1d0f, #1d140c); }
 .lm-house:disabled { opacity: .75; }
+/* Codex workshop art */
+@media (min-width: 700px) { .loom-screen { background-image: linear-gradient(180deg, rgba(15,10,6,.45), rgba(15,10,6,.9) 34%, #0f0a06 62%), url(art/loom/workshop.webp) !important; } }
+.lm-weaver { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(231,189,110,.6); flex: none; }
+.lm-head h2 small { display: block; font-family: var(--label); font-size: 11.5px; letter-spacing: .06em; color: var(--brass); font-weight: 400; }
+.lm-frame { position: relative; display: block; width: 132px; aspect-ratio: 1200 / 900; padding: 0; border: 0; background: none; cursor: pointer; flex: none; }
+.lm-frame-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.lm-warp, .lm-woven { position: absolute; left: 18.33%; top: 16.67%; width: 63.33%; height: 57.78%; }
+.lm-warp { left: 17.5%; top: 15.5%; width: 65%; height: 60%; background: repeating-linear-gradient(90deg, #efe6d2 0 1px, #cfc3a8 1px 3px), #e6dcc4; }
+.lm-woven { object-fit: fill; transition: clip-path .6s ease; }
+.lm-beater { position: absolute; left: 17%; width: 66%; height: 3px; background: linear-gradient(90deg, #6a4a24, #b88a4a, #6a4a24); box-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.lm-wip { align-items: center; }
+/* the dye choices as skeins of wool, tinted */
+.lm-swatches button.skein { width: 44px; height: 44px; border-radius: 10px; border: 0; background: none; box-shadow: none; position: relative; }
+.lm-swatches button.skein i { position: absolute; inset: 0; background: var(--dye) url(art/loom/skein.webp) center / contain no-repeat; background-blend-mode: multiply; -webkit-mask: url(art/loom/skein.webp) center / contain no-repeat; mask: url(art/loom/skein.webp) center / contain no-repeat; filter: brightness(1.25) saturate(1.1); }
+.lm-swatches button.skein em { position: absolute; right: 2px; top: -2px; font-style: normal; color: #ffe1a3; font-size: 20px; text-shadow: 0 1px 2px #000; }
+.lm-swatches button.skein.on { box-shadow: 0 0 0 2px #0f0a06, 0 0 0 4px #f6b54a; }

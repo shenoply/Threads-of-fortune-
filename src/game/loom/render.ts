@@ -244,6 +244,15 @@ export const designKey = (d: Design) => JSON.stringify({ ...d, name: '' });
 
 /** the woven carpet as a picture, `width` pixels across like the game's carpet photographs
  *  (lengthways across the screen, fringe at the ends) */
+// a close-up of real knotted pile (art/loom/pile.webp, grey, about 16 knots across), laid over the drawn
+// knots at low strength so the carpet reads as wool; drawings made before it loads are made again
+let pile: HTMLImageElement | null = null;
+if (typeof Image !== 'undefined') {
+  const im = new Image();
+  im.onload = () => { pile = im; cache.clear(); };
+  im.src = 'art/loom/pile.webp';
+}
+
 export function renderDesign(d: Design, width = 820, quality = 0.9): string {
   const key = designKey(d) + '|' + width;
   const hit = cache.get(key);
@@ -324,6 +333,20 @@ export function renderDesign(d: Design, width = 820, quality = 0.9): string {
   g.putImageData(img, 0, 0);
   // the pile softens the knot steps a little, as wool does
   if ('filter' in g && k > 2.2) { g.save(); g.globalAlpha = 0.55; g.filter = `blur(${Math.min(1.4, k * 0.2).toFixed(2)}px)`; g.drawImage(c, 0, 0); g.restore(); }
+  // the wool itself: the pile photograph at a knot to a knot, softly, over the carpet's body only
+  if (pile && width >= 300) {
+    const pat = g.createPattern(pile, 'repeat');
+    if (pat) {
+      const sc = k / 16;
+      pat.setTransform?.(new DOMMatrix([sc, 0, 0, sc, ox, 2]));
+      g.save();
+      g.globalCompositeOperation = 'overlay';
+      g.globalAlpha = 0.22;
+      g.fillStyle = pat;
+      g.fillRect(ox, 2, bodyW, H - 4);
+      g.restore();
+    }
+  }
   // a little warmth and a soft fall-off of light towards the corners
   const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
   v.addColorStop(0, 'rgba(255,240,210,0.05)');
