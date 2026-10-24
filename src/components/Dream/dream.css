@@ -44,3 +44,8 @@
 /* the key art at the head of the opening card: Hassan and Saffron over Giza by night */
 .dream-key { display: block; align-self: stretch; width: 100%; margin: 0 0 2px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid rgba(231,206,140,.3); }
 @media (orientation: landscape) and (max-height: 500px) { .dream-key { display: none; } }
+
+/* painted skylines sliding past at three speeds, when the region's layers exist; the map then steps aside */
+.fc-layer { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background-repeat: repeat-x; background-size: auto 100%; background-position: 0 100%; pointer-events: none; z-index: 2; }
+.fc-layer.far { opacity: .85; }
+.fc-plane.gone { display: none; }

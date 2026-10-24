@@ -90,6 +90,11 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const goals = LEVELS[level];
   const doneBefore = d?.done ?? [];
   const leg = LEGS[Math.min(LEGS.length - 1, level)];
+  // painted night skylines (art/dream/bg-<region>-<far|mid|near>.webp): used in place of the map once they exist
+  const region = (['egypt', 'coast', 'levant', 'anatolia', 'anatolia'] as const)[Math.min(4, level)];
+  const [skyline, setSkyline] = useState(false);
+  useEffect(() => { const im = new Image(); im.onload = () => setSkyline(true); im.src = `art/dream/bg-${region}-near.webp`; }, [region]);
+  const layers = useRef<(HTMLDivElement | null)[]>([]);
   const pts = routePts(leg);
   const rug = [...g.inventory].sort((a, b) => (RUGS[b.typeId]?.valueBand[1] ?? 0) - (RUGS[a.typeId]?.valueBand[1] ?? 0))[0];
   const rugPic = rug && RUGS[rug.typeId] ? rugSrc(RUGS[rug.typeId]) : 'art/rugs/desert-star.jpg';
@@ -159,6 +164,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       const cam = at((t / LENGTH) * total);
       let dh = cam.h - head; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
       head += dh * Math.min(1, dt * 1.2);
+      layers.current.forEach((el, i) => { if (el) el.style.backgroundPositionX = `${(-scroll * W * [0.1, 0.25, 0.6][i]).toFixed(1)}px`; });
       if (plane.current) plane.current.style.transform = `translate(${(W * 0.34).toFixed(1)}px, ${(H * 0.9).toFixed(1)}px) rotateX(66deg) rotateZ(${(-head).toFixed(4)}rad) scale(1.25) translate(${(-cam.x).toFixed(1)}px, ${(-cam.y).toFixed(1)}px)`;
       const near = pts.find((p) => Math.hypot(p.x - cam.x, p.y - cam.y) < 60);
       if (near && near.name !== named) { named = near.name; setPlace(near.name); window.setTimeout(() => setPlace(''), 2600); }
@@ -289,7 +295,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
     <div className={`dream ${stage}`} data-testid="dream" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()}>
       <div className="fc-world" aria-hidden="true">
         <div className="fc-sky" style={{ backgroundImage: 'url(art/dream/sky-night.webp), linear-gradient(180deg, #050818 0%, #0f1434 22%, #24204a 34%, #3a2a48 40%, transparent 46%)' }} />
-        <div className="fc-plane" ref={plane} style={{ backgroundImage: `url(${MAP})` }}>
+        {skyline && ['far', 'mid', 'near'].map((k, i) => <div key={k} className={`fc-layer ${k}`} ref={(el) => { layers.current[i] = el; }} style={{ backgroundImage: `url(art/dream/bg-${region}-${k}.webp)` }} />)}
+        <div className={`fc-plane${skyline ? ' gone' : ''}`} ref={plane} style={{ backgroundImage: `url(${MAP})` }}>
           {SETTLEMENTS.filter((s) => s.x < 885).map((s) => <i key={s.id} className={`fc-town ${s.kind}`} style={{ left: s.x * MAP_PX, top: s.y * MAP_PX }} />)}
         </div>
         <div className="fc-night" style={{ background: `linear-gradient(180deg, transparent 0%, ${leg.tint}cc 30%, ${leg.tint}99 100%)` }} />
