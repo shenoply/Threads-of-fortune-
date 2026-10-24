@@ -47,5 +47,21 @@
 
 /* painted skylines sliding past at three speeds, when the region's layers exist; the map then steps aside */
 .fc-layer { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background-repeat: repeat-x; background-size: auto 100%; background-position: 0 100%; pointer-events: none; z-index: 2; }
-.fc-layer.far { opacity: .85; }
+/* stepped back one behind the other: the far skyline highest and haziest, the near roofs lowest */
+.fc-layer.far { bottom: 30%; height: 70%; opacity: .9; filter: saturate(.8) brightness(.95); }
+.fc-layer.mid { bottom: 8%; height: 90%; }
+.fc-layer.near { bottom: -2%; height: 80%; }
+/* with the skylines: the night sky runs down to the horizon in a soft violet haze that the far layer melts into */
+.fc-world.skyline { background: linear-gradient(180deg, #050818 0%, #10143a 30%, #241f4a 46%, #2e2650 54%, #171230 70%, #0c0a1c 100%); }
+.fc-world.skyline .fc-sky { z-index: 1; }
+.fc-world.skyline .fc-night { opacity: .3; z-index: 3; }
+.fc-world.skyline .fc-fog { z-index: 3; background: linear-gradient(180deg, transparent 38%, rgba(70,56,120,.22) 46%, rgba(60,48,100,.16) 52%, transparent 62%); }
 .fc-plane.gone { display: none; }
+
+/* the two actions under the right thumb: big, round, quiet brass on night blue */
+.dream-pad { position: absolute; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; z-index: 6; }
+.dream-act { width: 74px; height: 74px; border-radius: 50%; border: 1.5px solid rgba(231,206,140,.55); background: rgba(12,14,38,.62); color: #f6e6c0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; touch-action: none; -webkit-tap-highlight-color: transparent; box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+.dream-act b { font-size: 26px; line-height: 1; font-weight: 400; color: #ffd98a; }
+.dream-act small { font-family: var(--label); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+.dream-act:active { background: rgba(60,46,20,.75); border-color: #ffd98a; transform: scale(.96); }
+.fc-world.skyline .fc-sky { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 47%); mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 47%); }

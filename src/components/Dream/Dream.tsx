@@ -5,7 +5,7 @@
 // Modelled on the calm one-touch flying games (Alto's Odyssey above all), with a runner's moves:
 //   hold         the carpet rises; let go and it glides down
 //   swipe up     Hassan jumps off the carpet for a moment (high lanterns, a falling star, birds below)
-//   swipe down   he lies flat on the mat (washing lines and flocks pass over him)
+//   swipe down   he lies flat on the mat (flocks of birds pass over him)
 // Lanterns chain and ring higher; rings of light carry you faster; three goals to a dream open the
 // next stretch of the map. Three knocks and you wake. Nothing in the trade changes: only the journal,
 // the stars and the stretches of the map you have flown. It can be played from the title screen too.
@@ -40,10 +40,10 @@ const LEGS: Leg[] = [
 type GoalKind = 'lanterns' | 'chain' | 'rings' | 'star' | 'clean' | 'ducks' | 'jumps';
 interface Goal { kind: GoalKind; n: number; text: string }
 const LEVELS: Goal[][] = [
-  [{ kind: 'lanterns', n: 15, text: 'Gather 15 lanterns' }, { kind: 'ducks', n: 2, text: 'Lie flat under 2 washing lines' }, { kind: 'chain', n: 4, text: 'Chain 4 lanterns' }],
+  [{ kind: 'lanterns', n: 15, text: 'Gather 15 lanterns' }, { kind: 'ducks', n: 2, text: 'Lie flat under 2 flocks' }, { kind: 'chain', n: 4, text: 'Chain 4 lanterns' }],
   [{ kind: 'lanterns', n: 25, text: 'Gather 25 lanterns' }, { kind: 'rings', n: 3, text: 'Fly through 3 rings of light' }, { kind: 'jumps', n: 3, text: 'Jump for 3 lanterns' }],
   [{ kind: 'chain', n: 7, text: 'Chain 7 lanterns' }, { kind: 'star', n: 1, text: 'Catch a falling star' }, { kind: 'clean', n: 1, text: 'Wake without a single knock' }],
-  [{ kind: 'lanterns', n: 35, text: 'Gather 35 lanterns' }, { kind: 'ducks', n: 5, text: 'Duck under 5 lines or flocks' }, { kind: 'rings', n: 5, text: 'Fly through 5 rings of light' }],
+  [{ kind: 'lanterns', n: 35, text: 'Gather 35 lanterns' }, { kind: 'ducks', n: 5, text: 'Duck under 5 flocks' }, { kind: 'rings', n: 5, text: 'Fly through 5 rings of light' }],
   [{ kind: 'lanterns', n: 45, text: 'Gather 45 lanterns' }, { kind: 'star', n: 2, text: 'Catch 2 falling stars' }, { kind: 'chain', n: 10, text: 'Chain 10 lanterns' }],
 ];
 export interface DreamState { seen: number; best: number; last: number; level?: number; done?: number[] }
@@ -84,7 +84,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const [toast, setToast] = useState('');
   const [place, setPlace] = useState('');
   const runRef = useRef<Run>({ lanterns: 0, chain: 0, bestChain: 0, rings: 0, stars: 0, hits: 0, ducks: 0, jumps: 0 });
-  const input = useRef({ hold: false, jump: 0, duck: 0, sx: 0, sy: 0, swiped: false });
+  // steering: the carpet goes where your finger takes it (dragged, never under your thumb) and stays there when you let go
+  const input = useRef({ drag: false, sy: 0, from: 0.42, target: 0.42, jump: 0, flat: false, keyUp: false, keyDown: false });
   const d = g.dreams as DreamState | undefined;
   const level = levelOf(d);
   const goals = LEVELS[level];
@@ -110,13 +111,15 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
     return () => { a.pause(); audio.detach(a); audio.muteMusic(false); filmLock.off(); try { (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.(); } catch { /* not locked */ } };
   }, []);
 
-  // keys, for a desk: space to rise, up to jump, down to lie flat
+  // keys, for a desk: arrows (or W and S) to steer, space to jump, shift held to lie flat
   useEffect(() => {
     if (stage !== 'fly') return;
     const k = (on: boolean) => (e: KeyboardEvent) => {
-      if (e.key === ' ') { input.current.hold = on; e.preventDefault(); }
-      if (on && e.key === 'ArrowUp') input.current.jump = 1;
-      if (on && e.key === 'ArrowDown') input.current.duck = 1;
+      const i = input.current;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { i.keyUp = on; e.preventDefault(); }
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { i.keyDown = on; e.preventDefault(); }
+      if (e.key === ' ') { if (on && !e.repeat) i.jump = 1; e.preventDefault(); }
+      if (e.key === 'Shift') i.flat = on;
     };
     const dn = k(true), up = k(false);
     addEventListener('keydown', dn); addEventListener('keyup', up);
@@ -132,7 +135,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
     const poseIm: Record<string, HTMLImageElement> = {};
     for (const p of POSES) { const im = new Image(); im.onerror = () => { delete poseIm[p]; }; im.src = `art/dream/hassan-${p}.webp`; poseIm[p] = im; }
     for (const p of ['cat-alert', 'cat-cling']) { const im = new Image(); im.onerror = () => { delete poseIm[p]; }; im.src = `art/dream/saffron-${p.slice(4)}.webp`; poseIm[p] = im; }
-    const lineIm = load('art/dream/washing-line.webp'), birdIm = load('art/dream/birds.webp');
+    const skyIm = load('art/dream/sky-night.webp');
+    const lineIm = new Image(), birdIm = load('art/dream/birds.webp');
     [lineIm, birdIm].forEach((im) => { im.onerror = () => { im.removeAttribute('src'); }; });
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const r = runRef.current;
@@ -169,14 +173,19 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       const near = pts.find((p) => Math.hypot(p.x - cam.x, p.y - cam.y) < 60);
       if (near && near.name !== named) { named = near.name; setPlace(near.name); window.setTimeout(() => setPlace(''), 2600); }
       // the moves: hold to rise; a jump off the carpet; lying flat
-      if (inp.jump && jumpT <= 0 && duckT <= 0) { jumpT = 0.75; audio.sfx('tap'); }
-      if (inp.duck && duckT <= 0 && jumpT <= 0) duckT = 0.9;
-      inp.jump = 0; inp.duck = 0;
-      jumpT = Math.max(0, jumpT - dt); duckT = Math.max(0, duckT - dt);
-      vy += (inp.hold ? -1.45 : 0.85) * dt;
-      vy *= Math.exp(-1.6 * dt);
-      y += vy * dt;
-      if (y < 0.16) { y = 0.16; vy = Math.max(0, vy); }
+      if (inp.jump && jumpT <= 0) { jumpT = 0.75; duckT = 0; audio.sfx('tap'); }
+      inp.jump = 0;
+      jumpT = Math.max(0, jumpT - dt);
+      // lying flat lasts as long as the button is held (and a moment after a quick tap)
+      if (inp.flat && jumpT <= 0) duckT = Math.max(duckT, 0.35); else duckT = Math.max(0, duckT - dt);
+      if (inp.keyUp) inp.target -= 0.75 * dt;
+      if (inp.keyDown) inp.target += 0.75 * dt;
+      inp.target = Math.max(0.3, Math.min(0.8, inp.target));
+      // the carpet glides to where it is steered, quick but never jerky, and hovers there
+      const want = (inp.target - y) * 7;
+      vy += (Math.max(-1.6, Math.min(1.6, want)) - vy) * Math.min(1, dt * 9);
+      y += vy * dt + Math.sin(t * 1.4) * 0.0004;
+      if (y < 0.3) { y = 0.3; vy = Math.max(0, vy); }
       if (y > 0.8) { y = 0.8; vy = Math.min(0, vy); }
       wobble = Math.max(0, wobble - dt);
       chainT = Math.max(0, chainT - dt);
@@ -185,9 +194,11 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       // the sky over the map: stars and the moon (the map itself is the painted plane behind)
       for (const s of stars) { ctx.globalAlpha = 0.4 + 0.4 * Math.sin(t * 1.7 + s.tw); ctx.fillStyle = '#fff6dc'; ctx.beginPath(); ctx.arc((((s.x - scroll * 0.01) % 1) + 1) % 1 * W, s.y * H, s.r, 0, 7); ctx.fill(); }
       ctx.globalAlpha = 1;
-      moon(ctx, W * 0.82, H * 0.1, Math.min(W, H) * 0.045);
+      // the painted sky has its own crescent: then only its glow is added, so there is one moon
+      if (skyIm.naturalWidth) moonGlow(ctx, W * 0.772, H * 0.119, Math.min(W, H) * 0.045);
+      else moon(ctx, W * 0.82, H * 0.1, Math.min(W, H) * 0.045);
 
-      // what comes: lanterns in curving lines, rings of light, a falling star, washing lines and flocks of birds
+      // what comes: lanterns in curving lines, rings of light, a falling star and flocks of birds
       next -= dt;
       if (next <= 0 && t < LENGTH - 2.5) {
         const roll = Math.random();
@@ -198,14 +209,14 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           next = 1.5 + Math.random() * 0.5;
         } else if (roll < 0.55) { things.push({ x: 1.1, y: 0.2 + Math.random() * 0.55, kind: 'ring', ph: 0 }); next = 0.9; }
         else if (roll < 0.6) { things.push({ x: 1.0, y: 0.04, kind: 'star', ph: 0, vy: 0.2 }); next = 0.8; }
-        else if (roll < 0.8) { // washing lines hang low, strung between two rooftop poles: you meet them skimming the roofs
-          things.push({ x: 1.1, y: 0.64 + Math.random() * 0.14, kind: 'line', ph: Math.random() * 6 }); next = 1.3 + Math.random() * 0.6; }
+        else if (roll < 0.8) { // a low flock crossing at carpet height: lie flat and let it pass over
+          things.push({ x: 1.1, y: Math.max(0.3, Math.min(0.78, y - 0.04)), kind: 'birds', ph: Math.random() * 6 }); next = 1.3 + Math.random() * 0.6; }
         else { things.push({ x: 1.1, y: Math.max(0.18, Math.min(0.76, y - 0.07)), kind: 'birds', ph: Math.random() * 6 }); next = 1.2 + Math.random() * 0.6; }
       }
       const cx = W * 0.34, cy = H * y;
       const w = Math.min(W * 0.42, 210);
       // where Hassan's body is: on the carpet, up in a jump, or flat on it
-      const jumpH = jumpT > 0 ? Math.sin((1 - jumpT / 0.75) * Math.PI) * H * 0.13 : 0;
+      const jumpH = jumpT > 0 ? Math.sin((1 - jumpT / 0.75) * Math.PI) * Math.min(H * 0.13, Math.max(H * 0.07, cy - w * 0.62)) : 0; // never off the top of the screen
       const bodyTop = duckT > 0 ? cy - w * 0.1 : cy - w * 0.62 - jumpH;
       const bodyBot = duckT > 0 ? cy : cy - jumpH;
       for (const o of things) {
@@ -280,25 +291,25 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
     onDone();
   };
 
-  // the hand: hold anywhere to rise; a quick stroke up jumps, a stroke down lies flat
+  // the hand: drag anywhere (up and down) to steer; the carpet moves with the finger, not under it,
+  // and holds its height when you let go. Jump and lie flat are the two buttons under the right thumb.
   const down = (e: React.PointerEvent) => {
-    if ((e.target as Element).closest('button')) return;
-    const i = input.current; i.hold = true; i.sx = e.clientX; i.sy = e.clientY; i.swiped = false;
+    if (stage !== 'fly' || (e.target as Element).closest('button')) return;
+    const i = input.current; i.drag = true; i.sy = e.clientY; i.from = i.target;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
   const move = (e: React.PointerEvent) => {
     const i = input.current;
-    if (!i.hold || i.swiped) return;
-    const dy = e.clientY - i.sy;
-    if (dy < -36) { i.jump = 1; i.swiped = true; i.hold = false; }
-    else if (dy > 36) { i.duck = 1; i.swiped = true; i.hold = false; }
+    if (!i.drag) return;
+    i.target = Math.max(0.3, Math.min(0.8, i.from + ((e.clientY - i.sy) / Math.max(1, window.innerHeight)) * 1.5));
   };
-  const up = () => { input.current.hold = false; };
+  const up = () => { input.current.drag = false; };
+  const flat = (on: boolean) => (e: React.PointerEvent) => { e.stopPropagation(); if (on) (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); input.current.flat = on; };
   const nap = mode === 'nap';
 
   return createPortal(
     <div className={`dream ${stage}`} data-testid="dream" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()}>
-      <div className="fc-world" aria-hidden="true">
+      <div className={`fc-world${skyline ? ' skyline' : ''}`} aria-hidden="true">
         <div className="fc-sky" style={{ backgroundImage: 'url(art/dream/sky-night.webp), linear-gradient(180deg, #050818 0%, #0f1434 22%, #24204a 34%, #3a2a48 40%, transparent 46%)' }} />
         {skyline && ['far', 'mid', 'near'].map((k, i) => <div key={k} className={`fc-layer ${k}`} ref={(el) => { layers.current[i] = el; }} style={{ backgroundImage: `url(art/dream/bg-${region}-${k}.webp)` }} />)}
         <div className={`fc-plane${skyline ? ' gone' : ''}`} ref={plane} style={{ backgroundImage: `url(${MAP})` }}>
@@ -313,7 +324,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           <img className="dream-key" src="art/dream/flying-carpet-card.webp" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <small>{mode === 'play' ? 'THE FLYING CARPET' : nap ? 'SAFFRON PURRS' : 'THAT NIGHT'}</small>
           <b>{leg.name}</b>
-          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Hold</em> to rise, let go to glide. <em>Swipe up</em> to jump, <em>down</em> to lie flat.</span>
+          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> and <em>Lie flat</em> are under your right thumb.</span>
           <ul className="dream-goals">{goals.map((gl, i) => <li key={i} className={doneBefore.includes(i) ? 'done' : ''}>{doneBefore.includes(i) ? '★' : '☆'} {gl.text}</li>)}</ul>
           {typeof innerHeight !== 'undefined' && innerHeight > innerWidth && <p className="dream-turn">Best with your phone turned on its side.</p>}
           <div className="dream-btns">
@@ -328,13 +339,17 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           {place && <div className="dream-place">{place}</div>}
           {toast && <div className="dream-toast">{toast}</div>}
           <button className="dream-wake" onClick={() => setStage('wake')} data-testid="dream-wake">Wake up</button>
+          <div className="dream-pad">
+            <button className="dream-act jump" onPointerDown={(e) => { e.stopPropagation(); input.current.jump = 1; }} aria-label="Jump" data-testid="dream-jump"><b>↑</b><small>Jump</small></button>
+            <button className="dream-act flat" onPointerDown={flat(true)} onPointerUp={flat(false)} onPointerCancel={flat(false)} onLostPointerCapture={() => { input.current.flat = false; }} aria-label="Lie flat" data-testid="dream-flat"><b>↓</b><small>Lie flat</small></button>
+          </div>
         </>
       )}
       {stage === 'wake' && (
         <div className="dream-card dawn">
           <small>{mode === 'play' ? 'LANDED' : nap ? 'A MOMENT LATER' : 'DAWN'}</small>
           <b>{knocked ? 'Knocked awake' : mode === 'play' ? 'Down on the mat' : nap ? 'You wake at the stall' : 'You wake on the mat'}</b>
-          <span>{knocked ? 'A washing line too many. ' : ''}{nap ? 'Saffron is washing her paw as if nothing happened.' : mode === 'play' ? '' : 'Saffron is asleep on your feet.'} {r.lanterns ? `${r.lanterns} lantern${r.lanterns === 1 ? '' : 's'}${r.lanterns > best ? ', more than ever before' : ''}.` : ''}</span>
+          <span>{knocked ? 'One flock too many. ' : ''}{nap ? 'Saffron is washing her paw as if nothing happened.' : mode === 'play' ? '' : 'Saffron is asleep on your feet.'} {r.lanterns ? `${r.lanterns} lantern${r.lanterns === 1 ? '' : 's'}${r.lanterns > best ? ', more than ever before' : ''}.` : ''}</span>
           <ul className="dream-goals">{goals.map((gl, i) => <li key={i} className={nowDone[i] ? 'done' : ''}>{nowDone[i] ? '★' : '☆'} {gl.text}</li>)}</ul>
           {nextLeg && <p className="dream-next">Next time: <b>{nextLeg.name}</b>.</p>}
           <button className="btn primary big" onClick={wake} data-testid="dream-done">{mode === 'play' ? 'Done' : 'Get up'}</button>
@@ -367,6 +382,11 @@ function chime(n: number) {
   } catch { audio.sfx('coin'); }
 }
 
+function moonGlow(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  const halo = c.createRadialGradient(x, y, r * 0.6, x, y, r * 4);
+  halo.addColorStop(0, 'rgba(255,236,190,.2)'); halo.addColorStop(1, 'rgba(255,236,190,0)');
+  c.fillStyle = halo; c.fillRect(x - r * 4, y - r * 4, r * 8, r * 8);
+}
 function moon(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
   const halo = c.createRadialGradient(x, y, r * 0.8, x, y, r * 4);
   halo.addColorStop(0, 'rgba(255,236,190,.22)'); halo.addColorStop(1, 'rgba(255,236,190,0)');
