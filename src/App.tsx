@@ -313,6 +313,20 @@ export default function App() {
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   // a record that ends goes on to the next on your shelf
   useEffect(() => { recordPlayer.setShelf(() => recordsOwned(useGame.getState())); }, []);
+  // the films are new: every introduction and short film plays once more, on a game already under way too
+  useEffect(() => {
+    if (!g.started || navigator.webdriver) return;
+    let done = false;
+    try { done = localStorage.getItem('tof-films-replay') === '2026-10-24'; } catch { /* private mode */ }
+    if (done) return;
+    // a new game has seen nothing yet: nothing to play again, now or later
+    if (!(g.introSeen ?? []).length) { try { localStorage.setItem('tof-films-replay', '2026-10-24'); } catch { /* private mode */ } return; }
+    useGame.setState({ introSeen: [], momentsSeen: [] });
+    try { localStorage.setItem('tof-films-replay', '2026-10-24'); } catch { /* private mode */ }
+    // the stall you have now shows its film the next time you are at it
+    const latest = ['khan', 'bazaar', 'mat'].find((u) => g.upgrades.includes(u));
+    if (latest) window.setTimeout(() => window.dispatchEvent(new CustomEvent('tof:moment', { detail: `up-${latest}` })), 4000);
+  }, [g.started]); // eslint-disable-line react-hooks/exhaustive-deps
   // the short films (components/Moment): the first sale once the buyer has gone, the first caravan out
   const firstSold = g.ledger.filter((l) => l.kind === 'sale').length === 1;
   useEffect(() => { if (firstSold && !g.encounter && !(g.momentsSeen ?? []).includes('first-sale')) window.dispatchEvent(new CustomEvent('tof:moment', { detail: 'first-sale' })); }, [firstSold, g.encounter]); // eslint-disable-line react-hooks/exhaustive-deps

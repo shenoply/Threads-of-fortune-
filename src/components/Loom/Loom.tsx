@@ -3,6 +3,7 @@
 // steps, one row of choices and the button. Each choice shows what it adds to the price. The weaver
 // keeps the proportions and outlines, so whatever you choose is woven properly.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CarpetView } from '../RugViewer/CarpetView';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -82,20 +83,13 @@ function useTurned(src: string, on: boolean) {
   return out;
 }
 
-/** the carpet full screen, to look closely: pinch, or the buttons, to zoom */
+/** the carpet full screen, in your hands like any carpet in the game: spin, tip, zoom and roll it */
 function Zoom({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
-  const [z, setZ] = useState(1);
-  const tall = typeof innerHeight !== 'undefined' && innerHeight > innerWidth * 1.15;
-  const pic = useTurned(src, tall);
   return (
-    <div className="lm-zoom" onClick={onClose} data-testid="loom-zoom">
-      <div className={`lm-zoom-scroll ${tall ? 'tall' : ''}`} onClick={(e) => e.stopPropagation()}>
-        {pic && <img src={pic} alt={name} style={tall ? { height: `${z * 100}%` } : { width: `${z * 100}%` }} draggable={false} />}
-      </div>
-      <div className="lm-zoom-bar" onClick={(e) => e.stopPropagation()}>
-        <button className="btn" onClick={() => setZ((x) => Math.max(1, x / 1.5))} disabled={z <= 1} aria-label="Zoom out">−</button>
+    <div className="lm-zoom" data-testid="loom-zoom">
+      <CarpetView src={src} unroll />
+      <div className="lm-zoom-bar">
         <span>{name}</span>
-        <button className="btn" onClick={() => setZ((x) => Math.min(4, x * 1.5))} disabled={z >= 4} aria-label="Zoom in">+</button>
         <button className="btn primary" onClick={onClose} data-testid="loom-zoom-close">Close</button>
       </div>
     </div>
