@@ -1,0 +1,13 @@
+.dream { position: fixed; inset: 0; z-index: 96; background: linear-gradient(180deg, #060a1f 0%, #1a1838 60%, #3a2a3a 85%, #1a1210 100%); touch-action: none; user-select: none; -webkit-user-select: none; animation: dream-in 1.2s ease; }
+.dream-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dream-card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, 86vw); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 22px 20px; border-radius: 14px; background: rgba(10,12,32,.82); border: 1px solid rgba(231,206,140,.35); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.dream-card small { font-family: var(--label); letter-spacing: .24em; color: #c9b3ff; font-size: 12px; }
+.dream-card b { font-family: var(--display); font-size: 26px; color: #f6e6c0; font-weight: 500; }
+.dream-card span { color: #d8d0e8; font-size: 15px; line-height: 1.4; }
+.dream-card.dawn { background: rgba(60,36,20,.85); }
+.dream.wake { animation: dream-dawn 1.6s ease forwards; }
+.dream-score { position: absolute; left: 14px; top: calc(12px + env(safe-area-inset-top, 0px)); font-family: var(--label); color: #f6e6c0; font-size: 14px; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.dream-score b { font-size: 22px; color: #ffcf7a; margin-right: 4px; }
+.dream-wake { position: absolute; right: 12px; top: calc(10px + env(safe-area-inset-top, 0px)); font-family: var(--label); font-size: 12.5px; padding: 6px 12px; border-radius: 16px; border: 1px solid rgba(231,206,140,.35); background: rgba(10,12,32,.6); color: #e8dcc0; }
+@keyframes dream-in { from { opacity: 0; } }
+@keyframes dream-dawn { to { background: #e8c690; } }

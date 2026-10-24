@@ -2,6 +2,7 @@ import { recordPlayer } from './game/audio/recordPlayer';
 import { recordsOwned } from './data/records';
 import { RevealHost } from './components/Reveal/Reveal';
 import { MomentHost } from './components/Moment/Moment';
+import { DreamHost } from './components/Dream/Dream';
 import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
 import { BigNews, freshNews } from './components/Newspaper/BigNews';
@@ -327,6 +328,16 @@ export default function App() {
     const latest = ['khan', 'bazaar', 'mat'].find((u) => g.upgrades.includes(u));
     if (latest) window.setTimeout(() => window.dispatchEvent(new CustomEvent('tof:moment', { detail: `up-${latest}` })), 4000);
   }, [g.started]); // eslint-disable-line react-hooks/exhaustive-deps
+  // now and then Hassan dreams when he sleeps (components/Dream): a new morning, not too often
+  const dreamDay = useRef(g.day);
+  useEffect(() => {
+    if (g.day === dreamDay.current) return;
+    const slept = g.day > dreamDay.current;
+    dreamDay.current = g.day;
+    if (!slept || !g.started || !g.tutorial.done || g.day < 6 || navigator.webdriver) return;
+    if (g.day - (g.dreams?.last ?? 0) < 9 || Math.random() > 0.08) return;
+    window.setTimeout(() => window.dispatchEvent(new Event('tof:dream')), 600);
+  }, [g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   // the short films (components/Moment): the first sale once the buyer has gone, the first caravan out
   const firstSold = g.ledger.filter((l) => l.kind === 'sale').length === 1;
   useEffect(() => { if (firstSold && !g.encounter && !(g.momentsSeen ?? []).includes('first-sale')) window.dispatchEvent(new CustomEvent('tof:moment', { detail: 'first-sale' })); }, [firstSold, g.encounter]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -796,6 +807,7 @@ export default function App() {
       </header>
       <RevealHost />
       <MomentHost />
+      <DreamHost />
       <WeaverLink />
 
       {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (

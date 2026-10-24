@@ -410,6 +410,17 @@ export function SignLetters({ sc, name }: { sc: StallScene; name: string }) {
   );
 }
 
+/** Stroke Saffron seven times running and she purrs you to sleep: Hassan dreams (components/Dream),
+ *  once a day at most. */
+const catTaps: number[] = [];
+function catDream() {
+  const now = Date.now();
+  catTaps.push(now);
+  while (catTaps.length && now - catTaps[0] > 5000) catTaps.shift();
+  const s = useGame.getState();
+  if (catTaps.length >= 7 && s.dreams?.last !== s.day && !s.encounter) { catTaps.length = 0; window.setTimeout(() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'nap' })), 900); }
+}
+
 /** Saffron the cat: one of her poses for the day, at its place in this painting (a pose this stall
  *  has no place for sits her on the counter instead), never on a spot that holds a piece. Tap her. */
 function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () => void; rugOnCounter: boolean; tag?: boolean }) {
@@ -424,7 +435,7 @@ function StallCat({ sc, onCat, rugOnCounter, tag }: { sc: StallScene; onCat: () 
   return (
     <>
       <img className={`stall-prop placed stall-cat-art${at.front ? ' front' : ''}${tag && !tapSeen('cat') ? ' beckon' : ''}`} src={src} alt="" style={pos} onError={() => setOk(false)} draggable={false} />
-      <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); tapUsed('cat'); onCat(); }} />
+      <button className="stall-cat-hit" style={{ left: `${hit[0]}%`, top: `${hit[1]}%`, width: `${hit[2] - hit[0]}%`, height: `${hit[3] - hit[1]}%` }} aria-label="Saffron the cat" data-testid="saffron" data-pose={pose} onClick={(e) => { e.stopPropagation(); tapUsed('cat'); onCat(); catDream(); }} />
 
     </>
   );

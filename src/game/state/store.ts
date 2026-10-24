@@ -233,6 +233,8 @@ export interface GameState {
   gramoSeen?: boolean;
   /** gramophone records you own (data/records.ts); unset means the three that came with it */
   records?: string[];
+  /** Hassan's dreams of flying (components/Dream): how many, the most lanterns, the last day */
+  dreams?: { seen: number; best: number; last: number };
   /** short films already shown once (components/Moment) */
   momentsSeen?: string[];
   /** the name lettered on the stall's board, once a sign is put up (the player chooses it) */
