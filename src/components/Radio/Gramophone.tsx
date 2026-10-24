@@ -31,6 +31,11 @@ export function useRecord() {
   return recordPlayer;
 }
 
+/** this screen is part of the stall: a record may sound while it shows (see recordPlayer) */
+export function useAtStall() {
+  useEffect(() => recordPlayer.atStall(), []);
+}
+
 /** The gramophone's shelf: your records, the one playing on the turntable. Closing the lid leaves the
  *  record playing while you work; pause or change it here or from the little control at the stall. */
 export function Gramophone({ onClose }: { onClose: () => void }) {
@@ -38,6 +43,7 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
   const owned = useGame((st) => recordsOwned(st));
   const [peek, setPeek] = useState<string | null>(null);
   const rp = useRecord();
+  useAtStall();
   const on = rp.playing ? rp.current : null;
   const shown = rp.current;
   useEffect(() => {

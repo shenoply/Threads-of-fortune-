@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon';
-import { useRecord } from '../Radio/Gramophone';
+import { useAtStall, useRecord } from '../Radio/Gramophone';
 import { RECORD_BY_ID } from '../../data/records';
 import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
@@ -80,6 +80,7 @@ export function Dust() {
 }
 
 export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
+  useAtStall();
   const sc = STALL_SCENES[useGame((st) => sceneIdFor(lookUps(st)))];
   const STAGE_IMG = sceneImg(sc.id);
   // the hero as the player dressed him, once every piece he wears is painted for the stall
@@ -482,7 +483,7 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
     <>
       <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}${!seen ? ' beckon' : ''}${rp.playing ? ' playing' : ''}`} src={src} alt="" style={pos} draggable={false} />
       {/* the record turning: only while one is playing; stopped, ended or failed, the still shows again */}
-      {rp.playing && <AnimOver className={`stall-prop placed stall-gramophone-art stall-anim${at.front ? ' front' : ''}`} src="art/stall2/props/prop-turntable-animated.webp" style={pos} />}
+      {rp.playing && !rp.held && <AnimOver className={`stall-prop placed stall-gramophone-art stall-anim${at.front ? ' front' : ''}`} src="art/stall2/props/prop-turntable-animated.webp" style={pos} />}
       {/* the first time, a bright pulsing note calls attention to it; after that a small, steady
        *  note stays put so the horn is never just a picture */}
       {mini && <RecordMini x={(r[0] + r[2]) / 2} y={r[1] - 2} onShelf={() => { setMini(false); window.dispatchEvent(new Event('tof:gramophone')); }} onClose={() => setMini(false)} />}

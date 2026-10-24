@@ -1,4 +1,5 @@
 import { NextOnRoad } from '../Road/Road';
+import { useAtStall } from '../Radio/Gramophone';
 import { openingDone } from '../../game/opening';
 import { lookUps, sceneIdFor, sceneSmall } from '../../game/stallScenes';
 import { useEffect, useRef, useState } from 'react';
@@ -19,6 +20,7 @@ import { ShopBoyCard } from './ShopBoyCard';
 
 /** The stall between customers: the road ahead, the next customer, and the auction calendar. */
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
+  useAtStall();
   const g = useGame();
   const [board, setBoard] = useState(false);
   const [tidy, setTidy] = useState(false);

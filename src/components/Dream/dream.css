@@ -65,3 +65,7 @@
 .dream-act small { font-family: var(--label); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
 .dream-act:active { background: rgba(60,46,20,.75); border-color: #ffd98a; transform: scale(.96); }
 .fc-world.skyline .fc-sky { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 47%); mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 47%); }
+
+/* Saffron's state, small and quiet by the score */
+.dream-cat { position: absolute; left: 14px; top: calc(40px + env(safe-area-inset-top, 0px)); font-family: var(--label); font-size: 12px; letter-spacing: .04em; color: rgba(246,230,192,.55); pointer-events: none; z-index: 5; text-shadow: 0 1px 3px #000; }
+.dream-cat.ready { color: #ffd98a; }

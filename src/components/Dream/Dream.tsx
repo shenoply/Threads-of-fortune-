@@ -2,10 +2,11 @@
 // night, Saffron curled at the front, over the game's own painted map: from Giza down the Nile to
 // Alexandria, along the coast to Jaffa, up to Damascus, Aleppo and over Anatolia to Constantinople.
 //
-// Modelled on the calm one-touch flying games (Alto's Odyssey above all), with a runner's moves:
-//   hold         the carpet rises; let go and it glides down
-//   swipe up     Hassan jumps off the carpet for a moment (high lanterns, a falling star, birds below)
-//   swipe down   he lies flat on the mat (flocks of birds pass over him)
+// Modelled on the calm flying games (Alto's Odyssey above all), with a runner's moves:
+//   drag         anywhere, up and down: the carpet goes with the finger and holds its height
+//   Jump         Hassan springs off the carpet (over a low flock, up to a high lantern)
+//   Lie flat     held: he lies on the mat and a high flock passes over him
+//   tap Saffron  she glares a flock away (a gleam from her eyes), then needs a few seconds
 // Lanterns chain and ring higher; rings of light carry you faster; three goals to a dream open the
 // next stretch of the map. Three knocks and you wake. Nothing in the trade changes: only the journal,
 // the stars and the stretches of the map you have flown. It can be played from the title screen too.
@@ -18,11 +19,16 @@ import { START_WARDROBE, wornOutfit } from '../../data/wardrobe';
 import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
 import { filmLock } from '../../game/audio/voice';
+import { recordPlayer } from '../../game/audio/recordPlayer';
 import './dream.css';
 
 const LENGTH = 55; // seconds of flight
 const MAP = 'art/world/travel-map-3k.webp', MAP_PX = 2048 / 885; // map units to picture pixels
 const SAFFRON = 'art/saffron-stall.webp';
+/** the flight's own music: the road theme in hijaz, a journey by night (from the game's own score) */
+const FLIGHT_TRACK = 'audio/music/road-hijaz.mp3';
+const JUMP_T = 0.9; // seconds in the air
+const CAT_COOL = 9; // seconds before Saffron can glare again
 /** painted poses, when they exist (art/dream/hassan-<pose>.webp); until then his standing figure is used */
 const POSES = ['sit', 'jump', 'duck', 'hit'] as const;
 
@@ -50,7 +56,7 @@ export interface DreamState { seen: number; best: number; last: number; level?: 
 const levelOf = (d?: DreamState) => Math.min(LEVELS.length - 1, d?.level ?? 0);
 
 type Kind = 'lantern' | 'ring' | 'star' | 'line' | 'birds';
-interface Thing { x: number; y: number; kind: Kind; got?: boolean; passed?: boolean; ph: number; vy?: number; high?: boolean }
+interface Thing { x: number; y: number; kind: Kind; got?: boolean; passed?: boolean; ph: number; vy?: number; high?: boolean; low?: boolean; scared?: number }
 interface Run { lanterns: number; chain: number; bestChain: number; rings: number; stars: number; hits: number; ducks: number; jumps: number }
 
 export function DreamHost() {
@@ -85,7 +91,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const [place, setPlace] = useState('');
   const runRef = useRef<Run>({ lanterns: 0, chain: 0, bestChain: 0, rings: 0, stars: 0, hits: 0, ducks: 0, jumps: 0 });
   // steering: the carpet goes where your finger takes it (dragged, never under your thumb) and stays there when you let go
-  const input = useRef({ drag: false, sy: 0, from: 0.42, target: 0.42, jump: 0, flat: false, keyUp: false, keyDown: false });
+  const input = useRef({ drag: false, sy: 0, from: 0.5, target: 0.5, jump: 0, flat: false, keyUp: false, keyDown: false, yMin: 0.3, zap: 0, cat: { x: 0, y: 0, r: 0 } });
+  const [catReady, setCatReady] = useState(true);
   const d = g.dreams as DreamState | undefined;
   const level = levelOf(d);
   const goals = LEVELS[level];
@@ -102,16 +109,28 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const outfit = wornOutfit(g.wardrobe ?? START_WARDROBE).id;
   const best = d?.best ?? 0;
 
+  // the flight has the sound to itself: the stall's record falls silent, the score and the street
+  // step aside, no voices; its own music loops while it lasts and stops the moment it ends
   useEffect(() => {
     filmLock.on();
-    audio.muteMusic(true, 1);
-    const a = audio.attach(new Audio('audio/music/title-hijaz.mp3'), 'record', 0.5);
+    recordPlayer.hold('dream');
+    audio.attenuate('dream', true, 1, { music: 0, ambience: 0 });
+    const a = audio.attach(new Audio(FLIGHT_TRACK), 'record', 0.55);
     a.loop = true;
     a.play().catch(() => {});
-    return () => { a.pause(); audio.detach(a); audio.muteMusic(false); filmLock.off(); try { (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.(); } catch { /* not locked */ } };
+    const vis = () => { if (document.hidden) a.pause(); else a.play().catch(() => {}); };
+    document.addEventListener('visibilitychange', vis);
+    return () => {
+      document.removeEventListener('visibilitychange', vis);
+      a.pause(); a.removeAttribute('src'); a.load(); audio.detach(a);
+      audio.attenuate('dream', false, 0.6);
+      recordPlayer.release('dream');
+      filmLock.off();
+      try { (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.(); } catch { /* not locked */ }
+    };
   }, []);
 
-  // keys, for a desk: arrows (or W and S) to steer, space to jump, shift held to lie flat
+  // keys, for a desk: arrows (or W and S) to steer, space to jump, shift (or X) held to lie flat, E for Saffron
   useEffect(() => {
     if (stage !== 'fly') return;
     const k = (on: boolean) => (e: KeyboardEvent) => {
@@ -119,7 +138,8 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { i.keyUp = on; e.preventDefault(); }
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { i.keyDown = on; e.preventDefault(); }
       if (e.key === ' ') { if (on && !e.repeat) i.jump = 1; e.preventDefault(); }
-      if (e.key === 'Shift') i.flat = on;
+      if (e.key === 'Shift' || e.key === 'x' || e.key === 'X') i.flat = on;
+      if (on && (e.key === 'e' || e.key === 'E') && !e.repeat) i.zap = 1;
     };
     const dn = k(true), up = k(false);
     addEventListener('keydown', dn); addEventListener('keyup', up);
@@ -149,11 +169,12 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       for (const s of segs) { if (rem <= s.len) { const k = rem / s.len; return { x: s.a.x + (s.b.x - s.a.x) * k, y: s.a.y + (s.b.y - s.a.y) * k, h: Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x) }; } rem -= s.len; }
       const s = segs[segs.length - 1]; return { x: s.b.x, y: s.b.y, h: Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x) };
     };
-    let raf = 0, last = 0, t = 0, y = 0.42, vy = 0, wobble = 0, next = 0.6, boost = 0, chainT = 0, scroll = 0, head = at(0).h, jumpT = 0, duckT = 0, lives = 3, named = '';
+    let raf = 0, last = 0, t = 0, y = 0.5, vy = 0, catCool = 0, zapT = 0, zapAt = { x: 0, y: 0 }, hint = 0, wobble = 0, next = 0.6, boost = 0, chainT = 0, scroll = 0, head = at(0).h, jumpT = 0, duckT = 0, lives = 3, named = '';
     const things: Thing[] = [];
     const sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
     const stars = Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random() * 0.28, r: Math.random() * 1.1 + 0.3, tw: Math.random() * 6 }));
     const announced = new Set<number>(doneBefore);
+    let catReadyRef = true;
     const frame = (now: number) => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
       last = now; t += dt;
@@ -173,19 +194,25 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       const near = pts.find((p) => Math.hypot(p.x - cam.x, p.y - cam.y) < 60);
       if (near && near.name !== named) { named = near.name; setPlace(near.name); window.setTimeout(() => setPlace(''), 2600); }
       // the moves: hold to rise; a jump off the carpet; lying flat
-      if (inp.jump && jumpT <= 0) { jumpT = 0.75; duckT = 0; audio.sfx('tap'); }
+      if (inp.jump && jumpT <= 0) { jumpT = JUMP_T; duckT = 0; audio.sfx('step'); }
       inp.jump = 0;
       jumpT = Math.max(0, jumpT - dt);
       // lying flat lasts as long as the button is held (and a moment after a quick tap)
       if (inp.flat && jumpT <= 0) duckT = Math.max(duckT, 0.35); else duckT = Math.max(0, duckT - dt);
       if (inp.keyUp) inp.target -= 0.75 * dt;
       if (inp.keyDown) inp.target += 0.75 * dt;
-      inp.target = Math.max(0.3, Math.min(0.8, inp.target));
+      // sized to the screen: the carpet and its riders never crowd it, upright or sideways
+      const w = Math.min(W * 0.34, H * 0.42, 210);
+      // the highest he may fly: high enough that a full jump still stays on the screen
+      const jumpMax = Math.min(H * 0.22, w * 0.85);
+      const yMin = Math.min(0.5, Math.max(0.22, (w * 0.46 + jumpMax * 0.8 + 16) / H));
+      inp.yMin = yMin;
+      inp.target = Math.max(yMin, Math.min(0.8, inp.target));
       // the carpet glides to where it is steered, quick but never jerky, and hovers there
       const want = (inp.target - y) * 7;
       vy += (Math.max(-1.6, Math.min(1.6, want)) - vy) * Math.min(1, dt * 9);
       y += vy * dt + Math.sin(t * 1.4) * 0.0004;
-      if (y < 0.3) { y = 0.3; vy = Math.max(0, vy); }
+      if (y < yMin) { y = yMin; vy = Math.max(0, vy); }
       if (y > 0.8) { y = 0.8; vy = Math.min(0, vy); }
       wobble = Math.max(0, wobble - dt);
       chainT = Math.max(0, chainT - dt);
@@ -203,27 +230,43 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       if (next <= 0 && t < LENGTH - 2.5) {
         const roll = Math.random();
         if (roll < 0.42) {
-          const y0 = 0.22 + Math.random() * 0.5, amp = 0.05 + Math.random() * 0.08, ph = Math.random() * 6;
           const high = Math.random() < 0.3;
+          // most chains where the carpet can fly; some high enough to need a jump
+          const y0 = high ? yMin - 0.12 - Math.random() * 0.05 : yMin + Math.random() * (0.78 - yMin), amp = (high ? 0.02 : 0.05) + Math.random() * 0.05, ph = Math.random() * 6;
           for (let i = 0; i < 6; i++) things.push({ x: 1.06 + i * 0.075, y: y0 + Math.sin(ph + i * 0.7) * amp, kind: 'lantern', ph: ph + i, high });
           next = 1.5 + Math.random() * 0.5;
-        } else if (roll < 0.55) { things.push({ x: 1.1, y: 0.2 + Math.random() * 0.55, kind: 'ring', ph: 0 }); next = 0.9; }
+        } else if (roll < 0.55) { things.push({ x: 1.1, y: Math.max(0.12, yMin - 0.06 + Math.random() * (0.78 - yMin)), kind: 'ring', ph: 0 }); next = 0.9; }
         else if (roll < 0.6) { things.push({ x: 1.0, y: 0.04, kind: 'star', ph: 0, vy: 0.2 }); next = 0.8; }
-        else if (roll < 0.8) { // a low flock crossing at carpet height: lie flat and let it pass over
-          things.push({ x: 1.1, y: Math.max(0.3, Math.min(0.78, y - 0.04)), kind: 'birds', ph: Math.random() * 6 }); next = 1.3 + Math.random() * 0.6; }
-        else { things.push({ x: 1.1, y: Math.max(0.18, Math.min(0.76, y - 0.07)), kind: 'birds', ph: Math.random() * 6 }); next = 1.2 + Math.random() * 0.6; }
+        else if (roll < 0.8) { // a high flock at head height: lie flat (or steer) and it passes over
+          things.push({ x: 1.1, y: (H * y - w * 0.33) / H, kind: 'birds', ph: Math.random() * 6 }); next = 1.4 + Math.random() * 0.6; }
+        else { // a low flock at the riders' knees: jump it (or steer)
+          things.push({ x: 1.1, y: (H * y - w * 0.12) / H, kind: 'birds', ph: Math.random() * 6, low: true }); next = 1.4 + Math.random() * 0.6; }
       }
       const cx = W * 0.34, cy = H * y;
-      const w = Math.min(W * 0.42, 210);
-      // where Hassan's body is: on the carpet, up in a jump, or flat on it
-      const jumpH = jumpT > 0 ? Math.sin((1 - jumpT / 0.75) * Math.PI) * Math.min(H * 0.13, Math.max(H * 0.07, cy - w * 0.62)) : 0; // never off the top of the screen
-      const bodyTop = duckT > 0 ? cy - w * 0.1 : cy - w * 0.62 - jumpH;
-      const bodyBot = duckT > 0 ? cy : cy - jumpH;
+      // where Hassan's body is: on the carpet, up in a jump, or flat on it (the box follows the drawn figure)
+      const jumpH = jumpT > 0 ? Math.sin((1 - jumpT / JUMP_T) * Math.PI) * Math.max(0, Math.min(jumpMax, cy - w * 0.46 - 16)) : 0; // never off the top of the screen
+      const bodyTop = duckT > 0 ? cy - w * 0.1 : cy - w * 0.46 - jumpH;
+      const bodyBot = (duckT > 0 ? cy : cy - jumpH) + 4;
+      // Saffron, tapped: a gleam from her eyes sends the nearest flock ahead of her scattering
+      catCool = Math.max(0, catCool - dt); zapT = Math.max(0, zapT - dt);
+      if (catCool === 0 && !catReadyRef) { catReadyRef = true; setCatReady(true); }
+      if (inp.zap) {
+        inp.zap = 0;
+        const eyes = { x: cx + w * 0.33, y: cy - w * 0.08 };
+        const flock = things.filter((o) => o.kind === 'birds' && !o.scared && !o.passed && o.x * W > eyes.x - 10 && o.x < 0.97).sort((a, b) => a.x - b.x)[0];
+        if (catCool > 0) { /* still blinking: nothing */ }
+        else if (!flock) { audio.sfx('purr'); setToast('Saffron looks about: nothing to chase'); window.setTimeout(() => setToast(''), 1200); }
+        else {
+          flock.scared = 0.001; zapT = 0.4; zapAt = { x: flock.x * W, y: flock.y * H }; catCool = CAT_COOL; catReadyRef = false; setCatReady(false);
+          audio.sfx('meow'); setToast('Saffron glares. The birds scatter.'); window.setTimeout(() => setToast(''), 1500);
+        }
+      }
+      inp.cat = { x: cx + w * 0.3, y: cy - w * 0.04, r: Math.max(36, w * 0.2) };
       for (const o of things) {
         o.x -= speed * dt * 1.35;
         if (o.kind === 'lantern') o.y -= dt * 0.006;
         if (o.kind === 'star') { o.y += (o.vy ?? 0) * dt; o.x -= dt * 0.1; }
-        if (o.kind === 'birds') o.x -= dt * 0.05;
+        if (o.kind === 'birds') { o.x -= dt * 0.05; if (o.scared) { o.scared += dt; o.y -= dt * 0.55; o.x += dt * 0.12; } }
         const ox = o.x * W, oy = o.y * H + (o.kind === 'lantern' ? Math.sin(t * 1.6 + o.ph) * 5 : 0);
         const inX = Math.abs(ox - cx) < w * 0.45;
         if (!o.got && !o.passed && inX) {
@@ -237,13 +280,14 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
             }
           } else if (o.kind === 'ring') {
             if (Math.abs(oy - (cy - w * 0.25)) < H * 0.07) { o.got = true; r.rings += 1; boost = 2.2; audio.sfx('unfold'); }
-          } else if (Math.abs(ox - cx) < 8) {
-            // a line or a flock across your way: clear if it passes over or under all of you
+          } else if (Math.abs(ox - cx) < 8 && !o.scared) {
+            // a flock across your way: clear if it passes over or under Hassan (and Saffron at the front)
             o.passed = true;
-            const band = o.kind === 'line' ? 6 : 14;
-            const clash = oy + band > Math.min(bodyTop, cy - 6) && oy - band < Math.max(bodyBot, cy + 10);
+            const band = w * 0.07;
+            const clash = oy + band > bodyTop && oy - band < bodyBot;
             if (clash) { r.hits += 1; r.chain = 0; wobble = 1; lives -= 1; audio.sfx('tap'); setToast(lives > 0 ? 'Saffron digs her claws into the fringe' : ''); window.setTimeout(() => setToast(''), 1600); }
-            else if (duckT > 0 && oy < cy - w * 0.12) { r.ducks += 1; }
+            else if (duckT > 0 && oy < bodyTop) { r.ducks += 1; }
+            else if (jumpT > 0 && oy > bodyBot) { r.jumps += 1; }
           }
           setHud({ lanterns: r.lanterns, chain: r.chain, lives });
         }
@@ -256,7 +300,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           poles(ctx, ox, oy, lw, H);
           if (lineIm.naturalWidth) { const lh = lw * (lineIm.naturalHeight / lineIm.naturalWidth); ctx.drawImage(lineIm, ox - lw / 2, oy - lh * 0.25, lw, lh); } else washLine(ctx, ox, oy, W, t + o.ph);
         }
-        else if (birdIm.naturalWidth) { const bw = W * 0.16, bh = bw * (birdIm.naturalHeight / birdIm.naturalWidth); ctx.drawImage(birdIm, ox - bw / 2, oy - bh / 2 + Math.sin(t * 2 + o.ph) * 4, bw, bh); }
+        else if (birdIm.naturalWidth) flock(ctx, birdIm, ox, oy, w * 0.6, t + o.ph, o.scared ?? 0);
         else birds(ctx, ox, oy, t + o.ph);
       }
       while (things.length && things[0].x < -0.4) things.shift();
@@ -265,6 +309,10 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
       for (let i = sparks.length - 1; i >= 0; i--) if (sparks[i].life <= 0) sparks.splice(i, 1);
       if (boost > 0) { ctx.strokeStyle = `rgba(255,214,140,${(boost / 2.2 * 0.5).toFixed(2)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - w * 0.5, cy + 6); ctx.quadraticCurveTo(cx - w, cy + 10 - vy * 40, cx - w * 1.6, cy + 4); ctx.stroke(); }
       rider(ctx, { rugIm, catIm, heroIm, poseIm }, cx, cy, w, t, wobble, vy, jumpH, duckT > 0, wobble > 0.6);
+      if (zapT > 0) gleam(ctx, cx + w * 0.33, cy - w * 0.08, zapAt.x, zapAt.y, zapT / 0.4);
+      // a soft ring round Saffron when she is ready to help
+      if (catCool === 0) { ctx.save(); ctx.strokeStyle = `rgba(255,214,140,${(0.35 + 0.2 * Math.sin(t * 3)).toFixed(2)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(inp.cat.x, inp.cat.y, inp.cat.r * 0.8, inp.cat.r * 0.6, 0, 0, 7); ctx.stroke(); ctx.restore(); }
+      if (hint < 1 && t > 0.5) hint = 1;
       goals.forEach((gl, i) => { if (!announced.has(i) && gl.kind !== 'clean' && met(gl, r, false)) { announced.add(i); audio.sfx('prize'); setToast(`${gl.text} ✓`); window.setTimeout(() => setToast(''), 2200); } });
       if (t >= LENGTH || lives <= 0) { setStage('wake'); return; }
       raf = requestAnimationFrame(frame);
@@ -295,13 +343,17 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   // and holds its height when you let go. Jump and lie flat are the two buttons under the right thumb.
   const down = (e: React.PointerEvent) => {
     if (stage !== 'fly' || (e.target as Element).closest('button')) return;
-    const i = input.current; i.drag = true; i.sy = e.clientY; i.from = i.target;
+    const i = input.current;
+    // a tap on Saffron is a call to her, not a steer
+    const cr = cv.current?.getBoundingClientRect();
+    if (cr && Math.hypot(e.clientX - cr.left - i.cat.x, e.clientY - cr.top - i.cat.y) < i.cat.r) { i.zap = 1; return; }
+    i.drag = true; i.sy = e.clientY; i.from = i.target;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
   const move = (e: React.PointerEvent) => {
     const i = input.current;
     if (!i.drag) return;
-    i.target = Math.max(0.3, Math.min(0.8, i.from + ((e.clientY - i.sy) / Math.max(1, window.innerHeight)) * 1.5));
+    i.target = Math.max(i.yMin, Math.min(0.8, i.from + ((e.clientY - i.sy) / Math.max(1, window.innerHeight)) * 1.5));
   };
   const up = () => { input.current.drag = false; };
   const flat = (on: boolean) => (e: React.PointerEvent) => { e.stopPropagation(); if (on) (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); input.current.flat = on; };
@@ -324,7 +376,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           <img className="dream-key" src="art/dream/flying-carpet-card.webp" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <small>{mode === 'play' ? 'THE FLYING CARPET' : nap ? 'SAFFRON PURRS' : 'THAT NIGHT'}</small>
           <b>{leg.name}</b>
-          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> and <em>Lie flat</em> are under your right thumb.</span>
+          <span>{nap ? 'The lane is warm and the cat is heavy on his lap. ' : ''}The carpet rises off the mat with Saffron curled at the front. <em>Drag</em> up or down anywhere to steer; the carpet stays where you leave it. <em>Jump</em> over low flocks, <em>lie flat</em> under high ones. <em>Tap Saffron</em> and she sees a flock off.</span>
           <ul className="dream-goals">{goals.map((gl, i) => <li key={i} className={doneBefore.includes(i) ? 'done' : ''}>{doneBefore.includes(i) ? '★' : '☆'} {gl.text}</li>)}</ul>
           {typeof innerHeight !== 'undefined' && innerHeight > innerWidth && <p className="dream-turn">Best with your phone turned on its side.</p>}
           <div className="dream-btns">
@@ -339,6 +391,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
           {place && <div className="dream-place">{place}</div>}
           {toast && <div className="dream-toast">{toast}</div>}
           <button className="dream-wake" onClick={() => setStage('wake')} data-testid="dream-wake">Wake up</button>
+          <div className={`dream-cat ${catReady ? 'ready' : ''}`} aria-live="polite">{catReady ? 'Saffron is ready: tap her' : 'Saffron is catching her breath'}</div>
           <div className="dream-pad">
             <button className="dream-act jump" onPointerDown={(e) => { e.stopPropagation(); input.current.jump = 1; }} aria-label="Jump" data-testid="dream-jump"><b>↑</b><small>Jump</small></button>
             <button className="dream-act flat" onPointerDown={flat(true)} onPointerUp={flat(false)} onPointerCancel={flat(false)} onLostPointerCapture={() => { input.current.flat = false; }} aria-label="Lie flat" data-testid="dream-flat"><b>↓</b><small>Lie flat</small></button>
@@ -445,6 +498,37 @@ function washLine(c: CanvasRenderingContext2D, x: number, y: number, W: number, 
   }
   c.restore();
 }
+/** the painted flock (six birds on one sheet, three over three), each bird beating its wings on its own
+ *  time and drifting in the formation; scared, they flare up and away and fade */
+function flock(c: CanvasRenderingContext2D, im: HTMLImageElement, x: number, y: number, size: number, t: number, scared: number) {
+  const cw = im.naturalWidth / 3, ch = im.naturalHeight / 2;
+  const bw = size / 3, bh = bw * (ch / cw);
+  c.save();
+  if (scared) c.globalAlpha = Math.max(0, 1 - scared * 1.4);
+  for (let i = 0; i < 6; i++) {
+    const col = i % 3, row = Math.floor(i / 3);
+    const flap = Math.sin(t * 8.5 + i * 1.7);
+    const dx = (col - 1) * bw * 0.95 + Math.sin(t * 0.9 + i * 2.1) * bw * 0.12 + (scared ? (col - 1) * scared * size * 0.8 : 0);
+    const dy = (row - 0.5) * bh * 0.85 + Math.cos(t * 1.1 + i) * bh * 0.1 - flap * bh * 0.06 - (scared ? scared * size * (0.4 + row * 0.3) : 0);
+    // the wingbeat: the bird squashes and stretches about its body as the wings go down and up
+    const sy = 0.72 + 0.28 * (0.5 + 0.5 * flap);
+    c.save(); c.translate(x + dx, y + dy); c.scale(1, sy);
+    c.drawImage(im, col * cw, row * ch, cw, ch, -bw / 2, -bh / 2, bw, bh);
+    c.restore();
+  }
+  c.restore();
+}
+/** Saffron's glare: two fine warm threads of light from her eyes to the flock, gone in a blink */
+function gleam(c: CanvasRenderingContext2D, x: number, y: number, tx: number, ty: number, k: number) {
+  c.save();
+  c.globalAlpha = Math.min(1, k * 1.6);
+  c.strokeStyle = 'rgba(255,226,150,.9)'; c.lineWidth = 2; c.shadowColor = 'rgba(255,200,110,1)'; c.shadowBlur = 12;
+  for (const off of [-3, 3]) { c.beginPath(); c.moveTo(x, y + off * 0.4); c.lineTo(tx, ty + off); c.stroke(); }
+  c.fillStyle = 'rgba(255,240,200,.95)';
+  for (const off of [-3, 3]) { c.beginPath(); c.arc(x, y + off * 0.4, 2.2, 0, 7); c.fill(); }
+  c.beginPath(); c.arc(tx, ty, 10 + (1 - k) * 18, 0, 7); c.strokeStyle = `rgba(255,226,150,${(k * 0.7).toFixed(2)})`; c.stroke();
+  c.restore();
+}
 function birds(c: CanvasRenderingContext2D, x: number, y: number, t: number) {
   c.save(); c.strokeStyle = 'rgba(30,24,30,.95)'; c.lineWidth = 2; c.lineCap = 'round';
   for (let i = 0; i < 5; i++) {
@@ -482,13 +566,13 @@ function rider(c: CanvasRenderingContext2D, ims: Ims, cx: number, cy: number, w:
   for (let i = 0; i < 9; i++) { const py = cy + wave(0) + (i / 8) * h; c.beginPath(); c.moveTo(cx - w / 2, py); c.lineTo(cx - w / 2 - 6 - Math.sin(t * 6 + i) * 2, py + 1); c.stroke(); }
   if (painted) {
     // every pose is painted on the same 768 square, the carpet line at 700: one scale for all of them
-    const S = w * 0.95;
+    const S = w * 0.72;
     // the jump is painted already springing (feet ~120px above the line): only the rest of the rise is added
     const lift = pose === 'jump' ? Math.max(0, jumpH - S * (120 / 768)) : jumpH;
     c.drawImage(painted, hx - S / 2, hy - S * (700 / 768) - lift, S, S);
   } else if (heroIm.naturalWidth) {
     // his own painted figure, in the clothes he wears: standing, springing up, or flat on the mat
-    const fh = w * 0.82, fw = fh * (heroIm.naturalWidth / heroIm.naturalHeight);
+    const fh = w * 0.62, fw = fh * (heroIm.naturalWidth / heroIm.naturalHeight);
     c.save();
     if (duck) { c.translate(hx + w * 0.02, hy - h * 0.25); c.rotate(-Math.PI / 2 + 0.08); c.drawImage(heroIm, -fw / 2, -fh * 0.5, fw, fh * 0.98); }
     else { c.translate(hx, hy - jumpH); c.rotate(jumpH > 1 ? -0.06 : Math.sin(t * 1.3) * 0.015); c.drawImage(heroIm, -fw / 2, -fh, fw, fh); }
@@ -501,10 +585,10 @@ function rider(c: CanvasRenderingContext2D, ims: Ims, cx: number, cy: number, w:
     const sx = cx + w * 0.3, sy = cy + wave(0.82) + h * 0.55;
     if (catArt !== catIm) {
       // her painted poses share one 512 square, paws on the line at 470: drawn at one scale
-      const S = w * 0.36;
+      const S = w * 0.3;
       c.drawImage(catArt, sx - S / 2, sy - S * (470 / 512), S, S);
     } else {
-      const cw = w * 0.34, ch = cw * (catArt.naturalHeight / catArt.naturalWidth);
+      const cw = w * 0.28, ch = cw * (catArt.naturalHeight / catArt.naturalWidth);
       c.drawImage(catArt, sx - cw / 2, sy - ch, cw, ch);
     }
   }
