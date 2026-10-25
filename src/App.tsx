@@ -68,6 +68,7 @@ import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
 import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlot';
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 import { HeirButton } from './components/Character/Household';
+import { LevelUpToast, SkillPops, merchantLevel } from './components/Character/Character';
 import { Loom } from './components/Loom/Loom';
 
 /** a link with ?weaver opens the weaver's workshop straight away, once a game is going */
@@ -831,6 +832,8 @@ export default function App() {
 
       {phase === 'game' && <GuideFlash />}
       {phase === 'game' && <MilestoneNotice />}
+      {/* the character growing as you play: each skill gained, each level and perk earned */}
+      {phase === 'game' && <><SkillPops /><LevelUpToast /></>}
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
           Progress, Stock and Caravan they only took room from the page */}
       {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
@@ -911,7 +914,7 @@ export default function App() {
           ] as [Tab, string, string][]
         ).map(([id, label, icon]) => (
           <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
-            {icon === 'face' ? <img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /> : <Icon name={icon} />}
+            {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /><i className="nav-lvl" data-testid="nav-level">{merchantLevel(g.skills)}</i></span> : <Icon name={icon} />}
             {label}
           </button>
         ))}

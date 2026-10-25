@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/state/store';
-import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER } from '../../data/character';
+import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER, type SkillId } from '../../data/character';
 import { START_WARDROBE, heroCharisma, wornOutfit } from '../../data/wardrobe';
 import { HeroBadge } from '../Wardrobe/HeroFigure';
 import { Wardrobe } from '../Wardrobe/Wardrobe';
@@ -189,7 +189,7 @@ export function LevelUpToast() {
       <div className="levelup" data-testid="levelup" onClick={() => g.popLevelUp()}>
         <small>SKILL INCREASED</small>
         <b>{sk.name} {up.level}</b>
-        {perk && <span>New perk: {perk.name}. {perk.effect}</span>}
+        {perk ? <span>New perk: {perk.name}. {perk.effect}</span> : (() => { const nx = sk.perks.find((p) => p.level > up.level); return nx ? <span>Next perk at {nx.level}: {nx.name}</span> : null; })()}
       </div>
     );
   }
@@ -203,3 +203,46 @@ export function LevelUpToast() {
     </div>
   );
 }
+
+/** The character's growth in sight while you play: every skill gained shows as a small chip with how far
+ *  it is to the next level (and what that level brings), over the Me button. */
+export function SkillPops() {
+  const [pops, setPops] = useState<{ k: number; skill: SkillId; gain: number; xp: number }[]>([]);
+  useEffect(() => {
+    let prev = useGame.getState().skills ?? {};
+    return useGame.subscribe((s) => {
+      const now = s.skills ?? {};
+      if (now === prev) return;
+      const fresh: { k: number; skill: SkillId; gain: number; xp: number }[] = [];
+      for (const k of Object.keys(now) as SkillId[]) {
+        const d = (now[k] ?? 0) - (prev[k] ?? 0);
+        if (d > 0) fresh.push({ k: Date.now() + Math.random(), skill: k, gain: d, xp: now[k] ?? 0 });
+      }
+      prev = now;
+      if (!fresh.length || !s.started) return;
+      setPops((p) => [...p, ...fresh].slice(-3));
+      for (const f of fresh) window.setTimeout(() => setPops((p) => p.filter((x) => x.k !== f.k)), 2600);
+    });
+  }, []);
+  if (!pops.length) return null;
+  return (
+    <div className="skill-pops" aria-live="polite" data-testid="skill-pops">
+      {pops.map((p) => {
+        const lv = levelOf(p.xp);
+        const lo = xpFor(lv), hi = xpFor(lv + 1);
+        const pct = lv >= MAX_LEVEL ? 100 : Math.round(((p.xp - lo) / Math.max(1, hi - lo)) * 100);
+        const next = SKILLS[p.skill].perks.find((x) => x.level > lv);
+        return (
+          <div key={p.k} className="skill-pop">
+            <b>+{Math.round(p.gain)} {SKILLS[p.skill].name}</b>
+            <i><em style={{ width: `${pct}%` }} /></i>
+            <small>Level {lv}{next ? ` · ${next.name} at ${next.level}` : ''}</small>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** One number for how far the merchant has come: every skill level above the first, added up. */
+export const merchantLevel = (skills: Partial<Record<SkillId, number>> | undefined) => 1 + SKILL_ORDER.reduce((a, k) => a + levelOf(skills?.[k] ?? 0) - 1, 0);
