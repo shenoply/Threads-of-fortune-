@@ -6,6 +6,52 @@
 export type Colour = 'warm' | 'doubt' | 'think' | 'go';
 export interface VoiceColour { warm: string[]; doubt: string[]; think: string[]; go: string[] }
 
+/** how each buyer opens the visit, before their greeting: always heard, so each one sounds like themselves from the first word */
+export const HELLO: Record<string, string[]> = {
+  samira: ['Ah. There you are.', 'Well, now.'],
+  yusuf: ['Morning, morning!', 'Right. Quickly.'],
+  mariam: ['Oh, hello!', 'Hello... is it all right?'],
+  nabil: ['So.', 'Peace be upon you.'],
+  cohen: ['Good day, good day.', 'Right, then.'],
+  hassan: ['Ya habibi!', 'Neighbour!'],
+  whitcombe: ['Hello! Oh, hello.', 'Good morning!'],
+  kasparian: ['Good day.', 'Ah. Good.'],
+  benakis: ['Kalimera!', 'Ah, my friend!'],
+  salem: ['Salaam!', 'Ha! The carpet man.'],
+  levy: ['Bonjour, bonjour.', 'Ah, bon.'],
+  antonios: ['Peace be with you, my son.', 'God bless this stall.'],
+  wasif: ['Good morning.', 'Ah, good.'],
+  hollister: ['Well, hello there!', 'Howdy.'],
+  martel: ['Bonjour.', 'Ah, monsieur.'],
+  rustam: ['Salaam, my brother!', 'Ah, my brother.'],
+  fuad: ['Peace be upon you.', 'Good.'],
+  nazli: ['Bonjour!', 'Hello, hello.'],
+  abdullah: ['Peace be upon you.', 'Ah, my friend.'],
+  faisal: ['Peace be upon you.', 'Salaam.'],
+  ataturk: ['Good day.', 'Efendim.'],
+  shivakiar: ['Good morning!', 'Ah, there you are.'],
+  'saad-zaghloul': ['Peace be upon you, my son.', 'Ah, good.'],
+  'safiya-zaghloul': ['Peace be upon you.', 'Good morning, my dear.'],
+  'huda-shaarawi': ['Good morning.', 'Right.'],
+  'taha-hussein': ['Peace be upon you.', 'Ah. I smell wool.'],
+  'ahmed-shawqi': ['Ah! Good morning!', 'Ya salaam.'],
+  'munira-al-mahdiyya': ['Darling!', 'Hello, hello!'],
+  'umm-kulthum': ['Peace be upon you.', 'Good morning.'],
+  'mohamed-abdel-wahab': ['Good morning!', 'Ah, hello.'],
+  'sami-al-shawwa': ['Good day.', 'Bonjour.'],
+  'daoud-hosni': ['Ah, my son.', 'Peace be upon you.'],
+  'youssef-wahbi': ['Good morning, good morning!', 'Ha! Here I am!'],
+  'aziza-amir': ['Hello, darling!', 'Oh, hello!'],
+  'rose-al-youssef': ['Ha! Hello.', 'Right, then.'],
+  'fatma-rushdi': ['Hello! Hello!', 'Oh, hello!'],
+  'charles-corm': ['Bonjour.', 'Ah, bonjour.'],
+  'ronald-storrs': ['Good morning.', 'Ah, there you are.'],
+  'raghib-nashashibi': ['Peace be upon you.', 'Good day.'],
+  'sassoon-eskell': ['Good day.', 'Right.'],
+  'khalil-sakakini': ['Good morning.', 'Peace be upon you.'],
+  'gertrude-bell': ['Good morning!', 'Ah! There you are.'],
+};
+
 export const VOICE_COLOUR: Record<string, VoiceColour> = {
   // the lane's own buyers
   samira: { warm: ['Ah. Yes.', 'Now then.', 'Oh, that is lovely.'], doubt: ['Is that so?', 'Really?', 'Oh dear.'], think: ['Let me see.', 'I see, I see.'], go: ['Well.', 'No, I think not.'] },

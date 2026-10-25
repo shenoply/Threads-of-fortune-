@@ -1,5 +1,5 @@
 import { demandFor } from '../economy/market';
-import { VOICE_COLOUR, colourOf } from '../../data/voiceColour';
+import { VOICE_COLOUR, HELLO, colourOf } from '../../data/voiceColour';
 import { labArgBonus } from './arranShop';
 import { nabilAssessment, isTokenChange, packageOffer, rugKey, type NabilMemory } from './nabil';
 import type { LabService } from './arranLab';
@@ -421,6 +421,15 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     const early = b.greetingFromDay != null && (ctx.day ?? 0) < b.greetingFromDay && L.earlyPresent.length;
     enc.log.push({ speaker: 'buyer', text: early ? pick(L.earlyPresent, ctx.rng) : pick(forHour(L.greeting, ctx.hour), ctx.rng) });
   }
+  // their own first word, in their own voice, before the greeting: every buyer sounds like themselves at once
+  const hello = HELLO[buyerId];
+  const first = enc.log[enc.log.length - 1];
+  if (hello && !tutorial && first?.speaker === 'buyer' && first.mood !== 'skeptical') {
+    // never "Good morning! Good morning..." : an opener that starts the way the greeting does is passed over
+    const w = (t: string) => t.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join(' ');
+    const fits = hello.filter((x) => w(x) !== w(first.text) && w(x).split(' ')[0] !== w(first.text).split(' ')[0]);
+    if (fits.length) first.text = `${fits[((ctx.day ?? 0) * 7 + rel.visits) % fits.length]} ${first.text}`;
+  }
   // a returning buyer does not forget being insulted or lied to: they arrive colder and thinner-skinned
   if (rel.visits > 0 && rel.bad > 0) {
     enc.trust = clamp(enc.trust - Math.min(30, rel.bad * 10), 0, 100);
@@ -534,7 +543,7 @@ function colourLead(enc: Encounter, text: string, mood?: Line['mood']): string |
   const all = Object.values(bank).flat();
   if (prev && all.some((w) => prev.text.startsWith(w + ' '))) return undefined;
   const h = [...text].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7 + enc.log.length * 13 + enc.turn * 5);
-  if (h % 3 !== 0) return undefined;
+  if (h % 2 !== 0) return undefined;
   // the sound has to agree with the words: no "Oh, lovely" before a complaint, no "Hmm, no" before thanks
   if (kind === 'warm' && /\b(not|no|too|but|argue|loud|plain|damage|dirty|worn|hotel lobby|n't|afraid|sorry|cannot)\b/i.test(text)) return undefined;
   if ((kind === 'doubt' || kind === 'go') && /\b(thank|lovely|beautiful|yes|good|wonderful|delighted)\b/i.test(text)) return undefined;
