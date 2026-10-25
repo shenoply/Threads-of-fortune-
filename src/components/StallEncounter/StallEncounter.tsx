@@ -322,7 +322,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           return (
             <button
               key={it.uid}
-              className={`rugcard ${isP ? 'presented' : ''} ${rugGlow(it.uid) ? 'glow' : ''}`}
+              className={`rugcard ${isP ? 'presented' : ''} ${rugGlow(it.uid) ? 'glow' : ''} ${enc?.seek === t.id ? 'sought' : ''}`}
               onClick={() => onRug(it.uid)}
               disabled={disabledByTut}
               data-testid={`rug-${t.id}`}

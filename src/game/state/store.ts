@@ -1,3 +1,4 @@
+import { omensNight, WATCH_COST, type Omen } from '../systems/omens';
 import { rivalNight, type LaneRival } from '../systems/laneRival';
 import { PERSIA_IDS } from '../../data/persiaMap';
 import { motorLorry } from '../../data/world';
@@ -376,6 +377,8 @@ export interface GameState {
   ranks?: RanksState;
   /** Shukri Mansour, the rival across the lane in Giza (systems/laneRival.ts) */
   lane?: LaneRival;
+  /** a warned danger (systems/omens.ts) */
+  omen?: Omen;
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -483,6 +486,8 @@ interface Actions {
   letGo: () => void;
   /** wait at the stall until the next customer turns up */
   waitForCustomer: () => void;
+  /** pay a watchman for the night a thief was warned of */
+  hireWatch: () => string;
   /** time passing on something other than a sale: reading, walking, bidding */
   passTime: (minutes: number) => void;
   /** sit down with your men: what you give them (extra rations, a bonus, half a day's rest, or just your ear) */
@@ -1571,6 +1576,7 @@ export const useGame = create<GameState & Actions>()(
           // Loans fall due. Stavros adds a tenth for every week late; the bank only writes letters.
           let loans = (s.loans ?? []).map((l) => ({ ...l }));
           for (const l of loans) {
+            if (day === l.due - 1) notes.push(`${LENDERS[l.lender].name} expects ${fmt(l.owed)} tomorrow.${l.lender === 'khan' ? ' Late, and he adds a tenth every week.' : ''}`);
             if (day === l.due + 1) notes.push(`${LENDERS[l.lender].name} expected ${fmt(l.owed)} yesterday.`);
             if (l.lender === 'khan' && day > l.due && (day - l.due) % 7 === 0) {
               l.owed = Math.round(l.owed * 1.1);
@@ -1767,7 +1773,7 @@ export const useGame = create<GameState & Actions>()(
           patch.errands = []; // errands are retired; the field stays for old saves
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
-          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, omensNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
             const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);
@@ -3162,6 +3168,14 @@ export const useGame = create<GameState & Actions>()(
           set({ encounter: st ? st.encounter : null, visitIdx: st ? st.visitIdx : s.visitIdx, audienceStash: null });
         },
 
+        hireWatch: () => {
+          const s = get();
+          if (!s.omen || s.omen.guarded) return '';
+          if (s.cash < WATCH_COST) return 'You cannot pay a watchman.';
+          set({ cash: s.cash - WATCH_COST, omen: { ...s.omen, guarded: true }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'A night watchman for the stall', amount: -WATCH_COST }] });
+          audio.sfx('coin');
+          return 'A watchman will sit by your stall tonight.';
+        },
         waitForCustomer: () => {
           let s = get();
           // a customer who has already gone (sold, walked, or left on arrival) is cleared first, the

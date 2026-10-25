@@ -84,8 +84,8 @@ export function BuyerDossier({ enc, onClose }: { enc: Encounter; onClose: () => 
 
         <div className={`ds-today ${enc.purse ?? 'usual'}`} data-testid="dossier-today">
           <small>TODAY</small>
-          <b>{purse ? purse.label : 'Here to look and maybe buy'}</b>
-          <span>{purse ? purse.line : 'An ordinary visit: the right rug, well shown, can win them.'}</span>
+          <b>{enc.seek ? `Came for ${RUGS[enc.seek]?.name}` : purse ? purse.label : 'Here to look and maybe buy'}</b>
+          <span>{enc.seek ? 'They want this one carpet and have brought the money for it: more than twice its usual price.' : purse ? purse.line : 'An ordinary visit: the right rug, well shown, can win them.'}</span>
         </div>
 
         <section className="ds-sec">

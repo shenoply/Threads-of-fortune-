@@ -133,6 +133,8 @@ export interface Encounter {
   limitRead?: number;
   /** a named price that landed right at what they would pay: the run of these it makes (Spot on ×N) */
   spotOn?: number;
+  /** the one carpet this buyer came for today (a rare visit; pays SEEK_PAYS times) */
+  seek?: string;
   /** the day of the visit: the market's mood that day (economy/market.ts) */
   day?: number;
 }
@@ -295,7 +297,7 @@ export function wtp(enc: Encounter, item: RugItem): number {
   // the town's mood today: the fashion pays more, and a buyer stretches the purse for it
   const dm = demandFor(item.typeId, enc.day);
   v *= dm;
-  return Math.round(Math.min(cap * Math.max(1, dm), v));
+  return Math.round(Math.min(cap * Math.max(1, dm) * wantMult(enc.want, item.typeId), v));
 }
 
 /** A Common rug sold without the haggling: a fair price, a little under what patience would win. */
@@ -384,6 +386,15 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     if (enc.purse === 'hurried') enc.patience -= 18;
   }
   enc.log.push({ speaker: 'system', text: pick(L.arrival, ctx.rng) });
+  // now and then a buyer comes for one carpet only, with the money for it: a fortune if it is on your shelf
+  const seek = !tutorial && !b.royal && !['cohen', 'nabil', 'malek'].includes(buyerId) ? seekFor(buyerId, ctx) : undefined;
+  if (seek) {
+    const t = RUGS[seek];
+    enc.seek = seek;
+    enc.want = { typeIds: [seek], mult: SEEK_PAYS, label: `Looking for ${t.name}` };
+    enc.purse = 'keen';
+    enc.log.push({ speaker: 'narrator', text: `${b.name} has come for one carpet only: ${aOrAn(t.name)}. If you have one, they will pay a great deal for it.` });
+  }
   if (rel.visits > 0) {
     if (rel.embellishedSale && !rel.embellishMentioned && L.embellishLater.length) {
       enc.log.push({ speaker: 'buyer', text: pick(L.embellishLater, ctx.rng), mood: 'skeptical' });
@@ -1324,6 +1335,26 @@ const SPOT_LINES = [
   'That is the right figure, and you knew it. {price} on top, for not wasting my time.',
   'Ha! You read me like a ledger. Have {price} more.',
 ];
+
+/** what a buyer pays for the carpet they came for */
+export const SEEK_PAYS = 2.2;
+const aOrAn = (s: string) => (/^[aeiou]/i.test(s) ? `an ${s}` : `a ${s}`);
+/** about one visit in thirty, after the first week: a carpet in their range, half the time one you hold */
+function seekFor(buyerId: string, ctx: Ctx): string | undefined {
+  const day = ctx.day ?? 0;
+  if (day < 6) return undefined;
+  let x = (day * 2654435761 + (ctx.rel.visits + 1) * 97) >>> 0;
+  for (let i = 0; i < buyerId.length; i++) x = Math.imul(x ^ buyerId.charCodeAt(i), 0x01000193) >>> 0;
+  const roll = (x % 10000) / 10000;
+  if (roll > 1 / 30) return undefined;
+  const [lo, hi] = BUYER_TIERS[buyerId] ?? [1, 2];
+  const inRange = (id: string) => { const t = RUGS[id]; return !!t && (t.tier ?? 1) >= lo && (t.tier ?? 1) <= hi; };
+  const held = [...new Set(ctx.inventory.filter((i) => inRange(i.typeId)).map((i) => i.typeId))];
+  const all = Object.keys(RUGS).filter(inRange);
+  const r2 = ((x >>> 8) % 1000) / 1000;
+  const pool = held.length && r2 < 0.5 ? held : all;
+  return pool.length ? pool[(x >>> 4) % pool.length] : undefined;
+}
 
 function closeSale(enc: Encounter, ctx: Ctx, price: number) {
   const b = BUYERS[enc.buyerId];

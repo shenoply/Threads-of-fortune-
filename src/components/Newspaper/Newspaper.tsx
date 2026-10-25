@@ -5,6 +5,11 @@ import { paperFor } from '../../game/economy/newspaper';
 import { seasonNews } from '../../game/systems/ranks';
 import { isFirstOfMonth } from '../../game/economy/life';
 import { audio } from '../../game/audio/engine';
+import { dateFor } from '../../game/economy/economy';
+import { fmt } from '../../game/economy/money';
+import { marketOn } from '../../game/economy/market';
+import { RIVAL_NAME, rivalOf, yourStall } from '../../game/systems/laneRival';
+import { BUYERS } from '../../data/buyers';
 
 /** The Giza Courier for a given day, laid out like a broadsheet folded for the pocket. */
 export function Newspaper({ day, onClose }: { day: number; onClose: () => void }) {
@@ -74,6 +79,7 @@ export function Newspaper({ day, onClose }: { day: number; onClose: () => void }
           {p.lead.advice && <p className="paper-advice"><b>For the trade.</b> {p.lead.advice}</p>}
         </section>
 
+        <LaneWeek day={day} />
         <div className="paper-cols">
           <div className="paper-col">
             {p.more.map((a) => (
@@ -122,5 +128,34 @@ export function Newspaper({ day, onClose }: { day: number; onClose: () => void }
         <footer className="paper-foot">Printed and published daily at the Courier press, Pyramids Road.</footer>
       </article>
     </div>
+  );
+}
+
+/** Mondays: a column about you. The week's takings, the best sale, who came back, and what the lane
+ *  says about you and Shukri. Every day: the bazaar's prices. */
+function LaneWeek({ day }: { day: number }) {
+  const g = useGame();
+  const monday = dateFor(day).weekday === 'Monday' && day > 7;
+  const m = marketOn(day);
+  const week = g.ledger.filter((l) => l.kind === 'sale' && l.day > day - 8 && l.day < day);
+  const total = week.reduce((a, l) => a + l.amount, 0);
+  const profit = week.reduce((a, l) => a + l.amount - (l.cost ?? 0), 0);
+  const best = week.reduce<typeof week[number] | null>((b, l) => (!b || l.amount > b.amount ? l : b), null);
+  const r = rivalOf(g);
+  const you = yourStall(g.upgrades);
+  const fans = Object.entries(g.relationships).filter(([, x]) => (x.purchases ?? 0) >= 3).map(([id]) => BUYERS[id]?.name).filter(Boolean);
+  if (!monday && !m) return null;
+  return (
+    <section className="paper-lane" data-testid="paper-lane">
+      {monday && (
+        <>
+          <div className="paper-kicker">The lane this week</div>
+          <h3 className="paper-lane-h">{week.length === 0 ? 'A quiet week at the young merchant\'s stall' : profit > 0 ? `The young merchant of the Giza lane clears ${fmt(profit)}` : 'A hard week for the young merchant of the Giza lane'}</h3>
+          <p>{week.length ? `${week.length} rug${week.length === 1 ? '' : 's'} sold for ${fmt(total)} in all.` : 'Not a rug sold.'}{best ? ` The best of them, ${best.label.replace(/ to .*$/, '')}, fetched ${fmt(best.amount)}.` : ''}{fans.length ? ` ${fans.slice(0, 3).join(', ')} ${fans.length === 1 ? 'is' : 'are'} buying from no one else.` : ''}</p>
+          <p className="paper-lane-gossip">{r.stall > you ? `Across the lane, ${RIVAL_NAME} has the better stall now, and lets everyone know it.` : r.stall < you ? `${RIVAL_NAME} is said to be furious: his stall is still the poorer of the two.` : `${RIVAL_NAME} is saving hard, and watching your stall more than his own.`}</p>
+        </>
+      )}
+      {m && <p className="paper-lane-market"><b>Prices in the bazaar.</b> {m.why}: {m.up.label.toLowerCase()} fetch {Math.round(m.upBy * 100)}% more. {m.whyDown}: {m.down.label.toLowerCase()} are cheap at the dealers.</p>}
+    </section>
   );
 }

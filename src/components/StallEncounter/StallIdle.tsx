@@ -1,3 +1,4 @@
+import { omenToday, WATCH_COST } from '../../game/systems/omens';
 import { RIVAL_FIRST, rivalOf, rivalProgress, yourStall } from '../../game/systems/laneRival';
 import { MarketLine } from '../Market/MarketLine';
 import { NextOnRoad } from '../Road/Road';
@@ -58,6 +59,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {!shut && <MarketLine where="stall" />}
         {!shut && <StallDream />}
         {!shut && <RivalLine />}
+        {!shut && <OmenLine />}
         {!shut && <SkillGoal />}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
@@ -169,6 +171,18 @@ const STALL_PULL: Record<string, string> = {
   bazaar: 'A canopy and a counter. Better households start to stop.',
   khan: 'A shop in the Khan. Collectors, and purses a quarter deeper.',
 };
+function OmenLine() {
+  const omen = useGame((s) => omenToday(s));
+  const hire = useGame((s) => s.hireWatch);
+  if (!omen) return null;
+  return (
+    <p className={`omen-line ${omen.guarded ? 'safe' : ''}`} data-testid="omen-line">
+      <span>TONIGHT</span> {omen.guarded ? 'A watchman will sit by your stall. The thief will find nothing.' : 'A thief is working the lane. Watch your stall, or lose a rug.'}
+      {!omen.guarded && <button className="btn small" onClick={() => hire()} data-testid="hire-watch">Pay a watchman {fmt(WATCH_COST)}</button>}
+    </p>
+  );
+}
+
 function RivalLine() {
   const lane = useGame((s) => s.lane);
   const day = useGame((s) => s.day);
