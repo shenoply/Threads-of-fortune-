@@ -1,3 +1,4 @@
+import { SeasonLine } from '../Season/SeasonReport';
 import { goalLabel, goalProgress, showProgress } from '../../game/systems/weekGoal';
 import { omenToday, WATCH_COST } from '../../game/systems/omens';
 import { RIVAL_FIRST, rivalOf, rivalProgress, yourStall } from '../../game/systems/laneRival';
@@ -71,6 +72,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {!shut && <StallDream />}
         {!shut && <RivalLine />}
         {!shut && <WeekLine />}
+        {!shut && <SeasonLine />}
         {!shut && <SkillGoal />}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>

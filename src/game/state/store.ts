@@ -384,6 +384,8 @@ export interface GameState {
   omen?: Omen;
   /** this week's target from Rashid (systems/weekGoal.ts) */
   weekGoal?: WeekGoal;
+  /** the last season whose report has been read */
+  seasonSeen?: number;
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;

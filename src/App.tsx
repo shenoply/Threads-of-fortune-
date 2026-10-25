@@ -7,6 +7,7 @@ import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
 import { BigNews, freshNews } from './components/Newspaper/BigNews';
 import { DaySummary } from './components/Ledger/DaySummary';
+import { SeasonReport } from './components/Season/SeasonReport';
 import { JobOffer } from './components/World/JobOffer';
 import { afterFirstSale } from './game/preload';
 import { openingStep } from './game/opening';
@@ -927,7 +928,7 @@ export default function App() {
 
       {g.rescue && <Rescue />}
       {/* one card at a time: the night's summary first, then a job offer waiting from before */}
-      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && !newsUp && <JobOffer />}</>}
+      {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && <SeasonReport />}{!summaryUp && !newsUp && <JobOffer />}</>}
       {settings && (
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>
