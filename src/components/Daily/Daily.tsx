@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { rankOf } from '../../game/economy/progress';
 import { fmt } from '../../game/economy/money';
-import { ALL_THREE, errandsFor, giftFor, giftToday, type Gift } from '../../game/systems/daily';
+import { ALL_THREE, errandsFor, giftFor, giftToday, pouchIn, pouchReady, type Gift } from '../../game/systems/daily';
 import { Icon } from '../Icon';
 import { reveal } from '../Reveal/Reveal';
 import { showBale } from '../Bales/Bale';
@@ -25,7 +25,10 @@ export function useDailyWaiting() {
   const paid = g.daily?.paid ?? [];
   const errs = errandsFor(g.day, g.ledger, rk);
   const unpaid = errs.filter((e) => e.done && !paid.includes(`${g.day}:${e.id}`)).length + (errs.every((e) => e.done) && !paid.includes(`${g.day}:all`) ? 1 : 0);
-  return { gift: gift.open, unpaid, run: gift.open ? gift.run - 1 : gift.run };
+  // the runner's purse comes round every four hours: the chest wakes again when it is in
+  const [, tick] = useState(0);
+  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 60000); return () => clearInterval(id); }, []);
+  return { gift: gift.open || pouchReady(g.daily), unpaid, run: gift.open ? gift.run - 1 : gift.run };
 }
 
 // the chest glows only until it has been looked into today; after that a small dot stays while
@@ -93,6 +96,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
         <button className="btn close" onClick={onClose} data-testid="daily-close">Done</button>
       </div>
       <div className="daily-body">
+        <Pouch />
         <section className="daily-gift">
           <h3>Your gift <small>{gift.run > 1 || !gift.open ? `day ${gift.run} in a row` : 'day 1'}</small></h3>
           {gift.lost && <p className="dim small" data-testid="gift-lost">Welcome back. A new week of gifts starts today.</p>}
@@ -142,5 +146,31 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** Rashid's runner: a small purse every four hours, with a countdown to the next */
+function Pouch() {
+  const g = useGame();
+  const ready = pouchReady(g.daily);
+  const [, tick] = useState(0);
+  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, []);
+  const left = pouchIn(g.daily);
+  const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000), sec = Math.floor((left % 60000) / 1000);
+  const take = () => {
+    const p = g.openPouch();
+    if (!p) return;
+    const t = p.kind === 'rug' ? RUGS[p.typeId] : null;
+    const inv = useGame.getState().inventory;
+    reveal({ uid: p.kind === 'rug' ? inv[inv.length - 1]?.uid : undefined, kicker: "Rashid's runner", title: p.kind === 'cash' ? fmt(p.amount) : p.kind === 'rep' ? '+1 reputation' : t ? t.name : p.text, amount: p.kind === 'cash' ? p.amount : undefined, line: p.kind === 'rug' ? 'It waits at the stall.' : p.text + '.', ...(t ? { pic: rugSrc(t), picKind: 'rug' as const } : {}) });
+  };
+  return (
+    <section className={`daily-pouch ${ready ? 'ready' : ''}`} data-testid="pouch">
+      <button className={`pouch-btn ${ready ? 'ready' : ''}`} onClick={take} disabled={!ready} data-testid="pouch-open" aria-label={ready ? "Take the runner's purse" : 'The runner is on his way'}><Icon name="coin" /></button>
+      <div className="pouch-says">
+        <b>{ready ? "Rashid's runner is here" : "Rashid's runner"}</b>
+        <span>{ready ? 'A purse, every four hours. Tap to take it.' : `Next purse in ${h ? `${h}h ` : ''}${m}m${h ? '' : ` ${String(sec).padStart(2, '0')}s`}`}</span>
+      </div>
+    </section>
   );
 }

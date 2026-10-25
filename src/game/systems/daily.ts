@@ -14,6 +14,23 @@ export interface DailyState {
   best: number;
   /** errands paid for, as `${gameDay}:${id}` (only today's are kept) */
   paid?: string[];
+  /** when Rashid's runner last brought a purse (ms): another comes every few hours */
+  pouch?: number;
+}
+
+/** Between the daily gifts: Rashid's runner brings a small purse every four hours of real time. */
+export const POUCH_EVERY = 4 * 60 * 60 * 1000;
+export const pouchReady = (d: DailyState | undefined, now = Date.now()) => !d?.pouch || now - d.pouch >= POUCH_EVERY || d.pouch > now;
+export const pouchIn = (d: DailyState | undefined, now = Date.now()) => (pouchReady(d, now) ? 0 : POUCH_EVERY - (now - (d!.pouch ?? 0)));
+export type Pouch = { kind: 'cash'; amount: number; text: string } | { kind: 'rep'; amount: number; text: string } | { kind: 'rug'; typeId: string; text: string };
+/** what is in the purse: mostly coins, sometimes a word put in for you, now and then a rug */
+export function pouchFor(rankIdx: number, rng: () => number, cheapRugs: string[]): Pouch {
+  const k = 1 + rankIdx * 0.5;
+  const r = rng();
+  if (r < 0.14 && cheapRugs.length) { const id = cheapRugs[Math.floor(rng() * cheapRugs.length)]; return { kind: 'rug', typeId: id, text: 'The runner has a rug over his shoulder' }; }
+  if (r < 0.3) return { kind: 'rep', amount: 1, text: 'Rashid has put in a good word for you' };
+  const amount = Math.round(((30 + rng() * 50) * k) / 5) * 5;
+  return { kind: 'cash', amount, text: r > 0.93 ? 'A heavy purse: a buyer paid Rashid what he owed you' : 'A small purse from Uncle Rashid' };
 }
 
 export const realDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

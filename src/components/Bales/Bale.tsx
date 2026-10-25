@@ -39,20 +39,22 @@ export function showBale(result: BaleResult, items: RugItem[], from = 'Out of a 
 export function BaleCard({ toast }: { toast?: (m: string) => void }) {
   const g = useGame();
   const b = g.bales;
+  // the day's first bale is free; more can be bought, as many as you like
   const today = b?.lastDay === g.day;
+  const freeNow = !today;
   const cut = () => {
     const r = g.buyBale();
     if (!r.result || !r.items) { toast?.(r.msg); return; }
     showBale(r.result, r.items);
   };
   return (
-    <div className={`bale-card ${today ? 'gone' : ''}`} data-testid="bale-card">
-      <div className="bale-pic art" aria-hidden="true"><img src={today ? 'art/bales/bale-open.webp' : 'art/bales/bale-sealed.webp'} alt="" draggable={false} /></div>
+    <div className={`bale-card ${freeNow ? 'free' : ''}`} data-testid="bale-card">
+      <div className="bale-pic art" aria-hidden="true"><img src="art/bales/bale-sealed.webp" alt="" draggable={false} />{freeNow && <span className="bale-free">Free today</span>}</div>
       <div className="bale-body">
         <b>A sealed bale</b>
         <small>Unclaimed goods from the Port Said customs sheds, still corded under the lead seal. Most hold a rug or two of everyday stock; some a good trade rug; a few a city carpet; once in a long while, a treasure. Sometimes a curio, a gramophone record or a purse of old coins is packed in with them.</small>
-        <button className="btn primary" disabled={today || g.cash < BALE_PRICE} onClick={cut} data-testid="bale-buy">
-          {today ? 'Tomorrow’s comes in the morning' : `Buy and cut it open · ${fmt(BALE_PRICE)}`}
+        <button className="btn primary" disabled={!freeNow && g.cash < BALE_PRICE} onClick={cut} data-testid="bale-buy">
+          {freeNow ? 'Cut open today’s free bale' : `Buy another and cut it open · ${fmt(BALE_PRICE)}`}
         </button>
         {(b?.opened ?? 0) > 0 && <small className="bale-count">{b!.opened} opened{b!.treasures ? ` · ${b!.treasures} treasure${b!.treasures > 1 ? 's' : ''}` : ''}</small>}
       </div>

@@ -56,3 +56,13 @@
 .gift-chest { background: #1d140c; border-width: 1.5px; border-color: var(--quiet-line-hi, rgba(234,219,189,.36)); }
 .gift-got { animation: none; }
 .gift-week li.now { box-shadow: none; border-width: 1.5px; }
+
+/* the runner's purse: a small round brass button and a line, with the time to the next */
+.daily-pouch { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--line, #4a3620); border-radius: 10px; background: #1d140b; }
+.daily-pouch.ready { border-color: #d9a441; box-shadow: 0 0 14px #d9a44133; }
+.pouch-btn { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid #8a6a3a; background: #2a1c0f; color: #d9a441; display: grid; place-items: center; }
+.pouch-btn.ready { border-color: #ffd27a; background: radial-gradient(circle at 40% 35%, #e8b85a, #9a6a22); color: #1b1308; animation: pouch-bob 1.6s ease-in-out infinite; }
+@keyframes pouch-bob { 50% { transform: translateY(-2px) scale(1.04); } }
+.pouch-says { display: flex; flex-direction: column; gap: 2px; }
+.pouch-says b { color: #f3e3c2; }
+.pouch-says span { font-size: 13.5px; color: var(--text-dim, #bba882); font-variant-numeric: tabular-nums; }

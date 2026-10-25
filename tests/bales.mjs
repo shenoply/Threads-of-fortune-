@@ -19,9 +19,14 @@ await p.waitForTimeout(500);
 await p.click('[data-testid=nav-inventory]'); await p.click('[data-testid=stock-rashid]'); await p.waitForSelector('[data-testid=bale-card]');
 const n0 = await st((m) => m.useGame.getState().inventory.length);
 await p.click('[data-testid=bale-buy]'); await p.waitForTimeout(300);
-const s1 = await st((m) => { const s = m.useGame.getState(); return { n: s.inventory.length, cash: s.cash, bales: s.bales }; });
-check(s1.n > n0 && s1.cash === 10000 - 1200, `a bale costs £12 and its rugs go into stock (${s1.n - n0})`);
-check(await p.isDisabled('[data-testid=bale-buy]'), 'one bale a day');
+const s1 = await st((m) => { const s = m.useGame.getState(); return { n: s.inventory.length, cash: s.cash, coins: 0, bales: s.bales }; });
+check(s1.n > n0 && s1.cash >= 10000, `the day's first bale is free and its rugs go into stock (${s1.n - n0})`);
+for (let i = 0; i < 12 && await p.locator('[data-testid=reveal]').count(); i++) { await p.click('[data-testid=reveal]', { position: { x: 20, y: 20 } }).catch(() => {}); await p.waitForTimeout(500); }
+check(/another/i.test(await p.textContent('[data-testid=bale-buy]')) && !(await p.isDisabled('[data-testid=bale-buy]')), 'more can be bought the same day');
+const c1 = await st((m) => m.useGame.getState().cash);
+await p.click('[data-testid=bale-buy]', { force: true }); await p.waitForTimeout(300);
+const c2 = await st((m) => m.useGame.getState().cash);
+check(c2 <= c1 - 1200 + 2000 && c2 !== c1, `another costs £12 (${c1} → ${c2})`);
 // the seventh day of the week's gifts is a bale
 const g7 = await p.evaluate(async () => { const d = await import('/src/game/systems/daily.ts'); return [d.giftFor(7, 0, []).kind, d.giftFor(14, 1, []).kind]; });
 check(g7[0] === 'bale' && g7[1] === 'bale', 'the seventh gift of every week is a sealed bale');

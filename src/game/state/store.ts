@@ -15,7 +15,7 @@ import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor,
 import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { ARM_BY_ID, GUNSMITH_TOWN } from '../../data/arms';
-import { ALL_THREE, errandsFor, giftFor, giftToday, type DailyState, type Gift } from '../systems/daily';
+import { ALL_THREE, errandsFor, giftFor, giftToday, pouchFor, pouchReady, type DailyState, type Gift, type Pouch } from '../systems/daily';
 import type { HeroLook } from '../heroLook';
 import { HOUSES, type Lot, type Reoffer } from '../auction/sessions';
 import { applyAuctionObservation, type MarketIntelRecord } from '../auction/marketIntel';
@@ -593,6 +593,8 @@ interface Actions {
   buyArm: (id: string) => string;
   /** open today's gift (once a real day): what was in it, or null */
   openGift: () => Gift | null;
+  /** Rashid's runner's purse, every four hours of real time: what was in it, or null */
+  openPouch: () => Pouch | null;
   /** buy (or, from the week's gift, be given) a sealed bale and cut it open: what was inside */
   /** a sheep, goat or crate of hens from the town you are in, to drive along for food */
   buyLivestock: (id: string) => string;
@@ -4174,6 +4176,19 @@ export const useGame = create<GameState & Actions>()(
           return `${d.name} for the stall: ${fmt(d.cost)}. It stands on ${lowerName(SPOT_BY_ID[d.spot]?.label ?? 'the stall')}.`;
         },
 
+        openPouch: () => {
+          const s = get();
+          if (!pouchReady(s.daily)) return null;
+          const cheap = Object.values(RUGS).filter((r) => r.valueBand[1] <= 260).map((r) => r.id);
+          const p = pouchFor(rankOf(s).idx, Math.random, cheap);
+          const patch: Partial<GameState> = { daily: { ...(s.daily ?? { streak: 0, best: 0 }), pouch: Date.now() } };
+          if (p.kind === 'cash') { patch.cash = s.cash + p.amount; patch.ledger = [...s.ledger, { day: s.day, kind: 'bonus', label: p.text, amount: p.amount }]; }
+          if (p.kind === 'rep') patch.reputation = s.reputation + p.amount;
+          if (p.kind === 'rug') { const t2 = RUGS[p.typeId]; patch.inventory = [...s.inventory, { uid: newUid('r'), typeId: p.typeId, condition: 'Good', restored: false, provenance: t2?.provenance ?? 'Likely', paid: 0, notes: ["Brought by Uncle Rashid's runner."], stored: true }]; }
+          set(patch);
+          audio.sfx(p.kind === 'cash' ? 'coins' : 'reward');
+          return p;
+        },
         openGift: () => {
           const s = get();
           const t = giftToday(s.daily);
@@ -4218,8 +4233,10 @@ export const useGame = create<GameState & Actions>()(
         buyBale: (free = false) => {
           const s = get();
           const b = s.bales ?? { opened: 0, dry: 0, treasures: 0 };
-          if (!free && b.lastDay === s.day) return { msg: "Rashid's man brings one bale a day. Come back tomorrow." };
-          if (!free && s.cash < BALE_PRICE) return { msg: `A bale is ${fmt(BALE_PRICE)}.` };
+          // the first bale each day is Rashid's to you, free; after that as many as you like, at his price
+          const fromGift = free;
+          if (!fromGift && b.lastDay !== s.day) free = true;
+          else if (!fromGift && s.cash < BALE_PRICE) return { msg: `Another bale is ${fmt(BALE_PRICE)}.` };
           const result = openBale(b, Math.random, s.dressing ?? [], recordsOwned(s));
           const ex = result.extra;
           const piece = ex?.kind === 'piece' ? DRESSING_BY_ID[ex.id] : undefined;
@@ -4232,7 +4249,7 @@ export const useGame = create<GameState & Actions>()(
             inventory: [...s.inventory, ...items],
             ...(rec ? { records: [...recordsOwned(s), rec.id] } : {}),
             ...(piece ? { dressing: [...(s.dressing ?? []), piece.id], ...(!spotsOf(s)[piece.spot] ? { stallSpots: { ...spotsOf(s), [piece.spot]: piece.id } } : {}) } : {}),
-            bales: { lastDay: free ? b.lastDay : s.day, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
+            bales: { lastDay: fromGift ? b.lastDay : s.day, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
             ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
             journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(rec ? [`a gramophone record, ${rec.title}`] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
           });
