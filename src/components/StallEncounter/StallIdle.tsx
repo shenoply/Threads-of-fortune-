@@ -56,16 +56,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       </div>
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
-        {!shut && <TodaysChance />}
-        {!shut && <MarketLine where="stall" />}
-        {!shut && <StallDream />}
-        {!shut && <RivalLine />}
         {!shut && <OmenLine />}
-        {!shut && <WeekLine />}
-        {!shut && <SkillGoal />}
-        {malekHere && hungry && !(next !== null && mins >= 60) && (
-          <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
-        )}
       </div>
       {/* once the stall is shut for the day the big button is the evening's own: it turns the page to
           the next morning, the same as Next day on the ledger slip below */}
@@ -74,6 +65,17 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         if (shut) { const nd = document.querySelector<HTMLElement>('[data-testid="close-stall"]'); if (nd) nd.click(); else g.endDay(); return; }
         g.waitForCustomer();
       }} data-testid="stall-wait">{shut ? 'Start the next day' : g.held ? 'Go back to them' : next === null ? 'Close up for the evening' : mins === 0 ? 'Serve them' : `Wait for the customer (${clock(next)})`}</button>
+      <div className="idle-next idle-info">
+        {!shut && <TodaysChance />}
+        {!shut && <MarketLine where="stall" />}
+        {!shut && <StallDream />}
+        {!shut && <RivalLine />}
+        {!shut && <WeekLine />}
+        {!shut && <SkillGoal />}
+        {malekHere && hungry && !(next !== null && mins >= 60) && (
+          <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
+        )}
+      </div>
       <div className="idle-next idle-next--after">
         {!shut && !g.held && next !== null && mins >= 60 && (
           <div className="idle-wait" data-testid="idle-wait">
