@@ -21,7 +21,7 @@ const salesIn = (s: Pick<GameState, 'ledger'>, week: number) => (s.ledger as Sal
 
 /** this week's target, sized to the last fortnight: a stretch, not a wall */
 export function goalFor(s: Pick<GameState, 'ledger' | 'day'>, week: number): WeekGoal | null {
-  if (week < 7) return null;
+  if (week < 14) return null;
   const recent = (s.ledger as Sale[]).filter((l) => l.kind === 'sale' && l.amount > 0 && l.day >= week - 14 && l.day < week);
   const prof = recent.reduce((a, l) => a + Math.max(0, l.amount - (l.cost ?? 0)), 0) / 2;
   const kinds: GoalKind[] = ['profit', 'faces', 'fine', 'better'];

@@ -68,11 +68,13 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       }} data-testid="stall-wait">{shut ? 'Start the next day' : g.held ? 'Go back to them' : next === null ? 'Close up for the evening' : mins === 0 ? 'Serve them' : `Wait for the customer (${clock(next)})`}</button>
       <div className="idle-next idle-info">
         {!shut && <TodaysChance />}
-        {!shut && <MarketLine where="stall" />}
-        {!shut && <StallDream />}
-        {!shut && <RivalLine />}
-        {!shut && <WeekLine />}
-        {!shut && <SeasonLine />}
+        {/* each part of the trade arrives on its own day, marked new for its first two days, so the
+            stall screen grows with the player instead of greeting him with everything at once */}
+        {!shut && g.day >= INTRO.dream && <StallDream />}
+        {!shut && g.day >= INTRO.market && <>{g.day < INTRO.market + 2 && <NewNote text="The market moves every day: buy what is cheap at Rashid's, sell what the town wants." />}<MarketLine where="stall" /></>}
+        {!shut && g.day >= INTRO.rival && <>{g.day < INTRO.rival + 2 && <NewNote text="Shukri Mansour keeps the stall across the lane. He saves for the same stalls you do." />}<RivalLine /></>}
+        {!shut && g.day >= INTRO.week && <>{g.day < INTRO.week + 2 && <NewNote text="Rashid now sets you a target each week, with a purse if you meet it." />}<WeekLine /></>}
+        {!shut && g.day >= INTRO.season && <SeasonLine />}
         {!shut && <SkillGoal />}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
@@ -177,6 +179,12 @@ const STALL_PULL: Record<string, string> = {
   bazaar: 'A canopy and a counter. Better households start to stop.',
   khan: 'A shop in the Khan. Collectors, and purses a quarter deeper.',
 };
+/** the day each part of the trade first shows on the stall screen */
+const INTRO = { dream: 2, market: 5, rival: 9, week: 14, season: 21 };
+function NewNote({ text }: { text: string }) {
+  return <p className="new-note" data-testid="new-note"><b>NEW</b> {text}</p>;
+}
+
 function WeekLine() {
   const wg = useGame((s) => s.weekGoal);
   const ledger = useGame((s) => s.ledger);
