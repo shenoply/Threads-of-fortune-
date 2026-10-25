@@ -338,18 +338,19 @@ export function saleMoment(amount: number, note: string, grand: boolean, stars =
   // the stall picture can be wider than the screen: keep the whole ribbon on it
   const half = el.offsetWidth / 2 + 8;
   el.style.left = `${Math.round(Math.min(Math.max(x, half), W - half))}px`;
+  // a loss sends no coins flying: only the few it fetched, slowly
   if (reducedMotion()) return;
   const purse = visibleRect(document.querySelector('[data-testid="hud-cash"]'));
   if (!purse) return;
   const tx = purse.left + 14, ty = purse.top + purse.height / 2;
-  const n = grand ? 12 : 7;
+  const n = loss ? 2 : grand ? 12 : 7;
   for (let i = 0; i < n; i++) {
     const c = document.createElement('i');
     c.className = 'ff-coin';
     const sx = x + (Math.random() - 0.5) * 120, sy = y + (Math.random() - 0.3) * 30;
     c.style.setProperty('--dx', `${Math.round(tx - sx)}px`);
     c.style.setProperty('--dy', `${Math.round(ty - sy)}px`);
-    c.style.animationDelay = `${350 + i * 55}ms`;
+    c.style.animationDelay = `${(loss ? 900 : 350) + i * 55}ms`;
     drop(c, sx, sy, 1500 + i * 55);
   }
 }

@@ -129,6 +129,8 @@ export interface Encounter {
   /** skill moves used this visit: one final push (Haggling 10), their limit read (Appraisal 5) */
   pushed?: boolean;
   limitRead?: number;
+  /** a named price that landed right at what they would pay: the run of these it makes (Spot on ×N) */
+  spotOn?: number;
 }
 
 /** Moves a skill opens at the counter: shown locked until you have the level, so you see what to work for. */
@@ -162,6 +164,8 @@ export interface Ctx {
   reputation: number;
   rel: Relationship;
   rng: () => number;
+  /** spot-on prices in a row, sale to sale: each pays a little more for your eye */
+  spotRun?: number;
   /** skill XP, manner and charisma of the merchant */
   skills?: Partial<Record<SkillId, number>>;
   manner?: Manner;
@@ -1225,6 +1229,18 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   if (price <= w * (court ? 0.8 : 0.93) || (!court && mode !== 'name' && price <= w && ctx.rng() < 0.55 + enc.trust / 200) || (enc.rounds >= 3 && price <= w)) {
     buyerSay(enc, pick(acceptLine, ctx.rng), 'pleased');
     if (mode === 'hold' && enc.buyerOffer) say(enc, 'buyer', pick(L.holdGive, ctx.rng).replace('{price}', fmt(price)));
+    // spot on: you named a price right at the edge of what they would pay, and they took it at once.
+    // A buyer respects an eye like that, and a run of them pays more each time.
+    if (mode === 'name' && !court && enc.rounds <= 2 && price >= w * 0.88) {
+      const run = (ctx.spotRun ?? 0) + 1;
+      enc.spotOn = run;
+      const tip = round5(price * Math.min(0.12, 0.03 * run));
+      if (tip > 0) {
+        say(enc, 'buyer', pick(SPOT_LINES, ctx.rng).replace('{price}', fmt(tip)));
+        price += tip;
+      }
+      gain(fx, 'appraisal', 2 + run);
+    }
     closeSale(enc, ctx, price);
     return;
   }
@@ -1271,6 +1287,13 @@ export const malekConvinced = (enc: Encounter) =>
 export const malekBalks = (enc: Encounter) =>
   enc.buyerId === 'malek' && !malekConvinced(enc)
   && !(enc.interest >= 50 && enc.trust >= (enc.malekBar ?? 55) - 12 && enc.presentedFit >= 50);
+
+const SPOT_LINES = [
+  'You know exactly what it is worth. Here, {price} more, for the eye.',
+  'No haggling? A man who knows his price. Take {price} extra, with my respect.',
+  'That is the right figure, and you knew it. {price} on top, for not wasting my time.',
+  'Ha! You read me like a ledger. Have {price} more.',
+];
 
 function closeSale(enc: Encounter, ctx: Ctx, price: number) {
   const b = BUYERS[enc.buyerId];

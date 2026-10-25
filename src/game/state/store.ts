@@ -169,6 +169,8 @@ export interface GameState {
   register: string[];
   /** the tiers of the Carpet Register filled in full, and paid for (1..4) */
   collectSets?: number[];
+  /** spot-on prices in a row (systems/negotiation.ts) */
+  spotRun?: number;
   /** main missions: active or done */
   missions: Record<string, 'active' | 'done'>;
   /** skills rise by doing; XP per skill */
@@ -1064,6 +1066,7 @@ export const useGame = create<GameState & Actions>()(
         reputation: s.reputation,
         rel: s.relationships[buyerId] ?? emptyRel(),
         rng,
+        spotRun: s.spotRun ?? 0,
         skills: s.skills,
         manner: s.manner,
         charisma: heroCharisma(s.wardrobe ?? START_WARDROBE, s.attire?.clean ?? 100),
@@ -1117,6 +1120,7 @@ export const useGame = create<GameState & Actions>()(
         const stats = { ...s.dayStats };
         let commissions = s.commissions;
         if (enc.outcome === 'sold' && enc.presented && enc.salePrice) {
+          patch.spotRun = enc.spotOn ?? 0;
           const item = s.inventory.find((i) => i.uid === enc.presented)!;
           const t = RUGS[item.typeId];
           cash += enc.salePrice;

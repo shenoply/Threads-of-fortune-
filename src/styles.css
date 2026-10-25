@@ -3514,3 +3514,12 @@ body.travelling .world-hud { display: none; }
 .hud-chip.purse-thin { color: #f09a84; box-shadow: inset 0 0 0 1px rgba(200,70,50,.6); }
 .hud-chip.purse-fat { color: #ffe6a8; box-shadow: inset 0 0 0 1px #e8b860, 0 0 12px rgba(255,196,90,.35); }
 @media (max-width: 380px) { .hud-chip[data-testid=hud-cash]::before { width: 14px; height: 14px; } .hud-chip.hud-rep svg { display: none; } }
+
+/* the buyer's face as the dial turns */
+.face-read { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; font-family: var(--body); font-size: 13.5px; transition: color .25s; }
+.face-read i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; transition: background .25s; }
+.dial small.face-read { display: flex; justify-content: center; }
+.dial small.face-read.joy { color: #a2c05f; } .dial small.face-read.glad { color: #c8c46a; } .dial small.face-read.spot { color: #ffd27a; font-weight: 700; }
+.dial small.face-read.hm { color: #d9b07a; } .dial small.face-read.frown { color: #dc8558; } .dial small.face-read.cold { color: #d8604a; }
+.face-read.spot i { animation: face-spot 1s ease-in-out infinite; }
+@keyframes face-spot { 50% { transform: scale(1.4); } }

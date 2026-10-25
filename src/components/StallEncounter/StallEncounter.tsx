@@ -11,7 +11,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { stallFigure } from './stallArt';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
 import { availableRugs, tutorialAllows, useGame } from '../../game/state/store';
-import { fitScore, getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, type ActionId } from '../../game/systems/negotiation';
+import { fitScore, getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, wtp, type ActionId, type Encounter } from '../../game/systems/negotiation';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { Scene, InfoBand } from './Scene';
@@ -448,8 +448,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             </div>
             <div className="price">
               <b data-testid="dial-value" data-pt={dial}>{fmt(dial)}</b>
-              <small>{presented.paid ? <>paid {fmt(presented.paid)} · <span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
+              <small>{presented.paid ? <><span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
+              {enc && <FaceRead enc={enc} item={presented} dial={dial} />}
             </div>
             <div className="dial-btns">
               <button className="nw" onClick={() => setDial((d) => ladderUp(d ?? 5))} aria-label="Raise">+{fmt(ladderUp(dial) - dial)}</button>
@@ -579,4 +580,23 @@ function ReserveAfter() {
       Put the {RUGS[item.typeId].name} aside for {name}
     </button>
   );
+}
+
+/** Their face as you turn the dial: a merchant reads a buyer before he speaks. A sharper eye
+ *  (Appraisal) reads closer; a beginner only sees the plain signs, and sometimes reads them wrong. */
+function FaceRead({ enc, item, dial }: { enc: Encounter; item: Parameters<typeof wtp>[1]; dial: number }) {
+  const ap = levelOf(useGame((s) => s.skills?.appraisal ?? 0));
+  const w = wtp(enc, item);
+  // a steady misreading for this buyer and rug, smaller as the eye sharpens
+  const seed = [...(enc.buyerId + item.uid)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const err = (((seed % 1000) / 1000) * 2 - 1) * Math.max(0.01, 0.09 - ap * 0.006);
+  const r = dial / (w * (1 + err));
+  const sharp = ap >= 3;
+  const [cls, word] = r <= 0.8 ? ['joy', 'Eyes light up (too cheap)']
+    : r <= 0.88 ? ['glad', 'A quick nod']
+    : r <= 0.93 ? (sharp ? ['spot', 'They lean in: spot on'] : ['glad', 'A quick nod'])
+    : r <= 1.0 ? ['hm', 'They hesitate']
+    : r <= 1.25 ? ['frown', 'A frown']
+    : ['cold', 'Offended'];
+  return <small className={`face-read ${cls}`} data-testid="face-read"><i />{word}</small>;
 }
