@@ -53,6 +53,8 @@ export interface RugItem {
   restoringUntil?: number;
   restoreTo?: Condition;
   stored?: boolean; // left at the Giza stall instead of travelling with the caravan
+  /** one of your own carpets, framed and hung at the stall: a trophy, not for sale */
+  framed?: boolean;
   /** back from the wash or the restorer: the day, and what it looked like before */
   freshFrom?: { day: number; was: Condition };
   /** Arran's signed reports that travel with the rug ('fibre', 'fastness', ...) */

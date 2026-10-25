@@ -591,6 +591,8 @@ interface Actions {
   arranReturnBook: (id: BookId) => { ok: boolean; message: string };
   arranExamine: (uid: string, service: LabService, cut?: boolean) => { ok: true; finding: LabFinding } | { ok: false; message: string; needsCut?: boolean };
   restore: (uid: string) => void;
+  /** hang one of your own carpets framed at the stall, or take it down */
+  frameCarpet: (uid: string) => string;
   /** air and beat the rugs you have with you against moth: an hour (systems/moths.ts) */
   airRugs: () => string;
   buyUpgrade: (id: string) => void;
@@ -858,10 +860,14 @@ export function repForSale(rep: number, fit: number, tier: number, roll: number)
  *  Fayoum rug bought at a market */
 export const fathersRug = (item: RugItem) => item.typeId === 'fayoum-hearth' && (item.uid === 'start-fh' || !item.paid || item.notes?.some((n) => /father/i.test(n)));
 /** Your father's rug is not for sale until Farid has seen it: before his mission as well as during it. */
+/** framed carpets the stall's walls hold, and what each does for a buyer looking at them */
+export const FRAME_SLOTS = 2;
 export function keptBack(s: Pick<GameState, 'missions' | 'world'>, item: RugItem) {
-  return fathersRug(item) && s.missions?.farid !== 'done' && !s.world.appraised.length;
+  return !!item.framed || (fathersRug(item) && s.missions?.farid !== 'done' && !s.world.appraised.length);
 }
 export const KEPT_BACK_NOTE = 'That is your father\'s rug. It is not for sale, not until someone who knows the looms has seen it.';
+export const FRAMED_NOTE = 'That one hangs framed at your stall. Take it down first if you mean to sell it.';
+export const keptNote = (item?: RugItem) => (item?.framed ? FRAMED_NOTE : KEPT_BACK_NOTE);
 
 /** what a wash or repair actually costs you, with your craft skill and perks */
 export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
@@ -2559,7 +2565,7 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const it = s.inventory.find((i) => i.uid === uid);
           if (!it || it.restoringUntil) return 0;
-          if (keptBack(s, it)) { set({ jobNote: KEPT_BACK_NOTE }); return 0; }
+          if (keptBack(s, it)) { set({ jobNote: keptNote(it) }); return 0; }
           let bid = localBid(sid, it, s.day);
           // a dealer never pays more for a rug than they are asking for that same type today, in the
           // condition you actually hold it: without this, a type this town both sells and has high
@@ -3378,7 +3384,7 @@ export const useGame = create<GameState & Actions>()(
           const held = s.inventory.find((i) => i.uid === uid);
           if (held && keptBack(s, held)) {
             const enc = cloneEnc(s.encounter);
-            enc.log.push({ speaker: 'narrator', text: KEPT_BACK_NOTE });
+            enc.log.push({ speaker: 'narrator', text: keptNote(held) });
             set({ encounter: enc });
             return;
           }
@@ -4162,6 +4168,22 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('coins');
         },
 
+        frameCarpet: (uid) => {
+          const s = get();
+          const i = s.inventory.find((x) => x.uid === uid);
+          if (!i || !i.typeId.startsWith('own-')) return '';
+          const name = RUGS[i.typeId]?.name ?? 'your carpet';
+          if (i.framed) { set({ inventory: s.inventory.map((x) => (x.uid === uid ? { ...x, framed: false } : x)) }); return `${name} comes down from the wall. It is for sale again.`; }
+          if (s.inventory.filter((x) => x.framed).length >= FRAME_SLOTS) return `The stall has room for ${FRAME_SLOTS} framed carpets. Take one down first.`;
+          const first = !s.inventory.some((x) => x.framed) && !(s.journal ?? []).some((j) => j.text.includes('framed at the stall'));
+          set({
+            inventory: s.inventory.map((x) => (x.uid === uid ? { ...x, framed: true, stored: false } : x)),
+            journal: [...s.journal, { day: s.day, text: `${name}, woven to your own design, hangs framed at the stall.` }].slice(-200),
+            ...(first ? { reputation: s.reputation + 1 } : {}),
+          });
+          audio.sfx('reward');
+          return first ? `${name} hangs framed at the stall. The lane comes to look: your own work, on your own wall. Reputation +1.` : `${name} hangs framed at the stall.`;
+        },
         restore: (uid) => {
           const s = get();
           const i = s.inventory.find((x) => x.uid === uid);
@@ -4457,7 +4479,7 @@ export const useGame = create<GameState & Actions>()(
           if (s.world.at !== sid) return 'You can only leave rugs at the shop when you are there.';
           const item = s.inventory.find((i) => i.uid === uid);
           if (!item || item.stored || item.restoringUntil) return 'That rug is not with you.';
-          if (keptBack(s, item)) return KEPT_BACK_NOTE;
+          if (keptBack(s, item)) return keptNote(item);
           const name = settlementById(sid).name;
           set({
             inventory: s.inventory.filter((i) => i.uid !== uid),
@@ -4507,7 +4529,7 @@ export const useGame = create<GameState & Actions>()(
           if (!at || !TELEGRAPH_TOWNS.includes(at)) return 'You need a telegraph office to send word to the boy at the stall.';
           const item = s.inventory.find((i) => i.uid === uid);
           if (!item || !item.stored || item.restoringUntil) return 'Only a rug kept at your Giza stall can be sent.';
-          if (keptBack(s, item)) return KEPT_BACK_NOTE;
+          if (keptBack(s, item)) return keptNote(item);
           const egypt = settlementById(sid).region === 'Egypt';
           const fee = (egypt ? RAIL_FEE.egypt : RAIL_FEE.abroad) + telegramFee(at, 'giza');
           if (s.cash < fee) return `The wire and the freight come to ${fmt(fee)}.`;

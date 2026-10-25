@@ -197,6 +197,7 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
         {sc.sky && <StallSky scene={sc.id} />}
         <StallSign sc={sc} />
         <StallProps sc={sc} />
+        <FramedCarpets />
         {/* The base stall body is always painted, so he always shows dressed in whatever pieces
             already have a stall-pose layer; a piece without one yet just doesn't draw (see
             HeroFigure), rather than reverting the whole figure to a fixed picture. */}
@@ -585,6 +586,25 @@ function StallRadio({ at, hide }: { at: Anchor; hide?: boolean }) {
       </button>
       {/* the greeting and the date first: straight to the news */}
       {on && line < news && <button className="stall-radio-skip" onClick={(e) => { e.stopPropagation(); play(lang, news); }} data-testid="stall-radio-skip">News ⏭</button>}
+    </>
+  );
+}
+
+/** Your own carpets, framed and hung from the stall's beam: trophies the buyers look up at. */
+function FramedCarpets() {
+  const framed = useGame((s) => s.inventory.filter((i) => i.framed));
+  if (!framed.length) return null;
+  return (
+    <>
+      {framed.slice(0, 2).map((i, k) => {
+        const t = RUGS[i.typeId];
+        if (!t) return null;
+        return (
+          <figure key={i.uid} className={`framed-carpet f${k}`} data-testid="framed-carpet" aria-label={`${t.name}, your own design, framed`}>
+            <img src={rugThumb(t)} alt="" draggable={false} />
+          </figure>
+        );
+      })}
     </>
   );
 }

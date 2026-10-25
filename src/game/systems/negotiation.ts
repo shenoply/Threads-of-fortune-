@@ -373,6 +373,12 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     enc.trust = clamp(enc.trust + fx.trust, 0, 100);
   }
   enc.day = ctx.day;
+  // your own carpets framed on the wall: a buyer sees a merchant who makes, not only sells
+  const framed = ctx.inventory.filter((i) => i.framed).length;
+  if (framed) {
+    enc.interest = clamp(enc.interest + 4 * framed, 0, 100);
+    enc.trust = clamp(enc.trust + 2 * framed, 0, 100);
+  }
   const hl = lvl(ctx, 'haggling');
   enc.edge = {
     pay: 1 + hl * 0.004 + (perk(ctx, 'haggling', 15) ? 0.03 : 0) + (perk(ctx, 'appraisal', 20) && b.royal ? 0.05 : 0),
