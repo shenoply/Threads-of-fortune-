@@ -8,6 +8,9 @@ import { createPortal } from 'react-dom';
 import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
 import { RugViewer } from '../RugViewer/RugViewer';
+import { RUGS, RUG_IDS } from '../../data/rugs';
+import { rugSrc } from '../RugViewer/rugArt';
+import { useGame, SET_REWARD } from '../../game/state/store';
 import './reveal.css';
 
 export interface RevealItem {
@@ -15,6 +18,8 @@ export interface RevealItem {
   /** no unrolling: the thing is shown at once, laid flat */ instant?: boolean;
   /** money: the title counts up to it */ amount?: number;
   /** a rug now in your stock: a button opens it in the inspector to turn over and look at */ uid?: string;
+  /** the rug's tier: its name in the tier's colour */ tier?: 1 | 2 | 3 | 4;
+  /** the sun behind it: something new to your collection */ sun?: boolean;
 }
 
 let push: ((it: RevealItem) => void) | null = null;
@@ -57,7 +62,21 @@ export function RevealHost() {
   useEffect(() => {
     push = (it) => setQueue((q) => [...q, it]);
     if (waiting.length) setQueue((q) => [...q, ...waiting.splice(0)]);
-    return () => { push = null; };
+    // a carpet new to the Register: the sun behind it, its tier in colour, how far the collection has come
+    const TIER = ['', 'Everyday rug', 'Trade rug', 'City carpet', 'Treasure'];
+    const SET = ['', 'everyday rugs', 'trade rugs', 'city carpets', 'treasures'];
+    const onNew = (e: Event) => {
+      const { ids, sets } = (e as CustomEvent<{ ids: string[]; sets: number[] }>).detail;
+      const reg = useGame.getState().register ?? [];
+      const have = RUG_IDS.filter((id) => reg.includes(id)).length;
+      for (const id of ids) {
+        const t = RUGS[id]; if (!t) continue;
+        reveal({ kicker: 'New to your collection', title: t.name, tier: t.tier ?? 1, sun: true, instant: true, pic: rugSrc(t), picKind: 'rug', line: `${TIER[t.tier ?? 1]} · worth ${fmt(t.valueBand[0])}–${fmt(t.valueBand[1])} · ${have} of ${RUG_IDS.length} collected` });
+      }
+      for (const tier of sets) reveal({ kicker: 'A full set', title: `Every one of the ${SET[tier]}`, sun: true, tier: tier as 1 | 2 | 3 | 4, amount: SET_REWARD[tier].cash, line: `+${SET_REWARD[tier].rep} reputation. The trade talks of your Register.` });
+    };
+    window.addEventListener('tof:new-carpet', onNew);
+    return () => { push = null; window.removeEventListener('tof:new-carpet', onNew); };
   }, []);
   const cur = queue[0];
   useEffect(() => {
@@ -80,9 +99,10 @@ export function RevealHost() {
   };
   const counting = !!cur.amount && stage === 'open';
   return createPortal(
-    <div className={`reveal ${stage} ${cur.instant ? 'instant' : 'unroll'}`} onClick={tap} role="dialog" aria-label={`${cur.kicker}: ${cur.title}`} data-testid="reveal">
+    <div className={`reveal ${stage} ${cur.instant ? 'instant' : 'unroll'}${cur.sun ? ' sun' : ''}${cur.tier ? ` tier-${cur.tier}` : ''}`} onClick={tap} role="dialog" aria-label={`${cur.kicker}: ${cur.title}`} data-testid="reveal">
       <div className="reveal-stage">
         <div className="reveal-rays" aria-hidden="true" />
+        {cur.sun && <div className="reveal-sun" aria-hidden="true" />}
         {!cur.instant && (
           <div className="rv-rug" aria-hidden="true">
             <span className="rv-rug-flat" style={{ backgroundImage: `url(${WRAP})` }} />
@@ -92,7 +112,7 @@ export function RevealHost() {
         <div className="reveal-card">
           {cur.pic && <span className={`reveal-pic ${cur.picKind ?? 'photo'}`}><img src={cur.pic} alt="" /></span>}
           <small>{cur.kicker}</small>
-          <b className={cur.amount ? 'rv-money' : ''}>{cur.amount ? <CountUp to={cur.amount} run={counting} /> : cur.title}</b>
+          <b className={`${cur.amount ? 'rv-money' : ''}${cur.tier ? ` t-tier-${cur.tier}` : ''}`}>{cur.amount ? <CountUp to={cur.amount} run={counting} /> : cur.title}</b>
           {cur.line && <span>{cur.line}</span>}
           {cur.uid && stage === 'done' && (
             <button className="btn rv-look" onClick={(e) => { e.stopPropagation(); audio.sfx('tap'); setLook(cur.uid!); setQueue((q) => q.slice(1)); }} data-testid="reveal-look">Look at it</button>

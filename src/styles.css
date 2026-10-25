@@ -3428,3 +3428,10 @@ body.travelling .world-hud { display: none; }
 
 /* the stall's animated loops (Saffron breathing, the record turning) sit over their stills */
 @media (prefers-reduced-motion: reduce) { .stall-anim { display: none; } }
+
+/* rug tiers by colour, everywhere a rug's name is shown: everyday parchment, trade green, city blue, treasure gold */
+:root { --tier1: #e9dcc0; --tier2: #9fd57a; --tier3: #7cc0ff; --tier4: #ffc94d; }
+.t-tier-1 { color: var(--tier1) !important; }
+.t-tier-2 { color: var(--tier2) !important; }
+.t-tier-3 { color: var(--tier3) !important; }
+.t-tier-4 { color: var(--tier4) !important; text-shadow: 0 0 10px rgba(255, 201, 77, .35); }

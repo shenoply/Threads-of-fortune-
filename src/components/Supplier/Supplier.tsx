@@ -122,7 +122,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
               </div>
               <div className="body">
                 <div className="row1">
-                  <h3>{t.name}{(o.qty ?? 1) > 1 && <span className="qty" data-testid="offer-qty"> ×{o.qty}</span>}</h3>
+                  <h3 className={`t-tier-${t.tier ?? 1}`}>{t.name}{(o.qty ?? 1) > 1 && <span className="qty" data-testid="offer-qty"> ×{o.qty}</span>}</h3>
                   <span className="price" data-testid="offer-price">{fmt(o.price)}</span>
                 </div>
                 <div className="meta">{t.origin} · {t.material} · {t.age} · {o.condition}</div>

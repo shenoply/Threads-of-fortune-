@@ -6,9 +6,6 @@ import { useGame } from './state/store';
 import { audio } from './audio/engine';
 import { BIG_SALE, floatSale, saleMoment, stampOn, starTick, trackTaps } from './feel';
 import { MAIN_ORDER } from '../data/missions';
-import { RUGS } from '../data/rugs';
-import { rugSrc } from '../components/RugViewer/rugArt';
-import { reveal } from '../components/Reveal/Reveal';
 
 type S = ReturnType<typeof useGame.getState>;
 /** a jump bigger than this (a load, a new game, a save's quiet catch-up) is not one moment */
@@ -72,12 +69,7 @@ export function installRewards() {
       if (won > 0) floatSale(won, 'won');
     }
 
-    // ---- a rug new to the Carpet Register ----
-    const r0 = p.register ?? [], r1 = s.register ?? [];
-    if (r1.length > r0.length && r1.length - r0.length <= 2) {
-      const fresh = r1.filter((id) => !r0.includes(id));
-      fresh.forEach((id, i) => { const t = RUGS[id]; if (t) window.setTimeout(() => reveal({ kicker: 'New for your Carpet Register', title: t.name, line: `${t.origin.split(',')[0]} · ${t.tier === 4 ? 'a treasure' : `tier ${['', 'I', 'II', 'III'][t.tier ?? 1]}`}`, pic: rugSrc(t), picKind: 'rug', instant: true }), 250 + i * 200); });
-    }
+    // (a rug new to the Carpet Register is shown by the Reveal host itself, with the sun behind it: Reveal.tsx)
 
     // ---- a mission or goal finished ----
     const done = Object.keys(s.missions ?? {}).filter((id) => s.missions[id] === 'done' && p.missions?.[id] !== 'done');

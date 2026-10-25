@@ -56,7 +56,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                 <img src={rugThumb(t)} alt="" style={i.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
               </button>
               <div>
-                <h3>{names[i.uid] ?? t.name}</h3>
+                <h3 className={`t-tier-${t.tier ?? 1}`}>{names[i.uid] ?? t.name}</h3>
                 <div className="meta">
                   {i.restoringUntil ? (
                     <span className="cond restoring" data-testid="restoring">{i.condition === 'Dirty' ? `Drying in the courtyard until day ${i.restoringUntil}` : `At the restorer until day ${i.restoringUntil}`}</span>

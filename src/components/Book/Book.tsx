@@ -3,7 +3,7 @@
 // on where to find it. Each entry opens the full card (the rug viewer, the buyer's card, the town).
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useGame } from '../../game/state/store';
+import { useGame, SET_REWARD } from '../../game/state/store';
 import { RUGS, RUG_IDS } from '../../data/rugs';
 import { BUYERS, CELEB_IDS } from '../../data/buyers';
 import { SETTLEMENTS } from '../../data/world';
@@ -56,23 +56,34 @@ export function Book() {
         ))}
       </div>
 
-      {part === 'carpets' && [1, 2, 3, 4].map((tier) => (
-        <section key={tier} className="book-sec">
-          <h4>{TIER_NAME[tier]} <small>{RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier && reg.includes(id)).length} of {RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier).length}</small></h4>
+      {part === 'carpets' && [1, 2, 3, 4].map((tier) => {
+        const ids = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier);
+        const have = ids.filter((id) => reg.includes(id)).length;
+        const full = (g.collectSets ?? []).includes(tier);
+        return (
+        <section key={tier} className={`book-sec tier-sec tier-${tier}`}>
+          <h4><span className={`t-tier-${tier}`}>{TIER_NAME[tier]}</span> <small>{have} of {ids.length}</small></h4>
+          {/* the set's reward, so every new carpet is a step towards something */}
+          <div className={`book-set ${full ? 'full' : ''}`} data-testid={`set-${tier}`}>
+            <i><em style={{ width: `${(have / Math.max(1, ids.length)) * 100}%` }} /></i>
+            <span>{full ? 'Set complete ✓' : `Complete the set: ${fmt(SET_REWARD[tier].cash)} and +${SET_REWARD[tier].rep} reputation`}</span>
+          </div>
           <div className="book-grid rugs">
-            {RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier).map((id) => {
+            {ids.map((id) => {
               const t = RUGS[id], got = reg.includes(id);
               return (
-                <button key={id} className={`book-card ${got ? 'got' : 'not'} ${tier === 4 ? 'treasure' : ''}`} onClick={() => { audio.sfx('tap'); setRug(id); }} data-testid={`reg-${id}`}>
-                  <span className="book-pic"><img src={rugThumb(t)} alt="" loading="lazy" /></span>
-                  <b>{got || tier < 4 ? t.name : 'A treasure'}</b>
-                  <small>{got ? t.origin.split(',')[0].split('/')[0].trim() : 'Not yet handled'}</small>
+                <button key={id} className={`book-card ${got ? 'got' : 'not'} tier-${tier}`} onClick={() => { audio.sfx('tap'); setRug(id); }} data-testid={`reg-${id}`}>
+                  <span className="book-pic"><img src={rugThumb(t)} alt="" loading="lazy" />{!got && <span className="book-want">To find</span>}</span>
+                  <b className={`t-tier-${tier}`}>{t.name}</b>
+                  <small>{fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}{got ? ` · ${t.origin.split(',')[0].split('/')[0].trim()}` : ''}</small>
+                  {!got && <small className="book-where">{sourcesOf(id)}</small>}
                 </button>
               );
             })}
           </div>
         </section>
-      ))}
+        );
+      })}
 
       {part === 'people' && (
         [['Buyers at the stall', people.filter((id) => !BUYERS[id].royal && !CELEB_IDS.includes(id))], ['Famous buyers', people.filter((id) => CELEB_IDS.includes(id))], ['At court', people.filter((id) => BUYERS[id].royal)]] as [string, string[]][]

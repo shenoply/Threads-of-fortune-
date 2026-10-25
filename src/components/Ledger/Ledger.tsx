@@ -58,6 +58,7 @@ export function Fortune() {
   const have = RUG_IDS.filter((id) => reg.includes(id)).length;
   return (
     <>
+      <Book />
       <Fold id="pr-house" testid="fortune" title={house.done ? 'The House of Fortune stands.' : 'The House of Fortune'} gist={`${house.parts.filter((p) => p.done).length} of ${house.parts.length}`}>
         <div className="house">
           <small>{house.done ? 'Your name is over a door in Khan el-Khalili, and kings know it.' : 'The life\'s work of a carpet merchant. All four, at once.'}</small>
@@ -71,8 +72,6 @@ export function Fortune() {
 
       <ShopsFold />
       <RanksFold />
-
-      <Book />
     </>
   );
 }

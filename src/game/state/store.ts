@@ -167,6 +167,8 @@ export interface GameState {
   court: { last: Record<string, number>; warrants: string[] };
   /** Every kind of rug that has passed through your hands: the Carpet Register. */
   register: string[];
+  /** the tiers of the Carpet Register filled in full, and paid for (1..4) */
+  collectSets?: number[];
   /** main missions: active or done */
   missions: Record<string, 'active' | 'done'>;
   /** skills rise by doing; XP per skill */
@@ -5004,15 +5006,28 @@ useGame.subscribe(syncCondition);
 // worn out to the bone in a town: he goes down in the street
 useGame.subscribe((s) => { if (s.started && !s.ended && !s.rescue && (!s.sim || s.sim.needs || s.ironman) && s.world.at && (s.condition?.fatigue ?? 0) >= 96) queueMicrotask(() => useGame.getState().collapse('exhaustion')); });
 
-// Every rug that comes into stock is entered in the Carpet Register.
+// Every rug that comes into stock is entered in the Carpet Register. A carpet new to you is shown
+// with the sun behind it; a tier filled in full pays a reward, once.
+export const SET_REWARD: Record<number, { cash: number; rep: number }> = { 1: { cash: 1500, rep: 2 }, 2: { cash: 4000, rep: 3 }, 3: { cash: 12000, rep: 5 }, 4: { cash: 40000, rep: 10 } };
 useGame.subscribe((s) => {
   const reg = s.register ?? [];
-  const fresh = [...new Set(s.inventory.map((i) => i.typeId).filter((id) => !reg.includes(id)))];
+  const fresh = [...new Set(s.inventory.map((i) => i.typeId).filter((id) => !reg.includes(id) && RUGS[id]))];
   if (!fresh.length) return;
+  const next = [...reg, ...fresh];
+  const sets = s.collectSets ?? [];
+  const done: number[] = [];
+  for (const tier of [1, 2, 3, 4]) {
+    const all = Object.values(RUGS).filter((r) => !r.own && (r.tier ?? 1) === tier).map((r) => r.id);
+    if (all.length && !sets.includes(tier) && all.every((id) => next.includes(id))) done.push(tier);
+  }
+  const pay = done.reduce((a, t) => a + SET_REWARD[t].cash, 0), rep = done.reduce((a, t) => a + SET_REWARD[t].rep, 0);
   useGame.setState({
-    register: [...reg, ...fresh],
-    journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Entered the ${RUGS[id].name} in the Carpet Register (${RUGS[id].tier === 4 ? 'a treasure' : `tier ${RUGS[id].tier ?? 1}`}).` }))],
+    register: next,
+    ...(done.length ? { collectSets: [...sets, ...done], cash: s.cash + pay, reputation: s.reputation + rep, ledger: [...s.ledger, ...done.map((t) => ({ day: s.day, kind: 'bonus' as const, label: `A full set in the Carpet Register (tier ${t})`, amount: SET_REWARD[t].cash }))] } : {}),
+    journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Entered the ${RUGS[id].name} in the Carpet Register (${RUGS[id].tier === 4 ? 'a treasure' : `tier ${RUGS[id].tier ?? 1}`}).` })), ...done.map((t) => ({ day: s.day, text: `Every carpet of tier ${t} is in your Register now. The trade talks of it.` }))],
   });
+  // shown once the game is under way (not the rugs you start with)
+  if (s.started && typeof window !== 'undefined') window.setTimeout(() => window.dispatchEvent(new CustomEvent('tof:new-carpet', { detail: { ids: fresh.filter((id) => !RUGS[id].own), sets: done } })), 900);
 });
 
 // the seasons: sea routes read the day without the store, and a khamsin leaves sand in rugs left out

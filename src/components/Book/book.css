@@ -43,3 +43,21 @@
 .book-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; }
 .book-card .book-pic, .book-card .book-face { flex: none; }
 .book-pic img { position: absolute; inset: 0; max-width: 100%; }
+
+/* every carpet in plain view, owned or not: the ones to find are a touch dimmer, with where they turn up */
+.book-card.not .book-pic img { filter: saturate(.55) brightness(.72); }
+.book-card.not b { opacity: .85; }
+.book-want { position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 8px; background: rgba(12,8,4,.75); color: #e9dcc0; font: 600 10.5px/1.4 var(--label); letter-spacing: .08em; text-transform: uppercase; }
+.book-where { font-size: 11px !important; opacity: .8; }
+.book-card.tier-2.got { border-color: rgba(159,213,122,.55); }
+.book-card.tier-3.got { border-color: rgba(124,192,255,.6); }
+.book-card.tier-4 { border-color: rgba(255,201,77,.45); }
+.book-card.tier-4.got { border-color: var(--tier4); box-shadow: 0 0 14px rgba(255,201,77,.35); }
+.book-set { display: flex; flex-direction: column; gap: 4px; margin: 2px 0 8px; }
+.book-set i { display: block; height: 6px; border-radius: 3px; background: #2a1c10; overflow: hidden; }
+.book-set em { display: block; height: 100%; background: linear-gradient(90deg, #8a6a2a, #e8c05a); }
+.tier-sec.tier-2 .book-set em { background: linear-gradient(90deg, #4f7a2e, var(--tier2)); }
+.tier-sec.tier-3 .book-set em { background: linear-gradient(90deg, #2f5f8f, var(--tier3)); }
+.tier-sec.tier-4 .book-set em { background: linear-gradient(90deg, #a07a20, var(--tier4)); }
+.book-set span { font-size: 13px; color: var(--text-dim); }
+.book-set.full span { color: var(--tier2); }

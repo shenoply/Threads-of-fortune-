@@ -335,7 +335,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 </span>
               )}
               {isP && <span className="hint">Inspect</span>}
-              <span className="nm">{names[it.uid] ?? t.name}</span>
+              <span className={`nm t-tier-${t.tier ?? 1}`}>{names[it.uid] ?? t.name}</span>
               <span className="val" data-testid="rugcard-value">≈ {fmt(typicalSale(it))}</span>
               <span className="meta">
                 {t.origin.split(',')[0].replace('Said to be ', '')} · {t.material.split(' ')[0]} · {t.age}

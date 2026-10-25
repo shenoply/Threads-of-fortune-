@@ -60,7 +60,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
     <div ref={box} className="overlay" role="dialog" aria-modal="true" aria-label={`Inspecting ${t.name}`} data-testid="inspector">
       <div className="overlay-head">
         <div>
-          <h2>{t.name}</h2>
+          <h2 className={`t-tier-${t.tier ?? 1}`}>{t.name}</h2>
           <div className="sub">
             {t.origin} · {t.material} · {t.age} · {t.size}
           </div>

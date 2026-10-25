@@ -91,3 +91,18 @@
 .reveal-pic.prop img { object-fit: contain; padding: 10px; box-sizing: border-box; }
 .rv-look { display: block; margin: 10px auto 2px; min-width: 150px; }
 .reveal-look { z-index: 1200; }
+
+/* something new to the collection: slow sunrays turning behind it, in its tier's colour */
+.reveal-sun { position: absolute; left: 50%; top: 40%; width: 520px; height: 520px; margin: -260px 0 0 -260px; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, var(--sun, rgba(255, 214, 140, .28)) 0deg 7deg, transparent 7deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%); mask: radial-gradient(circle, #000 18%, transparent 68%);
+  animation: rv-sun 14s linear infinite, rv-sun-in .7s ease-out both; }
+@keyframes rv-sun { to { transform: rotate(360deg); } }
+@keyframes rv-sun-in { from { opacity: 0; transform: scale(.5); } }
+.reveal.tier-2 { --sun: rgba(159, 213, 122, .26); }
+.reveal.tier-3 { --sun: rgba(124, 192, 255, .28); }
+.reveal.tier-4 { --sun: rgba(255, 201, 77, .4); }
+.reveal.tier-2 .reveal-pic { box-shadow: 0 8px 26px rgba(0,0,0,.6), 0 0 0 2px var(--tier2), 0 0 24px rgba(159,213,122,.45); }
+.reveal.tier-3 .reveal-pic { box-shadow: 0 8px 26px rgba(0,0,0,.6), 0 0 0 2px var(--tier3), 0 0 24px rgba(124,192,255,.45); }
+.reveal.tier-4 .reveal-pic { box-shadow: 0 8px 26px rgba(0,0,0,.6), 0 0 0 2px var(--tier4), 0 0 34px rgba(255,201,77,.6); }
+@media (prefers-reduced-motion: reduce) { .reveal-sun { animation: none; } }
