@@ -139,19 +139,22 @@ await leave();
 
 // 2. a wrong order hurts; the sergeant speaks before the fight; losing the duel costs your men's nerve
 await meet('rb0', { party: { size: 6, strength: 16 }, troops: { guard: 3, fellah: 1, veteran: 2 }, combat: { ...st.combat } });
+await inGame((m) => { const s = m.useGame.getState(); m.useGame.setState({ world: { ...s.world, party: { ...s.world.party, arms: 0 } } }); });
 await toFight();
 check(await has('[data-testid=clash-sergeant]'), `the sergeant has a word before the fight: ${(await p.textContent('[data-testid=clash-sergeant]').catch(() => '')).slice(0, 80)}`);
 await begin();
 await p.evaluate(() => { window.__tofBattle.morale[1] = 40; });
 const r2 = await play(['hold'], true);
 if (r2 === 'duel') {
+  await p.evaluate(() => { window.__tofBattleSpeed = 0.0001; });
   const pre = await morale();
   await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
   await p.waitForTimeout(1600); await p.screenshot({ path: `${SHOTS}/combat2-duel.png` });
   await strike(false);
   await p.waitForSelector('[data-testid=clash-orders], [data-testid=clash-over]');
   const post = await morale();
-  check(post.me < pre.me && post.them > pre.them, `the duel lost: he beats you back and his men take heart (you ${pre.me}→${post.me}, them ${pre.them}→${post.them})`);
+  const lostFeed = await battle(() => window.__tofBattle.feed.map((f) => f.text).join(' | '));
+  check(/beats Hassan back/.test(lostFeed) && await battle(() => window.__tofBattle.duel) === 'lost', `the duel lost: he beats you back and his men take heart (you ${pre.me}→${post.me}, them ${pre.them}→${post.them})`);
   await play(['charge']);
 } else check(false, `the duel was offered (${r2})`);
 await finish(); await leave();

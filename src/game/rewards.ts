@@ -24,7 +24,9 @@ export function installRewards() {
     window.setTimeout(() => { if (audio.lastSfxAt === before) audio.sfx('tap'); }, 0);
   }, true);
   trackTaps();
-  let prev: S = useGame.getState();
+  /** fine deals (three stars) in a row */
+let streak = 0;
+let prev: S = useGame.getState();
   useGame.subscribe(() => {
     // the state as it is now, not as this call was told: a watcher in the store that sets state from
     // inside its own call (a mission finishing) runs this again first, and the older call must not undo it
@@ -60,9 +62,14 @@ export function installRewards() {
         const hit = Object.keys(marks).map(Number).find((m) => before.length < m && n >= m);
         const dayHit = [3, 5, 8].find((m) => today - mine.length < m && today >= m);
         const mark = hit ? marks[hit] : dayHit ? `${dayHit === 3 ? 'Three' : dayHit === 5 ? 'Five' : 'Eight'} sales today` : '';
-        const note = mark || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : '');
-        audio.sfx(record || mark ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
-        saleMoment(sold, note, record || !!mark || sold >= BIG_SALE);
+        // the deal, rated: one star for a sale, two for a good one, three for a fine one (three in a row is a streak)
+        const stars = cost <= 0 ? 2 : pct >= 75 ? 3 : pct >= 25 ? 2 : 1;
+        streak = stars === 3 ? streak + 1 : 0;
+        const hot = streak >= 3 ? `A streak: ${streak} fine deals in a row` : '';
+        if (streak >= 3) queueMicrotask(() => useGame.setState((st) => ({ reputation: st.reputation + 1 })));
+        const note = mark || hot || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : pct < 0 ? 'Under what it cost you' : '');
+        audio.sfx(record || mark || stars === 3 ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
+        saleMoment(sold, note, record || !!mark || sold >= BIG_SALE || stars === 3, stars);
         floatSale(sold);
       }
       const won = fresh.filter((l) => l.kind === 'purchase' && /^Auction:/.test(l.label)).reduce((a, l) => a + (l.cost ?? -l.amount), 0);

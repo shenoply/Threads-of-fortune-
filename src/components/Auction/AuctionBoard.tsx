@@ -1,6 +1,8 @@
 import { AUCTION_HOUSES } from '../../data/auctionHouses';
 import { Icon } from '../Icon';
-import { nextSale, saleEnd, art } from '../../game/auction/sessions';
+import { nextSale, saleEnd, art, catalogue } from '../../game/auction/sessions';
+import { RUGS } from '../../data/rugs';
+import { rugThumb } from '../RugViewer/rugArt';
 import { dateLabel } from './Auction';
 import { useGame } from '../../game/state/store';
 import { settlementById, findPath, pathDays, railJourney, seaRoutesFrom, motorRoutesFrom, PX_PER_DAY } from '../../game/systems/world';
@@ -37,6 +39,8 @@ export function AuctionBoard({ onClose, onMap }: { onClose: () => void; onMap: (
   const w = useGame((s) => s.world);
   const inv = useGame((s) => s.inventory);
   const cash = useGame((s) => s.cash);
+  const reg = useGame((s) => s.register) ?? [];
+  const reoffers = useGame((s) => s.reoffers) ?? [];
   const pace = (() => { try { return speedInfo(w.party, inv).pxPerDay; } catch { return PX_PER_DAY; } })();
   const rows = AUCTION_HOUSES.map((h) => {
     const d = nextSale(h.id, day);
@@ -45,7 +49,13 @@ export function AuctionBoard({ onClose, onMap }: { onClose: () => void; onMap: (
     const trip = way?.days ?? null;
     // the day you would walk in, counting from the hour it is now
     const arrive = trip == null ? null : day + Math.floor(w.hour / 24 + trip);
-    return { h, d, end, way, trip, arrive, inTime: arrive != null && arrive <= end };
+    // what is coming up in the sale room: its best lots, and how many are carpets you have never had
+    const lots = catalogue(h.id, d, reoffers);
+    const ids = [...new Set(lots.flatMap((l) => l.typeIds))];
+    const fresh = ids.filter((id) => !reg.includes(id));
+    const stars = [...lots].sort((a, b) => b.value - a.value).slice(0, 3);
+    const top = Math.max(...ids.map((id) => RUGS[id]?.tier ?? 1));
+    return { h, d, end, way, trip, arrive, inTime: arrive != null && arrive <= end, fresh, stars, top };
   })
     .sort((a, b) => Number(b.inTime) - Number(a.inTime) || a.d - b.d)
     .slice(0, 8);
@@ -55,7 +65,7 @@ export function AuctionBoard({ onClose, onMap }: { onClose: () => void; onMap: (
         <div className="big-card-head"><h2><Icon name="scale" /> Auctions</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="board-close">⟵ Back</button></div>
         <p className="board-lead">Sit in to learn what rugs really fetch, or bid to buy stock cheap. A sale stays open for a few days, so you can travel to it.</p>
         <div className="board-rows">
-          {rows.map(({ h, d, end, way, trip, arrive, inTime }) => {
+          {rows.map(({ h, d, end, way, trip, arrive, inTime, fresh, stars, top }) => {
             const on = d <= day;
             const when = on ? `ON NOW · until ${end === day ? 'tonight' : dateLabel(end)}` : `${d - day === 1 ? 'Tomorrow' : `${dateLabel(d)} · in ${d - day} days`} · until ${dateLabel(end)}`;
             const away = !way ? '' : `${HOW[way.how]}${way.fare ? ` (${fmt(way.fare)})` : ''}, ${trip! < 1 ? 'a few hours' : `${Math.ceil(trip!)} day${Math.ceil(trip!) === 1 ? '' : 's'}`}`;
@@ -63,7 +73,12 @@ export function AuctionBoard({ onClose, onMap }: { onClose: () => void; onMap: (
             return (
               <div key={h.id} className={`board-row ab-row ${on ? 'today' : ''} ${inTime ? '' : 'is-far'}`} data-testid={`board-row-${h.id}`} data-in-time={inTime}>
                 <img src={art(h.venueMap)} alt="" />
-                <span className="ab-text"><b>{h.displayName}</b><em className="ab-when">{when}</em><small>{settlementById(h.city)?.name ?? h.city} · {h.tier === 'grand' ? 'Grand estate sale' : 'Dealers\' auction'}</small><small className="board-reach">{reach}</small></span>
+                <span className="ab-text"><b>{h.displayName}</b><em className="ab-when">{when}</em><small>{settlementById(h.city)?.name ?? h.city} · {h.tier === 'grand' ? 'Grand estate sale' : 'Dealers\' auction'}</small><small className="board-reach">{reach}</small>
+                  <span className="ab-lots" data-testid={`board-lots-${h.id}`}>
+                    {stars.map((l) => { const t = RUGS[l.typeIds[0]]; if (!t) return null; return <i key={l.key} className={`ab-lot tier-${t.tier ?? 1}`} title={t.name}><img src={rugThumb(t)} alt="" loading="lazy" />{!reg.includes(t.id) && <u>new</u>}</i>; })}
+                    <em className={`ab-why t-tier-${top}`}>{top === 4 ? 'A treasure in the sale' : top === 3 ? 'City carpets in the sale' : 'Trade stock, cheap'}{fresh.length ? ` · ${fresh.length} new to your collection` : ''}</em>
+                  </span>
+                </span>
                 {trip === 0 ? (
                   <button className="btn small board-go" onClick={() => { onClose(); planTrip(h.city); }} data-testid={`board-go-${h.id}`}>Go to the sale room</button>
                 ) : inTime && way ? (

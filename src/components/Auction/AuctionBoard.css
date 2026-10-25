@@ -5,3 +5,11 @@
 .board-row.ab-row .ab-text b { overflow-wrap: break-word; line-height: 1.2; }
 .board-row.ab-row .ab-when { text-align: left; font-size: 14.5px; margin: 2px 0; }
 .board-row.ab-row .board-go { grid-column: 1 / -1; width: 100%; }
+
+/* what each sale holds: its best lots as small pictures, and why it is worth the trip */
+.ab-lots { display: flex; align-items: center; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+.ab-lot { position: relative; width: 34px; height: 46px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(233,220,192,.5); }
+.ab-lot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ab-lot.tier-2 { border-color: var(--tier2); } .ab-lot.tier-3 { border-color: var(--tier3); } .ab-lot.tier-4 { border-color: var(--tier4); box-shadow: 0 0 8px rgba(255,201,77,.5); }
+.ab-lot u { position: absolute; left: 0; right: 0; bottom: 0; text-decoration: none; text-align: center; background: rgba(12,8,4,.8); color: #ffd27a; font: 700 9px/1.4 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.ab-why { font-style: normal; font-size: 12.5px; font-weight: 600; }

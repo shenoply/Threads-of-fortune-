@@ -257,7 +257,8 @@ export function wtp(enc: Encounter, item: RugItem): number {
     const f = 0.82 + 0.12 * (enc.interest / 100) + 0.1 * ((enc.trust - 50) / 50);
     return Math.round(Math.min(cap, a.ceiling, a.ceiling * f));
   }
-  const factor = 0.72 + 0.45 * (enc.interest / 100) + 0.15 * ((enc.trust - 50) / 50);
+  // what they will pay leans hard on how much they want it: the right rug, well shown, to the right buyer
+  const factor = 0.64 + 0.58 * (enc.interest / 100) + 0.15 * ((enc.trust - 50) / 50);
   let v = perceivedValue(t, item) * factor;
   if (enc.embellished && !enc.embellishCaught) v *= 1 + (enc.lieBoost ?? 0.12);
   if (enc.sweetened) v *= 1.08;
@@ -272,7 +273,8 @@ export function wtp(enc: Encounter, item: RugItem): number {
 
 /** A Common rug sold without the haggling: a fair price, a little under what patience would win. */
 export function quickPrice(enc: Encounter, item: RugItem) {
-  return Math.max(5, snapDown(Math.max(wtp(enc, item) * 0.85, enc.buyerOffer ?? 0)));
+  // quick costs you: well under what talking it through would win (the stars go to the haggle)
+  return Math.max(5, snapDown(Math.max(wtp(enc, item) * 0.74, enc.buyerOffer ?? 0)));
 }
 /** Whether a quick sale is on offer now. */
 export function canQuickSell(enc: Encounter | null | undefined, item: RugItem | undefined) {

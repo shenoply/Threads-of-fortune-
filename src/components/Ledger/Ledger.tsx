@@ -1,4 +1,5 @@
 import { Book } from '../Book/Book';
+import { auctionable } from '../../game/storyRugs';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { BUYERS, LISTED_BUYERS as BUYER_ORDER } from '../../data/buyers';
@@ -25,6 +26,7 @@ export function sourcesOf(id: string) {
   const r = RASHID_POOL.find((p) => p.typeId === id);
   if (r) out.push(`Rashid${r.minRep ? ` (rep ${r.minRep})` : ''}`);
   for (const st of SETTLEMENTS) for (const o of st.sells) if (o.typeId === id) out.push(`${st.name}${o.minRep ? ` (rep ${o.minRep})` : ''}${o.chance ? ', some days' : ''}`);
+  if (auctionable(id)) out.push((RUGS[id]?.tier ?? 1) >= 3 ? 'the grand auctions' : 'auctions');
   return out.length ? out.join(' · ') : 'Only by chance on the road';
 }
 

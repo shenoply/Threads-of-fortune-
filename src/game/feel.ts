@@ -320,7 +320,7 @@ export function starTick(delta = 1, sel = '[data-testid="hud-rep"]') {
 /** The moment of a sale, over the stall picture for about two seconds: a brass ribbon with the price
  *  and what it means (a record, the profit on cost), and a handful of coins flying from it into the
  *  purse in the top bar. It takes no tap and covers nothing for long. `note` is a line under the price. */
-export function saleMoment(amount: number, note: string, grand: boolean) {
+export function saleMoment(amount: number, note: string, grand: boolean, stars = 0) {
   if (!hasWindow || amount <= 0) return;
   const scene = visibleRect(document.querySelector('.stall > .scene, [data-testid="scene"]'));
   const W = window.innerWidth;
@@ -332,6 +332,7 @@ export function saleMoment(amount: number, note: string, grand: boolean) {
   const b = document.createElement('b');
   b.textContent = `Sold · ${fmt(amount)}`;
   el.appendChild(b);
+  if (stars) { const st = document.createElement('i'); st.className = `ff-stars s${stars}`; st.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars); el.appendChild(st); }
   if (note) { const s = document.createElement('span'); s.textContent = note; el.appendChild(s); }
   drop(el, x, y, grand ? 2150 : 1900);
   // the stall picture can be wider than the screen: keep the whole ribbon on it
