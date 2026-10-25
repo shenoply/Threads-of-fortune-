@@ -320,14 +320,14 @@ export function starTick(delta = 1, sel = '[data-testid="hud-rep"]') {
 /** The moment of a sale, over the stall picture for about two seconds: a brass ribbon with the price
  *  and what it means (a record, the profit on cost), and a handful of coins flying from it into the
  *  purse in the top bar. It takes no tap and covers nothing for long. `note` is a line under the price. */
-export function saleMoment(amount: number, note: string, grand: boolean, stars = 0) {
+export function saleMoment(amount: number, note: string, grand: boolean, stars = 0, loss = false) {
   if (!hasWindow || amount <= 0) return;
   const scene = visibleRect(document.querySelector('.stall > .scene, [data-testid="scene"]'));
   const W = window.innerWidth;
   const x = scene ? scene.left + scene.width / 2 : W / 2;
   const y = scene ? scene.top + Math.min(scene.height * 0.38, 150) : 160;
   const el = document.createElement('div');
-  el.className = `ff-ribbon ${grand ? 'ff-grand' : ''}`;
+  el.className = `ff-ribbon ${grand ? 'ff-grand' : ''}${loss ? ' ff-loss' : ''}`;
   el.dataset.testid = 'sale-moment';
   const b = document.createElement('b');
   b.textContent = `Sold · ${fmt(amount)}`;
@@ -368,4 +368,16 @@ export function feat(title: string, line: string) {
   el.append(b, s);
   const hud = visibleRect(document.querySelector('.hud'));
   drop(el, window.innerWidth / 2, (hud ? hud.bottom : 50) + 34, 3200);
+}
+
+/** A fortune: a warm gold light sweeps in from the edges of the screen and the purse swells. */
+export function goldRush() {
+  if (!hasWindow || reducedMotion()) return;
+  const el = document.createElement('div');
+  el.className = 'ff-goldrush';
+  document.body.appendChild(el);
+  window.setTimeout(() => el.remove(), 1700);
+  const purse = document.querySelector('[data-testid="hud-cash"]');
+  purse?.classList.add('ff-swell');
+  window.setTimeout(() => purse?.classList.remove('ff-swell'), 1600);
 }

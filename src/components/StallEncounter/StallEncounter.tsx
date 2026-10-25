@@ -6,7 +6,7 @@ import { STALL_FILMS } from '../IntroFilm/films';
 import { RugPicker, rugNames, typicalSale, type BuyerTaste } from './RugPicker';
 import { openGuide } from '../Guide/Guide';
 import { BUYER_TIERS, CELEB_INFO } from '../../data/buyers';
-import { hasPerk } from '../../data/character';
+import { hasPerk, levelOf, type SkillId } from '../../data/character';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { stallFigure } from './stallArt';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
@@ -264,6 +264,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const net = enc?.saleCost !== undefined ? (enc.salePrice ?? 0) - enc.saleCost : null;
 
   return (
+    <>
+    {talking && <SkillsAtWork encId={enc!.id} buyerId={enc!.buyerId} />}
     <div ref={root} className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}${enc?.outcome ? ' has-result' : ''}`} data-testid="stall">
       {filmFor && createPortal(<IntroFilm id={filmFor} onDone={() => { useGame.getState().markIntroSeen(filmFor); setFilmDone(true); }} />, document.body)}
       {((enc && !enc.outcome && !enc.tutorial && !enc.venue) || (tut && enc && !enc.outcome)) && (
@@ -363,6 +365,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <div className={`offer-bar ${enc.finalOffered ? 'final' : ''}`} data-testid="offer-bar">
             {enc.askPrice ? <span>You ask <b>{fmt(enc.askPrice)}</b></span> : <span />}
             {enc.buyerOffer ? <span className="theirs" data-testid={enc.finalOffered ? 'final-offer' : undefined}>{enc.finalOffered ? 'Final offer' : `${buyer?.name.split(' ')[0] ?? 'They'} offers`} <b data-testid="offer-amount">{fmt(enc.buyerOffer)}</b></span> : <span className="theirs dim">No offer yet</span>}
+            {enc.limitRead ? <span className="limit" data-testid="limit-read">limit ≈ {fmt(enc.limitRead)}</span> : null}
             {/* what their offer means for you: the profit on what the rug cost, and the stars it would earn */}
             {presented && enc.buyerOffer ? (() => {
               const cost = presented.paid, gain = enc.buyerOffer - cost, pct = cost > 0 ? Math.round((gain / cost) * 100) : 100;
@@ -527,7 +530,30 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         />
       )}
     </div>
+    </>
   );
+}
+
+/** At the start of a visit, the perks you have earned that work on this buyer, said once, briefly. */
+function SkillsAtWork({ encId, buyerId }: { encId: string; buyerId: string }) {
+  const skills = useGame((s) => s.skills);
+  const [on, setOn] = useState<string[] | null>(null);
+  useEffect(() => {
+    const lv = (k: SkillId) => levelOf(skills?.[k] ?? 0);
+    const b = BUYERS[buyerId];
+    const out: string[] = [];
+    if (lv('speech') >= 15) out.push('Old Friend: they trust you more');
+    else if (lv('speech') >= 5) out.push('Silver Tongue: your arguments land harder');
+    if (lv('haggling') >= 15) out.push('The Last Piastre: they will go higher at the end');
+    else if (lv('haggling') >= 5) out.push('Market Ear: their first offers start higher');
+    if (lv('catkeeping') >= 10 && (b?.catAffinity ?? 0) > 0) out.push('Saffron charms them');
+    if (!out.length) return;
+    setOn(out);
+    const t = window.setTimeout(() => setOn(null), 3600);
+    return () => window.clearTimeout(t);
+  }, [encId]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!on) return null;
+  return <div className="skills-at-work" data-testid="skills-at-work">{on.map((x) => <span key={x}>✦ {x}</span>)}</div>;
 }
 
 /** After a buyer walks away from a rug they liked: put it aside for them (hidden from everyone else). */

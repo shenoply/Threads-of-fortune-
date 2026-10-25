@@ -793,7 +793,7 @@ export default function App() {
           <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
         </button>
         <div className="hud-stats">
-          <button className={`hud-chip ${cashFlash ? 'flash' : ''} ${cashT.dir > 0 ? 'ff-up' : cashT.dir < 0 ? 'ff-down' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
+          <button className={`hud-chip ${cashFlash ? 'flash' : ''} ${cashT.dir > 0 ? 'ff-up' : cashT.dir < 0 ? 'ff-down' : ''} ${g.cash < 300 ? 'purse-thin' : g.cash >= 20000 ? 'purse-fat' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
             <Icon name="coin" /><span className="ff-num">{cashT.shown >= 10000 ? `£${Math.floor(cashT.shown / 100).toLocaleString('en-GB')}` : fmt(cashT.shown)}</span>
           </button>
           {inDebt && <button className="hud-chip hud-debt" onClick={() => setFinance(true)} title="You owe money that is overdue" data-testid="hud-debt">Debts</button>}

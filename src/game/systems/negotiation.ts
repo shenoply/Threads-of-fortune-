@@ -28,7 +28,7 @@ export type ActionId =
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
   | 'm_charm' | 'm_kind' | 'm_firm'
   | 'lie_menu' | 'praise_menu' | 'patter_back' | `lie_${LieKind}` | `praise_${PraiseKind}`
-  | 'nabil_package' | 'disclose'
+  | 'nabil_package' | 'disclose' | 'final_push' | 'read_limit'
   | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_more' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
 
 export interface ActionView {
@@ -126,7 +126,13 @@ export interface Encounter {
   edge?: { pay: number; open: number; budget: number };
   /** how they came today: just looking (only a bargain moves them), keen (money to spend), in a hurry */
   purse?: 'browsing' | 'keen' | 'hurried';
+  /** skill moves used this visit: one final push (Haggling 10), their limit read (Appraisal 5) */
+  pushed?: boolean;
+  limitRead?: number;
 }
+
+/** Moves a skill opens at the counter: shown locked until you have the level, so you see what to work for. */
+export const SKILL_MOVES = { final_push: { skill: 'haggling' as SkillId, level: 10, name: 'One final push' }, read_limit: { skill: 'appraisal' as SkillId, level: 5, name: 'Read their limit' } };
 
 /** How each mood of the day reads on the buyer's card, and what it does to the sale. */
 export const PURSE: Record<NonNullable<Encounter['purse']>, { label: string; line: string; pay: number }> = {
@@ -628,6 +634,16 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   const shown = enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') ? presentedItem(enc, ctx) : undefined;
   const faults = shown ? untold(enc, shown, eyeCtx(ctx)) : [];
   if (faults.length) core.push({ id: 'disclose', ...discloseLabel(faults), icon: 'hand' });
+  // the skill moves: there to be earned, and to be felt when you have them
+  if (enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') && enc.limitRead === undefined) {
+    const m = SKILL_MOVES.read_limit, have = lvl(ctx, m.skill);
+    // a locked move shows only when it is nearly yours: a goal in sight, not a row of grey buttons
+    if (have >= m.level - 2) core.push({ id: 'read_limit', label: m.name, sub: have >= m.level ? 'Appraisal: what they would really go to' : `Needs Appraisal ${m.level} · you have ${have}`, icon: 'eye', disabled: have < m.level });
+  }
+  if (enc.stage === 'bargaining' && enc.buyerOffer && !enc.pushed && !enc.finalOffered) {
+    const m = SKILL_MOVES.final_push, have = lvl(ctx, m.skill);
+    if (have >= m.level - 2) core.push({ id: 'final_push', label: m.name, sub: have >= m.level ? 'Haggling: a little more out of them, once' : `Needs Haggling ${m.level} · you have ${have}`, icon: 'coin', disabled: have < m.level });
+  }
   if ((enc.stage === 'qualification' || enc.stage === 'presentation' || enc.stage === 'bargaining') && praised < MAX_PRAISE)
     core.push({ id: 'praise_menu', label: 'Pay a compliment', sub: praised ? 'Careful: flattery wears thin' : 'Win them over', icon: 'chat' });
   return core;
@@ -1071,6 +1087,24 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       if (!item || !enc.askPrice || !enc.buyerOffer) break;
       bargainPrice(enc, ctx, item, round5((enc.askPrice + enc.buyerOffer) / 2), 'halfway', fx);
       lean(fx, { firmness: -1 });
+      break;
+    }
+    case 'read_limit': {
+      if (!item || lvl(ctx, 'appraisal') < SKILL_MOVES.read_limit.level) break;
+      enc.limitRead = snapDown(wtp(enc, item));
+      say(enc, 'system', `You watch their hands on the pile and the way they look at it. They would go to about ${fmt(enc.limitRead)}.`);
+      gain(fx, 'appraisal', 3);
+      break;
+    }
+    case 'final_push': {
+      if (!item || !enc.buyerOffer || enc.pushed || lvl(ctx, 'haggling') < SKILL_MOVES.final_push.level) break;
+      enc.pushed = true;
+      say(enc, 'seller', 'Come. A little more, and you will thank me every time you walk across it.');
+      const w = wtp(enc, item);
+      const up = Math.min(snapDown(w), snap(enc.buyerOffer * 1.07));
+      if (up > enc.buyerOffer) { enc.buyerOffer = up; say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(up))); adjust(enc, { patience: -6 }); }
+      else { buyerSay(enc, 'No. That is all it is worth to me.', 'skeptical'); adjust(enc, { patience: -10 }); }
+      gain(fx, 'haggling', 4);
       break;
     }
     case 'sweetener':

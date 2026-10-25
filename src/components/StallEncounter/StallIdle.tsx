@@ -1,4 +1,5 @@
 import { NextOnRoad } from '../Road/Road';
+import { SKILLS, SKILL_ORDER, levelOf, xpFor } from '../../data/character';
 import { useAtStall } from '../Radio/Gramophone';
 import { openingDone } from '../../game/opening';
 import { lookUps, sceneIdFor, sceneSmall } from '../../game/stallScenes';
@@ -17,6 +18,8 @@ import { affordableUpgrades, openUpgrades } from '../Inventory/StallUpgrades';
 import { openMalek } from '../../game/nav';
 import { fedOf, shopOpen as malekOpen } from '../../game/systems/malek';
 import { ShopBoyCard } from './ShopBoyCard';
+import { UPGRADES } from '../../data/suppliers';
+import { fmt } from '../../game/economy/money';
 
 /** The stall between customers: the road ahead, the next customer, and the auction calendar. */
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
@@ -50,6 +53,8 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {!shut && <TodaysChance />}
+        {!shut && <StallDream />}
+        {!shut && <SkillGoal />}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
         )}
@@ -151,4 +156,51 @@ function TodaysChance() {
   if (deal) lines.push(`Uncle Rashid has ${RUGS[deal.typeId]?.name ?? 'a rug'} at a price for today only.`);
   if (!lines.length) return null;
   return <p className="idle-chance" data-testid="todays-chance"><b>Today</b> {lines.join(' ')}</p>;
+}
+
+/** The nearest perk in reach: which skill, the level it comes at, and how far there is to go. */
+/** What the money is for: the next stall, what it would bring, and how far the purse is from it. */
+const STALL_PULL: Record<string, string> = {
+  mat: 'A place of your own. Buyers trust you more.',
+  bazaar: 'A canopy and a counter. Better households start to stop.',
+  khan: 'A shop in the Khan. Collectors, and purses a quarter deeper.',
+};
+function StallDream() {
+  const cash = useGame((s) => s.cash);
+  const rep = useGame((s) => s.reputation);
+  const ups = useGame((s) => s.upgrades);
+  const next = UPGRADES.find((u) => u.stall && !ups.includes(u.id) && (!u.after || ups.includes(u.after)));
+  if (!next) return null;
+  const pct = Math.max(0, Math.min(1, cash / next.cost));
+  const short = next.cost - cash;
+  const repShort = (next.rep ?? 0) - rep;
+  const ready = short <= 0 && repShort <= 0;
+  return (
+    <button className={`stall-dream ${ready ? 'ready' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="stall-dream">
+      <span className="sd-k">{ready ? 'WITHIN REACH' : 'NEXT STALL'}</span>
+      <b>{next.name}</b>
+      <small>{STALL_PULL[next.id] ?? next.effect}</small>
+      <i><em style={{ width: `${Math.round(pct * 100)}%` }} /></i>
+      <small className="sd-need">{ready ? 'You can buy it now' : short > 0 ? `${fmt(short)} still to find${repShort > 0 ? ` · ${repShort} more reputation` : ''}` : `${repShort} more reputation`}</small>
+    </button>
+  );
+}
+
+function SkillGoal() {
+  const skills = useGame((s) => s.skills);
+  let best: { name: string; perk: string; level: number; lv: number; pct: number } | null = null;
+  for (const k of SKILL_ORDER) {
+    const xp = skills?.[k] ?? 0, lv = levelOf(xp);
+    const p = SKILLS[k].perks.find((x) => x.level > lv);
+    if (!p) continue;
+    const pct = (xp - xpFor(lv)) / Math.max(1, xpFor(p.level) - xpFor(lv));
+    if (!best || pct > best.pct) best = { name: SKILLS[k].name, perk: p.name, level: p.level, lv, pct };
+  }
+  if (!best) return null;
+  return (
+    <p className="skill-goal" data-testid="skill-goal">
+      <span>SKILL</span> {best.name} {best.lv} → {best.level}: <b>{best.perk}</b>
+      <i><em style={{ width: `${Math.round(best.pct * 100)}%` }} /></i>
+    </p>
+  );
 }

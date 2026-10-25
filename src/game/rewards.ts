@@ -4,7 +4,8 @@
 // stops the clock or waits for a tap; a loaded save or a new game is not mistaken for any of them.
 import { useGame } from './state/store';
 import { audio } from './audio/engine';
-import { BIG_SALE, floatSale, saleMoment, stampOn, starTick, trackTaps } from './feel';
+import { BIG_SALE, floatSale, goldRush, saleMoment, stampOn, starTick, trackTaps } from './feel';
+import { fmt } from './economy/money';
 import { MAIN_ORDER } from '../data/missions';
 
 type S = ReturnType<typeof useGame.getState>;
@@ -68,8 +69,11 @@ let prev: S = useGame.getState();
         const hot = streak >= 3 ? `A streak: ${streak} fine deals in a row` : '';
         if (streak >= 3) queueMicrotask(() => useGame.setState((st) => ({ reputation: st.reputation + 1 })));
         const note = mark || hot || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : pct < 0 ? 'Under what it cost you' : '');
-        audio.sfx(record || mark || stars === 3 ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
-        saleMoment(sold, note, record || !!mark || sold >= BIG_SALE || stars === 3, stars);
+        const loss = cost > 0 && sold - extra < cost;
+        audio.sfx(loss ? 'chest' : record || mark || stars === 3 ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
+        saleMoment(sold, loss ? `A loss: ${fmt(cost - (sold - extra))} under what it cost you` : note, !loss && (record || !!mark || sold >= BIG_SALE || stars === 3), loss ? 0 : stars, loss);
+        // a fine deal at a good price is a fortune moment: the purse glows and the screen catches the gold
+        if (!loss && stars === 3 && (sold >= BIG_SALE || record)) goldRush();
         floatSale(sold);
       }
       const won = fresh.filter((l) => l.kind === 'purchase' && /^Auction:/.test(l.label)).reduce((a, l) => a + (l.cost ?? -l.amount), 0);
