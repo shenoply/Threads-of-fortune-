@@ -25,7 +25,7 @@ import { dressingFx } from '../../data/shops';
 
 export type ActionId =
   | 'ask_room' | 'ask_drawn' | 'ask_budget' | 'ask_decider' | 'small_talk' | 'tea'
-  | 'story' | 'craft' | 'fit' | 'durability'
+  | 'story' | 'craft' | 'fit' | 'durability' | 'pitch'
   | 'story_true' | 'story_embellish' | 'saffron_move' | 'saffron_stay'
   | 'obj_honest' | 'obj_facts' | 'obj_concede' | 'obj_another'
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
@@ -136,6 +136,9 @@ export interface Encounter {
   spotOn?: number;
   /** the one carpet this buyer came for today (a rare visit; pays SEEK_PAYS times) */
   seek?: string;
+  /** what good reads have added to what they will pay (combos), and which have been made */
+  combo?: number;
+  combos?: string[];
   /** the highest price they turned down this visit */
   refused?: number;
   /** they spoke of the last deal (store marks the relationship) */
@@ -299,6 +302,7 @@ export function wtp(enc: Encounter, item: RugItem): number {
   v *= enc.edge?.pay ?? 1;
   v *= enc.purse ? PURSE[enc.purse].pay : 1;
   v *= wantMult(enc.want, item.typeId);
+  v *= 1 + (enc.combo ?? 0);
   // the town's mood today: the fashion pays more, and a buyer stretches the purse for it
   const dm = demandFor(item.typeId, enc.day);
   v *= dm;
@@ -666,6 +670,10 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       const available: ArgKind[] = ['story', 'craft', has('room') ? 'fit' : 'durability'];
       available.sort((x, y) => b.args[y] - b.args[x]);
       const args: ActionView[] = available.map(makeArg);
+      // a buyer you know (two visits, or you asked what they want): your two best angles in one go
+      if (enc.argsUsed.length === 0 && (ctx.rel.visits >= 2 || has('room') || has('drawn'))) {
+        args.unshift({ id: 'pitch', label: 'Make your pitch', sub: `You know them: ${available.slice(0, 2).map((k) => base[k].label.toLowerCase()).join(', then ')}`, icon: 'scroll' });
+      }
       if (enc.argsUsed.length === 0) {
         args.push(has('room') ? makeArg('durability') : { id: 'ask_room', label: 'Ask about the room', sub: 'You skipped this', icon: 'room' });
       } else {
@@ -901,6 +909,21 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
   const item = presentedItem(enc, ctx);
   const t = item ? RUGS[item.typeId] : undefined;
   const avoid = recentBuyerTexts(enc);
+  if (id === 'pitch') {
+    // the two angles that work best on this buyer, one after the other
+    enc.turn--;
+    const kinds = (['story', 'craft', enc.asked.includes('room') ? 'fit' : 'durability'] as ArgKind[]).filter((k) => !enc.argsUsed.includes(k)).sort((x, y) => b.args[y] - b.args[x]).slice(0, 2);
+    const all: Effects = { sfx: [] };
+    for (const k of kinds) {
+      if (enc.outcome || enc.stage !== 'presentation') break;
+      const fx1 = doAction(enc, ctx, k);
+      all.sfx = [...(all.sfx ?? []), ...(fx1.sfx ?? [])];
+      for (const [s, v] of Object.entries(fx1.xp ?? {})) all.xp = { ...(all.xp ?? {}), [s]: ((all.xp ?? {})[s as SkillId] ?? 0) + (v ?? 0) };
+      for (const [s, v] of Object.entries(fx1.manner ?? {})) all.manner = { ...(all.manner ?? {}), [s]: ((all.manner ?? {})[s as keyof Manner] ?? 0) + (v ?? 0) };
+      if (fx1.tutorialAdvance) all.tutorialAdvance = fx1.tutorialAdvance;
+    }
+    return all;
+  }
 
   // a question they wanted builds trust; one they did not wears on their patience
   const qOf: Partial<Record<ActionId, 'room' | 'drawn' | 'budget' | 'decider'>> = { ask_room: 'room', ask_drawn: 'drawn', ask_budget: 'budget', ask_decider: 'decider' };
@@ -1241,6 +1264,21 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
     return;
   }
   enc.argsUsed.push(kind);
+  // combos: a merchant who listened first and then spoke to what he heard is paid for it. Asking what
+  // they want, then leading with the angle they care for most, is a good read; speaking to the room
+  // they described is another. Each once a visit, and the buyer's limit rises a little.
+  const asked = enc.asked.includes('room') || enc.asked.includes('drawn');
+  const topKind = (Object.entries(b.args) as [ArgKind, number][]).sort((x, y) => y[1] - x[1])[0]?.[0];
+  if (asked && enc.argsUsed.length === 1 && kind === topKind && b.args[kind] >= 1.2) {
+    enc.combo = (enc.combo ?? 0) + 0.06;
+    say(enc, 'system', '✦ A good read: you asked, you listened, and you led with what they care for most. They will pay a little more.');
+    fx.sfx?.push('bell');
+  } else if (kind === 'fit' && enc.asked.includes('room') && !(enc.combos ?? []).includes('fit')) {
+    enc.combos = [...(enc.combos ?? []), 'fit'];
+    enc.combo = (enc.combo ?? 0) + 0.04;
+    say(enc, 'system', '✦ Their own room, in your words. They will pay a little more.');
+    fx.sfx?.push('bell');
+  }
   let relevance = 0.4;
   if (kind === 'story') relevance = t.traits.includes('story') ? 1 : 0.35;
   if (kind === 'story' && item.provenance === 'Documented') relevance += 0.2;
