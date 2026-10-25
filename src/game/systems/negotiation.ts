@@ -1,3 +1,4 @@
+import { WEAVERY_LINES } from '../../data/weaveryLines';
 import { demandFor } from '../economy/market';
 import { VOICE_COLOUR, HELLO, colourOf } from '../../data/voiceColour';
 import { labArgBonus } from './arranShop';
@@ -437,6 +438,13 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     const w = (t: string) => t.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join(' ');
     const fits = hello.filter((x) => w(x) !== w(first.text) && w(x).split(' ')[0] !== w(first.text).split(' ')[0]);
     if (fits.length) first.text = `${fits[((ctx.day ?? 0) * 7 + rel.visits) % fits.length]} ${first.text}`;
+  }
+  // now and then they look up at the carpet you made yourself, and you tell them so
+  const onWall = ctx.inventory.filter((i) => i.framed);
+  if (onWall.length && !tutorial && rel.visits % 3 === 0) {
+    const t = RUGS[onWall[(ctx.day ?? 0) % onWall.length].typeId];
+    enc.log.push({ speaker: 'system', text: `${b.name.split(' ')[0]} looks up at the ${t?.name ?? 'carpet'} framed on your wall.` });
+    enc.log.push({ speaker: 'seller', text: WEAVERY_LINES.admired[((ctx.day ?? 0) + rel.visits) % WEAVERY_LINES.admired.length] });
   }
   // a returning buyer does not forget being insulted or lied to: they arrive colder and thinner-skinned
   if (rel.visits > 0 && rel.bad > 0) {

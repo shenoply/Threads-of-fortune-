@@ -1,3 +1,5 @@
+import { weaveryLine } from '../../data/weaveryLines';
+import { voice } from '../../game/audio/voice';
 import { LoomButton } from '../Loom/Loom';
 import { CONDITION_FACTOR } from '../../data/rugs';
 import { useState } from 'react';
@@ -73,7 +75,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                 <div className="btns">
                   <button className="btn" onClick={() => setView(i.uid)}>Inspect</button>
                   {i.typeId.startsWith('own-') && <button className="btn" onClick={() => { const n = window.prompt('A name for this carpet', RUGS[i.typeId]?.name ?? ''); if (n && n.trim()) g.renameCarpet(i.typeId, n); }} data-testid={`rename-${i.uid}`}>Rename</button>}
-                  {i.typeId.startsWith('own-') && <button className={`btn ${i.framed ? '' : 'frame-btn'}`} onClick={() => setFrameNote(g.frameCarpet(i.uid))} data-testid={`frame-${i.uid}`}>{i.framed ? 'Take down from the wall' : 'Frame it at the stall'}</button>}
+                  {i.typeId.startsWith('own-') && <button className={`btn ${i.framed ? '' : 'frame-btn'}`} onClick={() => { const was = i.framed; const m = g.frameCarpet(i.uid); if (!was && m.includes('hangs framed')) { const w = weaveryLine('frame'); void voice.say('seller', w); setFrameNote(`“${w}” ${m}`); } else setFrameNote(m); }} data-testid={`frame-${i.uid}`}>{i.framed ? 'Take down from the wall' : 'Frame it at the stall'}</button>}
                   {g.world.at === 'giza' ? (
                     <button className="btn" onClick={() => g.toggleStored(i.uid)} data-testid="toggle-stored">{i.stored ? 'Pack for the road' : 'Leave at the stall'}</button>
                   ) : (

@@ -9,6 +9,8 @@ import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { rankOf } from '../../game/economy/progress';
 import { audio } from '../../game/audio/engine';
+import { voice } from '../../game/audio/voice';
+import { weaveryLine } from '../../data/weaveryLines';
 import { daysFor, defaultName, loomsFree, needsWorkshop, newDesign, parts, priceOf, valueOf, withPalette, WORKSHOP_LINE, WORKSHOP_PRICE, type Design } from '../../game/loom/design';
 import { renderDesign } from '../../game/loom/render';
 import { BORDER, FIELD, GUARD, KNOTS, LAYOUT, MEDALLION, PALETTES, SIZES, WOOL } from '../../game/loom/patterns';
@@ -131,7 +133,8 @@ export function Loom({ onClose }: { onClose: () => void }) {
   const name = d.name.trim() || defaultName(d);
   const weave = () => {
     const msg = g.commissionCarpet(d);
-    setNote(msg);
+    // in your own voice, when you have recorded it; the words show either way
+    if (msg.startsWith('The weaver takes')) { const w = weaveryLine('commission'); void voice.say('seller', w); setNote(`“${w}” ${msg}`); } else setNote(msg);
     if (msg.startsWith('The weaver takes')) setD(newDesign(useGame.getState().loom?.next ?? lm.next));
   };
   const collect = (id: string) => {
@@ -139,7 +142,8 @@ export function Loom({ onClose }: { onClose: () => void }) {
     if (!msg) return;
     const t = RUGS[id];
     reveal({ kicker: 'Off the loom', title: t.name, line: `${t.size} · your own design`, pic: renderDesign(t.art.kind === 'design' ? t.art.design : d, 820), picKind: 'rug', instant: true });
-    setNote(msg);
+    const w = weaveryLine('collect'); void voice.say('seller', w);
+    setNote(`“${w}” ${msg}`);
   };
   const rename = (id: string, old: string) => {
     const n = window.prompt('A name for this carpet', old);
