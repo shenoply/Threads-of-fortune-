@@ -146,7 +146,7 @@ export function DressStall({ onClose }: { onClose: () => void }) {
             return id ? <OnStage key={s.id + id} id={id} sc={sc} preview={s.id === sel && !!preview && !owned} /> : null;
           })}
           {(sel === 'sign' ? shown : spots.sign) && <SignLetters sc={sc} name={(sel === 'sign' ? signDraft : g.signName) || DEFAULT_SIGN} />}
-          {sc.gramophone && <img className="dress-piece placed" src={GRAMO} alt="" style={placeStyle(GRAMO, { ...sc.gramophone, s: sc.gramophone.s * 0.44 }) ?? undefined} draggable={false} />}
+          {sc.gramophone && <img className="dress-piece placed" src={GRAMO} alt="" style={placeStyle(GRAMO, { ...sc.gramophone, s: sc.gramophone.s * 0.62 }) ?? undefined} draggable={false} />}
           {tapOrder.map((s) => {
             const r = rectOf(s.id);
             return <button key={s.id} className={`dress-spot ${s.id === sel ? 'on' : ''} ${spots[s.id] ? 'full' : ''}`} style={{ left: `${r[0]}%`, top: `${r[1]}%`, width: `${r[2] - r[0]}%`, height: `${r[3] - r[1]}%` }} onClick={() => pick(s.id)} aria-label={s.label} aria-pressed={s.id === sel} data-testid={`spot-${s.id}`} />;

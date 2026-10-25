@@ -128,15 +128,18 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       // asking, showing a rug or haggling never makes it jump. Only turning or resizing the screen
       // sizes it again.
       const key = `${el.clientWidth}x${el.clientHeight}`;
-      const most = Math.max(rest, restMost(key));
+      // the picture never shrinks to a sliver: at least about a third of the screen (heads, the counter, the rug)
+      const minScene = Math.min(natural, Math.max(200, el.clientHeight * 0.33));
+      // what was remembered from earlier visits can never claim more than the picture can spare
+      const most = Math.min(Math.max(rest, restMost(key)), el.clientHeight - minScene);
       if (most > restMost(key)) keepRestMost(key, most);
       if (locked.key !== key || locked.enc !== enc?.id) {
         locked.key = key; locked.enc = enc?.id ?? '';
         // the room kept ahead for longer lines never squeezes the picture below 200px (heads and all)
-        locked.h = Math.max(96, Math.min(natural, el.clientHeight - most), Math.min(natural, el.clientHeight - (most - spare), 200));
+        locked.h = Math.max(minScene, Math.min(natural, el.clientHeight - most), Math.min(natural, el.clientHeight - (most - spare), 200));
       }
       // never at the cost of the buttons: if the talk has grown past what was kept for it, give way
-      if (el.clientHeight - locked.h < rest - 1) locked.h = Math.max(96, el.clientHeight - rest);
+      if (el.clientHeight - locked.h < rest - 1) locked.h = Math.max(Math.min(minScene, 200), el.clientHeight - rest);
       el.style.setProperty('--scene-h', `${Math.floor(locked.h)}px`);
     };
     fit();

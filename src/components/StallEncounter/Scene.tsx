@@ -474,11 +474,12 @@ function StallGramophone({ sc, inFront }: { sc: StallScene; inFront?: (x: number
   useEffect(() => { if (!mini) return; const t = window.setTimeout(() => setMini(false), 6000); return () => clearTimeout(t); }, [mini, rp.current, rp.playing]);
   const src = 'art/stall2/props/prop-turntable.webp';
   // the record player is drawn wider than the old horn gramophone: the same spot, scaled to sit level on it
-  const at = sc.gramophone && { ...sc.gramophone, s: sc.gramophone.s * 0.44 };
+  const at = sc.gramophone && { ...sc.gramophone, s: sc.gramophone.s * 0.62 };
   const pos = at && placeStyle(src, at);
   const r = at && placedRect(src, at);
   if (!pos || !r) return null;
-  if (at.front && inFront?.(at.x)) return null;
+  // the record player is low and flat: it stays on the counter even in front of someone, below their hands
+  void inFront;
   return (
     <>
       <img className={`stall-prop placed stall-gramophone-art${at.front ? ' front' : ''}${!seen ? ' beckon' : ''}${rp.playing ? ' playing' : ''}`} src={src} alt="" style={pos} draggable={false} />
