@@ -1,0 +1,13 @@
+.night-scene { position: fixed; inset: 0; z-index: 95; background: #07050a; overflow: hidden; animation: ns-in 1s ease both; cursor: pointer; }
+@keyframes ns-in { from { opacity: 0; } }
+.night-scene .ns-stall, .night-scene .ns-cat { position: absolute; left: 50%; top: 42%; width: max(100vw, 150vh); max-width: none; transform: translate(-50%, -50%); }
+.night-scene .ns-stall { filter: brightness(.42) saturate(.55) hue-rotate(195deg) contrast(1.05); }
+.night-scene .ns-cat { filter: brightness(.38) saturate(.55) hue-rotate(195deg) contrast(1.05); }
+.night-scene .ns-dark { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(20,24,50,.1), rgba(4,4,12,.78) 75%); }
+.night-scene .ns-lamp { position: absolute; left: 46%; top: 60%; width: 90vmin; height: 90vmin; transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(255,190,90,.5), rgba(255,160,60,.16) 40%, transparent 68%); mix-blend-mode: screen; animation: ns-flicker 3.2s ease-in-out infinite; }
+@keyframes ns-flicker { 0%, 100% { opacity: .92; } 22% { opacity: 1; } 48% { opacity: .84; } 70% { opacity: .97; } }
+.night-scene .ns-count { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); text-align: center; animation: ns-in 1.2s .5s ease both; }
+.night-scene .ns-count small { display: block; font-family: var(--label); letter-spacing: .26em; font-size: 11px; color: #c9a160; }
+.night-scene .ns-count b { display: block; font-family: var(--display); font-size: 44px; color: #ffe1a0; text-shadow: 0 0 22px rgba(255,190,90,.45); font-variant-numeric: tabular-nums; }
+.night-scene .ns-hint { position: absolute; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-family: var(--body); font-size: 13px; color: rgba(240,220,180,.4); }
+@media (prefers-reduced-motion: reduce) { .night-scene, .night-scene .ns-lamp, .night-scene .ns-count { animation: none; } }

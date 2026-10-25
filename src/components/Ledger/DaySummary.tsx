@@ -2,6 +2,8 @@ import { useDailyWaiting } from '../Daily/Daily';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
+import { useState } from 'react';
+import { NightScene, nightDue } from '../Night/NightScene';
 
 /** What happened overnight after "Next day": the bills, Rashid, the men, how you slept. Shown once
  *  as a small card in the morning and put away when read. Nights on the road are not shown here:
@@ -15,7 +17,10 @@ function DailyTeaser() {
 export function DaySummary() {
   const sum = useGame((s) => s.lastSummary);
   const dismiss = useGame((s) => s.dismissSummary);
+  const [nightSeen, setNightSeen] = useState(0);
   if (!sum || sum.seen) return null;
+  // first the stall after dark with the day's money counted, then the morning's card
+  if (sum.revenue > 0 && nightDue(sum.day) && nightSeen !== sum.day + 1) return <NightScene day={sum.day} takings={sum.revenue} onDone={() => setNightSeen(sum.day + 1)} />;
   const notes = sum.notes.filter((n) => n.trim());
   const traded = sum.sales > 0 || sum.revenue > 0;
   // a quiet night with nothing to report needs no card
