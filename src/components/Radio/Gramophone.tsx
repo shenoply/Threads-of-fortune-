@@ -75,6 +75,15 @@ export function Gramophone({ onClose }: { onClose: () => void }) {
         </div>
         <div className="radio-captions gramo-shelf" data-testid="gramophone-list">
           <p className="gramo-count"><b>Your records</b> {owned.length} of {RECORDS.length}</p>
+          {(() => {
+            // where the rest are sold: each town's record seller, in its souq (the town's menu)
+            const left = RECORDS.filter((r) => !owned.includes(r.id));
+            if (!left.length) return null;
+            const by = new Map<string, number>();
+            for (const r of left) by.set(r.home, (by.get(r.home) ?? 0) + 1);
+            const towns = [...by.entries()].map(([t, n]) => { let nm = t; try { nm = settlementById(t).name; } catch { /* */ } return `${nm} (${n})`; });
+            return <p className="gramo-where" data-testid="gramo-where"><b>Buy records</b> from the record seller in a town's souq: open the town on the map and choose <i>The record seller</i>. Still to find: {towns.join(', ')}. Sealed bales sometimes hold one too.</p>;
+          })()}
           {tracks === null && <p className="hint">Winding it up…</p>}
           {tracks?.length === 0 && <p className="hint">The records are packed away this trip.</p>}
           {failed && <p className="hint" data-testid="gramo-failed">The record would not play. <button className="btn small" onClick={() => play(failed)} data-testid="gramo-retry">Try again</button></p>}

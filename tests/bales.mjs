@@ -20,9 +20,9 @@ await p.click('[data-testid=nav-inventory]'); await p.click('[data-testid=stock-
 const n0 = await st((m) => m.useGame.getState().inventory.length);
 await p.click('[data-testid=bale-buy]'); await p.waitForTimeout(300);
 const s1 = await st((m) => { const s = m.useGame.getState(); return { n: s.inventory.length, cash: s.cash, coins: 0, bales: s.bales }; });
-check(s1.n > n0 && s1.cash >= 10000, `the day's first bale is free and its rugs go into stock (${s1.n - n0})`);
+check(s1.n > n0 && s1.cash >= 10000, `Rashid's free bale and its rugs go into stock (${s1.n - n0})`);
 for (let i = 0; i < 12 && await p.locator('[data-testid=reveal]').count(); i++) { await p.click('[data-testid=reveal]', { position: { x: 20, y: 20 } }).catch(() => {}); await p.waitForTimeout(500); }
-check(/another/i.test(await p.textContent('[data-testid=bale-buy]')) && !(await p.isDisabled('[data-testid=bale-buy]')), 'more can be bought the same day');
+check(/buy one/i.test(await p.textContent('[data-testid=bale-buy]')) && !(await p.isDisabled('[data-testid=bale-buy]')), 'more can be bought straight after, and the next free one counts down');
 const c1 = await st((m) => m.useGame.getState().cash);
 await p.click('[data-testid=bale-buy]', { force: true }); await p.waitForTimeout(300);
 const c2 = await st((m) => m.useGame.getState().cash);

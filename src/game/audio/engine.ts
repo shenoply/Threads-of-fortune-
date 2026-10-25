@@ -10,7 +10,7 @@ type Toggles = Record<Channel, boolean>;
 /** the player's volume sliders, 0..1; ambience follows the effects slider */
 export interface Volumes { master: number; music: number; sfx: number; dialogue: number }
 // music starts at under half: at full it drowned the voices and the market (testers turned it down first thing)
-export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.45, sfx: 1, dialogue: 1 };
+export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.3, sfx: 1, dialogue: 1 };
 
 /** Where the player is, as far as the ears are concerned. */
 export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
@@ -25,7 +25,7 @@ interface MusicSrc { name: string; el: HTMLAudioElement; gain: GainNode; stop: (
 const MUSIC_CDN = 'https://cdn.jsdelivr.net/gh/shenoply/Threads-of-fortune-@main/public/';
 interface Bank { fx: Record<string, FxClip[]>; beds: Record<string, { file: string; dur: number }> }
 
-const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.62, sfx: 0.7, ambience: 0.3 };
+const LEVELS: Record<Channel, number> = { dialogue: 1, music: 0.5, sfx: 0.7, ambience: 0.3 };
 
 const PLAYLISTS: Record<MusicCtx, string[]> = {
   documentary: ['title-hijaz'],

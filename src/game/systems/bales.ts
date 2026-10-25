@@ -10,7 +10,11 @@ import { RECORDS } from '../../data/records';
 import type { Condition, RugType } from '../types';
 
 export const BALE_PRICE = 1200;
-export interface BaleState { lastDay?: number; opened: number; /** bales since the last treasure */ dry: number; treasures: number }
+/** Rashid's free bale comes round every twelve hours of real time: a bale is worth about £8.70 of stock
+ *  on average, so two a day is a fair reason to look in morning and evening without swamping the trade */
+export const BALE_FREE_EVERY = 12 * 60 * 60 * 1000;
+export const baleFreeIn = (b: BaleState | undefined, now = Date.now()) => (!b?.freeAt || b.freeAt > now ? 0 : Math.max(0, BALE_FREE_EVERY - (now - b.freeAt)));
+export interface BaleState { /** when the last free bale was cut (ms) */ freeAt?: number; lastDay?: number; opened: number; /** bales since the last treasure */ dry: number; treasures: number }
 export type BaleLot = { typeId: string; condition: Condition };
 /** not every bale is all carpet: a curio for the stall, or a purse of old coins, packed in with it */
 export type BaleExtra = { kind: 'piece'; id: string } | { kind: 'coins'; amount: number } | { kind: 'record'; id: string };

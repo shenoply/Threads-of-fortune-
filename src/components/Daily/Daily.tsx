@@ -119,7 +119,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
             <div className="gift-says" aria-live="polite">
               {gift.open ? <><b>{giftFor(gift.run, rk, owned).text}</b><span>Tap the chest.</span></>
                 : got ? <><b className="gift-got" data-testid="gift-got">{got.text}</b><span>{got.kind === 'cash' ? `${fmt(got.amount)} in your purse.` : got.kind === 'rep' ? `+${got.amount} reputation.` : got.kind === 'rug' ? 'It waits at the stall.' : got.kind === 'bale' ? 'Cut open: what was inside is in your stock.' : 'Put it out from Dress your stall.'}</span></>
-                : <><b>Opened today.</b><span>Come back tomorrow for day {gift.run + 1}: {next.text.toLowerCase()}.</span></>}
+                : <><b>Opened today.</b><span>Next gift in <GiftClock />: day {gift.run + 1}, {next.text.toLowerCase()}.</span></>}
             </div>
           </div>
           {(got || !gift.open) && <p className="gift-next" data-testid="gift-next">Tomorrow, day {gift.run + 1}: <b>{giftShort(next)}</b>. One missed day is forgiven.</p>}
@@ -173,4 +173,15 @@ function Pouch() {
       </div>
     </section>
   );
+}
+
+/** time to the next real day's gift (local midnight), ticking */
+function GiftClock() {
+  const [, tick] = useState(0);
+  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(id); }, []);
+  const now = new Date();
+  const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+  const left = mid - now.getTime();
+  const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000);
+  return <b data-testid="gift-clock">{h ? `${h}h ` : ''}{m}m</b>;
 }

@@ -3,7 +3,8 @@
 // says plainly what bales hold; cutting one open plays the unrolling reveal for what was inside.
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
-import { BALE_PRICE, type BaleResult } from '../../game/systems/bales';
+import { BALE_PRICE, baleFreeIn, type BaleResult } from '../../game/systems/bales';
+import { useEffect, useState } from 'react';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { reveal } from '../Reveal/Reveal';
@@ -39,9 +40,12 @@ export function showBale(result: BaleResult, items: RugItem[], from = 'Out of a 
 export function BaleCard({ toast }: { toast?: (m: string) => void }) {
   const g = useGame();
   const b = g.bales;
-  // the day's first bale is free; more can be bought, as many as you like
-  const today = b?.lastDay === g.day;
-  const freeNow = !today;
+  // Rashid's free bale comes round every twelve hours; more can be bought, as many as you like
+  const [, tick] = useState(0);
+  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, []);
+  const left = baleFreeIn(b);
+  const freeNow = left === 0;
+  const hh = Math.floor(left / 3600000), mm = Math.floor((left % 3600000) / 60000), ss = Math.floor((left % 60000) / 1000);
   const cut = () => {
     const r = g.buyBale();
     if (!r.result || !r.items) { toast?.(r.msg); return; }
@@ -49,13 +53,14 @@ export function BaleCard({ toast }: { toast?: (m: string) => void }) {
   };
   return (
     <div className={`bale-card ${freeNow ? 'free' : ''}`} data-testid="bale-card">
-      <div className="bale-pic art" aria-hidden="true"><img src="art/bales/bale-sealed.webp" alt="" draggable={false} />{freeNow && <span className="bale-free">Free today</span>}</div>
+      <div className="bale-pic art" aria-hidden="true"><img src="art/bales/bale-sealed.webp" alt="" draggable={false} />{freeNow ? <span className="bale-free">Free now</span> : <span className="bale-free wait" data-testid="bale-timer">Free in {hh ? `${hh}h ` : ''}{mm}m{hh ? '' : ` ${String(ss).padStart(2, '0')}s`}</span>}</div>
       <div className="bale-body">
         <b>A sealed bale</b>
         <small>Unclaimed goods from the Port Said customs sheds, still corded under the lead seal. Most hold a rug or two of everyday stock; some a good trade rug; a few a city carpet; once in a long while, a treasure. Sometimes a curio, a gramophone record or a purse of old coins is packed in with them.</small>
         <button className="btn primary" disabled={!freeNow && g.cash < BALE_PRICE} onClick={cut} data-testid="bale-buy">
-          {freeNow ? 'Cut open today’s free bale' : `Buy another and cut it open · ${fmt(BALE_PRICE)}`}
+          {freeNow ? 'Cut open Rashid’s free bale' : `Buy one and cut it open · ${fmt(BALE_PRICE)}`}
         </button>
+        <small className="bale-next">{freeNow ? 'Rashid gives you a bale free every twelve hours.' : `Rashid's next free bale in ${hh ? `${hh} h ` : ''}${mm} min. One every twelve hours.`}</small>
         {(b?.opened ?? 0) > 0 && <small className="bale-count">{b!.opened} opened{b!.treasures ? ` · ${b!.treasures} treasure${b!.treasures > 1 ? 's' : ''}` : ''}</small>}
       </div>
     </div>

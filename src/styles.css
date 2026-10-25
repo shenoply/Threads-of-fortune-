@@ -3635,3 +3635,4 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .framed-carpet.f0 { left: 27%; }
 .framed-carpet.f1 { left: 60.5%; }
 .hh-card .hh-rank { color: #c9a160; font-family: var(--label); letter-spacing: .06em; } .hh-card .hh-intro { font-style: italic; color: var(--text); }
+.gramo-where { margin: 4px 0 10px; font-family: var(--body); font-size: 14px; line-height: 1.4; color: var(--text-dim); } .gramo-where b { color: #ffd27a; } .gramo-where i { color: var(--text); font-style: normal; }

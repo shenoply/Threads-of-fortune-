@@ -93,10 +93,10 @@ import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '..
 import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
 import { RECORD_BY_ID, recordsOwned } from '../../data/records';
 import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } from '../../data/livestock';
-import { BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
+import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -4301,7 +4301,7 @@ export const useGame = create<GameState & Actions>()(
           const b = s.bales ?? { opened: 0, dry: 0, treasures: 0 };
           // the first bale each day is Rashid's to you, free; after that as many as you like, at his price
           const fromGift = free;
-          if (!fromGift && b.lastDay !== s.day) free = true;
+          if (!fromGift && baleFreeIn(b) === 0) free = true;
           else if (!fromGift && s.cash < BALE_PRICE) return { msg: `Another bale is ${fmt(BALE_PRICE)}.` };
           const result = openBale(b, Math.random, s.dressing ?? [], recordsOwned(s));
           const ex = result.extra;
@@ -4315,7 +4315,7 @@ export const useGame = create<GameState & Actions>()(
             inventory: [...s.inventory, ...items],
             ...(rec ? { records: [...recordsOwned(s), rec.id] } : {}),
             ...(piece ? { dressing: [...(s.dressing ?? []), piece.id], ...(!spotsOf(s)[piece.spot] ? { stallSpots: { ...spotsOf(s), [piece.spot]: piece.id } } : {}) } : {}),
-            bales: { lastDay: fromGift ? b.lastDay : s.day, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
+            bales: { lastDay: fromGift ? b.lastDay : s.day, freeAt: free && !fromGift ? Date.now() : b.freeAt, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
             ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
             journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(rec ? [`a gramophone record, ${rec.title}`] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
           });
@@ -4743,6 +4743,8 @@ export const useGame = create<GameState & Actions>()(
         // older stall keeps everything it bought, each piece put in its spot over his father's things
         if (version < 25 && (p.dressing ?? []).length) p.stallSpots = spotsFromOwned(p.dressing);
         if (version < 22 && p.volumes && p.volumes.music === 1) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
+        // the music came in too loud: a slider still at the old default comes down with the new one
+        if (version < 27 && p.volumes && (p.volumes.music === 0.45 || p.volumes.music === 1)) p.volumes = { ...p.volumes, music: DEFAULT_VOLUMES.music };
         if (version < 21 && p.started) {
           const pp = p as unknown as { day: number; totalSales?: number; missions?: Record<string, string>; world?: { at: string | null }; tipsSeen?: string[] };
           const underway = pp.day >= 3 || (pp.totalSales ?? 0) >= 3 || pp.missions?.alexandria === 'done' || (!!pp.world && pp.world.at !== 'giza');
