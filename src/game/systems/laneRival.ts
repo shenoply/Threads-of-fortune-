@@ -79,8 +79,8 @@ export function rivalNight(s: GameState, day: number): { patch: Partial<GameStat
     }
   }
   // Mondays: the lane compares the week
-  const wk = day - ((day + 6) % 7);
-  if (r.week !== wk && day % 7 === 1) {
+  const wk = day - (day % 7);
+  if (r.week !== wk && day % 7 === 0) {
     r.week = wk;
     const yourWeek = s.ledger.filter((l) => l.kind === 'sale' && l.day > day - 8 && l.day < day).reduce((a, l) => a + l.amount, 0);
     const hisWeek = Math.round(INCOME[r.stall] * 7 * 1.4);

@@ -4,8 +4,9 @@
 // stops the clock or waits for a tap; a loaded save or a new game is not mistaken for any of them.
 import { useGame } from './state/store';
 import { audio } from './audio/engine';
-import { BIG_SALE, floatSale, goldRush, saleMoment, stampOn, starTick, trackTaps } from './feel';
+import { BIG_SALE, feat, floatSale, goldRush, saleMoment, stampOn, starTick, trackTaps } from './feel';
 import { fmt } from './economy/money';
+import { goalLabel, goalProgress, goalReward } from './systems/weekGoal';
 import { MAIN_ORDER } from '../data/missions';
 
 type S = ReturnType<typeof useGame.getState>;
@@ -38,6 +39,18 @@ let prev: S = useGame.getState();
     // a different game (a slot loaded, a new start): nothing to celebrate
     const j0 = p.journal?.length ?? 0, j1 = s.journal?.length ?? 0;
     if (s.day < p.day || (s.ledger?.length ?? 0) < (p.ledger?.length ?? 0) || j1 < j0 || j1 - j0 > 8) return;
+
+    // ---- the week's target: met, and Rashid's purse arrives ----
+    const wg = s.weekGoal;
+    if (wg && !wg.paid && (s.ledger?.length ?? 0) > (p.ledger?.length ?? 0) && goalProgress(s, wg) >= wg.target) {
+      const purse = goalReward(wg);
+      queueMicrotask(() => {
+        const st = useGame.getState();
+        if (!st.weekGoal || st.weekGoal.paid) return;
+        useGame.setState({ weekGoal: { ...st.weekGoal, paid: true }, cash: st.cash + purse, reputation: st.reputation + 1, ledger: [...st.ledger, { day: st.day, kind: 'bonus', label: 'Uncle Rashid: a good week', amount: purse }] });
+      });
+      window.setTimeout(() => { feat('A good week', `${goalLabel(wg)}: done. Uncle Rashid sends ${fmt(purse)}, and the lane hears of it.`); audio.sfx('reward'); }, 2400);
+    }
 
     // ---- sales, and lots won ----
     const n0 = p.ledger?.length ?? 0, n1 = s.ledger?.length ?? 0;

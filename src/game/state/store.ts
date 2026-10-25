@@ -1,3 +1,4 @@
+import { weekGoalNight, type WeekGoal } from '../systems/weekGoal';
 import { omensNight, WATCH_COST, type Omen } from '../systems/omens';
 import { rivalNight, type LaneRival } from '../systems/laneRival';
 import { PERSIA_IDS } from '../../data/persiaMap';
@@ -381,6 +382,8 @@ export interface GameState {
   lane?: LaneRival;
   /** a warned danger (systems/omens.ts) */
   omen?: Omen;
+  /** this week's target from Rashid (systems/weekGoal.ts) */
+  weekGoal?: WeekGoal;
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -1779,7 +1782,7 @@ export const useGame = create<GameState & Actions>()(
           patch.errands = []; // errands are retired; the field stays for old saves
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
-          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, omensNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, omensNight, weekGoalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
             const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);
