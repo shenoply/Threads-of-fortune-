@@ -114,6 +114,7 @@ export function Ledger() {
   return (
     <div className="screen" data-testid="ledger">
       <PurseBook />
+      <ProudSales />
       <p className="ledger-alltime">All told: sold <b>{fmt(revenue)}</b> of rugs at a <b className={margin > 0 ? 'pos' : ''}>{margin}%</b> margin, and paid <b className={expenses ? 'neg' : ''}>{fmt(expenses)}</b> in costs.</p>
       <LicenceCard />
 
@@ -221,5 +222,34 @@ export function ShopsFold() {
       })}
       {sent > 0 && <small className="dim">Sent to you so far: {fmt(sent)}. Takings come on Mondays.</small>}
     </Fold>
+  );
+}
+
+/** Your five best deals ever: what you made on each, who bought it, and when. Something to beat. */
+export function ProudSales() {
+  const ledger = useGame((s) => s.ledger);
+  const top = ledger
+    .filter((l) => l.kind === 'sale' && l.cost !== undefined && l.amount > (l.cost ?? 0) && !/^Seized/.test(l.label))
+    .map((l) => ({ ...l, gain: l.amount - (l.cost ?? 0) }))
+    .sort((a, b) => b.gain - a.gain)
+    .slice(0, 5);
+  if (!top.length) return null;
+  const medal = ['gold', 'silver', 'bronze'];
+  return (
+    <section className="proud" data-testid="proud-sales">
+      <h4>Proudest sales</h4>
+      <ol>
+        {top.map((l, i) => {
+          const [rug, who] = l.label.split(/ to /);
+          return (
+            <li key={`${l.day}-${i}`} className={medal[i] ?? ''}>
+              <i>{i + 1}</i>
+              <span><b>{rug}</b><small>{who ? `to ${who} · ` : ''}day {l.day} · bought {fmt(l.cost ?? 0)}, sold {fmt(l.amount)}</small></span>
+              <em>+{fmt(l.gain)}</em>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
