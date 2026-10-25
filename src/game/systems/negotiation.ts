@@ -135,6 +135,8 @@ export interface Encounter {
   spotOn?: number;
   /** the one carpet this buyer came for today (a rare visit; pays SEEK_PAYS times) */
   seek?: string;
+  /** the highest price they turned down this visit */
+  refused?: number;
   /** they spoke of the last deal (store marks the relationship) */
   fairSpoken?: boolean;
   /** the day of the visit: the market's mood that day (economy/market.ts) */
@@ -1317,11 +1319,13 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
     adjust(enc, { patience: -6 });
     if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng, recentBuyerTexts(enc)).replace('{price}', fmt(next)), 'neutral');
   } else if (price <= w * 1.25) {
+    enc.refused = Math.max(enc.refused ?? 0, price);
     next = settle(snapDown(Math.min(w * 0.97, prev + (w - prev) * 0.4)));
     adjust(enc, { patience: mode === 'hold' ? -16 : -12, interest: -2 });
     buyerSay(enc, pick(mode === 'hold' ? L.holdRefuse : L.priceHigh, ctx.rng), 'skeptical');
     if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng).replace('{price}', fmt(next)), 'skeptical');
   } else {
+    enc.refused = Math.max(enc.refused ?? 0, price);
     next = settle(prev);
     enc.insulted = true;
     adjust(enc, { patience: -24, trust: -8, interest: -4 });

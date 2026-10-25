@@ -198,6 +198,8 @@ export interface Relationship {
   lastPurchaseDay?: number;
   /** what they paid last time against the rug's worth: over 1.35 they feel cheated, under 0.85 they got a bargain */
   lastFair?: number;
+  /** what happened to your prices last visit: the highest they refused, what they paid */
+  memo?: { refused?: number; paid?: number; day: number };
   /** that last deal has been spoken of */
   fairSaid?: boolean;
   bad: number;

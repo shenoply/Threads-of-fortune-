@@ -458,6 +458,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               <small>{presented.paid ? <><span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
               {enc && <FaceRead enc={enc} item={presented} dial={dial} />}
+              {enc?.refused ? <small className="price-memo" data-testid="price-now">They turned down <b>{fmt(enc.refused)}</b> just now</small> : null}
+              {(() => { const m = g.relationships[enc?.buyerId ?? '']?.memo; if (enc?.refused || !m || (!m.refused && !m.paid)) return null; return <small className="price-memo" data-testid="price-memo">Last visit: {m.refused ? <>turned down <b>{fmt(m.refused)}</b></> : null}{m.refused && m.paid ? ' · ' : ''}{m.paid ? <>paid <b>{fmt(m.paid)}</b></> : null}</small>; })()}
             </div>
             <div className="dial-btns">
               <button className="nw" onClick={() => setDial((d) => ladderUp(d ?? 5))} aria-label="Raise">+{fmt(ladderUp(dial) - dial)}</button>

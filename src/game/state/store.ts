@@ -1129,6 +1129,7 @@ export const useGame = create<GameState & Actions>()(
         const rel = { ...(s.relationships[enc.buyerId] ?? emptyRel()) };
         rel.visits += 1;
         if (enc.fairSpoken) rel.fairSaid = true;
+        if (enc.refused || (enc.outcome === 'sold' && enc.salePrice)) rel.memo = { refused: enc.refused, paid: enc.outcome === 'sold' ? enc.salePrice : undefined, day: s.day };
         const patch: Partial<GameState> = {};
         const ledger = [...s.ledger];
         const journal = [...s.journal];
