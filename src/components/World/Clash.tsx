@@ -9,7 +9,7 @@ import { audio } from '../../game/audio/engine';
 import { buzz } from '../../game/feel';
 import { fmt } from '../../game/economy/money';
 import { FORMATIONS, GROUNDS, TEMPER_WORD, duelWindow, sergeantWord, rngFrom, type Formation, type GroundId, type Leader, type Result, type Temper } from '../../game/systems/combat';
-import { battleOdds, command, losses, simulate, startBattle, step, volley, LIMIT, type Battle, type GOrder, type Group } from '../../game/systems/battle';
+import { battleOdds, command, losses, simulate, startBattle, step, volley, volleyRange, LIMIT, type Battle, type GOrder, type Group } from '../../game/systems/battle';
 import './Clash.css';
 
 export interface ClashInfo {
@@ -34,7 +34,8 @@ const ORDER_NAME: Record<GOrder, string> = { hold: 'Hold', advance: 'Advance', c
 /** A road fight: choose the ground and draw up the men, then fight it out on the field. */
 export function Clash({ info, onEnd, onBack }: { info: ClashInfo; onEnd: (e: ClashEnd) => void; onBack: () => void }) {
   const [ground, setGround] = useState<GroundId>(info.grounds.includes('camels') ? 'camels' : info.grounds[info.grounds.length - 1]);
-  const [formation, setFormation] = useState<Formation>('line');
+  // the men draw up by themselves: riders out on the wings when you have them, a line otherwise
+  const [formation] = useState<Formation>(info.mountedMen ? 'wings' : 'line');
   const band = BAND_ART[info.bandId] ?? BAND_ART['egypt-rural-highway-robbers'];
   const setup = useMemo(() => ({
     me: { troops: info.troops, rifles: info.party.arms ?? 0, heroArmed: (info.party.arms ?? 0) > 0, sergeant: !!info.sergeant },
@@ -85,14 +86,6 @@ export function Clash({ info, onEnd, onBack }: { info: ClashInfo; onEnd: (e: Cla
             </button>
           ))}
         </div>
-        <div className="clash-label">Draw up the men</div>
-        <div className="clash-seg" role="radiogroup">
-          {(Object.keys(FORMATIONS) as Formation[]).filter((k) => k !== 'wings' || info.mountedMen).map((k) => (
-            <button key={k} className={formation === k ? 'on' : ''} onClick={() => setFormation(k)} data-testid={`form-${k}`} role="radio" aria-checked={formation === k}>
-              <b>{FORMATIONS[k].name}</b><small>{FORM_NOTE[k]}</small>
-            </button>
-          ))}
-        </div>
         <div className="clash-odds" data-testid="clash-odds"><span>Your chance, fought well</span><b>{odds}%</b></div>
         <div className="clash-go">
           <button className="btn primary big" onClick={() => { audio.sfx('chest'); buzz(25); setFighting(true); }} data-testid="clash-begin"><Icon name="sword" /> Lead the fight</button>
@@ -118,7 +111,7 @@ const FORM_NOTE: Record<Formation, string> = {
   wings: 'Riders start out on both flanks',
 };
 
-interface View { t: number; me: number; them: number; counts: Record<string, number>; enemyLeft: number; feed: { t: number; text: string; side: number; big?: boolean }[]; fire: 'free' | 'hold'; heroAt: 'back' | 'front'; loaded: number; inRange: boolean; leaderUp: boolean; over?: Result; orders: Record<Group, GOrder> }
+interface View { t: number; me: number; them: number; counts: Record<string, number>; enemyLeft: number; downN: number; feed: { t: number; text: string; side: number; big?: boolean }[]; fire: 'free' | 'hold'; heroAt: 'back' | 'front'; loaded: number; rifles: number; inRange: boolean; perfect: boolean; leaderUp: boolean; over?: Result; orders: Record<Group, GOrder>; charging: boolean; melee: boolean }
 
 function viewOf(b: Battle): View {
   const counts: Record<string, number> = { foot: 0, rifles: 0, riders: 0 };
@@ -127,23 +120,42 @@ function viewOf(b: Battle): View {
     if (m.side === 0 && m.state === 'up' && !m.fleeing && !m.hero) { counts[m.group]++; if (m.rifle && m.group === 'rifles' && m.load <= 0) loaded++; }
   }
   const enemy = b.men.filter((m) => m.side === 1 && m.state === 'up' && !m.fleeing);
-  const front = b.men.filter((m) => m.side === 0 && m.group === 'rifles' && m.state === 'up');
-  inRange = enemy.some((e) => front.some((m) => Math.hypot(e.x - m.x, e.y - m.y) < 40));
+  const vr = volleyRange(b);
+  inRange = vr.inRange;
+  const mine = b.men.filter((m) => m.side === 0 && m.state === 'up' && !m.fleeing);
+  const melee = enemy.some((e) => mine.some((m) => Math.hypot(e.x - m.x, e.y - m.y) < 5));
   return {
-    t: b.t, me: Math.round(b.morale[0]), them: Math.round(b.morale[1]), counts, enemyLeft: enemy.length, feed: b.feed.slice(-4), fire: b.fire, heroAt: b.heroAt, loaded, inRange,
+    t: b.t, me: Math.round(b.morale[0]), them: Math.round(b.morale[1]), counts, enemyLeft: enemy.length, downN: b.men.filter((m) => m.side === 1 && (m.state === 'down' || m.state === 'dead')).length,
+    feed: b.feed.slice(-3), fire: b.fire, heroAt: b.heroAt, loaded, rifles: counts.rifles, inRange, perfect: vr.perfect, melee,
+    charging: b.orders[0].foot.o === 'charge' || b.orders[0].rifles.o === 'charge',
     leaderUp: b.men.some((m) => m.leader && m.state === 'up' && !m.fleeing), over: b.over,
     orders: { foot: b.orders[0].foot.o, rifles: b.orders[0].rifles.o, riders: b.orders[0].riders.o },
   };
 }
 
+/** One plain line over the field: what is happening and what to do about it. */
+function coach(v: View, canDuel: boolean) {
+  if (canDuel) return 'Their nerve is going. Call out their leader!';
+  if (v.charging) return v.them < 30 ? 'They are breaking! Keep at them.' : v.me < 35 ? 'Your men are wavering. Hold the line?' : 'In among them!';
+  if (v.them < 40) return 'They are wavering: charge them now!';
+  if (v.melee) return 'They are on you! Charge, or volley the next ones in.';
+  if (v.rifles === 0) return v.inRange ? 'Let them come… then charge.' : 'They are coming. Charge when they are close.';
+  if (!v.loaded) return 'Reloading…';
+  if (v.perfect) return 'NOW! Volley!';
+  if (v.inRange) return 'Steady… let them come closer.';
+  return 'They are coming. Wait for the gold, then volley.';
+}
+
 /** The fight itself: the field fills the screen, the orders sit under the thumb. */
 function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<typeof startBattle>[0]; onEnd: (e: ClashEnd) => void }) {
   const bRef = useRef<Battle | null>(null);
-  if (!bRef.current) { bRef.current = startBattle(setup); (window as unknown as { __tofBattle?: Battle }).__tofBattle = bRef.current; }
+  if (!bRef.current) { bRef.current = startBattle(setup); bRef.current.fire = 'hold'; (window as unknown as { __tofBattle?: Battle }).__tofBattle = bRef.current; }
   const [v, setV] = useState<View>(() => viewOf(bRef.current!));
   const [sel, setSel] = useState<'all' | Group | 'hero'>('all');
   const [paused, setPaused] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(1.4);
+  // the big word over the field after a volley: how well it was timed and what it did
+  const [shout, setShout] = useState<{ k: number; text: string; perfect: boolean } | null>(null);
   const [duel, setDuel] = useState(false);
   const seen = useRef({ shots: 0, cues: 0, ui: 0, shotSfx: 0, feed: 0 });
   const live = useRef({ paused, speed, duel }); live.current = { paused, speed, duel };
@@ -185,7 +197,28 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
     audio.sfx('tap');
   };
   const fireToggle = () => { const b = bRef.current; if (!b) return; b.fire = b.fire === 'free' ? 'hold' : 'free'; audio.sfx('tap'); setV(viewOf(b)); };
-  const loose = () => { const b = bRef.current; if (!b) return; volley(b); b.fire = 'free'; setV(viewOf(b)); };
+  const loose = () => {
+    const b = bRef.current; if (!b || b.over) return;
+    const r = volley(b);
+    if (!r.fired) { audio.sfx('tap'); return; }
+    buzz(r.quality === 'perfect' ? 70 : 40);
+    setShout({ k: Date.now(), perfect: r.quality === 'perfect', text: r.quality === 'perfect' ? (r.hits ? `Perfect! ${r.hits} down` : 'Perfect! They falter') : r.hits ? `${r.hits} down` : r.quality === 'far' ? 'Too far' : 'Missed' });
+    window.setTimeout(() => setShout((x) => (x && Date.now() - x.k > 1200 ? null : x)), 1300);
+    setV(viewOf(b));
+  };
+  // one order for everyone: charge (riders sweep round their flank, Hassan leads), or hold the line again
+  const charge = () => {
+    const b = bRef.current; if (!b || b.over) return;
+    command(b, 'foot', 'charge'); command(b, 'rifles', 'charge');
+    command(b, 'riders', b.men.some((m) => m.side === 0 && m.group === 'riders' && m.y > 55) ? 'flank' : 'charge');
+    b.fire = 'free'; // Hassan stays by the camels, steadying the men near him
+    audio.sfx('melee'); buzz(30); setV(viewOf(b));
+  };
+  const holdLine = () => {
+    const b = bRef.current; if (!b || b.over) return;
+    command(b, 'all', 'hold'); b.heroAt = 'back'; b.fire = 'hold';
+    audio.sfx('tap'); buzz(12); setV(viewOf(b));
+  };
   const hero = (at: 'back' | 'front') => { const b = bRef.current; if (!b) return; b.heroAt = at; audio.sfx('tap'); setV(viewOf(b)); };
   const end = (retreat = false) => {
     const b = bRef.current!; const L = losses(b);
@@ -218,47 +251,35 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
         <div className="clash-title"><small>{v.over ? 'THE FIGHT IS OVER' : `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`}</small><b>{info.leader?.name ?? info.bandName}</b>
           {!v.over && <span className="fb-time">
             <button className={`fb-mini ${paused ? 'on' : ''}`} onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Resume' : 'Pause'} data-testid="clash-pause">{paused ? '▶' : 'II'}</button>
-            <button className={`fb-mini ${speed > 1 ? 'on' : ''}`} onClick={() => setSpeed((s) => (s > 1 ? 1 : 2))} aria-label="Speed" data-testid="clash-speed">×{speed > 1 ? 2 : 1}</button>
+            <button className={`fb-mini ${speed > 2 ? 'on' : ''}`} onClick={() => setSpeed((s) => (s > 2 ? 1.4 : 2.4))} aria-label="Speed" data-testid="clash-speed">{speed > 2 ? '»' : '›'}</button>
           </span>}
         </div>
         <div className="clash-bar cb-me" title="Your men's nerve"><span>Your men · {v.counts.foot + v.counts.rifles + v.counts.riders + 1}</span><i><u style={{ width: `${Math.min(100, v.me)}%` }} /></i><em data-testid="morale-me">{v.me}</em></div>
-        <div className="clash-bar cb-them" title="Their nerve"><span>Their nerve · {v.enemyLeft}</span><i><u style={{ width: `${Math.min(100, v.them)}%` }} /></i><em data-testid="morale-them">{v.them}</em></div>
+        <div className="clash-bar cb-them" title="Their nerve"><span>Their nerve · {v.downN} down</span><i><u style={{ width: `${Math.min(100, v.them)}%` }} /></i><em data-testid="morale-them">{v.them}</em></div>
       </div>
       <div className="clash-field fb-field">
-        <FieldCanvas battle={bRef} bandId={info.bandId} field={info.field} camels={info.camels} wall={setup.ground === 'camels'} selected={sel} onTap={tapGround} frame={frame} />
+        <div className={`fb-shake ${shout ? 'go' : ''}`} key={shout?.k ?? 0}><FieldCanvas battle={bRef} bandId={info.bandId} field={info.field} camels={info.camels} wall={setup.ground === 'camels'} selected="none" onTap={() => {}} frame={frame} /></div>
         <ol className="fb-feed" data-testid="clash-feed">
           {v.feed.map((f, i) => <li key={`${f.t}-${i}`} className={`${f.side === 0 ? 'mine' : 'theirs'}${f.big ? ' big' : ''}`} style={{ opacity: Math.max(0.25, 1 - (v.t - f.t) / 9) }}>{f.text}</li>)}
         </ol>
-        {v.t < 7 && !v.over && <p className="fb-hint">Choose who to order, then give the order, or tap the ground to send them there.</p>}
+        {!v.over && !duel && <p className={`fb-coach ${v.perfect && v.loaded && !v.charging ? 'now' : ''}`} data-testid="clash-coach">{coach(v, canDuel)}</p>}
+        {shout && <div key={shout.k} className={`fb-shout ${shout.perfect ? 'perfect' : ''}`}>{shout.text}</div>}
         {paused && !v.over && <div className="fb-paused">Paused</div>}
         {v.over && <div className={`clash-banner ${v.over === 'run' || v.over === 'yield' || v.over === 'withdraw' ? 'win' : v.over === 'draw' ? 'draw' : 'loss'}`} data-testid="clash-banner">{HEAD[v.over]}</div>}
       </div>
 
       {!v.over && !duel && (
-        <div className="fb-orders" data-testid="clash-orders">
-          <div className="fb-groups" role="radiogroup" aria-label="Who to order">
-            {(['all', ...groups, 'hero'] as const).map((g) => (
-              <button key={g} className={`fb-grp ${sel === g ? 'on' : ''}`} onClick={() => setSel(g)} role="radio" aria-checked={sel === g} data-testid={`grp-${g}`}>
-                <b>{GROUP_NAME[g]}</b><small>{g === 'all' ? `${v.counts.foot + v.counts.rifles + v.counts.riders}` : g === 'hero' ? (v.heroAt === 'front' ? 'in front' : 'by the camels') : `${v.counts[g]} · ${ORDER_NAME[v.orders[g]].toLowerCase()}`}</small>
+        <div className="fb-orders simple" data-testid="clash-orders">
+          {canDuel && <button className="btn primary fb-duel" onClick={() => setDuel(true)} data-testid="order-duel"><b>Call out their leader</b><small>beat him and the whole band yields</small></button>}
+          <div className="fb-big">
+            {v.rifles > 0 && (
+              <button className={`fb-btn volley ${v.loaded && v.perfect ? 'perfect' : ''} ${v.loaded ? '' : 'loading'}`} onClick={loose} disabled={!v.loaded || v.charging} data-testid="volley" style={{ ['--load' as string]: `${Math.round((v.loaded / Math.max(1, v.rifles)) * 100)}%` }}>
+                <b>Volley</b><small>{v.charging ? 'in the charge' : !v.loaded ? 'reloading' : v.perfect ? 'NOW' : v.inRange ? 'closer…' : 'wait'}</small>
               </button>
-            ))}
-          </div>
-          {sel === 'hero' ? (
-            <div className="fb-acts">
-              <button className={`btn ${v.heroAt === 'back' ? 'on' : ''}`} onClick={() => hero('back')} data-testid="hero-back"><b>Stay with the camels</b><small>safe; the men near him stand firmer</small></button>
-              <button className={`btn ${v.heroAt === 'front' ? 'on' : ''}`} onClick={() => hero('front')} data-testid="hero-front"><b>Lead from the front</b><small>the men take heart; he may be hurt</small></button>
-            </div>
-          ) : (
-            <div className="fb-acts">
-              {(['hold', 'advance', 'charge', ...(sel === 'riders' || (sel === 'all' && v.counts.riders) ? ['flank'] : []), 'back'] as GOrder[]).map((o) => (
-                <button key={o} className={`btn ${cur === o ? 'on' : ''}`} onClick={() => give(o)} data-testid={`ord-${o}`} aria-label={`${meName}: ${ORDER_NAME[o]}`}><b>{ORDER_NAME[o]}</b></button>
-              ))}
-            </div>
-          )}
-          <div className="fb-acts fb-special">
-            {hasRifles && <button className={`btn ${v.fire === 'hold' ? 'on' : ''}`} onClick={fireToggle} data-testid="fire-toggle"><b>{v.fire === 'hold' ? 'Holding fire' : 'Fire at will'}</b><small>{v.fire === 'hold' ? 'tap to fire at will' : 'tap to save it for a volley'}</small></button>}
-            {hasRifles && v.fire === 'hold' && <button className={`btn primary ${v.inRange ? 'ready' : ''}`} onClick={loose} disabled={!v.loaded} data-testid="volley"><b>Volley!</b><small>{v.inRange ? `${v.loaded} rifle${v.loaded === 1 ? '' : 's'} ready` : 'they are still far off'}</small></button>}
-            {canDuel && <button className="btn primary" onClick={() => setDuel(true)} data-testid="order-duel"><b>Call out their leader</b><small>beat him and they yield</small></button>}
+            )}
+            {v.charging
+              ? <button className="fb-btn hold" onClick={holdLine} data-testid="ord-hold"><b>Hold</b><small>back to the line</small></button>
+              : <button className={`fb-btn charge ${v.them < 40 || v.melee ? 'urge' : ''}`} onClick={charge} data-testid="ord-charge"><b>Charge</b><small>{v.counts.riders ? 'riders round the flank' : 'everyone in'}</small></button>}
           </div>
           <button className="ghost-btn clash-retreat" onClick={() => end(true)} data-testid="clash-retreat">Fall back and leave them a bale</button>
         </div>

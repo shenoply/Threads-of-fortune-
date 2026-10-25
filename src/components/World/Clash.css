@@ -215,3 +215,30 @@
 .clash-stakes span { font-size: 13px; line-height: 1.3; color: #e2cda2; }
 .clash-stakes .win { border-color: #6f8a3a; } .clash-stakes .win b { color: #b9d77a; }
 .clash-stakes .lose { border-color: #8a3a2a; } .clash-stakes .lose b { color: #ff9d7a; }
+
+/* ---- the simple fight: one line of advice, two big orders ---- */
+.fb-coach { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); width: max-content; max-width: 90%; margin: 0; padding: 7px 14px; border-radius: 20px; background: #120b06e0; border: 1px solid #6a4a28; color: #f6e6c0; font-size: 15px; font-weight: 600; text-align: center; pointer-events: none; }
+.fb-coach.now { border-color: #ffd27a; color: #ffd27a; box-shadow: 0 0 18px #ffd27a66; animation: fb-pulse .7s ease-in-out infinite alternate; }
+@keyframes fb-pulse { to { transform: translateX(-50%) scale(1.06); } }
+.fb-shout { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display, Georgia), serif; font-size: 30px; color: #fff0d2; text-shadow: 0 2px 14px #000, 0 0 2px #000; pointer-events: none; animation: fb-shout 1.2s ease-out forwards; white-space: nowrap; }
+.fb-shout.perfect { color: #ffd27a; font-size: 36px; }
+@keyframes fb-shout { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.7); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -80%) scale(1); } }
+.fb-shake { position: absolute; inset: 0; }
+.fb-shake.go { animation: fb-shake .32s ease-out; }
+@keyframes fb-shake { 20% { transform: translate(-4px, 2px); } 40% { transform: translate(4px, -2px); } 60% { transform: translate(-3px, 1px); } 80% { transform: translate(2px, 0); } }
+.fb-orders.simple { gap: 8px; }
+.fb-big { display: flex; gap: 10px; }
+.fb-btn { position: relative; flex: 1 1 0; min-height: 76px; border-radius: 12px; border: 1.5px solid #8a6a3a; background: #24170b; color: #fff0d2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+.fb-btn b { font-family: var(--display, Georgia), serif; font-size: 24px; font-weight: 500; letter-spacing: .04em; position: relative; }
+.fb-btn small { font-family: var(--label); font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: #d9c29a; position: relative; }
+.fb-btn:active:not(:disabled) { transform: scale(.97); }
+.fb-btn:disabled { opacity: .6; }
+/* the volley fills as the rifles reload and turns gold when they are close enough */
+.fb-btn.volley::before { content: ''; position: absolute; inset: auto 0 0 0; height: var(--load, 0%); background: linear-gradient(180deg, #5a3f1c, #3a2810); transition: height .2s; }
+.fb-btn.volley.perfect { border-color: #ffd27a; background: #3a2508; box-shadow: 0 0 0 2px #ffd27a55, 0 0 22px #ffd27a66; }
+.fb-btn.volley.perfect::before { background: linear-gradient(180deg, #c8902c, #8a5a14); }
+.fb-btn.volley.perfect small { color: #fff3c4; font-weight: 700; }
+.fb-btn.charge { border-color: #b0503a; background: #2a120c; }
+.fb-btn.charge.urge { box-shadow: 0 0 0 2px #e0553c55, 0 0 20px #e0553c55; animation: fb-urge 1s ease-in-out infinite alternate; }
+@keyframes fb-urge { to { box-shadow: 0 0 0 3px #e0553c88, 0 0 26px #e0553c88; } }
+.fb-duel { min-height: 54px; }

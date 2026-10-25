@@ -215,23 +215,39 @@ export function command(b: Battle, g: Group | 'all', o: GOrder, at?: { x: number
 }
 
 /** Rifles holding their fire loose one volley together: the closer they are, the more it tells. */
-export function volley(b: Battle): number {
+/** How close the nearest of them is to your rifles: the volley tells best when they are close but not yet on you. */
+export function volleyRange(b: Battle) {
+  let best = Infinity;
+  for (const m of b.men) {
+    if (m.side !== 0 || !up(m) || !m.rifle || m.hero || m.group !== 'rifles') continue;
+    const t = nearest(b, m); if (t && t.d < best) best = t.d;
+  }
+  const reach = RANGE * groundReach(b.ground);
+  // perfect: within about half your reach and not yet at bayonet length
+  const perfect = best <= reach * 0.6 && best > MELEE * 1.5;
+  return { d: best, reach, perfect, inRange: best <= reach * 1.1 };
+}
+export type VolleyResult = { fired: number; hits: number; quality: 'perfect' | 'good' | 'far' | 'none' };
+export function volley(b: Battle): VolleyResult {
   let hits = 0, fired = 0;
+  const vr = volleyRange(b);
+  const quality: VolleyResult['quality'] = !vr.inRange ? 'none' : vr.perfect ? 'perfect' : vr.d <= vr.reach * 0.85 ? 'good' : 'far';
+  const bonus = quality === 'perfect' ? 2.1 : quality === 'good' ? 1.5 : 1;
   for (const m of b.men) {
     if (m.side !== 0 || !up(m) || !m.rifle || m.load > 0 || m.hero) continue;
     const t = nearest(b, m); if (!t) continue;
     const reach = RANGE * groundReach(b.ground) * 1.1;
     if (t.d > reach) continue;
     fired++;
-    const hit = shoot(b, m, t.e, t.d, reach, 1.6);
+    const hit = shoot(b, m, t.e, t.d, reach, bonus);
     if (hit) hits++;
   }
   if (fired) {
     b.cues.push({ t: b.t, kind: 'volley' });
-    b.morale[1] -= hits * 5 + fired * 0.8;
-    say(b, 0, hits ? `Volley! ${hits === 1 ? 'One of them drops' : `${hits} of them drop`}.` : 'Volley! The smoke clears; it went high.', true);
+    b.morale[1] -= hits * (quality === 'perfect' ? 8 : 5) + fired * (quality === 'perfect' ? 2 : 0.8);
+    say(b, 0, quality === 'perfect' ? `A perfect volley! ${hits === 1 ? 'One of them drops' : hits ? `${hits} of them drop` : 'They duck and falter'}.` : hits ? `Volley! ${hits === 1 ? 'One of them drops' : `${hits} of them drop`}.` : 'Volley! The smoke clears; it went high.', true);
   }
-  return fired;
+  return { fired, hits, quality: fired ? quality : 'none' };
 }
 
 function shoot(b: Battle, m: Man, e: Man, d: number, reach: number, bonus = 1) {
@@ -316,6 +332,15 @@ export function step(b: Battle, dt: number) {
   for (const s of [0, 1] as Side[]) {
     if (b.t - b.lastLoss[s] > 3 && b.morale[s] < b.start[s] * 0.9) b.morale[s] += (s === 0 && heroUp ? 1.6 : 1) * dt;
     if (b.morale[s] < 0) b.morale[s] = 0;
+  }
+  // nerve cannot climb back past what the men still standing can carry, and a band cut down to a
+  // handful gives it up: the last of them run (and their leader with them) rather than wait to be taken
+  for (const s2 of [0, 1] as Side[]) {
+    const all = b.men.filter((m) => m.side === s2 && !m.hero);
+    const standing = all.filter((m) => m.state === 'up' && !m.fleeing).length;
+    const cap = b.start[s2] * (0.3 + 0.7 * (standing / Math.max(1, all.length)));
+    if (b.morale[s2] > cap) b.morale[s2] = cap;
+    if (s2 === 1 && all.length >= 3 && standing <= Math.max(1, Math.floor(all.length * 0.25)) && b.morale[1] > 7) b.morale[1] = 7;
   }
   // a side whose nerve is gone runs together
   for (const s of [0, 1] as Side[]) if (b.morale[s] < 8) for (const m of b.men) if (m.side === s && m.state === 'up' && !m.fleeing && !(m.hero && s === 0)) { if (!m.fleeing && m.leader) say(b, 0, `${cap(m.name)} turns his horse and goes.`, true); m.fleeing = true; }

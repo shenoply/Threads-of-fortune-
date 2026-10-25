@@ -52,9 +52,13 @@
 .road-step.done .road-step-body > b { color: var(--text-dim); }
 .road-done { font-size: 13px; color: #9fd07a; }
 .road-step .btn { align-self: flex-start; margin-top: 5px; }
-.road-chapter.folded details > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.road-chapter.folded details > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto 14px; align-items: baseline; gap: 10px; }
 .road-chapter.folded details > summary::-webkit-details-marker { display: none; }
 .road-chapter.folded details > summary h4 { margin: 0; }
 .road-chapter.folded details > summary::after { content: '›'; color: var(--text-dim); }
 .road-chapter.folded details[open] > summary::after { content: '⌄'; }
 .road-chapter.folded { padding-bottom: 6px; }
+
+/* the folded ranks: the name takes the room, the count and the arrow sit in one tidy column at the right */
+.road-chapter.folded details > summary .road-count { white-space: nowrap; text-align: right; font-family: var(--label); font-size: 14px; letter-spacing: .04em; }
+.road-chapter.folded details > summary::after { text-align: right; }

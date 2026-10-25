@@ -33,7 +33,7 @@ await p.click('[data-testid=amb-fight]');
   console.log('odds:', (await p.textContent('[data-testid=clash-odds]')).replace(/\s+/g, ' '));
   await p.screenshot({ path: S + 'f-2-prep.png' });
   await p.click('[data-testid=clash-begin]');
-  await p.evaluate(() => { window.__tofBattleSpeed = 6; }); await p.waitForSelector('[data-testid=clash-orders]'); await p.waitForTimeout(1500); await p.screenshot({ path: S + 'f-3-round.png' }); await p.click('[data-testid=grp-all]'); await p.click('[data-testid=ord-charge]');
+  await p.evaluate(() => { window.__tofBattleSpeed = 6; }); await p.waitForSelector('[data-testid=clash-orders]'); await p.waitForTimeout(1500); await p.screenshot({ path: S + 'f-3-round.png' }); await p.click('[data-testid=ord-charge]');
   await p.waitForSelector('[data-testid=clash-over]', { timeout: 60000 }); await p.screenshot({ path: S + 'f-4-over.png' });
   console.log('battle:', await p.textContent('[data-testid=clash-banner]'));
   await p.click('[data-testid=clash-continue]');

@@ -91,7 +91,7 @@ export function Road() {
         {chapters.map((ch) => ch !== rk ? (
           <li key={ch} className={`road-chapter ${ch < rk ? 'past' : 'later'} folded`}>
             <details data-testid={`road-chapter-${ch}`}>
-              <summary><h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4><span className="dim">{ch < rk ? 'done' : `${steps.filter((x) => x.chapter === ch).length} steps`}</span></summary>
+              <summary><h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4><span className="dim road-count">{ch < rk ? 'done' : (() => { const n = steps.filter((x) => x.chapter === ch).length; return `${n} ${n === 1 ? 'step' : 'steps'}`; })()}</span></summary>
               <ol>
                 {steps.filter((x) => x.chapter === ch).map((st) => (
                   <li key={st.id} className={`road-step ${st.done ? 'done' : ''} ${st.rank ? 'rank' : ''}`} data-testid={`road-${st.id}`}>
