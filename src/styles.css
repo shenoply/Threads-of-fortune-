@@ -3442,3 +3442,16 @@ body.travelling .world-hud { display: none; }
   .stall.has-result > .band { justify-content: flex-start; }
   .stall.has-result > .band .plate-buyer { order: -1; }
 }
+
+/* the margin, always in view: what you paid on each rug, and what an offer would make you */
+.rugcard .val .paid { font-style: normal; color: var(--text-dim); font-size: .92em; }
+.offer-bar .margin { font-family: var(--label); font-size: 13.5px; color: #cfe7b0; white-space: nowrap; }
+.offer-bar .margin.neg { color: #f08a72; }
+.offer-bar .margin.top { color: #ffd27a; }
+.offer-bar .margin i { font-style: normal; letter-spacing: 1px; color: #ffd27a; }
+.offer-bar .margin.neg i { color: #8a6a4a; }
+.dial small .pos { color: #9fd57a; }
+.offer-bar { gap: 8px; }
+.offer-bar > span { white-space: nowrap; }
+@media (max-width: 420px) { .offer-bar { font-size: 13px; padding: 6px 9px; } .offer-bar .margin { font-size: 12.5px; } }
+.rugcard .val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }

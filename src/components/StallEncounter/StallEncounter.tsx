@@ -336,7 +336,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               )}
               {isP && <span className="hint">Inspect</span>}
               <span className={`nm t-tier-${t.tier ?? 1}`}>{names[it.uid] ?? t.name}</span>
-              <span className="val" data-testid="rugcard-value">≈ {fmt(typicalSale(it))}</span>
+              {/* what you paid and what it usually fetches, side by side: the margin at a glance */}
+              <span className="val" data-testid="rugcard-value"><em className="paid">{it.paid ? `paid ${fmt(it.paid)}` : 'a gift'}</em> → ≈ {fmt(typicalSale(it))}</span>
               <span className="meta">
                 {t.origin.split(',')[0].replace('Said to be ', '')} · {t.material.split(' ')[0]} · {t.age}
               </span>
@@ -362,6 +363,12 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <div className={`offer-bar ${enc.finalOffered ? 'final' : ''}`} data-testid="offer-bar">
             {enc.askPrice ? <span>You ask <b>{fmt(enc.askPrice)}</b></span> : <span />}
             {enc.buyerOffer ? <span className="theirs" data-testid={enc.finalOffered ? 'final-offer' : undefined}>{enc.finalOffered ? 'Final offer' : `${buyer?.name.split(' ')[0] ?? 'They'} offers`} <b data-testid="offer-amount">{fmt(enc.buyerOffer)}</b></span> : <span className="theirs dim">No offer yet</span>}
+            {/* what their offer means for you: the profit on what the rug cost, and the stars it would earn */}
+            {presented && enc.buyerOffer ? (() => {
+              const cost = presented.paid, gain = enc.buyerOffer - cost, pct = cost > 0 ? Math.round((gain / cost) * 100) : 100;
+              const stars = cost <= 0 ? 2 : pct >= 75 ? 3 : pct >= 25 ? 2 : 1;
+              return <span className={`margin ${gain < 0 ? 'neg' : stars === 3 ? 'top' : ''}`} data-testid="offer-margin">{gain >= 0 ? '+' : '−'}{fmt(Math.abs(gain))} <i>{'★'.repeat(stars)}{'☆'.repeat(3 - stars)}</i></span>;
+            })() : null}
           </div>
         ) : null}
         {enc?.outcome && !showResult ? (
@@ -438,7 +445,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             </div>
             <div className="price">
               <b data-testid="dial-value" data-pt={dial}>{fmt(dial)}</b>
-              <small>{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
+              <small>{presented.paid ? <>paid {fmt(presented.paid)} · <span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
             </div>
             <div className="dial-btns">
