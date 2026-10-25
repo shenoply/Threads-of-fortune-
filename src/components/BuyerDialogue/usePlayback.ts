@@ -120,22 +120,23 @@ export function usePlayback(log: Line[], resetKey: string, buyerId = '') {
   }, [resetKey, commit]);
 
   useEffect(() => {
-    if (log.length < played.current) played.current = 0;
+    // the log was trimmed (kept to its last lines), not restarted: nothing to replay. A new encounter
+    // resets through resetKey above.
+    if (log.length < played.current) { played.current = log.length; return; }
     if (log.length === played.current) return;
     const fresh = log.slice(played.current);
     played.current = log.length;
     // Anything still waiting from an earlier turn is shown instantly, then the new turn plays.
     if (activeRef.current || queue.current.length) {
       clear();
-      let v: PlaybackView | null = null;
+      // the lines still waiting, taken now: the updater below runs later, by when the queue already
+      // holds the new turn, and committing that too showed a buyer's last words before they spoke them
+      const pending = [...(activeRef.current ? [activeRef.current] : []), ...queue.current];
       setView((cur) => {
         let n = cur;
-        if (activeRef.current) n = commit(activeRef.current, n);
-        for (const l of queue.current) n = commit(l, n);
-        v = n;
+        for (const l of pending) n = commit(l, n);
         return { ...n, typed: 9999 };
       });
-      void v;
       queue.current = [];
       activeRef.current = null;
     }

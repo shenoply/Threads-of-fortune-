@@ -3212,6 +3212,9 @@ export const useGame = create<GameState & Actions>()(
           if (!s.encounter || s.encounter.outcome || s.encounter.tutorial || s.encounter.venue) return;
           const enc = cloneEnc(s.encounter);
           enc.log.push({ speaker: 'system', text: `You thank ${BUYERS[enc.buyerId]?.name ?? 'them'} for coming by. Another day, perhaps.` });
+          // they answer as they go: a goodbye in their own voice, and the card waits for it
+          const bye = BUYERS[enc.buyerId]?.lines.walkAway ?? [];
+          if (bye.length) enc.log.push({ speaker: 'buyer', text: bye[Math.floor(rng() * bye.length)], mood: 'leaving' });
           enc.outcome = 'walked'; enc.stage = 'close'; enc.mood = 'leaving'; enc.letGo = true;
           const patch: Partial<GameState> = { encounter: enc };
           set({ ...patch, ...settle({ ...s, ...patch } as GameState, enc), visitIdx: s.visitIdx + 1 });

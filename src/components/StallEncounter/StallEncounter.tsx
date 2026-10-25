@@ -193,7 +193,11 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     const t = window.setTimeout(() => setLateFor(id), 4000);
     return () => window.clearTimeout(t);
   }, [enc?.outcome, enc?.id]);
-  const showResult = !!enc?.outcome && (lineDone || lateFor === enc.id);
+  // once the card is up it stays up: a line replayed by the voice must not take it away again
+  const [shownFor, setShownFor] = useState('');
+  const ready = !!enc?.outcome && (lineDone || lateFor === enc.id || shownFor === enc.id);
+  useEffect(() => { if (ready && enc && shownFor !== enc.id) setShownFor(enc.id); }, [ready, enc, shownFor]);
+  const showResult = ready;
   const rel = enc ? g.relationships[enc.buyerId] : undefined;
   const tier = rel ? tierOf(rel) : { idx: 0, name: 'New' as const };
   const buyer = enc ? BUYERS[enc.buyerId] : null;
@@ -267,7 +271,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   return (
     <>
     {talking && <SkillsAtWork encId={enc!.id} buyerId={enc!.buyerId} />}
-    <div ref={root} className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}${enc?.outcome ? ' has-result' : ''}`} data-testid="stall">
+    <div ref={root} className={`stall${talking ? ' in-talk' : ''}${tray ? '' : ' tray-shut'}${showResult ? ' has-result' : ''}${enc?.outcome && !showResult ? ' parting' : ''}`} data-testid="stall">
       {filmFor && createPortal(<IntroFilm id={filmFor} onDone={() => { useGame.getState().markIntroSeen(filmFor); setFilmDone(true); }} />, document.body)}
       {((enc && !enc.outcome && !enc.tutorial && !enc.venue) || (tut && enc && !enc.outcome)) && (
         <div className="stall-toolbar">
@@ -275,7 +279,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <button className="step-away" onClick={() => g.stepAway()} data-testid="step-away">⟵ Step away<small>they wait an hour</small></button>
           )}
           {enc && !enc.outcome && !enc.tutorial && !enc.venue && (
-            <button className="step-away" onClick={() => g.letGo()} data-testid="let-go">Let them go<small>next customer</small></button>
+            <button className="step-away" onClick={(e) => { e.stopPropagation(); g.letGo(); }} data-testid="let-go">Let them go<small>next customer</small></button>
           )}
           {tut && enc && !enc.outcome && (
             <button className="step-away" onClick={() => g.skipTutorial()} data-testid="skip-lesson">Skip the lesson<small>sell it your own way</small></button>
@@ -376,7 +380,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           </div>
         ) : null}
         {enc?.outcome && !showResult ? (
-          <div className="result-wait" aria-hidden="true" />
+          <div className="result-wait" aria-hidden="true">{enc.outcome === 'sold' ? '' : `${buyer?.name.split(' ')[0] ?? 'They'} is leaving…`}</div>
         ) : enc?.outcome ? (
           <div className={`result ${enc.outcome}`} data-testid="result">
             <div className="r-main">
