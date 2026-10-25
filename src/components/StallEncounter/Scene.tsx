@@ -202,7 +202,7 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
             HeroFigure), rather than reverting the whole figure to a fixed picture. */}
         <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfitId={outfit} /></div>
         {buyer && (
-          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
+          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}${enc?.seek && !enc.outcome ? ' seeker' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
             <ScenePerson id={buyer.id} />
           </div>
         )}

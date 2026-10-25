@@ -175,6 +175,8 @@ export interface GameState {
   spotRun?: number;
   /** the fraction of a skill point the road has taught so far, carried between travel ticks */
   roadXp?: number;
+  /** sales of the one carpet a rare buyer came for */
+  seekWins?: number;
   /** main missions: active or done */
   missions: Record<string, 'active' | 'done'>;
   /** skills rise by doing; XP per skill */
@@ -1133,6 +1135,7 @@ export const useGame = create<GameState & Actions>()(
         let commissions = s.commissions;
         if (enc.outcome === 'sold' && enc.presented && enc.salePrice) {
           patch.spotRun = enc.spotOn ?? 0;
+          if (enc.seek && s.inventory.find((i) => i.uid === enc.presented)?.typeId === enc.seek) patch.seekWins = (s.seekWins ?? 0) + 1;
           const item = s.inventory.find((i) => i.uid === enc.presented)!;
           const t = RUGS[item.typeId];
           cash += enc.salePrice;

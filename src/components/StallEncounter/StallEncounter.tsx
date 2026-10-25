@@ -216,6 +216,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     return () => window.clearTimeout(t);
   }, [autoNext]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = g.tutorial.step;
+  // a buyer who came for one carpet: a soft chime as they arrive, so the moment is noticed
+  useEffect(() => { if (enc?.seek && !enc.outcome) audio.sfx('bell'); }, [enc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ctx = { inventory: g.inventory, upgrades: g.upgrades, dressing: placedPieces(g), reputation: g.reputation, rel: rel ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] }, rng: Math.random, nabil: g.nabil, cohen: g.cohen, findings: g.arranFindings ?? [], day: g.day };
   const actions = enc ? getActions(enc, ctx) : [];

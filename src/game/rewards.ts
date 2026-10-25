@@ -69,12 +69,13 @@ let prev: S = useGame.getState();
         const hot = streak >= 3 ? `A streak: ${streak} fine deals in a row` : '';
         if (streak >= 3) queueMicrotask(() => useGame.setState((st) => ({ reputation: st.reputation + 1 })));
         const spot = (s.spotRun ?? 0) > 0 && (s.spotRun ?? 0) !== (p.spotRun ?? 0) ? s.spotRun! : 0;
-        const note = (spot ? `Spot on${spot > 1 ? ` ×${spot}` : ''}! They paid extra for your eye` : '') || mark || hot || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : pct < 0 ? 'Under what it cost you' : '');
+        const sought = (s.seekWins ?? 0) > (p.seekWins ?? 0);
+        const note = (sought ? 'The very carpet they came for' : '') || (spot ? `Spot on${spot > 1 ? ` ×${spot}` : ''}! They paid extra for your eye` : '') || mark || hot || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : pct < 0 ? 'Under what it cost you' : '');
         const loss = cost > 0 && sold - extra < cost;
         audio.sfx(loss ? 'chest' : record || mark || stars === 3 ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
         saleMoment(sold, loss ? `A loss: ${fmt(cost - (sold - extra))} under what it cost you` : note, !loss && (record || !!mark || sold >= BIG_SALE || stars === 3), loss ? 0 : stars, loss);
         // a fine deal at a good price is a fortune moment: the purse glows and the screen catches the gold
-        if (!loss && stars === 3 && (sold >= BIG_SALE || record)) goldRush();
+        if (!loss && (sought || (stars === 3 && (sold >= BIG_SALE || record)))) goldRush();
         floatSale(sold);
       }
       const won = fresh.filter((l) => l.kind === 'purchase' && /^Auction:/.test(l.label)).reduce((a, l) => a + (l.cost ?? -l.amount), 0);
