@@ -429,6 +429,8 @@ class AudioEngine {
 
   /** when a sound was last asked for (the soft tap for a silent button checks it) */
   lastSfxAt = 0;
+  /** the size of the next handful of coins (set by a sale, used once) */
+  coinSize: string | null = null;
   sfx(name: string) {
     this.lastSfxAt = performance.now();
     // the important moments also buzz on a phone that can (feel.ts), with or without sound
@@ -451,12 +453,18 @@ class AudioEngine {
       case 'brush':
         this.noise(0.25, d, { type: 'highpass', f: 2500, gain: 0.22, attack: 0.05 });
         break;
-      case 'coins': {
-        // one handful at a time: a sale and the purse watching it can both ask for the same coins
+      case 'coins':
+      case 'coins-small':
+      case 'coins-big':
+      case 'coins-heap': {
+        // one handful at a time: a sale and the purse watching it can both ask for the same coins.
+        // The handful follows the money: a few for a small sale, a cascade for a fortune.
         const now = performance.now();
         if (now - this.coinsAt < 400) break;
         this.coinsAt = now;
-        const n = 3 + Math.floor(Math.random() * 3);
+        const size = name === 'coins' && this.coinSize ? this.coinSize : name;
+        this.coinSize = null;
+        const n = size === 'coins-small' ? 2 : size === 'coins-big' ? 7 + Math.floor(Math.random() * 3) : size === 'coins-heap' ? 13 + Math.floor(Math.random() * 4) : 3 + Math.floor(Math.random() * 3);
         for (let i = 0; i < n; i++) this.coin(i * (0.05 + Math.random() * 0.07), 0.09);
         break;
       }

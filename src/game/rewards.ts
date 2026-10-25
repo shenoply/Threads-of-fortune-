@@ -72,9 +72,12 @@ let prev: S = useGame.getState();
         const sought = (s.seekWins ?? 0) > (p.seekWins ?? 0);
         const note = (sought ? 'The very carpet they came for' : '') || (spot ? `Spot on${spot > 1 ? ` ×${spot}` : ''}! They paid extra for your eye` : '') || mark || hot || (record ? 'Your best sale yet' : dayBest > 0 && sold > dayBest ? 'The best of the day' : pct >= 10 ? `${pct}% more than it cost you` : pct < 0 ? 'Under what it cost you' : '');
         const loss = cost > 0 && sold - extra < cost;
+        // the coins follow the money: a few for a small sale, a cascade for a fortune
+        audio.coinSize = sold >= BIG_SALE * 3 ? 'coins-heap' : sold >= BIG_SALE ? 'coins-big' : sold < BIG_SALE / 4 ? 'coins-small' : 'coins';
         audio.sfx(loss ? 'chest' : record || mark || stars === 3 ? 'reward' : sold >= BIG_SALE ? 'soldBig' : 'sold');
         saleMoment(sold, loss ? `A loss: ${fmt(cost - (sold - extra))} under what it cost you` : note, !loss && (record || !!mark || sold >= BIG_SALE || stars === 3), loss ? 0 : stars, loss);
         // a fine deal at a good price is a fortune moment: the purse glows and the screen catches the gold
+        // the coins follow the money: a handful for a small sale, a cascade for a fortune
         if (!loss && (sought || (stars === 3 && (sold >= BIG_SALE || record)))) goldRush();
         floatSale(sold);
       }
