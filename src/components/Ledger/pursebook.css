@@ -84,3 +84,13 @@
 .proud li b { display: block; font-family: var(--body); font-size: 15px; color: var(--text); }
 .proud li small { font-size: 12.5px; color: var(--text-dim); }
 .proud li em { font-style: normal; font-family: var(--display); font-size: 15px; color: var(--good); white-space: nowrap; }
+.pb-range { display: flex; justify-content: center; gap: 4px; margin: 6px 0 2px; flex-wrap: wrap; }
+.pb-range button { border: 0; background: rgba(0,0,0,.25); color: var(--text-dim); font-family: var(--label); font-size: 12.5px; letter-spacing: .05em; padding: 4px 10px; border-radius: 99px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(214,164,84,.15); }
+.pb-range button.on { background: #e7bd6e; color: #2b1b0d; box-shadow: none; }
+.pb-period { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(214,164,84,.2); }
+.pb-period span { display: grid; gap: 1px; }
+.pb-period span.wide { grid-column: 1 / -1; }
+.pb-period small { font-family: var(--label); font-size: 10.5px; letter-spacing: .16em; color: var(--text-dim); }
+.pb-period b { font-family: var(--display); font-size: 19px; color: var(--parchment); font-variant-numeric: tabular-nums; }
+.pb-period b.pos { color: var(--good); } .pb-period b.neg { color: var(--bad); }
+.pb-period i { font-style: normal; font-family: var(--body); font-size: 12.5px; color: var(--text-dim); }

@@ -11,6 +11,8 @@ import type { LedgerEntry } from '../../game/types';
 import './pursebook.css';
 
 type Kind = 'all' | 'sale' | 'stock' | 'cost';
+type Range = '14' | 'month' | 'season' | 'year' | 'all';
+const RANGES: [Range, string][] = [['14', 'Fortnight'], ['month', 'Month'], ['season', 'Season'], ['year', 'Year'], ['all', 'All']];
 const KIND_OF = (l: LedgerEntry): Exclude<Kind, 'all'> =>
   l.kind === 'sale' || (l.kind === 'bonus' && l.amount > 0) ? 'sale' : l.kind === 'purchase' ? 'stock' : 'cost';
 const MARK: Record<Exclude<Kind, 'all'>, string> = { sale: '✦', stock: '◆', cost: '·' };
@@ -38,6 +40,32 @@ export function PurseBook() {
     return out;
   }, [g.ledger, g.cash, g.day]);
 
+  // how far back the line reaches: a fortnight by day, or a month, a season, a year, everything
+  const [range, setRange] = useState<Range>('14');
+  const span = useMemo(() => {
+    if (range === '14') return null;
+    const len = range === 'month' ? 30 : range === 'season' ? 91 : range === 'year' ? 365 : g.day;
+    const first = Math.max(1, g.day - len + 1);
+    const byDay = new Map<number, number>();
+    for (const l of g.ledger) byDay.set(l.day, (byDay.get(l.day) ?? 0) + l.amount);
+    const closes: { day: number; close: number }[] = [];
+    let cash = g.cash;
+    for (let d = g.day; d >= first; d--) { closes.unshift({ day: d, close: cash }); cash -= byDay.get(d) ?? 0; }
+    const step = Math.max(1, Math.ceil(closes.length / 36));
+    const pts = closes.filter((_, i) => (closes.length - 1 - i) % step === 0);
+    const inSpan = g.ledger.filter((l) => l.day >= first);
+    const sales = inSpan.filter((l) => l.kind === 'sale' && l.amount > 0);
+    const revenue = sales.reduce((a, l) => a + l.amount, 0);
+    const gross = sales.reduce((a, l) => a + l.amount - (l.cost ?? 0), 0);
+    const costs = -inSpan.filter((l) => l.amount < 0 && l.kind !== 'purchase').reduce((a, l) => a + l.amount, 0);
+    const bought = -inSpan.filter((l) => l.kind === 'purchase').reduce((a, l) => a + l.amount, 0);
+    const perDay = new Map<number, number>();
+    for (const l of sales) perDay.set(l.day, (perDay.get(l.day) ?? 0) + l.amount - (l.cost ?? 0));
+    const bestDay = [...perDay.entries()].sort((a, b) => b[1] - a[1])[0];
+    const days = g.day - first + 1;
+    return { pts, first, revenue, gross, costs, bought, count: sales.length, bestDay, perDay: gross / Math.max(1, days), days };
+  }, [range, g.ledger, g.cash, g.day]);
+
   const [pick, setPick] = useState(g.day);
   const [kind, setKind] = useState<Kind>('all');
   const page = days.find((d) => d.day === pick) ?? days[days.length - 1];
@@ -51,13 +79,14 @@ export function PurseBook() {
 
   // the line of the purse: drawn by hand-ish, the chosen day marked
   const W = 320, H = 84, P = 8;
-  const vals = days.map((d) => d.close);
+  const series = span ? span.pts : days;
+  const vals = series.map((d) => d.close);
   const lo = Math.min(0, ...vals), hi = Math.max(1, ...vals);
-  const X = (i: number) => P + (i / Math.max(1, days.length - 1)) * (W - P * 2);
+  const X = (i: number) => P + (i / Math.max(1, series.length - 1)) * (W - P * 2);
   const Y = (v: number) => H - P - ((v - lo) / Math.max(1, hi - lo)) * (H - P * 2);
-  const path = days.map((d, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(d.close).toFixed(1)}`).join(' ');
-  const area = `${path} L${X(days.length - 1)},${H - P} L${X(0)},${H - P} Z`;
-  const trend = days.length > 1 ? days[days.length - 1].close - days[0].close : 0;
+  const path = series.map((d, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(d.close).toFixed(1)}`).join(' ');
+  const area = `${path} L${X(series.length - 1)},${H - P} L${X(0)},${H - P} Z`;
+  const trend = series.length > 1 ? series[series.length - 1].close - series[0].close : 0;
 
   const swipe = useRef<number | null>(null);
   const tabs = useRef<HTMLElement>(null);
@@ -82,14 +111,26 @@ export function PurseBook() {
           {lo < 0 && <line x1={P} x2={W - P} y1={Y(0)} y2={Y(0)} className="zero" />}
           <path d={area} fill="url(#pbfill)" />
           <path d={path} className={`trace ${trend >= 0 ? 'up' : 'down'}`} />
-          {days.map((d, i) => (
+          {!span && days.map((d, i) => (
             <g key={d.day} onClick={() => turn(i)} className={`pt ${d.day === page.day ? 'on' : ''}`}>
               <rect x={X(i) - 11} y={0} width={22} height={H} fill="transparent" />
               <circle cx={X(i)} cy={Y(d.close)} r={d.day === page.day ? 4.5 : d.lines.length ? 2.4 : 1.4} />
             </g>
           ))}
         </svg>
-        <div className="pb-trend">{days.length > 1 ? <>{trend >= 0 ? 'Up' : 'Down'} <b className={trend >= 0 ? 'pos' : 'neg'}>{fmt(Math.abs(trend))}</b> since day {days[0].day}</> : 'Your first day'}</div>
+        <div className="pb-range" role="tablist" aria-label="How far back">
+          {RANGES.map(([k, t]) => <button key={k} className={range === k ? 'on' : ''} onClick={() => { audio.sfx('tap'); setRange(k); }} data-testid={`ledger-range-${k}`}>{t}</button>)}
+        </div>
+        <div className="pb-trend">{series.length > 1 ? <>{trend >= 0 ? 'Up' : 'Down'} <b className={trend >= 0 ? 'pos' : 'neg'}>{fmt(Math.abs(trend))}</b> since day {series[0].day}</> : 'Your first day'}</div>
+        {span && (
+          <div className="pb-period" data-testid="ledger-period">
+            <span><small>SOLD</small><b>{fmt(span.revenue)}</b><i>{span.count} rug{span.count === 1 ? '' : 's'}</i></span>
+            <span><small>PROFIT ON SALES</small><b className={span.gross >= 0 ? 'pos' : 'neg'}>{span.gross >= 0 ? '' : '−'}{fmt(Math.abs(span.gross))}</b><i>{fmt(Math.round(span.perDay))} a day</i></span>
+            <span><small>STOCK BOUGHT</small><b>{fmt(span.bought)}</b><i>over {span.days} days</i></span>
+            <span><small>COSTS</small><b className="neg">{fmt(span.costs)}</b><i>rent, wages, food, fees</i></span>
+            {span.bestDay && <span className="wide"><small>BEST DAY</small><b className="pos">+{fmt(span.bestDay[1])}</b><i>day {span.bestDay[0]}</i></span>}
+          </div>
+        )}
       </section>
 
       <nav className="pb-tabs" aria-label="Days" ref={tabs}>
