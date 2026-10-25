@@ -36,10 +36,13 @@ export function seasonSummary(ledger: L[], season: number, prevProfit: number) {
   return { profit, revenue, count: sales.length, bestBuyer, bestSale, score };
 }
 
+// test runs (the developer switch) skip it, as they skip the films
+const skipAll = (() => { try { return localStorage.getItem('tof-skip-chapters') === '1' && localStorage.getItem('tof-season') !== '1'; } catch { return false; } })();
+
 export function SeasonReport() {
   const g = useGame();
   const last = g.ranks?.last;
-  const due = !!last && g.day - last.day <= 3 && g.seasonSeen !== last.season;
+  const due = !skipAll && !!last && g.day - last.day <= 3 && g.seasonSeen !== last.season;
   useEffect(() => { if (due) audio.sfx('reward'); }, [due]);
   if (!due || !last) return null;
   const prev = last.season > 0 ? seasonSummary(g.ledger, last.season - 1, 0).profit : 0;
