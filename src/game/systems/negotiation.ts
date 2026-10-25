@@ -834,7 +834,8 @@ export function presentRug(enc: Encounter, ctx: Ctx, uid: string): Effects {
   enc.stage = 'presentation';
   enc.askPrice = undefined;
   enc.buyerOffer = undefined;
-  say(enc, 'seller', pick(SELLER.present, ctx.rng).replace('{rug}', t.name));
+  if (item.typeId.startsWith('own-')) say(enc, 'seller', WEAVERY_LINES.sellOwn[enc.log.length % WEAVERY_LINES.sellOwn.length]);
+  else say(enc, 'seller', pick(SELLER.present, ctx.rng).replace('{rug}', t.name));
   // Courts are not furnished with village mats: royals only consider city carpets and treasures.
   // Each buyer shops in a band of tiers: below it a rug barely interests them.
   const minTier = b.royal ? 3 : (BUYER_TIERS[b.id]?.[0] ?? 1);
