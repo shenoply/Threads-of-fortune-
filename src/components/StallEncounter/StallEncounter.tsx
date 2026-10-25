@@ -212,7 +212,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const autoNext = showResult && enc?.outcome !== 'sold' && !atCourt && !tut && !reserveLeft;
   useEffect(() => {
     if (!autoNext) return;
-    const t = window.setTimeout(() => { setDial(null); useGame.getState().nextVisit(); }, 8000);
+    const t = window.setTimeout(() => { setDial(null); useGame.getState().nextVisit(); }, 5000);
     return () => window.clearTimeout(t);
   }, [autoNext]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = g.tutorial.step;

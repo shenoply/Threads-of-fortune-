@@ -3586,3 +3586,4 @@ body.travelling .world-hud { display: none; }
 .scene.stall.lamplit::after { opacity: 1; background: radial-gradient(ellipse at 30% 25%, rgba(255,196,110,.22), transparent 55%), radial-gradient(ellipse at 75% 30%, rgba(255,180,90,.14), transparent 50%); mix-blend-mode: screen; }
 .scene.stall .buyer-figure.seeker { filter: drop-shadow(0 0 14px rgba(255,205,110,.55)); animation: seeker 2.6s ease-in-out infinite; }
 @keyframes seeker { 50% { filter: drop-shadow(0 0 22px rgba(255,205,110,.8)); } }
+.btn.auto-next .auto-bar { animation-duration: 5s; }
