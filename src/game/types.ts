@@ -196,6 +196,10 @@ export interface Relationship {
   affinity: number;
   lastRug?: string;
   lastPurchaseDay?: number;
+  /** what they paid last time against the rug's worth: over 1.35 they feel cheated, under 0.85 they got a bargain */
+  lastFair?: number;
+  /** that last deal has been spoken of */
+  fairSaid?: boolean;
   bad: number;
   embellishedSale?: boolean;
   embellishMentioned?: boolean;

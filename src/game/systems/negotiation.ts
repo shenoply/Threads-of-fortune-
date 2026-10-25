@@ -135,6 +135,8 @@ export interface Encounter {
   spotOn?: number;
   /** the one carpet this buyer came for today (a rare visit; pays SEEK_PAYS times) */
   seek?: string;
+  /** they spoke of the last deal (store marks the relationship) */
+  fairSpoken?: boolean;
   /** the day of the visit: the market's mood that day (economy/market.ts) */
   day?: number;
 }
@@ -400,6 +402,15 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
       enc.log.push({ speaker: 'buyer', text: pick(L.embellishLater, ctx.rng), mood: 'skeptical' });
       enc.trust = clamp(enc.trust - 20, 0, 100);
       enc.mood = 'skeptical';
+    } else if (rel.lastRug && rel.purchases > 0 && !rel.fairSaid && rel.lastFair !== undefined && (rel.lastFair > 1.35 || rel.lastFair < 0.85) && ((L as unknown as Record<string, string[] | undefined>)[rel.lastFair > 1.35 ? 'overcharged' : 'bargain']?.length)) {
+      // they remember what the last one cost them
+      const cheated = rel.lastFair > 1.35;
+      const lines = (L as unknown as Record<string, string[]>)[cheated ? 'overcharged' : 'bargain'];
+      enc.log.push({ speaker: 'buyer', text: pick(lines, ctx.rng), mood: cheated ? 'skeptical' : 'warm' });
+      enc.trust = clamp(enc.trust + (cheated ? -6 : 5), 0, 100);
+      if (!cheated) enc.interest = clamp(enc.interest + 5, 0, 100);
+      enc.mood = cheated ? 'skeptical' : 'warm';
+      enc.fairSpoken = true;
     } else if (rel.lastRug && rel.purchases > 0) {
       enc.log.push({ speaker: 'buyer', text: pick(L.previousRug, ctx.rng).replace('{rug}', RUGS[rel.lastRug]?.name ?? 'rug'), mood: 'warm' });
       enc.mood = 'warm';

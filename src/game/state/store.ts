@@ -1123,6 +1123,7 @@ export const useGame = create<GameState & Actions>()(
         const b = BUYERS[enc.buyerId];
         const rel = { ...(s.relationships[enc.buyerId] ?? emptyRel()) };
         rel.visits += 1;
+        if (enc.fairSpoken) rel.fairSaid = true;
         const patch: Partial<GameState> = {};
         const ledger = [...s.ledger];
         const journal = [...s.journal];
@@ -1143,6 +1144,8 @@ export const useGame = create<GameState & Actions>()(
           rel.purchases += 1;
           rel.spent += enc.salePrice;
           rel.lastRug = item.typeId;
+          rel.lastFair = Math.round((enc.salePrice / Math.max(1, rugValue(item))) * 100) / 100;
+          rel.fairSaid = false;
           const good = enc.presentedFit >= 65;
           rel.affinity = Math.min(100, rel.affinity + (good ? 15 : enc.presentedFit < 40 ? -5 : 6) + (enc.honestCount ? 5 : 0));
           // a name is built slowly: one for a sale, a second only for a fine piece that truly fits the

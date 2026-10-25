@@ -441,7 +441,8 @@ export default function App() {
   useEffect(() => {
     audio.setClock(g.world.hour, g.dayOver);
   }, [g.world.hour, g.dayOver]);
-  useEffect(() => { audio.setLane(laneDay(g.day).level); }, [g.day]);
+  // the lane's crowd follows the day and your name: a quiet corner at first, a busy stall once you are known
+  useEffect(() => { audio.setLane(laneDay(g.day).level * (0.8 + Math.min(0.45, g.reputation / 120)) * (g.upgrades.includes('khan') ? 1.15 : 1)); }, [g.day, g.reputation, g.upgrades]);
   // other screens can ask for the paper or the radio
   useEffect(() => {
     const p = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) useGame.setState({ paperSeen: st.day }); };

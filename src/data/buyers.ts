@@ -536,7 +536,7 @@ Object.assign(BUYERS, { nabil: NABIL, cohen: COHEN, malek: MALEK_BUYER }, ROYALS
 for (const [id, more] of Object.entries(MORE_LINES)) {
   const L = BUYERS[id]?.lines as unknown as Record<string, unknown> | undefined;
   if (!L) continue;
-  for (const [k, add] of Object.entries(more)) { const cur = L[k]; if (Array.isArray(cur) && add) L[k] = [...cur, ...add.filter((t) => !cur.includes(t))]; }
+  for (const [k, add] of Object.entries(more)) { const cur = L[k]; if (!add) continue; if (Array.isArray(cur)) L[k] = [...cur, ...add.filter((t) => !cur.includes(t))]; else if (cur === undefined) L[k] = [...add]; }
 }
 /** The rug tiers each buyer shops in (1 Common … 4 Legendary). Below the range they are not interested. */
 export const BUYER_TIERS: Record<string, [number, number]> = { samira: [1, 2], yusuf: [1, 2], mariam: [1, 1], hassan: [1, 1], whitcombe: [1, 2], kasparian: [2, 2], benakis: [2, 3], nabil: NABIL_TIERS, cohen: COHEN_TIERS, malek: MALEK_TIERS, ...BUYERS_3A_TIERS, ...BUYERS_3B_TIERS, ...BUYERS_3C_TIERS, ...BUYERS_3D_TIERS, ...CELEBS_1_TIERS, ...CELEBS_2_TIERS, ...CELEBS_3_TIERS, ...CELEBS_4_TIERS };

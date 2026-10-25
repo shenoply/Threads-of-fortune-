@@ -5,6 +5,8 @@ type More = Partial<Record<string, string[]>>;
 
 export const MORE_LINES: Record<string, More> = {
   samira: {
+    overcharged: ['I showed your last rug to my cousin. She told me what I should have paid. I am still cross.', 'You did very well out of me last time. Today you will do less well.'],
+    bargain: ['My cousin could not believe what I paid for the last one. Neither could I. Thank you.', 'The last rug was a gift at that price. I have come back to be spoiled again.'],
     greeting: ['Good morning. The lane is louder than it was last week. Or I am more tired.', 'Good day. I have an hour, and I intend to spend it well.'],
     tea: ['Tea. Yes, please. It is the only civilised thing in this heat.', 'Thank you. You make it better than my cook does. Do not tell her.'],
     drawnTo: ['I like a thing that improves the longer you look at it. Most things do the opposite.'],
@@ -24,6 +26,8 @@ export const MORE_LINES: Record<string, More> = {
     catPet: ['She looks at me as if I owe her money.'],
   },
   yusuf: {
+    overcharged: ['Last time you robbed me. Politely, but you robbed me. Not again.', 'I checked your last price at the Khan. You owe me a discount, my friend.'],
+    bargain: ['That last rug, at that price? I told every hotel on the street. Here I am.', 'Last time you sold too cheap. I am not complaining. I came back.'],
     greeting: ['Morning. Quickly, I left the boy in charge of the desk.', 'Good morning. Show me something hard-wearing and cheap. In that order.'],
     tea: ['Tea, yes. Standing up. I do not have time to sit.', 'Fine. Small glass.'],
     drawnTo: ['If a porter can drag a trunk over it for a year, I am interested. Otherwise, no.'],
@@ -43,6 +47,8 @@ export const MORE_LINES: Record<string, More> = {
     catPet: ['She sheds more than my porters.'],
   },
   mariam: {
+    overcharged: ['Karim did the sums on the last rug. He was very quiet. Please be fair with me today.', 'My aunt said I paid too much last time. I did not believe her. Was she right?'],
+    bargain: ['Karim could not believe how little the last one cost. He sends his thanks.', 'You were so kind last time. I told everyone in the building.'],
     greeting: ['Good morning. I hope I am not too early.', 'Peace be upon you. I walked all the way from the tram.'],
     tea: ['Oh, tea. Thank you. My hands are cold, even in this weather.', 'You are too kind. Just a little sugar.'],
     drawnTo: ['I want Karim to come home and stop at the door and smile. That is all.'],
@@ -62,6 +68,8 @@ export const MORE_LINES: Record<string, More> = {
     catPet: ['Hello, Saffron. Hello. Oh, she purrs!'],
   },
   hassan: {
+    overcharged: ['Habibi, last time you took the shirt off my back. Today I keep my shirt.', 'My regulars laughed when I told them what I paid you. Laughed!'],
+    bargain: ['Last time you sold me a fine rug for nothing. Are you mad? I came back before you notice.', 'Your last price was a gift, habibi. The coffee is free for a month.'],
     greeting: ['Neighbour! You look thin. Selling or starving?', 'Peace be upon you. I left the backgammon mid-game for this. Do not waste it.'],
     tea: ['Your tea is weak, but your heart is good. Pour.'],
     rugGood: ['Ya salaam, look at that. My regulars will sit on it and forget to pay.', 'Ahh. That one has a soul.'],
@@ -74,6 +82,8 @@ export const MORE_LINES: Record<string, More> = {
     priceHigh: ['You think coffee grows on trees? It does. But still, no.'],
   },
   benakis: {
+    overcharged: ['My friend, my friend. The last carpet cost me like a racehorse. Today we are careful.', 'In Alexandria they laughed at my last price. Nobody laughs at Benakis twice.'],
+    bargain: ['Bravo for last time! I told all of Ramleh. Half of them are jealous.', 'The last one was a steal. Steal for me again, my friend.'],
     greeting: ['Ah, my friend! Alexandria sends her regards, and her money.', 'Good morning! I won at the races. Sell me something before I lose it again.'],
     rugGood: ['Bravo! That is how a salon should feel.', 'Oh-ho. Now my neighbours will hate me.'],
     rugNeutral: ['It is pleasant. I am not in the market for pleasant.', 'Show me something that makes me gasp.'],
@@ -85,6 +95,8 @@ export const MORE_LINES: Record<string, More> = {
     priceHigh: ['I am rich, my friend, not stupid.'],
   },
   whitcombe: {
+    overcharged: ['I am afraid I wrote home about what I paid last time, and Mother was rather shocked.', 'The pasha\'s steward says I was fleeced. I do hope he is wrong.'],
+    bargain: ['Mother simply could not believe the price of the last one. You are a dear.', 'The last rug was such a bargain I felt quite guilty. Here I am again.'],
     greeting: ['Good morning! Oh, is that your cat? How splendid.', 'Hello again. I have a whole hour before the children wake from their nap.'],
     tea: ['Oh, tea! You are an angel. Mother would approve of you.'],
     rugGood: ['Oh, how lovely. I can just see it in the schoolroom.', 'Gosh. I shall write home about that one.'],
@@ -96,6 +108,8 @@ export const MORE_LINES: Record<string, More> = {
     priceHigh: ['Oh, goodness, that is rather a lot for a governess.'],
   },
   kasparian: {
+    overcharged: ['I paid too much for the last rug. I noticed. I always notice.', 'Last time you priced it high. Today, I hope, you will price it honestly.'],
+    bargain: ['The last rug was honestly priced. In this city, that is rare. I came back.', 'You were generous last time. I have not forgotten.'],
     greeting: ['Good morning. I have a patient at eleven. Let us be efficient.', 'Good day. Your lane is quieter than Emad el-Din. I am grateful.'],
     rugGood: ['Yes. That is careful work. I respect careful work.', 'Ah. That reminds me of Aintab.'],
     rugNeutral: ['It is adequate. I am not looking for adequate.', 'Let me see it closer. My eyes are not what they were.'],
@@ -106,6 +120,8 @@ export const MORE_LINES: Record<string, More> = {
     priceHigh: ['That is a surgeon\'s fee. I am only a physician.'],
   },
   salem: {
+    overcharged: ['Last time you skinned me like a goat. Today I watch your hands.', 'My cousin says I paid a camel and a half for the last carpet. A camel and a half!'],
+    bargain: ['The last carpet was cheap and strong. God bless you. I came back for another.', 'You were fair with a Bedouin last time. That is remembered in the Sinai.'],
     greeting: ['Peace be upon you. I sold three camels this morning and I am in a generous mood. Careful.', 'Ha! The carpet man. Show me what you have.'],
     tea: ['Tea, yes. Strong, with sage, if you have it. No? Then strong.'],
     rugGood: ['Wallahi, that is a carpet for a tent of a sheikh.', 'Ha! Good. Strong wool. The goats made an effort.'],
