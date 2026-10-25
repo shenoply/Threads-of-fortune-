@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
 import { RugViewer } from '../RugViewer/RugViewer';
-import { RUGS, RUG_IDS } from '../../data/rugs';
+import { RUGS, RUG_IDS, PERSIAN_RUG_IDS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { useGame, SET_REWARD } from '../../game/state/store';
 import './reveal.css';
@@ -64,16 +64,17 @@ export function RevealHost() {
     if (waiting.length) setQueue((q) => [...q, ...waiting.splice(0)]);
     // a carpet new to the Register: the sun behind it, its tier in colour, how far the collection has come
     const TIER = ['', 'Everyday rug', 'Trade rug', 'City carpet', 'Treasure'];
-    const SET = ['', 'everyday rugs', 'trade rugs', 'city carpets', 'treasures'];
+    const SET = ['', 'everyday rugs', 'trade rugs', 'city carpets', 'treasures', 'carpets of Persia'];
     const onNew = (e: Event) => {
       const { ids, sets } = (e as CustomEvent<{ ids: string[]; sets: number[] }>).detail;
       const reg = useGame.getState().register ?? [];
-      const have = RUG_IDS.filter((id) => reg.includes(id)).length;
+      const every = [...RUG_IDS, ...PERSIAN_RUG_IDS];
+      const have = every.filter((id) => reg.includes(id)).length;
       for (const id of ids) {
         const t = RUGS[id]; if (!t) continue;
-        reveal({ kicker: 'New to your collection', title: t.name, tier: t.tier ?? 1, sun: true, instant: true, pic: rugSrc(t), picKind: 'rug', line: `${TIER[t.tier ?? 1]} · worth ${fmt(t.valueBand[0])}–${fmt(t.valueBand[1])} · ${have} of ${RUG_IDS.length} collected` });
+        reveal({ kicker: 'New to your collection', title: t.name, tier: t.tier ?? 1, sun: true, instant: true, pic: rugSrc(t), picKind: 'rug', line: `${TIER[t.tier ?? 1]} · worth ${fmt(t.valueBand[0])}–${fmt(t.valueBand[1])} · ${have} of ${every.length} collected` });
       }
-      for (const tier of sets) reveal({ kicker: 'A full set', title: `Every one of the ${SET[tier]}`, sun: true, tier: tier as 1 | 2 | 3 | 4, amount: SET_REWARD[tier].cash, line: `+${SET_REWARD[tier].rep} reputation. The trade talks of your Register.` });
+      for (const tier of sets) reveal({ kicker: 'A full set', title: `Every one of the ${SET[tier]}`, sun: true, tier: (tier === 5 ? 3 : tier) as 1 | 2 | 3 | 4, amount: SET_REWARD[tier].cash, line: `+${SET_REWARD[tier].rep} reputation. The trade talks of your Register.` });
     };
     window.addEventListener('tof:new-carpet', onNew);
     return () => { push = null; window.removeEventListener('tof:new-carpet', onNew); };

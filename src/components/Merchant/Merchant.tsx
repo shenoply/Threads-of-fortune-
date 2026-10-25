@@ -6,7 +6,8 @@ import { Customers } from './Customers';
 import { PostList } from '../Objectives/PostList';
 import { unread } from '../../game/systems/post';
 import { BUYERS } from '../../data/buyers';
-import { RUG_IDS } from '../../data/rugs';
+import { RUG_IDS, PERSIAN_RUG_IDS } from '../../data/rugs';
+const EVERY_RUG = [...RUG_IDS, ...PERSIAN_RUG_IDS];
 import { roadOf } from '../../game/road';
 import { fmt } from '../../game/economy/money';
 
@@ -24,14 +25,14 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
   const g = useGame();
   // each tab says what is in it, and a small dot marks what is new since it was last opened
   const met = Object.entries(g.relationships).filter(([id, r]) => BUYERS[id] && r.visits > 0).length;
-  const reg = RUG_IDS.filter((id) => (g.register ?? []).includes(id)).length;
+  const reg = EVERY_RUG.filter((id) => (g.register ?? []).includes(id)).length;
   const steps = roadOf(g), doneN = steps.filter((x) => x.done).length;
   const today = g.ledger.filter((e) => e.day === g.day).reduce((n, e) => n + e.amount, 0);
   const seen = seenCounts();
   const teasers: Partial<Record<MerchantSub, { line: string; fresh?: boolean }>> = {
     road: { line: `${doneN}/${steps.length}`, fresh: doneN > (seen.road ?? doneN) },
     customers: { line: met > (seen.customers ?? met) ? `${met - (seen.customers ?? 0)} new` : `${met} met`, fresh: met > (seen.customers ?? met) },
-    collection: { line: `${reg}/${RUG_IDS.length}`, fresh: reg > (seen.collection ?? reg) },
+    collection: { line: `${reg}/${EVERY_RUG.length}`, fresh: reg > (seen.collection ?? reg) },
     book: { line: today ? `${today > 0 ? '+' : '−'}${fmt(Math.abs(today))} today` : 'today' },
     post: { line: unread(g.post, g.day) ? 'new' : '' },
   };

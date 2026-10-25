@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame, SET_REWARD } from '../../game/state/store';
-import { RUGS, RUG_IDS } from '../../data/rugs';
+import { RUGS, RUG_IDS, PERSIAN_RUG_IDS } from '../../data/rugs';
 import { BUYERS, CELEB_IDS } from '../../data/buyers';
 import { SETTLEMENTS } from '../../data/world';
 import { CITY_WALKS } from '../../data/cityWalks';
@@ -21,7 +21,7 @@ import { audio } from '../../game/audio/engine';
 import './book.css';
 
 type Part = 'carpets' | 'people' | 'places';
-const TIER_NAME = ['', 'Everyday rugs', 'Trade rugs', 'City carpets', 'Treasures'];
+const TIER_NAME = ['', 'Everyday rugs', 'Trade rugs', 'City carpets', 'Treasures', 'Carpets of Persia'];
 const PLACE_KINDS = ['city', 'town', 'port', 'home'];
 const placePic = (id: string) => {
   if (id === 'giza') return 'art/world/thumbs/giza-district-640.webp';
@@ -41,8 +41,9 @@ export function Book() {
   const been = useMemo(() => new Set([g.world.at, ...Object.values(g.whereabouts ?? {})].filter(Boolean) as string[]), [g.world.at, g.whereabouts]);
   const people = useMemo(() => Object.values(BUYERS).filter((b) => !b.royal || true).map((b) => b.id), []);
   const places = SETTLEMENTS.filter((s) => PLACE_KINDS.includes(s.kind));
-  const count = { carpets: RUG_IDS.filter((id) => reg.includes(id)).length, people: people.filter(met).length, places: places.filter((p) => been.has(p.id)).length };
-  const total = { carpets: RUG_IDS.length, people: people.length, places: places.length };
+  const EVERY = [...RUG_IDS, ...PERSIAN_RUG_IDS];
+  const count = { carpets: EVERY.filter((id) => reg.includes(id)).length, people: people.filter(met).length, places: places.filter((p) => been.has(p.id)).length };
+  const total = { carpets: EVERY.length, people: people.length, places: places.length };
   const pick = (p: Part) => { audio.sfx('tap'); setPart(p); };
   return (
     <div className="book" data-testid="book">
@@ -56,13 +57,14 @@ export function Book() {
         ))}
       </div>
 
-      {part === 'carpets' && [1, 2, 3, 4].map((tier) => {
-        const ids = RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier);
+      {part === 'carpets' && [1, 2, 3, 4, 5].map((tier) => {
+        // the four tiers of the trade at home, then every carpet of Persia as a set of its own
+        const ids = tier === 5 ? PERSIAN_RUG_IDS : RUG_IDS.filter((id) => (RUGS[id].tier ?? 1) === tier);
         const have = ids.filter((id) => reg.includes(id)).length;
         const full = (g.collectSets ?? []).includes(tier);
         return (
         <section key={tier} className={`book-sec tier-sec tier-${tier}`}>
-          <h4><span className={`t-tier-${tier}`}>{TIER_NAME[tier]}</span> <small>{have} of {ids.length}</small></h4>
+          <h4><span className={`t-tier-${tier === 5 ? 3 : tier}`}>{TIER_NAME[tier]}</span> <small>{have} of {ids.length}</small></h4>
           {/* the set's reward, so every new carpet is a step towards something */}
           <div className={`book-set ${full ? 'full' : ''}`} data-testid={`set-${tier}`}>
             <i><em style={{ width: `${(have / Math.max(1, ids.length)) * 100}%` }} /></i>
@@ -72,9 +74,9 @@ export function Book() {
             {ids.map((id) => {
               const t = RUGS[id], got = reg.includes(id);
               return (
-                <button key={id} className={`book-card ${got ? 'got' : 'not'} tier-${tier}`} onClick={() => { audio.sfx('tap'); setRug(id); }} data-testid={`reg-${id}`}>
+                <button key={id} className={`book-card ${got ? 'got' : 'not'} tier-${t.tier ?? 1}`} onClick={() => { audio.sfx('tap'); setRug(id); }} data-testid={`reg-${id}`}>
                   <span className="book-pic"><img src={rugThumb(t)} alt="" loading="lazy" />{!got && <span className="book-want">To find</span>}</span>
-                  <b className={`t-tier-${tier}`}>{t.name}</b>
+                  <b className={`t-tier-${t.tier ?? 1}`}>{t.name}</b>
                   <small>{fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}{got ? ` · ${t.origin.split(',')[0].split('/')[0].trim()}` : ''}</small>
                   {!got && <small className="book-where">{sourcesOf(id)}</small>}
                 </button>

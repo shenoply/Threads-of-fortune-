@@ -5008,7 +5008,8 @@ useGame.subscribe((s) => { if (s.started && !s.ended && !s.rescue && (!s.sim || 
 
 // Every rug that comes into stock is entered in the Carpet Register. A carpet new to you is shown
 // with the sun behind it; a tier filled in full pays a reward, once.
-export const SET_REWARD: Record<number, { cash: number; rep: number }> = { 1: { cash: 1500, rep: 2 }, 2: { cash: 4000, rep: 3 }, 3: { cash: 12000, rep: 5 }, 4: { cash: 40000, rep: 10 } };
+// sets 1-4: the tiers of the Egyptian and Levantine trade; set 5: the carpets of Persia, every one
+export const SET_REWARD: Record<number, { cash: number; rep: number }> = { 1: { cash: 1500, rep: 2 }, 2: { cash: 4000, rep: 3 }, 3: { cash: 12000, rep: 5 }, 4: { cash: 40000, rep: 10 }, 5: { cash: 20000, rep: 8 } };
 useGame.subscribe((s) => {
   const reg = s.register ?? [];
   const fresh = [...new Set(s.inventory.map((i) => i.typeId).filter((id) => !reg.includes(id) && RUGS[id]))];
@@ -5016,15 +5017,15 @@ useGame.subscribe((s) => {
   const next = [...reg, ...fresh];
   const sets = s.collectSets ?? [];
   const done: number[] = [];
-  for (const tier of [1, 2, 3, 4]) {
-    const all = Object.values(RUGS).filter((r) => !r.own && (r.tier ?? 1) === tier).map((r) => r.id);
+  for (const tier of [1, 2, 3, 4, 5]) {
+    const all = tier === 5 ? Object.keys(RUGS).filter((id) => id.startsWith('persian-')) : Object.values(RUGS).filter((r) => !r.own && !r.id.startsWith('persian-') && (r.tier ?? 1) === tier).map((r) => r.id);
     if (all.length && !sets.includes(tier) && all.every((id) => next.includes(id))) done.push(tier);
   }
   const pay = done.reduce((a, t) => a + SET_REWARD[t].cash, 0), rep = done.reduce((a, t) => a + SET_REWARD[t].rep, 0);
   useGame.setState({
     register: next,
-    ...(done.length ? { collectSets: [...sets, ...done], cash: s.cash + pay, reputation: s.reputation + rep, ledger: [...s.ledger, ...done.map((t) => ({ day: s.day, kind: 'bonus' as const, label: `A full set in the Carpet Register (tier ${t})`, amount: SET_REWARD[t].cash }))] } : {}),
-    journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Entered the ${RUGS[id].name} in the Carpet Register (${RUGS[id].tier === 4 ? 'a treasure' : `tier ${RUGS[id].tier ?? 1}`}).` })), ...done.map((t) => ({ day: s.day, text: `Every carpet of tier ${t} is in your Register now. The trade talks of it.` }))],
+    ...(done.length ? { collectSets: [...sets, ...done], cash: s.cash + pay, reputation: s.reputation + rep, ledger: [...s.ledger, ...done.map((t) => ({ day: s.day, kind: 'bonus' as const, label: t === 5 ? 'Every Persian carpet in the Carpet Register' : `A full set in the Carpet Register (tier ${t})`, amount: SET_REWARD[t].cash }))] } : {}),
+    journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Entered the ${RUGS[id].name} in the Carpet Register (${RUGS[id].tier === 4 ? 'a treasure' : `tier ${RUGS[id].tier ?? 1}`}).` })), ...done.map((t) => ({ day: s.day, text: t === 5 ? 'Every carpet of Persia is in your Register now. The trade talks of it.' : `Every carpet of tier ${t} is in your Register now. The trade talks of it.` }))],
   });
   // shown once the game is under way (not the rugs you start with)
   if (s.started && typeof window !== 'undefined') window.setTimeout(() => window.dispatchEvent(new CustomEvent('tof:new-carpet', { detail: { ids: fresh.filter((id) => !RUGS[id].own), sets: done } })), 900);
