@@ -1,3 +1,4 @@
+import { VOICE_COLOUR, colourOf } from '../../data/voiceColour';
 import { labArgBonus } from './arranShop';
 import { nabilAssessment, isTokenChange, packageOffer, rugKey, type NabilMemory } from './nabil';
 import type { LabService } from './arranLab';
@@ -487,9 +488,31 @@ function buyerSay(enc: Encounter, text: string, mood?: Line['mood']) {
     const p = ARABIC_BY_ID[ar];
     enc.log.push({ speaker: 'buyer', text: `${arabicLead(p)} ${text}`, mood, ar });
     if (enc.log.length > 40) enc.log.splice(0, enc.log.length - 40);
-  } else say(enc, 'buyer', text, mood);
+  } else {
+    const lead = colourLead(enc, text, mood);
+    say(enc, 'buyer', lead ? `${lead} ${text}` : text, mood);
+  }
   if (mood) enc.mood = mood;
 }
+/** the little sound a buyer makes before speaking, in their own recorded voice: about one line in three
+ *  once the talk is going, never twice running, never in front of a line that already opens with one */
+function colourLead(enc: Encounter, text: string, mood?: Line['mood']): string | undefined {
+  const bank = VOICE_COLOUR[enc.buyerId];
+  const kind = colourOf(mood);
+  if (!bank || !kind || enc.stage === 'discovery') return undefined;
+  if (/^(h+m+|ah|oh|no|yes|well|ha|so|now|good|ya|tsk|pah|bah|wallahi|mashallah|bravo|non|bon)\b/i.test(text)) return undefined;
+  const prev = enc.log.filter((l) => l.speaker === 'buyer').pop();
+  const all = Object.values(bank).flat();
+  if (prev && all.some((w) => prev.text.startsWith(w + ' '))) return undefined;
+  const h = [...text].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7 + enc.log.length * 13 + enc.turn * 5);
+  if (h % 3 !== 0) return undefined;
+  // the sound has to agree with the words: no "Oh, lovely" before a complaint, no "Hmm, no" before thanks
+  if (kind === 'warm' && /\b(not|no|too|but|argue|loud|plain|damage|dirty|worn|hotel lobby|n't|afraid|sorry|cannot)\b/i.test(text)) return undefined;
+  if ((kind === 'doubt' || kind === 'go') && /\b(thank|lovely|beautiful|yes|good|wonderful|delighted)\b/i.test(text)) return undefined;
+  const list = bank[kind];
+  return list[(h >>> 3) % list.length];
+}
+
 /** an Arabic opener: ها؟ when he is weighing it up, با! / مين قال؟ / طع! when he is not having it; about one line in four, never two running */
 function malekInterjection(enc: Encounter, text: string, mood?: Line['mood']): string | undefined {
   if (enc.stage === 'discovery' || /^(ha|bah?)\b/i.test(text)) return undefined;

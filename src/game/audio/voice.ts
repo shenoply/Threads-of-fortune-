@@ -178,11 +178,22 @@ class Voice {
     return old !== text ? this.segmentsOf(speaker, old) : null;
   }
 
-  private segmentsOf(speaker: string, text: string): [number, number][] | null {
+  private segmentsOf(speaker: string, text: string, depth = 0): [number, number][] | null {
     const sp = this.sprites[speaker];
     if (!sp) return null;
     const whole = sp.clips[lineId(speaker, text)];
     if (whole) return [whole];
+    // a line made of lines: a buyer's "Hm." recorded on its own in front of a sentence recorded on its
+    // own. The longest recorded opening is taken, and the rest found the same way.
+    const parts = depth < 4 ? text.split(/(?<=[.!?…])\s+/) : [];
+    if (parts.length > 1) {
+      for (let i = parts.length - 1; i >= 1; i--) {
+        const head = sp.clips[lineId(speaker, parts.slice(0, i).join(' '))];
+        if (!head) continue;
+        const rest = this.segmentsOf(speaker, parts.slice(i).join(' '), depth + 1);
+        if (rest) return [head, ...rest];
+      }
+    }
     const { template, n } = templateOf(text);
     if (n === undefined) return null;
     const tid = lineId(speaker, template);

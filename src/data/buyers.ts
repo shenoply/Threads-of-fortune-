@@ -1,3 +1,4 @@
+import { MORE_LINES } from './buyerLinesMore';
 import type { BuyerDef } from '../game/types';
 import { ROYALS } from './royals';
 import { MORE_BUYERS, BUYER_UNLOCK } from './buyers2';
@@ -531,6 +532,12 @@ export const BUYERS: Record<string, BuyerDef> = {
 };
 
 Object.assign(BUYERS, { nabil: NABIL, cohen: COHEN, malek: MALEK_BUYER }, ROYALS, MORE_BUYERS, BUYERS_3A, BUYERS_3B, BUYERS_3C, BUYERS_3D, CELEBS_1, CELEBS_2, CELEBS_3, CELEBS_4);
+// more to say for the regulars (data/buyerLinesMore.ts): added to their lines, never replacing one
+for (const [id, more] of Object.entries(MORE_LINES)) {
+  const L = BUYERS[id]?.lines as unknown as Record<string, unknown> | undefined;
+  if (!L) continue;
+  for (const [k, add] of Object.entries(more)) { const cur = L[k]; if (Array.isArray(cur) && add) L[k] = [...cur, ...add.filter((t) => !cur.includes(t))]; }
+}
 /** The rug tiers each buyer shops in (1 Common … 4 Legendary). Below the range they are not interested. */
 export const BUYER_TIERS: Record<string, [number, number]> = { samira: [1, 2], yusuf: [1, 2], mariam: [1, 1], hassan: [1, 1], whitcombe: [1, 2], kasparian: [2, 2], benakis: [2, 3], nabil: NABIL_TIERS, cohen: COHEN_TIERS, malek: MALEK_TIERS, ...BUYERS_3A_TIERS, ...BUYERS_3B_TIERS, ...BUYERS_3C_TIERS, ...BUYERS_3D_TIERS, ...CELEBS_1_TIERS, ...CELEBS_2_TIERS, ...CELEBS_3_TIERS, ...CELEBS_4_TIERS };
 /** Famous people of 1925 who drop in now and then once your name is known. */
