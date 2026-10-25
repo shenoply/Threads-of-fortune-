@@ -1,3 +1,4 @@
+import { demandFor } from '../economy/market';
 import { VOICE_COLOUR, colourOf } from '../../data/voiceColour';
 import { labArgBonus } from './arranShop';
 import { nabilAssessment, isTokenChange, packageOffer, rugKey, type NabilMemory } from './nabil';
@@ -132,6 +133,8 @@ export interface Encounter {
   limitRead?: number;
   /** a named price that landed right at what they would pay: the run of these it makes (Spot on ×N) */
   spotOn?: number;
+  /** the day of the visit: the market's mood that day (economy/market.ts) */
+  day?: number;
 }
 
 /** Moves a skill opens at the counter: shown locked until you have the level, so you see what to work for. */
@@ -289,7 +292,10 @@ export function wtp(enc: Encounter, item: RugItem): number {
   v *= enc.edge?.pay ?? 1;
   v *= enc.purse ? PURSE[enc.purse].pay : 1;
   v *= wantMult(enc.want, item.typeId);
-  return Math.round(Math.min(cap, v));
+  // the town's mood today: the fashion pays more, and a buyer stretches the purse for it
+  const dm = demandFor(item.typeId, enc.day);
+  v *= dm;
+  return Math.round(Math.min(cap * Math.max(1, dm), v));
 }
 
 /** A Common rug sold without the haggling: a fair price, a little under what patience would win. */
@@ -360,6 +366,7 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     enc.interest = clamp(enc.interest + fx.interest, 0, 100);
     enc.trust = clamp(enc.trust + fx.trust, 0, 100);
   }
+  enc.day = ctx.day;
   const hl = lvl(ctx, 'haggling');
   enc.edge = {
     pay: 1 + hl * 0.004 + (perk(ctx, 'haggling', 15) ? 0.03 : 0) + (perk(ctx, 'appraisal', 20) && b.royal ? 0.05 : 0),

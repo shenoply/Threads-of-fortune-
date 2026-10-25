@@ -1,0 +1,7 @@
+.market-line { margin: 8px auto 0; max-width: 380px; width: 100%; padding: 8px 12px; border-radius: 10px; background: rgba(0,0,0,.22); box-shadow: inset 0 0 0 1px rgba(214,164,84,.18); text-align: left; }
+.market-line .ml-k { font-family: var(--label); font-size: 10px; letter-spacing: .2em; color: #c9a160; }
+.market-line p { margin: 3px 0 0; font-family: var(--body); font-size: 13.5px; line-height: 1.3; color: var(--text-dim); }
+.market-line b { font-family: var(--display); font-size: 13.5px; font-weight: 700; margin-right: 3px; }
+.market-line b.up { color: #a2c05f; } .market-line b.down { color: #dc8558; }
+.trend-mark { font-style: normal; font-size: 11px; margin-left: 4px; }
+.trend-mark.up { color: #a2c05f; } .trend-mark.down { color: #dc8558; }

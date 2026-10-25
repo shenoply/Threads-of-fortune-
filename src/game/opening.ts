@@ -27,11 +27,11 @@ const troops = (s: S) => Object.values(s.world.party.troops ?? {}).reduce((a, n)
 /** the line Bilgin gives (data/world.ts, node 'sellmore'): hearing it finishes his step */
 export const BILGIN_TIP = 'Khan el-Khalili pays a third more';
 
+// Malek's grill and Bilgin's tip were steps once; they are there to find, not to be sent to, so the
+// first hour is selling, stocking, a guard and the road.
 export const OPENING: OpeningStep[] = [
   { id: 'stall', text: () => 'Sell your first rug.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
   { id: 'rashid', text: () => 'Restock: buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
-  { id: 'malek', text: () => 'Eat at Malek\'s grill.', btn: 'To Malek\'s', go: 'district', done: (s) => s.ledger.some((l) => l.label.startsWith("Malek's")) || !!s.condition?.wellFed },
-  { id: 'bilgin', text: () => 'Ask Bilgin where to sell for more.', btn: 'To Bilgin\'s', go: 'district', done: (s) => (s.world.rumours ?? []).some((r) => r.includes(BILGIN_TIP)) },
   { id: 'guards', text: () => 'Hire a guard at the guard yard.', btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
   { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
   { id: 'bandits', text: () => 'Take the train to Alexandria: 3½ hours.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },

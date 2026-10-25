@@ -1,3 +1,4 @@
+import { TrendMark } from '../Market/MarketLine';
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { placedPieces } from '../../game/stallDressing';
 import { createPortal } from 'react-dom';
@@ -337,7 +338,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 </span>
               )}
               {isP && <span className="hint">Inspect</span>}
-              <span className={`nm t-tier-${t.tier ?? 1}`}>{names[it.uid] ?? t.name}</span>
+              <span className={`nm t-tier-${t.tier ?? 1}`}>{names[it.uid] ?? t.name}<TrendMark typeId={t.id} /></span>
               {/* what you paid and what it usually fetches, side by side: the margin at a glance */}
               <span className="val" data-testid="rugcard-value"><em className="paid">{it.paid ? `paid ${fmt(it.paid)}` : 'a gift'}</em> → ≈ {fmt(typicalSale(it))}</span>
               <span className="meta">

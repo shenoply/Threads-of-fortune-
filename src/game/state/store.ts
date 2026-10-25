@@ -1,3 +1,4 @@
+import { rivalNight, type LaneRival } from '../systems/laneRival';
 import { PERSIA_IDS } from '../../data/persiaMap';
 import { motorLorry } from '../../data/world';
 import { provisionById, provisionPrice, COMFORT_CAP } from '../../data/provisions';
@@ -373,6 +374,8 @@ export interface GameState {
   stallSpots?: Record<string, string>;
   /** the season's tables of rug sales, city by city, with the named rival houses (systems/ranks.ts) */
   ranks?: RanksState;
+  /** Shukri Mansour, the rival across the lane in Giza (systems/laneRival.ts) */
+  lane?: LaneRival;
   // transient (not persisted)
   encounter: Encounter | null;
   audienceStash: { encounter: Encounter | null; visitIdx: number } | null;
@@ -1764,7 +1767,7 @@ export const useGame = create<GameState & Actions>()(
           patch.errands = []; // errands are retired; the field stays for old saves
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
-          for (const step of [resolveReturns, mothNight, ranksNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
             const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);

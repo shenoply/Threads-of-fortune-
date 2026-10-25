@@ -1,3 +1,5 @@
+import { RIVAL_FIRST, rivalOf, rivalProgress, yourStall } from '../../game/systems/laneRival';
+import { MarketLine } from '../Market/MarketLine';
 import { NextOnRoad } from '../Road/Road';
 import { SKILLS, SKILL_ORDER, levelOf, xpFor } from '../../data/character';
 import { useAtStall } from '../Radio/Gramophone';
@@ -53,7 +55,9 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {!shut && <TodaysChance />}
+        {!shut && <MarketLine where="stall" />}
         {!shut && <StallDream />}
+        {!shut && <RivalLine />}
         {!shut && <SkillGoal />}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
@@ -165,13 +169,25 @@ const STALL_PULL: Record<string, string> = {
   bazaar: 'A canopy and a counter. Better households start to stop.',
   khan: 'A shop in the Khan. Collectors, and purses a quarter deeper.',
 };
+function RivalLine() {
+  const lane = useGame((s) => s.lane);
+  const day = useGame((s) => s.day);
+  const last = lane?.last;
+  if (!last || last.day < day - 1 || last.kind === 'quiet') return null;
+  return <p className={`rival-line ${last.kind}`} data-testid="rival-line"><span>ACROSS THE LANE</span> {last.text}</p>;
+}
+
 function StallDream() {
   const cash = useGame((s) => s.cash);
   const rep = useGame((s) => s.reputation);
   const ups = useGame((s) => s.upgrades);
+  const lane = useGame((s) => s.lane);
   const next = UPGRADES.find((u) => u.stall && !ups.includes(u.id) && (!u.after || ups.includes(u.after)));
   if (!next) return null;
   const pct = Math.max(0, Math.min(1, cash / next.cost));
+  const rival = rivalOf({ lane });
+  const you = yourStall(ups);
+  const racing = rival.stall >= you;
   const short = next.cost - cash;
   const repShort = (next.rep ?? 0) - rep;
   const ready = short <= 0 && repShort <= 0;
@@ -181,6 +197,12 @@ function StallDream() {
       <b>{next.name}</b>
       <small>{STALL_PULL[next.id] ?? next.effect}</small>
       <i><em style={{ width: `${Math.round(pct * 100)}%` }} /></i>
+      {racing && (
+        <span className="sd-rival" data-testid="rival-race">
+          <small>{rival.stall > you ? `${RIVAL_FIRST} already has a better stall` : RIVAL_FIRST}</small>
+          {rival.stall <= you && <i><em style={{ width: `${Math.round(rivalProgress(rival) * 100)}%` }} /></i>}
+        </span>
+      )}
       <small className="sd-need">{ready ? 'You can buy it now' : short > 0 ? `${fmt(short)} still to find${repShort > 0 ? ` · ${repShort} more reputation` : ''}` : `${repShort} more reputation`}</small>
     </button>
   );

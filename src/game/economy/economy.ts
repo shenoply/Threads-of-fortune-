@@ -1,3 +1,4 @@
+import { supplyFor } from './market';
 import type { Condition, Goal, RugItem, SupplierOffer } from '../types';
 import { fmt } from './money';
 import { RUGS } from '../../data/rugs';
@@ -52,7 +53,7 @@ export function rashidStock(day: number, rng: () => number, rep = 0, commonOnly 
       uid: newUid('s'),
       typeId: tpl.typeId,
       condition: c,
-      price: offerPrice(tpl.typeId, c),
+      price: snap(offerPrice(tpl.typeId, c) * (day >= 4 ? supplyFor(tpl.typeId, day) : 1)),
       tag: limited ? 'Limited' : tagFor(tpl.typeId, c),
       leavesAfterDay: limited ? day : undefined,
       qty: limited ? 1 : (RUGS[tpl.typeId].tier ?? 1) === 1 ? 2 + Math.floor(rng() * 3) : (RUGS[tpl.typeId].tier ?? 1) === 2 ? 1 + Math.floor(rng() * 2) : 1,

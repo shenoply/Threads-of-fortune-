@@ -32,7 +32,7 @@ const c1 = await chip();
 check(c1 === 'Rashid £10 · 6 days', `day one: the countdown reads "${c1}" (${await visibleIds(p)})`);
 const oneLine = await p.evaluate(() => { const r = document.querySelector('.objective-bar .ob-row'); const d = document.querySelector('[data-testid=week-due]'); return r && d ? { row: Math.round(r.getBoundingClientRect().height), chip: Math.round(d.getBoundingClientRect().height), same: Math.abs(r.getBoundingClientRect().top - d.getBoundingClientRect().top) < 20, w: document.documentElement.scrollWidth } : null; });
 check(!!oneLine && oneLine.row <= 48 && oneLine.same && oneLine.w <= 390, `the objective bar stays one thin line on a phone: ${JSON.stringify(oneLine)}`);
-check((await p.locator('[data-testid=first-hour]').innerText().catch(() => '')).toLowerCase().includes('of 8'), 'the countdown rides on the opening step, not a second objective');
+check((await p.locator('[data-testid=first-hour]').innerText().catch(() => '')).toLowerCase().includes('of 6'), 'the countdown rides on the opening step, not a second objective');
 const j1 = await G(`return g.journal.some((j) => /Uncle Rashid sends word/.test(j.text));`);
 check(j1, 'the journal keeps Rashid\'s word');
 await p.screenshot({ path: `${SHOTS}/first-week-2-bar.png` });

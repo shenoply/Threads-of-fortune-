@@ -3551,3 +3551,10 @@ body.travelling .world-hud { display: none; }
 @media (prefers-reduced-motion: reduce) { .skill-pop, .levelup[data-testid="levelup"], .levelup .lv-n { animation: none; } }
 .cv-tile b .cv-max { font-size: .62em; color: var(--text-dim); font-weight: 400; }
 .cstrip .cs-max { font-size: .78em; color: var(--text-dim); margin-left: 1px; }
+.stall-dream .sd-rival { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; margin-top: 2px; }
+.stall-dream .sd-rival small { color: #d08a74; font-size: 12px; }
+.stall-dream .sd-rival i { height: 4px; margin: 0; }
+.stall-dream .sd-rival i em { background: linear-gradient(90deg, #7a2a1c, #d0604a); }
+.rival-line { max-width: 380px; margin: 6px auto 0; font-family: var(--body); font-size: 13.5px; line-height: 1.35; color: var(--text-dim); text-align: left; }
+.rival-line span { font-family: var(--label); font-size: 10px; letter-spacing: .18em; color: #d08a74; margin-right: 4px; }
+.rival-line.beaten span, .rival-line.tried span { color: #a2c05f; }

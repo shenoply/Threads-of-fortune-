@@ -1,3 +1,4 @@
+import { MarketLine, TrendMark } from '../Market/MarketLine';
 import { BaleCard } from '../Bales/Bale';
 import { openingStep } from '../../game/opening';
 import { createPortal } from 'react-dom';
@@ -105,6 +106,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
       </div>
 
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
+      <MarketLine where="rashid" />
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
       {/* (where bought rugs go is said once, in the opening) */}
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}
@@ -122,7 +124,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
               </div>
               <div className="body">
                 <div className="row1">
-                  <h3 className={`t-tier-${t.tier ?? 1}`}>{t.name}{(o.qty ?? 1) > 1 && <span className="qty" data-testid="offer-qty"> ×{o.qty}</span>}</h3>
+                  <h3 className={`t-tier-${t.tier ?? 1}`}>{t.name}<TrendMark typeId={t.id} />{(o.qty ?? 1) > 1 && <span className="qty" data-testid="offer-qty"> ×{o.qty}</span>}</h3>
                   <span className="price" data-testid="offer-price">{fmt(o.price)}</span>
                 </div>
                 <div className="meta">{t.origin} · {t.material} · {t.age} · {o.condition}</div>
