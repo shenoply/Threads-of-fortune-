@@ -87,6 +87,8 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   const knownKey = enc ? `tof-know-${enc.buyerId}` : '';
   const knownBefore = (() => { try { return !!knownKey && localStorage.getItem(knownKey) === '1'; } catch { return false; } })();
   const sc = STALL_SCENES[useGame((st) => sceneIdFor(lookUps(st)))];
+  // the stall wears your fortune: dusty and dim when the purse is empty, lamplit when it is full
+  const wealthClass = useGame((st) => (st.cash < 300 ? 'worn' : st.cash >= 20000 ? 'lamplit' : ''));
   const STAGE_IMG = sceneImg(sc.id);
   // the hero as the player dressed him, once every piece he wears is painted for the stall
   const outfit = wornOutfit(useGame((st) => st.wardrobe) ?? START_WARDROBE).id;
@@ -182,7 +184,7 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   const people: [number, number][] = [[visL - 2, visL + ((heroH * 0.85) / sw) * 100 + 2], ...(buyer ? [[visR - ((buyerH * 0.62) / sw) * 100 - 2, visR + 2] as [number, number]] : [])];
   const inFront = (x: number) => people.some(([a, b]) => x > a && x < b);
   return (
-    <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
+    <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''} ${wealthClass}`} ref={box} onClick={onSkip} data-testid="scene">
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
       {enc && !enc.outcome && !enc.tutorial && BUYERS[enc.buyerId] && (
         <button className={`know-buyer ${knownBefore ? 'seen' : ''}`} onClick={(e) => { e.stopPropagation(); try { localStorage.setItem(knownKey, '1'); } catch { /* private */ } setKnow(true); }} data-testid="know-buyer" aria-label={`Know ${BUYERS[enc.buyerId].name}: their temper and what they like`}>

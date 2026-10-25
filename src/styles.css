@@ -3580,3 +3580,7 @@ body.travelling .world-hud { display: none; }
 .result-wait { min-height: 0; }
 @media (prefers-reduced-motion: reduce) { .stall.has-result .scene.stall .buyer-figure.leaving { animation: none; opacity: 0; transition: opacity .6s; } .stall .result { animation: none; } }
 .result-wait { grid-column: 1 / -1; min-height: 46px; display: grid; place-items: center; font-family: var(--body); font-style: italic; font-size: 14px; color: var(--text-dim); animation: result-in .4s ease both; }
+/* the stall wears your fortune */
+.scene.stall::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease; }
+.scene.stall.worn::after { opacity: 1; background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(40,30,20,.45) 100%), rgba(120,105,85,.10); mix-blend-mode: multiply; }
+.scene.stall.lamplit::after { opacity: 1; background: radial-gradient(ellipse at 30% 25%, rgba(255,196,110,.22), transparent 55%), radial-gradient(ellipse at 75% 30%, rgba(255,180,90,.14), transparent 50%); mix-blend-mode: screen; }
