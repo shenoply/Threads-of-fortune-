@@ -124,7 +124,16 @@ export interface Encounter {
   bazaar?: boolean;
   /** merchant's edge from Haggling and manner: raises what buyers will pay and where they start */
   edge?: { pay: number; open: number; budget: number };
+  /** how they came today: just looking (only a bargain moves them), keen (money to spend), in a hurry */
+  purse?: 'browsing' | 'keen' | 'hurried';
 }
+
+/** How each mood of the day reads on the buyer's card, and what it does to the sale. */
+export const PURSE: Record<NonNullable<Encounter['purse']>, { label: string; line: string; pay: number }> = {
+  browsing: { label: 'Just looking', line: 'Only a bargain will move them today. You can let them go.', pay: 0.8 },
+  keen: { label: 'Keen to buy', line: 'Money to spend today, if the rug is right.', pay: 1.08 },
+  hurried: { label: 'In a hurry', line: 'Short of time: get to the point.', pay: 1 },
+};
 
 /** Greetings that name the time of day only at the right time: after noon a buyer picks a line
  *  without "good morning", and if all of theirs have it, the words change to fit the hour. */
@@ -267,6 +276,7 @@ export function wtp(enc: Encounter, item: RugItem): number {
   // Malek on a good week will pay well over the odds; on a bad one, under them
   if (enc.malekPurse) v *= MALEK_PURSE[enc.malekPurse].value;
   v *= enc.edge?.pay ?? 1;
+  v *= enc.purse ? PURSE[enc.purse].pay : 1;
   v *= wantMult(enc.want, item.typeId);
   return Math.round(Math.min(cap, v));
 }
@@ -347,6 +357,14 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   };
   const rel = ctx.rel;
   const L = b.lines;
+  // not every visit is a sale to be won: some days they only look, some days they come to buy
+  if (!tutorial && !b.royal && !['cohen', 'nabil', 'malek'].includes(buyerId)) {
+    const r = ctx.rng();
+    enc.purse = r < 0.2 ? 'browsing' : r < 0.4 ? 'keen' : r < 0.52 ? 'hurried' : undefined;
+    if (enc.purse === 'browsing') enc.patience -= 8;
+    if (enc.purse === 'keen') enc.interest = clamp(enc.interest + 8, 0, 100);
+    if (enc.purse === 'hurried') enc.patience -= 18;
+  }
   enc.log.push({ speaker: 'system', text: pick(L.arrival, ctx.rng) });
   if (rel.visits > 0) {
     if (rel.embellishedSale && !rel.embellishMentioned && L.embellishLater.length) {

@@ -1,0 +1,44 @@
+/* the buyer's card: a portrait at the top, how they came today, then their temper and tastes */
+.dossier-overlay { display: grid; place-items: center; padding: 12px; z-index: 80; }
+.dossier { width: min(420px, 100%); max-height: calc(100dvh - 24px); overflow-y: auto; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--acc) 60%, #6a4a28); background: linear-gradient(180deg, color-mix(in srgb, var(--acc) 14%, #1d140b) 0%, #150e08 38%); box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(0,0,0,.4) inset; color: #f3e3c2; animation: ds-in .25s ease-out; }
+@keyframes ds-in { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+.ds-top { position: relative; display: flex; gap: 14px; align-items: center; padding: 16px 16px 12px; }
+.ds-face { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; border: 2px solid var(--acc); box-shadow: 0 0 0 4px rgba(0,0,0,.35), 0 0 22px color-mix(in srgb, var(--acc) 40%, transparent); flex: none; }
+.ds-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ds-who small { font-family: var(--label); letter-spacing: .12em; text-transform: uppercase; font-size: 11.5px; color: color-mix(in srgb, var(--acc) 70%, #e6b552); }
+.ds-who b { font-family: var(--display); font-weight: 500; font-size: 26px; line-height: 1.1; color: #fff0d2; }
+.ds-who span { font-size: 14px; color: #d9c7a1; line-height: 1.3; }
+.ds-close { position: absolute; right: 10px; top: 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(231,206,140,.35); background: rgba(0,0,0,.3); color: #f3e3c2; font-size: 20px; line-height: 1; }
+.ds-today { margin: 0 14px 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid #6a4a28; background: #1b130b; display: flex; flex-direction: column; gap: 2px; }
+.ds-today small { font-family: var(--label); letter-spacing: .14em; font-size: 11px; color: #bba882; }
+.ds-today b { font-size: 16.5px; }
+.ds-today span { font-size: 13.5px; color: #d9c7a1; }
+.ds-today.browsing { border-color: #a0503a; background: #24130c; } .ds-today.browsing b { color: #f0a080; }
+.ds-today.keen { border-color: #7aa04a; background: #18200e; } .ds-today.keen b { color: #b9e08a; }
+.ds-today.hurried { border-color: #c09030; } .ds-today.hurried b { color: #ffd27a; }
+.ds-sec { padding: 4px 14px 8px; }
+.ds-sec h4 { margin: 4px 0 6px; font-family: var(--label); letter-spacing: .12em; text-transform: uppercase; font-size: 12px; color: color-mix(in srgb, var(--acc) 60%, #e6b552); }
+.ds-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ds-chip { display: flex; flex-direction: column; gap: 1px; padding: 7px 9px; border-radius: 8px; border: 1px solid #5a3b20; background: #1d140b; }
+.ds-chip b { font-size: 14px; }
+.ds-chip small { font-size: 11.5px; color: #bba882; line-height: 1.25; }
+.ds-chip.good { border-color: rgba(159,213,122,.5); } .ds-chip.good b { color: #b9e08a; }
+.ds-chip.warn { border-color: rgba(255,210,122,.45); } .ds-chip.warn b { color: #ffd27a; }
+.ds-chip.bad { border-color: rgba(240,138,114,.5); } .ds-chip.bad b { color: #f0a080; }
+.ds-likes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.ds-like, .ds-hate { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 14px; font-size: 13.5px; }
+.ds-like { background: rgba(159,213,122,.12); border: 1px solid rgba(159,213,122,.4); color: #d7efc0; }
+.ds-hate { background: rgba(240,138,114,.1); border: 1px solid rgba(240,138,114,.4); color: #f3c0b0; }
+.ds-like.col i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+.ds-unknown { margin: 0; padding: 8px 10px; border: 1px dashed #6a4a28; border-radius: 8px; font-size: 13.5px; color: #bba882; }
+.ds-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px 14px; }
+.ds-facts span { display: flex; flex-direction: column; gap: 2px; padding: 7px 8px; border-radius: 8px; background: #1b130b; border: 1px solid #4a3620; min-width: 0; }
+.ds-facts small { font-family: var(--label); font-size: 11px; letter-spacing: .08em; color: #bba882; text-transform: uppercase; }
+.ds-facts b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-bio { margin: 8px 14px 16px; font-size: 14px; line-height: 1.4; color: #d9c7a1; font-style: italic; }
+/* the arrow over the buyer at the counter: tap to read them */
+.know-buyer { position: absolute; right: 8%; top: 6%; z-index: 8; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 10px; border-radius: 18px; border: 1px solid rgba(255,210,122,.7); background: rgba(20,12,6,.82); color: #ffe2a8; font-family: var(--label); font-size: 13px; letter-spacing: .04em; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.45); animation: know-bob 1.8s ease-in-out infinite; }
+.know-buyer i { font-style: normal; font-size: 14px; color: #ffd27a; }
+.know-buyer.seen { animation: none; opacity: .85; border-color: rgba(231,189,110,.4); }
+@keyframes know-bob { 50% { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 14px rgba(255,210,122,.4); } }
+@media (prefers-reduced-motion: reduce) { .know-buyer { animation: none; } }

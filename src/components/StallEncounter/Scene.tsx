@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import { useAtStall, useRecord } from '../Radio/Gramophone';
+import { BuyerDossier } from './BuyerDossier';
 import { RECORD_BY_ID } from '../../data/records';
 import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
@@ -81,6 +82,10 @@ export function Dust() {
 
 export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   useAtStall();
+  // the buyer's card: an arrow over them while they are at the counter, the card when tapped
+  const [know, setKnow] = useState(false);
+  const knownKey = enc ? `tof-know-${enc.buyerId}` : '';
+  const knownBefore = (() => { try { return !!knownKey && localStorage.getItem(knownKey) === '1'; } catch { return false; } })();
   const sc = STALL_SCENES[useGame((st) => sceneIdFor(lookUps(st)))];
   const STAGE_IMG = sceneImg(sc.id);
   // the hero as the player dressed him, once every piece he wears is painted for the stall
@@ -179,6 +184,12 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
   return (
     <div className={`scene stall ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene">
       {sw < W && <img className="stage-fill" src={STAGE_IMG} alt="" aria-hidden="true" draggable={false} />}
+      {enc && !enc.outcome && !enc.tutorial && BUYERS[enc.buyerId] && (
+        <button className={`know-buyer ${knownBefore ? 'seen' : ''}`} onClick={(e) => { e.stopPropagation(); try { localStorage.setItem(knownKey, '1'); } catch { /* private */ } setKnow(true); }} data-testid="know-buyer" aria-label={`Know ${BUYERS[enc.buyerId].name}: their temper and what they like`}>
+          <i>▲</i> Know {BUYERS[enc.buyerId].name.split(' ')[0]}
+        </button>
+      )}
+      {know && enc && <BuyerDossier enc={enc} onClose={() => setKnow(false)} />}
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, top: 'auto', bottom: -cb, ['--rug-b' as string]: `${(edge * 100 - 8).toFixed(2)}%`, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px`, ['--crop' as string]: `${crop}px`, ['--edge' as string]: `${(edge * 100).toFixed(2)}%` }}>
         <img className="stage-bg" src={STAGE_IMG} alt={`Your stall: ${sc.label}`} data-lamps={sc.lamps} data-scene={sc.id} data-testid="stage-bg" draggable={false} />
         {sc.sky && <StallSky scene={sc.id} />}
