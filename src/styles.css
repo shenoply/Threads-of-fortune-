@@ -3634,3 +3634,4 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .framed-carpet::before { content: ''; position: absolute; left: 50%; top: -11%; width: 34%; height: 12%; transform: translateX(-50%); border: 1px solid #c9974a; border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
 .framed-carpet.f0 { left: 27%; }
 .framed-carpet.f1 { left: 60.5%; }
+.hh-card .hh-rank { color: #c9a160; font-family: var(--label); letter-spacing: .06em; } .hh-card .hh-intro { font-style: italic; color: var(--text); }

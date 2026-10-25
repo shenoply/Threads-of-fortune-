@@ -60,7 +60,8 @@ export function rivalNight(s: GameState, day: number): { patch: Partial<GameStat
     moved = true;
   }
   // the morning: a buyer called over. How often depends on whose stall is better.
-  const odds = r.stall > you ? 0.35 : r.stall === you ? 0.18 : 0.05;
+  // married to his sister, he is family: he would not take a buyer from you
+  const odds = s.household?.spouse?.id === 'aziza' ? 0 : r.stall > you ? 0.35 : r.stall === you ? 0.18 : 0.05;
   if (!moved && s.world.at === 'giza' && (s.queue?.length ?? 0) > 1 && h(day, 'poach') < odds) {
     const keep = new Set(['cohen', 'malek', 'nabil', ...(s.appointments ?? []).map((a) => a.buyerId)]);
     const q = [...s.queue];

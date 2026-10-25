@@ -4,7 +4,7 @@ import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { Fold } from '../Fold/Fold';
 import {
-  BRIDES, BRIDE_ORDER, ASK_AT, FEAST_AFTER, MATCH_REP, PACES, PATH_AGE, GROWN, PRESENT, SON_NAMES, DAUGHTER_NAMES, PATH_WORD, ROLE_WORD,
+  BRIDES, BRIDE_ORDER, RANK_WORD, availableBrides, ASK_AT, FEAST_AFTER, MATCH_REP, PACES, PATH_AGE, GROWN, PRESENT, SON_NAMES, DAUGHTER_NAMES, PATH_WORD, ROLE_WORD,
   hh, ageOf, childName, contentWord, heirOf, brideArt, childArt, merchantName, standing,
   type BrideId, type Child, type ChildPath, type SpouseRole, type HouseholdAct,
 } from '../../game/systems/household';
@@ -37,14 +37,14 @@ export function HouseholdSection() {
   const waiting = h.children.some((c) => !c.name || (ageOf(c) >= PATH_AGE && ageOf(c) < GROWN && !c.path));
   const gist = sp ? `${BRIDES[sp.id].short} · ${contentWord(sp.content).toLowerCase()}${h.children.length ? ` · ${h.children.length} ${h.children.length === 1 ? 'child' : 'children'}` : ''}`
     : h.stage === 'betrothed' && h.chosen ? `Promised to ${BRIDES[h.chosen].short}`
-    : h.stage === 'offered' ? 'Three families would receive you'
+    : availableBrides(h).length ? `${availableBrides(h).length} famil${availableBrides(h).length === 1 ? 'y' : 'ies'} would receive you`
     : h.merchant ? `${h.merchant.name}, son of ${h.merchant.father}` : 'Not married';
   return (
     <div className="charsheet inline" data-testid="household">
       <Fold id="me-household" title="Household" gist={gist} attention={waiting || h.stage === 'offered' && !Object.keys(h.suitors).length}>
         {h.merchant && <p className="cs-note" data-testid="hh-merchant">{h.merchant.name} heads the house now, since {dateFor(h.merchant.since).short}. {h.mother ? `His mother ${BRIDES[h.mother].short} lives with him.` : ''}</p>}
 
-        {h.stage === 'none' && !h.merchant && (
+        {h.stage === 'none' && !h.merchant && !availableBrides(h).length && (
           <>
             <p className="cs-note" data-testid="hh-none">
               {standing(g) ? 'You are not married. If you want a household, Uncle Rashid knows families who would hear of you. Winning one over takes calls, presents and a good name.' : `You are not married. Families will listen once your name is known (reputation ${MATCH_REP}) and you keep a stall with a canopy or better.`}
@@ -53,10 +53,11 @@ export function HouseholdSection() {
           </>
         )}
 
-        {h.stage === 'offered' && (
+        {(h.stage === 'offered' || (h.stage === 'none' && availableBrides(h).length > 0)) && !h.merchant && (
           <>
+            {h.stage === 'none' && standing(g) && <button className="btn" onClick={() => act({ kind: 'seek' })} data-testid="hh-seek">Ask Rashid to look for a match as well</button>}
             <p className="cs-note">Call on a family in their town, send presents to the house, and when her father thinks well enough of you ({ASK_AT}), ask for her hand. Your name, your clothes and your honesty all count.</p>
-            {BRIDE_ORDER.map((id: BrideId) => {
+            {availableBrides(h).map((id: BrideId) => {
               const b = BRIDES[id];
               const su = h.suitors[id] ?? { favour: 0, visits: 0, gifts: 0 };
               const here = at === b.city;
@@ -65,7 +66,9 @@ export function HouseholdSection() {
                   <Portrait src={brideArt(id)} name={b.short} />
                   <div className="hh-txt">
                     <b>{b.name}</b>
+                    <small className="hh-rank">{b.rank ? RANK_WORD[b.rank] : ''}{b.rank ? ' · ' : ''}{b.cityName}{b.minRep && g.reputation < b.minRep ? ` · wants a name of ${b.minRep}` : ''}</small>
                     <small>Daughter of {b.father}. Through {b.introducer}.</small>
+                    <small className="hh-intro">{b.intro}</small>
                     <small className="hh-brings">{b.brings}</small>
                     <Bar v={su.favour} testid={`favour-${id}`} />
                     <small>Her father's opinion of you: {su.favour}{su.visits ? ` · ${su.visits} call${su.visits > 1 ? 's' : ''}` : ''}{su.gifts ? ` · ${su.gifts} present${su.gifts > 1 ? 's' : ''}` : ''}</small>

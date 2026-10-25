@@ -14,7 +14,11 @@ import { levelOf } from '../../data/character';
 import { fmt } from '../economy/money';
 import { dateFor } from '../economy/economy';
 
-export type BrideId = 'layla' | 'nadia' | 'amira';
+export type BrideId = string;
+/** where her family stands: a lane family, a trading house, a notable house, a great house */
+export type Rank = 'humble' | 'trade' | 'notable' | 'grand';
+/** how you come to know of her: through Rashid, at your stall, on your travels, or through a buyer you have earned */
+export type Meet = 'rashid' | 'stall' | 'city' | 'friend';
 export type SpouseRole = 'home' | 'stall' | 'books' | 'rugs';
 export type ChildPath = 'school' | 'shop' | 'weaving';
 export type ChildRole = 'home' | 'apprentice' | 'shop';
@@ -36,13 +40,21 @@ export interface Bride {
   feastRep: number;
   gift: { label: string; cost: number };
   /** what her family weighs most: your dress, your honesty, or your knowledge of carpets */
-  likes: 'dress' | 'honesty' | 'craft';
+  likes: 'dress' | 'honesty' | 'craft' | 'learning';
+  rank?: Rank;
+  meet?: Meet;
+  /** the buyer whose family she is (meet: friend): known once you have sold to him three times */
+  via?: string;
+  /** the morning note when you first hear of her */
+  met?: string;
+  /** the name her family needs before her father will hear a proposal */
+  minRep?: number;
   role: SpouseRole;
   /** towns whose dealers treat you as a friend once the families are joined */
   friends: string[];
 }
 
-export const BRIDES: Record<BrideId, Bride> = {
+export const BRIDES: Record<string, Bride> = {
   layla: {
     id: 'layla', name: 'Layla al-Sabbagh', short: 'Layla', city: 'damascus', cityName: 'Damascus',
     father: 'Tawfiq al-Sabbagh, a silk merchant in the Souq al-Hamidiyya',
@@ -74,6 +86,151 @@ export const BRIDES: Record<BrideId, Bride> = {
     likes: 'craft', role: 'rugs', friends: ['fayoum'],
   },
 };
+
+// More families, across the classes and the cities: some you hear of through a buyer who trusts you,
+// some come to your stall, some you meet on the road. Each is known only once met.
+Object.assign(BRIDES, {
+  zeinab: {
+    id: 'zeinab', name: 'Zeinab Hasan', short: 'Zeinab', city: 'giza', cityName: 'Giza', rank: 'humble', meet: 'friend', via: 'hassan',
+    father: 'Hasan, who keeps the Nile Star coffee house on the Pyramids Road',
+    introducer: 'Hasan himself, over a game of tawla',
+    intro: 'Hasan of the Nile Star has a daughter who runs his tables better than he does.',
+    met: 'Hasan of the Nile Star, losing at tawla, says his daughter Zeinab could run a stall better than you. He seems to mean it as an offer.',
+    brings: 'She knows every face in the lane: minding the stall, she sells as well as you do.',
+    mahr: 1500, feast: 800, feastRep: 3, gift: { label: 'a new set of brass coffee pots for the Nile Star', cost: 150 },
+    likes: 'honesty', role: 'stall', friends: ['giza'],
+  },
+  salma: {
+    id: 'salma', name: 'Salma Ibrahim', short: 'Salma', city: 'cairo', cityName: 'Cairo', rank: 'humble', meet: 'friend', via: 'mariam',
+    father: 'Ibrahim the tram conductor, of Shubra',
+    introducer: 'Mariam and her aunt Hoda',
+    intro: 'Mariam\'s cousin Salma is quiet, clever with a needle, and in no hurry to marry anyone loud.',
+    met: 'Mariam says her cousin Salma asked about the gentle carpet man. Mariam is very pleased with herself.',
+    brings: 'She mends fringes and pile with a needle as fine as the restorer\'s, for nothing.',
+    mahr: 1400, feast: 700, feastRep: 3, gift: { label: 'a sewing box with good steel needles', cost: 120 },
+    likes: 'honesty', role: 'rugs', friends: ['cairo'],
+  },
+  aziza: {
+    id: 'aziza', name: 'Aziza Mansour', short: 'Aziza', city: 'giza', cityName: 'Giza', rank: 'trade', meet: 'stall',
+    father: 'the late Hajj Mansour, father of Shukri across the lane',
+    introducer: 'her mother, over your counter',
+    intro: 'Shukri\'s sister. She buys from you to annoy him, and says so.',
+    met: 'A young woman comes to the stall with her mother and buys a small rug at your price without haggling. She is Shukri Mansour\'s sister, Aziza. She says she wanted to see what the fuss was about.',
+    brings: 'Marry her and the feud across the lane is over: Shukri will never take another of your buyers.',
+    mahr: 3000, feast: 1800, feastRep: 5, gift: { label: 'a silk scarf from Khan el-Khalili', cost: 250 },
+    likes: 'craft', role: 'rugs', friends: ['giza'],
+  },
+  yasmin: {
+    id: 'yasmin', name: 'Yasmin Fawzi', short: 'Yasmin', city: 'tanta', cityName: 'Tanta', rank: 'trade', meet: 'city',
+    father: 'Fawzi Bey, a cotton broker in Tanta',
+    introducer: 'a cotton broker\'s clerk',
+    intro: 'A Tanta cotton broker\'s daughter who keeps his ledgers and corrects his sums.',
+    met: 'In Tanta, a broker\'s clerk mentions that Fawzi Bey\'s daughter Yasmin keeps her father\'s ledgers, and that Fawzi Bey is looking for a son-in-law who can count.',
+    brings: 'She keeps the books: no agent cheats a house where Yasmin reads the ledger.',
+    mahr: 3500, feast: 2000, feastRep: 5, gift: { label: 'a fountain pen and a ledger bound in leather', cost: 300 },
+    likes: 'dress', role: 'books', friends: ['tanta'],
+  },
+  amal: {
+    id: 'amal', name: 'Amal Rifaat', short: 'Amal', city: 'portsaid', cityName: 'Port Said', rank: 'humble', meet: 'city',
+    father: 'Rifaat Effendi, a clerk at the Canal Company\'s shipping office',
+    introducer: 'the shipping office porter',
+    intro: 'A Canal clerk\'s daughter who speaks French and English to the ships\' officers.',
+    met: 'In Port Said, the porter at the Canal shipping office tells you Rifaat Effendi\'s daughter Amal reads the French papers aloud to the whole office.',
+    brings: 'She writes your letters in French and English: foreign buyers trust a house that answers them properly.',
+    mahr: 1800, feast: 1000, feastRep: 3, gift: { label: 'a French novel and a box of Turkish delight', cost: 140 },
+    likes: 'learning', role: 'books', friends: ['portsaid'],
+  },
+  dalia: {
+    id: 'dalia', name: 'Dalia Kamel', short: 'Dalia', city: 'alexandria', cityName: 'Alexandria', rank: 'notable', meet: 'city', minRep: 35,
+    father: 'Kamel Pasha, a cotton exporter with a villa in Ramleh',
+    introducer: 'a dealer at the Alexandria auction rooms',
+    intro: 'A cotton exporter\'s daughter who plays the piano and has opinions about Paris.',
+    met: 'At the Alexandria auction rooms a dealer says Kamel Pasha\'s daughter Dalia admired a carpet you bid on, and asked who you were.',
+    brings: 'The Alexandria cotton families buy through you: her father\'s friends pay well.',
+    mahr: 8000, feast: 4500, feastRep: 8, gift: { label: 'sheet music from Paris and a bouquet from Ramleh', cost: 600 },
+    likes: 'dress', role: 'home', friends: ['alexandria'],
+  },
+  mona: {
+    id: 'mona', name: 'Mona al-Masri', short: 'Mona', city: 'cairo', cityName: 'Cairo', rank: 'notable', meet: 'friend', via: 'fuad', minRep: 40,
+    father: 'Samir al-Masri, carpet agent to the household at Abdeen',
+    introducer: 'Samir al-Masri himself',
+    intro: 'The palace carpet agent\'s daughter. She has walked on the best carpets in Egypt since she could walk.',
+    met: 'Samir al-Masri of Abdeen, who rarely says anything kind, says his daughter Mona has been reading the carpets you sold him. He would not object if you called.',
+    brings: 'She judges a carpet as well as her father does, and the palace households know her name.',
+    mahr: 7000, feast: 4000, feastRep: 8, gift: { label: 'a small silk prayer rug for her mother', cost: 700 },
+    likes: 'craft', role: 'rugs', friends: ['cairo'],
+  },
+  farida: {
+    id: 'farida', name: 'Farida Nashif', short: 'Farida', city: 'jerusalem', cityName: 'Jerusalem', rank: 'notable', meet: 'city', minRep: 30,
+    father: 'Ustaz Khalil Nashif, a schoolmaster near the Damascus Gate',
+    introducer: 'a bookseller near the Damascus Gate',
+    intro: 'A Jerusalem schoolmaster\'s daughter who teaches girls to read and argues with the newspapers.',
+    met: 'In Jerusalem a bookseller near the Damascus Gate says Ustaz Nashif\'s daughter Farida teaches half the girls of the quarter to read, and that her father wants a man who reads too.',
+    brings: 'She teaches the children herself, and keeps the house\'s letters and accounts.',
+    mahr: 4500, feast: 2500, feastRep: 6, gift: { label: 'a set of books from the Cairo booksellers', cost: 300 },
+    likes: 'learning', role: 'books', friends: ['jerusalem', 'jaffa'],
+  },
+  nour: {
+    id: 'nour', name: 'Nour Rizk', short: 'Nour', city: 'jaffa', cityName: 'Jaffa', rank: 'trade', meet: 'city',
+    father: 'Hajj Ahmad Rizk, who grows oranges outside Jaffa',
+    introducer: 'an orange packer at the Jaffa docks',
+    intro: 'An orange grower\'s daughter, practical, quick to laugh, and not impressed by a fine coat.',
+    met: 'At the Jaffa docks an orange packer tells you Hajj Rizk\'s daughter Nour runs the packing sheds when her father is ill. He seems to think you should meet her.',
+    brings: 'She minds the stall as if it were her father\'s packing shed: nothing wasted, nobody idle.',
+    mahr: 2800, feast: 1500, feastRep: 4, gift: { label: 'a crate of the best Egyptian dates for the house', cost: 180 },
+    likes: 'honesty', role: 'stall', friends: ['jaffa'],
+  },
+  hayat: {
+    id: 'hayat', name: 'Hayat Kassab', short: 'Hayat', city: 'aleppo', cityName: 'Aleppo', rank: 'trade', meet: 'city', minRep: 30,
+    father: 'Haj Omar Kassab, a carpet dealer in the Aleppo souq',
+    introducer: 'Haj Omar himself, after a long bargain',
+    intro: 'A rival dealer\'s daughter. She mends carpets in her father\'s back room and knows his prices better than he does.',
+    met: 'In Aleppo, after an hour of bargaining, Haj Omar Kassab says his daughter Hayat would have beaten you down further. He says it with some pride.',
+    brings: 'Aleppo opens to you: her father\'s friends in the souq sell to you as family.',
+    mahr: 4000, feast: 2200, feastRep: 5, gift: { label: 'Egyptian cotton and a brass tray for the house', cost: 300 },
+    likes: 'craft', role: 'rugs', friends: ['aleppo'],
+  },
+  suad: {
+    id: 'suad', name: 'Suad al-Najjar', short: 'Suad', city: 'baghdad', cityName: 'Baghdad', rank: 'grand', meet: 'city', minRep: 45,
+    father: 'Haj Jawad al-Najjar, the great carpet dealer of Baghdad',
+    introducer: 'a Persian merchant in the Baghdad souq',
+    intro: 'The daughter of the greatest carpet house in Baghdad. Persian carpets have been her family\'s life for a century.',
+    met: 'In Baghdad a Persian merchant tells you Haj Jawad al-Najjar has asked about you twice. His daughter Suad, he says, chooses her father\'s Persian stock.',
+    brings: 'Her family\'s name in Baghdad and on the road to Persia: dealers from Baghdad to Khanaqin treat you as one of theirs.',
+    mahr: 12000, feast: 7000, feastRep: 10, gift: { label: 'a fine Egyptian silk and gold-thread embroidery', cost: 1000 },
+    likes: 'craft', role: 'rugs', friends: ['baghdad', 'khanaqin'],
+  },
+  emine: {
+    id: 'emine', name: 'Emine Tezcan', short: 'Emine', city: 'istanbul', cityName: 'Constantinople', rank: 'grand', meet: 'city', minRep: 50,
+    father: 'Hüsnü Bey Tezcan, a carpet merchant of the Grand Bazaar',
+    introducer: 'an old porter at the Grand Bazaar',
+    intro: 'A Constantinople merchant\'s daughter, educated at the American college, who speaks four languages.',
+    met: 'At the Grand Bazaar an old porter says Hüsnü Bey\'s daughter Emine read your name in a dealer\'s letter from Cairo, and asked her father who you were.',
+    brings: 'The Turkish trade: her father\'s friends from Constantinople to Konya deal with you as family.',
+    mahr: 14000, feast: 8000, feastRep: 10, gift: { label: 'a silver-bound Quran and Egyptian perfume', cost: 1100 },
+    likes: 'dress', role: 'books', friends: ['istanbul', 'konya'],
+  },
+  nura: {
+    id: 'nura', name: 'Nura bint Salem', short: 'Nura', city: 'bedouin', cityName: 'the Tarabin camp', rank: 'humble', meet: 'friend', via: 'salem',
+    father: 'Sheikh Salem of the Tarabin, who sells camels at Imbaba',
+    introducer: 'Sheikh Salem, over coffee in his tent',
+    intro: 'A Tarabin sheikh\'s daughter who rides better than his sons and can read the desert like a page.',
+    met: 'Sheikh Salem says that any man who bargains with him three times and is still standing should come to his tent and meet his daughter Nura.',
+    brings: 'The Tarabin count you family: their camps and the Sinai towns trade with you as one of their own.',
+    mahr: 2000, feast: 1500, feastRep: 4, gift: { label: 'a fine saddle blanket and a sack of coffee', cost: 200 },
+    likes: 'honesty', role: 'home', friends: ['bedouin', 'sinai', 'suez'],
+  },
+} as Record<string, Bride>);
+Object.assign(BRIDES.nadia, { rank: 'trade', meet: 'rashid' });
+Object.assign(BRIDES.amira, { rank: 'trade', meet: 'rashid' });
+Object.assign(BRIDES.layla, { rank: 'notable', meet: 'rashid' });
+export const RANK_WORD: Record<Rank, string> = { humble: 'A lane family', trade: 'A trading house', notable: 'A notable house', grand: 'A great house' };
+
+/** the families you could court now: Rashid's three once you have asked him, and everyone you have met */
+export function availableBrides(h: HouseholdState): BrideId[] {
+  return [...new Set([...(h.stage === 'offered' ? BRIDE_ORDER : []), ...(h.known ?? [])])].filter((id) => BRIDES[id]);
+}
+
 export const BRIDE_ORDER: BrideId[] = ['nadia', 'amira', 'layla'];
 export const brideArt = (id: BrideId) => `art/family/bride-${id}.jpg`;
 export const childArt = (c: Child) => `art/family/child-${c.sex}-${ageOf(c) >= 18 ? 18 : ageOf(c) >= 12 ? 12 : 5}.jpg`;
@@ -133,6 +290,8 @@ export interface Child {
 }
 export interface HouseholdState {
   stage: 'none' | 'offered' | 'betrothed' | 'married';
+  /** families met on your own: through a buyer, at the stall, on the road */
+  known?: BrideId[];
   offered?: number;
   suitors: Partial<Record<BrideId, Suitor>>;
   /** the family you are joined to, from the contract on */
@@ -189,12 +348,19 @@ export function visitGain(s: Pick<GameState, 'reputation' | 'wardrobe' | 'attire
   if (b.likes === 'dress') { g += Math.round(ch / 4); why = ch >= 8 ? 'Her father looks at your coat before your face, and he is satisfied.' : 'Her father looks at your clothes a moment too long.'; }
   if (b.likes === 'honesty') {
     g += clamp(Math.round(m.honesty / 10), -10, 5) + Math.min(3, Math.floor(levelOf(s.skills?.scholarship ?? 0) / 3));
-    why = m.honesty >= 10 ? 'The teacher has asked about you in the bazaar, and heard you deal straight.' : m.honesty <= -10 ? 'The teacher has heard you tell a good story in the bazaar. He is not sure he likes it.' : 'The teacher asks what you read, and listens to the answer.';
+    const fa = id === 'nadia' ? 'The teacher' : b.father.split(',')[0];
+    why = m.honesty >= 10 ? `${fa} has asked about you in the bazaar, and heard you deal straight.` : m.honesty <= -10 ? `${fa} has heard you tell a good story in the bazaar. He is not sure he likes it.` : `${fa} asks how you trade, and listens to the answer.`;
   }
   if (b.likes === 'craft') {
     const eye = Math.min(6, Math.floor((levelOf(s.skills?.appraisal ?? 0) + levelOf(s.skills?.craft ?? 0)) / 3));
     g += eye + clamp(Math.round(m.kindness / 25), -2, 3);
-    why = eye >= 3 ? 'Hajj Mansur turns a rug over and you read the back with him. He nods.' : 'Hajj Mansur shows you the looms. You do not know what to say about them.';
+    const fa = id === 'amira' ? 'Hajj Mansur' : b.father.split(',')[0];
+    why = eye >= 3 ? `${fa} turns a rug over and you read the back together. A nod.` : `${fa} shows you the family's carpets. You do not know what to say about them.`;
+  }
+  if (b.likes === 'learning') {
+    const lv = levelOf(s.skills?.scholarship ?? 0);
+    g += Math.min(8, Math.floor(lv / 2));
+    why = lv >= 6 ? `You talk of books with ${b.father.split(',')[0]} until the coffee is cold.` : `${b.father.split(',')[0]} asks what you have read lately. You change the subject.`;
   }
   if (clean < 35) { g -= 4; why += ' You came in the dust of the road.'; }
   g -= Math.min(6, (s.stats?.liesCaught ?? 0) * 2);
@@ -229,6 +395,9 @@ export function spouseMinds(s: Pick<GameState, 'household' | 'shopBoy'>): string
 /** a grown son travelling with you as your apprentice */
 export const apprentice = (s: Pick<GameState, 'household'>) => hh(s).children.find((c) => c.role === 'apprentice');
 
+/** whether this family will receive you now */
+const courting = (h: HouseholdState, id: BrideId) => !!BRIDES[id] && (h.stage === 'offered' || h.stage === 'none') && !h.spouse && !h.merchant && availableBrides(h).includes(id);
+
 export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math.random): ActResult {
   const h = hh(s);
   const at = s.world.at;
@@ -247,8 +416,8 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
       return { ok: true, msg: OFFER_NOTE, patch: { household: { ...h, stage: 'offered', offered: day }, journal: jot('Asked Uncle Rashid to look for a match.') } };
     }
     case 'visit': {
-      if (h.stage !== 'offered') return no('There is no family to call on.');
       const b = BRIDES[a.bride];
+      if (!courting(h, a.bride)) return no('There is no family to call on.');
       if (at !== b.city) return no(`${b.short}'s family lives in ${b.cityName}. Call on them when you are there.`);
       const su = h.suitors[a.bride] ?? { favour: 0, visits: 0, gifts: 0 };
       if (su.lastVisit === day) return no('You called on them today. Calling twice in a day is pressing.');
@@ -258,26 +427,27 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
       const ready = favour >= ASK_AT;
       const msg = `You sit with ${b.father.split(',')[0]} for coffee and talk of the trade. ${why} ${ready ? 'He would hear a proposal now.' : 'He will think about you.'}`.replace(/\s+/g, ' ');
       return { ok: true, msg, patch: {
-        household: { ...h, suitors: { ...h.suitors, [a.bride]: { ...su, favour, visits: su.visits + 1, lastVisit: day } } },
+        household: { ...h, stage: 'offered', offered: h.offered ?? day, suitors: { ...h.suitors, [a.bride]: { ...su, favour, visits: su.visits + 1, lastVisit: day } } },
         world: { ...s.world, hour: Math.min(23.9, hour + VISIT_HOURS) },
         journal: jot(`Called on ${b.father.split(',')[0]} in ${b.cityName}.`),
       } };
     }
     case 'gift': {
-      if (h.stage !== 'offered') return no('There is no family to send a present to.');
       const b = BRIDES[a.bride];
+      if (!courting(h, a.bride)) return no('There is no family to send a present to.');
       const su = h.suitors[a.bride] ?? { favour: 0, visits: 0, gifts: 0 };
       if (su.lastGift !== undefined && day - su.lastGift < GIFT_EVERY) return no('Your last present has hardly arrived. Another so soon looks like buying favour.');
       if (s.cash < b.gift.cost) return no(`A fitting present costs ${fmt(b.gift.cost)}. You do not have it.`);
       const lift = su.visits ? 8 : 4;
       return { ok: true, msg: `You send ${b.gift.label} to the house in ${b.cityName}${su.visits ? '' : '. A present from a man they have not met counts for less'}.`, patch: {
         ...pay(b.gift.cost, `A present for the ${b.name.split(' ').slice(1).join(' ')} family`),
-        household: { ...h, suitors: { ...h.suitors, [a.bride]: { ...su, favour: clamp(su.favour + lift, 0, 100), gifts: su.gifts + 1, lastGift: day } } },
+        household: { ...h, stage: 'offered', offered: h.offered ?? day, suitors: { ...h.suitors, [a.bride]: { ...su, favour: clamp(su.favour + lift, 0, 100), gifts: su.gifts + 1, lastGift: day } } },
       } };
     }
     case 'ask': {
-      if (h.stage !== 'offered') return no('You are not courting.');
       const b = BRIDES[a.bride];
+      if (!courting(h, a.bride)) return no('You are not courting.');
+      if (b.minRep && s.reputation < b.minRep) return no(`${b.father.split(',')[0]} is polite, but his house looks higher: he wants a name of ${b.minRep} before he will hear you.`);
       if (at !== b.city) return no(`You ask in person, at her father's house in ${b.cityName}.`);
       const su = h.suitors[a.bride] ?? { favour: 0, visits: 0, gifts: 0 };
       if (su.favour < ASK_AT) {
@@ -431,7 +601,25 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
   const at = (patch.world ?? s.world).at;
   const home = at === 'giza';
 
-  // families are approached only when the merchant asks Rashid to look for a match ('seek')
+  // families are approached only when the merchant asks Rashid to look for a match ('seek'), or he
+  // comes to know of one himself: a buyer who trusts him speaks of a daughter, a young woman comes to
+  // the stall, a family on the road asks who he is. One at a time, and only once his name can carry it.
+  if (!h.spouse && !h.merchant && (h.stage === 'none' || h.stage === 'offered') && rep >= MATCH_REP && upgrades.some((u) => MATCH_STALLS.includes(u))) {
+    const known = new Set(h.known ?? []);
+    const hash = (salt: string) => { let x = day * 2654435761; for (let i = 0; i < salt.length; i++) x = Math.imul(x ^ salt.charCodeAt(i), 0x01000193) >>> 0; return (x % 10000) / 10000; };
+    const fresh = Object.values(BRIDES).find((b) => {
+      if (!b.meet || b.meet === 'rashid' || known.has(b.id)) return false;
+      if (b.meet === 'friend') return (s.relationships[b.via ?? '']?.purchases ?? 0) >= 3;
+      if (b.meet === 'city') return at === b.city && hash(b.id) < 0.35;
+      if (b.meet === 'stall') return home && hash('stall-' + b.id) < 1 / 10;
+      return false;
+    });
+    if (fresh) {
+      h = { ...h, known: [...known, fresh.id] };
+      out.household = h;
+      notes.push(`${fresh.met ?? fresh.intro} (Her family would receive you: see Household.)`);
+    }
+  }
 
   const sp0 = h.spouse;
   if (sp0) {
