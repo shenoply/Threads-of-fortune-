@@ -114,3 +114,13 @@
 .hud .hud-chip.hud-rep svg, .hud .hud-chip.hud-rep .ff-num { color: color-mix(in srgb, var(--k-lapis) 55%, #e8d4a8); }
 .hud [data-testid="hud-cash"] .ff-num { color: #f3d79a; }
 .hud .hud-chip.purse-thin .ff-num { color: #f09a84; }
+
+/* ---- the purse colours the world, gently: nothing to read, only to feel ---- */
+.purse-mood { position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: 0; transition: opacity 2.4s ease, background 2.4s ease; }
+.app.mood-poor .purse-mood { opacity: 1; background: radial-gradient(ellipse at 50% 40%, transparent 45%, rgba(20,28,40,.38) 100%), rgba(70,80,96,.10); mix-blend-mode: multiply; }
+.app.mood-rich .purse-mood { opacity: 1; background: radial-gradient(ellipse at 50% 30%, rgba(255,200,110,.10), transparent 70%), radial-gradient(ellipse at 50% 100%, rgba(255,170,70,.08), transparent 60%); mix-blend-mode: soft-light; }
+
+/* ---- fewer boxes: cards sit on the page as soft panels, not ruled rectangles ---- */
+.offer, .person, .cv-tile { border: 0; border-radius: 12px; background: linear-gradient(180deg, rgba(42,28,15,.72), rgba(24,16,9,.82)); box-shadow: inset 0 0 0 1px rgba(214,164,84,.14), 0 4px 14px rgba(0,0,0,.25); }
+.cv-tile.warn { box-shadow: inset 0 0 0 1px rgba(192,96,58,.6), 0 4px 14px rgba(0,0,0,.25); }
+.tile { border: 0; border-radius: 12px; background: linear-gradient(180deg, rgba(42,28,15,.72), rgba(24,16,9,.82)); box-shadow: inset 0 0 0 1px rgba(214,164,84,.14); }

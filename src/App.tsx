@@ -786,7 +786,9 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${g.started ? (g.cash < 300 ? 'mood-poor' : g.cash >= 20000 ? 'mood-rich' : '') : ''}`}>
+      {/* the purse colours the world: cold and dusty when broke, warm lamplight when rich */}
+      <div className="purse-mood" aria-hidden="true" />
       <header className="hud">
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
           {(() => { const nm = g.world.at ? settlementById(g.world.at).name.split(',')[0] : 'Road'; return <b className={nm.length > 11 ? 'long' : undefined}>{nm}</b>; })()}
