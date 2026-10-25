@@ -1544,7 +1544,7 @@ export const useGame = create<GameState & Actions>()(
           let inventory = s.inventory.map((i) => {
             if (i.restoringUntil && day >= i.restoringUntil) {
               const t = RUGS[i.typeId];
-              const n = { ...i, condition: i.restoreTo ?? 'Good', restored: i.restored || i.condition !== 'Dirty', restoringUntil: undefined, restoreTo: undefined, notes: [...i.notes] } as RugItem;
+              const n = { ...i, condition: i.restoreTo ?? 'Good', restored: i.restored || i.condition !== 'Dirty', restoringUntil: undefined, restoreTo: undefined, notes: [...i.notes], freshFrom: { day, was: i.condition } } as RugItem;
               notes.push(`${t.name} is back from restoration.`);
               if (i.provenance === 'Uncertain' && rng() < 0.4) {
                 n.provenance = 'Likely';

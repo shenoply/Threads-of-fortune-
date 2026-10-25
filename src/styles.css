@@ -3590,3 +3590,26 @@ body.travelling .world-hud { display: none; }
 .week-goal span { color: #a2c05f !important; }
 .week-goal.done b { color: #a2c05f; }
 .dial small.price-memo { display: block; margin-top: 2px; font-size: 12.5px; color: var(--text-dim); } .dial small.price-memo b { color: var(--text); font-weight: 600; }
+
+/* the wash and the mend, on the rug itself: suds and running water while it is in the courtyard, a
+   stitch moving along the edge at the restorer, and a sweep of light the day it comes back */
+.offer .img, .inv .img, button.img { position: relative; overflow: hidden; }
+button.img.washing img { filter: brightness(.85) saturate(.8) blur(.3px) !important; }
+button.img.washing::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(100deg, rgba(180,215,235,.0) 0 14px, rgba(190,225,245,.35) 14px 18px, rgba(180,215,235,0) 18px 34px); background-size: 200% 100%; animation: wash-run 1.6s linear infinite; mix-blend-mode: screen; }
+@keyframes wash-run { to { background-position: -68px 0; } }
+.suds { position: absolute; inset: 0; pointer-events: none; }
+.suds i { position: absolute; bottom: -10px; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, rgba(220,240,255,.55) 60%, transparent 70%); box-shadow: 0 0 0 1px rgba(255,255,255,.4); animation: sud 2.4s ease-in infinite; }
+.suds i:nth-child(1) { left: 12%; animation-delay: 0s; } .suds i:nth-child(2) { left: 30%; animation-delay: .5s; width: 6px; height: 6px; }
+.suds i:nth-child(3) { left: 52%; animation-delay: 1.1s; } .suds i:nth-child(4) { left: 70%; animation-delay: .3s; width: 12px; height: 12px; } .suds i:nth-child(5) { left: 86%; animation-delay: 1.6s; width: 7px; height: 7px; }
+@keyframes sud { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-70px) scale(1.1); opacity: 0; } }
+button.img.mending::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: 10%; height: 2px; background: repeating-linear-gradient(90deg, #f3dca6 0 6px, transparent 6px 11px); background-size: 22px 2px; animation: stitch 1.2s linear infinite; opacity: .9; }
+@keyframes stitch { to { background-position: 22px 0; } }
+button.img.fresh::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,245,210,.65) 50%, transparent 70%); background-size: 250% 100%; animation: fresh-sweep 2.2s ease-in-out 3 forwards; }
+@keyframes fresh-sweep { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.fresh-note { color: #a2c05f; font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { button.img.washing::after, .suds i, button.img.mending::after, button.img.fresh::after { animation: none; } }
+/* while a rug is in the wash or at the restorer, and the day it comes back, it is shown large */
+.inv-item .img.washing, .inv-item .img.mending, .inv-item .img.fresh { grid-column: 1 / -1; aspect-ratio: 2.4 / 1; border-radius: 8px; }
+.inv-item { border: 0; border-radius: 12px; background: linear-gradient(180deg, rgba(42,28,15,.72), rgba(24,16,9,.82)); box-shadow: inset 0 0 0 1px rgba(214,164,84,.14); }
+.inv-item .img.washing .suds i { bottom: -12px; }
+.inv-item .img.washing + div, .inv-item .img.mending + div, .inv-item .img.fresh + div { grid-column: 1 / -1; }

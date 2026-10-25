@@ -52,8 +52,9 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
           const r = RESTORATION[i.condition];
           return (
             <div className="inv-item" key={i.uid} data-testid={`inv-${t.id}`} data-uid={i.uid}>
-              <button className="img" onClick={() => setView(i.uid)} style={{ padding: 0, border: 0 }} aria-label={`Inspect ${t.name}`}>
+              <button className={`img ${i.restoringUntil ? (i.condition === 'Dirty' ? 'washing' : 'mending') : i.freshFrom?.day === g.day ? 'fresh' : ''}`} onClick={() => setView(i.uid)} style={{ padding: 0, border: 0 }} aria-label={`Inspect ${t.name}`}>
                 <img src={rugThumb(t)} alt="" style={i.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                {i.restoringUntil && i.condition === 'Dirty' && <span className="suds" aria-hidden="true"><i /><i /><i /><i /><i /></span>}
               </button>
               <div>
                 <h3 className={`t-tier-${t.tier ?? 1}`}>{names[i.uid] ?? t.name}</h3>
@@ -61,7 +62,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                   {i.restoringUntil ? (
                     <span className="cond restoring" data-testid="restoring">{i.condition === 'Dirty' ? `Drying in the courtyard until day ${i.restoringUntil}` : `At the restorer until day ${i.restoringUntil}`}</span>
                   ) : (
-                    <span className={`cond ${i.condition}`} data-testid="condition">{i.condition}{i.restored ? ' · restored' : ''}</span>
+                    <span className={`cond ${i.condition}`} data-testid="condition">{i.condition}{i.restored ? ' · restored' : ''}{i.freshFrom?.day === g.day ? <b className="fresh-note" data-testid="fresh-note"> · back today, {i.freshFrom.was === 'Dirty' ? 'washed and sun-dried' : 'mended'}: it was {i.freshFrom.was.toLowerCase()}</b> : null}</span>
                   )}{' '}
                   · paid {fmt(i.paid)} · <b className="inv-val" data-testid="stock-value">usually ≈ {fmt(typicalSale(i))}</b>
                   {g.intel?.[i.typeId] && <><br /><span className="intel" data-testid="intel">Seen at auction: about {fmt(Math.round((g.intel[i.typeId].movingAveragePt ?? 0) * CONDITION_FACTOR[i.condition]))} in this condition ({g.intel[i.typeId].observations} sale{g.intel[i.typeId].observations === 1 ? '' : 's'})</span></>}
