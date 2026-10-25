@@ -62,3 +62,13 @@
 /* the folded ranks: the name takes the room, the count and the arrow sit in one tidy column at the right */
 .road-chapter.folded details > summary .road-count { white-space: nowrap; text-align: right; font-family: var(--label); font-size: 14px; letter-spacing: .04em; }
 .road-chapter.folded details > summary::after { text-align: right; }
+
+/* a folded stretch shows a row of its pictures under its name */
+.road-chapter.folded details > summary { grid-template-areas: 'name count arrow' 'peek peek peek'; }
+.road-chapter.folded details > summary h4 { grid-area: name; }
+.road-chapter.folded details > summary .road-count { grid-area: count; }
+.road-chapter.folded details > summary::after { grid-area: arrow; }
+.road-peek { grid-area: peek; display: flex; gap: 6px; margin-top: 6px; }
+.road-peek:empty { display: none; }
+.road-peek img { width: 64px; height: 44px; object-fit: cover; border-radius: 5px; border: 1px solid rgba(201,151,74,.45); }
+.road-peek img.dim { filter: saturate(.6) brightness(.75); }

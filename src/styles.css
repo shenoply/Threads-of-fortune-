@@ -3435,3 +3435,10 @@ body.travelling .world-hud { display: none; }
 .t-tier-2 { color: var(--tier2) !important; }
 .t-tier-3 { color: var(--tier3) !important; }
 .t-tier-4 { color: var(--tier4) !important; text-shadow: 0 0 10px rgba(255, 201, 77, .35); }
+/* when a buyer walks away (or buys): nothing jumps. The picture keeps the height it had in the talk,
+   the buyer's plate stays where it was, above the last words, and the words sit right under it */
+@media (max-width: 600px) {
+  .stall.has-result > .scene { height: var(--scene-h, min(98vw, 56vh)); }
+  .stall.has-result > .band { justify-content: flex-start; }
+  .stall.has-result > .band .plate-buyer { order: -1; }
+}

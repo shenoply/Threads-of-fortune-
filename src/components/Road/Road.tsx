@@ -91,11 +91,14 @@ export function Road() {
         {chapters.map((ch) => ch !== rk ? (
           <li key={ch} className={`road-chapter ${ch < rk ? 'past' : 'later'} folded`}>
             <details data-testid={`road-chapter-${ch}`}>
-              <summary><h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4><span className="dim road-count">{ch < rk ? 'done' : (() => { const n = steps.filter((x) => x.chapter === ch).length; return `${n} ${n === 1 ? 'step' : 'steps'}`; })()}</span></summary>
+              <summary><h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4>
+                {/* a glimpse of what the stretch holds, before it is opened */}
+                <span className="road-peek" aria-hidden="true">{steps.filter((x) => x.chapter === ch && !x.rank && x.pic).slice(0, 4).map((x) => <img key={x.id} src={x.pic} alt="" loading="lazy" className={x.done ? '' : 'dim'} />)}</span><span className="dim road-count">{ch < rk ? 'done' : (() => { const n = steps.filter((x) => x.chapter === ch).length; return `${n} ${n === 1 ? 'step' : 'steps'}`; })()}</span></summary>
               <ol>
                 {steps.filter((x) => x.chapter === ch).map((st) => (
                   <li key={st.id} className={`road-step ${st.done ? 'done' : ''} ${st.rank ? 'rank' : ''}`} data-testid={`road-${st.id}`}>
                     <span className="road-dot" aria-hidden="true">{st.done ? <Icon name="check" /> : st.rank ? <Icon name="crown" /> : null}</span>
+                    {!st.rank && st.pic && <Pic src={st.pic} locked={!st.done} />}
                     <div className="road-step-body"><b>{st.title}</b>{st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : <span className="road-line">{st.line}</span>}</div>
                   </li>
                 ))}
