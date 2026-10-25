@@ -105,3 +105,12 @@
 .standing.compact { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 12px; }
 .standing.compact b { font-family: var(--display); font-weight: 500; color: var(--parchment); font-size: 15.5px; }
 .standing.compact small { color: var(--text-dim); font-size: 12px; }
+
+/* the top bar keeps its colour code, but softened into the brass so nothing shouts */
+.hud .icon-btn svg { color: color-mix(in srgb, var(--hud-k, #d9ad62) 45%, #d9ad62); }
+.hud .icon-btn.paper-btn { --hud-k: var(--k-aub); }
+.hud .icon-btn.gift-btn { --hud-k: var(--k-rose); }
+.hud .icon-btn.gift-btn.calling svg { color: #ffd9a8; }
+.hud .hud-chip.hud-rep svg, .hud .hud-chip.hud-rep .ff-num { color: color-mix(in srgb, var(--k-lapis) 55%, #e8d4a8); }
+.hud [data-testid="hud-cash"] .ff-num { color: #f3d79a; }
+.hud .hud-chip.purse-thin .ff-num { color: #f09a84; }

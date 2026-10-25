@@ -12,6 +12,7 @@ import { SETTLEMENTS } from '../../data/world';
 import { houseOfFortune, rankOf, RANKS, netWorth, liabilities, owedParts } from '../../game/economy/progress';
 import { rugSrc } from '../RugViewer/rugArt';
 import { LicenceCard } from './LicenceCard';
+import { PurseBook } from './PurseBook';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, activeMilestone } from '../../data/milestones';
 import { Fold } from '../Fold/Fold';
 import { onWall } from '../../game/systems/shops';
@@ -112,26 +113,8 @@ export function Ledger() {
   const bought = BUYER_ORDER.reduce((n, id) => n + (g.relationships[id]?.purchases ?? 0), 0);
   return (
     <div className="screen" data-testid="ledger">
-      <p className="ledger-sub">Day {g.day}. Every piastre in and out.</p>
-      <div className="tiles">
-        <div className="tile"><small>CASH</small><b data-testid="ledger-cash" data-pt={g.cash}>{fmt(g.cash)}</b></div>
-        <div className="tile"><small>STOCK AT COST</small><b>{fmt(stock)}</b></div>
-        <div className="tile"><small>GROSS MARGIN</small><b className={margin > 0 ? 'pos' : ''}>{margin}%</b></div>
-        <div className="tile"><small>EXPENSES</small><b className={expenses ? 'neg' : ''}>{fmt(expenses)}</b></div>
-        {(() => {
-          // everything owed, not only Rashid's stock credit: the month's bill, your father's debt (with
-          // any instalment now due), loans, and a purse run below nothing
-          const total = liabilities(g) + Math.max(0, -g.cash);
-          const dueNow = (g.bills?.due ?? 0) + (g.family?.due ?? 0) + (g.loans ?? []).filter((l) => g.day > l.due).reduce((a, l) => a + l.owed, 0);
-          return (
-            <div className="tile" data-testid="ledger-owed" data-pt={total}>
-              <small>WHAT YOU OWE</small>
-              <b className={total ? 'neg' : ''}>{fmt(total)}</b>
-              {total > 0 && <small>{owedParts(g)}{dueNow > 0 ? ` · ${fmt(dueNow)} due now` : ''}</small>}
-            </div>
-          );
-        })()}
-      </div>
+      <PurseBook />
+      <p className="ledger-alltime">All told: sold <b>{fmt(revenue)}</b> of rugs at a <b className={margin > 0 ? 'pos' : ''}>{margin}%</b> margin, and paid <b className={expenses ? 'neg' : ''}>{fmt(expenses)}</b> in costs.</p>
       <LicenceCard />
 
       <Fold id="pr-book-customers" title="Customers" gist={`${met} met · ${bought} purchase${bought === 1 ? '' : 's'}`}>
@@ -152,29 +135,6 @@ export function Ledger() {
             </div>
           );
         })}
-      </div>
-      </Fold>
-
-      <Fold id="pr-book-entries" title="Entries" gist={g.ledger.length ? `${g.ledger.length} · last: ${g.ledger[g.ledger.length - 1].label}` : 'None yet'}>
-      <div className="ledger-table-wrap">
-        <table className="ledger">
-          <thead>
-            <tr><th>Day</th><th>Entry</th><th style={{ textAlign: 'right' }}>Cost</th><th style={{ textAlign: 'right' }}>Amount</th></tr>
-          </thead>
-          <tbody>
-            {g.ledger.length === 0 && (
-              <tr><td colSpan={4} style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>No entries yet. Your first sale goes here.</td></tr>
-            )}
-            {[...g.ledger].reverse().map((l, i) => (
-              <tr key={i}>
-                <td>{l.day}</td>
-                <td>{l.label}</td>
-                <td className="num">{l.cost !== undefined ? fmt(l.cost) : ''}</td>
-                <td className={`num ${l.amount > 0 ? 'pos' : l.amount < 0 ? 'neg' : ''}`}>{l.amount > 0 ? '+' : l.amount < 0 ? '−' : ''}{fmt(Math.abs(l.amount))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
       </Fold>
 
