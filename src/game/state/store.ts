@@ -171,6 +171,8 @@ export interface GameState {
   collectSets?: number[];
   /** spot-on prices in a row (systems/negotiation.ts) */
   spotRun?: number;
+  /** the fraction of a skill point the road has taught so far, carried between travel ticks */
+  roadXp?: number;
   /** main missions: active or done */
   missions: Record<string, 'active' | 'done'>;
   /** skills rise by doing; XP per skill */
@@ -1083,6 +1085,7 @@ export const useGame = create<GameState & Actions>()(
       });
 
       /** Skill XP and manner from an action, with level-ups queued for the player to see. */
+      const ROAD_XP_PER_DAY = 3;
       const growth = (s: GameState, xp?: Partial<Record<SkillId, number>>, manner?: Partial<Manner>): Partial<GameState> => {
         const out: Partial<GameState> = {};
         if (xp) {
@@ -1916,7 +1919,12 @@ export const useGame = create<GameState & Actions>()(
           for (let d = startDay + (leaving ? 1 : 0); d <= s.day; d++) if (!where[d] || d > startDay) where[d] = 'road';
           const journal = [...s.journal, ...(leaving ? [{ day: startDay, text: `Left ${settlementById(leaving).name} for the road.`, kind: 'depart' }] : []), ...roadJournal];
           const mounted = Object.values(s.world.party.animals ?? {}).some((n) => (n ?? 0) > 0);
-          const g1 = growth(s, { survival: Math.max(1, Math.round(days * 4)), ...(mounted ? { riding: Math.max(1, Math.round(days * 4)) } : {}) });
+          // the road teaches slowly: this runs every ~140ms while travelling, so the fraction of a day is
+          // carried over, not rounded up to a whole point each tick (which levelled survival in minutes)
+          const carry = (s.roadXp ?? 0) + days * ROAD_XP_PER_DAY;
+          const whole = Math.floor(carry);
+          const g1 = whole > 0 ? growth(s, { survival: whole, ...(mounted ? { riding: whole } : {}) }) : {};
+          (g1 as Partial<GameState>).roadXp = carry - whole;
           // rounded to a whole point: this is called every ~140ms while travelling, and leaving it as
           // a raw float lets tiny fractions of a day pile up into something like 68.5780000000002 by
           // the time it reaches the screen

@@ -92,7 +92,8 @@ export const SKILLS: Record<SkillId, SkillDef> = {
 export const SKILL_ORDER: SkillId[] = ['speech', 'haggling', 'appraisal', 'craft', 'riding', 'survival', 'scholarship', 'catkeeping'];
 
 /** XP needed to reach a level: a gentle curve, then steeper. */
-export const xpFor = (level: number) => Math.round(12 * Math.pow(level - 1, 1.6));
+// level 5 is a fortnight of good trading, level 10 a season, level 20 a life
+export const xpFor = (level: number) => Math.round(18 * Math.pow(level - 1, 1.85));
 export const MAX_LEVEL = 20;
 export function levelOf(xp: number) {
   let l = 1;

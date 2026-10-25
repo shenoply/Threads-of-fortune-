@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/state/store';
 import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER, type SkillId } from '../../data/character';
 import { START_WARDROBE, heroCharisma, wornOutfit } from '../../data/wardrobe';
@@ -179,17 +179,18 @@ export function LevelUpToast() {
   const title = !up ? g.titleNews?.[0] : undefined;
   useEffect(() => {
     if (!up && !title) return;
-    const t = setTimeout(() => (up ? g.popLevelUp() : g.popTitle()), 3200);
+    const perk = up && SKILLS[up.skill].perks.some((p) => p.level === up.level);
+    const t = setTimeout(() => (up ? g.popLevelUp() : g.popTitle()), perk ? 4600 : 2800);
     return () => clearTimeout(t);
   }, [up, title, g]);
   if (up) {
     const sk = SKILLS[up.skill];
     const perk = sk.perks.find((p) => p.level === up.level);
     return (
-      <div className="levelup" data-testid="levelup" onClick={() => g.popLevelUp()}>
-        <small>SKILL INCREASED</small>
-        <b>{sk.name} {up.level}</b>
-        {perk ? <span>New perk: {perk.name}. {perk.effect}</span> : (() => { const nx = sk.perks.find((p) => p.level > up.level); return nx ? <span>Next perk at {nx.level}: {nx.name}</span> : null; })()}
+      <div className={`levelup ${perk ? 'has-perk' : ''}`} data-testid="levelup" onClick={() => g.popLevelUp()} key={`${up.skill}${up.level}`}>
+        <small>{perk ? 'NEW PERK' : 'LEVEL UP'}</small>
+        <b>{sk.name} <em className="lv-n">{up.level}</em></b>
+        {perk ? <span><strong>{perk.name}</strong> {perk.effect}</span> : (() => { const nx = sk.perks.find((p) => p.level > up.level); return nx ? <span>Next perk at {nx.level}: {nx.name}</span> : null; })()}
       </div>
     );
   }
@@ -207,39 +208,41 @@ export function LevelUpToast() {
 /** The character's growth in sight while you play: every skill gained shows as a small chip with how far
  *  it is to the next level (and what that level brings), over the Me button. */
 export function SkillPops() {
-  const [pops, setPops] = useState<{ k: number; skill: SkillId; gain: number; xp: number }[]>([]);
+  // one quiet chip that rises from the Me button: gains that come together are merged into it, and it
+  // never stacks into a column of boxes over the counter
+  const [pop, setPop] = useState<{ k: number; gains: Partial<Record<SkillId, number>>; last: SkillId } | null>(null);
+  const timer = useRef(0);
   useEffect(() => {
     let prev = useGame.getState().skills ?? {};
     return useGame.subscribe((s) => {
       const now = s.skills ?? {};
       if (now === prev) return;
-      const fresh: { k: number; skill: SkillId; gain: number; xp: number }[] = [];
-      for (const k of Object.keys(now) as SkillId[]) {
-        const d = (now[k] ?? 0) - (prev[k] ?? 0);
-        if (d > 0) fresh.push({ k: Date.now() + Math.random(), skill: k, gain: d, xp: now[k] ?? 0 });
-      }
+      const fresh: [SkillId, number][] = [];
+      for (const k of Object.keys(now) as SkillId[]) { const d = (now[k] ?? 0) - (prev[k] ?? 0); if (d > 0) fresh.push([k, d]); }
       prev = now;
       if (!fresh.length || !s.started) return;
-      setPops((p) => [...p, ...fresh].slice(-3));
-      for (const f of fresh) window.setTimeout(() => setPops((p) => p.filter((x) => x.k !== f.k)), 2600);
+      setPop((p) => {
+        const gains = { ...(p?.gains ?? {}) };
+        for (const [k, d] of fresh) gains[k] = (gains[k] ?? 0) + d;
+        return { k: p?.k ?? Date.now(), gains, last: fresh[fresh.length - 1][0] };
+      });
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setPop(null), 2200);
     });
   }, []);
-  if (!pops.length) return null;
+  const anchor = typeof document !== 'undefined' ? document.querySelector('[data-testid="nav-hero"]')?.getBoundingClientRect() : undefined;
+  if (!pop) return null;
+  const xp = useGame.getState().skills?.[pop.last] ?? 0;
+  const lv = levelOf(xp), lo = xpFor(lv), hi = xpFor(lv + 1);
+  const pct = lv >= MAX_LEVEL ? 100 : Math.round(((xp - lo) / Math.max(1, hi - lo)) * 100);
+  const parts = (Object.entries(pop.gains) as [SkillId, number][]).sort((a, c) => c[1] - a[1]).slice(0, 2);
+  const style = anchor ? { left: `${Math.round(Math.min(window.innerWidth - 90, Math.max(90, anchor.left + anchor.width / 2)))}px`, bottom: `${Math.round(window.innerHeight - anchor.top + 6)}px` } : undefined;
   return (
-    <div className="skill-pops" aria-live="polite" data-testid="skill-pops">
-      {pops.map((p) => {
-        const lv = levelOf(p.xp);
-        const lo = xpFor(lv), hi = xpFor(lv + 1);
-        const pct = lv >= MAX_LEVEL ? 100 : Math.round(((p.xp - lo) / Math.max(1, hi - lo)) * 100);
-        const next = SKILLS[p.skill].perks.find((x) => x.level > lv);
-        return (
-          <div key={p.k} className="skill-pop">
-            <b>+{Math.round(p.gain)} {SKILLS[p.skill].name}</b>
-            <i><em style={{ width: `${pct}%` }} /></i>
-            <small>Level {lv}{next ? ` · ${next.name} at ${next.level}` : ''}</small>
-          </div>
-        );
-      })}
+    <div className="skill-pops" aria-live="polite" data-testid="skill-pops" style={style}>
+      <div key={pop.k} className="skill-pop">
+        <b>{parts.map(([k, d]) => `+${Math.round(d)} ${SKILLS[k].name}`).join(' · ')}</b>
+        <i><em style={{ width: `${pct}%` }} /></i>
+      </div>
     </div>
   );
 }
