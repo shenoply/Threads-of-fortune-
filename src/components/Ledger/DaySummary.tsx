@@ -3,7 +3,7 @@ import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { useState } from 'react';
-import { NightScene, nightDue } from '../Night/NightScene';
+import { NightScene, dayScore, nightDue, scoreWord } from '../Night/NightScene';
 
 /** What happened overnight after "Next day": the bills, Rashid, the men, how you slept. Shown once
  *  as a small card in the morning and put away when read. Nights on the road are not shown here:
@@ -20,7 +20,7 @@ export function DaySummary() {
   const [nightSeen, setNightSeen] = useState(0);
   if (!sum || sum.seen) return null;
   // first the stall after dark with the day's money counted, then the morning's card
-  if (sum.revenue > 0 && nightDue(sum.day) && nightSeen !== sum.day + 1) return <NightScene day={sum.day} takings={sum.revenue} onDone={() => setNightSeen(sum.day + 1)} />;
+  if (sum.revenue > 0 && nightDue(sum.day) && nightSeen !== sum.day + 1) return <NightScene day={sum.day} takings={sum.revenue} score={dayScore(useGame.getState().ledger, sum.day, sum)} onDone={() => setNightSeen(sum.day + 1)} />;
   const notes = sum.notes.filter((n) => n.trim());
   const traded = sum.sales > 0 || sum.revenue > 0;
   // a quiet night with nothing to report needs no card
@@ -36,6 +36,7 @@ export function DaySummary() {
         <h2>{dateFor(sum.day + 1).long}</h2>
         {traded && (
           <p>
+            <b className="ds-score" data-testid="summary-score">{dayScore(useGame.getState().ledger, sum.day, sum)}/100 · {scoreWord(dayScore(useGame.getState().ledger, sum.day, sum))}.</b>{' '}
             Yesterday: {sum.sales} {sum.sales === 1 ? 'sale' : 'sales'}, {fmt(sum.revenue)} taken
             {night > 0
               ? <>, {atClose >= 0 ? `${fmt(atClose)} to the good` : `${fmt(-atClose)} down`} at the close. The night cost {nightParts}: {net >= 0 ? `${fmt(net)} to the good` : `${fmt(-net)} down`} in all.</>
