@@ -559,11 +559,19 @@ function SkillsAtWork({ encId, buyerId }: { encId: string; buyerId: string }) {
     if (lv('catkeeping') >= 10 && (b?.catAffinity ?? 0) > 0) out.push('Saffron charms them');
     if (!out.length) return;
     setOn(out);
-    const t = window.setTimeout(() => setOn(null), 3600);
+    const t = window.setTimeout(() => setOn(null), 6000);
     return () => window.clearTimeout(t);
   }, [encId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!on) return null;
-  return <div className="skills-at-work" data-testid="skills-at-work">{on.map((x) => <span key={x}>✦ {x}</span>)}</div>;
+  // over the cloth on the counter, between the two people, not over either face
+  const sc = document.querySelector('.stall > .scene')?.getBoundingClientRect();
+  const pos = sc ? { bottom: `${Math.round(window.innerHeight - sc.bottom + 72)}px`, top: 'auto' } : undefined;
+  return (
+    <div className="skills-at-work" data-testid="skills-at-work" style={pos}>
+      <small>Your skills at work</small>
+      {on.map((x) => { const [name, what] = x.split(': '); return <span key={x}><b>{name}</b>{what ? <em>{what}</em> : null}</span>; })}
+    </div>
+  );
 }
 
 /** After a buyer walks away from a rug they liked: put it aside for them (hidden from everyone else). */
