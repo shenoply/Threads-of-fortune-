@@ -3549,3 +3549,5 @@ body.travelling .world-hud { display: none; }
 @keyframes lvl-out { to { opacity: 0; transform: translate(-50%, -8px); } }
 @keyframes lvl-coin { from { transform: scale(0) rotate(-120deg); } }
 @media (prefers-reduced-motion: reduce) { .skill-pop, .levelup[data-testid="levelup"], .levelup .lv-n { animation: none; } }
+.cv-tile b .cv-max { font-size: .62em; color: var(--text-dim); font-weight: 400; }
+.cstrip .cs-max { font-size: .78em; color: var(--text-dim); margin-left: 1px; }

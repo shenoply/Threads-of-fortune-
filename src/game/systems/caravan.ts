@@ -38,6 +38,8 @@ export const animalCap = (p: PartyState) => 2 * (1 + Object.values(p.troops).red
 export const troopCount = (p: PartyState) => Object.values(p.troops).reduce((s, n) => s + n, 0);
 export const partySize = (p: PartyState) => 1 + troopCount(p);
 export const strength = (p: PartyState) => 2 + (p.arms ?? 0) + Object.entries(p.troops).reduce((s, [id, n]) => s + (TROOPS[id]?.strength ?? 1) * n, 0);
+/** the most strength your name lets you lead: every place in your company filled with the best men there are */
+export const strengthCap = (p: PartyState, reputation: number) => 2 + (p.arms ?? 0) + troopCap(reputation) * Math.max(...Object.values(TROOPS).map((t) => t.strength ?? 1));
 export const wages = (p: PartyState) => Object.entries(p.troops).reduce((s, [id, n]) => s + (TROOPS[id]?.wage ?? 1) * n, 0);
 /** Skill effects on the caravan, kept in step with the merchant's Riding and Survival by the store. */
 export const SKILL_MODS = { speed: 1, food: 1 };

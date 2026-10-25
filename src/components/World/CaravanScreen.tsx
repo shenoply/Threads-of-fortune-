@@ -3,7 +3,7 @@ import { useGame } from '../../game/state/store';
 import { FOOD_PER_LOAD } from '../../data/caravan';
 import { Icon } from '../Icon';
 import { fmt } from '../../game/economy/money';
-import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dailyFood, carried } from '../../game/systems/caravan';
+import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dailyFood, carried, strengthCap, animalCap, troopCap } from '../../game/systems/caravan';
 import { BREEDS } from '../../data/animals';
 import { milesPx } from '../../game/systems/mapRender';
 import { CaravanRoster, TownSupplies } from './CaravanPanels';
@@ -21,12 +21,12 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
   const sp = speedInfo(p, g.inventory);
   const food = foodDaysLeft(p);
   const town = g.world.at ? settlementById(g.world.at) : null;
-  const tiles: { icon: string; label: string; value: string; warn?: boolean }[] = [
+  const tiles: { icon: string; label: string; value: string; max?: number; warn?: boolean }[] = [
     { icon: 'bag', label: 'Food', value: `${food} day${food === 1 ? '' : 's'}`, warn: food < 3 },
     { icon: 'run', label: 'Pace', value: `${milesPerDay(sp.pxPerDay)} mi/day`, warn: sp.over || sp.hungry },
-    { icon: 'shield', label: 'Strength', value: String(strength(p)) },
-    { icon: 'camel', label: 'Animals', value: String(animalCount(p)) },
-    { icon: 'sword', label: 'Guards', value: String(troopCount(p)), warn: troopCount(p) === 0 },
+    { icon: 'shield', label: 'Strength', value: String(strength(p)), max: strengthCap(p, g.reputation) },
+    { icon: 'camel', label: 'Animals', value: String(animalCount(p)), max: animalCap(p) },
+    { icon: 'sword', label: 'Guards', value: String(troopCount(p)), max: troopCap(g.reputation), warn: troopCount(p) === 0 },
     { icon: 'scale', label: 'Load', value: `${Math.round(sp.load)}/${sp.cap}`, warn: sp.over },
   ];
   return (
@@ -41,7 +41,7 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
           <div key={t.label} className={`cv-tile ${t.warn ? 'warn' : ''}`}>
             <Icon name={t.icon} />
             <small>{t.label}</small>
-            <b>{t.value}</b>
+            <b>{t.value}{t.max !== undefined && <small className="cv-max"> / {t.max}</small>}</b>
           </div>
         ))}
       </div>

@@ -9,7 +9,7 @@ import { animalPrice } from '../../game/state/store';
 import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDaysLeft, animalCount, morale as moraleOf } from '../../game/systems/caravan';
 import { AnimalPlate } from './AnimalPlate';
 import { TroopPage, MenTalk, capLine } from './Troops';
-import { troopCount, troopCap, animalCap } from '../../game/systems/caravan';
+import { troopCount, troopCap, animalCap, strengthCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 import { provisionsAt, stapleAt, provisionPrice } from '../../data/provisions';
 import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } from '../../data/livestock';
@@ -23,11 +23,11 @@ export function CaravanStrip() {
   return (
     <div className="cstrip" data-testid="caravan-strip">
       <span title="People in your caravan"><Icon name="people" />{partySize(p)}</span>
-      <span title="Animals: camels, horses, donkeys and mules"><Icon name="camel" />{animalCount(p)}</span>
+      <span title="Animals: camels, horses, donkeys and mules (most you can lead)"><Icon name="camel" />{animalCount(p)}<small className="cs-max">/{animalCap(p)}</small></span>
       <span className={foodDaysLeft(p) < 2 ? 'warn' : ''} title="Days of food"><Icon name="bag" />{foodDaysLeft(p)}d</span>
       <span className={sp.over ? 'warn' : ''} title="Load / capacity"><Icon name="scale" />{Math.round(sp.load * 10) / 10}/{sp.cap}</span>
       <span title="Travel speed"><Icon name="sun" />{sp.mult.toFixed(1)}×</span>
-      <span title="Fighting strength"><Icon name="shield" />{strength(p)}</span>
+      <span title="Fighting strength (most your name lets you lead)"><Icon name="shield" />{strength(p)}<small className="cs-max">/{strengthCap(p, g.reputation)}</small></span>
     </div>
   );
 }
@@ -108,8 +108,8 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
         </div>
       </>)}
       </>)}
-      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /></Part>}
-      {show.includes('recruits') && <Part fold={fold} id="guards" title={<><b>Guards</b> · {troopCount(p)} with you{pool.length ? ` · ${pool.reduce((n, r) => n + r.available, 0)} for hire here` : ''}</>}>
+      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} of {animalCap(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /></Part>}
+      {show.includes('recruits') && <Part fold={fold} id="guards" title={<><b>Guards</b> · {troopCount(p)} of {troopCap(g.reputation)} with you{pool.length ? ` · ${pool.reduce((n, r) => n + r.available, 0)} for hire here` : ''}</>}>
       {pool.length === 0 && (
         <>
           <div className="section-label">HIRE GUARDS</div>
