@@ -407,6 +407,7 @@ export function visitGain(s: Pick<GameState, 'reputation' | 'wardrobe' | 'attire
     why = lv >= 6 ? `You talk of books with ${b.father.split(',')[0]} until the coffee is cold.` : `${b.father.split(',')[0]} asks what you have read lately. You change the subject.`;
   }
   if (clean < 35) { g -= 4; why += ' You came in the dust of the road.'; }
+  if (id === 'aziza' && (s as { selimShamed?: boolean }).selimShamed) { g -= 6; why += ' Her mother has not forgotten the business with Selim\'s dyes.'; }
   g -= Math.min(6, (s.stats?.liesCaught ?? 0) * 2);
   return { gain: Math.max(2, Math.round(g)), why: why.trim() };
 }

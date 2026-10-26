@@ -11,6 +11,7 @@ import { CARGO_JOBS, midSentence } from '../../game/systems/fieldwork';
 import { voice, quotes } from '../../game/audio/voice';
 import '../../game/missionRules';
 import { HouseEnding } from './HouseEnding';
+import './mission-scene.css';
 import { countdown, firstDue } from '../../game/firstWeek';
 
 /** Rashid's first-week instalment, as a short countdown at the end of the objective line; a tap opens his
@@ -104,6 +105,18 @@ export function MissionCard({ onMap }: { onMap: () => void }) {
   );
 }
 
+/** a mission's goals as bars, in the objective's drop-down */
+function Goals({ m }: { m: (typeof MISSIONS)[string] }) {
+  const g = useGame();
+  const gs = m.goals?.(g as unknown as MissionState);
+  if (!gs?.length) return <ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol>;
+  return (
+    <ul className="ob-goals" data-testid="ob-goals">
+      {gs.map((x) => <li key={x.label} className={x.have >= x.need ? 'done' : ''}><span>{x.label}</span><em>{x.need > 1 ? `${x.have} of ${x.need}` : x.have >= x.need ? '✓' : 'not yet'}</em><i><u style={{ width: `${Math.min(100, (x.have / Math.max(1, x.need)) * 100)}%` }} /></i></li>)}
+    </ul>
+  );
+}
+
 /** Follow an objective's button. Stock is a screen of its own, not a place: its tab is in the bottom bar. */
 export function goObjective(go: string, onGo: (target?: string) => void) {
   if (go === 'stock') document.querySelector<HTMLElement>('[data-testid="nav-inventory"]')?.click();
@@ -150,7 +163,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
           </button>
           <button className="btn ob-btn" onClick={() => { setOpen(false); g.clearMissionNews(); }} data-testid="mission-ok">{done ? 'Good' : 'Noted'}</button>
         </div>
-        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>{done ? <><p>{nm.reward.text}</p><p className="mission-reward">{rewardLine(nm.reward)}</p></> : <><p>{nm.brief}</p><ol>{nm.steps.map((x) => <li key={x}>{x}</li>)}</ol><p className="mission-lock">{nm.locks}</p></>}</div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>{done ? <><p>{g.missionTold?.[nm.id] ? `${g.missionTold[nm.id]} ` : ''}{nm.reward.text}</p><p className="mission-reward">{rewardLine(nm.reward)}</p></> : <><p>{nm.brief}</p><ol>{nm.steps.map((x) => <li key={x}>{x}</li>)}</ol>{nm.locks && <p className="mission-lock">{nm.locks}</p>}</>}</div>}
       </div>
     );
   }
@@ -209,7 +222,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
           {nx ? <button className="btn ob-btn" onClick={() => goObjective(nx.go, onGo)} data-testid="objective-go">{nx.btn}</button>
             : m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
-        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol>{ms && <p className="mission-lock" data-testid="ob-goal">Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}, {ms.title}: {ms.hint(g as unknown as MissionState)} Reward: {ms.opens}.</p>}</div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><Goals m={m} />{ms && <p className="mission-lock" data-testid="ob-goal">Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}, {ms.title}: {ms.hint(g as unknown as MissionState)} Reward: {ms.opens}.</p>}</div>}
       </div>
     );
   }
@@ -284,6 +297,38 @@ export function MilestoneNotice() {
       <b>{m.title}</b>
       <span>{m.opens}</span>
       <span className="ms-line">{m.speaker}: {m.reward.text}</span>
+    </div>
+  );
+}
+
+/** A mission's closing scene: who, what happens, and a choice that decides how it ends. It comes only
+ *  when you have done what the mission asked, and closes the mission when you choose. */
+export function MissionScene() {
+  const g = useGame();
+  const id = g.missionScene;
+  const m = id ? MISSIONS[id] : undefined;
+  const [told, setTold] = useState<string | null>(null);
+  const [pic, setPic] = useState(true);
+  // gone stale (the rug sold before the choice, a reload): put it away until the condition holds again
+  useEffect(() => { if (id && m && !told && !(m.check?.(g as unknown as MissionState) ?? true)) useGame.setState({ missionScene: undefined }); });
+  if (!id || !m?.scene) return null;
+  const sc = m.scene;
+  const choices = sc.choices.filter((c) => !c.when || c.when(g));
+  return (
+    <div className="mscene" role="dialog" aria-label={sc.title} data-testid="mission-scene" data-mission={id}>
+      <div className="mscene-card">
+        {sc.art && pic && <img className="mscene-art" src={sc.art} alt="" onError={() => setPic(false)} />}
+        <small className="mscene-who">{sc.who}</small>
+        <h2>{sc.title}</h2>
+        <p className="mscene-text">{sc.text(g)}</p>
+        <div className="mscene-choices">
+          {choices.map((c, i) => (
+            <button key={c.id} className={`mscene-choice ${i === 0 ? 'primary' : ''}`} onClick={() => setTold(useGame.getState().sceneChoose(id, c.id))} data-testid={`scene-${c.id}`}>
+              <b>{c.label}</b><small>{c.note}</small>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

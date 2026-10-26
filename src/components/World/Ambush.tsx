@@ -74,12 +74,21 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const takenLine = (loss: number) => (loss > 0 ? ` ${fmt(loss)} of your ${fmt(g.cash)} is gone.` : ' There was nothing in your purse to take.');
 
   const [stage, setStage] = useState<Stage>('standoff');
-  const [text, setText] = useState(lines.open);
+  const [text, setText] = useState(party.id === 'cousins' ? 'Six riders across the road. In front, a man with Selim\'s jaw and Selim\'s gold tooth: his cousin Mahmoud. "Our cousin had to leave Cairo because of you. Someone has to pay for his ticket."' : lines.open);
   const [result, setResult] = useState('');
   const [robArt, setRobArt] = useState<string | null>(null);
   const [spoils, setSpoils] = useState<{ cash: number; joiners: number; animal?: string } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  // Selim's cousins (the cousins mission): how it went is what the mission remembers; then they go home
+  const cousinsDone = (how: 'won' | 'paid' | 'lost' | 'passed') => {
+    if (party.id !== 'cousins') return;
+    const told = { won: 'Mahmoud Kassab and his cousins are scattered across the Suez road. By evening every coffee house in Suez knows it.', paid: 'You pay Mahmoud Kassab off. He counts it twice and spits. It is cheaper than a fight, and the lane will hear that too.', lost: 'Mahmoud Kassab takes what he came for, and rides off laughing. But he has had his revenge, and the feud is done with.', passed: 'You talk your way past Mahmoud Kassab. He lets you go with a look that says the matter is closed.' }[how];
+    const st = useGame.getState();
+    useGame.setState({ cousins: how, missionTold: { ...(st.missionTold ?? {}), ambush: told } });
+    window.setTimeout(() => { const w = useGame.getState().world; useGame.setState({ world: { ...w, parties: w.parties.filter((p) => p.id !== 'cousins') } }); }, 0);
+  };
   const settle = (o: Parameters<typeof g.ambushOutcome>[1]) => {
+    cousinsDone(o.cashLoss ? 'paid' : 'passed');
     setResult(g.ambushOutcome(party.id, o));
     setSpoils(o.cashGain || o.animalsGained ? { cash: o.cashGain ?? 0, joiners: o.joiners ?? 0, animal: o.animalsGained ? BREEDS[o.animalsGained.id].name : undefined } : null);
     setStage('result');
@@ -227,6 +236,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const band = midName(threat.displayName);
     let base = '';
     let extra: ClashSpoils | null = null;
+    cousinsDone(retreat ? 'lost' : isWin(res) ? 'won' : res === 'draw' ? 'passed' : 'lost');
     if (retreat) {
       const wound = Math.random() < 0.25 ? ` ${st.hurt('fight')}` : '';
       base = st.ambushOutcome(party.id, { cashLoss: Math.round(g.cash * 0.15), rugsLost: 1, troopsLost: lost, delayHours: 6, enemyLost: kills, text: `You pull your caravan back and run for it, leaving a bale and some coin behind.${lostLine}${wound}` });

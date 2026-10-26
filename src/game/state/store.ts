@@ -352,6 +352,16 @@ export interface GameState {
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
   family?: { left: number; due: number; since: number; paid: number; first?: FirstWeek };
   missionNews?: string;
+  /** a mission whose condition is met, waiting on its scene's choice (data/missions.ts scene) */
+  missionScene?: string;
+  /** what the chosen outcome of each mission's scene was, for the mission-done line */
+  missionTold?: Record<string, string>;
+  /** Selim's cousins on the Suez road: how meeting them went */
+  cousins?: 'won' | 'paid' | 'lost' | 'passed';
+  /** Farid told you to ask for Umm Salah */
+  weaverLead?: boolean;
+  /** you showed up Selim's dyes in front of the lane */
+  selimShamed?: boolean;
   /** a milestone just reached (data/milestones.ts): its short notice, not saved */
   milestoneNews?: string;
   /** rugs sold to each town's dealers today: each one lowers the next bid there (localBid) */
@@ -519,6 +529,10 @@ interface Actions {
   /** put away the evening's notes once they have been read */
   dismissSummary: () => void;
   clearMissionNews: () => void;
+  /** choose in a mission's closing scene: the reward and the choice's outcome are paid together */
+  sceneChoose: (missionId: string, choiceId: string) => string;
+  /** Selim's cousins step out on the Suez road (WorldMap, on the way there) */
+  spawnCousins: (at: { x: number; y: number }) => Party;
   /** Close a lot: winner 'you', a bidder id, or null when it is bought in. */
   lotResult: (houseId: string, lot: Lot, winner: string | null, price: number, winnerName?: string) => string;
   practise: (skill: SkillId, xp: number) => void;
@@ -966,6 +980,8 @@ export interface ClashSpoils {
 export const combatOf = (s: Pick<GameState, 'combat'>): CombatState => s.combat ?? combatStart();
 /** The man leading a band now: the one you know, or the next if the last is in jail and his time is up. */
 export function leaderOf(s: Pick<GameState, 'combat' | 'day' | 'world'>, partyId: string): Leader | undefined {
+  // Selim's cousins: Mahmoud Kassab, and no other
+  if (partyId === 'cousins') return combatOf(s).leaders.cousins ?? { name: 'Mahmoud Kassab', temper: 'reckless', bounty: 300, status: 'free', gen: 0 };
   if (!BAND_ROAD[partyId]) return undefined;
   const known = combatOf(s).leaders[partyId];
   const party = s.world.parties.find((p) => p.id === partyId);
@@ -2222,7 +2238,7 @@ export const useGame = create<GameState & Actions>()(
               out.willing = end.rebels ? 0 : full ? Math.min(caught, caught >= 3 ? 2 : caught >= 1 ? 1 : 0) : 0;
             }
             if (lead) {
-              if (leaderTaken) { c.leaders[partyId] = { ...c.leaders[partyId], status: 'held' }; out.leader = lead.name; }
+              if (leaderTaken) { c.leaders[partyId] = { ...c.leaders[partyId], status: 'held' }; c.leaderDay = { ...(c.leaderDay ?? {}), [partyId]: s.day }; out.leader = lead.name; }
               else if (!thin) { c.leaders[partyId] = { ...c.leaders[partyId], grudge: true, bounty: lead.bounty + 40 }; lines.push(`${lead.name} gets away. He will not forget this.`); }
               if (lead.robbed) {
                 out.revenge = true; rep += 2;
@@ -2255,7 +2271,7 @@ export const useGame = create<GameState & Actions>()(
           const c0 = combatOf(s);
           const c: CombatState = { ...c0, leaders: { ...c0.leaders }, prisoners: [...c0.prisoners, { band: partyId, n, leader: leader || undefined, day: s.day }] };
           const lead = leader ? c.leaders[partyId] : undefined;
-          if (lead) c.leaders[partyId] = { ...lead, status: 'held' };
+          if (lead) { c.leaders[partyId] = { ...lead, status: 'held' }; c.leaderDay = { ...(c.leaderDay ?? {}), [partyId]: s.day }; }
           const text = `Run down after the fight: ${n} ${n === 1 ? 'man' : 'men'}${leader && lead ? `, and ${lead.name} himself` : ''}. Hand them in at a police post.`;
           set({ combat: c, reputation: s.reputation + (leader ? 2 : n >= 2 ? 1 : 0), journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] });
           return text;
@@ -3013,6 +3029,35 @@ export const useGame = create<GameState & Actions>()(
 
         markGuide: () => set({ guideSeen: true }),
         clearMissionNews: () => set({ missionNews: undefined }),
+        sceneChoose: (missionId, choiceId) => {
+          const s = get();
+          const m = MISSIONS[missionId];
+          const c = m?.scene?.choices.find((x) => x.id === choiceId);
+          if (!m || !c || s.missionScene !== missionId) return '';
+          const { patch, text } = c.apply(s);
+          const base = { ...s, ...patch } as GameState;
+          set({
+            ...patch,
+            missionScene: undefined,
+            missions: { ...s.missions, [missionId]: 'done' },
+            missionNews: `${missionId}-done`,
+            missionTold: { ...(s.missionTold ?? {}), [missionId]: text },
+            cash: base.cash + m.reward.cash,
+            reputation: base.reputation + m.reward.rep,
+            supplier: { ...base.supplier, trust: Math.min(100, base.supplier.trust + m.reward.trust) },
+            journal: [...base.journal, { day: s.day, text: `${m.scene!.title}: ${text}`, kind: 'mission' }, { day: s.day, text: `Mission complete: ${m.title}.`, kind: 'mission' }],
+            ledger: m.reward.cash ? [...base.ledger, { day: s.day, kind: 'bonus', label: `Mission: ${m.title}`, amount: m.reward.cash }] : base.ledger,
+          });
+          audio.sfx('reward');
+          return text;
+        },
+        spawnCousins: (at) => {
+          const s = get();
+          const mine = strength(s.world.party);
+          const band: Party = { id: 'cousins', kind: 'raiders', name: 'Selim\'s cousins', size: 6, strength: Math.max(8, Math.round(mine * 0.8)), x: at.x, y: at.y, path: [at, at], travelled: 0, speed: 0, home: at };
+          set({ world: { ...s.world, parties: [...s.world.parties.filter((p) => p.id !== band.id), band] } });
+          return band;
+        },
         lotResult: (houseId, lot, winner, price, winnerName) => {
           const s = get();
           if ((s.lotsSold ?? []).includes(lot.key)) return '';
@@ -4929,6 +4974,8 @@ useGame.subscribe(() => {
   const m = MISSIONS[id];
   const done = id === 'house' ? houseOfFortune(s).done : m.check?.(s as never);
   if (!done) return;
+  // a mission with a closing scene waits on its choice (MissionScene; sceneChoose pays it all)
+  if (m.scene) { if (s.missionScene !== id && !s.encounter) { useGame.setState({ missionScene: id }); audio.sfx('bell'); } return; }
   useGame.setState({
     missions: { ...s.missions, [id]: 'done' },
     missionNews: `${id}-done`,

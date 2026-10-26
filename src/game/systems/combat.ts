@@ -323,6 +323,8 @@ export interface CombatState {
   spare: number;
   prisoners: Prisoner[];
   leaders: Record<string, Leader>;
+  /** the day each band's leader was last taken alive */
+  leaderDay?: Record<string, number>;
 }
 export const combatStart = (): CombatState => ({ wins: 0, losses: 0, xp: {}, rifles: 0, spare: 0, prisoners: [], leaders: {} });
 

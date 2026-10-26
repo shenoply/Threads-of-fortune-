@@ -849,6 +849,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             audio.sfx('chest');
             return;
           }
+          // Selim's cousins: half way to Suez, whatever the means, they are waiting (the cousins mission)
+          if (st.missions?.ambush === 'active' && !st.cousins && moving.dest === 'suez' && !moving.mode && done >= pathLength(moving.path) * 0.5) {
+            const band = st.spawnCousins(pos);
+            setMoving({ ...moving, done });
+            setReport(moving.train ? 'The train brakes hard short of Suez. Riders are waiting by the line, and one of them has Selim\'s gold tooth.' : 'Riders wait across the road ahead. One of them has Selim\'s gold tooth.');
+            setEncounter(band);
+            audio.sfx('chest');
+            return;
+          }
         }
         if (!moving.train && !moving.mode) {
           const st = useGame.getState();

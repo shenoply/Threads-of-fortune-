@@ -48,7 +48,7 @@ import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/
 import { Supplier } from './components/Supplier/Supplier';
 import { Inventory } from './components/Inventory/Inventory';
 import { Guide, guidePage } from './components/Guide/Guide';
-import { MilestoneNotice, ObjectiveBar, SideTasks } from './components/Mission/Mission';
+import { MilestoneNotice, MissionScene, ObjectiveBar, SideTasks } from './components/Mission/Mission';
 import { firstHourStep, FIRST_HOUR_TIP } from './components/Tips/FirstHour';
 import { GuideFlash } from './components/Tips/GuideFlash';
 import { CaravanScreen } from './components/World/CaravanScreen';
@@ -840,6 +840,7 @@ export default function App() {
 
       {phase === 'game' && <GuideFlash />}
       {phase === 'game' && <MilestoneNotice />}
+      {phase === 'game' && <MissionScene />}
       {/* the character growing as you play: each skill gained, each level and perk earned */}
       {phase === 'game' && <><SkillPops /><LevelUpToast /></>}
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
