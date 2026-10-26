@@ -15,7 +15,7 @@ function Medallion({ id, name }: { id: string; name: string }) {
   return (
     <span className="rk-med" aria-hidden="true">
       {!ok && <b>{letter}</b>}
-      {!gone && <img src={`art/portraits/${id}.jpg`} alt="" loading="lazy" style={ok ? undefined : { opacity: 0 }} onLoad={() => setOk(true)} onError={() => setGone(true)} />}
+      {!gone && <img src={`art/portraits/small/${id}.webp`} alt="" loading="lazy" style={ok ? undefined : { opacity: 0 }} onLoad={() => setOk(true)} onError={() => setGone(true)} />}
     </span>
   );
 }

@@ -38,4 +38,4 @@ def sheet(rows, name):
 face = lambda look, sex, age, v: f'family/child-{look}-{sex}-{age}{"" if v == 1 else f"-{v}"}.jpg'
 sheet([[face(l, s, a, v) for v in (1, 2, 3)] for l in LOOKS for s in SEXES for a in AGES], 'children-by-face.jpg')
 sheet([[face(l, s, a, v) for a in AGES] for l in LOOKS for s in SEXES for v in (1, 2, 3)], 'children-by-age.jpg')
-sheet([DEALERS[i:i + 4] for i in range(0, 16, 4)], 'dealers.jpg')
+sheet([[f'portraits/{d}.jpg' for d in DEALERS[i:i + 4]] for i in range(0, 16, 4)], 'dealers.jpg')

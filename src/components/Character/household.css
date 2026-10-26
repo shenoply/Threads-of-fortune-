@@ -24,3 +24,5 @@
 .hh-house.short { color: #e8a08e; }
 .hh-house.ok { color: var(--good); }
 .hh-nth { font-style: normal; font-weight: 400; font-size: .8em; color: var(--text-dim); }
+.hh-father { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.hh-father img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px #c9974a; }

@@ -79,6 +79,7 @@ export function HouseholdSection() {
                     <small>Daughter of {b.father}. Through {b.introducer}.</small>
                     <small className="hh-intro">{b.intro}</small>
                     <small className="hh-brings">{b.brings}{b.house ? ` ${HOUSE_PERK}` : ''}</small>
+                    {b.house && <span className="hh-father"><img src={`art/portraits/small/${b.house}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} /><small>Her father, {houseName(b)}</small></span>}
                     {b.house && <small className={`hh-house ${houseNeed(g.ranks, b) ? 'short' : 'ok'}`} data-testid={`house-${id}`}>{houseName(b)}'s house: {houseNeed(g.ranks, b) ? `wants you among the first ${b.place} of ${b.cityName}` : `you stand high enough in ${b.cityName}`}.</small>}
                     {sp && b.rank === 'grand' && <small className="hh-house short">A great house: no daughter of theirs becomes a second wife.</small>}
                     <Bar v={su.favour} testid={`favour-${id}`} />

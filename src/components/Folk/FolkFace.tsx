@@ -10,10 +10,13 @@ const ACCENTS = ['#7a3b2a', '#2f4a6b', '#5d6b2f', '#6b4a2f', '#4a2f5d', '#2f5d55
  *  the dress of their people. */
 export function FolkFace({ p, size = 56 }: { p: Person; size?: number }) {
   const [bad, setBad] = useState(false);
+  const [tried, setTried] = useState(false);
   if (p.npc) return <PortraitOrCameo id={p.npc} spec={personFor(p.npc)} size={size} />;
   const src = faceSrc(p);
   const look = p.sex === 'f' ? 'scarf' : LOOK[p.culture] ?? 'bare';
   const accent = ACCENTS[(p.house ?? p.id).length % ACCENTS.length];
   if (!src || bad) return <span className="cameo-wrap" style={{ width: size, height: size }}><PersonCameo spec={personFor(p.id, look, accent)} size={size} /></span>;
-  return <img className="folk-face" src={src} alt="" width={size} height={size} style={{ width: size, height: size }} onError={() => setBad(true)} loading="lazy" />;
+  // a portrait painted for the game has a small copy for lists (art/portraits/small/<id>.webp)
+  const small = size <= 72 && /^art\/portraits\/[^/]+\.jpg$/.test(src) && !tried ? src.replace(/^art\/portraits\/(.+)\.jpg$/, 'art/portraits/small/$1.webp') : src;
+  return <img className="folk-face" src={small} alt="" width={size} height={size} style={{ width: size, height: size }} onError={() => (small !== src ? setTried(true) : setBad(true))} loading="lazy" />;
 }
