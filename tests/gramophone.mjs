@@ -31,6 +31,6 @@ await p.click(`[data-testid=${ids[2]}]`); await p.waitForTimeout(1500);
 out.retryShown = await p.locator('[data-testid=gramo-retry]').count();
 out.scoreBack = await p.evaluate(() => !window.__tofAudio.cuts.has('record'));
 console.log(JSON.stringify(out));
-const ok = out.recordVol > 0.8 && out.master0 === 0 && out.bStillOn === 1 && out.recordCutStillOn && out.retryShown === 1 && out.scoreBack;
+const ok = out.recordVol > 0.1 && out.recordVol <= 0.55 && /* a record plays at the music level, not louder */ out.master0 === 0 && out.bStillOn === 1 && out.recordCutStillOn && out.retryShown === 1 && out.scoreBack;
 console.log(ok ? 'PASS' : 'FAIL', 'errors', JSON.stringify(errs));
 await b.close();

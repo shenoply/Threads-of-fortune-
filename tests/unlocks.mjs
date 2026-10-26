@@ -63,8 +63,8 @@ check((await has('[data-testid=nav-caravan]')) === 1 && (await p.locator('nav.na
 const s1 = await st();
 check(!(s1.tipsSeen ?? []).some((t) => t.startsWith('open-')), `nothing marked open on day one (${(s1.tipsSeen ?? []).join(',')})`);
 
-// first sale and Rashid done, standing in Giza: no lab, no guard yard
-await edit(UNTUT);
+// first sale done, standing in Giza: no lab, no guard yard (the guard step follows Rashid's restock)
+await edit(UNTUT.replace(/s\.ledger\.push\([^;]*\);/, ''));
 const g1 = await gizaPlaces();
 check(g1.length > 0 && !g1.includes('poi-lab') && !g1.includes('poi-guards') && !g1.includes('poi-animals'), `Giza on the first days: no lab, guard yard or animal market (${g1.join(' ')})`);
 await p.click('[data-testid=nav-caravan]'); await p.waitForTimeout(300);
@@ -72,7 +72,7 @@ check((await has('[data-testid=caravan-screen], .caravan-screen')) === 0, 'tappi
 check(/caravan: opens/i.test(await p.locator('.toast').first().innerText().catch(() => '')), 'and one short line says when it opens');
 
 // 2. the opening asks for a guard: the guard yard, the animal market and the Caravan tab open, with a line
-await edit(`s.world.at = 'giza'; s.world.x = 146.9; s.world.y = 443.7; s.ledger.push({ day: s.day, kind: 'expense', label: "Malek's: kofta", amount: -3 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
+await edit(`s.world.at = 'giza'; s.world.x = 146.9; s.world.y = 443.7; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
 const n2 = await note();
 check(/guard yard/i.test(n2), `the guard step brings a short notice: "${n2}"`);
 check((await has('.overlay [data-testid=unlock-note], [role=dialog] [data-testid=unlock-note]')) === 0, 'the notice is not a card');
@@ -110,7 +110,7 @@ await p.screenshot({ path: `${SHOTS}/unlocks-cairo-open.png` });
 
 // 5. Skip the opening: everything at once, no notices
 await fresh();
-await edit(UNTUT);
+await edit(UNTUT.replace(/s\.ledger\.push\([^;]*\);/, ''));
 if (await has('[data-testid=first-hour-skip]')) await p.click('[data-testid=first-hour-skip]');
 await p.waitForTimeout(600);
 check(!(await note()), 'Skip brings no notices');

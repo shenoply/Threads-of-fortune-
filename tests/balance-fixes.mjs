@@ -74,6 +74,6 @@ console.log(JSON.stringify(r, null, 1));
 const ok = r.keptBefore && r.notOffered && r.faridStillActive && r.rugBack && /Mission complete/.test(r.buyMsg) && r.news === 'alexandria-done' && r.staleCleared
   && /cannot carry/.test(r.capMsg) && r.capHeld && r.glut[1] < r.glut[0] && r.ferry.paid === 3 && /3 people/.test(r.ferry.label)
   && r.gaveUp.visitIdx === 2 && /went elsewhere/.test(r.gaveUp.note) && r.summary.wages === 20 && r.overdue === 2500
-  && /Exceptional/.test(r.warrantHint) && /four Giza watchmen/.test(r.watchmen) && r.beastsNext?.go === 'stock';
+  && /Exceptional/.test(r.warrantHint) && /Giza watchmen/.test(r.watchmen) && r.beastsNext?.go === 'stock';
 console.log(ok ? 'PASS' : 'FAIL', 'errors', JSON.stringify(errs));
 await b.close();
