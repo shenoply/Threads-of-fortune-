@@ -60,5 +60,18 @@ ok(!r.ok, 'no fifth');
 const rr = rankReaction({ ranks: { ...ranks, pending: [{ rival: 'rival-selim', city: 'cairo' }] }, day: 130, reputation: 50, journal: [], jobNote: undefined, household: h } as never);
 ok(!rr.ranks?.undercut?.cairo && (rr.reputation ?? 0) === 51, 'Haddad is proud, not angry');
 
+// births by chance: mostly one, now and then twins, rarely triplets; sons and daughters at random
+{
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  let sizes: Record<number, number> = {}; let sons = 0, all = 0;
+  for (let i = 0; i < 3000; i++) {
+    const h0: HouseholdState = { stage: 'married', suitors: {}, children: [], pace: 1, spouse: wife('nadia'), birthIn: 1 };
+    const o = householdNight(base(h0, { world: { at: 'giza', hour: 22, friends: [] } } as never), {}, [], 400, rnd).household!;
+    sizes[o.children.length] = (sizes[o.children.length] ?? 0) + 1; all += o.children.length; sons += o.children.filter((c) => c.sex === 'son').length;
+  }
+  ok((sizes[2] ?? 0) > 100 && (sizes[2] ?? 0) < 300 && (sizes[3] ?? 0) > 5 && (sizes[3] ?? 0) < 60, `twins and triplets by chance: ${JSON.stringify(sizes)}`);
+  ok(Math.abs(sons / all - 0.5) < 0.05, `sons and daughters by chance (${Math.round((100 * sons) / all)}% sons)`);
+}
+
 if (fails) { console.log(`${fails} failed`); process.exit(1); }
 console.log('all passed');

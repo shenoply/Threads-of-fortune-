@@ -11,12 +11,13 @@ import {
 import './household.css';
 
 /** A framed portrait: the painting once it has loaded, the sitter's initial until then (or if there is none). */
-function Portrait({ src, name, small = false }: { src: string; name: string; small?: boolean }) {
+function Portrait({ src, name, small = false, fallback }: { src: string; name: string; small?: boolean; fallback?: string }) {
   const [ok, setOk] = useState(false);
+  const [use, setUse] = useState(src);
   return (
     <span className={`hh-pt ${small ? 'sm' : ''}`} aria-hidden="true">
       <b>{name.replace(/^(the|al-)\s*/i, '')[0]}</b>
-      <img src={src} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => setOk(false)} style={{ opacity: ok ? 1 : 0 }} />
+      <img src={use} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => { setOk(false); if (fallback && use !== fallback) setUse(fallback); }} style={{ opacity: ok ? 1 : 0 }} />
     </span>
   );
 }
@@ -141,9 +142,9 @@ export function HouseholdSection() {
           const shops = Object.keys(((g as unknown as { shops?: Record<string, unknown> }).shops) ?? {});
           return (
             <div key={c.id} className="hh-card kid" data-testid={`child-${c.id}`}>
-              <Portrait src={childArt(c, sp?.id)} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small />
+              <Portrait src={childArt(c, sp?.id)[0]} fallback={childArt(c, sp?.id)[1]} key={childArt(c, sp?.id)[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small />
               <div className="hh-txt">
-                <b>{c.name ?? `A ${c.sex}, not yet named`}</b>
+                <b>{c.name ?? `A ${c.sex}, not yet named`}{c.twinOf || h.children.some((x) => x.id !== c.id && x.born === c.born && (x.mother ?? '') === (c.mother ?? '')) ? <em className="hh-nth"> · {h.children.filter((x) => x.born === c.born && (x.mother ?? '') === (c.mother ?? '')).length === 3 ? 'a triplet' : 'a twin'}</em> : null}</b>
                 <small>{wives.length > 1 || c.mother ? `${BRIDES[c.mother ?? sp?.id ?? '']?.short ?? ''}'s ${c.sex}. ` : ''}{age < 1 ? 'A baby' : `${age} year${age > 1 ? 's' : ''}`}{c.path ? `, ${PATH_WORD[c.path]}` : ''}{c.role === 'apprentice' ? ', travelling with you' : c.role === 'shop' ? `, keeping the shop (${c.shopAt})` : ''}.{age >= PATH_AGE ? ` Learning ${Math.round(c.traits.learning)} · trade ${Math.round(c.traits.trade)} · craft ${Math.round(c.traits.craft)}` : ''}</small>
                 {!c.name && <div className="hh-roles">{names.map((n) => <button key={n} className="hh-chip" onClick={() => act({ kind: 'name', child: c.id, name: n })} data-testid={`name-${c.id}-${n}`}>{n}</button>)}</div>}
                 {c.name && age >= PATH_AGE && age < GROWN && (

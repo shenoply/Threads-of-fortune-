@@ -244,7 +244,13 @@ export const brideArt = (id: BrideId) => `art/family/bride-${id}.jpg`;
 /** a child takes after the mother's family: Egypt, the Levant and Constantinople, or the desert and Baghdad */
 const LOOK: Record<string, 'egypt' | 'levant' | 'desert'> = { layla: 'levant', farida: 'levant', nour: 'levant', hayat: 'levant', emine: 'levant', suad: 'desert', nura: 'desert' };
 export const childLook = (mother?: BrideId) => (mother && LOOK[mother]) || 'egypt';
-export const childArt = (c: Child, firstWife?: BrideId) => (ageOf(c) < 1 ? `art/family/child-baby-${c.sex}.jpg` : `art/family/child-${childLook(c.mother ?? firstWife)}-${c.sex}-${ageOf(c) >= 18 ? 18 : ageOf(c) >= 12 ? 12 : 5}.jpg`);
+/** the child's portrait, and the plain one for that look to fall back on while the other faces are not yet drawn */
+export const childArt = (c: Child, firstWife?: BrideId): [string, string] => {
+  if (ageOf(c) < 1) return [`art/family/child-baby-${c.sex}.jpg`, `art/family/child-baby-${c.sex}.jpg`];
+  const base = `art/family/child-${childLook(c.mother ?? firstWife)}-${c.sex}-${ageOf(c) >= 18 ? 18 : ageOf(c) >= 12 ? 12 : 5}`;
+  const v = c.look ?? 0;
+  return [v ? `${base}-${v + 1}.jpg` : `${base}.jpg`, `${base}.jpg`];
+};
 
 /** standing needed before families will listen: reputation and a canopy stall or better */
 export const MATCH_REP = 25;
@@ -261,7 +267,9 @@ export const EVENING = { hours: 3, lift: 6 };
 /** first child some 300 to 400 days after the wedding, the next ones 600 to 1,000 days apart */
 export const FIRST_CHILD: [number, number] = [300, 400];
 export const NEXT_CHILD: [number, number] = [600, 1000];
-export const MAX_CHILDREN = 5;
+/** children a wife may bear; twins and the odd set of triplets come by chance */
+export const MAX_CHILDREN = 8;
+export const TWINS = 0.06, TRIPLETS = 0.008;
 /** up to four wives, as the law of the day allowed: each later wife needs a bigger name and her own rooms */
 export const MAX_WIVES = 4;
 export const WIFE_REP_STEP = 15;
@@ -276,8 +284,8 @@ export const HEIR_REP = 0.6;
 export const PATH_AGE = 6;
 export const GROWN = 18;
 
-export const SON_NAMES = ['Ahmad', 'Mustafa', 'Hussein', 'Taha', 'Zaki', 'Anwar'];
-export const DAUGHTER_NAMES = ['Fatma', 'Zeinab', 'Aisha', 'Huda', 'Safiya', 'Nabila'];
+export const SON_NAMES = ['Ahmad', 'Mustafa', 'Hussein', 'Taha', 'Zaki', 'Anwar', 'Mahmoud', 'Ibrahim', 'Yusuf', 'Omar', 'Karim', 'Salah', 'Hamdi', 'Fathi', 'Adel', 'Sami', 'Rashid', 'Tawfiq'];
+export const DAUGHTER_NAMES = ['Fatma', 'Zeinab', 'Aisha', 'Huda', 'Safiya', 'Nabila', 'Amina', 'Khadija', 'Samira', 'Layla', 'Nawal', 'Souad', 'Ihsan', 'Laila', 'Thuraya', 'Hind', 'Basma', 'Rabab'];
 
 export interface Suitor { favour: number; visits: number; gifts: number; lastVisit?: number; lastGift?: number }
 export interface Spouse {
@@ -308,6 +316,10 @@ export interface Child {
   shopAt?: string;
   /** her mother; unset means the first wife */
   mother?: BrideId;
+  /** which of the portraits for the child's family look, age and sex (0 to 2): brothers do not all share one face */
+  look?: number;
+  /** an identical twin: the first-born of the pair */
+  twinOf?: string;
 }
 export interface HouseholdState {
   stage: 'none' | 'offered' | 'betrothed' | 'married';
@@ -763,11 +775,22 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
     if (kids < MAX_CHILDREN && birthIn !== undefined) {
       birthIn -= h.pace;
       if (birthIn <= 0) {
-        const sex: Child['sex'] = rng() < 0.5 ? 'son' : 'daughter';
-        children = [...children, { id: `c${day}-${children.length}`, sex, born: day, ageDays: 0, traits: { learning: 5 + Math.floor(rng() * 10), trade: 5 + Math.floor(rng() * 10), craft: 5 + Math.floor(rng() * 10) }, ...(first ? {} : { mother: sp.id }) }];
+        // one baby as a rule; twins now and then, very rarely three. Each is a son or a daughter by chance,
+        // except that a third of twins are identical, and so the same
+        const roll = rng();
+        const many = Math.min(roll < TRIPLETS ? 3 : roll < TRIPLETS + TWINS ? 2 : 1, Math.max(1, MAX_CHILDREN - kids));
+        const sexes: Child['sex'][] = [];
+        const same = many > 1 && rng() < 1 / 3;
+        for (let i = 0; i < many; i++) sexes.push(same && i ? sexes[0] : rng() < 0.5 ? 'son' : 'daughter');
+        const born = sexes.map((sex, i): Child => ({ id: `c${day}-${children.length + i}`, sex, born: day, ageDays: 0, look: Math.floor(rng() * 3), ...(same ? { twinOf: `c${day}-${children.length}` } : {}), traits: { learning: 5 + Math.floor(rng() * 10), trade: 5 + Math.floor(rng() * 10), craft: 5 + Math.floor(rng() * 10) }, ...(first ? {} : { mother: sp.id }) }));
+        if (same) born.forEach((c) => (c.look = born[0].look));
+        children = [...children, ...born];
         birthIn = NEXT_CHILD[0] + Math.floor(rng() * (NEXT_CHILD[1] - NEXT_CHILD[0]));
-        sp.content = clamp(sp.content + 10, 0, 100);
-        notes.push(home ? `${b.short} has had a ${sex} in the night. Mother and child are well, God be praised. Choose a name (Me, Household).` : `A telegram from Giza: ${b.short} has had a ${sex}. Mother and child are well. Choose a name (Me, Household).`);
+        sp.content = clamp(sp.content + 10 * many, 0, 100);
+        const sons = sexes.filter((x) => x === 'son').length, daus = many - sons;
+        const what = many === 1 ? `a ${sexes[0]}` : `${many === 2 ? 'twins' : 'triplets'}: ${[sons ? `${sons === 1 ? 'a son' : sons === 2 ? 'two sons' : 'three sons'}` : '', daus ? `${daus === 1 ? 'a daughter' : daus === 2 ? 'two daughters' : 'three daughters'}` : ''].filter(Boolean).join(' and ')}`;
+        const well = many === 1 ? 'Mother and child are well' : 'Mother and children are well';
+        notes.push(home ? `${b.short} has had ${what} in the night. ${well}, God be praised. Choose ${many === 1 ? 'a name' : 'names'} (Me, Household).` : `A telegram from Giza: ${b.short} has had ${what}. ${well}. Choose ${many === 1 ? 'a name' : 'names'} (Me, Household).`);
       }
     }
     h = first ? { ...setWife(h, sp), children, birthIn } : { ...setWife(h, { ...sp, birthIn }), children };
