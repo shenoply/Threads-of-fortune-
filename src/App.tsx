@@ -1,4 +1,5 @@
 import { openFoldNext } from './components/Fold/Fold';
+import { EncyclopediaHost } from './components/Folk/Encyclopedia';
 import { recordPlayer } from './game/audio/recordPlayer';
 import { recordsOwned } from './data/records';
 import { RevealHost } from './components/Reveal/Reveal';
@@ -362,6 +363,8 @@ export default function App() {
   useEffect(() => { const on = () => { setMsub('road'); setTab('ledger'); }; window.addEventListener('tof:open-road', on); return () => window.removeEventListener('tof:open-road', on); }, []);
   // Uncle Rashid's warehouse on the Giza map opens his stock
   useEffect(() => { const on = () => { openFoldNext('pr-ranks'); setMsub('collection'); setTab('ledger'); window.setTimeout(() => document.querySelector('[data-testid=ranks-fold]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); }; window.addEventListener('tof:open-tables', on); return () => window.removeEventListener('tof:open-tables', on); }, []);
+  // open the map at a place from anywhere (the encyclopedia, tests): detail is a map intent
+  useEffect(() => { const on = (e: Event) => mapGo((e as CustomEvent).detail); window.addEventListener('tof:go', on); return () => window.removeEventListener('tof:go', on); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const on = () => setTab('inventory'); window.addEventListener('tof:open-stock', on); return () => window.removeEventListener('tof:open-stock', on); }, []);
   useEffect(() => { const on = () => setTab('supplier'); window.addEventListener('tof:open-rashid', on); return () => window.removeEventListener('tof:open-rashid', on); }, []);
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
@@ -841,6 +844,7 @@ export default function App() {
       {phase === 'game' && <GuideFlash />}
       {phase === 'game' && <MilestoneNotice />}
       {phase === 'game' && <MissionScene />}
+      {phase === 'game' && <EncyclopediaHost />}
       {/* the character growing as you play: each skill gained, each level and perk earned */}
       {phase === 'game' && <><SkillPops /><LevelUpToast /></>}
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,

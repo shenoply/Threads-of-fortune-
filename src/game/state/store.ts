@@ -17,6 +17,8 @@ import { NARRATOR, RASHID } from '../../data/dialogue';
 import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
 import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import { person, souqMaster, cultureOf, caravanMaster } from '../systems/population';
+import { greeting, talk as folkSay, FOLK_START, type FolkState, type Said, type Topic } from '../systems/folkTalk';
 import { ARM_BY_ID, GUNSMITH_TOWN } from '../../data/arms';
 import { ALL_THREE, errandsFor, giftFor, giftToday, pouchFor, pouchReady, type DailyState, type Gift, type Pouch } from '../systems/daily';
 import type { HeroLook } from '../heroLook';
@@ -358,6 +360,8 @@ export interface GameState {
   missionTold?: Record<string, string>;
   /** Selim's cousins on the Suez road: how meeting them went */
   cousins?: 'won' | 'paid' | 'lost' | 'passed';
+  /** the world's people: how each feels about you, whom you have met and heard of (systems/folkTalk) */
+  folk?: FolkState;
   /** Farid told you to ask for Umm Salah */
   weaverLead?: boolean;
   /** you showed up Selim's dyes in front of the lane */
@@ -531,6 +535,12 @@ interface Actions {
   clearMissionNews: () => void;
   /** choose in a mission's closing scene: the reward and the choice's outcome are paid together */
   sceneChoose: (missionId: string, choiceId: string) => string;
+  /** talk with one of the world's people: their greeting ('greet') or a topic; the day's talk counts once */
+  folkTalk: (personId: string, topic: Topic | 'greet') => Said;
+  /** something passed between you and one of them: how they feel moves, and the log says why */
+  folkAdjust: (personId: string, delta: number, text?: string) => void;
+  /** buy the rug a caravan master offered you, at the price you settled on */
+  caravanBuy: (partyId: string, typeId: string, price: number) => string;
   /** Selim's cousins step out on the Suez road (WorldMap, on the way there) */
   spawnCousins: (at: { x: number; y: number }) => Party;
   /** Close a lot: winner 'you', a bidder id, or null when it is bought in. */
@@ -787,7 +797,7 @@ export function localOffersRaw(sid: string, day: number, bought: string[], frien
       const h = Math.abs(Math.sin((day * 31 + i * 7 + sid.length * 13) * 12.9898)) % 1;
       const condition: RugItem['condition'] = h < 0.2 ? 'Dirty' : h < 0.32 ? 'Worn' : 'Good';
       const t = RUGS[o.typeId];
-      const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1);
+      const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1) * folkPrice(sid);
       const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
       const key = `${day}:${sid}:${o.typeId}`;
       // village rugs come in stacks; the finer the rug, the fewer the copies
@@ -915,7 +925,7 @@ export function localBid(sid: string, item: RugItem, day = 1): number {
   // each rug already sold to this town's dealers today knocks a tenth off the next one
   const sold = DEALER_SAT.day === day ? DEALER_SAT.by[sid] ?? 0 : 0;
   // a dealer knows a dyed or aged copy when he sees one (systems/fakes.ts)
-  const bid = snap(perceivedValue(t, item) * flawFactor(item) * DEALER_SHARE * m * Math.pow(DEALER_GLUT, sold));
+  const bid = snap(perceivedValue(t, item) * flawFactor(item) * DEALER_SHARE * m * Math.pow(DEALER_GLUT, sold) * (2 - folkPrice(sid)));
   const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
   return ask === undefined ? bid : Math.min(bid, snapDown(ask * DEALER_BUYBACK));
 }
@@ -2599,6 +2609,7 @@ export const useGame = create<GameState & Actions>()(
           if (askToday !== undefined && bid >= askToday) bid = snapDown(askToday * DEALER_BUYBACK);
           bid = undercutBid(s, sid, bid);
           const ds = s.dealerSold?.day === s.day ? s.dealerSold.by : {};
+          if (souqMaster(sid)) setTimeout(() => get().folkAdjust(souqMaster(sid)!.id, 1), 0);
           set({
             dealerSold: { day: s.day, by: { ...ds, [sid]: (ds[sid] ?? 0) + 1 } },
             cash: s.cash + bid,
@@ -2632,6 +2643,7 @@ export const useGame = create<GameState & Actions>()(
             ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${t.name} in ${settlementById(sid).name}`, amount: -o.price, cost: o.price }],
           });
           audio.sfx('coins');
+          if (souqMaster(sid)) get().folkAdjust(souqMaster(sid)!.id, 1);
           const m = MISSIONS.alexandria;
           const errand = sid === m.target && get().missions?.alexandria !== 'done' && (get().missions?.alexandria === 'active' || !!openingStep(get()));
           // the errand is finished here, with its card; the subscriber below only catches older saves
@@ -3050,6 +3062,44 @@ export const useGame = create<GameState & Actions>()(
           });
           audio.sfx('reward');
           return text;
+        },
+        folkTalk: (id, topic) => {
+          const s = get();
+          const p = person(id);
+          if (!p) return { text: '', mentions: [] };
+          const f = s.folk ?? FOLK_START;
+          const met = f.met[id] !== undefined;
+          const band = bandNear(s, p.home);
+          const ctx = { day: s.day, you: s.household?.merchant?.name ?? 'Hassan', rel: f.rel[id] ?? 0, met, times: f.log.filter((l) => l.who === id).length, band };
+          const said = topic === 'greet' ? { text: greeting(p, ctx), mentions: [] } : folkSay(p, topic, ctx);
+          if (topic === 'greet') return said;
+          // talking counts once a day: more the first time you meet; a gossip likes being asked about others
+          const today = f.talked[id] === s.day;
+          const base = f.rel[id] ?? (p.traits.includes('cheerful') ? 4 : p.traits.includes('stern') ? -2 : 0);
+          const rel = today ? base : Math.min(100, base + (met ? 1 : 3) + (topic === 'gossip' && p.traits.includes('gossip') ? 1 : 0));
+          const heard = [...new Set([...f.heard, ...said.mentions.filter((m) => f.met[m] === undefined)])];
+          set({ folk: { ...f, rel: { ...f.rel, [id]: rel }, met: met ? f.met : { ...f.met, [id]: s.day }, talked: { ...f.talked, [id]: s.day }, heard, log: met ? f.log : [...f.log.slice(-300), { day: s.day, who: id, text: `Met ${p.name} in ${settlementById(p.home)?.name ?? p.home}.` }] } });
+          return said;
+        },
+        folkAdjust: (id, delta, text) => {
+          const s = get();
+          const f = s.folk ?? FOLK_START;
+          const v = Math.max(-100, Math.min(100, (f.rel[id] ?? 0) + delta));
+          set({ folk: { ...f, rel: { ...f.rel, [id]: v }, log: text ? [...f.log.slice(-300), { day: s.day, who: id, text }] : f.log } });
+        },
+        caravanBuy: (partyId, typeId, price) => {
+          const s = get();
+          const t = RUGS[typeId];
+          if (!t) return '';
+          if (s.cash < price) return 'You do not have the money.';
+          const cap = Math.floor(capacity(s.world.party) + 0.001);
+          if (s.inventory.filter((i) => !i.stored).length + 1 > cap) return 'You cannot carry another rug.';
+          const m = caravanMaster(partyId);
+          const item: RugItem = { uid: newUid('r'), typeId, condition: 'Good', restored: false, provenance: t.provenance === 'Documented' ? 'Likely' : t.provenance, paid: price, notes: [`Bought on the road from ${m?.name ?? 'a caravan'}.`], stored: false };
+          set({ cash: s.cash - price, inventory: [...s.inventory, item], ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${t.name} from ${m?.name ?? 'a caravan'}`, amount: -price, cost: price }], world: { ...s.world, parties: s.world.parties.map((x) => (x.id === partyId ? { ...x, cooldownUntil: s.day + 2 } : x)) } });
+          if (m) get().folkAdjust(m.id, 2, `Bought ${withArticle(t.name)} from him on the road for ${fmt(price)}.`);
+          audio.sfx('coins');
+          return `${m?.short ?? 'The caravan master'} has the rug untied from the bales: ${withArticle(t.name)}, ${fmt(price)}.`;
         },
         spawnCousins: (at) => {
           const s = get();
@@ -5045,6 +5095,21 @@ useGame.subscribe((s) => { if (s.ranks?.pending?.length) useGame.setState(rankRe
 // food in the sacks: you are never hungry while there is any
 useGame.subscribe((s) => { if ((s.world?.party?.food ?? 0) > 0 && s.condition && fedOf(s.condition) < RATION_FED) useGame.setState({ condition: eatRation(s.condition) }); });
 let ranksSeen: RanksState | undefined | null = null;
+/** the souq master's regard, for the pure price functions: a friend sells cheaper and buys dearer */
+export const FOLK_FX: { rel: Record<string, number> } = { rel: {} };
+export function folkPrice(city: string) {
+  const m = souqMaster(city);
+  const v = m ? FOLK_FX.rel[m.id] ?? 0 : 0;
+  return v >= 60 ? 0.9 : v >= 30 ? 0.95 : v <= -30 ? 1.08 : 1;
+}
+useGame.subscribe((s) => { if (s.folk?.rel !== FOLK_FX.rel) FOLK_FX.rel = s.folk?.rel ?? {}; });
+/** the band on the road near a town, and the man leading it */
+function bandNear(s: GameState, home: string): { leader: string; road: string } | undefined {
+  const c = cultureOf(home);
+  const id = c === 'egypt' ? 'rb0' : c === 'bedouin' ? 'rb1' : ['jaffa', 'jerusalem'].includes(home) ? 'rb2' : ['damascus', 'beirut', 'amman'].includes(home) ? 'rb3' : c === 'iraq' ? 'rb4' : ['aleppo', 'konya'].includes(home) ? 'rb5' : undefined;
+  const l = id ? leaderOf(s, id) : undefined;
+  return l && id ? { leader: l.name, road: BAND_ROAD[id] } : undefined;
+}
 const syncRanks = (s: GameState) => { if (s.ranks === ranksSeen) return; ranksSeen = s.ranks; RANK_FX.first = firstCities(s); };
 syncRanks(useGame.getState());
 useGame.subscribe(syncRanks);

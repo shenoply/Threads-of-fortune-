@@ -5,6 +5,9 @@ import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
 import { BorderCard, TripMoney, TripPapers } from './BorderCard';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
+import { FolkCard } from '../Folk/FolkCard';
+import { CaravanTrade } from '../Folk/CaravanTrade';
+import { caravanMaster } from '../../game/systems/population';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
@@ -1540,6 +1543,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m: string) => void; onTurnBack: () => void }) {
   const g = useGame();
   const [msg, setMsg] = useState('');
+  // a caravan has a master: you meet him, not a menu (systems/population, folkTalk)
+  const master = party.kind === 'caravan' ? caravanMaster(party.id) : undefined;
+  const [trading, setTrading] = useState(false);
+  if (master) return (
+    <FolkCard id={master.id} onClose={() => onDone(msg || `You part with ${master.name} and his caravan goes on.`)} extra={msg ? <p className="folk-say" data-testid="encounter-result">{msg}</p>
+      : trading ? <CaravanTrade partyId={party.id} p={master} onDone={(m) => { setMsg(m); setTrading(false); }} />
+      : <button className="btn primary" onClick={() => setTrading(true)} data-testid="enc-trade">See what the caravan carries</button>} />
+  );
   const mine = strength(g.world.party);
   const men = Object.entries(g.world.party.troops).filter(([, n]) => n > 0).map(([id, n]) => `${n} ${midName(n > 1 ? TROOPS[id].plural : TROOPS[id].name)}`).join(', ');
   const text = useMemo(() => {

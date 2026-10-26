@@ -61,6 +61,7 @@ export function Fortune() {
   const have = RUG_IDS.filter((id) => reg.includes(id)).length;
   return (
     <>
+      <button className="btn ency-open" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency'))} data-testid="open-encyclopedia">The encyclopedia: people, families, towns, carpets, bands</button>
       <Book />
       <Fold id="pr-house" testid="fortune" title={house.done ? 'The House of Fortune stands.' : 'The House of Fortune'} gist={`${house.parts.filter((p) => p.done).length} of ${house.parts.length}`}>
         <div className="house">

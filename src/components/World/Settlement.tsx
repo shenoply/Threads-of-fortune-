@@ -28,6 +28,9 @@ import { settlementById, seaRoutesFrom, railJourney } from '../../game/systems/w
 import { rugSrc } from '../RugViewer/rugArt';
 import { Portrait } from './Portrait';
 import { Dialogue } from './Dialogue';
+import { FolkCard, FolkRow } from '../Folk/FolkCard';
+import { SouqCard } from '../Folk/SouqCard';
+import { notablesOf } from '../../game/systems/population';
 import { TownSupplies, CaravanRoster } from './CaravanPanels';
 import { StallOverhead } from './StallOverhead';
 import { Venue, AudienceOverlay } from './Venue';
@@ -87,7 +90,7 @@ const LAZY = { loading: 'lazy', decoding: 'async' } as const;
 const MENU_GROUPS: [string, string][] = [['trade', 'Trade'], ['people', 'People'], ['services', 'Services'], ['leave', 'Leave']];
 const menuGroup = (tid: string) =>
   /^menu-(stall|malek|walk|sell|market|houses|ranks|shop-|myshop)/.test(tid) ? 'trade'
-    : /^menu-(people|venues|court|museum|library)/.test(tid) ? 'people'
+    : /^menu-(people|notables|venues|court|museum|library)/.test(tid) ? 'people'
       : /^menu-(sail|wait)/.test(tid) ? 'leave'
         : 'services';
 
@@ -193,6 +196,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   const [shop, setShop] = useState<string | null>(null);
   const st = settlementById(id);
   const [talkTo, setTalkTo] = useState<string | null>(null);
+  const [folkTalk, setFolkTalk] = useState<string | null>(null);
   const [inVenue, setInVenue] = useState(false);
   const [inCity, setInCity] = useState(false);
   const [station, setStation] = useState(false);
@@ -320,6 +324,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(rankLine(g.ranks, id) ? [['ledger', `The rug trade of ${cityName(tableOf(id)!)}`, rankLine(g.ranks, id)!, () => goTo('town', 'sec-ranks'), 'menu-ranks'] as [string, string, string, () => void, string]] : []),
     ...(railTo ? [['camel', 'The station', `Trains to ${railTo} town${railTo > 1 ? 's' : ''}: times and fares`, () => setStation(true), 'menu-station'] as [string, string, string, () => void, string]] : []),
     ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
+    ...(notablesOf(id).filter((x) => !x.npc).length ? [['people', `Notables of ${st.name}`, notablesOf(id).filter((x) => !x.npc).slice(0, 3).map((x) => x.short).join(' · '), () => goTo('town', 'sec-notables'), 'menu-notables'] as [string, string, string, () => void, string]] : []),
     ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
     ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
     ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
@@ -405,6 +410,15 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           <button className="btn primary big" onClick={() => { onClose(); onStall(); }} data-testid="open-stall-world">Open your stall</button>
         )}
 
+        {notablesOf(id).filter((x) => !x.npc).length > 0 && (
+          <>
+            <div className="section-label" id="sec-notables">NOTABLES OF {st.name.toUpperCase()}</div>
+            <div className="folk-list" data-testid="notables">
+              {notablesOf(id).filter((x) => !x.npc).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}
+            </div>
+            <button className="ghost-btn" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency', { detail: { kind: 'place', id } }))} data-testid="town-ency">{st.name} in the encyclopedia ›</button>
+          </>
+        )}
         {st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival).length > 0 && (
           <>
             <div className="section-label" id="sec-people">PEOPLE</div>
@@ -523,6 +537,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {rankLine(g.ranks, id) && <RankTable town={id} />}
         </>)}
 
+        {tab === 'market' && hasMarket && id !== 'giza' && <SouqCard city={id} onTalk={(pid) => setFolkTalk(pid)} />}
         {tab === 'market' && <TownSupplies show={['food']} />}
         {tab === 'animals' && <TownSupplies show={['animals']} />}
         {tab === 'guards' && <><TownSupplies show={['recruits']} /><CaravanRoster /></>}
@@ -627,7 +642,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         const stock = g.inventory.some((i) => !i.restoringUntil && !i.stored);
         const ill = (g.illnesses ?? []).length > 0;
         const saleToday = houses.some((h) => saleOn(h.id, g.day));
-        const FIRST = ['menu-stall', 'menu-malek', stock ? 'menu-sell' : 'menu-market', ill ? 'menu-clinic' : '', 'menu-station', 'menu-people', stock ? 'menu-market' : 'menu-sell', saleToday ? 'menu-houses' : '', g.shops?.[id] && !g.shops[id].khan ? 'menu-myshop' : '', 'menu-sail', 'menu-venues'].filter(Boolean);
+        const FIRST = ['menu-stall', 'menu-malek', stock ? 'menu-sell' : 'menu-market', ill ? 'menu-clinic' : '', 'menu-station', 'menu-people', 'menu-notables', stock ? 'menu-market' : 'menu-sell', saleToday ? 'menu-houses' : '', g.shops?.[id] && !g.shops[id].khan ? 'menu-myshop' : '', 'menu-sail', 'menu-venues'].filter(Boolean);
         const walkIt = items.find((it) => it[4] === 'menu-walk');
         const next = items.find((it) => it[4] === guide?.tile && it !== walkIt);
         const picks = [...(next ? [next] : []), ...FIRST.map((t) => items.find((it) => it[4] === t && it !== next)).filter((it): it is typeof items[number] => !!it)].slice(0, walkIt ? 3 : 4);
@@ -750,6 +765,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {cabaret && <EscLayer onEsc={() => setCabaret(null)}><div className="venue-overlay"><Cabaret id={cabaret} onLeave={() => setCabaret(null)} /></div></EscLayer>}
       {audience && <AudienceOverlay onDone={() => setAudience(false)} />}
       {/* a talk started on the streets sits over the walk (whose layer is above the panel's), not hidden under it */}
+      {folkTalk && <FolkCard id={folkTalk} onClose={() => setFolkTalk(null)} />}
       {talkTo && <div style={inCity || houseWalk ? { position: 'relative', zIndex: 65 } : undefined}><Dialogue npcId={talkTo} onClose={(m) => { setTalkTo(null); if (m) setNote(m); }} /></div>}
       {sailing && (
         <SailingTransition
