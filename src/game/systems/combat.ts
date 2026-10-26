@@ -347,7 +347,7 @@ export function newLeader(partyId: string, threatId: string, strength: number, g
   return { name: names[((BAND_SLOT[partyId] ?? hashSeed(partyId)) + gen) % names.length], temper, bounty: 100 + strength * 15 + Math.round(rng() * 6) * 10, status: 'free', gen };
 }
 /** piastres a police post pays for each ordinary prisoner */
-export const PRISONER_BOUNTY = 25;
+export const PRISONER_BOUNTY = 60;
 /** what his band will pay to have their leader back: more than the bounty, but he goes free */
 export const ransomFor = (l: Leader) => Math.round(l.bounty * 1.6);
 /** days a band keeps off its road after its leader is jailed */

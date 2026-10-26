@@ -3,6 +3,7 @@ import { goalLabel, goalProgress, showProgress } from '../../game/systems/weekGo
 import { omenToday, WATCH_COST } from '../../game/systems/omens';
 import { RIVAL_FIRST, rivalOf, rivalProgress, yourStall } from '../../game/systems/laneRival';
 import { MarketLine } from '../Market/MarketLine';
+import { TablesLink } from '../World/RankTable';
 import { NextOnRoad } from '../Road/Road';
 import { SKILLS, SKILL_ORDER, levelOf, xpFor } from '../../data/character';
 import { useAtStall } from '../Radio/Gramophone';
@@ -71,7 +72,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {/* each part of the trade arrives on its own day, marked new for its first two days, so the
             stall screen grows with the player instead of greeting him with everything at once */}
         {!shut && g.day >= INTRO.dream && <StallDream />}
-        {!shut && g.day >= INTRO.market && <>{g.day < INTRO.market + 2 && <NewNote text="The market moves every day: buy what is cheap at Rashid's, sell what the town wants." />}<MarketLine where="stall" /></>}
+        {!shut && g.day >= INTRO.market && <>{g.day < INTRO.market + 2 && <NewNote text="The market moves every day: buy what is cheap at Rashid's, sell what the town wants." />}<MarketLine where="stall" /><TablesLink /></>}
         {!shut && g.day >= INTRO.rival && <>{g.day < INTRO.rival + 2 && <NewNote text="Shukri Mansour keeps the stall across the lane. He saves for the same stalls you do." />}<RivalLine /></>}
         {!shut && g.day >= INTRO.week && <>{g.day < INTRO.week + 2 && <NewNote text="Rashid now sets you a target each week, with a purse if you meet it." />}<WeekLine /></>}
         {!shut && g.day >= INTRO.season && <SeasonLine />}

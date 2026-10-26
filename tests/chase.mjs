@@ -28,15 +28,13 @@ const play = async (tag) => {
 {
 
 await p.click('[data-testid=amb-fight]');
-  // before the fight: the band, the ground and the men; then three rounds of orders (Clash.tsx)
-  await p.waitForSelector('[data-testid=clash-prep]', { timeout: 5000 });
-  console.log('odds:', (await p.textContent('[data-testid=clash-odds]')).replace(/\s+/g, ' '));
-  await p.screenshot({ path: S + 'f-2-prep.png' });
-  await p.click('[data-testid=clash-begin]');
-  await p.evaluate(() => { window.__tofBattleSpeed = 6; }); await p.waitForSelector('[data-testid=clash-orders]'); await p.waitForTimeout(1500); await p.screenshot({ path: S + 'f-3-round.png' }); await p.click('[data-testid=ord-charge]');
-  await p.waitForSelector('[data-testid=clash-over]', { timeout: 60000 }); await p.screenshot({ path: S + 'f-4-over.png' });
-  console.log('battle:', await p.textContent('[data-testid=clash-banner]'));
-  await p.click('[data-testid=clash-continue]');
+  await p.waitForSelector('[data-testid=clash-orders]', { timeout: 5000 });
+  await p.evaluate(() => { window.__tofBattleSpeed = 6; });
+  for (let i = 0; i < 400 && !(await p.locator('[data-testid=encounter-result]').count()); i++) {
+    if (await p.locator('[data-testid=fight-moment]').count()) await p.locator('[data-testid=fight-moment] .fb-choice').first().click().catch(() => {});
+    else if (await p.locator('[data-testid=ord-charge]').count()) await p.click('[data-testid=ord-charge]', { timeout: 300 }).catch(() => {});
+    await p.waitForTimeout(150);
+  }
   await p.waitForSelector('[data-testid=encounter-result]', { timeout: 10000 }); await p.screenshot({ path: S + 'f-6-result.png' });
   console.log('result:', await p.textContent('[data-testid=encounter-result]'));
   

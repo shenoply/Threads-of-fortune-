@@ -37,6 +37,8 @@ export interface RanksState {
   pending?: { rival: string; city: string }[];
   /** a rival cutting his prices in a city, until the day given */
   undercut?: Record<string, { by: string; until: number }>;
+  /** your place in each table at the last two Mondays, for the week's movement */
+  week?: { now: Record<string, number>; prev: Record<string, number> };
   /** how the last season ended */
   last?: { season: number; day: number; places: Record<string, number>; tops: Record<string, { label: string; value: number }[]> };
 }
@@ -254,6 +256,12 @@ export function ranksNight(s: GameState, day: number): { patch: Partial<GameStat
       patch.ledger = [...(patch.ledger ?? s.ledger ?? []), { day, kind: 'bonus', label: `Order from ${rv.name}, your father-in-law`, amount: fee }];
       notes.push(text);
     }
+  }
+  // Monday: note where you stand, so the week's movement can be shown
+  if (dateFor(day).weekday === 'Monday') {
+    const now: Record<string, number> = {};
+    for (const c of r.seen) if ((r.tables[c]?.you ?? 0) > 0) now[c] = placeIn(r, c).place;
+    r = { ...r, week: { prev: r.week?.now ?? {}, now } };
   }
   // a rival cutting his prices in Cairo takes one of the stall's buyers now and then
   const cut = r.undercut?.cairo;

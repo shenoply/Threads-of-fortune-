@@ -1,3 +1,4 @@
+import { openFoldNext } from './components/Fold/Fold';
 import { recordPlayer } from './game/audio/recordPlayer';
 import { recordsOwned } from './data/records';
 import { RevealHost } from './components/Reveal/Reveal';
@@ -360,6 +361,7 @@ export default function App() {
   useEffect(() => { const on = () => { setMsub('customers'); setTab('ledger'); }; window.addEventListener('tof:open-buyers', on); return () => window.removeEventListener('tof:open-buyers', on); }, []);
   useEffect(() => { const on = () => { setMsub('road'); setTab('ledger'); }; window.addEventListener('tof:open-road', on); return () => window.removeEventListener('tof:open-road', on); }, []);
   // Uncle Rashid's warehouse on the Giza map opens his stock
+  useEffect(() => { const on = () => { openFoldNext('pr-ranks'); setMsub('collection'); setTab('ledger'); window.setTimeout(() => document.querySelector('[data-testid=ranks-fold]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); }; window.addEventListener('tof:open-tables', on); return () => window.removeEventListener('tof:open-tables', on); }, []);
   useEffect(() => { const on = () => setTab('inventory'); window.addEventListener('tof:open-stock', on); return () => window.removeEventListener('tof:open-stock', on); }, []);
   useEffect(() => { const on = () => setTab('supplier'); window.addEventListener('tof:open-rashid', on); return () => window.removeEventListener('tof:open-rashid', on); }, []);
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned

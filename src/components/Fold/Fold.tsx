@@ -9,6 +9,8 @@ function folds(): Record<string, boolean> {
   try { memo = JSON.parse(localStorage.getItem(KEY) ?? '{}') ?? {}; } catch { memo = {}; }
   return memo!;
 }
+/** open a section the next time it is drawn (a link that takes you to it) */
+export const openFoldNext = (id: string) => remember(id, true);
 function remember(id: string, open: boolean) {
   folds()[id] = open;
   try { localStorage.setItem(KEY, JSON.stringify(memo)); } catch { /* private window: memory only */ }

@@ -87,3 +87,42 @@ export function RanksFold() {
     </Fold>
   );
 }
+
+/** Monday morning: where you stand on the tables after the week, with the week's movement. Part of the
+ *  morning card, not a pop-up of its own. */
+export function WeekTables() {
+  const r = useGame((s) => s.ranks);
+  if (!r?.week) return null;
+  const cities = Object.keys(r.week.now).sort((a, b) => r.week!.now[a] - r.week!.now[b]).slice(0, 2);
+  if (!cities.length) return null;
+  return (
+    <div className="wk-tables" data-testid="week-tables">
+      <small className="wk-head">THE WEEK ON THE TABLES</small>
+      {cities.map((c) => {
+        const rows = standings(r, c);
+        const at = rows.findIndex((x) => x.you);
+        const was = r.week!.prev[c];
+        const move = was ? was - (at + 1) : 0;
+        const show = rows.slice(0, 3).concat(at >= 3 ? [rows[at]] : []);
+        return (
+          <div key={c} className="wk-city">
+            <b className="wk-name">{cityName(c)} <em className={move > 0 ? 'up' : move < 0 ? 'down' : ''}>{ordinal(at + 1)} of {rows.length}{move > 0 ? ` ▲${move}` : move < 0 ? ` ▼${-move}` : was ? ' · held' : ''}</em></b>
+            <ol>
+              {show.map((x) => <li key={x.id} className={x.you ? 'you' : ''}><span>{rows.indexOf(x) + 1}</span><span>{x.you ? 'You' : x.label}</span><span>{fmt(x.value)}</span></li>)}
+            </ol>
+          </div>
+        );
+      })}
+      <button className="ghost-btn" onClick={() => window.dispatchEvent(new CustomEvent('tof:open-tables'))} data-testid="week-tables-all">All the tables ›</button>
+    </div>
+  );
+}
+
+/** a short line for the stall: your place in Cairo's table, a tap away from the full tables */
+export function TablesLink() {
+  const r = useGame((s) => s.ranks);
+  const c = r?.seen.find((x) => (r.tables[x]?.you ?? 0) > 0 && x === 'cairo') ?? r?.seen.find((x) => (r?.tables[x]?.you ?? 0) > 0);
+  if (!r || !c) return null;
+  const { place, of } = placeIn(r, c);
+  return <button className="tables-link" onClick={() => window.dispatchEvent(new CustomEvent('tof:open-tables'))} data-testid="tables-link"><span>{cityName(c)} rug trade</span><b>{ordinal(place)} of {of}</b><i>›</i></button>;
+}

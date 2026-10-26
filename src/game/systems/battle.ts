@@ -409,6 +409,22 @@ export function battleOdds(o: Parameters<typeof startBattle>[0], sergeant: boole
   return Math.round((wins / runs) * 100);
 }
 
+/** The honest forecast shown before a fight: how often it is won when the men fight it out by themselves,
+ *  never shown as certain either way, and what it usually costs in men. */
+export function forecast(o: Parameters<typeof startBattle>[0], runs = 24): { pct: number; deaths: number; word: string; cost: string } {
+  let wins = 0, dead = 0;
+  for (let i = 0; i < runs; i++) {
+    const b = simulate({ ...o, seed: `${o.seed}:fc${i}` }, true, 0.25);
+    if (b.over === 'run' || b.over === 'yield' || b.over === 'withdraw') wins++;
+    dead += Object.values(losses(b).lost).reduce((a, n) => a + n, 0);
+  }
+  const pct = Math.max(5, Math.min(95, Math.round((wins / runs) * 100)));
+  const deaths = dead / runs;
+  const word = pct >= 85 ? 'strong favourite' : pct >= 65 ? 'good odds' : pct >= 45 ? 'even fight' : pct >= 25 ? 'poor odds' : 'long odds';
+  const cost = deaths < 0.25 ? 'likely no men lost' : deaths < 0.8 ? 'you may lose a man' : deaths < 1.8 ? 'expect to lose a man or two' : `expect to lose ${Math.round(deaths)} men`;
+  return { pct, deaths, word, cost };
+}
+
 /** Who fell on your side, by troop: the dead are lost; the wounded mend if you hold the field. */
 export function losses(b: Battle) {
   const won = b.over === 'run' || b.over === 'yield' || b.over === 'withdraw';

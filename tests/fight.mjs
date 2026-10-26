@@ -14,17 +14,24 @@ await p.click('[data-testid=nav-map]').catch(()=>{}); await p.waitForTimeout(500
 for (const el of await p.locator('[data-testid=party-raiders]').all()) { await el.dispatchEvent('pointerup'); await el.dispatchEvent('pointerup').catch(() => {}); if (await p.locator('[data-testid=road-encounter]').count()) break; }
 await p.waitForSelector('[data-testid=road-encounter]', { timeout: 5000 });
 await p.waitForTimeout(500); await p.screenshot({ path: S + 'f-1-standoff.png' });
+console.log('fight button:', (await p.textContent('[data-testid=amb-fight]')).replace(/\s+/g, ' '));
 await p.click('[data-testid=amb-fight]');
-// before the fight: the band, the ground and the men; then three rounds of orders (Clash.tsx)
-await p.waitForSelector('[data-testid=clash-prep]', { timeout: 5000 });
-console.log('odds:', (await p.textContent('[data-testid=clash-odds]')).replace(/\s+/g, ' '));
-await p.screenshot({ path: S + 'f-2-prep.png' });
-await p.click('[data-testid=clash-begin]');
-await p.evaluate(() => { window.__tofBattleSpeed = 6; }); await p.waitForSelector('[data-testid=clash-orders]'); await p.waitForTimeout(1500); await p.screenshot({ path: S + 'f-3-round.png' }); await p.click('[data-testid=ord-charge]');
-  await p.waitForSelector('[data-testid=clash-over]', { timeout: 60000 }); await p.screenshot({ path: S + 'f-4-over.png' });
-console.log('battle:', await p.textContent('[data-testid=clash-banner]'));
-await p.click('[data-testid=clash-continue]');
-await p.waitForSelector('[data-testid=encounter-result]', { timeout: 10000 }); await p.screenshot({ path: S + 'f-6-result.png' });
+// straight onto the field (no screen in between); the moments that turn the fight stop it and ask
+await p.waitForSelector('[data-testid=clash-orders]', { timeout: 5000 });
+await p.evaluate(() => { window.__tofBattleSpeed = 4; });
+const moments = [];
+for (let i = 0; i < 400 && !(await p.locator('[data-testid=encounter-result]').count()); i++) {
+  if (await p.locator('[data-testid=fight-moment]').count()) {
+    const m = await p.getAttribute('[data-testid=fight-moment]', 'data-moment');
+    moments.push(m);
+    if (moments.length === 1) await p.screenshot({ path: S + 'f-3-moment.png' });
+    await p.locator('[data-testid=fight-moment] .fb-choice').first().click();
+  }
+  if (await p.locator('[data-testid=clash-over]').count() && !moments.includes('over')) { moments.push('over'); await p.screenshot({ path: S + 'f-4-over.png' }); }
+  await p.waitForTimeout(150);
+}
+console.log('moments:', moments.join(', '));
+await p.waitForSelector('[data-testid=encounter-result]', { timeout: 15000 }); await p.screenshot({ path: S + 'f-6-result.png' });
 console.log('result:', await p.textContent('[data-testid=encounter-result]'));
 console.log('errors', errs);
 await b.close();

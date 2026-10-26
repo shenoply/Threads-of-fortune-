@@ -31,17 +31,24 @@ const HEAD: Record<string, string> = { run: 'They break and run', yield: 'They l
 const GROUP_NAME: Record<string, string> = { all: 'Everyone', foot: 'Foot', rifles: 'Rifles', riders: 'Riders', hero: 'Hassan' };
 const ORDER_NAME: Record<GOrder, string> = { hold: 'Hold', advance: 'Advance', charge: 'Charge', flank: 'Flank', move: 'Move', back: 'Fall back' };
 
-/** A road fight: choose the ground and draw up the men, then fight it out on the field. */
-export function Clash({ info, onEnd, onBack }: { info: ClashInfo; onEnd: (e: ClashEnd) => void; onBack: () => void }) {
-  const [ground, setGround] = useState<GroundId>(info.grounds.includes('camels') ? 'camels' : info.grounds[info.grounds.length - 1]);
-  // the men draw up by themselves: riders out on the wings when you have them, a line otherwise
-  const [formation] = useState<Formation>(info.mountedMen ? 'wings' : 'line');
+/** the best ground the place offers: the camels knelt as a wall when there are camels, else the last listed */
+export const bestGround = (info: ClashInfo): GroundId => (info.grounds.includes('camels') ? 'camels' : info.grounds[info.grounds.length - 1]);
+/** the battle set up for this band on this ground, the men drawn up by themselves */
+export function setupOf(info: ClashInfo, ground: GroundId = bestGround(info)) {
   const band = BAND_ART[info.bandId] ?? BAND_ART['egypt-rural-highway-robbers'];
-  const setup = useMemo(() => ({
+  const formation: Formation = info.mountedMen ? 'wings' : 'line';
+  return {
     me: { troops: info.troops, rifles: info.party.arms ?? 0, heroArmed: (info.party.arms ?? 0) > 0, sergeant: !!info.sergeant },
     band: { size: info.size, rifles: info.rifles, mounted: info.mounted, man: band.man, leader: band.leader, leaderName: info.leader?.name, strength: info.enPow, bandWord: info.bandName },
     ground, formation, temper: info.temper, seed: info.seed,
-  }), [info, ground, formation, band]);
+  };
+}
+
+/** A road fight. `direct`: straight onto the field on the best ground (the road encounter's Fight);
+ *  otherwise the old screen first, to choose the ground. */
+export function Clash({ info, onEnd, onBack, direct = false }: { info: ClashInfo; onEnd: (e: ClashEnd) => void; onBack: () => void; direct?: boolean }) {
+  const [ground, setGround] = useState<GroundId>(bestGround(info));
+  const setup = useMemo(() => setupOf(info, ground), [info, ground]);
   const odds = useMemo(() => battleOdds(setup, true), [setup]);
   const autoOdds = useMemo(() => battleOdds(setup, !!info.sergeant), [setup, info.sergeant]);
   const [fighting, setFighting] = useState(false);
@@ -52,7 +59,7 @@ export function Clash({ info, onEnd, onBack }: { info: ClashInfo; onEnd: (e: Cla
     onEnd({ fight: { over: done.over }, lost: L.lost, kills: L.kills, auto: true, hurt: L.hurt, heroDown: L.heroDown });
   };
 
-  if (fighting) return <Fight info={info} setup={setup} onEnd={onEnd} />;
+  if (fighting || direct) return <Fight info={info} setup={setup} onEnd={onEnd} />;
 
   const L = info.leader;
   const mine = Object.entries(info.troops).filter(([, n]) => (n ?? 0) > 0);
@@ -133,6 +140,11 @@ function viewOf(b: Battle): View {
   };
 }
 
+/** The few moments in a fight where the outcome turns: the field holds still and you choose. Each comes
+ *  at most once a fight. */
+type MomentId = 'contact' | 'charge-in' | 'leader' | 'rally' | 'finish';
+interface Choice { id: string; label: string; note: string; primary?: boolean }
+
 /** One plain line over the field: what is happening and what to do about it. */
 function coach(v: View, canDuel: boolean) {
   if (canDuel) return 'Their nerve is going. Call out their leader!';
@@ -153,17 +165,22 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   const [v, setV] = useState<View>(() => viewOf(bRef.current!));
   const [sel, setSel] = useState<'all' | Group | 'hero'>('all');
   const [paused, setPaused] = useState(false);
-  const [speed, setSpeed] = useState(1.4);
+  const [speed, setSpeed] = useState(1.8);
+  const [moment, setMoment] = useState<MomentId | null>(null);
+  const momentsDone = useRef(new Set<MomentId>());
+  // 'let them come closer': the rifles fire by themselves at the best moment
+  const autoVolley = useRef(false);
+  const ended = useRef(false);
   // the big word over the field after a volley: how well it was timed and what it did
   const [shout, setShout] = useState<{ k: number; text: string; perfect: boolean } | null>(null);
   const [duel, setDuel] = useState(false);
   const seen = useRef({ shots: 0, cues: 0, ui: 0, shotSfx: 0, feed: 0 });
-  const live = useRef({ paused, speed, duel }); live.current = { paused, speed, duel };
+  const live = useRef({ paused, speed, duel, moment }); live.current = { paused, speed, duel, moment };
 
   const frame = (dt: number) => {
     const b = bRef.current; if (!b) return;
     const L = live.current;
-    if (!L.paused && !L.duel && !b.over) {
+    if (!L.paused && !L.duel && !L.moment && !b.over) {
       let left = dt * ((window as unknown as { __tofBattleSpeed?: number }).__tofBattleSpeed ?? L.speed);
       while (left > 0) { const d = Math.min(0.05, left); step(b, d); left -= d; }
       // sounds: rifles as they fire (never a din), and the big moments
@@ -180,8 +197,79 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
         else if (c.kind === 'leader' || c.kind === 'break') buzz(30);
       }
     }
-    if (performance.now() - seen.current.ui > 160) { seen.current.ui = performance.now(); setV(viewOf(b)); }
+    if (autoVolley.current && !b.over && !L.moment) {
+      const vr = volleyRange(b);
+      if (vr.perfect || (vr.inRange && b.men.some((m) => m.side === 1 && m.state === 'up' && b.men.some((x) => x.side === 0 && Math.hypot(x.x - m.x, x.y - m.y) < 9)))) { autoVolley.current = false; loose(); }
+    }
+    if (performance.now() - seen.current.ui > 160) {
+      seen.current.ui = performance.now();
+      const nv = viewOf(b);
+      setV(nv);
+      if (!L.paused && !L.duel && !L.moment && !b.over) {
+        const m = pickMoment(nv, b);
+        if (m) { momentsDone.current.add(m); live.current.moment = m; setMoment(m); audio.sfx('bell'); buzz(20); }
+      }
+    }
   };
+  const pickMoment = (nv: View, b: Battle): MomentId | null => {
+    const done = momentsDone.current;
+    if (!done.has('rally') && nv.me < 40 && nv.t > 5) return 'rally';
+    if (!done.has('contact') && !done.has('charge-in') && nv.t > 2.5 && nv.rifles > 0 && nv.inRange && !nv.charging && !nv.melee && nv.loaded > 0) return 'contact';
+    if (!done.has('charge-in') && !done.has('contact') && nv.t > 2.5 && nv.rifles === 0 && nv.inRange && !nv.charging) return 'charge-in';
+    if (!done.has('leader') && info.leader && nv.leaderUp && nv.them < 70 && nv.t > 10 && !b.duel) return 'leader';
+    if (!done.has('finish') && nv.them < 35 && nv.enemyLeft > 0) return 'finish';
+    return null;
+  };
+  const shotOdds = Math.min(0.6, Math.max(0.2, 0.3 + (setup.me.heroArmed ? 0.15 : 0) + (info.scout ? 0.05 : 0)));
+  const quarterOdds = () => { const b = bRef.current!; const ld = b.men.some((m) => m.leader && m.state !== 'up'); return Math.min(0.9, Math.max(0.2, 0.35 + (35 - b.morale[1]) / 60 + (ld ? 0.25 : 0))); };
+  const choicesFor = (m: MomentId): { title: string; line: string; choices: Choice[] } => {
+    const lead = info.leader?.name ?? 'Their leader';
+    if (m === 'contact') return { title: 'They are in range', line: `${v.enemyLeft} men coming on. Your ${v.rifles === 1 ? 'rifle is' : `${v.rifles} rifles are`} loaded.`, choices: [
+      { id: 'volley', label: 'Volley now', note: 'a sure hit at this range', primary: true },
+      { id: 'closer', label: 'Let them come closer', note: 'a heavier volley, if the men hold their nerve' },
+      { id: 'charge', label: 'Charge them', note: 'meet them before they can shoot' },
+    ] };
+    if (m === 'charge-in') return { title: 'They are coming on', line: 'You have no rifles to meet them with. Stand, or go at them.', choices: [
+      { id: 'hold', label: 'Hold the line', note: info.grounds.includes('camels') ? 'behind the camels: let them come to you' : 'let them come to you', primary: true },
+      { id: 'charge', label: 'Charge them', note: 'hit them first, before they settle' },
+    ] };
+    if (m === 'leader') return { title: `${lead} shows himself`, line: 'He rides out in front, shouting his men on.', choices: [
+      { id: 'shot', label: 'Take the shot yourself', note: `about ${Math.round(shotOdds * 100)}% to bring him down; miss and he knows where you are`, primary: true },
+      { id: 'duel', label: 'Call him out', note: 'single combat: beat him and the whole band yields' },
+      { id: 'keep', label: 'Keep to the fight', note: 'leave him be' },
+    ] };
+    if (m === 'rally') return { title: 'Your men are wavering', line: 'They keep looking back at the loads.', choices: [
+      { id: 'rally', label: 'Hassan goes to the front', note: 'their nerve comes back; you stand in the open', primary: true },
+      { id: 'fallback', label: 'Fall back, leave them a bale', note: 'the fight ends; a load and some coin lost' },
+      { id: 'keep', label: 'Hold on', note: 'and hope they do' },
+    ] };
+    return { title: 'They are breaking', line: 'Some are already running. The rest are looking for a way out.', choices: [
+      { id: 'quarter', label: 'Offer them quarter', note: `about ${Math.round(quarterOdds() * 100)}% they lay down their arms: the most prisoners, no more blood`, primary: true },
+      { id: 'charge', label: 'Charge and finish it', note: 'more of them fall; a little more risk' },
+    ] };
+  };
+  const choose = (id: string) => {
+    const b = bRef.current; if (!b) return;
+    const lead = b.men.find((m) => m.leader && m.state === 'up');
+    const me = b.men.find((m) => m.hero);
+    setMoment(null); live.current.moment = null;
+    if (id === 'volley') loose();
+    else if (id === 'closer') { autoVolley.current = true; b.fire = 'hold'; say(b, 'Steady. Not yet… not yet…'); }
+    else if (id === 'charge') charge();
+    else if (id === 'hold') holdLine();
+    else if (id === 'duel') setDuel(true);
+    else if (id === 'shot' && lead) {
+      if (b.rng() < shotOdds) { lead.state = 'down'; b.morale[1] -= 40; b.cues.push({ t: b.t, kind: 'leader' }); say(b, `Hassan fires. ${lead.name} pitches out of the saddle.`, true); audio.sfx('volley'); buzz(60); }
+      else { b.morale[1] = Math.min(100, b.morale[1] + 5); if (me && b.rng() < 0.3) me.hp = Math.max(1, me.hp - 1); say(b, `Hassan fires and misses. ${lead.name} turns his men toward the shot.`); audio.sfx('shot'); }
+    } else if (id === 'rally') { b.heroAt = 'front'; b.morale[0] = Math.min(100, b.morale[0] + 25); say(b, 'Hassan walks out in front of the camels. The men stop looking back.', true); buzz(30); }
+    else if (id === 'fallback') { end(true); return; }
+    else if (id === 'quarter') {
+      if (b.rng() < quarterOdds()) { b.over = 'yield'; say(b, 'You call out an offer. One by one they throw down their arms.', true); audio.sfx('reward'); }
+      else { b.morale[1] = Math.min(100, b.morale[1] + 6); say(b, 'They answer with a shot. The fight goes on.'); }
+    }
+    setV(viewOf(b));
+  };
+  const say = (b: Battle, text: string, big = false) => { b.feed.push({ t: b.t, text, side: 0, big }); };
 
   const give = (o: GOrder) => {
     const b = bRef.current; if (!b || b.over) return;
@@ -221,6 +309,7 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   };
   const hero = (at: 'back' | 'front') => { const b = bRef.current; if (!b) return; b.heroAt = at; audio.sfx('tap'); setV(viewOf(b)); };
   const end = (retreat = false) => {
+    if (ended.current) return; ended.current = true;
     const b = bRef.current!; const L = losses(b);
     onEnd({ fight: { over: retreat ? 'pushed' : b.over, duel: b.duel }, lost: L.lost, kills: L.kills, retreat, hurt: L.hurt, heroDown: L.heroDown });
   };
@@ -238,6 +327,8 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
     setV(viewOf(b));
   };
 
+  // the fight over: the banner and the count stand a moment, then the account follows by itself
+  useEffect(() => { if (!v.over) return; const id = window.setTimeout(() => end(), 2600); return () => window.clearTimeout(id); }, [v.over]); // eslint-disable-line react-hooks/exhaustive-deps
   const groups = (['rifles', 'foot', 'riders'] as Group[]).filter((g) => (info.mySide.some((u) => u.id !== 'you') ? bRef.current!.men.some((m) => m.side === 0 && m.group === g && !m.hero) : false));
   const canDuel = !v.over && v.leaderUp && v.them < 50 && !bRef.current!.duel && !!info.leader;
   const meName = GROUP_NAME[sel];
@@ -262,13 +353,23 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
         <ol className="fb-feed" data-testid="clash-feed">
           {v.feed.map((f, i) => <li key={`${f.t}-${i}`} className={`${f.side === 0 ? 'mine' : 'theirs'}${f.big ? ' big' : ''}`} style={{ opacity: Math.max(0.25, 1 - (v.t - f.t) / 9) }}>{f.text}</li>)}
         </ol>
-        {!v.over && !duel && <p className={`fb-coach ${v.perfect && v.loaded && !v.charging ? 'now' : ''}`} data-testid="clash-coach">{coach(v, canDuel)}</p>}
+        {!v.over && !duel && !moment && <p className={`fb-coach ${v.perfect && v.loaded && !v.charging ? 'now' : ''}`} data-testid="clash-coach">{coach(v, canDuel)}</p>}
         {shout && <div key={shout.k} className={`fb-shout ${shout.perfect ? 'perfect' : ''}`}>{shout.text}</div>}
         {paused && !v.over && <div className="fb-paused">Paused</div>}
+        {moment && !v.over && (() => { const c = choicesFor(moment); return (
+          <div className="fb-moment" data-testid="fight-moment" data-moment={moment}>
+            <small>THE FIELD HOLDS ITS BREATH</small>
+            <b>{c.title}</b>
+            <p>{c.line}</p>
+            <div className="fb-choices">
+              {c.choices.map((x) => <button key={x.id} className={`fb-choice ${x.primary ? 'primary' : ''}`} onClick={() => choose(x.id)} data-testid={`moment-${x.id}`}><b>{x.label}</b><small>{x.note}</small></button>)}
+            </div>
+          </div>
+        ); })()}
         {v.over && <div className={`clash-banner ${v.over === 'run' || v.over === 'yield' || v.over === 'withdraw' ? 'win' : v.over === 'draw' ? 'draw' : 'loss'}`} data-testid="clash-banner">{HEAD[v.over]}</div>}
       </div>
 
-      {!v.over && !duel && (
+      {!v.over && !duel && !moment && (
         <div className="fb-orders simple" data-testid="clash-orders">
           {canDuel && <button className="btn primary fb-duel" onClick={() => setDuel(true)} data-testid="order-duel"><b>Call out their leader</b><small>beat him and the whole band yields</small></button>}
           <div className="fb-big">
@@ -288,7 +389,7 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
       {v.over && L && (
         <div className="clash-over" data-testid="clash-over">
           <p className="fb-recap">{L.kills ? `${L.kills} of them down${L.taken ? `, ${L.taken} taken alive` : ''}.` : 'None of them fell.'} {Object.keys(L.lost).length ? `You lost ${Object.entries(L.lost).map(([id, n]) => `${n} ${n > 1 ? TROOPS[id]?.plural.toLowerCase() : TROOPS[id]?.name.toLowerCase()}`).join(', ')}.` : 'None of your men were killed.'}{Object.keys(L.hurt).length ? ` ${Object.values(L.hurt).reduce((a, n) => a + n, 0)} wounded will mend.` : ''}{L.heroDown ? ' Hassan is hurt.' : ''}</p>
-          <button className="btn primary big" onClick={() => end()} data-testid="clash-continue">Continue</button>
+          <button className="btn primary big" onClick={() => end()} data-testid="clash-continue">See what you won</button>
         </div>
       )}
     </div>

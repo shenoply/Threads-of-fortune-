@@ -2190,7 +2190,9 @@ export const useGame = create<GameState & Actions>()(
               lines.push(`One of your veterans, ${name}, has taken charge of the men. They call him Sergeant ${name} now.`);
             }
             // what they leave behind
-            out.cash = Math.round((15 + size * 8) * (full ? 1.5 : thin ? 0.5 : 1));
+            // their purse: what they have taken off others, richer the further out and the better armed the band
+            const bandMult = /smuggler/.test(threat?.id ?? '') ? 2.5 : /zagros/.test(threat?.id ?? '') ? 2 : /raiders/.test(threat?.id ?? '') ? 1.8 : /thieves/.test(threat?.id ?? '') ? 1.2 : 1;
+            out.cash = Math.round((40 + size * 22) * bandMult * (full ? 1.5 : thin ? 0.5 : 1));
             const mount = threat?.id === 'sinai-transjordan-desert-raiders' ? 'bishari' : threat?.id === 'iraq-border-smuggler-brigands' ? 'maghrabi' : 'baladi_d';
             const mountedBand = /raiders|smuggler/.test(threat?.id ?? '');
             const room = Math.max(0, animalCap({ ...s.world.party, troops }) - animalCount(s.world.party));

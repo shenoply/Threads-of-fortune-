@@ -57,8 +57,8 @@ const meet = async (band, edit) => {
   for (let i = 0; i < 3 && !(await has('[data-testid=road-encounter]')); i++) { await mk.dispatchEvent('pointerup').catch(() => {}); await p.waitForTimeout(250); }
   await p.waitForSelector('[data-testid=road-encounter]', { timeout: 5000 });
 };
-const toFight = async () => { await p.click('[data-testid=amb-fight]'); await p.waitForSelector('[data-testid=clash-prep]'); };
-const begin = async () => { await p.click('[data-testid=clash-begin]'); await p.waitForSelector('[data-testid=clash-orders]'); };
+const toFight = async () => { await p.click('[data-testid=amb-fight]'); await p.waitForSelector('[data-testid=clash-orders], [data-testid=fight-moment]', { timeout: 8000 }).catch(async (e) => { await p.screenshot({ path: `${SHOTS}/combat2-tofight.png` }); console.log('BODY', (await p.textContent('body')).slice(0, 300)); throw e; }); };
+const begin = async () => {};
 const morale = async () => ({ me: +(await p.textContent('[data-testid=morale-me]')), them: +(await p.textContent('[data-testid=morale-them]')) });
 const battle = (fn, arg) => p.evaluate(fn, arg);
 /** let the fight run (fast) until it ends or the duel is on offer */
@@ -68,8 +68,14 @@ const play = async (orders = ['charge'], duel = false) => {
   const follow = orders[0] === 'charge';
   if (!follow) for (const o of orders) { await p.click(`[data-testid=ord-${o}]`, { timeout: 2000 }).catch(() => {}); }
   for (let i = 0; i < 400; i++) {
-    if (await has('[data-testid=clash-over]')) return 'over';
+    if (await has('[data-testid=clash-over]') || await has('[data-testid=encounter-result]')) return 'over';
     if (duel && await has('[data-testid=order-duel]')) return 'duel';
+    // a moment that turns the fight: call out the leader when a duel is wanted, else take the first choice
+    if (await has('[data-testid=fight-moment]')) {
+      if (duel && await has('[data-testid=moment-duel]')) { await p.click('[data-testid=moment-duel]'); return 'duel'; }
+      const pick = follow ? '[data-testid=fight-moment] .fb-choice' : (await has('[data-testid=moment-keep]')) ? '[data-testid=moment-keep]' : (await has('[data-testid=moment-hold]')) ? '[data-testid=moment-hold]' : '[data-testid=fight-moment] .fb-choice';
+      await p.locator(pick).first().click({ timeout: 1000 }).catch(() => {});
+    }
     if (follow) {
       const c = await p.textContent('[data-testid=clash-coach]').catch(() => '');
       if (/NOW/.test(c)) await p.click('[data-testid=volley]', { timeout: 500 }).catch(() => {});
@@ -97,31 +103,24 @@ const strike = async (open) => {
     await p.waitForTimeout(1400);
   }
 };
-const finish = async () => { await p.click('[data-testid=clash-continue]'); await p.waitForSelector('[data-testid=encounter-result]'); return p.textContent('[data-testid=encounter-result]'); };
-const leave = async () => { await inGame((m) => { const g = m.useGame.getState(); if (g.rescue) g.clearRescue?.(); m.useGame.setState({ illnesses: [] }); }); await p.waitForTimeout(300); if (!(await has('[data-testid=encounter-continue]'))) return; if (!(await has('[data-testid=encounter-continue]'))) { await p.screenshot({ path: `${SHOTS}/combat2-leave-stuck.png` }); console.log('no continue:', (await p.textContent('body')).slice(0, 400)); } await p.click('[data-testid=encounter-continue]', { timeout: 5000 }).catch(async (e) => { await p.screenshot({ path: '/tmp/claude-0/c2-stuck.png' }); throw e; }); await p.waitForTimeout(400); };
+const finish = async () => { await p.click('[data-testid=clash-continue]', { timeout: 1500 }).catch(() => {}); await p.waitForSelector('[data-testid=encounter-result]', { timeout: 10000 }); return p.textContent('[data-testid=encounter-result]'); };
+const leave = async () => { await inGame((m) => { const g = m.useGame.getState(); if (g.rescue) g.clearRescue?.(); m.useGame.setState({ illnesses: [] }); }); await p.waitForTimeout(300); if (!(await has('[data-testid=encounter-continue]'))) return; if (await has('[data-testid=leader-bounty]')) { await p.click('[data-testid=leader-bounty]'); await p.waitForTimeout(200); } if (!(await has('[data-testid=encounter-continue]'))) { await p.screenshot({ path: `${SHOTS}/combat2-leave-stuck.png` }); console.log('no continue:', (await p.textContent('body')).slice(0, 400)); } await p.click('[data-testid=encounter-continue]', { timeout: 5000 }).catch(async (e) => { await p.screenshot({ path: '/tmp/claude-0/c2-stuck.png' }); throw e; }); await p.waitForTimeout(400); };
 const state = () => inGame((m) => { const s = m.useGame.getState(); return { cash: s.cash, troops: s.world.party.troops, combat: s.combat, day: s.day, parties: s.world.parties.map((q) => ({ id: q.id, cooldownUntil: q.cooldownUntil })), inv: s.inventory.length }; });
 
 // 1. tells and orders: the right answer breaks them; a win brings promotion and a named sergeant
 await meet('rb0', { party: { size: 5, strength: 18 }, troops: { guard: 2, fellah: 2, veteran: 1 }, combat: { wins: 2, xp: { fellah: 3 } } });
 check(await has('[data-testid=amb-leader]'), `the band has a named leader (${await p.textContent('[data-testid=amb-leader]').catch(() => '')})`);
+const fightBtn = (await p.textContent('[data-testid=amb-fight]')).replace(/\s+/g, ' ');
+check(/\d+%/.test(fightBtn) && /(lose|no men lost)/.test(fightBtn) && !/100%/.test(fightBtn), `one honest forecast on the Fight button, never certain: ${fightBtn}`);
+check(await has('[data-testid=amb-quick]'), 'settle it quickly is on the same screen');
 await toFight();
-check(await has('[data-testid=clash-band]') && /men/.test(await p.textContent('[data-testid=clash-band]')), 'before the fight: the band\'s size, arms and leader');
-const grounds = await p.locator('[data-testid^=ground-]').count();
-const o1 = await p.textContent('[data-testid=clash-odds]');
-{ const gs = await p.locator('[data-testid^=ground-]').all(); await gs[0].click(); } await p.waitForTimeout(100);
-const o2 = await p.textContent('[data-testid=clash-odds]');
-check(grounds >= 2 && o1 !== o2, `ground to choose (${grounds} kinds) and it moves the odds (${o1.replace(/\D+/g, '')}% → ${o2.replace(/\D+/g, '')}%)`);
-{ const gs = await p.locator('[data-testid^=ground-]').all(); await gs[gs.length - 1].click(); }
-await p.screenshot({ path: `${SHOTS}/combat2-prep.png` });
-check(/win/i.test(await p.textContent('[data-testid=clash-stakes]')) && /lose/i.test(await p.textContent('[data-testid=clash-stakes]')), 'what rides on it is shown before the fight');
-await begin();
-check(await has('[data-testid=battlefield]') && await has('[data-testid=volley]') && await has('[data-testid=ord-charge]'), 'the field and two plain orders: Volley and Charge');
-check((await p.textContent('[data-testid=clash-coach]')).length > 5, `a line says what to do: ${await p.textContent('[data-testid=clash-coach]')}`);
+check(await has('[data-testid=battlefield]') && await has('[data-testid=volley]') && await has('[data-testid=ord-charge]'), 'Fight goes straight onto the field: Volley and Charge');
 await p.evaluate(() => { window.__tofBattleSpeed = 3; });
-await p.waitForFunction(() => { const b = document.querySelector('[data-testid=volley]'); return b && !b.disabled && b.classList.contains('perfect'); }, null, { timeout: 30000 }).catch(() => {});
-await p.screenshot({ path: `${SHOTS}/combat2-round1.png` });
+await p.waitForSelector('[data-testid=fight-moment][data-moment=contact]', { timeout: 30000 });
+await p.screenshot({ path: `${SHOTS}/combat2-moment.png` });
+check((await p.locator('[data-testid=fight-moment] .fb-choice').count()) >= 2, 'in range, the field holds and asks: volley now, wait, or charge');
 const m0 = await morale();
-await p.click('[data-testid=volley]').catch(() => {}); await p.waitForTimeout(150);
+await p.click('[data-testid=moment-volley]'); await p.waitForTimeout(150);
 const feed = await p.textContent('[data-testid=clash-feed]');
 check(/[Vv]olley/.test(feed), `the volley goes off together: ${feed.slice(-80)}`);
 
@@ -141,14 +140,13 @@ await leave();
 await meet('rb0', { party: { size: 6, strength: 16 }, troops: { guard: 3, fellah: 1, veteran: 2 }, combat: { ...st.combat } });
 await inGame((m) => { const s = m.useGame.getState(); m.useGame.setState({ world: { ...s.world, party: { ...s.world.party, arms: 0 } } }); });
 await toFight();
-check(await has('[data-testid=clash-sergeant]'), `the sergeant has a word before the fight: ${(await p.textContent('[data-testid=clash-sergeant]').catch(() => '')).slice(0, 80)}`);
 await begin();
 await p.evaluate(() => { window.__tofBattle.morale[1] = 40; });
 const r2 = await play(['hold'], true);
 if (r2 === 'duel') {
   await p.evaluate(() => { window.__tofBattleSpeed = 0.0001; });
   const pre = await morale();
-  await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
+  if (await has('[data-testid=order-duel]')) await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
   await p.waitForTimeout(1600); await p.screenshot({ path: `${SHOTS}/combat2-duel.png` });
   await strike(false);
   await p.waitForSelector('[data-testid=clash-orders], [data-testid=clash-over]');
@@ -166,7 +164,7 @@ await toFight(); await begin();
 await p.evaluate(() => { window.__tofBattle.morale[1] = 40; });
 let r3 = await play(['hold'], true);
 if (r3 === 'duel') {
-  await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
+  if (await has('[data-testid=order-duel]')) await p.click('[data-testid=order-duel]'); await p.waitForSelector('[data-testid=duel]');
   await strike(true);
   await play(['charge']);
   await p.screenshot({ path: `${SHOTS}/combat2-yield.png` });
@@ -186,7 +184,6 @@ void txt3;
 await leave();
 
 // 4. the police post: the bounty paid, the leader jailed, his road quiet; the wanted list shows it
-const pre4 = await state();
 await inGame((m) => { const s = m.useGame.getState(); m.useGame.setState({ world: { ...s.world, x: 214.3, y: 413.7, at: 'cairo' } }); });
 await p.locator('[data-testid=place-cairo]').dispatchEvent('click').catch(() => {}); await p.waitForTimeout(600);
 if (await has('[data-testid=menu-more]')) await p.click('[data-testid=menu-more]');
@@ -197,11 +194,10 @@ if (await has('[data-testid=menu-wanted]')) {
   const posters = await p.locator('[data-testid=wanted-list] li').count();
   check(posters >= 4, `wanted posters for the band leaders (${posters})`);
   await p.waitForTimeout(600); await p.screenshot({ path: `${SHOTS}/combat2-wanted.png` });
-  await p.click('[data-testid=hand-bounty]'); await p.waitForTimeout(300);
-  const note = await p.textContent('[data-testid=wanted-note]');
+  // prisoners are now settled on the road, as you ride on: the leader went to the police there
   st = await state();
   const L = st.combat.leaders.rb0;
-  check(st.cash > pre4.cash && L.status === 'jailed', `bounty paid (+${st.cash - pre4.cash}) and the leader jailed: ${note.slice(0, 90)}`);
+  check(L.status === 'jailed' && !st.combat.prisoners.length, `the leader handed over on the road, no trip to a menu (${L.status})`);
   check(st.parties.find((q) => q.id === 'rb0').cooldownUntil >= st.day + 20, 'his band keeps off its road for weeks');
   check(/cells/.test(await p.textContent('[data-testid=wanted-rb0]')), 'his poster says he is in the cells');
   await p.screenshot({ path: `${SHOTS}/combat2-bounty.png` });
@@ -224,8 +220,8 @@ await leave();
 
 // 6. "Let the sergeant handle it": no orders, a result straight away
 await meet('rb1', { party: { size: 4, strength: 8 }, troops: { guard: 3, veteran: 1 } });
-await toFight();
-await p.click('[data-testid=clash-auto]'); await p.waitForSelector('[data-testid=encounter-result]');
+check(/Sergeant|oldest hand/.test(await p.textContent('[data-testid=amb-quick]')), 'who takes charge is named on Settle it quickly');
+await p.click('[data-testid=amb-quick]'); await p.waitForSelector('[data-testid=encounter-result]');
 const txt6 = await p.textContent('[data-testid=encounter-result]');
 check(/takes charge/.test(txt6), `the sergeant handles it: ${txt6.slice(0, 100)}`);
 await leave();

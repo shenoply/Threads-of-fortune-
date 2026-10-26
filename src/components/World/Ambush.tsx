@@ -11,9 +11,11 @@ import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { buzz } from '../../game/feel';
 import { BATTLE_ART, fieldFor } from './BattleField';
-import { Clash, type ClashEnd, type ClashInfo } from './Clash';
+import { Clash, setupOf, type ClashEnd, type ClashInfo } from './Clash';
+import { forecast, simulate, losses as battleLosses } from '../../game/systems/battle';
+import { PRISONER_BOUNTY, ransomFor } from '../../game/systems/combat';
 import { lookFor } from '../../game/heroLook';
-import { groundsAt, winOdds, isWin, type GroundId } from '../../game/systems/combat';
+import { groundsAt, isWin, type GroundId } from '../../game/systems/combat';
 import { terrainAt, dist } from '../../game/systems/world';
 import { ROAD_WELLS, SETTLEMENTS } from '../../data/world';
 import { Chase } from './Chase';
@@ -138,8 +140,9 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       stakes: { loads: Math.max(1, Math.min(carried.length || 1, size >= 12 ? 3 : size >= 7 ? 2 : 1)), cash: Math.round(g.cash * (size >= 12 ? 0.35 : 0.22)) },
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // the chance shown on the Fight button: on the ground and in the order the men would take by themselves
-  const winPct = useMemo(() => (rebels ? null : winOdds({ myPow: clashInfo.myPow, enPow: clashInfo.enPow, temper: clashInfo.temper, known: clashInfo.known, scout: clashInfo.scout, ground: clashInfo.grounds.includes('camels') ? 'camels' : clashInfo.grounds[clashInfo.grounds.length - 1], formation: 'line', sergeant: !!clashInfo.sergeant, seed: clashInfo.seed })), [clashInfo, rebels]);
+  // one honest forecast, from the same battle the field runs: never certain, and what it usually costs
+  const fc = useMemo(() => (rebels ? null : forecast(setupOf(clashInfo))), [clashInfo, rebels]);
+  const winPct = fc?.pct ?? null;
   const [clashSpoils, setClashSpoils] = useState<ClashSpoils | null>(null);
   // ---- the chase (Chase.tsx, systems/chase.ts): running from them, or riding after a beaten band ----
   const [chase, setChase] = useState<ChaseSetup | null>(null);
@@ -191,6 +194,28 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     audio.sfx('chest');
     setStage('battle');
   };
+  // settle it quickly: the men fight it out without you giving the orders, at the odds shown
+  const quick = () => {
+    audio.sfx('chest');
+    const b = simulate(setupOf(clashInfo), true);
+    const L = battleLosses(b);
+    finish({ fight: { over: b.over }, lost: L.lost, kills: L.kills, auto: true, hurt: L.hurt, heroDown: L.heroDown });
+  };
+  // prisoners go to the police without a trip to a town menu: paid when you ride on. Their leader is a
+  // choice: the law's bounty, or his band's ransom (he goes free and may come back)
+  const [leaderChoice, setLeaderChoice] = useState<'bounty' | 'ransom' | null>(null);
+  const [paidNote, setPaidNote] = useState('');
+  const settlePrisoners = (choice: 'bounty' | 'ransom') => {
+    const note = useGame.getState().policePost(choice);
+    setPaidNote(note);
+    setLeaderChoice(choice);
+    return note;
+  };
+  const rideOn = () => {
+    let r = result;
+    if (combatOf(useGame.getState()).prisoners.length > 0) r = `${r} ${useGame.getState().policePost('bounty')}`;
+    onDone(r);
+  };
   const finish = ({ fight: f, lost, kills, retreat, auto, hurt, heroDown }: ClashEnd) => {
     const lostList = Object.entries(lost).map(([id, n]) => `${n} ${midName(n > 1 ? TROOPS[id].plural : TROOPS[id].name)}`).join(', ');
     const hurtN = Object.values(hurt ?? {}).reduce((a, n) => a + n, 0);
@@ -238,13 +263,13 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // one measure of strength everywhere: the map label, the party bar and this card all use strength()
   const myPow = mine;
   const enPow = theirs;
-  const share = odds;
+  const share = winPct ?? odds;
   // the chance itself, plainly: the same simulation the fight runs on (never a bare share of strength)
-  const fightNote = winPct == null ? '' : `about ${winPct}% to win${winPct < 35 ? ': poor odds' : ''}`;
+  const fightNote = !fc ? '' : `${fc.pct}% · ${fc.word} · ${fc.cost}`;
 
   return (
     <div className="ambush" data-testid="road-encounter">
-      {stage === 'battle' && <Clash info={clashInfo} onEnd={finish} onBack={() => setStage('standoff')} />}
+      {stage === 'battle' && <Clash info={clashInfo} onEnd={finish} onBack={() => setStage('standoff')} direct />}
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {place}</small><b>{threat.displayName}</b></div>
@@ -282,7 +307,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
-              {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
+              {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Lead the fight <small>{fightNote}</small></button>}
+              {!rebels && <button className="btn" onClick={quick} data-testid="amb-quick"><Icon name="people" /> Settle it quickly <small>{combat.sergeant ? `Sergeant ${combat.sergeant.name}` : 'your oldest hand'} fights it out at the same odds</small></button>}
               <button className="btn" onClick={() => { if (!rebels) { run(); return; } if (Math.random() < 0.9) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> {rebels ? 'Turn back' : 'Run for it'} <small>{rebels ? 'usually allowed' : theirPace > speedInfo(g.world.party, g.inventory).pxPerDay * 1.1 ? 'they are faster: they will chase you' : 'you can outpace them'}</small></button>
             </div>
           </>
@@ -319,11 +345,19 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
                 {clashSpoils.rifles > 0 && <span><Icon name="sword" /> +{clashSpoils.rifles} {clashSpoils.rifles > 1 ? 'rifles' : 'rifle'}</span>}
                 {clashSpoils.bale && <span className={clashSpoils.rare ? 'rare' : ''}><Icon name="bag" /> {clashSpoils.bale}</span>}
                 {clashSpoils.leader && <span className="rare" data-testid="spoils-leader"><Icon name="people" /> {clashSpoils.leader} taken</span>}
-                {clashSpoils.prisoners > 0 && <span data-testid="spoils-prisoners"><Icon name="people" /> {clashSpoils.prisoners} {clashSpoils.prisoners > 1 ? 'prisoners' : 'prisoner'}</span>}
+                {clashSpoils.prisoners > 0 && <span data-testid="spoils-prisoners"><Icon name="people" /> {clashSpoils.prisoners} {clashSpoils.prisoners > 1 ? 'prisoners' : 'prisoner'} · +{fmt(clashSpoils.prisoners * PRISONER_BOUNTY)}</span>}
               </div>
             )}
-            {clashSpoils && (clashSpoils.prisoners > 0 || clashSpoils.leader) && <p className="amb-note" data-testid="prisoner-note">Hand prisoners to the police post in the next town (in a town's menu, under More) for the bounty.</p>}
-            {clashSpoils && clashSpoils.willing > 0 && !recruitNote && (
+            {clashSpoils && clashSpoils.leader && !leaderChoice && (() => { const l = leader; const bounty = l?.bounty ?? 0; const men = clashSpoils.prisoners * PRISONER_BOUNTY; return (
+              <div className="amb-choice" data-testid="leader-choice">
+                <p className="amb-note">{clashSpoils.leader} sits tied by the camels, and says nothing.</p>
+                <button className="btn primary" onClick={() => settlePrisoners('bounty')} data-testid="leader-bounty"><Icon name="shield" /> Hand him to the police <small>{fmt(bounty + men)} · his road goes quiet for weeks</small></button>
+                {l && <button className="btn" onClick={() => settlePrisoners('ransom')} data-testid="leader-ransom"><Icon name="coin" /> Let his band ransom him <small>{fmt(ransomFor(l) + men)} · he goes free, and remembers you</small></button>}
+              </div>
+            ); })()}
+            {clashSpoils && clashSpoils.prisoners > 0 && !clashSpoils.leader && !paidNote && <p className="amb-note" data-testid="prisoner-note">The police post pays the bounty when you ride on.</p>}
+            {paidNote && <p className="amb-note" data-testid="paid-note">{paidNote}</p>}
+            {clashSpoils && clashSpoils.willing > 0 && !recruitNote && !paidNote && (
               <button className="btn amb-recruit" disabled={troopRoom(g) < 1} onClick={() => setRecruitNote(useGame.getState().recruitPrisoners(clashSpoils.willing))} data-testid="amb-recruit">
                 <Icon name="people" /> Take on the willing <small>{troopRoom(g) < 1 ? 'you lead as many men as your name allows' : `${clashSpoils.willing} of the prisoners will ride for you`}</small>
               </button>
@@ -334,7 +368,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
                 <Icon name="run" /> Ride after them <small>{fled.size} {fled.size === 1 ? 'man is' : 'men are'} running{fled.leader ? `, ${fled.leader} with them` : ''}</small>
               </button>
             )}
-            <button className="btn primary big" onClick={() => onDone(result)} data-testid="encounter-continue">Continue</button>
+            <button className="btn primary big" disabled={!!clashSpoils?.leader && !leaderChoice} onClick={rideOn} data-testid="encounter-continue">{clashSpoils?.leader && !leaderChoice ? 'Decide about him first' : 'Ride on'}</button>
           </div>
         )}
       </div>

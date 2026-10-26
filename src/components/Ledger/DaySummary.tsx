@@ -4,6 +4,7 @@ import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { useState } from 'react';
 import { NightScene, dayScore, nightDue, scoreWord } from '../Night/NightScene';
+import { WeekTables } from '../World/RankTable';
 
 /** What happened overnight after "Next day": the bills, Rashid, the men, how you slept. Shown once
  *  as a small card in the morning and put away when read. Nights on the road are not shown here:
@@ -24,7 +25,8 @@ export function DaySummary() {
   const notes = sum.notes.filter((n) => n.trim());
   const traded = sum.sales > 0 || sum.revenue > 0;
   // a quiet night with nothing to report needs no card
-  if (!notes.length && !traded) return null;
+  const monday = dateFor(sum.day + 1).weekday === 'Monday' && Object.keys(useGame.getState().ranks?.week?.now ?? {}).length > 0;
+  if (!notes.length && !traded && !monday) return null;
   const net = sum.gross - sum.expenses;
   // the evening strip closed the books before the night's wages and bread: say so, so the two agree
   const night = (sum.wages ?? 0) + (sum.food ?? 0);
@@ -48,6 +50,7 @@ export function DaySummary() {
             {notes.map((n, i) => <li key={i} style={{ marginBottom: 6 }}>{n}</li>)}
           </ul>
         )}
+        {monday && <WeekTables />}
         <DailyTeaser />
         <button className="btn primary" onClick={dismiss} data-testid="day-summary-ok">Open the day</button>
       </div>
