@@ -45,6 +45,7 @@ export function DaySummary() {
               : <>, {net >= 0 ? `${fmt(net)} to the good` : `${fmt(-net)} down`} after costs.</>}
           </p>
         )}
+        {notes.some((n) => /thief/i.test(n)) && <img className="ds-scene" src={notes.some((n) => /watched/i.test(n)) ? 'art/events/watchman.webp' : 'art/events/thief-night.webp'} alt="" data-testid="night-event-art" />}
         {notes.length > 0 && (
           <ul style={{ margin: '0 0 14px', paddingLeft: 18, color: 'var(--text)', fontSize: 15.5, lineHeight: 1.4 }}>
             {notes.map((n, i) => <li key={i} style={{ marginBottom: 6 }}>{n}</li>)}

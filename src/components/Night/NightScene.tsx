@@ -32,6 +32,7 @@ export function NightScene({ day, takings, score, onDone }: { day: number; takin
   const scene = useGame((s) => sceneIdFor(lookUps(s)));
   const [shown, setShown] = useState(0);
   const [pts, setPts] = useState(-1);
+  const [painted, setPainted] = useState(true);
   const done = useRef(false);
   const scored = useRef(false);
   const finish = () => { if (done.current) return; done.current = true; SHOWN.add(day); onDone(); };
@@ -56,9 +57,9 @@ export function NightScene({ day, takings, score, onDone }: { day: number; takin
     return () => { cancelAnimationFrame(id); window.clearTimeout(end); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="night-scene" onClick={finish} data-testid="night-scene" role="img" aria-label={`Night at the stall. The day's takings: ${fmt(takings)}`}>
-      <img className="ns-stall" src={sceneImg(scene)} alt="" />
-      <img className="ns-cat" src="art/stall2/props/cat-counter.webp" alt="" />
+    <div className={`night-scene${painted ? ' painted' : ''}`} onClick={finish} data-testid="night-scene" role="img" aria-label={`Night at the stall. The day's takings: ${fmt(takings)}`}>
+      {/* the painted night stall: lamp lit, Saffron asleep on the counter; the day's own stall if it will not load */}
+      <img className="ns-stall" src={painted ? 'art/stalls/night-stall.webp' : sceneImg(scene)} alt="" onError={() => setPainted(false)} />
       <div className="ns-dark" />
       <div className="ns-lamp" />
       <div className="ns-count">

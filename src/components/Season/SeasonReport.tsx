@@ -54,6 +54,7 @@ export function SeasonReport() {
   return (
     <div className="overlay season-wrap" onClick={close} data-testid="season-report">
       <div className="season-card" onClick={(e) => e.stopPropagation()}>
+        <img className="sr-art" src="art/events/season-gathering.webp" alt="" />
         <small className="sr-k">THE END OF {seasonName(last.season).toUpperCase()}</small>
         <div className={`sr-grade g${grade.letter}`}><b>{grade.letter}</b><span>{grade.word}</span></div>
         <div className="sr-grid">
@@ -62,7 +63,7 @@ export function SeasonReport() {
           <span><small>BEST BUYER</small><b>{sum.bestBuyer ? sum.bestBuyer[0] : '–'}</b><i>{sum.bestBuyer ? `spent ${fmt(sum.bestBuyer[1])} with you` : 'nobody yet'}</i></span>
           <span><small>BEST SALE</small><b>{sum.bestSale ? `+${fmt(sum.bestSale.amount - (sum.bestSale.cost ?? 0))}` : '–'}</b><i>{sum.bestSale ? sum.bestSale.label.split(' to ')[0] : ''}</i></span>
           <span><small>AMONG CAIRO'S DEALERS</small><b>{cairo ? `${cairo}${cairo === 1 ? 'st' : cairo === 2 ? 'nd' : cairo === 3 ? 'rd' : 'th'}` : '–'}</b><i>{cairo === 1 ? 'First Merchant of Cairo' : cairo ? 'in the season\'s table' : 'not yet on the table'}</i></span>
-          <span><small>ACROSS THE LANE</small><b>{you > r.stall ? 'Ahead' : you === r.stall ? 'Level' : 'Behind'}</b><i>{RIVAL_NAME}</i></span>
+          <span><small>ACROSS THE LANE</small><img className="sr-face" src="art/portraits/small/shukri.webp" alt="" /><b>{you > r.stall ? 'Ahead' : you === r.stall ? 'Level' : 'Behind'}</b><i>{RIVAL_NAME}</i></span>
         </div>
         <button className="btn primary" onClick={close} data-testid="season-ok">On to {seasonName(last.season + 1)}</button>
       </div>

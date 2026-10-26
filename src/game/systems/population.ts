@@ -242,6 +242,11 @@ export function world(): World {
     head.house = h.id; houses[h.id] = h;
     const daughter = add({ id: `bride-${b.id}`, name: b.name, short: b.short, sex: 'f', age: 20 + Math.floor(r() * 5), culture: c, home: b.city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${b.id}.jpg`, bride: b.id, bio: b.intro });
     family(head, h, r, { daughter });
+    // Aziza's brother: Shukri, who keeps the stall across the lane from yours
+    if (b.id === 'aziza') {
+      const sh = add({ id: 'shukri', name: 'Shukri Mansour', short: 'Shukri', sex: 'm', age: 27, culture: 'egypt', home: 'giza', role: 'dealer', title: 'Keeps the stall across the lane from yours', house: h.id, father: head.id, children: [], traits: ['proud', 'cunning'], art: 'art/portraits/shukri.jpg', bio: 'He took his late father\'s stall in the Giza lane and means to have the whole lane before he is thirty. He watches every buyer who stops at yours.' });
+      head.children.unshift(sh.id); h.members.push(sh.id);
+    }
   }
   // 3. each city's notables: the souq master, a merchant, a man of standing, a craftsman, each with a family
   for (const st of SETTLEMENTS) {

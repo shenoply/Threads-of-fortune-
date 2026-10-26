@@ -217,7 +217,7 @@ function RivalLine() {
   const day = useGame((s) => s.day);
   const last = lane?.last;
   if (!last || last.day < day - 1 || last.kind === 'quiet') return null;
-  return <p className={`rival-line ${last.kind}`} data-testid="rival-line"><span>ACROSS THE LANE</span> {last.text}</p>;
+  return <p className={`rival-line ${last.kind}`} data-testid="rival-line"><img className="rl-cut" src="art/portraits/shukri-stall.webp" alt="" /><span>ACROSS THE LANE</span> {last.text}</p>;
 }
 
 function StallDream() {
@@ -242,7 +242,7 @@ function StallDream() {
       <i><em style={{ width: `${Math.round(pct * 100)}%` }} /></i>
       {racing && (
         <span className="sd-rival" data-testid="rival-race">
-          <small>{rival.stall > you ? `${RIVAL_FIRST} already has a better stall` : RIVAL_FIRST}</small>
+          <small><img className="sd-face" src="art/portraits/small/shukri.webp" alt="" />{rival.stall > you ? `${RIVAL_FIRST} already has a better stall` : RIVAL_FIRST}</small>
           {rival.stall <= you && <i><em style={{ width: `${Math.round(rivalProgress(rival) * 100)}%` }} /></i>}
         </span>
       )}

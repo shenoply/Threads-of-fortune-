@@ -50,6 +50,12 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
       )}
       <ParcelList />
       <MothPanel />
+      {g.inventory.some((i) => i.restoringUntil && i.condition === 'Dirty') && (
+        <div className="inv-washing" data-testid="inv-washing">
+          <img src="art/events/courtyard-wash.webp" alt="" />
+          <span>At the washers' courtyard: {g.inventory.filter((i) => i.restoringUntil && i.condition === 'Dirty').length === 1 ? 'one rug' : `${g.inventory.filter((i) => i.restoringUntil && i.condition === 'Dirty').length} rugs`} in the suds, then out to dry in the sun.</span>
+        </div>
+      )}
       <div className="inv-list">
         {g.inventory.map((i) => {
           const t = RUGS[i.typeId];

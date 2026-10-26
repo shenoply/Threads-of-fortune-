@@ -19,3 +19,7 @@
 .night-scene .ns-score.hi span { box-shadow: inset 0 0 0 1px #f0c060, 0 0 22px rgba(255,196,90,.45); }
 .night-scene .ns-score.hi em { color: #ffe1a0; }
 .night-scene .ns-score.lo em { color: #e8806c; }
+/* the painted night stall needs no darkening: its own lamp and moon */
+.night-scene.painted .ns-stall { filter: none; left: 0; top: 0; width: 100%; height: 100%; transform: none; object-fit: cover; object-position: 62% 50%; }
+.night-scene.painted .ns-dark { background: radial-gradient(ellipse at 50% 40%, transparent 35%, rgba(4,4,12,.55) 85%); }
+.night-scene.painted .ns-lamp { opacity: .35; }
