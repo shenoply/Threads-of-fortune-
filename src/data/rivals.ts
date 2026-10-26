@@ -25,7 +25,7 @@ export const RIVALS: Rival[] = [
   { id: 'rival-lucia', name: 'Signora Lucia Valenti', role: 'Runs her late husband\'s firm in Alexandria', cities: ['alexandria'], temper: 'steady', season: 200000, she: true },
   { id: 'rival-fikry', name: 'Ahmed Fikry', role: 'Dealer in Alexandria', cities: ['alexandria'], temper: 'cunning', season: 120000 },
   { id: 'rival-shalaby', name: 'Abdel-Rahim Shalaby', role: 'Dealer in Port Said', cities: ['portsaid'], temper: 'aggressive', season: 90000 },
-  { id: 'rival-sahyoun', name: 'Elias Sahyoun', role: 'Dealer in Jaffa and Jerusalem', cities: ['jerusalem', 'jaffa'], temper: 'steady', season: 70000 },
+  { id: 'rival-sahyoun', name: 'Hajj Ahmad Rizk', role: 'Dealer in Jaffa and Jerusalem, and an orange grower', cities: ['jerusalem', 'jaffa'], temper: 'steady', season: 70000 },
   { id: 'rival-tabet', name: 'Fuad Tabet', role: 'Dealer in Beirut', cities: ['beirut'], temper: 'cunning', season: 110000 },
   { id: 'rival-shami', name: 'Abu Nadim al-Shami', role: 'Dealer in Damascus', cities: ['damascus'], temper: 'old', season: 140000 },
   { id: 'rival-kouyoumdjian', name: 'Garabed Kouyoumdjian', role: 'Dealer in Aleppo', cities: ['aleppo'], temper: 'steady', season: 150000 },

@@ -20,3 +20,7 @@
 .hh-pace small, .hh-heir small { font-size: 13px; color: var(--text-dim, #b39d7b); }
 .hh-heir .btn { justify-self: start; padding: 6px 10px; font-size: 14px; }
 .hh-msg { margin: 6px 0 0; padding: 6px 8px; border-left: 2px solid var(--brass, #c9974a); font-size: 14px; line-height: 1.35; color: var(--text, #eadbbd); }
+.hh-house { display: block; font-style: italic; }
+.hh-house.short { color: #e8a08e; }
+.hh-house.ok { color: var(--good); }
+.hh-nth { font-style: normal; font-weight: 400; font-size: .8em; color: var(--text-dim); }

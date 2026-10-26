@@ -116,7 +116,7 @@ function ParcelList() {
   return (
     <div className="inv-papers" data-testid="inv-parcels">
       <div className="section-label">FOOD FOR THE ROAD · {parcelsWeight(ps)} kg</div>
-      <p><small>Fed {fedOf(c)}/100 · Water {waterOf(c)}/100 · Fatigue {c?.fatigue ?? 0}. Fed at nightfall, your own ration stays in the sack. Salted food costs water.</small></p>
+      <p><small>Fed {fedOf(c)}/100 · Water {waterOf(c)}/100 · Fatigue {c?.fatigue ?? 0}. With food in the sacks you are always fed. Salted food costs water.</small></p>
       {ps.map((p) => {
         const it = malekItem(p.item);
         return (

@@ -79,7 +79,7 @@ import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { seasonCallers, seasonAtStall, khamsinDust } from '../economy/seasons';
 import { setSeasonDay, ferryHours } from '../economy/calendar1925';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
-import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
+import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, RATION_FED, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
@@ -1370,7 +1370,7 @@ export const useGame = create<GameState & Actions>()(
           if (party.food >= need) {
             party.food -= need; party.hungryDays = 0;
             // on the road your own supper comes out of the same sacks: it fills you, if not as well as Malek
-            if (!s.world.at) condition = eatRation(condition);
+            condition = eatRation(condition);
             if (troopIds().length) moraleV = Math.min(100, moraleV + 3);
           } else {
             party.food = 0;
@@ -4993,6 +4993,8 @@ syncKhan(useGame.getState());
 useGame.subscribe(syncKhan);
 // a rival just passed in a city's table answers (systems/ranks.ts): a short notice and his reaction
 useGame.subscribe((s) => { if (s.ranks?.pending?.length) useGame.setState(rankReaction(s)); });
+// food in the sacks: you are never hungry while there is any
+useGame.subscribe((s) => { if ((s.world?.party?.food ?? 0) > 0 && s.condition && fedOf(s.condition) < RATION_FED) useGame.setState({ condition: eatRation(s.condition) }); });
 let ranksSeen: RanksState | undefined | null = null;
 const syncRanks = (s: GameState) => { if (s.ranks === ranksSeen) return; ranksSeen = s.ranks; RANK_FX.first = firstCities(s); };
 syncRanks(useGame.getState());

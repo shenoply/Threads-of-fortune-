@@ -143,8 +143,8 @@ export function eatServing(c0: Condition1925 | undefined, item: MalekItem, now: 
  * balance is unchanged and only the day's salted food can leave you thirsty. With the sacks empty a
  * night costs 25. Thirsty at nightfall (below 25) adds fatigue.
  */
-/** how full a plain road ration leaves you: bread, dates and tea, below a proper meal at Malek's */
-export const RATION_FED = 40;
+/** food in the sacks means you eat your fill: bread, dates, cheese and tea */
+export const RATION_FED = 100;
 /** you ate your ration from the sacks tonight */
 export const eatRation = (c: Condition1925): Condition1925 => ({ ...c, fed: Math.max(fedOf(c), RATION_FED) });
 

@@ -12,6 +12,7 @@ import { RIVALS, RIVAL, RANK_CITY, RANK_CITIES, RANK_TABLE_OF, lesserShops, type
 import { fmt, snap, snapDown } from '../economy/money';
 import { dateFor } from '../economy/economy';
 import type { GameState } from '../state/store';
+import { inLawHouses } from './household';
 
 export const SEASON_DAYS = 91;
 /** days a cut in prices lasts */
@@ -142,7 +143,7 @@ const ANSWER: Record<Rival['temper'], (r: Rival, city: string) => string> = {
 };
 
 /** A house just passed answers: one notice for the first, a journal line for each. */
-export function rankReaction(s: Pick<GameState, 'ranks' | 'day' | 'reputation' | 'journal' | 'jobNote'>): Partial<GameState> {
+export function rankReaction(s: Pick<GameState, 'ranks' | 'day' | 'reputation' | 'journal' | 'jobNote'> & { household?: GameState['household'] }): Partial<GameState> {
   const r = s.ranks;
   if (!r?.pending?.length) return {};
   let rep = s.reputation;
@@ -153,6 +154,14 @@ export function rankReaction(s: Pick<GameState, 'ranks' | 'day' | 'reputation' |
     const rv = RIVAL[p.rival];
     if (!rv) continue;
     const c = cityName(p.city);
+    // family: your father-in-law is proud of you, not angry
+    if (inLawHouses(s.household).includes(rv.id)) {
+      const text = `${rv.name} hears you have passed him in ${c}. "My son-in-law," he tells the souq, and buys the coffee.`;
+      rep += 1;
+      journal.push({ day: s.day, text, kind: 'stall' } as GameState['journal'][number]);
+      note = note ?? text;
+      continue;
+    }
     const text = ANSWER[rv.temper](rv, c);
     if (rv.temper === 'aggressive') undercut[p.city] = { by: rv.id, until: s.day + UNDERCUT_DAYS };
     else if (rv.temper === 'cunning') rep = Math.max(0, rep - 1);
@@ -232,6 +241,18 @@ export function ranksNight(s: GameState, day: number): { patch: Partial<GameStat
       patch.journal = [...(patch.journal ?? s.journal ?? []), { day, text, kind: 'stall' } as GameState['journal'][number]];
       notes.push(text);
       break;
+    }
+  }
+  // Monday: a father-in-law's house passes on an order it cannot fill
+  if (dateFor(day).weekday === 'Monday') {
+    for (const id of inLawHouses(s.household)) {
+      const rv = RIVAL[id];
+      if (!rv || hash(day, `${id}:inlaw`) >= 0.35) continue;
+      const fee = snap(Math.max(250, Math.min(3000, rv.season * 0.004)));
+      const text = `${rv.name} sends a customer's order through you, as family does: commission ${fmt(fee)}.`;
+      patch.cash = (patch.cash ?? s.cash ?? 0) + fee;
+      patch.ledger = [...(patch.ledger ?? s.ledger ?? []), { day, kind: 'bonus', label: `Order from ${rv.name}, your father-in-law`, amount: fee }];
+      notes.push(text);
     }
   }
   // a rival cutting his prices in Cairo takes one of the stall's buyers now and then

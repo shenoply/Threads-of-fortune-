@@ -74,6 +74,8 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
   return (
     <div className="screen" data-testid="supplier">
       {film && createPortal(<IntroFilm id="rashid" onDone={() => { useGame.getState().markIntroSeen('rashid'); setFilm(false); }} />, document.body)}
+      {/* the day's sealed bale comes first: the first thing on his page */}
+      <BaleCard toast={toast} />
       <div className="screen-head">
         <div>
           <div className="eyebrow">WIKALAT EL-GHURI · CAIRO</div>
@@ -145,8 +147,6 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           );
         })}
       </div>
-      {/* the day's sealed bale, after his stock: the rugs are what you came for */}
-      <BaleCard toast={toast} />
       {/* his rugs come first; the family debt and the bazaar news follow, so a newcomer sent here to restock
           does not spend the stock money on the debt by mistake */}
       {fam.left > 0 ? (

@@ -6,7 +6,7 @@
 import { audio } from './engine';
 
 type Listener = () => void;
-const LEVEL = 0.85;
+const LEVEL = 1;
 
 class RecordPlayer {
   current: string | null = null;

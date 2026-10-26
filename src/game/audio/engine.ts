@@ -217,8 +217,8 @@ class AudioEngine {
   /** what a plain player of this kind should be at, before its own level */
   elVolume(kind: 'dialogue' | 'music' | 'sfx' | 'record') {
     const v = this.volumes;
-    // a record you put on yourself plays whether the score is switched on or not, never too faint to hear
-    if (kind === 'record') return Math.max(0, Math.min(1, v.master * (this.toggles.music ? Math.max(v.music, 0.65) : 0.65)));
+        // a record plays at the same level as the score, on the same music slider (with the score switched off, at the default)
+    if (kind === 'record') return Math.max(0, Math.min(1, v.master * LEVELS.music * (this.toggles.music ? v.music : DEFAULT_VOLUMES.music)));
     const on = kind === 'dialogue' ? this.toggles.dialogue : kind === 'music' ? this.toggles.music : this.toggles.sfx;
     return on ? Math.max(0, Math.min(1, v.master * (kind === 'dialogue' ? v.dialogue : kind === 'music' ? v.music : v.sfx))) : 0;
   }
