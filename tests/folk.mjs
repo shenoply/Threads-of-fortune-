@@ -64,6 +64,22 @@ if (await has('[data-testid=enc-trade]')) {
   const inv1 = await st((m) => m.useGame.getState().inventory.length);
   check(inv1 === inv0 + 1, `haggled (${pr0} → ${pr1}) and bought off the camels`);
 }
+// a father who likes you speaks of a daughter of age, and her family joins the matches you could make
+const match = await p.evaluate(async () => {
+  const pop = await import('/src/game/systems/population.ts');
+  const u = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts';
+  const m = await import(u);
+  const s = m.useGame.getState();
+  const d = pop.eligibleDaughters(s.day).find((x) => pop.world().people[x.father].role !== 'kin');
+  const fa = d.father;
+  const f = s.folk ?? { rel: {}, met: {}, talked: {}, heard: [], log: [] };
+  m.useGame.setState({ folk: { ...f, rel: { ...f.rel, [fa]: 12 }, met: { ...f.met, [fa]: 1 } } });
+  const said = m.useGame.getState().folkTalk(fa, 'family');
+  const h = m.useGame.getState().household;
+  const hm = await import('/src/game/systems/household.ts');
+  return { said: said.text, known: h?.known ?? [], id: pop.folkBrideId(d.id), bride: !!hm.BRIDES[pop.folkBrideId(d.id)], n: pop.eligibleDaughters(s.day).length };
+});
+check(match.known.includes(match.id) && match.bride && /age to marry/.test(match.said), `a father speaks of his daughter, and her family would receive you (${match.n} daughters of age in the world): ${match.said.slice(-110)}`);
 check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
 console.log(ok ? 'ALL OK' : 'SOME FAILED');
 await b.close();

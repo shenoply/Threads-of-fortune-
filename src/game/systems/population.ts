@@ -159,7 +159,7 @@ export function world(): World {
   const byCity: Record<string, string[]> = {};
   const used = new Set<string>();
   // the names already taken by the characters written by hand
-  const usedNames = new Set<string>([...RIVALS.map((x) => x.name), ...Object.values(NPCS).map((n) => n.name), ...Object.values(BRIDES).map((b) => b.name)]);
+  const usedNames = new Set<string>([...RIVALS.map((x) => x.name), ...Object.values(NPCS).map((n) => n.name), ...Object.values(BRIDES).filter((b) => !b.folk).map((b) => b.name)]);
   const face = (p: Person, cls: 'humble' | 'trade' | 'notable') => {
     const reg = POOL_REGION[p.culture], band = ageBand(p.age);
     const fits = (f: (typeof POOL)[number]) => f.region === reg && f.sex === p.sex;
@@ -226,13 +226,13 @@ export function world(): World {
     if (rv.she) head.bio = `${rv.role}. She has kept the firm's place on the Alexandria table since his death.`;
     const h: House = { id: `house-${rv.id}`, name: `The house of ${head.name.replace(/^Signora /, '')}`, home: city, head: head.id, members: [head.id], rank: rv.season >= 180000 ? 'grand' : 'notable', trade: 'carpets', rival: rv.id };
     head.house = h.id; houses[h.id] = h;
-    const brideId = Object.values(BRIDES).find((b) => b.house === rv.id)?.id;
+    const brideId = Object.values(BRIDES).find((b) => b.house === rv.id && !b.folk)?.id;
     const daughter = brideId ? add({ id: `bride-${brideId}`, name: BRIDES[brideId].name, short: BRIDES[brideId].short, sex: 'f', age: 21, culture: c, home: BRIDES[brideId].city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${brideId}.jpg`, bride: brideId, bio: BRIDES[brideId].intro }) : undefined;
     family(head, h, r, { daughter, wife: !rv.she });
   }
   // 2. the other brides' families: a buyer, a weaver, a coffee-house keeper, a sheikh
   for (const b of Object.values(BRIDES)) {
-    if (b.house || people[`bride-${b.id}`]) continue;
+    if (b.house || b.folk || people[`bride-${b.id}`]) continue;
     const r = rngOf(`bride-${b.id}`);
     const c = b.city === 'bedouin' ? 'bedouin' : b.id === 'emine' ? 'anatolia' : cultureOf(b.city);
     const fname = b.father.split(',')[0];
@@ -321,3 +321,46 @@ export function notablesOf(city: string): Person[] {
 export const souqMaster = (city: string) => world().people[`${city}-souq`];
 export const caravanMaster = (partyId: string) => { const id = world().caravans[partyId]; return id ? world().people[id] : undefined; };
 export const ageNow = (p: Person, day: number) => p.age + Math.floor(day / 365);
+
+// ---- the daughters of the world's families, as matches a merchant could make ----
+const RANK_PRICE: Record<House['rank'], { mahr: number; feast: number; rep: number; gift: [string, number]; minRep?: number }> = {
+  humble: { mahr: 1200, feast: 700, rep: 2, gift: ['a box of sweets and a bolt of cotton', 100] },
+  trade: { mahr: 2600, feast: 1400, rep: 4, gift: ['a brass tray and good coffee for the house', 220] },
+  notable: { mahr: 5200, feast: 2800, rep: 6, gift: ['a silk shawl for her mother', 450], minRep: 25 },
+  grand: { mahr: 9000, feast: 5000, rep: 8, gift: ['a small silk rug for her mother', 800], minRep: 40 },
+};
+const LOOK_OF: Record<Culture, 'egypt' | 'levant' | 'desert'> = { egypt: 'egypt', levant: 'levant', anatolia: 'levant', armenian: 'levant', greek: 'levant', iraq: 'desert', persia: 'desert', bedouin: 'desert' };
+/** a daughter of age and unpromised: 17 to 28 in the year the game has reached */
+export function eligibleDaughters(day: number): Person[] {
+  const w = world();
+  return Object.values(w.people).filter((p) => p.sex === 'f' && p.role === 'kin' && p.father && !p.bride && ageNow(p, day) >= 17 && ageNow(p, day) <= 28 && w.people[p.father]?.role !== 'kin');
+}
+export const folkBrideId = (personId: string) => `folk-${personId}`;
+/** Each such daughter as a match in the household's terms (household BRIDES), added once. */
+export function registerFolkBrides(day = 0, keep: string[] = []) {
+  const w = world();
+  // a match already made or in hand stays a match, whatever her age now
+  const kept = keep.filter((k) => k.startsWith('folk-')).map((k) => w.people[k.slice(5)]).filter(Boolean);
+  for (const d of [...eligibleDaughters(day), ...kept]) {
+    const id = folkBrideId(d.id);
+    if (BRIDES[id]) continue;
+    const fa = w.people[d.father!];
+    const h = d.house ? w.houses[d.house] : undefined;
+    const rank = h?.rank ?? 'trade';
+    const pr = RANK_PRICE[rank];
+    const city = SETTLEMENTS.find((x) => x.id === d.home);
+    const likes = fa.traits.includes('honest') || fa.traits.includes('stern') ? 'honesty' : fa.traits.includes('proud') || fa.traits.includes('greedy') ? 'dress' : fa.traits.includes('curious') || fa.traits.includes('pious') ? 'learning' : 'craft';
+    const her = d.traits.includes('cheerful') ? 'quick to laugh' : d.traits.includes('curious') ? 'asks more questions than her brothers' : d.traits.includes('proud') ? 'carries herself like a pasha\'s daughter' : d.traits.includes('pious') ? 'devout and quiet' : d.traits.includes('cunning') ? 'sharper than her father, and knows it' : d.traits.includes('generous') ? 'known in the quarter for her kindness' : d.traits.includes('stern') ? 'serious beyond her years' : 'keeps her father\'s house';
+    const brings = fa.role === 'souq' ? `Her father's souq in ${city?.name} will sell to you as to family.` : fa.role === 'dealer' ? `Her father's house in ${city?.name} would count you as one of its own.` : fa.role === 'merchant' ? `Her family's trade in ${fa.goods ?? 'goods'} opens the merchants of ${city?.name} to you.` : fa.role === 'notable' ? `Her father's word carries weight in ${city?.name}: its dealers treat you as a friend.` : fa.role === 'craft' ? 'She was raised among the looms, and knows a rug from the back.' : `Her family's friends in ${city?.name} would be yours.`;
+    (BRIDES as Record<string, unknown>)[id] = {
+      id, folk: d.id, name: d.name, short: d.short, city: d.home, cityName: city?.name ?? d.home,
+      father: `${fa.name}, ${fa.title.charAt(0).toLowerCase()}${fa.title.slice(1)}`, introducer: fa.name,
+      intro: `${fa.short}'s daughter, ${ageNow(d, day)}: ${her}.`,
+      brings, mahr: pr.mahr, feast: pr.feast, feastRep: pr.rep, gift: { label: pr.gift[0], cost: pr.gift[1] },
+      likes, rank, meet: 'friend', minRep: pr.minRep, role: fa.role === 'craft' ? 'rugs' : fa.role === 'merchant' ? 'books' : fa.role === 'souq' ? 'stall' : 'home',
+      friends: [d.home], art: faceSrc(d), look: LOOK_OF[d.culture],
+    };
+  }
+}
+/** the daughters of age in this person's house, as match ids */
+export const daughtersToMarry = (personId: string, day: number) => { const p = person(personId); return p ? p.children.map((c) => world().people[c]).filter((c) => c && eligibleDaughters(day).some((e) => e.id === c.id)).map((c) => folkBrideId(c.id)) : []; };

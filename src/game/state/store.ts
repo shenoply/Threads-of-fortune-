@@ -17,7 +17,7 @@ import { NARRATOR, RASHID } from '../../data/dialogue';
 import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
 import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
-import { person, souqMaster, cultureOf, caravanMaster } from '../systems/population';
+import { person, souqMaster, cultureOf, caravanMaster, registerFolkBrides, daughtersToMarry } from '../systems/population';
 import { greeting, talk as folkSay, FOLK_START, type FolkState, type Said, type Topic } from '../systems/folkTalk';
 import { ARM_BY_ID, GUNSMITH_TOWN } from '../../data/arms';
 import { ALL_THREE, errandsFor, giftFor, giftToday, pouchFor, pouchReady, type DailyState, type Gift, type Pouch } from '../systems/daily';
@@ -85,7 +85,7 @@ import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvaila
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
-import { applyHousehold, HOUSEHOLD_START, type HouseholdState, type HouseholdAct } from '../systems/household';
+import { applyHousehold, HOUSEHOLD_START, BRIDES, canCourt, type HouseholdState, type HouseholdAct } from '../systems/household';
 import { post as postLetter, TELEGRAPH_TOWNS, telegramFee, type PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
@@ -3071,13 +3071,27 @@ export const useGame = create<GameState & Actions>()(
           const met = f.met[id] !== undefined;
           const band = bandNear(s, p.home);
           const ctx = { day: s.day, you: s.household?.merchant?.name ?? 'Hassan', rel: f.rel[id] ?? 0, met, times: f.log.filter((l) => l.who === id).length, band };
-          const said = topic === 'greet' ? { text: greeting(p, ctx), mentions: [] } : folkSay(p, topic, ctx);
+          let said = topic === 'greet' ? { text: greeting(p, ctx), mentions: [] as string[] } : folkSay(p, topic, ctx);
           if (topic === 'greet') return said;
           // talking counts once a day: more the first time you meet; a gossip likes being asked about others
           const today = f.talked[id] === s.day;
           const base = f.rel[id] ?? (p.traits.includes('cheerful') ? 4 : p.traits.includes('stern') ? -2 : 0);
           const rel = today ? base : Math.min(100, base + (met ? 1 : 3) + (topic === 'gossip' && p.traits.includes('gossip') ? 1 : 0));
+          // a father who likes you speaks of a daughter of age: the family would receive you (Household)
+          let household = s.household;
+          if (topic === 'family' && rel >= 6 && !s.household?.merchant) {
+            registerFolkBrides(s.day);
+            const h0 = s.household ?? HOUSEHOLD_START;
+            const known = new Set(h0.known ?? []);
+            const fresh = daughtersToMarry(id, s.day).filter((d) => BRIDES[d] && !known.has(d));
+            if (fresh.length && canCourt(h0) && h0.stage !== 'betrothed') {
+              const b = BRIDES[fresh[0]];
+              household = { ...h0, known: [...known, ...fresh] };
+              said = { text: `${said.text} ${p.short} looks at you a moment longer. "${b.short} is of an age to marry. A family like ours would hear a proposal from a man with a good name." (Her family would receive you: see Household.)`, mentions: [...said.mentions, b.folk!] };
+            }
+          }
           const heard = [...new Set([...f.heard, ...said.mentions.filter((m) => f.met[m] === undefined)])];
+          if (household !== s.household) set({ household });
           set({ folk: { ...f, rel: { ...f.rel, [id]: rel }, met: met ? f.met : { ...f.met, [id]: s.day }, talked: { ...f.talked, [id]: s.day }, heard, log: met ? f.log : [...f.log.slice(-300), { day: s.day, who: id, text: `Met ${p.name} in ${settlementById(p.home)?.name ?? p.home}.` }] } });
           return said;
         },
@@ -5095,6 +5109,10 @@ useGame.subscribe((s) => { if (s.ranks?.pending?.length) useGame.setState(rankRe
 // food in the sacks: you are never hungry while there is any
 useGame.subscribe((s) => { if ((s.world?.party?.food ?? 0) > 0 && s.condition && fedOf(s.condition) < RATION_FED) useGame.setState({ condition: eatRation(s.condition) }); });
 let ranksSeen: RanksState | undefined | null = null;
+// the daughters of the world's families who are of an age to marry: registered as matches, and again as the years pass
+const matchIds = (s: GameState) => { const h = s.household; return h ? [...(h.known ?? []), ...Object.keys(h.suitors ?? {}), h.chosen ?? '', h.spouse?.id ?? '', ...(h.wives ?? []).map((w) => w.id), h.mother ?? '', ...h.children.map((c) => c.mother ?? '')] : []; };
+registerFolkBrides(useGame.getState().day, matchIds(useGame.getState()));
+useGame.subscribe((s, prev) => { if (Math.floor(s.day / 30) !== Math.floor((prev?.day ?? 0) / 30) || s.household !== prev?.household) registerFolkBrides(s.day, matchIds(s)); });
 /** the souq master's regard, for the pure price functions: a friend sells cheaper and buys dearer */
 export const FOLK_FX: { rel: Record<string, number> } = { rel: {} };
 export function folkPrice(city: string) {

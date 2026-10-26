@@ -58,6 +58,8 @@ export interface Bride {
   house?: string;
   /** the place you must hold in her city's table (this season or the last) before he gives his consent */
   place?: number;
+  /** a daughter of one of the world's families (systems/population): her person, her picture, her children's look */
+  folk?: string; art?: string; look?: 'egypt' | 'levant' | 'desert';
 }
 
 export const BRIDES: Record<string, Bride> = {
@@ -240,10 +242,10 @@ export function availableBrides(h: HouseholdState): BrideId[] {
 }
 
 export const BRIDE_ORDER: BrideId[] = ['nadia', 'amira', 'layla'];
-export const brideArt = (id: BrideId) => `art/family/bride-${id}.jpg`;
+export const brideArt = (id: BrideId) => BRIDES[id]?.art ?? `art/family/bride-${id}.jpg`;
 /** a child takes after the mother's family: Egypt, the Levant and Constantinople, or the desert and Baghdad */
 const LOOK: Record<string, 'egypt' | 'levant' | 'desert'> = { layla: 'levant', farida: 'levant', nour: 'levant', hayat: 'levant', emine: 'levant', suad: 'desert', nura: 'desert' };
-export const childLook = (mother?: BrideId) => (mother && LOOK[mother]) || 'egypt';
+export const childLook = (mother?: BrideId) => (mother && (LOOK[mother] ?? BRIDES[mother]?.look)) || 'egypt';
 /** the child's portrait, and the plain one for that look to fall back on while the other faces are not yet drawn */
 export const childArt = (c: Child, firstWife?: BrideId): [string, string] => {
   if (ageOf(c) < 1) return [`art/family/child-baby-${c.sex}.jpg`, `art/family/child-baby-${c.sex}.jpg`];
