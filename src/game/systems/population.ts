@@ -330,10 +330,10 @@ const RANK_PRICE: Record<House['rank'], { mahr: number; feast: number; rep: numb
   grand: { mahr: 9000, feast: 5000, rep: 8, gift: ['a small silk rug for her mother', 800], minRep: 40 },
 };
 const LOOK_OF: Record<Culture, 'egypt' | 'levant' | 'desert'> = { egypt: 'egypt', levant: 'levant', anatolia: 'levant', armenian: 'levant', greek: 'levant', iraq: 'desert', persia: 'desert', bedouin: 'desert' };
-/** a daughter of age and unpromised: 17 to 28 in the year the game has reached */
+/** a daughter of age and unpromised: 18 to 28 in the year the game has reached */
 export function eligibleDaughters(day: number): Person[] {
   const w = world();
-  return Object.values(w.people).filter((p) => p.sex === 'f' && p.role === 'kin' && p.father && !p.bride && ageNow(p, day) >= 17 && ageNow(p, day) <= 28 && w.people[p.father]?.role !== 'kin');
+  return Object.values(w.people).filter((p) => p.sex === 'f' && p.role === 'kin' && p.father && !p.bride && ageNow(p, day) >= 18 && ageNow(p, day) <= 28 && w.people[p.father]?.role !== 'kin');
 }
 export const folkBrideId = (personId: string) => `folk-${personId}`;
 /** Each such daughter as a match in the household's terms (household BRIDES), added once. */
