@@ -3663,3 +3663,6 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .roster li.hurt small { color: #d9a37a; }
 .roster__dead-btn { margin-top: 8px; background: none; border: 0; padding: 4px 0; font: inherit; font-family: var(--label); font-size: 12px; letter-spacing: .12em; color: #c9a160; cursor: pointer; text-transform: uppercase; }
 .roster__dead li { grid-template-columns: 1fr; opacity: .8; }
+
+/* a leader with history: what he shouts as he rides out */
+.amb-nemesis { margin: 6px 0 2px; padding: 8px 12px; border-left: 3px solid #b0503a; background: rgba(90,20,10,.18); font-family: var(--display); font-style: italic; font-size: 16px; color: #f1d9b0; border-radius: 0 8px 8px 0; }

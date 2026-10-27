@@ -514,6 +514,8 @@ export interface Party {
   speed: number; // px per day
   home?: Pt;
   cooldownUntil?: number; // game-day number, avoids repeat encounters
+  /** its leader has a score to settle with you: it comes looking, further and harder than an ordinary band */
+  vendetta?: boolean;
 }
 
 
@@ -616,8 +618,9 @@ export function stepParties(parties: Party[], days: number, rng: () => number, p
     // a band that has already had its encounter with this caravan keeps to its own road for a while.
     if (p.kind === 'raiders' && player && p.strength && (p.cooldownUntil ?? 0) <= day) {
       const d = dist(p, player);
-      if (d < 22 && playerStrength < p.strength * 1.4) {
-        const step = Math.min(d, 26 * days); // about a laden camel's pace: animals and horses can outrun them
+      const feud = !!p.vendetta;
+      if (d < (feud ? 44 : 22) && playerStrength < p.strength * (feud ? 2.2 : 1.4)) {
+        const step = Math.min(d, (feud ? 30 : 26) * days); // about a laden camel's pace: animals and horses can outrun them
         const nx = p.x + ((player.x - p.x) / (d || 1)) * step, ny = p.y + ((player.y - p.y) / (d || 1)) * step;
         if (!isBlockedPx({ x: nx, y: ny })) return { ...p, x: nx, y: ny, path: [{ x: nx, y: ny }, { x: nx, y: ny }], travelled: 0 };
       } else if (d < 20 && playerStrength >= p.strength * 2) {

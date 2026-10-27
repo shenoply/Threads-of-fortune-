@@ -953,7 +953,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   // anyone within a day's sight of the caravan is seen, fog or not; raiders further off once the land is known
   // raiders hunting you close by: the music turns before they reach you
-  const huntedBy = w.parties.some((p) => p.kind === 'raiders' && !!p.strength && dist(p, moving && live ? live : w) < 22 && strength(w.party) < (p.strength ?? 0) * 1.4 && (p.cooldownUntil ?? 0) <= g.day);
+  const huntedBy = w.parties.some((p) => p.kind === 'raiders' && !!p.strength && dist(p, moving && live ? live : w) < (p.vendetta ? 44 : 22) && strength(w.party) < (p.strength ?? 0) * (p.vendetta ? 2.2 : 1.4) && (p.cooldownUntil ?? 0) <= g.day);
   useEffect(() => { if (huntedBy) { audio.pushEnv('map-danger', 'road', 'danger'); return () => audio.popEnv('map-danger'); } }, [huntedBy]);
   const visibleParties = w.parties.filter((p) => isExplored(w.fog, p) || dist(p, moving && live ? live : w) < (p.kind === 'raiders' ? 48 : 30));
   const news = newsMarks(g.day);
@@ -1133,7 +1133,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const mine = strength(w.party);
             const raid = p.kind === 'raiders' && !!p.strength;
             const d = dist(p, moving && live ? live : w);
-            const hunting = raid && d < 22 && mine < (p.strength ?? 0) * 1.4;
+            const hunting = raid && d < (p.vendetta ? 44 : 22) && mine < (p.strength ?? 0) * (p.vendetta ? 2.2 : 1.4) && (p.cooldownUntil ?? 0) <= g.day;
+            const foe = p.vendetta ? g.combat?.leaders?.[p.id] : undefined;
             const threat = raid ? ((p.strength ?? 0) > mine ? 'strong' : 'weak') : '';
             const gd = partyGoods(p);
             // a small medallion on the map; its name and strength only once tapped, or close in
@@ -1158,7 +1159,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                 <i className="pfoot" aria-hidden="true" />
                 <img className="pmedal" src={bandIconUrl(bandIcon(p.kind), raid, p.kind === 'mercenaries')} alt="" draggable={false} />
                 {open && (raid ? (
-                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? 'Hunting you · ' : ''}{name} · {p.strength} vs {mine}</span>
+                  <span className="pname" data-testid={`raid-label-${p.id}`}>{hunting ? (foe && foe.status === 'free' ? `${foe.name} is coming for you · ` : 'Hunting you · ') : ''}{name} · {p.strength} vs {mine}</span>
                 ) : p.kind === 'caravan' || p.kind === 'bedouin' ? (
                   <span className="pgoods" data-testid={`goods-${p.id}`}><Icon name={gd?.icon ?? 'camel'} />{gd ? `Trader · ${gd.label}` : 'Trader'}</span>
                 ) : <span className="pname">{p.name}{p.size ? ` · ${p.size}` : ''}</span>)}

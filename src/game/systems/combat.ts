@@ -311,6 +311,23 @@ export interface Leader {
   clearUntil?: number;
   /** which leader of this band he is (a jailed man is replaced by the next) */
   gen: number;
+  /** what has passed between you, oldest first: he remembers all of it */
+  past?: ('escaped' | 'ransomed' | 'beat-you' | 'bought-off')[];
+  /** times you have met him on the road */
+  meets?: number;
+}
+
+/** what a leader with history says when he rides out at you again */
+export function nemesisLine(l: Leader): string {
+  const past = l.past ?? [];
+  const last = past[past.length - 1];
+  const n = l.meets ?? 0;
+  if (n >= 4) return '"Every road I ride, you are on it. One of us will be buried beside it."';
+  if (last === 'ransomed') return '"You sold me back to my own cousins. They paid. Today you pay them back."';
+  if (last === 'beat-you') return past.filter((x) => x === 'beat-you').length >= 2 ? '"Again? You must like the taste of dust, merchant."' : '"The merchant with the soft hands. I still have your bale. Have you come for it?"';
+  if (last === 'bought-off') return '"You paid me once to go away. The price has gone up."';
+  if (last === 'escaped') return past.filter((x) => x === 'escaped').length >= 2 ? '"Twice you sent me running. I have more men now, and they do not run."' : '"Last time my men ran. These ones I paid to stay."';
+  return '';
 }
 export interface Prisoner { band: string; n: number; leader?: boolean; day: number }
 export interface CombatState {

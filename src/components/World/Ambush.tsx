@@ -8,7 +8,7 @@ import { threatForParty, THREAT_LINES, THREAT_VOICE, ambushPlace } from '../../d
 import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
-import { BAND_ROAD } from '../../game/systems/combat';
+import { BAND_ROAD, nemesisLine } from '../../game/systems/combat';
 import { audio } from '../../game/audio/engine';
 import { buzz } from '../../game/feel';
 import { BATTLE_ART, fieldFor } from './BattleField';
@@ -251,6 +251,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     cousinsDone(retreat ? 'lost' : paid ? 'paid' : isWin(res) ? 'won' : res === 'draw' ? 'passed' : 'lost');
     const sideLine = letGo ? ` ${letGo === 1 ? 'One bale was' : `${letGo} bales were`} lost in the fighting.` : '';
     if (paid && res === 'withdraw') {
+      // he will remember that you paid
+      if (leader) { const c0 = combatOf(useGame.getState()); const l = c0.leaders[party.id]; if (l) useGame.setState({ combat: { ...c0, leaders: { ...c0.leaders, [party.id]: { ...l, past: [...(l.past ?? []), 'bought-off' as const].slice(-6) } } } }); }
       // bought off mid-fight: they ride away with the money, nothing to take from them
       base = st.ambushOutcome(party.id, { cashLoss: Math.min(paid, g.cash), rugsLost: letGo || undefined, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${by}${who} counts the money twice and leads his men away. It cost ${fmt(paid)}, and nobody else died for it.${sideLine}${lostLine}` });
       setResult(withMen(base)); setClashSpoils(null); setSpoils(null); setStage('result');
@@ -320,7 +322,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
             <img className="amb-face" src={threat.leaderImage} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.jpg'; }} />
             <b>{threat.displayName}</b>
             <span>{enemy.n} men · strength {enPow}</span>
-            {leader && <span className="amb-leader" data-testid="amb-leader">Led by {leader.name}{leader.robbed ? ', who robbed you' : ''}</span>}
+            {leader && <span className="amb-leader" data-testid="amb-leader">Led by {leader.name}{leader.robbed ? ', who robbed you' : ''}{leader.meets ? ` · ${leader.meets === 1 ? 'you have met once before' : `you have met ${leader.meets} times`}` : ''}</span>}
+            {leader && nemesisLine(leader) && <p className="amb-nemesis" data-testid="amb-nemesis">{leader.name}: {nemesisLine(leader)}</p>}
           </div>
         </div>}
         <div className="amb-bar" aria-label={`Your share of the fighting strength: ${share}%`}><i style={{ width: `${share}%` }} /></div>

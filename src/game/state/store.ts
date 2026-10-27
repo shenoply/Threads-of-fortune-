@@ -2202,7 +2202,7 @@ export const useGame = create<GameState & Actions>()(
           let parties = s.world.parties;
           let rep = 0;
           const win = isWin(end.result);
-          if (lead) c.leaders[partyId] = { ...lead, seen: true };
+          if (lead) c.leaders[partyId] = { ...lead, seen: true, meets: (lead.meets ?? 0) + 1 };
           if (win) {
             c.wins += 1;
             const full = end.result === 'yield', thin = end.result === 'withdraw';
@@ -2254,8 +2254,13 @@ export const useGame = create<GameState & Actions>()(
               out.willing = end.rebels ? 0 : full ? Math.min(caught, caught >= 3 ? 2 : caught >= 1 ? 1 : 0) : 0;
             }
             if (lead) {
-              if (leaderTaken) { c.leaders[partyId] = { ...c.leaders[partyId], status: 'held' }; c.leaderDay = { ...(c.leaderDay ?? {}), [partyId]: s.day }; out.leader = lead.name; }
-              else if (!thin) { c.leaders[partyId] = { ...c.leaders[partyId], grudge: true, bounty: lead.bounty + 40 }; lines.push(`${lead.name} gets away. He will not forget this.`); }
+              if (leaderTaken) { parties = parties.map((p) => (p.id === partyId ? { ...p, vendetta: false } : p)); c.leaders[partyId] = { ...c.leaders[partyId], status: 'held' }; c.leaderDay = { ...(c.leaderDay ?? {}), [partyId]: s.day }; out.leader = lead.name; }
+              else if (!thin) {
+                c.leaders[partyId] = { ...c.leaders[partyId], grudge: true, bounty: lead.bounty + 40, past: [...(lead.past ?? []), 'escaped' as const].slice(-6) };
+                lines.push(`${lead.name} gets away. He will not forget this.`);
+                // he goes home, gathers more men, and comes looking for you
+                parties = parties.map((p) => (p.id === partyId ? { ...p, vendetta: true, size: Math.min(16, (p.size ?? 4) + 2), strength: Math.min(60, (p.strength ?? 8) + 4) } : p));
+              }
               if (lead.robbed) {
                 out.revenge = true; rep += 2;
                 c.leaders[partyId] = { ...c.leaders[partyId], robbed: undefined };
@@ -2265,8 +2270,10 @@ export const useGame = create<GameState & Actions>()(
           } else if (end.result === 'pushed' || end.result === 'broken') {
             c.losses += 1;
             if (lead) {
-              c.leaders[partyId] = { ...c.leaders[partyId], robbed: s.day, bounty: lead.bounty + 50 };
+              c.leaders[partyId] = { ...c.leaders[partyId], robbed: s.day, bounty: lead.bounty + 50, past: [...(lead.past ?? []), 'beat-you' as const].slice(-6) };
               lines.push(`${lead.name} will boast of this in every coffee house on ${BAND_ROAD[partyId]}. Your score with him is not settled.`);
+              // he has had his revenge: he stops hunting you and waits for you to come to him
+              parties = parties.map((p) => (p.id === partyId ? { ...p, vendetta: false } : p));
             }
           }
           // a band whose leader is in your hands, or gone, keeps off its road
@@ -2340,14 +2347,14 @@ export const useGame = create<GameState & Actions>()(
             if (choice === 'ransom') {
               const r = ransomFor(l);
               cash += r;
-              leaders[p.band] = { ...l, status: 'free', grudge: true };
-              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + 6 } : q));
+              leaders[p.band] = { ...l, status: 'free', grudge: true, past: [...(l.past ?? []), 'ransomed' as const].slice(-6) };
+              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + 6, vendetta: true } : q));
               parts.push(`A cousin of ${l.name} pays ${fmt(r)} in silver to have him back. He rides off without a word. You may meet him again.`);
             } else {
               cash += l.bounty;
               leaders[p.band] = { ...l, status: 'jailed', clearUntil: s.day + CLEAR_DAYS };
               // his band keeps off its road for weeks, and comes back smaller under a new man
-              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + CLEAR_DAYS, size: Math.max(2, (q.size ?? 4) - 1), strength: Math.max(4, (q.strength ?? 8) - 2) } : q));
+              parties = parties.map((q) => (q.id === p.band ? { ...q, vendetta: false, cooldownUntil: s.day + CLEAR_DAYS, size: Math.max(2, (q.size ?? 4) - 1), strength: Math.max(4, (q.strength ?? 8) - 2) } : q));
               parts.push(`${l.name} goes into the cells. The reward on his head is ${fmt(l.bounty)}. ${BAND_ROAD[p.band][0].toUpperCase()}${BAND_ROAD[p.band].slice(1)} will be quiet for a while.`);
             }
           }
