@@ -25,7 +25,7 @@ export interface ClashInfo {
   /** what a lost fight costs: loads taken and coin */
   stakes: { loads: number; cash: number };
 }
-export interface ClashEnd { fight: { over?: Result; duel?: 'won' | 'lost' }; lost: Record<string, number>; kills: number; retreat?: boolean; auto?: boolean; hurt?: Record<string, number>; heroDown?: boolean }
+export interface ClashEnd { fight: { over?: Result; duel?: 'won' | 'lost' }; lost: Record<string, number>; kills: number; retreat?: boolean; auto?: boolean; hurt?: Record<string, number>; heroDown?: boolean; /** what the fight's moments cost on the side: loads let go, money paid them to ride off */ cost?: { loads?: number; paid?: number } }
 
 const HEAD: Record<string, string> = { run: 'They break and run', yield: 'They lay down their arms', withdraw: 'They pull back', draw: 'Neither side gives way', pushed: 'You are pushed back', broken: 'Your line breaks' };
 const GROUP_NAME: Record<string, string> = { all: 'Everyone', foot: 'Foot', rifles: 'Rifles', riders: 'Riders', hero: 'Hassan' };
@@ -142,7 +142,9 @@ function viewOf(b: Battle): View {
 
 /** The few moments in a fight where the outcome turns: the field holds still and you choose. Each comes
  *  at most once a fight. */
-type MomentId = 'contact' | 'charge-in' | 'leader' | 'rally' | 'finish';
+type MomentId = 'contact' | 'charge-in' | 'leader' | 'rally' | 'finish' | 'flank' | 'powder' | 'terms' | 'bolt';
+/** the painted still behind each moment (art/battle/moments/<name>.webp); hidden until the painting exists */
+const MOMENT_ART: Record<MomentId, string> = { contact: 'volley', 'charge-in': 'charge', leader: 'leader', rally: 'waver', finish: 'breaking', flank: 'flank', powder: 'powder', terms: 'terms', bolt: 'bolt' };
 interface Choice { id: string; label: string; note: string; primary?: boolean }
 
 /** One plain line over the field: what is happening and what to do about it. */
@@ -170,6 +172,11 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   const momentsDone = useRef(new Set<MomentId>());
   // 'let them come closer': the rifles fire by themselves at the best moment
   const autoVolley = useRef(false);
+  // what the moments cost besides the fight itself, carried to the account
+  const cost = useRef<{ loads: number; paid: number }>({ loads: 0, paid: 0 });
+  const volleys = useRef(0);
+  // a careful volley: the next one aims better
+  const aimBonus = useRef(false);
   const ended = useRef(false);
   // the big word over the field after a volley: how well it was timed and what it did
   const [shout, setShout] = useState<{ k: number; text: string; perfect: boolean } | null>(null);
@@ -213,6 +220,17 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   };
   const pickMoment = (nv: View, b: Battle): MomentId | null => {
     const done = momentsDone.current;
+    // at most four moments a fight: the field should not stop every few seconds
+    if (done.size >= 4) return null;
+    const seedOf = (k: string) => { let h = 0; for (const ch of `${info.seed}:${k}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 1000) / 1000; };
+    // their riders swing wide round your flank
+    if (!done.has('flank') && info.mounted && nv.t > 8 && b.men.some((m) => m.side === 1 && m.state === 'up' && !m.fleeing && m.mounted && (m.x < 18 || m.x > 82) && m.y > 40)) return 'flank';
+    // the powder runs short after a hot fight
+    if (!done.has('powder') && nv.rifles > 0 && volleys.current >= 3 && nv.t > 25 && nv.them > 30) return 'powder';
+    // their leader shouts an offer while both sides are hurting
+    if (!done.has('terms') && info.leader && nv.leaderUp && nv.t > 18 && nv.them < 60 && nv.them > 30 && nv.me < 75 && seedOf('terms') < 0.5) return 'terms';
+    // a camel bolts with the loads in the din
+    if (!done.has('bolt') && info.camels > 0 && nv.t > 12 && nv.t < 60 && seedOf('bolt') < 0.35 && Math.floor(nv.t) === 12 + Math.floor(seedOf('boltT') * 20)) return 'bolt';
     if (!done.has('rally') && nv.me < 40 && nv.t > 5) return 'rally';
     if (!done.has('contact') && !done.has('charge-in') && nv.t > 2.5 && nv.rifles > 0 && nv.inRange && !nv.charging && !nv.melee && nv.loaded > 0) return 'contact';
     if (!done.has('charge-in') && !done.has('contact') && nv.t > 2.5 && nv.rifles === 0 && nv.inRange && !nv.charging) return 'charge-in';
@@ -243,6 +261,25 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
       { id: 'fallback', label: 'Fall back, leave them a bale', note: 'the fight ends; a load and some coin lost' },
       { id: 'keep', label: 'Hold on', note: 'and hope they do' },
     ] };
+    if (m === 'flank') return { title: 'Riders on your flank', line: 'A knot of their horsemen has swung wide, round the end of your line, towards the loads.', choices: [
+      { id: 'turn', label: 'Turn the line to face them', note: 'your rifles meet them; the front gets thinner', primary: true },
+      ...(v.counts.riders > 0 ? [{ id: 'riders', label: 'Send your riders at them', note: 'horse against horse, away from the line' }] : []),
+      { id: 'letgo', label: 'Let them have a load', note: 'they will ride off with one bale; the line holds' },
+    ] };
+    if (m === 'powder') return { title: 'The powder is running low', line: 'Your rifles have been at it hard. A few rounds a man are left in the pouches.', choices: [
+      { id: 'count', label: 'Make every shot count', note: 'hold fire for close range: the next volley aims truer', primary: true },
+      { id: 'charge', label: 'Close with them before it runs out', note: 'go in with the butt and the stick' },
+      { id: 'hold', label: 'Pull in behind the camels', note: 'save it for when they come' },
+    ] };
+    if (m === 'terms') { const ask = Math.max(100, Math.round((info.stakes.cash || 200) * 0.6)); return { title: `${lead} calls out`, line: `"Enough! Give us ${fmt(ask)} for our trouble and we ride off. Nobody else dies today."`, choices: [
+      { id: 'refuse', label: 'Refuse', note: 'your men cheer you; so do his', primary: true },
+      { id: 'pay', label: `Pay ${fmt(ask)}`, note: 'the fight ends here, with everyone you have left' },
+      { id: 'counter', label: 'Offer half', note: 'he may take it; he may take it as an insult' },
+    ] }; }
+    if (m === 'bolt') return { title: 'A camel bolts', line: 'A shot too close, and one of the loaded camels is off down the road with your bales swinging.', choices: [
+      { id: 'chase', label: 'Send a man after it', note: 'one fewer in the line for a while', primary: true },
+      { id: 'letbolt', label: 'Let it go', note: 'you may find it after, or you may not' },
+    ] };
     return { title: 'They are breaking', line: 'Some are already running. The rest are looking for a way out.', choices: [
       { id: 'quarter', label: 'Offer them quarter', note: `about ${Math.round(quarterOdds() * 100)}% they lay down their arms: the most prisoners, no more blood`, primary: true },
       { id: 'charge', label: 'Charge and finish it', note: 'more of them fall; a little more risk' },
@@ -263,6 +300,21 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
       else { b.morale[1] = Math.min(100, b.morale[1] + 5); if (me && b.rng() < 0.3) me.hp = Math.max(1, me.hp - 1); say(b, `Hassan fires and misses. ${lead.name} turns his men toward the shot.`); audio.sfx('shot'); }
     } else if (id === 'rally') { b.heroAt = 'front'; b.morale[0] = Math.min(100, b.morale[0] + 25); say(b, 'Hassan walks out in front of the camels. The men stop looking back.', true); buzz(30); }
     else if (id === 'fallback') { end(true); return; }
+    else if (id === 'turn') { command(b, 'rifles', 'hold'); command(b, 'foot', 'hold'); b.morale[1] -= 10; b.morale[0] -= 4; say(b, 'The line wheels to face the riders. A ragged volley empties two saddles.', true); audio.sfx('volley'); }
+    else if (id === 'riders') { command(b, 'riders', 'charge'); b.morale[1] -= 6; say(b, 'Your riders gallop out to meet them.', true); audio.sfx('melee'); }
+    else if (id === 'letgo') { cost.current.loads += 1; b.morale[0] -= 3; say(b, 'They cut a bale loose and ride off with it. The line holds.'); }
+    else if (id === 'count') { aimBonus.current = true; autoVolley.current = true; b.fire = 'hold'; say(b, '"Wait for them. Wait." The men hold their fire.'); }
+    else if (id === 'refuse') { b.morale[0] = Math.min(100, b.morale[0] + 6); b.morale[1] = Math.min(100, b.morale[1] + 4); say(b, 'You shout back an answer his mother would not like. Your men laugh.', true); }
+    else if (id === 'pay' || id === 'counter') {
+      const ask = Math.max(100, Math.round((info.stakes.cash || 200) * 0.6));
+      const half = id === 'counter';
+      if (!half || b.rng() < 0.5 + (60 - b.morale[1]) / 100) {
+        cost.current.paid += half ? Math.round(ask / 2) : ask;
+        b.over = 'withdraw'; say(b, half ? `He spits, and takes it. ${fmt(Math.round(ask / 2))} changes hands, and they ride off.` : `${fmt(ask)} changes hands. They ride off without looking back.`, true);
+      } else { b.morale[1] = Math.min(100, b.morale[1] + 8); say(b, '"Half? Half!" He takes it badly, and his men come on harder.'); }
+    }
+    else if (id === 'chase') { const man = b.men.find((x) => x.side === 0 && x.state === 'up' && !x.hero && !x.fleeing && x.group !== 'rifles') ?? b.men.find((x) => x.side === 0 && x.state === 'up' && !x.hero && !x.fleeing); if (man) { man.x = man.x < 50 ? 2 : 98; man.y = 99; } say(b, 'One of your lads sprints after the camel and catches it by the halter.'); }
+    else if (id === 'letbolt') { if (b.rng() < 0.5) { cost.current.loads += 1; say(b, 'The camel is gone round the bend, and the bales with it.'); } else say(b, 'The camel stops at the first bush to eat it. The bales are safe.'); }
     else if (id === 'quarter') {
       if (b.rng() < quarterOdds()) { b.over = 'yield'; say(b, 'You call out an offer. One by one they throw down their arms.', true); audio.sfx('reward'); }
       else { b.morale[1] = Math.min(100, b.morale[1] + 6); say(b, 'They answer with a shot. The fight goes on.'); }
@@ -287,8 +339,12 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   const fireToggle = () => { const b = bRef.current; if (!b) return; b.fire = b.fire === 'free' ? 'hold' : 'free'; audio.sfx('tap'); setV(viewOf(b)); };
   const loose = () => {
     const b = bRef.current; if (!b || b.over) return;
+    // a careful volley (the powder moment): the men hold until the best range and aim truer
+    if (aimBonus.current) { for (const x of b.men) if (x.side === 0) x.aim *= 1.25; }
     const r = volley(b);
+    if (aimBonus.current) { aimBonus.current = false; for (const x of b.men) if (x.side === 0) x.aim /= 1.25; }
     if (!r.fired) { audio.sfx('tap'); return; }
+    volleys.current += 1;
     buzz(r.quality === 'perfect' ? 70 : 40);
     setShout({ k: Date.now(), perfect: r.quality === 'perfect', text: r.quality === 'perfect' ? (r.hits ? `Perfect! ${r.hits} down` : 'Perfect! They falter') : r.hits ? `${r.hits} down` : r.quality === 'far' ? 'Too far' : 'Missed' });
     window.setTimeout(() => setShout((x) => (x && Date.now() - x.k > 1200 ? null : x)), 1300);
@@ -311,7 +367,7 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   const end = (retreat = false) => {
     if (ended.current) return; ended.current = true;
     const b = bRef.current!; const L = losses(b);
-    onEnd({ fight: { over: retreat ? 'pushed' : b.over, duel: b.duel }, lost: L.lost, kills: L.kills, retreat, hurt: L.hurt, heroDown: L.heroDown });
+    onEnd({ fight: { over: retreat ? 'pushed' : b.over, duel: b.duel }, lost: L.lost, kills: L.kills, retreat, hurt: L.hurt, heroDown: L.heroDown, cost: cost.current });
   };
   // the duel: their leader against Hassan, the fight held while it lasts
   const duelDone = (hits: number) => {
@@ -358,6 +414,7 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
         {paused && !v.over && <div className="fb-paused">Paused</div>}
         {moment && !v.over && (() => { const c = choicesFor(moment); return (
           <div className="fb-moment" data-testid="fight-moment" data-moment={moment}>
+            <img className="fb-moment-art" src={`art/battle/moments/${MOMENT_ART[moment]}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
             <small>THE FIELD HOLDS ITS BREATH</small>
             <b>{c.title}</b>
             <p>{c.line}</p>

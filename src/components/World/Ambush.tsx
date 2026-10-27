@@ -225,7 +225,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     if (combatOf(useGame.getState()).prisoners.length > 0) r = `${r} ${useGame.getState().policePost('bounty')}`;
     onDone(r);
   };
-  const finish = ({ fight: f, lost, kills, retreat, auto, hurt, heroDown }: ClashEnd) => {
+  const finish = ({ fight: f, lost, kills, retreat, auto, hurt, heroDown, cost }: ClashEnd) => {
     const lostList = Object.entries(lost).map(([id, n]) => `${n} ${midName(n > 1 ? TROOPS[id].plural : TROOPS[id].name)}`).join(', ');
     const hurtN = Object.values(hurt ?? {}).reduce((a, n) => a + n, 0);
     const lostLine = (lostList ? ` Killed: ${lostList}.` : '') + (hurtN ? ` ${hurtN === 1 ? 'One man is' : `${hurtN} men are`} wounded and will mend.` : '');
@@ -236,15 +236,23 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const band = midName(threat.displayName);
     let base = '';
     let extra: ClashSpoils | null = null;
-    cousinsDone(retreat ? 'lost' : isWin(res) ? 'won' : res === 'draw' ? 'passed' : 'lost');
+    const paid = cost?.paid ?? 0, letGo = cost?.loads ?? 0;
+    cousinsDone(retreat ? 'lost' : paid ? 'paid' : isWin(res) ? 'won' : res === 'draw' ? 'passed' : 'lost');
+    const sideLine = letGo ? ` ${letGo === 1 ? 'One bale was' : `${letGo} bales were`} lost in the fighting.` : '';
+    if (paid && res === 'withdraw') {
+      // bought off mid-fight: they ride away with the money, nothing to take from them
+      base = st.ambushOutcome(party.id, { cashLoss: Math.min(paid, g.cash), rugsLost: letGo || undefined, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${by}${who} counts the money twice and leads his men away. It cost ${fmt(paid)}, and nobody else died for it.${sideLine}${lostLine}` });
+      setResult(base); setClashSpoils(null); setSpoils(null); setStage('result');
+      return;
+    }
     if (retreat) {
       const wound = Math.random() < 0.25 ? ` ${st.hurt('fight')}` : '';
-      base = st.ambushOutcome(party.id, { cashLoss: Math.round(g.cash * 0.15), rugsLost: 1, troopsLost: lost, delayHours: 6, enemyLost: kills, text: `You pull your caravan back and run for it, leaving a bale and some coin behind.${lostLine}${wound}` });
+      base = st.ambushOutcome(party.id, { cashLoss: Math.round(g.cash * 0.15), rugsLost: 1 + letGo, troopsLost: lost, delayHours: 6, enemyLost: kills, text: `You pull your caravan back and run for it, leaving a bale and some coin behind.${sideLine}${lostLine}${wound}` });
     } else if (isWin(res)) {
       audio.sfx('coins');
       const winWound = heroDown ? ` ${st.hurt('fight')}` : '';
       const head = res === 'yield' ? `${by}${who} throws down his rifle, and his men follow.` : res === 'run' ? `${by}The ${band} break and run.` : `${by}They pull back out of range and ride off. Not a clean win, but the road is yours.`;
-      base = st.ambushOutcome(party.id, { rep: res === 'yield' ? 3 : res === 'run' ? 2 : 1, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${head}${lostList ? lostLine : ` None of your men were killed.${hurtN ? lostLine : ''}`}${winWound}` });
+      base = st.ambushOutcome(party.id, { rep: res === 'yield' ? 3 : res === 'run' ? 2 : 1, rugsLost: letGo || undefined, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${head}${sideLine}${lostList ? lostLine : ` None of your men were killed.${hurtN ? lostLine : ''}`}${winWound}` });
       extra = useGame.getState().clashAfter(party.id, { result: res, kills, size, rebels });
       // those who ran can be ridden after
       const left = Math.max(0, size - (extra?.prisoners ?? 0));
@@ -252,7 +260,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       const scattered = res === 'yield' ? 0 : Math.min(left, Math.max(Math.ceil(size / 3), size - kills - (extra?.prisoners ?? 0)));
       if (scattered > 0 && !rebels) setFled({ size: Math.min(8, scattered), leader: extra?.leader ? undefined : leader?.name });
     } else if (res === 'draw') {
-      base = st.ambushOutcome(party.id, { delayHours: 6, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${by}Neither side will give way, and in the end both pull back. You lose half a day.${lostLine}` });
+      base = st.ambushOutcome(party.id, { delayHours: 6, rugsLost: letGo || undefined, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${by}Neither side will give way, and in the end both pull back. You lose half a day.${sideLine}${lostLine}` });
       extra = useGame.getState().clashAfter(party.id, { result: res, kills, size, rebels });
     } else {
       // beaten: it costs men, a bale or a day, never the game
@@ -261,7 +269,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       const wound = heroDown || broken || f.duel === 'lost' || Math.random() < 0.3 ? ` ${st.hurt('fight')}` : '';
       const out = broken && f.duel === 'lost' ? ` ${useGame.getState().knockedOut('beaten by raiders')}` : '';
       const loss = Math.round(clashInfo.stakes.cash * (broken ? 1.2 : 1));
-      base = st.ambushOutcome(party.id, { cashLoss: loss, rugsLost: clashInfo.stakes.loads, troopsLost: lost, rep: -1, delayHours: broken ? 10 : 5, enemyLost: kills, text: `${by}${broken ? 'Your line breaks.' : 'Your men give ground and they get in among the loads.'} ${lines.strip}${takenLine(loss)}${lostLine}${wound}${out}` });
+      base = st.ambushOutcome(party.id, { cashLoss: loss, rugsLost: clashInfo.stakes.loads + letGo, troopsLost: lost, rep: -1, delayHours: broken ? 10 : 5, enemyLost: kills, text: `${by}${broken ? 'Your line breaks.' : 'Your men give ground and they get in among the loads.'} ${lines.strip}${takenLine(loss)}${lostLine}${wound}${out}` });
       extra = useGame.getState().clashAfter(party.id, { result: res, kills, size, rebels });
     }
     setResult(extra?.text ? `${base} ${extra.text}` : base);

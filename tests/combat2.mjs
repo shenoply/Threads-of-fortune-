@@ -72,6 +72,7 @@ const play = async (orders = ['charge'], duel = false) => {
     if (duel && await has('[data-testid=order-duel]')) return 'duel';
     // a moment that turns the fight: call out the leader when a duel is wanted, else take the first choice
     if (await has('[data-testid=fight-moment]')) {
+      if (process.env.DBG) console.log('moment', await p.getAttribute('[data-testid=fight-moment]', 'data-moment').catch(() => ''), JSON.stringify(await morale().catch(() => ({}))));
       if (duel && await has('[data-testid=moment-duel]')) { await p.click('[data-testid=moment-duel]'); return 'duel'; }
       const pick = follow ? '[data-testid=fight-moment] .fb-choice' : (await has('[data-testid=moment-keep]')) ? '[data-testid=moment-keep]' : (await has('[data-testid=moment-hold]')) ? '[data-testid=moment-hold]' : '[data-testid=fight-moment] .fb-choice';
       await p.locator(pick).first().click({ timeout: 1000 }).catch(() => {});
@@ -108,7 +109,7 @@ const leave = async () => { await inGame((m) => { const g = m.useGame.getState()
 const state = () => inGame((m) => { const s = m.useGame.getState(); return { cash: s.cash, troops: s.world.party.troops, combat: s.combat, day: s.day, parties: s.world.parties.map((q) => ({ id: q.id, cooldownUntil: q.cooldownUntil })), inv: s.inventory.length }; });
 
 // 1. tells and orders: the right answer breaks them; a win brings promotion and a named sergeant
-await meet('rb0', { party: { size: 5, strength: 18 }, troops: { guard: 2, fellah: 2, veteran: 1 }, combat: { wins: 2, xp: { fellah: 3 } } });
+await meet('rb0', { party: { size: 4, strength: 12 }, troops: { guard: 2, fellah: 2, veteran: 1 }, combat: { wins: 2, xp: { fellah: 3 } } });
 check(await has('[data-testid=amb-leader]'), `the band has a named leader (${await p.textContent('[data-testid=amb-leader]').catch(() => '')})`);
 const fightBtn = (await p.textContent('[data-testid=amb-fight]')).replace(/\s+/g, ' ');
 check(/\d+%/.test(fightBtn) && /(lose|no men lost)/.test(fightBtn) && !/100%/.test(fightBtn), `one honest forecast on the Fight button, never certain: ${fightBtn}`);
@@ -132,7 +133,7 @@ const txt1 = await finish();
 let st = await state();
 check(st.combat.wins === 3, 'the win is counted');
 check(/earned/.test(txt1) || ((st.troops.guard ?? 0) >= 2 && (st.troops.fellah ?? 0) < 2), `a village lad earns his rifle (or fell trying): ${JSON.stringify(st.troops)}`);
-check(!!st.combat.sergeant && /Sergeant/.test(txt1), `a veteran becomes the named sergeant (${st.combat.sergeant?.name})`);
+check(!!st.combat.sergeant && /Sergeant/.test(txt1), `a veteran becomes the named sergeant (${st.combat.sergeant?.name}) ${txt1.slice(0,300)} ${JSON.stringify(st.troops)}`);
 await p.screenshot({ path: `${SHOTS}/combat2-result.png` });
 await leave();
 

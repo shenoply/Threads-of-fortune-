@@ -247,7 +247,12 @@
 .fb-moment { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 6; padding: 14px 14px 12px; border-radius: 14px;
   background: linear-gradient(180deg, rgba(30,19,10,.94), rgba(16,10,5,.96)); box-shadow: inset 0 0 0 1px rgba(231,189,110,.4), 0 10px 30px rgba(0,0,0,.55);
   animation: fb-moment-in .35s cubic-bezier(.2,.8,.3,1); }
-.fb-field:has(.fb-moment) canvas { filter: brightness(.6) saturate(.8); transition: filter .3s; }
+.fb-field canvas { transition: filter .3s, transform .6s cubic-bezier(.2,.8,.3,1); transform-origin: 50% 40%; }
+.fb-field:has(.fb-moment) canvas { filter: brightness(.55) saturate(.75); transform: scale(1.07); }
+.fb-moment { overflow: hidden; }
+.fb-moment-art { display: block; width: calc(100% + 28px); margin: -14px -14px 10px; height: 34vh; max-height: 220px; object-fit: cover;
+  mask-image: linear-gradient(180deg, #000 70%, transparent); -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); }
+@media (prefers-reduced-motion: reduce) { .fb-field:has(.fb-moment) canvas { transform: none; } }
 @keyframes fb-moment-in { from { opacity: 0; transform: translateY(16px); } }
 .fb-moment > small { font-family: var(--label); font-size: 10.5px; letter-spacing: .22em; color: #c9a160; }
 .fb-moment > b { display: block; margin-top: 2px; font-family: var(--display); font-size: 22px; color: #ffe1a0; }
