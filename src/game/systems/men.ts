@@ -34,7 +34,7 @@ export const regionOf = (kind: string): PoolRegion => REGION[kind] ?? 'egypt';
 export const manLabel = (m: NamedMan) => (m.by ? `${m.name.split(' ')[0]} ${m.by}` : m.name);
 export const kindName = (kind: string) => (TROOPS[kind]?.name ?? kind).toLowerCase().replace('bedouin', 'Bedouin').replace('cairo', 'Cairo').replace('giza', 'Giza').replace('arnaut', 'Arnaut');
 /** the face, or the troop's own picture until the pool's painting exists */
-export const manFace = (m: NamedMan) => `art/people/${m.face}.jpg`;
+export const manFace = (m: NamedMan) => `art/people/small/${m.face}.webp`;
 export const manFallback = (m: { kind: string }) => `art/troops/${m.kind}.jpg`;
 
 function freshMan(kind: string, day: number, taken: Set<string>, takenFaces: Set<string>, salt: string): NamedMan {

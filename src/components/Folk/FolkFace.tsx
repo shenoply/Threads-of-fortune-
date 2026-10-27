@@ -17,6 +17,7 @@ export function FolkFace({ p, size = 56 }: { p: Person; size?: number }) {
   const accent = ACCENTS[(p.house ?? p.id).length % ACCENTS.length];
   if (!src || bad) return <span className="cameo-wrap" style={{ width: size, height: size }}><PersonCameo spec={personFor(p.id, look, accent)} size={size} /></span>;
   // a portrait painted for the game has a small copy for lists (art/portraits/small/<id>.webp)
-  const small = size <= 72 && /^art\/portraits\/[^/]+\.jpg$/.test(src) && !tried ? src.replace(/^art\/portraits\/(.+)\.jpg$/, 'art/portraits/small/$1.webp') : src;
+  // and so does each face of the portrait pool (art/people/small/<id>.webp)
+  const small = size <= 72 && /^art\/(portraits|people)\/[^/]+\.jpg$/.test(src) && !tried ? src.replace(/^art\/(portraits|people)\/(.+)\.jpg$/, 'art/$1/small/$2.webp') : src;
   return <img className="folk-face" src={small} alt="" width={size} height={size} style={{ width: size, height: size }} onError={() => (small !== src ? setTried(true) : setBad(true))} loading="lazy" />;
 }
