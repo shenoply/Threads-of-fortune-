@@ -144,7 +144,7 @@ function viewOf(b: Battle): View {
  *  at most once a fight. */
 type MomentId = 'contact' | 'charge-in' | 'leader' | 'rally' | 'finish' | 'flank' | 'powder' | 'terms' | 'bolt';
 /** the painted still behind each moment (art/battle/moments/<name>.webp); hidden until the painting exists */
-const MOMENT_ART: Record<MomentId, string> = { contact: 'volley', 'charge-in': 'charge', leader: 'leader', rally: 'waver', finish: 'breaking', flank: 'flank', powder: 'powder', terms: 'terms', bolt: 'bolt' };
+const MOMENT_ART: Record<MomentId, string> = { contact: 'volley', 'charge-in': 'charge', leader: 'duel', rally: 'waver', finish: 'surrender', flank: 'flank', powder: 'powder', terms: 'terms', bolt: 'bolt' };
 interface Choice { id: string; label: string; note: string; primary?: boolean }
 
 /** One plain line over the field: what is happening and what to do about it. */
@@ -499,6 +499,7 @@ function Duel({ info, round, onDone }: { info: ClashInfo; round: number; onDone:
   const strike = () => { const p = posAt(performance.now()); resolve(p >= spot[st.current.ex] && p <= spot[st.current.ex] + w); };
   return (
     <div className="clash-duelbox" data-testid="duel" data-open="0" data-exchange={view.ex + 1} ref={box}>
+      <img className="duel-art" src="art/battle/moments/duel.webp" alt="" />
       <div className="duel-faces">
         <img className={view.flash === 'miss' ? 'shake' : ''} src={info.heroImg} alt="" />
         <span className="duel-score" data-testid="duel-score">{view.hits} – {view.misses}</span>

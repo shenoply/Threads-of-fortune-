@@ -78,6 +78,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const [text, setText] = useState(party.id === 'cousins' ? 'Six riders across the road. In front, a man with Selim\'s jaw and Selim\'s gold tooth: his cousin Mahmoud. "Our cousin had to leave Cairo because of you. Someone has to pay for his ticket."' : lines.open);
   const [result, setResult] = useState('');
   const [robArt, setRobArt] = useState<string | null>(null);
+  // their leader threw down his arms: the picture of it over the account
+  const [yielded, setYielded] = useState(false);
   const [spoils, setSpoils] = useState<{ cash: number; joiners: number; animal?: string } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   // Selim's cousins (the cousins mission): how it went is what the mission remembers; then they go home
@@ -239,6 +241,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const lostLine = (lostList ? ` Killed: ${lostList}.` : '') + (hurtN ? ` ${hurtN === 1 ? 'One man is' : `${hurtN} men are`} wounded and will mend.` : '');
     const st = useGame.getState();
     const res = f.over ?? 'draw';
+    setYielded(res === 'yield' && !retreat);
     const by = auto ? (combat.sergeant ? `Sergeant ${combat.sergeant.name} takes charge. ` : 'Your oldest hand takes charge. ') : '';
     const who = leader?.name ?? 'Their leader';
     const band = midName(threat.displayName);
@@ -304,6 +307,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {place}</small><b>{threat.displayName}</b></div>
+        {(stage === 'standoff' || stage === 'demand') && !rebels && <img className="amb-rob-art amb-scene" src="art/battle/moments/ambush.webp" alt="" data-testid="amb-scene" />}
         {stage !== 'battle' && stage !== 'chase' && <div className="amb-sides">
           <div className="amb-side amb-me">
             <img className="amb-face" src="art/troops/escort-road.jpg" alt="" />
@@ -362,6 +366,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         {stage === 'result' && (
           <div ref={resultRef}>
             {robArt && <img className="amb-rob-art" src={`art/events/${robArt}.webp`} alt="" data-testid="rob-art" />}
+            {!robArt && yielded && <img className="amb-rob-art" src="art/battle/moments/surrender.webp" alt="" data-testid="surrender-art" />}
             <p className="amb-text" data-testid="encounter-result">{result}</p>
             {spoils && (spoils.cash > 0 || spoils.joiners > 0 || spoils.animal) && (
               <div className="amb-spoils" data-testid="amb-spoils">

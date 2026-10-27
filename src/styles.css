@@ -3666,3 +3666,5 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 
 /* a leader with history: what he shouts as he rides out */
 .amb-nemesis { margin: 6px 0 2px; padding: 8px 12px; border-left: 3px solid #b0503a; background: rgba(90,20,10,.18); font-family: var(--display); font-style: italic; font-size: 16px; color: #f1d9b0; border-radius: 0 8px 8px 0; }
+.amb-scene { max-height: 24vh; object-position: 50% 40%; }
+.duel-art { display: block; width: 100%; max-height: 22vh; object-fit: cover; object-position: 50% 35%; border-radius: 10px; margin-bottom: 8px; }
