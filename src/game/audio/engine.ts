@@ -16,7 +16,7 @@ export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.3, sfx: 1, dialogu
 export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
 /** Which set of music themes fits the moment. */
 export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | 'istanbul' | 'palace' | 'auction-small' | 'auction-grand'
-  | 'camp' | 'port' | 'levant' | 'desert' | 'cabaret' | 'rivalry';
+  | 'camp' | 'port' | 'levant' | 'desert' | 'cabaret' | 'rivalry' | 'danger' | 'battle' | 'sorrow';
 
 interface FxClip { file: string; dur: number }
 /** one piece of music as it plays: its streaming player, its own fader, and a way to stop it */
@@ -62,7 +62,15 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   cabaret: ['qamar-after-midnight', 'ya-layl-ya-ayn'],
   // Selim Kassab undercutting you at your own stall, while the rival mission is active
   rivalry: ['selims-corner', 'khan-kurd'],
+  // raiders close on the map and hunting you; the standoff on the road
+  danger: ['the-risky-pass'],
+  // a fight on the road (its own score to come: FIGHT_TRACKS)
+  battle: ['the-risky-pass'],
+  // after a loss, a wound, a man buried, a theft in the night: quiet and low
+  sorrow: ['solo-nay-flute', 'sahil-al-layl'],
 };
+/** these come in fast: a fight does not wait four seconds for the last piece to fade */
+const URGENT = new Set<MusicCtx>(['battle', 'danger']);
 
 // Measured loudness of each piece (integrated LUFS, Music test batch 1). Each plays at a gain that
 // brings it about halfway to -19 LUFS: the loud and the quiet pieces come closer together without
@@ -730,6 +738,11 @@ class AudioEngine {
     this.syncAmbience();
     this.syncMusic();
   }
+  /** a passing mood (a loss, a wound, a burial) that lifts by itself after a while or when its screen closes */
+  mood(key: string, music: MusicCtx, seconds = 60) {
+    this.pushEnv(key, this.currentEnv(), music);
+    window.setTimeout(() => this.popEnv(key), seconds * 1000);
+  }
   popEnv(key: string) {
     const before = this.envStack.length;
     this.envStack = this.envStack.filter((e) => e.key !== key);
@@ -932,8 +945,9 @@ class AudioEngine {
     // the time playTrack() runs there is nothing left in this.track for it to see and avoid overlapping.
     const outgoingVocal = had && VOCAL.has(this.track!.name);
     this.gen++;
-    this.fadeOutTrack(outgoingVocal ? 1.1 : 4.5);
-    const gap = outgoingVocal ? 1300 : had ? 350 : 0;
+    const urgent = URGENT.has(next);
+    this.fadeOutTrack(outgoingVocal ? 1.1 : urgent ? 1.2 : 4.5);
+    const gap = outgoingVocal ? 1300 : had ? (urgent ? 150 : 350) : 0;
     this.musicTimer = window.setTimeout(() => this.playTrack(this.chooseTrack(next)), gap);
   }
 
@@ -950,7 +964,7 @@ class AudioEngine {
     this.pendingMusicCtx = next;
     if (this.pendingTimer) clearTimeout(this.pendingTimer);
     // nothing playing yet (first boot): no reason to make the player wait for silence to end
-    const hold = this.track ? 1400 : 0;
+    const hold = this.track ? (URGENT.has(next) ? 150 : 1400) : 0;
     this.pendingTimer = window.setTimeout(() => {
       this.pendingTimer = null;
       if (this.pendingMusicCtx !== next) return; // changed its mind again in the meantime

@@ -952,6 +952,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   };
 
   // anyone within a day's sight of the caravan is seen, fog or not; raiders further off once the land is known
+  // raiders hunting you close by: the music turns before they reach you
+  const huntedBy = w.parties.some((p) => p.kind === 'raiders' && !!p.strength && dist(p, moving && live ? live : w) < 22 && strength(w.party) < (p.strength ?? 0) * 1.4 && (p.cooldownUntil ?? 0) <= g.day);
+  useEffect(() => { if (huntedBy) { audio.pushEnv('map-danger', 'road', 'danger'); return () => audio.popEnv('map-danger'); } }, [huntedBy]);
   const visibleParties = w.parties.filter((p) => isExplored(w.fog, p) || dist(p, moving && live ? live : w) < (p.kind === 'raiders' ? 48 : 30));
   const news = newsMarks(g.day);
   const sandZones = khamsinZones(g.day);

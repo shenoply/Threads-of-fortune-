@@ -97,6 +97,13 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // the fight can end well below the fold on a phone (the battlefield picture is tall); once the
   // result is in, bring the Continue button on screen so the game never looks stuck
   useEffect(() => { if (stage === 'result') resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [stage]);
+  // the score follows the encounter: tense at the standoff, the fight's own music, quiet after a loss or a burial
+  const grim = stage === 'result' && /bury|breaks|give ground|Injury|is gone|knocked/i.test(result ?? '');
+  useEffect(() => {
+    const m = stage === 'battle' || stage === 'chase' ? 'battle' : stage === 'result' ? (grim ? 'sorrow' : null) : 'danger';
+    if (m) audio.pushEnv('encounter', 'road', m); else audio.popEnv('encounter');
+  }, [stage, grim]);
+  useEffect(() => () => audio.popEnv('encounter'), []);
   // the leader speaks his demand aloud
   const speaker = THREAT_VOICE[threat.id] ?? 'robberchief';
   useEffect(() => { voice.load().then(() => voice.preload([speaker])); return () => voice.stop(); }, [speaker]);

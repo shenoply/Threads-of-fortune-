@@ -2,7 +2,8 @@ import { useDailyWaiting } from '../Daily/Daily';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { audio } from '../../game/audio/engine';
 import { NightScene, dayScore, nightDue, scoreWord } from '../Night/NightScene';
 import { WeekTables } from '../World/RankTable';
 
@@ -19,6 +20,9 @@ export function DaySummary() {
   const sum = useGame((s) => s.lastSummary);
   const dismiss = useGame((s) => s.dismissSummary);
   const [nightSeen, setNightSeen] = useState(0);
+  // a theft in the night: the morning starts quiet
+  const robbed = !!sum && !sum.seen && sum.notes.some((n) => /thief/i.test(n)) && !sum.notes.some((n) => /watched/i.test(n));
+  useEffect(() => { if (robbed) audio.mood('night-theft', 'sorrow', 45); }, [robbed]);
   if (!sum || sum.seen) return null;
   // first the stall after dark with the day's money counted, then the morning's card
   if (sum.revenue > 0 && nightDue(sum.day) && nightSeen !== sum.day + 1) return <NightScene day={sum.day} takings={sum.revenue} score={dayScore(useGame.getState().ledger, sum.day, sum)} onDone={() => setNightSeen(sum.day + 1)} />;
