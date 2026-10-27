@@ -42,6 +42,22 @@ check(await has('[data-testid=ency-person]'), 'a name in talk opens his page in 
 await p.locator('[data-testid=ency-person] .ency-link').first().click(); await p.waitForTimeout(200);
 check(await has('[data-testid=ency-place], [data-testid=ency-house], [data-testid=ency-person]'), 'and his page links on');
 await p.click('[data-testid=ency-close]'); await p.click('[data-testid=folk-bye]').catch(() => {});
+// the encyclopedia from the top bar, any time: everyone listed from the start, and each family's standing
+check(await has('[data-testid=hud-ency]') && await has('[data-testid=set-ency]'), 'an encyclopedia button in the top bar, and in the town tabs');
+await p.screenshot({ path: `${SHOTS}/folk-hud.png` });
+await p.click('[data-testid=set-ency]'); await p.waitForSelector('[data-testid=ency-people]');
+const listed = await p.locator('[data-testid=ency-people] .ency-row').count();
+const everyone = await p.evaluate(async () => Object.keys((await import('/src/game/systems/population.ts')).world().people).length);
+check(listed === everyone, `every person is listed from the start, children too (${listed} of ${everyone})`);
+await p.click('[data-testid=ency-tab-houses]'); await p.waitForSelector('[data-testid=ency-houses]');
+check(await has('[data-testid=ency-rank-grand]') && await has('[data-testid=ency-rank-trade]'), 'families grouped by standing, great houses first');
+await p.selectOption('[data-testid=ency-town]', 'cairo'); await p.waitForTimeout(200);
+await p.screenshot({ path: `${SHOTS}/folk-ency-families.png` });
+await p.locator('[data-testid=ency-houses] .house-row').first().click(); await p.waitForSelector('[data-testid=ency-house]');
+const tree = await p.textContent('[data-testid=ency-house]');
+check(await has('[data-testid=ency-ladder] .on') && /Head of the house/.test(tree) && /1st of \d+ families in Cairo/.test(tree), 'a family page: its rank, its place in the town, and the family from the head down');
+await p.screenshot({ path: `${SHOTS}/folk-ency-house.png`, fullPage: true });
+await p.click('[data-testid=ency-close]');
 // the souq master in the market
 if (await has('[data-testid=tab-market]')) { await p.click('[data-testid=tab-market]'); await p.waitForTimeout(400); }
 check(await has('[data-testid=souq-card]'), 'the souq master greets you at the market');

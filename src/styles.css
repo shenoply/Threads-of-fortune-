@@ -3668,3 +3668,8 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .amb-nemesis { margin: 6px 0 2px; padding: 8px 12px; border-left: 3px solid #b0503a; background: rgba(90,20,10,.18); font-family: var(--display); font-style: italic; font-size: 16px; color: #f1d9b0; border-radius: 0 8px 8px 0; }
 .amb-scene { max-height: 24vh; object-position: 50% 40%; }
 .duel-art { display: block; width: 100%; max-height: 22vh; object-fit: cover; object-position: 50% 35%; border-radius: 10px; margin-bottom: 8px; }
+/* the town tabs, with the encyclopedia always at hand at the end of the row */
+.set-tabs { display: flex; }
+.set-tabs > button[role=tab] { flex: 1 1 0; min-width: 0; }
+.set-tabs > .set-ency { flex: 0 0 44px; display: grid; place-items: center; padding: 0; color: var(--brass-hi, #e7bd6e); }
+.set-tabs > .set-ency svg { width: 20px; height: 20px; }

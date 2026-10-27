@@ -375,6 +375,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           {([['town', 'Town'], ['market', 'Market'], ['animals', 'Animals'], ['guards', 'Guards']] as [SetTab, string][]).filter(([k]) => on('caravan') || (k !== 'animals' && k !== 'guards') || k === tab).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)} data-testid={`tab-${k}`}>{label}</button>
           ))}
+          <button className="set-ency" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency'))} aria-label="Encyclopedia: people and families" title="Encyclopedia" data-testid="set-ency"><Icon name="book" /></button>
         </div>
         {/* the purse rides with the tabs: two separate sticky bars ended up on top of each other */}
         {tab !== 'town' && <div className="set-purse" data-testid="set-purse"><Icon name="coin" />You have <b>{fmt(g.cash)}</b></div>}
