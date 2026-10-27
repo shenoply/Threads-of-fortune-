@@ -1,6 +1,8 @@
 import { CROSSINGS } from '../../data/barriers';
 import './worldmap-fixes.css';
 import { venueFor } from '../../data/venues';
+import { CITY_WALKS } from '../../data/cityWalks';
+import { CityPlate, CityPreview } from './CityPlate';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
 import { BorderCard, TripMoney, TripPapers } from './BorderCard';
 import { Tip } from '../Tips/Tip';
@@ -354,6 +356,23 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // zoomed right out the map still fills the screen (on a tall phone it fills the height and pans sideways), never a thin strip
   const minZ = Math.min(1, Math.max(size.w / MAP_W, size.h / MAP_H) / base);
   const s = base * z;
+  // the town with a painted street map nearest the middle of the screen, once zoomed in close: its
+  // painting grows with the zoom, from a small plate to most of the screen at the closest view
+  const [preview, setPreview] = useState<string | null>(null);
+  const plateCity = useMemo(() => {
+    if (z < NEAR_Z) return null;
+    const t = Math.min(1, (z - NEAR_Z) / (4.5 - NEAR_Z));
+    let best: { id: string; d: number } | null = null;
+    for (const id of Object.keys(CITY_WALKS)) {
+      const st = SETTLEMENTS.find((x) => x.id === id);
+      if (!st || !w.known.includes(id)) continue;
+      const dx = st.x * s + pan.x - size.w / 2, dy = st.y * s + pan.y - size.h / 2;
+      if (Math.abs(dx) > size.w * 0.35 || Math.abs(dy) > size.h * 0.35) continue;
+      const d = Math.hypot(dx, dy);
+      if (!best || d < best.d) best = { id, d };
+    }
+    return best ? { id: best.id, width: Math.round(140 + t * (Math.min(size.w * 0.92, 760) - 140)) } : null;
+  }, [z, s, pan.x, pan.y, size.w, size.h, w.known]); // eslint-disable-line react-hooks/exhaustive-deps
   const sRef = useRef(s);
   sRef.current = s;
   const sizeRef = useRef(size);
@@ -1089,6 +1108,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
             {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
           </svg>
+          {/* zoomed in on a town with a painted street map, the painting opens out of its dot */}
+          {plateCity && (() => {
+            const st = settlementById(plateCity.id);
+            // kept on screen: slid in from an edge rather than cut off by it
+            const W = plateCity.width, H = (W * 1086) / 1448, sx = st.x * s + pan.x, sy = st.y * s + pan.y;
+            const dx = Math.min(size.w - 8 - (sx + W / 2), Math.max(8 - (sx - W / 2), 0));
+            const dy = Math.min(size.h - 90 - (sy + H / 2), Math.max(110 - (sy - H / 2), 0));
+            return <div style={{ position: 'absolute', left: st.x * s, top: st.y * s }}><CityPlate def={CITY_WALKS[plateCity.id]} width={W} dx={dx} dy={dy} onLook={() => setPreview(plateCity.id)} /></div>;
+          })()}
           {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => {
             const shown = placeShown(st), key = keyPlace(st.id);
             const visit = missionTarget !== st.id ? visits.find((v) => v.city === st.id) : undefined;
@@ -1539,6 +1567,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           }}
         />
       )}
+      {preview && CITY_WALKS[preview] && <CityPreview def={CITY_WALKS[preview]} here={w.at === preview && !moving} onClose={() => setPreview(null)} onGo={() => { const id = preview; setPreview(null); const st = settlementById(id); if (w.at === id && !moving) setPanel(id); else goTo(st, st); }} />}
       {panel && panel === w.at && <SettlementPanel id={panel} tab={resumed.current ? undefined : panel === openPanel ? openTab : undefined} resume={resumed.current} onClose={() => { resumed.current = false; openTown.at = null; setPanel(null); }} onStall={onStall} />}
     </div>
   );
