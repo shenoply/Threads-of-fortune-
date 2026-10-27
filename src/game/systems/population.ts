@@ -181,12 +181,21 @@ export function world(): World {
     (byCity[q.home] ??= []).push(q.id);
     return q;
   };
-  const nameFor = (r: () => number, c: Culture, sex: 'm' | 'f', fam?: string, faith?: Person['faith']) => {
+  const houseNames = new Set<string>();
+  const settlementName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name.split(',')[0] ?? id;
+  /** a house's name, never the same as another's: a second "house of al-Tojjar" is known by its town */
+  const houseName = (base: string, city: string, full?: string) => {
+    const tries = [base, full, `${base} of ${settlementName(city)}`, full && `${full} of ${settlementName(city)}`].filter(Boolean) as string[];
+    const n = tries.find((t) => !houseNames.has(t)) ?? `${base} (${houseNames.size})`;
+    houseNames.add(n); return n;
+  };
+  const nameFor = (r: () => number, c: Culture, sex: 'm' | 'f', fam?: string, faith?: Person['faith'], avoid?: Set<string>) => {
     const all = NAMES[c][sex];
     const fit = faith === 'christian' && c === 'levant' ? all.filter((n) => CHRISTIAN.test(n)) : faith === 'muslim' ? all.filter((n) => !CHRISTIAN.test(n) && !JEWISH.test(n)) : faith === 'jewish' ? all.filter((n) => JEWISH.test(n) || ['Yusuf', 'Saleh', 'Habiba', 'Khatun'].includes(n)) : all;
     const names = fit.length ? fit : all;
-    for (let k = 0; k < 12; k++) {
-      const given = pick(r, names);
+    for (let k = 0; k < 40; k++) {
+      const given = pick(r, k >= 20 ? all : names);
+      if (avoid?.has(given) && k < 39) continue;
       const n = `${given} ${fam ?? pick(r, NAMES[c].fam)}`;
       if (!usedNames.has(n)) { usedNames.add(n); return { name: n, given }; }
     }
@@ -196,8 +205,11 @@ export function world(): World {
   const family = (head: Person, h: House, r: () => number, opts: { daughter?: Person; wife?: boolean } = {}) => {
     const c = head.culture;
     const fam = /\bthe\b|^Uncle /.test(head.name) || !head.name.includes(' ') ? pick(r, NAMES[c].fam) : head.name.match(/((?:al-|el-|Abu |ibn |Abd al-|Abd |Der )?\S+)$/)![1];
+    // no two in one family share a first name
+    const givens = new Set<string>([head.name.split(' ')[0], ...(opts.daughter ? [opts.daughter.name.split(' ')[0]] : [])]);
     if (opts.wife !== false && head.age >= 28) {
-      const w = nameFor(r, c, 'f', pick(r, NAMES[c].fam), head.faith);
+      const w = nameFor(r, c, 'f', pick(r, NAMES[c].fam), head.faith, givens);
+      givens.add(w.given);
       const wife = add({ faith: head.faith, id: `${head.id}-w`, name: w.name, short: c === 'egypt' || c === 'levant' || c === 'iraq' ? `Umm ${pick(r, NAMES[c].m)}` : w.given, sex: 'f', age: Math.max(22, head.age - 4 - Math.floor(r() * 8)), culture: c, home: head.home, role: 'kin', title: `Wife of ${head.short}`, house: h.id, spouse: head.id, children: [], traits: traitsOf(r), bio: '' }, h.rank === 'humble' ? 'humble' : h.rank === 'trade' ? 'trade' : 'notable');
       head.spouse = wife.id; h.members.push(wife.id);
     }
@@ -205,7 +217,8 @@ export function world(): World {
     for (let i = 0; i < n; i++) {
       const sex: 'm' | 'f' = r() < 0.55 ? 'm' : 'f';
       const age = Math.max(4, head.age - 22 - Math.floor(r() * 14) - i * 3);
-      const nm = nameFor(r, c, sex, fam, head.faith);
+      const nm = nameFor(r, c, sex, fam, head.faith, givens);
+      givens.add(nm.given);
       const kid = add({ faith: head.faith, id: `${head.id}-c${i}`, name: nm.name, short: nm.given, sex, age, culture: c, home: head.home, role: 'kin', title: `${sex === 'm' ? 'Son' : 'Daughter'} of ${head.short}`, house: h.id, father: head.id, mother: head.spouse, children: [], traits: traitsOf(r), bio: '' }, h.rank === 'humble' ? 'humble' : h.rank === 'trade' ? 'trade' : 'notable');
       head.children.push(kid.id); if (head.spouse) people[head.spouse].children.push(kid.id); h.members.push(kid.id);
     }
@@ -224,7 +237,7 @@ export function world(): World {
     const short = rv.name.replace(/^(Haj|Hajj|Abu Nadim|Signora|Hüsnü Bey)\s+/, '').split(' ').slice(-1)[0];
     const head = add({ id: rv.id, name: rv.name, short: rv.she ? 'Signora Valenti' : short, sex: rv.she ? 'f' : 'm', age: rv.temper === 'old' ? 62 + Math.floor(r() * 10) : 40 + Math.floor(r() * 14), culture: c, home: city, role: 'dealer', title: rv.role, rival: rv.id, art: `art/portraits/${rv.id}.jpg`, children: [], traits: rv.temper === 'aggressive' ? ['proud', 'greedy'] : rv.temper === 'cunning' ? ['cunning', 'curious'] : rv.temper === 'old' ? ['stern', 'pious'] : ['honest', 'cheerful'], bio: `${rv.role}. His house sells about £${Math.round(rv.season / 100).toLocaleString('en-GB')} of rugs in a season.` }, 'notable');
     if (rv.she) head.bio = `${rv.role}. She has kept the firm's place on the Alexandria table since his death.`;
-    const h: House = { id: `house-${rv.id}`, name: `The house of ${head.name.replace(/^Signora /, '')}`, home: city, head: head.id, members: [head.id], rank: rv.season >= 180000 ? 'grand' : 'notable', trade: 'carpets', rival: rv.id };
+    const h: House = { id: `house-${rv.id}`, name: houseName(`The house of ${head.name.replace(/^Signora /, '')}`, city), home: city, head: head.id, members: [head.id], rank: rv.season >= 180000 ? 'grand' : 'notable', trade: 'carpets', rival: rv.id };
     head.house = h.id; houses[h.id] = h;
     const brideId = Object.values(BRIDES).find((b) => b.house === rv.id && !b.folk)?.id;
     const daughter = brideId ? add({ id: `bride-${brideId}`, name: BRIDES[brideId].name, short: BRIDES[brideId].short, sex: 'f', age: 21, culture: c, home: BRIDES[brideId].city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${brideId}.jpg`, bride: brideId, bio: BRIDES[brideId].intro }) : undefined;
@@ -238,7 +251,7 @@ export function world(): World {
     const fname = b.father.split(',')[0];
     const head = add({ id: `father-${b.id}`, name: fname, short: fname.replace(/^(Ustaz|Hajj|Haj|Sheikh|the late)\s+/i, '').split(' ')[0], sex: 'm', age: 48 + Math.floor(r() * 14), culture: c, home: b.city, role: b.rank === 'humble' ? 'craft' : 'merchant', title: ((t) => t[0].toUpperCase() + t.slice(1))((b.father.split(',').slice(1).join(',').trim() || b.father).replace(/^who\s+/, '')), children: [], traits: b.likes === 'honesty' ? ['honest', 'stern'] : b.likes === 'dress' ? ['proud', 'curious'] : b.likes === 'learning' ? ['curious', 'pious'] : ['honest', 'generous'], bio: b.father }, b.rank === 'humble' ? 'humble' : b.rank === 'grand' ? 'notable' : 'trade');
     if (/the late/i.test(b.father)) { head.title = `Father of Shukri and Aziza (died 1922)`; head.bio = 'The late Hajj Mansour kept a stall in the Giza lane for thirty years.'; }
-    const h: House = { id: `house-${b.id}`, name: `The family of ${b.short}`, home: b.city, head: head.id, members: [head.id], rank: b.rank ?? 'trade', trade: b.brings };
+    const h: House = { id: `house-${b.id}`, name: houseName(`The family of ${b.short}`, b.city), home: b.city, head: head.id, members: [head.id], rank: b.rank ?? 'trade', trade: b.brings };
     head.house = h.id; houses[h.id] = h;
     const daughter = add({ id: `bride-${b.id}`, name: b.name, short: b.short, sex: 'f', age: 20 + Math.floor(r() * 5), culture: c, home: b.city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${b.id}.jpg`, bride: b.id, bio: b.intro });
     family(head, h, r, { daughter });
@@ -266,7 +279,7 @@ export function world(): World {
       const short = role === 'notable' ? `${c === 'anatolia' ? '' : c === 'persia' ? 'Mirza ' : 'Sheikh '}${nm.given}`.trim() : sex === 'f' ? `Umm ${pick(r, NAMES[c].m)}` : nm.name.split(' ').slice(-1)[0];
       const head = add({ id: `${st.id}-${role}`, name: nm.name, short, sex, age, culture: c, home: st.id, role, title, goods, children: [], traits: traitsOf(r), bio: '' }, role === 'notable' ? 'notable' : role === 'craft' ? 'humble' : 'trade');
       head.bio = bioFor(head, st.name);
-      const h: House = { id: `house-${head.id}`, name: `The house of ${nm.name.split(' ').slice(1).join(' ') || nm.name}`, home: st.id, head: head.id, members: [head.id], rank: role === 'notable' ? 'notable' : role === 'craft' ? 'humble' : 'trade', trade: role === 'souq' ? 'carpets' : role === 'merchant' ? goods! : role === 'craft' ? 'the looms' : 'land and law' };
+      const h: House = { id: `house-${head.id}`, name: houseName(`The house of ${nm.name.split(' ').slice(1).join(' ') || nm.name}`, st.id, `The house of ${nm.name}`), home: st.id, head: head.id, members: [head.id], rank: role === 'notable' ? 'notable' : role === 'craft' ? 'humble' : 'trade', trade: role === 'souq' ? 'carpets' : role === 'merchant' ? goods! : role === 'craft' ? 'the looms' : 'land and law' };
       head.house = h.id; houses[h.id] = h;
       family(head, h, r, { wife: sex === 'm' });
       void i;
@@ -290,7 +303,7 @@ export function world(): World {
     const nm = nameFor(r, c, 'm');
     const p = add({ id: `caravan-${pid}`, name: nm.name, short: nm.name.split(' ').slice(-1)[0], sex: 'm', age: 38 + Math.floor(r() * 22), culture: c, home: route[0], role: 'caravan', title: `Caravan master, ${goods}`, goods, route, children: [], traits: traitsOf(r), bio: '' }, 'trade');
     p.bio = `Takes ${goods} between ${SETTLEMENTS.find((x) => x.id === route[0])?.name} and ${SETTLEMENTS.find((x) => x.id === route[1])?.name}, and has done for ${Math.max(6, p.age - 24)} years.`;
-    const h: House = { id: `house-${p.id}`, name: `The house of ${nm.name.split(' ').slice(1).join(' ')}`, home: route[0], head: p.id, members: [p.id], rank: 'trade', trade: goods };
+    const h: House = { id: `house-${p.id}`, name: houseName(`The house of ${nm.name.split(' ').slice(1).join(' ')}`, route[0], `The house of ${nm.name}`), home: route[0], head: p.id, members: [p.id], rank: 'trade', trade: goods };
     p.house = h.id; houses[h.id] = h;
     family(p, h, r);
     caravans[pid] = p.id;

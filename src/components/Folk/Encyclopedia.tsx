@@ -169,7 +169,7 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
       <article className="ency-page" data-testid="ency-person">
         <div className="ency-top"><FolkFace p={x} size={96} /><div><h2>{x.name}</h2><small>{x.title}</small><small>{ROLE_WORD[x.role]} · {ageNow(x, g.day)} years · of <button className="ency-link" onClick={() => go({ kind: 'place', id: x.home })}>{placeName(x.home)}</button></small><RelBar p={x} /></div></div>
         {x.bio && <p>{x.bio}</p>}
-        {met ? <p className="ency-traits">{x.traits.map((t) => TRAIT_WORD[t]).join(' · ')}</p> : <p className="ency-dim">You have not met. What {x.sex === 'f' ? 'she' : 'he'} is like, you will learn when you do.</p>}
+        {met ? <p className="ency-traits">{x.traits.map((t) => TRAIT_WORD[t]).join(' · ')}</p> : <><p className="ency-said" data-testid="ency-hearsay"><b>What they say:</b> {hearsay(x)}</p><p className="ency-dim">You have not met. You will know {x.sex === 'f' ? 'her' : 'him'} better when you do.</p></>}
         {h && <p data-testid="ency-person-house"><b>Family:</b> <button className="ency-link" onClick={() => go({ kind: 'house', id: h.id })}>{h.name}</button><br /><small className="ency-dim"><i className={`rk rk-${h.rank}`}>{4 - RANKS.indexOf(h.rank)}</i> {RANK_ONE[h.rank]} · {ord(placeInTown(h).n)} of {placeInTown(h).of} in {placeName(h.home).split(',')[0]} · {kinWord(x)}</small></p>}
         <ul className="ency-kin">
           {kin.filter(([, id]) => id).map(([k, id]) => <li key={k}><span>{k}</span><PLink id={id!} go={go} /></li>)}
@@ -263,6 +263,21 @@ function Tree({ head, house, go }: { head: Person; house: House; go: (p: Page) =
 }
 
 /** the encyclopedia, mounted once: opens on 'tof:ency' at the page asked for, or the index */
+/** the word in the souq about someone you have not met: one of their traits, at second hand */
+const HEARSAY: Record<string, [string, string]> = {
+  honest: ['His word is good, they say. He has never been known to swear a rug is older than it is.', 'Her word is good, they say. Nobody has caught her in a lie.'],
+  greedy: ['He counts every piastre twice, they say, and the second time he finds one missing.', 'She drives a hard bargain, they say, and enjoys it.'],
+  proud: ['A proud man, they say. He does not forget a slight.', 'A proud woman, they say. Her family name matters to her.'],
+  generous: ['An open hand, they say. Half the lane has eaten at his table.', 'An open hand, they say. No beggar leaves her door empty.'],
+  cunning: ['Watch him, they say. He is three moves ahead and smiling.', 'Watch her, they say. She hears more than she lets on.'],
+  pious: ['A devout man, they say. He keeps the prayers and the fasts.', 'A devout woman, they say. She keeps the old ways.'],
+  cheerful: ['Good company, they say. Always a joke, even on a bad day.', 'Good company, they say. She laughs easily.'],
+  stern: ['A hard man to please, they say. Few have seen him smile.', 'Strict, they say. Her household runs like a clock.'],
+  curious: ['He asks a lot of questions, they say, and remembers the answers.', 'She wants to know everything, they say, and usually does.'],
+  gossip: ['He knows everyone\'s business, they say, and shares it freely.', 'Tell her nothing you would not want the whole souq to know, they say.'],
+};
+const hearsay = (x: { traits: string[]; sex: 'm' | 'f' }) => (HEARSAY[x.traits[0]] ?? HEARSAY.honest)[x.sex === 'f' ? 1 : 0];
+
 export function EncyclopediaHost() {
   const [open, setOpen] = useState<{ page: Page | null; n: number } | null>(null);
   useEffect(() => {

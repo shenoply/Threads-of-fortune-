@@ -814,7 +814,7 @@ export default function App() {
           {/* always there; while the opening runs they don't pulse, so the step's own button is the one that calls */}
           {g.started && !tutorialActive && <GiftButton />}
           <button className="icon-btn ency-btn" onClick={() => { audio.sfx('tap'); window.dispatchEvent(new CustomEvent('tof:ency')); }} aria-label="The encyclopedia: people, families, towns" title="Encyclopedia" data-testid="hud-ency"><Icon name="book" /></button>
-          <button className={`icon-btn paper-btn${(g.paperSeen ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={openPaper} aria-label="Today's newspaper (a quarter of an hour)" data-testid="paper-btn"><Icon name="news" /></button>
+          <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={openPaper} aria-label="Today's newspaper (a quarter of an hour)" data-testid="paper-btn"><Icon name="news" /></button>
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />
           </button>
