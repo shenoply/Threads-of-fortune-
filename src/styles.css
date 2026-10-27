@@ -3673,3 +3673,10 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .set-tabs > button[role=tab] { flex: 1 1 0; min-width: 0; }
 .set-tabs > .set-ency { flex: 0 0 44px; display: grid; place-items: center; padding: 0; color: var(--brass-hi, #e7bd6e); }
 .set-tabs > .set-ency svg { width: 20px; height: 20px; }
+
+/* zoomed right out: the painting steps back, the cities, you and the danger come forward */
+.world-canvas { transition: filter .4s; }
+.world-map.overview .world-canvas { filter: saturate(.75) brightness(.82) contrast(.95); }
+.world-map.overview .place.kind-city .plbl, .world-map.overview .place.kind-port .plbl, .world-map.overview .place.kind-home .plbl, .world-map.overview .place.here .plbl { font-size: 15.5px; padding: 1px 7px; font-weight: 600; }
+.world-map.overview .party:not(.party-raiders) { opacity: 0; pointer-events: none; }
+.world-map.overview .party-raiders:not(.hunting) .pname { display: none !important; }

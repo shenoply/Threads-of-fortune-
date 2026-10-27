@@ -1032,7 +1032,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   return (
     <div className="world" data-testid="world">
       <div
-        className="world-map"
+        className={`world-map ${z <= minZ * 1.2 ? 'overview' : ''}`}
         ref={wrap}
         data-testid="world-map"
         onScroll={(e) => { e.currentTarget.scrollLeft = 0; e.currentTarget.scrollTop = 0; }}
