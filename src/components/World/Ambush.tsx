@@ -8,6 +8,7 @@ import { threatForParty, THREAT_LINES, THREAT_VOICE, ambushPlace } from '../../d
 import { voice, quotes } from '../../game/audio/voice';
 import type { Party } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
+import { BAND_ROAD } from '../../game/systems/combat';
 import { audio } from '../../game/audio/engine';
 import { buzz } from '../../game/feel';
 import { BATTLE_ART, fieldFor } from './BattleField';
@@ -237,12 +238,15 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     let base = '';
     let extra: ClashSpoils | null = null;
     const paid = cost?.paid ?? 0, letGo = cost?.loads ?? 0;
+    // the dead and wounded by name, chosen before the counts drop
+    const menLine = party.id === 'opening-bandits' ? '' : st.menFight({ lost, hurt, kills, where: BAND_ROAD[party.id] });
+    const withMen = (t: string) => (menLine ? `${t} ${menLine}` : t);
     cousinsDone(retreat ? 'lost' : paid ? 'paid' : isWin(res) ? 'won' : res === 'draw' ? 'passed' : 'lost');
     const sideLine = letGo ? ` ${letGo === 1 ? 'One bale was' : `${letGo} bales were`} lost in the fighting.` : '';
     if (paid && res === 'withdraw') {
       // bought off mid-fight: they ride away with the money, nothing to take from them
       base = st.ambushOutcome(party.id, { cashLoss: Math.min(paid, g.cash), rugsLost: letGo || undefined, troopsLost: lost, theyLeave: true, enemyLost: kills, text: `${by}${who} counts the money twice and leads his men away. It cost ${fmt(paid)}, and nobody else died for it.${sideLine}${lostLine}` });
-      setResult(base); setClashSpoils(null); setSpoils(null); setStage('result');
+      setResult(withMen(base)); setClashSpoils(null); setSpoils(null); setStage('result');
       return;
     }
     if (retreat) {
@@ -272,7 +276,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       base = st.ambushOutcome(party.id, { cashLoss: loss, rugsLost: clashInfo.stakes.loads + letGo, troopsLost: lost, rep: -1, delayHours: broken ? 10 : 5, enemyLost: kills, text: `${by}${broken ? 'Your line breaks.' : 'Your men give ground and they get in among the loads.'} ${lines.strip}${takenLine(loss)}${lostLine}${wound}${out}` });
       extra = useGame.getState().clashAfter(party.id, { result: res, kills, size, rebels });
     }
-    setResult(extra?.text ? `${base} ${extra.text}` : base);
+    setResult(withMen(extra?.text ? `${base} ${extra.text}` : base));
     setClashSpoils(extra);
     setSpoils(null);
     setStage('result');

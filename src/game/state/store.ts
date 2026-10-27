@@ -71,6 +71,7 @@ import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity } from '../systems/caravan';
 import { BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
+import { syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList } from '../systems/men';
 import { threatForParty } from '../../data/travelThreats1925';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
@@ -457,6 +458,8 @@ interface Actions {
   ambushOutcome: (partyId: string, o: { cashLoss?: number; cashGain?: number; rugsLost?: number; troopsLost?: Record<string, number>; rep?: number; joiners?: number; delayHours?: number; theyLeave?: boolean; enemyLost?: number; animalsGained?: { id: string; n: number }; text: string }) => string;
   /** after a road fight: experience and promotions, spoils, prisoners and what becomes of their leader */
   clashAfter: (partyId: string, end: { result: ClashResult; kills: number; size?: number; rebels?: boolean }) => ClashSpoils;
+  /** a fight's dead and wounded by name, chosen before the counts drop; returns the line for the account */
+  menFight: (o: { lost: Record<string, number>; hurt?: Record<string, number>; kills: number; where?: string }) => string;
   /** willing prisoners taken on as reformed raiders, as far as the troop limit allows */
   recruitPrisoners: (n: number) => string;
   /** men run down after a fight (Chase): tied with the other prisoners; their leader too, if he was one */
@@ -2206,12 +2209,15 @@ export const useGame = create<GameState & Actions>()(
             // the men learn on the road: every man who stood gets a share, and enough of it earns a step up
             const pr = promote(troops, c.xp, thin ? 0.5 : 1);
             troops = pr.troops; c.xp = pr.xp;
-            out.ups = promotionLine(pr.ups);
+            const pm = promoteMen(c.men ?? [], pr.ups);
+            c.men = pm.men;
+            out.ups = pm.up.length ? pm.up.map((m, i) => `${manLabel(m)} has earned his place: ${withArticle(kindName(pr.ups[i].to))} now.`).join(' ') : promotionLine(pr.ups);
             if (out.ups) lines.push(out.ups);
             if (c.sergeant) c.sergeant = { ...c.sergeant, fights: c.sergeant.fights + 1 };
             else if (c.wins >= SERGEANT_AFTER && (troops.veteran ?? 0) > 0) {
-              const name = SERGEANT_NAMES[hashSeed(`${s.day}${c.wins}`) % SERGEANT_NAMES.length];
-              c.sergeant = { name, fights: 0 };
+              const vet = (c.men ?? []).filter((m) => m.kind === 'veteran').sort((a, b) => b.fights - a.fights || b.kills - a.kills)[0];
+              const name = vet ? vet.name.split(' ')[0] : SERGEANT_NAMES[hashSeed(`${s.day}${c.wins}`) % SERGEANT_NAMES.length];
+              c.sergeant = { name, fights: 0, manId: vet?.id };
               out.sergeant = name;
               lines.push(`One of your veterans, ${name}, has taken charge of the men. They call him Sergeant ${name} now.`);
             }
@@ -2273,6 +2279,25 @@ export const useGame = create<GameState & Actions>()(
           if (out.animals) animals[out.animals.id] = (animals[out.animals.id] ?? 0) + out.animals.n;
           set({ combat: c, cash: s.cash + out.cash, ledger, inventory, reputation: Math.max(0, s.reputation + rep), world: { ...s.world, parties, party: { ...s.world.party, troops, animals } }, ...(out.text ? { journal: [...s.journal, { day: s.day, text: out.text, kind: 'road' as const }] } : {}) });
           return out;
+        },
+
+        menFight: (o) => {
+          const s = get();
+          const c0 = combatOf(s);
+          const seed = `${s.day}:${c0.wins}:${c0.losses}:${o.kills}`;
+          let men = syncMen(c0.men ?? [], s.world.party.troops, s.day);
+          const k = killMen(men, o.lost, seed); men = k.men;
+          const w = woundMen(men, o.hurt ?? {}, s.day, seed); men = w.men;
+          const b = bloodMen(men, o.kills, seed); men = b.men;
+          const lines: string[] = [];
+          if (k.fallen.length) lines.push(k.fallen.length === 1 ? `You bury ${manLabel(k.fallen[0])}, ${withArticle(kindName(k.fallen[0].kind))}, by the road${k.fallen[0].fights >= 3 ? `. He had stood with you in ${k.fallen[0].fights} fights` : ''}.` : `You bury ${nameList(k.fallen)} by the road.`);
+          if (w.hurt.length) lines.push(`${nameList(w.hurt)} ${w.hurt.length === 1 ? 'is' : 'are'} bandaged and will ride in the carts for a few days.`);
+          for (const m of b.named) lines.push(`The men have started calling ${m.name.split(' ')[0]} "${m.by}".`);
+          let sergeant = c0.sergeant;
+          if (sergeant?.manId && k.fallen.some((m) => m.id === sergeant!.manId)) { lines.push(`Sergeant ${sergeant.name} is among them. The men are quiet tonight.`); sergeant = undefined; }
+          const fallen = [...(c0.fallen ?? []), ...k.fallen.map((m) => ({ name: manLabel(m), kind: m.kind, day: s.day, fights: m.fights, kills: m.kills, where: o.where }))].slice(-60);
+          set({ combat: { ...c0, men, fallen, sergeant } });
+          return lines.join(' ');
         },
 
         chaseCaught: (partyId, n, leader) => {
@@ -5121,6 +5146,15 @@ export function folkPrice(city: string) {
   return v >= 60 ? 0.9 : v >= 30 ? 0.95 : v <= -30 ? 1.08 : 1;
 }
 useGame.subscribe((s) => { if (s.folk?.rel !== FOLK_FX.rel) FOLK_FX.rel = s.folk?.rel ?? {}; });
+// every man behind the troop counts has a name: hires get one, men let go leave the roster
+const syncRoster = (s: GameState) => {
+  if (!s.world?.party?.troops) return;
+  const c = combatOf(s);
+  const men = syncMen(c.men ?? [], s.world.party.troops, s.day);
+  if (men !== c.men) useGame.setState({ combat: { ...c, men } });
+};
+syncRoster(useGame.getState());
+useGame.subscribe((s, prev) => { if (s.world?.party?.troops !== prev?.world?.party?.troops || !s.combat?.men) syncRoster(s); });
 /** the band on the road near a town, and the man leading it */
 function bandNear(s: GameState, home: string): { leader: string; road: string } | undefined {
   const c = cultureOf(home);

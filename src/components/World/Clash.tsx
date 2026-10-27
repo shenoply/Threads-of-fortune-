@@ -220,17 +220,17 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
   };
   const pickMoment = (nv: View, b: Battle): MomentId | null => {
     const done = momentsDone.current;
-    // at most four moments a fight: the field should not stop every few seconds
-    if (done.size >= 4) return null;
+    // the turning points always come; of the side troubles, two a fight at most
+    const side = ['flank', 'powder', 'terms', 'bolt'].filter((k) => done.has(k as MomentId)).length >= 2;
     const seedOf = (k: string) => { let h = 0; for (const ch of `${info.seed}:${k}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 1000) / 1000; };
     // their riders swing wide round your flank
-    if (!done.has('flank') && info.mounted && nv.t > 8 && b.men.some((m) => m.side === 1 && m.state === 'up' && !m.fleeing && m.mounted && (m.x < 18 || m.x > 82) && m.y > 40)) return 'flank';
+    if (!side && !done.has('flank') && info.mounted && nv.t > 8 && b.men.some((m) => m.side === 1 && m.state === 'up' && !m.fleeing && m.mounted && (m.x < 18 || m.x > 82) && m.y > 40)) return 'flank';
     // the powder runs short after a hot fight
-    if (!done.has('powder') && nv.rifles > 0 && volleys.current >= 3 && nv.t > 25 && nv.them > 30) return 'powder';
+    if (!side && !done.has('powder') && nv.rifles > 0 && volleys.current >= 3 && nv.t > 25 && nv.them > 30) return 'powder';
     // their leader shouts an offer while both sides are hurting
-    if (!done.has('terms') && info.leader && nv.leaderUp && nv.t > 18 && nv.them < 60 && nv.them > 30 && nv.me < 75 && seedOf('terms') < 0.5) return 'terms';
+    if (!side && !done.has('terms') && info.leader && nv.leaderUp && nv.t > 18 && nv.them < 60 && nv.them > 30 && nv.me < 75 && seedOf('terms') < 0.5) return 'terms';
     // a camel bolts with the loads in the din
-    if (!done.has('bolt') && info.camels > 0 && nv.t > 12 && nv.t < 60 && seedOf('bolt') < 0.35 && Math.floor(nv.t) === 12 + Math.floor(seedOf('boltT') * 20)) return 'bolt';
+    if (!side && !done.has('bolt') && info.camels > 0 && nv.t > 12 && nv.t < 60 && seedOf('bolt') < 0.35 && Math.floor(nv.t) === 12 + Math.floor(seedOf('boltT') * 20)) return 'bolt';
     if (!done.has('rally') && nv.me < 40 && nv.t > 5) return 'rally';
     if (!done.has('contact') && !done.has('charge-in') && nv.t > 2.5 && nv.rifles > 0 && nv.inRange && !nv.charging && !nv.melee && nv.loaded > 0) return 'contact';
     if (!done.has('charge-in') && !done.has('contact') && nv.t > 2.5 && nv.rifles === 0 && nv.inRange && !nv.charging) return 'charge-in';

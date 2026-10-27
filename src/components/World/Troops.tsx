@@ -6,6 +6,8 @@ import { useGame } from '../../game/state/store';
 import { TROOPS } from '../../data/caravan';
 import { TROOP_LORE } from '../../data/troopLore';
 import { fmt } from '../../game/economy/money';
+import { combatOf } from '../../game/state/store';
+import { manFace, manFallback, manLabel, kindName, type NamedMan } from '../../game/systems/men';
 import { foodDaysLeft, morale as moraleOf, troopCount, wages, troopCap } from '../../game/systems/caravan';
 
 export function TroopPage({ id, onClose, onHire, hireLabel, hireDisabled }: { id: string; onClose: () => void; onHire?: () => void; hireLabel?: string; hireDisabled?: boolean }) {
@@ -66,6 +68,7 @@ export function MenTalk({ onClose, stopped }: { onClose: () => void; stopped?: b
           <div><h2>{stopped ? 'Your men stop you' : 'Your men'}</h2><small>{men} {men === 1 ? 'man' : 'men'} · patience {moraleOf(p)}/100 · food for {foodDaysLeft(p)} {foodDaysLeft(p) === 1 ? "day" : "days"} · wages {fmt(wages(p))}/day</small></div>
         </div>
         <p className={`men-talk__line ${mood.tone}`} data-testid="men-line">{mood.line}</p>
+        {!stopped && <Roster />}
         {note && <p className="men-talk__note" data-testid="men-note">{note}</p>}
         {/* the choices stay open: give them rations, a bonus and an ear in one sitting */}
         {(
@@ -80,6 +83,37 @@ export function MenTalk({ onClose, stopped }: { onClose: () => void; stopped?: b
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** every man by name: face, kind, what he has been through */
+export function Roster() {
+  const c = useGame((s) => combatOf(s));
+  const day = useGame((s) => s.day);
+  const [dead, setDead] = useState(false);
+  const men = [...(c.men ?? [])].sort((a, b) => (TROOPS[b.kind]?.strength ?? 0) - (TROOPS[a.kind]?.strength ?? 0) || b.fights - a.fights);
+  if (!men.length && !c.fallen?.length) return null;
+  const sgt = (m: NamedMan) => c.sergeant && (c.sergeant.manId === m.id || (!c.sergeant.manId && m.kind === 'veteran' && m.name.startsWith(c.sergeant.name)));
+  return (
+    <div className="roster" data-testid="roster">
+      <ul>
+        {men.map((m) => (
+          <li key={m.id} className={(m.hurtUntil ?? 0) > day ? 'hurt' : ''} data-testid="roster-man">
+            <img src={manFace(m)} alt="" onError={(e) => { const i = e.currentTarget; if (!i.dataset.f) { i.dataset.f = '1'; i.src = manFallback(m); } }} />
+            <div>
+              <b>{sgt(m) ? `Sergeant ${manLabel(m)}` : manLabel(m)}</b>
+              <small>{kindName(m.kind)}{m.fights ? ` · ${m.fights} ${m.fights === 1 ? 'fight' : 'fights'}` : ' · not yet blooded'}{m.kills ? ` · ${m.kills} down` : ''}{m.scars ? ` · ${m.scars === 1 ? 'a scar' : `${m.scars} scars`}` : ''}{(m.hurtUntil ?? 0) > day ? ' · wounded' : ''}</small>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {!!c.fallen?.length && (
+        <>
+          <button className="roster__dead-btn" onClick={() => setDead(!dead)} data-testid="roster-fallen">Buried by the road ({c.fallen.length})</button>
+          {dead && <ul className="roster__dead">{[...c.fallen].reverse().map((f, i) => <li key={`${f.name}-${i}`}><b>{f.name}</b><small>{kindName(f.kind)} · day {f.day}{f.where ? ` · ${f.where}` : ''}{f.fights ? ` · ${f.fights} ${f.fights === 1 ? 'fight' : 'fights'}` : ''}</small></li>)}</ul>}
+        </>
+      )}
+    </div>
   );
 }
 

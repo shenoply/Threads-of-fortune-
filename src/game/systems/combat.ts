@@ -316,7 +316,11 @@ export interface Prisoner { band: string; n: number; leader?: boolean; day: numb
 export interface CombatState {
   wins: number; losses: number;
   xp: Record<string, number>;
-  sergeant?: { name: string; fights: number };
+  sergeant?: { name: string; fights: number; manId?: string };
+  /** every man behind the troop counts, by name (systems/men.ts) */
+  men?: import('./men').NamedMan[];
+  /** the men buried by the road */
+  fallen?: import('./men').FallenMan[];
   /** good rifles your men carry (bought at a guard yard, or taken from a beaten band) */
   rifles: number;
   /** rifles taken that nobody carries: sell them at a guard yard */
