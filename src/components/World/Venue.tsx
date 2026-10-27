@@ -1,3 +1,4 @@
+import type { Sign } from '../../data/venues';
 import { useEffect, useRef, useState } from 'react';
 import { useDialogEscape } from '../useDialogEscape';
 import { streetRoute } from '../../game/systems/streets';
@@ -25,6 +26,31 @@ const ICON_FOR = (p: VenuePoi): string | undefined => {
   if (a.startsWith('venue:')) return 'cabaret';
   return undefined;
 };
+/** a shop's sign: one shape and colour per kind of place, with its mark, hung on a brass ring */
+function drawSign(ctx: CanvasRenderingContext2D, sg: Sign, X: number, Y: number) {
+  const r = 19;
+  const path = () => {
+    ctx.beginPath();
+    switch (sg.shape) {
+      case 'shield': ctx.moveTo(X - r, Y - r + 2); ctx.lineTo(X + r, Y - r + 2); ctx.lineTo(X + r, Y + 2); ctx.quadraticCurveTo(X + r, Y + r - 2, X, Y + r + 3); ctx.quadraticCurveTo(X - r, Y + r - 2, X - r, Y + 2); ctx.closePath(); break;
+      case 'disc': ctx.arc(X, Y, r + 1, 0, 7); break;
+      case 'coin': for (let i = 0; i < 8; i++) { const t = (i / 8) * Math.PI * 2 + Math.PI / 8; ctx[i ? 'lineTo' : 'moveTo'](X + Math.cos(t) * (r + 1), Y + Math.sin(t) * (r + 1)); } ctx.closePath(); break;
+      case 'pennant': ctx.moveTo(X - r, Y - r); ctx.lineTo(X + r, Y - r); ctx.lineTo(X + r, Y + r); ctx.lineTo(X, Y + r - 9); ctx.lineTo(X - r, Y + r); ctx.closePath(); break;
+      case 'bottle': ctx.moveTo(X - 6, Y - r - 2); ctx.lineTo(X + 6, Y - r - 2); ctx.lineTo(X + 6, Y - 9); ctx.quadraticCurveTo(X + r, Y - 5, X + r, Y + 6); ctx.quadraticCurveTo(X + r, Y + r, X, Y + r); ctx.quadraticCurveTo(X - r, Y + r, X - r, Y + 6); ctx.quadraticCurveTo(X - r, Y - 5, X - 6, Y - 9); ctx.closePath(); break;
+      case 'book': ctx.moveTo(X - r - 2, Y - r + 4); ctx.quadraticCurveTo(X - 8, Y - r - 2, X, Y - r + 4); ctx.quadraticCurveTo(X + 8, Y - r - 2, X + r + 2, Y - r + 4); ctx.lineTo(X + r + 2, Y + r - 2); ctx.quadraticCurveTo(X + 8, Y + r - 8, X, Y + r - 2); ctx.quadraticCurveTo(X - 8, Y + r - 8, X - r - 2, Y + r - 2); ctx.closePath(); break;
+      case 'dome': ctx.moveTo(X - r, Y + r); ctx.lineTo(X - r, Y + 2); ctx.quadraticCurveTo(X - r, Y - r - 4, X, Y - r - 4); ctx.quadraticCurveTo(X + r, Y - r - 4, X + r, Y + 2); ctx.lineTo(X + r, Y + r); ctx.closePath(); break;
+      case 'blades': ctx.moveTo(X, Y - r - 3); ctx.lineTo(X + r + 2, Y); ctx.lineTo(X, Y + r + 3); ctx.lineTo(X - r - 2, Y); ctx.closePath(); break;
+    }
+  };
+  ctx.save();
+  ctx.translate(1.5, 2.5); path(); ctx.fillStyle = 'rgba(0,0,0,0.38)'; ctx.fill(); ctx.translate(-1.5, -2.5);
+  path(); ctx.fillStyle = sg.color; ctx.fill(); ctx.strokeStyle = '#e7bd6e'; ctx.lineWidth = 2.2; ctx.stroke();
+  if (sg.shape === 'disc') { ctx.fillStyle = '#b8893a'; ctx.beginPath(); ctx.arc(X, Y, 8, 0, 7); ctx.fill(); }
+  ctx.fillStyle = sg.shape === 'disc' ? '#1d1a17' : '#f6e7c4';
+  ctx.font = `700 ${sg.shape === 'disc' ? 11 : 16}px Cinzel, Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(sg.mark, X, Y + 1);
+  ctx.restore();
+}
 const iconSrc = (n: string) => `${import.meta.env.BASE_URL}art/drafts/icons/${n}-96.png`;
 const ICON_IMG: Record<string, HTMLImageElement> = {};
 const iconImg = (n: string) => {
@@ -236,7 +262,8 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel, backL
         const ic = ICON_FOR(p), im = ic ? iconImg(ic) : undefined;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         let lab = 16;
-        if (im) {
+        if (p.sign) { drawSign(ctx, p.sign, X, Y); lab = 24; }
+        else if (im) {
           // a parchment disc under the illustrated icon; a red ring still marks the places you can enter
           ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(X + 1.5, Y + 2.5, 20, 0, 7); ctx.fill();
           ctx.fillStyle = '#efe0bf'; ctx.beginPath(); ctx.arc(X, Y, 20, 0, 7); ctx.fill();
@@ -370,7 +397,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel, backL
         <div className="district-places">
           {v.pois.filter((p) => seen.includes(p.id)).map((p) => (
             <button key={p.id} className={`dplace ${p.kind === 'audience' || p.kind === 'goto' ? 'royal' : ''} ${guidePoi === p.id ? 'guide' : ''}`} onClick={(e) => (p.kind === 'note' ? peek(p, e.currentTarget) : walkTo(p.x, p.y, p.id))} data-testid={`vpoi-${p.id}`}>
-              <i>{ICON_FOR(p) ? <img src={iconSrc(ICON_FOR(p)!)} alt="" draggable={false} /> : p.glyph}</i>
+              <i className={p.sign ? `sign sign-${p.sign.shape}` : undefined} style={p.sign ? { background: p.sign.color } : undefined}>{p.sign ? p.sign.mark : ICON_FOR(p) ? <img src={iconSrc(ICON_FOR(p)!)} alt="" draggable={false} /> : p.glyph}</i>
               <span><b>{p.name}</b><small>{p.sub}</small></span>
             </button>
           ))}

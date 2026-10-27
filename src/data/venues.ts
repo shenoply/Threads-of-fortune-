@@ -12,7 +12,11 @@ export interface VenuePoi {
   text?: string[];
   /** for 'goto': market | animals | guards | palace | town | npc:<id> */
   action?: string;
+  /** a shop's own sign on the city map, so each kind of place has a shape the player learns */
+  sign?: Sign;
 }
+export type SignShape = 'shield' | 'disc' | 'coin' | 'pennant' | 'bottle' | 'book' | 'dome' | 'blades';
+export interface Sign { shape: SignShape; color: string; mark: string }
 
 export interface Venue {
   id: string;

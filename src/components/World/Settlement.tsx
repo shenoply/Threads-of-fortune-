@@ -735,9 +735,12 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {/* Walking the streets stays open underneath whatever shop or hall it leads to, so stepping back
           out of that door returns you to the same street, not all the way out to the town panel. */}
       {inCity && walk && (
-        <div className="venue-overlay">
+        <div className={`venue-overlay${gunsmith || records || wanted || finance || wire || library || cairoPlace || clinic || station ? ' behind' : ''}`}>
           <Venue def={walkDef!} onLeave={() => setInCity(false)} backLabel={`Back to ${st.name}`} onExitCity={() => { setInCity(false); onClose(); }} exitLabel={`Leave ${st.name}`} onAction={(a) => {
             if (a === 'station') { setStation(true); return; }
+            // the town's services, each opened from its own sign on the map
+            const room: Record<string, () => void> = { gunsmith: () => setGunsmith(true), records: () => setRecords(true), wanted: () => setWanted(true), bank: () => setFinance(true), telegraph: () => setWire(true), library: () => setLibrary(true), chemist: () => setCairoPlace('chemist'), hammam: () => { setInCity(false); goTo('town', 'sec-baths'); } };
+            if (room[a]) { room[a](); return; }
             if (a === 'palace') { if (venue?.map) setInVenue(true); else { setInCity(false); goTo('town', 'sec-court'); } }
             else if (a.startsWith('venue:')) {
               const v = VENUES_1925[a.slice(6)];

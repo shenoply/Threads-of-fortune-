@@ -3673,3 +3673,15 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .set-tabs > button[role=tab] { flex: 1 1 0; min-width: 0; }
 .set-tabs > .set-ency { flex: 0 0 44px; display: grid; place-items: center; padding: 0; color: var(--brass-hi, #e7bd6e); }
 .set-tabs > .set-ency svg { width: 20px; height: 20px; }
+/* a map in the background while a shop opened from it is in front */
+.venue-overlay.behind { z-index: 40; }
+/* the shop signs in the list of places: the same shape as on the map */
+.dplace i.sign { color: #f6e7c4; font-weight: 700; box-shadow: 0 0 0 2px #e7bd6e inset; }
+.dplace i.sign-shield { clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); border-radius: 0; }
+.dplace i.sign-coin { clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); border-radius: 0; }
+.dplace i.sign-pennant { clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); border-radius: 0; }
+.dplace i.sign-blades { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); border-radius: 0; }
+.dplace i.sign-dome { border-radius: 50% 50% 4px 4px; }
+.dplace i.sign-book { border-radius: 3px 3px 10px 10px; }
+.dplace i.sign-bottle { border-radius: 40% 40% 50% 50%; }
+.dplace i.sign-disc { border-radius: 50%; }
