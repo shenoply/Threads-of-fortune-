@@ -24,7 +24,7 @@ const GIVEN: Record<string, string[]> = {
 const FAMILY: Record<string, string[]> = {
   egypt: ['Abu Zeid', 'el-Masri', 'Shalabi', 'Abu Hamed', 'el-Fiqi', 'Abdel-Aal', 'Mansi', 'el-Saeedi', 'Hegazi', 'Abu Shusha', 'el-Gammal', 'Abu Daif', 'Qandil', 'el-Sharqawi'],
   bedouin: ['al-Huweitat', 'Abu Rabia', 'al-Tarabin', 'al-Azazmeh', 'Abu Sitta', 'al-Sawarka', 'al-Masaid', 'Abu Tayi'],
-  anatolia: ['Toptani', 'Vlora', 'Dibra', 'Kruja', 'Frasheri'],
+  anatolia: ['Gjoka', 'Leka', 'Dibra', 'Kruja', 'Shehu'],
 };
 /** names the men give one of their own after enough fights: plain and earned */
 const BYNAMES = ['the Steady', 'the Quiet', 'the Hawk', 'Iron Hand', 'the Patient', 'Abu Barud', 'the Lion', 'the Wall', 'Sharp-Eye', 'the Lucky'];

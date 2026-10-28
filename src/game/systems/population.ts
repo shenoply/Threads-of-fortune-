@@ -85,22 +85,22 @@ const NAMES: Record<Culture, { m: string[]; f: string[]; fam: string[] }> = {
   levant: {
     m: ['Elias', 'Yusuf', 'Khalil', 'Georges', 'Nasri', 'Salim', 'Fuad', 'Rashid', 'Jamil', 'Tawfiq', 'Nicola', 'Habib', 'Wadih', 'Abdallah', 'Mahmoud', 'Hussein', 'Raja', 'Shukri', 'Adib', 'Najib', 'Fares', 'Rizq', 'Ibrahim', 'Musa', 'Saleh'],
     f: ['Mariam', 'Hind', 'Wadad', 'Nazira', 'Salwa', 'Laila', 'Rose', 'Afifa', 'Saada', 'Najla', 'Hilana', 'Fadwa', 'Widad', 'Latifa', 'Munira', 'Samia', 'Amira', 'Nadia'],
-    fam: ['Haddad', 'Khoury', 'Sabbagh', 'Tamari', 'Nassar', 'Qassis', 'Dajani', 'Husseini', 'Nashashibi', 'Atallah', 'Shami', 'Halabi', 'Mardam', 'Azm', 'Kurd Ali', 'Quwatli', 'Sursock', 'Bustani', 'Tueni', 'Faris'],
+    fam: ['Haddad', 'Khoury', 'Sabbagh', 'Tamari', 'Nassar', 'Qassis', 'Saliba', 'Hakim', 'Najjar', 'Atallah', 'Shami', 'Halabi', 'Daher', 'Salameh', 'Kanaan', 'Abboud', 'Shalhoub', 'Karam', 'Hanna', 'Faris'],
   },
   anatolia: {
     m: ['Mehmet', 'Ahmet', 'Hasan', 'Hüseyin', 'Ali', 'Mustafa', 'Osman', 'Halil', 'İbrahim', 'Rıza', 'Hakkı', 'Necip', 'Şevket', 'Tevfik', 'Kâzım', 'Cemal', 'Hilmi', 'Nuri', 'Sadık', 'Rauf'],
     f: ['Ayşe', 'Fatma', 'Emine', 'Hatice', 'Zeynep', 'Hacer', 'Nazlı', 'Şükran', 'Saadet', 'Meliha', 'Naciye', 'Feride', 'Halide', 'Nimet'],
-    fam: ['Tezcan', 'Kalkan', 'Yılmaz', 'Demirci', 'Halıcı', 'Kuyumcu', 'Tüccar', 'Bezzaz', 'Kâtipzade', 'Hacıoğlu', 'Karaosman', 'Ağaoğlu', 'Bayraktar', 'Çelebi', 'Hocazade'],
+    fam: ['Tezcan', 'Kalkan', 'Yılmaz', 'Demirci', 'Halıcı', 'Kuyumcu', 'Tüccar', 'Bezzaz', 'Kâtipzade', 'Hacıoğlu', 'Kuyucu', 'Demirtaş', 'Bayraktar', 'Çelebi', 'Hocazade'],
   },
   iraq: {
     m: ['Jassim', 'Abbas', 'Kadhim', 'Hamid', 'Ja\'far', 'Mahdi', 'Salman', 'Hashim', 'Rauf', 'Abdul-Karim', 'Yasin', 'Nuri', 'Saleh', 'Mahmoud', 'Ezra', 'Menahem', 'Sassoon', 'Yusuf'],
     f: ['Zahra', 'Hasiba', 'Najiba', 'Badriya', 'Fadhila', 'Ruqaya', 'Simha', 'Habiba', 'Wafiqa', 'Khatun'],
-    fam: ['al-Najjar', 'al-Chalabi', 'Kubba', 'al-Haidari', 'Shamash', 'Sassoon', 'al-Pachachi', 'al-Umari', 'al-Damluji', 'Baban', 'al-Shabibi', 'Abu Timman'],
+    fam: ['al-Najjar', 'al-Hilli', 'al-Saffar', 'al-Attar', 'Shamash', 'Moallem', 'al-Bazzaz', 'al-Umari', 'al-Khayyat', 'al-Basri', 'al-Rubai', 'Abu Khalaf'],
   },
   persia: {
     m: ['Hossein', 'Hassan', 'Reza', 'Mohammad-Ali', 'Abbas', 'Mahmoud', 'Javad', 'Karim', 'Mehdi', 'Ghulam-Hossein', 'Ali-Akbar', 'Esmail', 'Mirza Jafar', 'Habibollah', 'Nasrollah', 'Asadollah'],
     f: ['Fatemeh', 'Zahra', 'Khadijeh', 'Maryam', 'Roqayeh', 'Shokat', 'Tuba', 'Batul', 'Ashraf', 'Qamar'],
-    fam: ['Tabrizi', 'Kashani', 'Isfahani', 'Kermani', 'Hamadani', 'Sarraf', 'Farshchi', 'Qalibaf', 'Tajer', 'Bazargan', 'Malek', 'Amin al-Tojjar'],
+    fam: ['Tabrizi', 'Kashani', 'Isfahani', 'Kermani', 'Hamadani', 'Sarraf', 'Farshchi', 'Qalibaf', 'Tajer', 'Bazargan', 'Malek', 'Bazzaz'],
   },
   bedouin: {
     m: ['Salem', 'Eid', 'Mutlaq', 'Hamad', 'Sweilim', 'Farhan', 'Odeh', 'Musallam', 'Atiya', 'Suleiman', 'Rabia', 'Mansour', 'Khalaf', 'Jum\'a'],
@@ -110,12 +110,12 @@ const NAMES: Record<Culture, { m: string[]; f: string[]; fam: string[] }> = {
   armenian: {
     m: ['Hagop', 'Garabed', 'Boghos', 'Kevork', 'Hrant', 'Mihran', 'Krikor', 'Sarkis', 'Vartan', 'Aram', 'Levon', 'Ohannes', 'Toros', 'Nishan'],
     f: ['Anoush', 'Siranoush', 'Zabel', 'Maritza', 'Takouhi', 'Arshalouys', 'Haiganoush', 'Lusine'],
-    fam: ['Boyajian', 'Kalaydjian', 'Tashjian', 'Kouyoumdjian', 'Arslanian', 'Balian', 'Tavitian', 'Manoukian', 'Gulbenkian', 'Der Ohannessian'],
+    fam: ['Boyajian', 'Kalaydjian', 'Tashjian', 'Kouyoumdjian', 'Arslanian', 'Balian', 'Tavitian', 'Manoukian', 'Hovsepian', 'Der Ohannessian'],
   },
   greek: {
     m: ['Pericles', 'Yanni', 'Costa', 'Dimitri', 'Spiro', 'Nikos', 'Stavros', 'Andreas', 'Michalis', 'Panayotis', 'Lefteris', 'Giorgos'],
     f: ['Eleni', 'Zoe', 'Katina', 'Despina', 'Sofia', 'Maria', 'Eftychia', 'Calliope'],
-    fam: ['Stavrou', 'Lambrakis', 'Ralli', 'Kalogeras', 'Benakis', 'Salvagos', 'Zervudachi', 'Choremi', 'Kyriakou', 'Papadopoulos'],
+    fam: ['Stavrou', 'Lambrakis', 'Antoniou', 'Kalogeras', 'Georgiou', 'Pappas', 'Nikolaidis', 'Kostopoulos', 'Kyriakou', 'Papadopoulos'],
   },
 };
 const CULTURE_OF: Record<string, Culture> = {
@@ -155,8 +155,8 @@ const OPP: Partial<Record<Trait, Trait>> = { honest: 'cunning', cunning: 'honest
 // ---- a fixed seed: the same world in every game ----
 function rngOf(seed: string) { let h = 2166136261; for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619); return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; }; }
 const pick = <T,>(r: () => number, a: T[]) => a[Math.floor(r() * a.length)];
-const CHRISTIAN = /\b(Elias|Georges|Nicola|Habib|Wadih|Nasri|Jamil|Raja|Adib|Najib|Fares|Rizq|Rose|Hilana|Mariam|Wadad|Nazira|Afifa|Najla|Fadwa|Widad|Haddad|Khoury|Sabbagh|Tamari|Nassar|Qassis|Atallah|Sursock|Bustani|Tueni|Faris|Valenti)\b/;
-const JEWISH = /\b(Ezra|Menahem|Sassoon|Simha|Shamash|Levy|Cohen)\b/;
+const CHRISTIAN = /\b(Elias|Georges|Nicola|Habib|Wadih|Nasri|Jamil|Raja|Adib|Najib|Fares|Rizq|Rose|Hilana|Mariam|Wadad|Nazira|Afifa|Najla|Fadwa|Widad|Haddad|Khoury|Sabbagh|Tamari|Nassar|Qassis|Atallah|Saliba|Shalhoub|Karam|Hanna|Faris|Valenti)\b/;
+const JEWISH = /\b(Ezra|Menahem|Sassoon|Simha|Shamash|Moallem|Levy|Cohen)\b/;
 const NATIVE = new Set<Culture>(['egypt', 'levant', 'anatolia', 'iraq', 'persia', 'bedouin']);
 const faithOf = (name: string, c: Culture): Person['faith'] => (c in FOREIGN_NAMES ? (FOREIGN_FAITH[c as Foreign] ?? 'christian') : c === 'armenian' || c === 'greek' || c === 'copt' || CHRISTIAN.test(name) ? 'christian' : JEWISH.test(name) ? 'jewish' : 'muslim');
 const traitsOf = (r: () => number): Trait[] => { const a = pick(r, TRAITS); let b = pick(r, TRAITS); while (b === a || OPP[a] === b) b = pick(r, TRAITS); return [a, b]; };

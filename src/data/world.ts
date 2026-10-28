@@ -605,7 +605,7 @@ export const NPCS: Record<string, Npc> = {
     },
   },
   nadia: {
-    id: 'nadia', name: 'Nadia Sursock', role: 'Silk merchant\'s widow who runs the business', look: 'hat', accent: '#6a2a3a',
+    id: 'nadia', name: 'Nadia Shalhoub', role: 'Silk merchant\'s widow who runs the business', look: 'hat', accent: '#6a2a3a',
     voice: 'Beiruti woman, forties, sophisticated, amused, French-inflected Arabic',
     nodes: {
       start: {
