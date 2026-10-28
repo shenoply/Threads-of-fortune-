@@ -8,16 +8,16 @@ const ACCENTS = ['#7a3b2a', '#2f4a6b', '#5d6b2f', '#6b4a2f', '#4a2f5d', '#2f5d55
 
 /** A person's face: their picture (their own, or one from the portrait pool), else a drawn cameo in
  *  the dress of their people. */
-export function FolkFace({ p, size = 56 }: { p: Person; size?: number }) {
+export function FolkFace({ p, size = 56, card }: { p: Person; size?: number; /** a framed portrait card instead of a round medallion */ card?: boolean }) {
   const [bad, setBad] = useState(false);
   const [tried, setTried] = useState(false);
-  if (p.npc) return <PortraitOrCameo id={p.npc} spec={personFor(p.npc)} size={size} />;
+  if (p.npc) return card ? <span className="cameo-wrap card npc" style={{ width: size, height: size }}><PortraitOrCameo id={p.npc} spec={personFor(p.npc)} size={size} /></span> : <PortraitOrCameo id={p.npc} spec={personFor(p.npc)} size={size} />;
   const src = faceSrc(p);
   const look = p.sex === 'f' ? 'scarf' : LOOK[p.culture] ?? 'bare';
   const accent = ACCENTS[(p.house ?? p.id).length % ACCENTS.length];
-  if (!src || bad) return <span className="cameo-wrap" style={{ width: size, height: size }}><PersonCameo spec={personFor(p.id, look, accent)} size={size} /></span>;
+  if (!src || bad) return <span className={`cameo-wrap${card ? ' card' : ''}`} style={{ width: size, height: size }}><PersonCameo spec={personFor(p.id, look, accent)} size={size} /></span>;
   // a portrait painted for the game has a small copy for lists (art/portraits/small/<id>.webp)
   // and so does each face of the portrait pool (art/people/small/<id>.webp)
-  const small = size <= 72 && /^art\/(portraits|people)\/[^/]+\.jpg$/.test(src) && !tried ? src.replace(/^art\/(portraits|people)\/(.+)\.jpg$/, 'art/$1/small/$2.webp') : src;
-  return <img className="folk-face" src={small} alt="" width={size} height={size} style={{ width: size, height: size }} onError={() => (small !== src ? setTried(true) : setBad(true))} loading="lazy" />;
+  const small = size <= 180 && /^art\/(portraits|people)\/[^/]+\.jpg$/.test(src) && !tried ? src.replace(/^art\/(portraits|people)\/(.+)\.jpg$/, 'art/$1/small/$2.webp') : src;
+  return <img className={`folk-face${card ? ' card' : ''}`} src={small} alt="" width={size} height={size} style={{ width: size, height: size }} onError={() => (small !== src ? setTried(true) : setBad(true))} loading="lazy" />;
 }

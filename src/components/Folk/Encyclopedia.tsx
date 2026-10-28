@@ -83,6 +83,25 @@ export function Encyclopedia({ start, onClose }: { start?: Page | null; onClose:
   );
 }
 
+/** a family as a card: the head's portrait, the rest of the family as a row of faces */
+function HouseCard({ h, go, here, n }: { h: House; go: (p: Page) => void; here?: boolean; n?: number }) {
+  const w = world();
+  const head = w.people[h.head];
+  const at = placeInTown(h);
+  const others = h.members.filter((m) => m !== h.head).map((m) => w.people[m]).filter(Boolean).sort((a, b) => b.age - a.age);
+  return (
+    <button className={`ency-house rk-edge-${h.rank}${here ? ' here' : ''}`} onClick={() => !here && go({ kind: 'house', id: h.id })} data-testid={`ency-house-${h.id}`}>
+      <FolkFace p={head} size={84} card />
+      <span className="ency-house-text">
+        <small className="ency-card-label"><i className={`rk rk-${h.rank}`}>{4 - RANKS.indexOf(h.rank)}</i>{n ? `${ord(n)} · ` : ''}{RANK_ONE[h.rank]}</small>
+        <b>{h.name}</b>
+        <small>{placeName(h.home).split(',')[0]} · {h.trade} · {ord(at.n)} of {at.of}</small>
+        <span className="ency-faces">{others.slice(0, 5).map((o) => <FolkFace key={o.id} p={o} size={30} />)}{others.length > 5 && <em>+{others.length - 5}</em>}</span>
+      </span>
+    </button>
+  );
+}
+
 function Houses({ q, go, town, setTown }: { q: string; go: (p: Page) => void; town: string; setTown: (t: string) => void }) {
   const w = world();
   const towns = SETTLEMENTS.filter((st) => Object.values(w.houses).some((h) => h.home === st.id));
@@ -100,39 +119,62 @@ function Houses({ q, go, town, setTown }: { q: string; go: (p: Page) => void; to
       {RANKS.map((r) => { const grp = hs.filter((h) => h.rank === r); return grp.length === 0 ? null : (
         <section key={r} className="ency-rank" data-testid={`ency-rank-${r}`}>
           <div className="ency-label"><i className={`rk rk-${r}`}>{4 - RANKS.indexOf(r)}</i> {RANK_GROUP[r].toUpperCase()} · {grp.length}</div>
-          {grp.map((h) => { const head = w.people[h.head]; const at = placeInTown(h); return (
-            <button key={h.id} className={`ency-row house-row rk-line-${r}`} onClick={() => go({ kind: 'house', id: h.id })} data-testid={`ency-house-${h.id}`}>
-              <FolkFace p={head} size={40} />
-              <span><b>{h.name}</b><small>{placeName(h.home)} · {h.trade} · {h.members.length} in the family</small></span>
-              <em>{ord(at.n)} in {placeName(h.home).split(',')[0]}</em>
-            </button>
-          ); })}
+          <div className="ency-houses">{grp.map((h) => <HouseCard key={h.id} h={h} go={go} />)}</div>
         </section>
       ); })}
     </div>
   );
 }
 
+const PAGE = 40;
+/** what a family calls one of its own: "Abu Nadim", not "Abu"; a mother by her own name, not Umm Karim */
+const firstName = (x: Person) => { const n = x.name.split(' '); return /^(Abu|Umm|Abd|Hajj|Haj|Sheikh|Mirza|Signora)$/.test(n[0]) && n[1] ? `${n[0]} ${n[1]}` : n[0]; };
+/** one person as a portrait card: the face large, the name, what they are, their family's standing */
+function PersonCard({ p, go, tag, label }: { p: Person; go: (p: Page) => void; tag?: string; label?: string }) {
+  const g = useGame();
+  const h = p.house ? world().houses[p.house] : undefined;
+  return (
+    <button className={`ency-card${h ? ` rk-edge-${h.rank}` : ''}`} onClick={() => go({ kind: 'person', id: p.id })} data-testid={`ency-row-${p.id}`}>
+      <FolkFace p={p} size={150} card />
+      {tag && <i className="ency-card-tag">{tag}</i>}
+      <span className="ency-card-text">
+        {label && <small className="ency-card-label">{label}</small>}
+        <b>{p.name}</b>
+        <small>{p.title}</small>
+        <small className="ency-card-age">{ageNow(p, g.day)} · {placeName(p.home).split(',')[0]}</small>
+      </span>
+    </button>
+  );
+}
+
 function List({ section, q, go, town, setTown }: { section: Section; q: string; go: (p: Page) => void; town: string; setTown: (t: string) => void }) {
   const g = useGame();
+  const [more, setMore] = useState(PAGE);
+  useEffect(() => setMore(PAGE), [section, q]);
   const w = world();
   const f = g.folk;
   const known = (id: string) => f?.met[id] !== undefined || f?.heard.includes(id);
   if (section === 'people') {
     // everyone in the world is listed from the start: heads, wives and children alike
     const all = Object.values(w.people);
-    const hit = all.filter((p) => !q || `${p.name} ${p.title} ${placeName(p.home)}`.toLowerCase().includes(q))
-      .sort((a, b) => Number(f?.met[b.id] !== undefined) - Number(f?.met[a.id] !== undefined) || Number(known(b.id)) - Number(known(a.id)) || a.name.localeCompare(b.name));
+    const towns = SETTLEMENTS.filter((st) => all.some((p) => p.home === st.id));
+    const hit = all.filter((p) => (!town || p.home === town) && (!q || `${p.name} ${p.title} ${placeName(p.home)}`.toLowerCase().includes(q)))
+      .sort((a, b) => Number(f?.met[b.id] !== undefined) - Number(f?.met[a.id] !== undefined) || Number(known(b.id)) - Number(known(a.id))
+        || (a.house && w.houses[a.house] ? RANKS.indexOf(w.houses[a.house].rank) : 9) - (b.house && w.houses[b.house] ? RANKS.indexOf(w.houses[b.house].rank) : 9) || a.name.localeCompare(b.name));
+    const [shown, setShown] = [Math.min(hit.length, more), setMore];
     return (
-      <div className="ency-list" data-testid="ency-people">
-        <small className="ency-count">{hit.length} people · {Object.keys(f?.met ?? {}).length} met</small>
-        {hit.map((p) => (
-          <button key={p.id} className="ency-row" onClick={() => go({ kind: 'person', id: p.id })} data-testid={`ency-row-${p.id}`}>
-            <FolkFace p={p} size={40} />
-            <span><b>{p.name}</b><small>{p.title}{p.house && w.houses[p.house] ? ` · ${RANK_SHORT[w.houses[p.house].rank]}` : ''}</small></span>
-            <em>{f?.met[p.id] !== undefined ? relWord(f.rel[p.id] ?? 0, true) : known(p.id) ? 'Heard of' : ''}</em>
-          </button>
-        ))}
+      <div data-testid="ency-people">
+        <div className="ency-filter">
+          <select value={town} onChange={(e) => { setTown(e.target.value); setMore(PAGE); }} aria-label="Town" data-testid="ency-people-town">
+            <option value="">Everyone</option>
+            {towns.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+          </select>
+          <small className="ency-count">{hit.length} people · {Object.keys(f?.met ?? {}).length} met</small>
+        </div>
+        <div className="ency-grid">
+          {hit.slice(0, shown).map((p) => <PersonCard key={p.id} p={p} go={go} tag={f?.met[p.id] !== undefined ? relWord(f.rel[p.id] ?? 0, true) : known(p.id) ? 'Heard of' : ''} />)}
+        </div>
+        {shown < hit.length && <button className="ency-more" onClick={() => setShown(shown + PAGE)} data-testid="ency-more">Show more · {hit.length - shown} left</button>}
       </div>
     );
   }
@@ -147,6 +189,19 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
   }
   const bands = wantedList(g);
   return <div className="ency-list">{bands.map((b) => <button key={b.id} className="ency-row plain" onClick={() => go({ kind: 'band', id: b.id })}><span><b>{b.leader.name}</b><small>Leads the band on {b.road}</small></span><em>{b.leader.status === 'jailed' ? 'In the cells' : b.leader.status === 'held' ? 'Your prisoner' : `${fmt(b.leader.bounty)} on his head`}</em></button>)}</div>;
+}
+
+/** a relation as a small portrait with its name under it */
+function KinChip({ p, label, go }: { p: Person; label: string; go: (p: Page) => void }) {
+  const g = useGame();
+  return (
+    <button className="ency-kin-chip" onClick={() => go({ kind: 'person', id: p.id })}>
+      <FolkFace p={p} size={72} card />
+      <small className="ency-card-label">{label}</small>
+      <b>{firstName(p)}</b>
+      <small>{ageNow(p, g.day)}</small>
+    </button>
+  );
 }
 
 function PLink({ id, go }: { id: string; go: (p: Page) => void }) {
@@ -167,14 +222,14 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
     const kin: [string, string | undefined][] = [['Father', x.father], ['Mother', x.mother], [x.sex === 'f' ? 'Husband' : 'Wife', x.spouse]];
     return (
       <article className="ency-page" data-testid="ency-person">
-        <div className="ency-top"><FolkFace p={x} size={96} /><div><h2>{x.name}</h2><small>{x.title}</small><small>{ROLE_WORD[x.role]} · {ageNow(x, g.day)} years · of <button className="ency-link" onClick={() => go({ kind: 'place', id: x.home })}>{placeName(x.home)}</button></small><RelBar p={x} /></div></div>
+        <div className="ency-top person-top"><FolkFace p={x} size={140} card /><div><h2>{x.name}</h2><small>{x.title}</small><small>{ROLE_WORD[x.role]} · {ageNow(x, g.day)} years · of <button className="ency-link" onClick={() => go({ kind: 'place', id: x.home })}>{placeName(x.home)}</button></small><RelBar p={x} /></div></div>
         {x.bio && <p>{x.bio}</p>}
         {met ? <p className="ency-traits">{x.traits.map((t) => TRAIT_WORD[t]).join(' · ')}</p> : <><p className="ency-said" data-testid="ency-hearsay"><b>What they say:</b> {hearsay(x)}</p><p className="ency-dim">You have not met. You will know {x.sex === 'f' ? 'her' : 'him'} better when you do.</p></>}
         {h && <p data-testid="ency-person-house"><b>Family:</b> <button className="ency-link" onClick={() => go({ kind: 'house', id: h.id })}>{h.name}</button><br /><small className="ency-dim"><i className={`rk rk-${h.rank}`}>{4 - RANKS.indexOf(h.rank)}</i> {RANK_ONE[h.rank]} · {ord(placeInTown(h).n)} of {placeInTown(h).of} in {placeName(h.home).split(',')[0]} · {kinWord(x)}</small></p>}
-        <ul className="ency-kin">
-          {kin.filter(([, id]) => id).map(([k, id]) => <li key={k}><span>{k}</span><PLink id={id!} go={go} /></li>)}
-          {x.children.map((c) => <li key={c}><span>{person(c)?.sex === 'm' ? 'Son' : 'Daughter'}</span><PLink id={c} go={go} /> <small>{ageNow(person(c)!, g.day)}</small></li>)}
-        </ul>
+        {(kin.some(([, id]) => id) || x.children.length > 0) && <><div className="ency-label">FAMILY</div><div className="ency-kin-grid">
+          {kin.filter(([, id]) => id && person(id)).map(([k, id]) => <KinChip key={k} p={person(id!)!} label={k} go={go} />)}
+          {x.children.map((c) => person(c)).filter((c): c is Person => !!c).sort((a, b) => b.age - a.age).map((c) => <KinChip key={c.id} p={c} label={kinWord(c) || (c.sex === 'm' ? 'Son' : 'Daughter')} go={go} />)}
+        </div></>}
         {x.route && <p><b>His road:</b> <button className="ency-link" onClick={() => go({ kind: 'place', id: x.route![0] })}>{placeName(x.route[0])}</button> to <button className="ency-link" onClick={() => go({ kind: 'place', id: x.route![1] })}>{placeName(x.route[1])}</button></p>}
         {x.bride && <p className="ency-note">A family that would receive a proposal: see Household, under Me.</p>}
         {log.length > 0 && <><div className="ency-label">BETWEEN YOU</div><ul className="ency-log">{log.map((l, i) => <li key={i}><small>{dateFor(l.day).short}</small> {l.text}</li>)}</ul></>}
@@ -187,16 +242,14 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
     const head = person(h.head)!;
     return (
       <article className="ency-page" data-testid="ency-house">
-        <div className="ency-top"><FolkFace p={head} size={80} /><div><h2>{h.name}</h2><small>{placeName(h.home)} · {h.trade} · {h.members.length} in the family</small></div></div>
+        <div className="ency-top"><FolkFace p={head} size={110} card /><div><h2>{h.name}</h2><small>{placeName(h.home)} · {h.trade} · {h.members.length} in the family</small></div></div>
         <div className="ency-label">STANDING</div>
         <div className="ency-ladder" data-testid="ency-ladder">{RANKS.map((r, i) => <span key={r} className={r === h.rank ? 'on' : ''}><i className={`rk rk-${r}`}>{4 - i}</i>{RANK_SHORT[r]}</span>)}</div>
         <p className="ency-dim">{RANK_ONE[h.rank]}: {ord(placeInTown(h).n)} of {placeInTown(h).of} families in <button className="ency-link" onClick={() => go({ kind: 'place', id: h.home })}>{placeName(h.home).split(',')[0]}</button>.</p>
         <div className="ency-label">THE FAMILY, FROM THE HEAD DOWN</div>
         <Tree head={head} house={h} go={go} />
         <div className="ency-label">THE OTHER FAMILIES OF {placeName(h.home).split(',')[0].toUpperCase()}</div>
-        <div className="ency-list">{housesOfTown(h.home).map((o, i) => { const hd = person(o.head)!; return (
-          <button key={o.id} className={`ency-row house-row rk-line-${o.rank}${o.id === h.id ? ' here' : ''}`} onClick={() => o.id !== h.id && go({ kind: 'house', id: o.id })}><FolkFace p={hd} size={32} /><span><b>{ord(i + 1)} · {o.name}</b><small>{RANK_ONE[o.rank]} · {o.trade}</small></span><em /></button>
-        ); })}</div>
+        <div className="ency-houses">{housesOfTown(h.home).map((o, i) => <HouseCard key={o.id} h={o} go={go} here={o.id === h.id} n={i + 1} />)}</div>
       </article>
     );
   }
@@ -211,9 +264,9 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
         <p>{st.blurb}</p>
         {sells.length > 0 && <><div className="ency-label">ITS DEALERS SELL</div><div className="ency-chips">{sells.map((id) => <button key={id} className="ency-link" onClick={() => go({ kind: 'rug', id })}>{RUGS[id].name}</button>)}</div></>}
         <div className="ency-label">ITS FAMILIES, BY STANDING</div>
-        <div className="ency-list">{housesOfTown(st.id).map((o, i) => { const hd = person(o.head)!; return <button key={o.id} className={`ency-row house-row rk-line-${o.rank}`} onClick={() => go({ kind: 'house', id: o.id })}><FolkFace p={hd} size={32} /><span><b>{ord(i + 1)} · {o.name}</b><small>{RANK_ONE[o.rank]} · {o.trade}</small></span><em /></button>; })}</div>
+        <div className="ency-houses">{housesOfTown(st.id).map((o, i) => <HouseCard key={o.id} h={o} go={go} n={i + 1} />)}</div>
         <div className="ency-label">ITS PEOPLE</div>
-        <div className="ency-list">{ppl.map((x) => <button key={x.id} className="ency-row" onClick={() => go({ kind: 'person', id: x.id })}><FolkFace p={x} size={40} /><span><b>{x.name}</b><small>{x.title}</small></span><em>{f?.met[x.id] !== undefined ? relWord(f.rel[x.id] ?? 0, true) : ''}</em></button>)}</div>
+        <div className="ency-grid">{ppl.map((x) => <PersonCard key={x.id} p={x} go={go} tag={f?.met[x.id] !== undefined ? relWord(f.rel[x.id] ?? 0, true) : ''} />)}</div>
       </article>
     );
   }
@@ -244,10 +297,12 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
 /** a family tree, from the head down: the head, the wife, then the children eldest first */
 function Tree({ head, house, go }: { head: Person; house: House; go: (p: Page) => void }) {
   const g = useGame();
-  const row = (x: Person, label: string) => (
-    <button key={x.id} className="ency-row tree-row" onClick={() => go({ kind: 'person', id: x.id })} data-testid={`ency-tree-${x.id}`}>
-      <FolkFace p={x} size={40} />
-      <span><small className="tree-label">{label}</small><b>{x.name}</b><small>{x.title} · {ageNow(x, g.day)}</small></span>
+  const row = (x: Person, label: string, big = false) => (
+    <button key={x.id} className={`ency-node${big ? ' big' : ''}`} onClick={() => go({ kind: 'person', id: x.id })} data-testid={`ency-tree-${x.id}`}>
+      <FolkFace p={x} size={big ? 120 : 92} card />
+      <small className="ency-card-label">{label}</small>
+      <b>{firstName(x)}</b>
+      <small>{ageNow(x, g.day)} years</small>
     </button>
   );
   const spouse = head.spouse ? person(head.spouse) : undefined;
@@ -255,8 +310,8 @@ function Tree({ head, house, go }: { head: Person; house: House; go: (p: Page) =
   const rest = house.members.filter((m) => m !== head.id && m !== head.spouse && !head.children.includes(m)).map((m) => person(m)).filter((c): c is Person => !!c);
   return (
     <div className="ency-tree">
-      <div className="ency-couple">{row(head, 'Head of the house')}{spouse && row(spouse, spouse.sex === 'f' ? 'His wife' : 'Her husband')}</div>
-      {kids.length > 0 && <div className="ency-kids">{kids.map((c) => row(c, kinWord(c)))}</div>}
+      <div className="ency-couple">{row(head, 'Head of the house', true)}{spouse && <><i className="ency-wed" aria-hidden="true" />{row(spouse, spouse.sex === 'f' ? 'His wife' : 'Her husband', true)}</>}</div>
+      {kids.length > 0 && <><i className="ency-stem" aria-hidden="true" /><div className="ency-kids">{kids.map((c) => row(c, kinWord(c)))}</div></>}
       {rest.length > 0 && <div className="ency-kids">{rest.map((c) => row(c, 'Of the house'))}</div>}
     </div>
   );
