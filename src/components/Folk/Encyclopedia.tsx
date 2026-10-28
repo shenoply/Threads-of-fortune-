@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame, wantedList } from '../../game/state/store';
-import { world, person, houseOf, notablesOf, ageNow, TRAIT_WORD, type Person, type House, type Role } from '../../game/systems/population';
+import { world, person, houseOf, notablesOf, residentsOf, charactersOf, ageNow, TRAIT_WORD, type Person, type House, type Role } from '../../game/systems/population';
 import { SETTLEMENTS } from '../../data/world';
 import { RUGS, RUG_IDS, PERSIAN_RUG_IDS } from '../../data/rugs';
 import { BAND_ROAD } from '../../game/systems/combat';
@@ -21,7 +21,7 @@ type Kind = 'person' | 'house' | 'place' | 'rug' | 'band';
 type Section = 'people' | 'houses' | 'places' | 'rugs' | 'bands';
 interface Page { kind: Kind; id: string }
 const SECTION_WORD: Record<Section, string> = { people: 'People', houses: 'Families', places: 'Towns', rugs: 'Carpets', bands: 'Bands' };
-const ROLE_WORD: Record<string, string> = { souq: 'Souq master', dealer: 'Dealer on the tables', merchant: 'Merchant', notable: 'Man of standing', craft: 'Craftsman', caravan: 'Caravan master', kin: 'Family' };
+const ROLE_WORD: Record<string, string> = { souq: 'Souq master', dealer: 'Dealer on the tables', merchant: 'Merchant', notable: 'Man of standing', craft: 'Craftsman', caravan: 'Caravan master', kin: 'Family', resident: 'Foreign resident', character: 'A character of the town' };
 const placeName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
 // a family's standing: the four ranks of house, highest first, and its place among its own town's houses
 type Rank = House['rank'];
@@ -29,7 +29,7 @@ const RANKS: Rank[] = ['grand', 'notable', 'trade', 'humble'];
 const RANK_GROUP: Record<Rank, string> = { grand: 'Great houses', notable: 'Notable houses', trade: 'Trading families', humble: 'Families of the quarter' };
 const RANK_ONE: Record<Rank, string> = { grand: 'A great house', notable: 'A notable house', trade: 'A trading family', humble: 'A family of the quarter' };
 const RANK_SHORT: Record<Rank, string> = { grand: 'Great house', notable: 'Notable', trade: 'Trade', humble: 'Quarter' };
-const HEAD_ORDER: Role[] = ['dealer', 'souq', 'notable', 'merchant', 'caravan', 'craft', 'kin'];
+const HEAD_ORDER: Role[] = ['dealer', 'souq', 'notable', 'resident', 'merchant', 'caravan', 'craft', 'character', 'kin'];
 const ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'];
 const ord = (n: number) => ORD[n - 1] ?? `${n}th`;
 const houseCmp = (a: House, b: House) => {
@@ -141,7 +141,7 @@ function PersonCard({ p, go, tag, label }: { p: Person; go: (p: Page) => void; t
         {label && <small className="ency-card-label">{label}</small>}
         <b>{p.name}</b>
         <small>{p.title}</small>
-        <small className="ency-card-age">{ageNow(p, g.day)} · {placeName(p.home).split(',')[0]}</small>
+        <small className="ency-card-age">{ageNow(p, g.day)} · {placeName(p.home).split(',')[0]}{p.mixed ? ` · ${p.mixed}` : p.foreign ? ` · ${p.foreign}` : ''}</small>
       </span>
     </button>
   );
@@ -150,6 +150,7 @@ function PersonCard({ p, go, tag, label }: { p: Person; go: (p: Page) => void; t
 function List({ section, q, go, town, setTown }: { section: Section; q: string; go: (p: Page) => void; town: string; setTown: (t: string) => void }) {
   const g = useGame();
   const [more, setMore] = useState(PAGE);
+  const [who, setWho] = useState<'all' | 'locals' | 'foreign' | 'characters'>('all');
   useEffect(() => setMore(PAGE), [section, q]);
   const w = world();
   const f = g.folk;
@@ -158,7 +159,7 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
     // everyone in the world is listed from the start: heads, wives and children alike
     const all = Object.values(w.people);
     const towns = SETTLEMENTS.filter((st) => all.some((p) => p.home === st.id));
-    const hit = all.filter((p) => (!town || p.home === town) && (!q || `${p.name} ${p.title} ${placeName(p.home)}`.toLowerCase().includes(q)))
+    const hit = all.filter((p) => (who === 'all' || (who === 'foreign' ? !!p.foreign || !!p.mixed : who === 'characters' ? p.role === 'character' : !p.foreign && p.role !== 'character')) && (!town || p.home === town) && (!q || `${p.name} ${p.title} ${placeName(p.home)}`.toLowerCase().includes(q)))
       .sort((a, b) => Number(f?.met[b.id] !== undefined) - Number(f?.met[a.id] !== undefined) || Number(known(b.id)) - Number(known(a.id))
         || (a.house && w.houses[a.house] ? RANKS.indexOf(w.houses[a.house].rank) : 9) - (b.house && w.houses[b.house] ? RANKS.indexOf(w.houses[b.house].rank) : 9) || a.name.localeCompare(b.name));
     const [shown, setShown] = [Math.min(hit.length, more), setMore];
@@ -171,6 +172,7 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
           </select>
           <small className="ency-count">{hit.length} people · {Object.keys(f?.met ?? {}).length} met</small>
         </div>
+        <div className="ency-chips-row">{(['all', 'locals', 'foreign', 'characters'] as const).map((k) => <button key={k} className={who === k ? 'on' : ''} onClick={() => { setWho(k); setMore(PAGE); }} data-testid={`ency-who-${k}`}>{{ all: 'Everyone', locals: 'Locals', foreign: 'Foreigners', characters: 'Characters' }[k]}</button>)}</div>
         <div className="ency-grid">
           {hit.slice(0, shown).map((p) => <PersonCard key={p.id} p={p} go={go} tag={f?.met[p.id] !== undefined ? relWord(f.rel[p.id] ?? 0, true) : known(p.id) ? 'Heard of' : ''} />)}
         </div>
@@ -223,7 +225,9 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
     return (
       <article className="ency-page" data-testid="ency-person">
         <div className="ency-top person-top"><FolkFace p={x} size={140} card /><div><h2>{x.name}</h2><small>{x.title}</small><small>{ROLE_WORD[x.role]} · {ageNow(x, g.day)} years · of <button className="ency-link" onClick={() => go({ kind: 'place', id: x.home })}>{placeName(x.home)}</button></small><RelBar p={x} /></div></div>
+        {(x.foreign || x.mixed) && <p className="ency-said"><b>{x.mixed ? 'Mixed family:' : 'Foreigner:'}</b> {x.mixed ?? `${x.foreign}, living in ${placeName(x.home).split(',')[0]}`}</p>}
         {x.bio && <p>{x.bio}</p>}
+        {x.role === 'character' && x.talk && <p className="ency-said"><b>You will hear:</b> {typeof x.talk === 'string' ? x.talk : x.talk[0]}</p>}
         {met ? <p className="ency-traits">{x.traits.map((t) => TRAIT_WORD[t]).join(' · ')}</p> : <><p className="ency-said" data-testid="ency-hearsay"><b>What they say:</b> {hearsay(x)}</p><p className="ency-dim">You have not met. You will know {x.sex === 'f' ? 'her' : 'him'} better when you do.</p></>}
         {h && <p data-testid="ency-person-house"><b>Family:</b> <button className="ency-link" onClick={() => go({ kind: 'house', id: h.id })}>{h.name}</button><br /><small className="ency-dim"><i className={`rk rk-${h.rank}`}>{4 - RANKS.indexOf(h.rank)}</i> {RANK_ONE[h.rank]} · {ord(placeInTown(h).n)} of {placeInTown(h).of} in {placeName(h.home).split(',')[0]} · {kinWord(x)}</small></p>}
         {(kin.some(([, id]) => id) || x.children.length > 0) && <><div className="ency-label">FAMILY</div><div className="ency-kin-grid">
@@ -265,6 +269,8 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
         {sells.length > 0 && <><div className="ency-label">ITS DEALERS SELL</div><div className="ency-chips">{sells.map((id) => <button key={id} className="ency-link" onClick={() => go({ kind: 'rug', id })}>{RUGS[id].name}</button>)}</div></>}
         <div className="ency-label">ITS FAMILIES, BY STANDING</div>
         <div className="ency-houses">{housesOfTown(st.id).map((o, i) => <HouseCard key={o.id} h={o} go={go} n={i + 1} />)}</div>
+        {residentsOf(st.id).length > 0 && <><div className="ency-label">ITS FOREIGNERS</div><div className="ency-grid">{residentsOf(st.id).map((x) => <PersonCard key={x.id} p={x} go={go} />)}</div></>}
+        {charactersOf(st.id).length > 0 && <><div className="ency-label">ITS CHARACTERS</div><div className="ency-grid">{charactersOf(st.id).map((x) => <PersonCard key={x.id} p={x} go={go} />)}</div></>}
         <div className="ency-label">ITS PEOPLE</div>
         <div className="ency-grid">{ppl.map((x) => <PersonCard key={x.id} p={x} go={go} tag={f?.met[x.id] !== undefined ? relWord(f.rel[x.id] ?? 0, true) : ''} />)}</div>
       </article>

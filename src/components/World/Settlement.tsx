@@ -30,7 +30,7 @@ import { Portrait } from './Portrait';
 import { Dialogue } from './Dialogue';
 import { FolkCard, FolkRow } from '../Folk/FolkCard';
 import { SouqCard } from '../Folk/SouqCard';
-import { notablesOf } from '../../game/systems/population';
+import { notablesOf, residentsOf, charactersOf } from '../../game/systems/population';
 import { TownSupplies, CaravanRoster } from './CaravanPanels';
 import { StallOverhead } from './StallOverhead';
 import { Venue, AudienceOverlay } from './Venue';
@@ -418,6 +418,18 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
               {notablesOf(id).filter((x) => !x.npc).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}
             </div>
             <button className="ghost-btn" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency', { detail: { kind: 'place', id } }))} data-testid="town-ency">{st.name} in the encyclopedia ›</button>
+          </>
+        )}
+        {residentsOf(id).length > 0 && (
+          <>
+            <div className="section-label" id="sec-foreigners">FOREIGNERS IN {st.name.toUpperCase()}</div>
+            <div className="folk-list" data-testid="foreigners">{residentsOf(id).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div>
+          </>
+        )}
+        {charactersOf(id).length > 0 && (
+          <>
+            <div className="section-label" id="sec-characters">CHARACTERS OF {st.name.toUpperCase()}</div>
+            <div className="folk-list" data-testid="characters">{charactersOf(id).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div>
           </>
         )}
         {st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival).length > 0 && (

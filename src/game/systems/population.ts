@@ -12,9 +12,11 @@ import { SETTLEMENTS, NPCS } from '../../data/world';
 import { RIVALS } from '../../data/rivals';
 import { POOL, type PoolRegion } from '../../data/portraitPool';
 import { BRIDES } from './household';
+import { FOREIGN_HEADS, FOREIGN_NAMES, FOREIGN_FAITH, FOREIGN_POOL, FOREIGN_WORD, type Foreign, type FamilyKind } from '../../data/foreigners';
+import { TOWN_CHARACTERS } from '../../data/characters';
 
-export type Culture = 'egypt' | 'levant' | 'anatolia' | 'iraq' | 'persia' | 'bedouin' | 'armenian' | 'greek';
-export type Role = 'souq' | 'merchant' | 'notable' | 'craft' | 'caravan' | 'dealer' | 'kin';
+export type Culture = 'egypt' | 'levant' | 'anatolia' | 'iraq' | 'persia' | 'bedouin' | 'armenian' | 'greek' | Foreign | 'copt';
+export type Role = 'souq' | 'merchant' | 'notable' | 'craft' | 'caravan' | 'dealer' | 'kin' | 'resident' | 'character';
 export type Trait = 'honest' | 'greedy' | 'proud' | 'generous' | 'cunning' | 'pious' | 'cheerful' | 'stern' | 'curious' | 'gossip';
 export const TRAIT_WORD: Record<Trait, string> = { honest: 'Honest', greedy: 'Greedy', proud: 'Proud', generous: 'Generous', cunning: 'Cunning', pious: 'Devout', cheerful: 'Cheerful', stern: 'Stern', curious: 'Curious', gossip: 'A talker' };
 
@@ -51,6 +53,14 @@ export interface Person {
   bio: string;
   /** Christian or Jewish families keep their own feasts and their own blessings */
   faith: 'muslim' | 'christian' | 'jewish';
+  /** what they say when asked about their trade (foreign residents and town characters) */
+  talk?: [string, string] | string;
+  /** a foreigner: which people ("English", "Greek") */
+  foreign?: string;
+  /** a child of a mixed marriage: "Greek father, Egyptian mother" */
+  mixed?: string;
+  /** one of the town characters: what everyone remembers about them */
+  look?: string;
 }
 export interface House {
   id: string; name: string; home: string; head: string; members: string[];
@@ -61,6 +71,12 @@ export interface House {
 
 // ---- names, by people ----
 const NAMES: Record<Culture, { m: string[]; f: string[]; fam: string[] }> = {
+  ...FOREIGN_NAMES,
+  copt: {
+    m: ['Boutros', 'Girgis', 'Mikhail', 'Tadros', 'Hanna', 'Wissa', 'Morcos', 'Fahim', 'Labib', 'Shenouda'],
+    f: ['Mariam', 'Faiza', 'Wardah', 'Labiba', 'Victoria', 'Isis', 'Hoda', 'Marcelle', 'Tereza', 'Ilham'],
+    fam: ['Ghali', 'Wissa', 'Abdel-Malek', 'Girgis', 'Tadros', 'Hanna', 'Basili', 'Doss', 'Iskandar', 'Ebeid'],
+  },
   egypt: {
     m: ['Mahmoud', 'Ahmad', 'Hassan', 'Ibrahim', 'Mustafa', 'Abdel-Rahman', 'Sayed', 'Hamid', 'Fathi', 'Ragab', 'Shaaban', 'Mitwalli', 'Abdel-Aziz', 'Zaki', 'Tawfiq', 'Fouad', 'Hilmi', 'Rashad', 'Kamal', 'Anwar', 'Saad', 'Salah', 'Gamal', 'Yusuf', 'Abdu', 'Hafez', 'Ismail', 'Ali', 'Khalil', 'Darwish'],
     f: ['Fatma', 'Zeinab', 'Aisha', 'Amina', 'Khadija', 'Nefisa', 'Sakina', 'Hanem', 'Bahiya', 'Ihsan', 'Safiya', 'Nabawiya', 'Tafida', 'Zakiya', 'Hamida', 'Rasmiya', 'Galila', 'Wahiba', 'Saniya', 'Hikmat'],
@@ -112,7 +128,7 @@ export const cultureOf = (city: string): Culture => CULTURE_OF[city] ?? 'egypt';
 /** cities where a second people keep a share of the trade: Armenians in Aleppo and Cairo, Greeks in Alexandria */
 const MINORITY: Record<string, Culture> = { aleppo: 'armenian', cairo: 'armenian', istanbul: 'armenian', alexandria: 'greek', portsaid: 'greek', beirut: 'armenian' };
 
-const GOODS: Record<Culture, string[]> = {
+const GOODS: Record<string, string[]> = {
   egypt: ['cotton', 'sugar and dates', 'Assiut shawls', 'brass and copper', 'coffee', 'grain'],
   levant: ['silk', 'olive-oil soap', 'oranges', 'Damascus brocade', 'dried apricots', 'tobacco'],
   anatolia: ['angora wool', 'tobacco', 'hazelnuts', 'opium for the pharmacies', 'kilims'],
@@ -122,7 +138,7 @@ const GOODS: Record<Culture, string[]> = {
   armenian: ['jewellery', 'cloth', 'photography'],
   greek: ['wine and spirits', 'groceries', 'cotton futures', 'shipping'],
 };
-const NOTABLE_TITLE: Record<Culture, string[]> = {
+const NOTABLE_TITLE: Record<string, string[]> = {
   egypt: ['the qadi of the shari\'a court', 'a landowning bey', 'the sheikh of the quarter', 'a pasha\'s agent'],
   levant: ['the mukhtar of the quarter', 'a landowning effendi', 'the qadi', 'a notable of the old families'],
   anatolia: ['the müftü', 'a landowning ağa', 'a deputy of the new Assembly', 'the head of the guild'],
@@ -141,11 +157,12 @@ function rngOf(seed: string) { let h = 2166136261; for (let i = 0; i < seed.leng
 const pick = <T,>(r: () => number, a: T[]) => a[Math.floor(r() * a.length)];
 const CHRISTIAN = /\b(Elias|Georges|Nicola|Habib|Wadih|Nasri|Jamil|Raja|Adib|Najib|Fares|Rizq|Rose|Hilana|Mariam|Wadad|Nazira|Afifa|Najla|Fadwa|Widad|Haddad|Khoury|Sabbagh|Tamari|Nassar|Qassis|Atallah|Sursock|Bustani|Tueni|Faris|Valenti)\b/;
 const JEWISH = /\b(Ezra|Menahem|Sassoon|Simha|Shamash|Levy|Cohen)\b/;
-const faithOf = (name: string, c: Culture): Person['faith'] => (c === 'armenian' || c === 'greek' || CHRISTIAN.test(name) ? 'christian' : JEWISH.test(name) ? 'jewish' : 'muslim');
+const NATIVE = new Set<Culture>(['egypt', 'levant', 'anatolia', 'iraq', 'persia', 'bedouin']);
+const faithOf = (name: string, c: Culture): Person['faith'] => (c in FOREIGN_NAMES ? (FOREIGN_FAITH[c as Foreign] ?? 'christian') : c === 'armenian' || c === 'greek' || c === 'copt' || CHRISTIAN.test(name) ? 'christian' : JEWISH.test(name) ? 'jewish' : 'muslim');
 const traitsOf = (r: () => number): Trait[] => { const a = pick(r, TRAITS); let b = pick(r, TRAITS); while (b === a || OPP[a] === b) b = pick(r, TRAITS); return [a, b]; };
 
 // faces: the closest free face in the pool for people, sex, age and class
-const POOL_REGION: Record<Culture, PoolRegion> = { egypt: 'egypt', levant: 'levant', anatolia: 'anatolia', iraq: 'iraq', persia: 'persia', bedouin: 'bedouin', armenian: 'armenian', greek: 'greek' };
+const POOL_REGION: Record<Culture, PoolRegion> = { egypt: 'egypt', levant: 'levant', anatolia: 'anatolia', iraq: 'iraq', persia: 'persia', bedouin: 'bedouin', armenian: 'armenian', greek: 'greek', copt: 'egypt', ...FOREIGN_POOL };
 const ageBand = (a: number): 'y' | 'm' | 'o' => (a < 33 ? 'y' : a < 55 ? 'm' : 'o');
 
 export interface World { people: Record<string, Person>; houses: Record<string, House>; byCity: Record<string, string[]>; caravans: Record<string, string> }
@@ -158,19 +175,29 @@ export function world(): World {
   const houses: Record<string, House> = {};
   const byCity: Record<string, string[]> = {};
   const used = new Set<string>();
+  const faceCities: Record<string, Set<string>> = {};
+  const faceHouses: Record<string, Set<string>> = {};
   // the names already taken by the characters written by hand
   const usedNames = new Set<string>([...RIVALS.map((x) => x.name), ...Object.values(NPCS).map((n) => n.name), ...Object.values(BRIDES).filter((b) => !b.folk).map((b) => b.name)]);
   const face = (p: Person, cls: 'humble' | 'trade' | 'notable') => {
     const reg = POOL_REGION[p.culture], band = ageBand(p.age);
     const fits = (f: (typeof POOL)[number]) => f.region === reg && f.sex === p.sex;
     const order = [
+      ...(p.culture in FOREIGN_NAMES || p.culture === 'greek' ? [POOL.filter((f) => fits(f) && f.age === band && f.nat === p.culture), POOL.filter((f) => fits(f) && f.nat === p.culture)] : []),
       POOL.filter((f) => fits(f) && f.age === band && f.cls === cls),
       POOL.filter((f) => fits(f) && f.age === band),
       POOL.filter((f) => fits(f)),
     ];
-    for (const list of order) { const free = list.find((f) => !used.has(f.id)); if (free) { used.add(free.id); return free.id; } }
-    // the pool is spent for this people: share a face with someone far away
-    const any = order[1][0] ?? order[2][0];
+    for (const list of order) { const free = list.find((f) => !used.has(f.id)); if (free) { used.add(free.id); (faceCities[free.id] ??= new Set()).add(p.home); if (p.house) (faceHouses[free.id] ??= new Set()).add(p.house); return free.id; } }
+    // the pool is spent for this people: share a face, but never with someone in the same town (so never
+    // with a sister or a neighbour), and spread the sharing over the whole set
+    const all = order.find((l) => l.length) ?? [];
+    const kin = all.filter((f) => !p.house || !faceHouses[f.id]?.has(p.house));
+    const far = kin.filter((f) => !faceCities[f.id]?.has(p.home));
+    const from = far.length ? far : kin.length ? kin : all;
+    let hh = 0; for (const ch of p.id) hh = (hh * 31 + ch.charCodeAt(0)) >>> 0;
+    const any = from[hh % Math.max(1, from.length)];
+    if (any) { (faceCities[any.id] ??= new Set()).add(p.home); if (p.house) (faceHouses[any.id] ??= new Set()).add(p.house); }
     return any?.id;
   };
   const add = (p: Omit<Person, 'faith'> & { faith?: Person['faith'] }, cls: 'humble' | 'trade' | 'notable' = 'trade'): Person => {
@@ -308,6 +335,72 @@ export function world(): World {
     family(p, h, r);
     caravans[pid] = p.id;
   }
+  // 5. the foreign communities: officials, officers, merchants, teachers, engineers and their families,
+  // some married into the town (data/foreigners.ts)
+  const WIFE_OF: Record<Exclude<FamilyKind, 'alone' | 'own'>, (head: Person) => Culture> = {
+    'mixed-egypt': (hd) => (hd.faith === 'muslim' ? 'egypt' : 'copt'), 'mixed-levant': () => 'levant', 'mixed-greek': () => 'greek', 'mixed-armenian': () => 'armenian', 'mixed-british': () => 'british',
+  };
+  const an = (w: string) => `${/^[AEIOU]/.test(w) ? 'an' : 'a'} ${w}`;
+  const wordOf = (c: Culture) => (FOREIGN_WORD as Record<string, string>)[c] ?? (c === 'copt' || c === 'egypt' ? 'Egyptian' : c === 'levant' ? 'Syrian' : c);
+  FOREIGN_HEADS.forEach((fh, i) => {
+    const r = rngOf(`foreign:${fh.city}:${i}`);
+    const c = fh.c as Culture;
+    const sex = fh.sex ?? 'm';
+    const nm = nameFor(r, c, sex);
+    const role: Role = fh.goods ? 'merchant' : 'resident';
+    const lowTitle = /^(Major|Lieutenant|Colonel|Captain|Inspector|Officer|Flight)/.test(fh.title);
+    const short = c === 'british' || c === 'american' ? `${sex === 'f' ? 'Miss' : lowTitle ? fh.title.split(' ')[0] : 'Mr'} ${nm.name.split(' ').slice(-1)[0]}`
+      : c === 'french' || c === 'belgian' || c === 'swiss' ? `${sex === 'f' ? 'Madame' : 'Monsieur'} ${nm.name.split(' ').slice(-1)[0]}`
+      : c === 'italian' || c === 'maltese' ? `${sex === 'f' ? 'Signora' : 'Signor'} ${nm.name.split(' ').slice(-1)[0]}`
+      : c === 'german' ? `${sex === 'f' ? 'Frau' : 'Herr'} ${nm.name.split(' ').slice(-1)[0]}`
+      : c === 'greek' ? `${sex === 'f' ? 'Kyria' : 'Kyrios'} ${nm.name.split(' ').slice(-1)[0]}`
+      : nm.given;
+    const head = add({ id: `foreign-${fh.city}-${i}`, name: nm.name, short, sex, age: fh.age, culture: c, home: fh.city, role, title: fh.title, goods: fh.goods, children: [], traits: traitsOf(r), bio: fh.bio, talk: fh.talk, foreign: wordOf(c) }, fh.rank === 'humble' ? 'humble' : fh.rank === 'trade' ? 'trade' : 'notable');
+    if (fh.fam === 'alone') return;
+    const h: House = { id: `house-${head.id}`, name: houseName(`The ${nm.name.split(' ').slice(-1)[0]} family`, fh.city, `The family of ${nm.name}`), home: fh.city, head: head.id, members: [head.id], rank: fh.rank, trade: fh.goods ?? fh.title.replace(/^(an?|the) /i, '').split(' of ')[0].toLowerCase() };
+    head.house = h.id; houses[h.id] = h;
+    const wc: Culture = fh.fam === 'own' ? c : WIFE_OF[fh.fam](head);
+    const fam = nm.name.split(' ').slice(-1)[0];
+    const givens = new Set<string>([nm.given]);
+    if (head.age >= 26) {
+      const w = nameFor(r, wc, 'f', pick(r, NAMES[wc].fam), wc === 'egypt' ? 'muslim' : undefined, givens);
+      givens.add(w.given);
+      const wife = add({ faith: head.faith, id: `${head.id}-w`, name: w.name, short: w.given, sex: 'f', age: Math.max(22, head.age - 3 - Math.floor(r() * 9)), culture: wc, home: fh.city, role: 'kin', title: `Wife of ${head.short}`, house: h.id, spouse: head.id, children: [], traits: traitsOf(r), bio: wc === c ? '' : `${wordOf(wc)} by birth, married into the ${fam} family.`, foreign: wc === c ? head.foreign : undefined }, fh.rank === 'humble' ? 'humble' : fh.rank === 'trade' ? 'trade' : 'notable');
+      head.spouse = wife.id; h.members.push(wife.id);
+    }
+    const n = head.age < 30 || !head.spouse ? 0 : 1 + Math.floor(r() * 3);
+    for (let k = 0; k < n; k++) {
+      const ksex: 'm' | 'f' = r() < 0.5 ? 'm' : 'f';
+      // a child of a mixed house takes a name from either side
+      const from: Culture = wc !== c && r() < 0.5 ? wc : c;
+      const kn = nameFor(r, from, ksex, fam, head.faith, givens);
+      givens.add(kn.given);
+      const kid = add({ faith: head.faith, id: `${head.id}-c${k}`, name: kn.name, short: kn.given, sex: ksex, age: Math.max(4, head.age - 24 - Math.floor(r() * 12) - k * 3), culture: c, home: fh.city, role: 'kin', title: `${ksex === 'm' ? 'Son' : 'Daughter'} of ${head.short}`, house: h.id, father: head.id, mother: head.spouse, children: [], traits: traitsOf(r), bio: wc !== c ? `Born in ${SETTLEMENTS.find((x) => x.id === fh.city)?.name}, of ${an(wordOf(c))} father and ${an(wordOf(wc))} mother; at home in both.` : '', foreign: head.foreign, mixed: wc !== c ? `${wordOf(c)} father, ${wordOf(wc)} mother` : undefined }, fh.rank === 'humble' ? 'humble' : fh.rank === 'trade' ? 'trade' : 'notable');
+      head.children.push(kid.id); if (head.spouse) people[head.spouse].children.push(kid.id); h.members.push(kid.id);
+    }
+  });
+  // 6. the town characters: the giant porter, the tiny moneychanger, the moustache (data/characters.ts)
+  for (const tc of TOWN_CHARACTERS) {
+    const r = rngOf(`char:${tc.id}`);
+    usedNames.add(tc.name);
+    add({ id: `char-${tc.id}`, name: tc.name, short: tc.short, sex: tc.sex, age: tc.age, culture: tc.c as Culture, home: tc.city, role: 'character', title: tc.title, children: [], traits: traitsOf(r), bio: tc.bio, talk: tc.talk, look: tc.look, art: `art/people/char-${tc.id}.jpg`, foreign: NATIVE.has(tc.c as Culture) ? undefined : wordOf(tc.c as Culture) });
+  }
+  // no family shares a face, and as few neighbours as the pool allows: a last pass over every house
+  const inTown: Record<string, Record<string, number>> = {};
+  for (const q of Object.values(people)) if (q.face) { const t = (inTown[q.home] ??= {}); t[q.face] = (t[q.face] ?? 0) + 1; }
+  for (const h of Object.values(houses)) {
+    const seenF = new Set<string>();
+    for (const m of h.members) {
+      const q = people[m];
+      if (!q?.face) continue;
+      if (!seenF.has(q.face)) { seenF.add(q.face); continue; }
+      const reg = POOL_REGION[q.culture], band = ageBand(q.age);
+      const cands = POOL.filter((f) => f.region === reg && f.sex === q.sex && !seenF.has(f.id));
+      const best = [...cands].sort((a, b) => (Number(a.age !== band) - Number(b.age !== band)) || ((inTown[q.home]?.[a.id] ?? 0) - (inTown[q.home]?.[b.id] ?? 0)))[0];
+      if (!best) continue;
+      inTown[q.home][q.face]--; q.face = best.id; inTown[q.home][best.id] = (inTown[q.home][best.id] ?? 0) + 1; seenF.add(best.id);
+    }
+  }
   built = { people, houses, byCity, caravans };
   return built;
 }
@@ -329,8 +422,12 @@ export const houseOf = (id: string): House | undefined => world().houses[id];
 /** the notables a city keeps: its souq master first */
 export function notablesOf(city: string): Person[] {
   const order: Role[] = ['souq', 'dealer', 'merchant', 'notable', 'craft', 'caravan'];
-  return (world().byCity[city] ?? []).map((id) => world().people[id]).filter((p) => p.role !== 'kin').sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role));
+  return (world().byCity[city] ?? []).map((id) => world().people[id]).filter((p) => p.role !== 'kin' && p.role !== 'resident' && p.role !== 'character').sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role));
 }
+/** the foreigners who live in a town and head a household there (or live alone) */
+export const residentsOf = (city: string): Person[] => (world().byCity[city] ?? []).map((id) => world().people[id]).filter((p) => p.role === 'resident');
+/** the town's characters: the people everyone remembers */
+export const charactersOf = (city: string): Person[] => (world().byCity[city] ?? []).map((id) => world().people[id]).filter((p) => p.role === 'character');
 export const souqMaster = (city: string) => world().people[`${city}-souq`];
 export const caravanMaster = (partyId: string) => { const id = world().caravans[partyId]; return id ? world().people[id] : undefined; };
 export const ageNow = (p: Person, day: number) => p.age + Math.floor(day / 365);
@@ -342,7 +439,7 @@ const RANK_PRICE: Record<House['rank'], { mahr: number; feast: number; rep: numb
   notable: { mahr: 5200, feast: 2800, rep: 6, gift: ['a silk shawl for her mother', 450], minRep: 25 },
   grand: { mahr: 9000, feast: 5000, rep: 8, gift: ['a small silk rug for her mother', 800], minRep: 40 },
 };
-const LOOK_OF: Record<Culture, 'egypt' | 'levant' | 'desert'> = { egypt: 'egypt', levant: 'levant', anatolia: 'levant', armenian: 'levant', greek: 'levant', iraq: 'desert', persia: 'desert', bedouin: 'desert' };
+const LOOK_OF: Record<string, 'egypt' | 'levant' | 'desert'> = { egypt: 'egypt', copt: 'egypt', levant: 'levant', anatolia: 'levant', armenian: 'levant', greek: 'levant', iraq: 'desert', persia: 'desert', bedouin: 'desert', indian: 'desert' };
 /** a daughter of age and unpromised: 18 to 28 in the year the game has reached */
 export function eligibleDaughters(day: number): Person[] {
   const w = world();
@@ -371,7 +468,7 @@ export function registerFolkBrides(day = 0, keep: string[] = []) {
       intro: `${fa.short}'s daughter, ${ageNow(d, day)}: ${her}.`,
       brings, mahr: pr.mahr, feast: pr.feast, feastRep: pr.rep, gift: { label: pr.gift[0], cost: pr.gift[1] },
       likes, rank, meet: 'friend', minRep: pr.minRep, role: fa.role === 'craft' ? 'rugs' : fa.role === 'merchant' ? 'books' : fa.role === 'souq' ? 'stall' : 'home',
-      friends: [d.home], art: faceSrc(d), look: LOOK_OF[d.culture],
+      friends: [d.home], art: faceSrc(d), look: LOOK_OF[d.culture] ?? 'levant',
     };
   }
 }

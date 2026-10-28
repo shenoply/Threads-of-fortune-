@@ -110,3 +110,6 @@
 .ency-page p { font-size: 16px; }
 .ency-tabs button { font-size: 14px; padding: 8px 14px; }
 @media (max-width: 360px) { .ency-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; } .person-top { grid-template-columns: 110px 1fr; } }
+.ency-chips-row { display: flex; gap: 6px; margin: 0 0 12px; overflow-x: auto; scrollbar-width: none; }
+.ency-chips-row button { flex: 0 0 auto; border: 0; border-radius: 99px; padding: 7px 13px; background: rgba(239,224,191,.07); color: var(--text-dim); font-family: var(--body); font-size: 14px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(214,164,84,.18); }
+.ency-chips-row button.on { background: rgba(231,189,110,.2); color: #ffe1a0; box-shadow: inset 0 0 0 1px rgba(231,189,110,.6); }

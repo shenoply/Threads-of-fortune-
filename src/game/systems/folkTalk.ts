@@ -75,6 +75,8 @@ export function talk(p: Person, topic: Topic, c: TalkCtx): Said {
   if (topic === 'trade') {
     const st = SETTLEMENTS.find((s) => s.id === p.home);
     const wants = Object.entries(st?.demand ?? {}).filter(([, v]) => (v ?? 0) > 0).map(([k]) => k.replace(/([A-Z])/g, ' $1').toLowerCase());
+    // the foreigners and the town characters have their own line about what they do
+    if (p.talk) return { text: typeof p.talk === 'string' ? p.talk : p.talk[c.times % 2], mentions: [] };
     if (p.role === 'souq' || p.role === 'dealer') {
       const what = wants.length ? `What sells here is ${wants.slice(0, 2).join(' and ')}.` : 'Here they buy what is cheap and talk about what is fine.';
       const tip = p.traits.includes('honest') ? 'If you buy from me, I will tell you what it is. That is more than the man next door will.' : p.traits.includes('greedy') ? 'I pay fair and I sell dear, and I sleep well.' : p.traits.includes('cunning') ? 'Bring me something nobody else has, and we will both do well out of it.' : 'Bring me good village work, clean, and I will always take it.';
@@ -109,6 +111,11 @@ export function talk(p: Person, topic: Topic, c: TalkCtx): Said {
     return { text: o.sex === 'f' ? said.replace(/\bhe\b/g, 'she').replace(/\bHe\b/g, 'She').replace(/\bhis\b/g, 'her').replace(/\bhim\b/g, 'her') : said, mentions: [o.id] };
   }
   // self
+  if (p.role === 'character') return { text: `${p.bio} ${typeof p.talk === 'string' ? p.talk : (p.talk ?? ['', ''])[(c.times + 1) % 2]}`.trim(), mentions: [] };
+  if (p.foreign && p.role !== 'kin') {
+    const came = 1925 - Math.max(2, Math.min(p.age - 20, 3 + (hash(p.id) % 25)));
+    return { text: `${p.bio} ${pickD([`"I came out in ${came}, for a year. You see how that went."`, `"${came}. I still say I will go home. Nobody believes me, least of all my wife."`, `"Since ${came}. At home they think I am mad. Here they know it."`], `${p.id}:${c.times}`)}`, mentions: [] };
+  }
   const years = p.role === 'caravan' ? `${Math.max(6, p.age - 24)} years on the road` : `${Math.max(8, p.age - 18)} years in ${town(p.home)}`;
   const tail = pickD([`"${years}. Long enough to know better, not long enough to stop."`, `"${years}. My father did the same, and his father. Where else would I go?"`, `"${years}, and the best of it was the year before last. It is always the year before last."`, `"${years}. Ask me again in ten and I will tell you something worth hearing."`], `${p.id}:${c.times}`);
   return { text: `${p.bio} ${tail}`, mentions: [] };

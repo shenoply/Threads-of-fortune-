@@ -3,7 +3,7 @@ import { PersonCameo, PortraitOrCameo } from '../People/Person';
 import { personFor } from '../../data/people';
 import { faceSrc, type Person } from '../../game/systems/population';
 
-const LOOK: Record<string, 'fez' | 'scarf' | 'turban' | 'hat' | 'keffiyeh' | 'cowl' | 'bare'> = { egypt: 'fez', levant: 'fez', anatolia: 'fez', iraq: 'keffiyeh', persia: 'turban', bedouin: 'keffiyeh', armenian: 'bare', greek: 'hat' };
+const LOOK: Record<string, 'fez' | 'scarf' | 'turban' | 'hat' | 'keffiyeh' | 'cowl' | 'bare'> = { egypt: 'fez', levant: 'fez', anatolia: 'fez', iraq: 'keffiyeh', persia: 'turban', bedouin: 'keffiyeh', armenian: 'bare', greek: 'hat', copt: 'fez', british: 'hat', french: 'hat', italian: 'hat', german: 'hat', swiss: 'hat', belgian: 'hat', american: 'hat', russian: 'bare', maltese: 'hat', jewish: 'bare', shami: 'fez', albanian: 'fez', circassian: 'fez', indian: 'turban' };
 const ACCENTS = ['#7a3b2a', '#2f4a6b', '#5d6b2f', '#6b4a2f', '#4a2f5d', '#2f5d55', '#7a5a22'];
 
 /** A person's face: their picture (their own, or one from the portrait pool), else a drawn cameo in
