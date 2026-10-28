@@ -5143,7 +5143,14 @@ useGame.subscribe((s) => { if ((s.world?.party?.food ?? 0) > 0 && s.condition &&
 let ranksSeen: RanksState | undefined | null = null;
 // the daughters of the world's families who are of an age to marry: registered as matches, and again as the years pass
 const matchIds = (s: GameState) => { const h = s.household; return h ? [...(h.known ?? []), ...Object.keys(h.suitors ?? {}), h.chosen ?? '', h.spouse?.id ?? '', ...(h.wives ?? []).map((w) => w.id), h.mother ?? '', ...h.children.map((c) => c.mother ?? '')] : []; };
-registerFolkBrides(useGame.getState().day, matchIds(useGame.getState()));
+{
+  // the world's people (900 of them) are made when first needed; at start only if a match in the save is one
+  // of their daughters, otherwise a moment after the first screen is up
+  const ids = matchIds(useGame.getState());
+  if (ids.some((x) => x.startsWith('folk-'))) registerFolkBrides(useGame.getState().day, ids);
+  else if (typeof window === 'undefined') registerFolkBrides(useGame.getState().day, ids);
+  else window.setTimeout(() => registerFolkBrides(useGame.getState().day, matchIds(useGame.getState())), 1200);
+}
 useGame.subscribe((s, prev) => { if (Math.floor(s.day / 30) !== Math.floor((prev?.day ?? 0) / 30) || s.household !== prev?.household) registerFolkBrides(s.day, matchIds(s)); });
 /** the souq master's regard, for the pure price functions: a friend sells cheaper and buys dearer */
 export const FOLK_FX: { rel: Record<string, number> } = { rel: {} };

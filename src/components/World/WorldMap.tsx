@@ -939,7 +939,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (pts.current.size < 2) pinch.current = null;
     const d = drag.current;
     drag.current = null;
-    if (!d || d.moved) return;
+    if (d?.moved) { setPan(panRef.current); return; }
+    if (!d) return;
     setSelParty(null);
     const now = performance.now();
     void now; void lastTap;
@@ -1066,11 +1067,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               drag.current.moved = true;
               follow.current = false;
             }
-            if (drag.current.moved) setPan(clampPan({ x: drag.current.px + dx, y: drag.current.py + dy }));
+            // a drag moves the map straight in the DOM (a GPU slide, no React render per finger move);
+            // the camera is committed once, when the finger lifts
+            if (drag.current.moved) {
+              const np = clampPan({ x: drag.current.px + dx, y: drag.current.py + dy });
+              panRef.current = np;
+              if (innerRef.current) innerRef.current.style.transform = `translate(${np.x}px, ${np.y}px)`;
+              paintRef.current(true);
+            }
           }
         }}
         onPointerUp={onPointerUp}
-        onPointerLeave={() => { drag.current = null; setHoverBlocked(false); }}
+        onPointerLeave={() => { if (drag.current?.moved) setPan(panRef.current); drag.current = null; setHoverBlocked(false); }}
         style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
         <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />

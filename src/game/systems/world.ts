@@ -1,8 +1,9 @@
 import { MASK_W, MASK_H, CELL, WATER_ROWS } from '../../data/landmask';
+import { EAST_ROWS } from '../../data/eastGround';
 import { TERRAIN_ROWS } from '../../data/terrain';
 import { BARRIER_ROWS, BARRIER_NAMES } from '../../data/barriers';
 import { SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, RAIL_FARE_PER_KM, RAIL_FARE_MIN, ANIMAL_FREIGHT, type Settlement } from '../../data/world';
-import { PAINT_W, EAST_W, eastGround, PERSIA_ROADS } from '../../data/persiaMap';
+import { PAINT_W, EAST_W, PERSIA_ROADS } from '../../data/persiaMap';
 import { BREEDS } from '../../data/animals';
 import { seaDelayOn, SEASON_NOW } from '../economy/calendar1925';
 
@@ -27,10 +28,11 @@ WATER_ROWS.forEach((row, y) => {
   for (let x = 0; x < MASK_W; x++) water[y * GRID_W + x] = row.charCodeAt(x) === 49 ? 1 : 0;
 });
 // the ground east of the painting, cell by cell
+// (baked by tools/build-east-ground.ts: worked out cell by cell it cost a phone a tenth of a second at every start)
 const EAST_GROUND: string[] = [];
 for (let y = 0; y < MASK_H; y++)
   for (let x = MASK_W; x < GRID_W; x++) {
-    const g = eastGround({ x: x * CELL + CELL / 2, y: y * CELL + CELL / 2 });
+    const g = EAST_ROWS[y][x - MASK_W];
     EAST_GROUND[y * GRID_W + x] = g;
     if (g === 'w') water[y * GRID_W + x] = 1;
   }

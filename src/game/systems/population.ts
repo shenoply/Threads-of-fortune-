@@ -176,17 +176,21 @@ export function world(): World {
   const byCity: Record<string, string[]> = {};
   const used = new Set<string>();
   const faceCities: Record<string, Set<string>> = {};
+  const poolBy: Record<string, (typeof POOL)[number][]> = {};
+  for (const f of POOL) (poolBy[`${f.region}:${f.sex}`] ??= []).push(f);
   const faceHouses: Record<string, Set<string>> = {};
   // the names already taken by the characters written by hand
   const usedNames = new Set<string>([...RIVALS.map((x) => x.name), ...Object.values(NPCS).map((n) => n.name), ...Object.values(BRIDES).filter((b) => !b.folk).map((b) => b.name)]);
   const face = (p: Person, cls: 'humble' | 'trade' | 'notable') => {
     const reg = POOL_REGION[p.culture], band = ageBand(p.age);
-    const fits = (f: (typeof POOL)[number]) => f.region === reg && f.sex === p.sex;
+    // the pool indexed once by people and sex: 900 people looking through 300 faces five times over was a
+    // quarter of a second on a phone at every start
+    const mine = poolBy[`${reg}:${p.sex}`] ?? [];
     const order = [
-      ...(p.culture in FOREIGN_NAMES || p.culture === 'greek' ? [POOL.filter((f) => fits(f) && f.age === band && f.nat === p.culture), POOL.filter((f) => fits(f) && f.nat === p.culture)] : []),
-      POOL.filter((f) => fits(f) && f.age === band && f.cls === cls),
-      POOL.filter((f) => fits(f) && f.age === band),
-      POOL.filter((f) => fits(f)),
+      ...(p.culture in FOREIGN_NAMES || p.culture === 'greek' ? [mine.filter((f) => f.age === band && f.nat === p.culture), mine.filter((f) => f.nat === p.culture)] : []),
+      mine.filter((f) => f.age === band && f.cls === cls),
+      mine.filter((f) => f.age === band),
+      mine,
     ];
     for (const list of order) { const free = list.find((f) => !used.has(f.id)); if (free) { used.add(free.id); (faceCities[free.id] ??= new Set()).add(p.home); if (p.house) (faceHouses[free.id] ??= new Set()).add(p.house); return free.id; } }
     // the pool is spent for this people: share a face, but never with someone in the same town (so never
