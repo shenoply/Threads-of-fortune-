@@ -188,6 +188,9 @@ try {
   await p.locator('[data-testid=child-cx] .hh-pt-open').click(); await p.waitForTimeout(300);
   ok(/Zeinab/.test(await p.locator('[data-testid=hh-look]').textContent()), 'and a child too');
   await p.click('[data-testid=hh-look-close]');
+  await p.locator('[data-testid=hh-spouse] .hh-name').first().click(); await p.waitForTimeout(300);
+  ok((await p.locator('[data-testid=hh-look]').count()) > 0, 'her name opens her as well as her face');
+  await p.click('[data-testid=hh-look-close]');
 
   // the heir: Hassan dies, the eldest grown child carries on
   const rep0 = await G(`return g.reputation;`);
