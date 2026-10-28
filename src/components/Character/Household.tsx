@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { person } from '../../game/systems/population';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
@@ -11,14 +13,35 @@ import {
 import './household.css';
 
 /** A framed portrait: the painting once it has loaded, the sitter's initial until then (or if there is none). */
-function Portrait({ src, name, small = false, fallback }: { src: string; name: string; small?: boolean; fallback?: string }) {
+function Portrait({ src, name, small = false, fallback, onOpen, big = false }: { src: string; name: string; small?: boolean; fallback?: string; onOpen?: () => void; big?: boolean }) {
   const [ok, setOk] = useState(false);
   const [use, setUse] = useState(src);
-  return (
-    <span className={`hh-pt ${small ? 'sm' : ''}`} aria-hidden="true">
-      <b>{name.replace(/^(the|al-)\s*/i, '')[0]}</b>
-      <img src={use} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => { setOk(false); if (fallback && use !== fallback) setUse(fallback); }} style={{ opacity: ok ? 1 : 0 }} />
-    </span>
+  const inner = <>
+    <b>{name.replace(/^(the|al-)\s*/i, '')[0]}</b>
+    <img src={use} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => { setOk(false); if (fallback && use !== fallback) setUse(fallback); }} style={{ opacity: ok ? 1 : 0 }} />
+  </>;
+  // tap a face to see the person: the picture large, and what you know of them
+  return onOpen
+    ? <button className={`hh-pt hh-pt-open ${small ? 'sm' : ''}`} onClick={onOpen} aria-label={`See ${name}`} data-testid={`hh-open-${name.replace(/\W+/g, '-').toLowerCase()}`}>{inner}</button>
+    : <span className={`hh-pt ${small ? 'sm' : ''} ${big ? 'big' : ''}`} aria-hidden="true">{inner}</span>;
+}
+
+/** someone of the household seen close: the picture large, who they are, and a way into the encyclopedia */
+interface Look { src: string; fallback?: string; name: string; lines: string[]; person?: string }
+function LookSheet({ look, onClose }: { look: Look; onClose: () => void }) {
+  return createPortal(
+    <div className="hh-look-wrap" onClick={onClose} data-testid="hh-look">
+      <div className="hh-look" role="dialog" aria-label={look.name} onClick={(e) => e.stopPropagation()}>
+        <div className="hh-look-pic"><Portrait src={look.src} fallback={look.fallback} name={look.name} big /></div>
+        <h3>{look.name}</h3>
+        {look.lines.filter(Boolean).map((l, i) => <p key={i}>{l}</p>)}
+        <div className="hh-btns">
+          {look.person && person(look.person) && <button className="btn" onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('tof:ency', { detail: { kind: 'person', id: look.person } })); }} data-testid="hh-look-ency">Family and standing ›</button>}
+          <button className="btn primary" onClick={onClose} data-testid="hh-look-close">Close</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -30,6 +53,8 @@ export function HouseholdSection() {
   const h = hh(g);
   const [msg, setMsg] = useState('');
   const [handOver, setHandOver] = useState(false);
+  const [look, setLook] = useState<Look | null>(null);
+  const personOf = (id: BrideId) => BRIDES[id]?.folk ?? `bride-${id}`;
   const act = (a: HouseholdAct) => setMsg(g.householdAct(a));
   const at = g.world.at;
   const sp = h.spouse;
@@ -72,7 +97,7 @@ export function HouseholdSection() {
               const here = at === b.city;
               return (
                 <div key={id} className="hh-card" data-testid={`bride-${id}`}>
-                  <Portrait src={brideArt(id)} name={b.short} />
+                  <Portrait src={brideArt(id)} name={b.short} onOpen={() => setLook({ src: brideArt(id), name: b.name, person: personOf(id), lines: [`${b.rank ? RANK_WORD[b.rank] + ' · ' : ''}${b.cityName}`, `Daughter of ${b.father}.`, b.intro, b.brings, `Her father's opinion of you: ${su.favour} of 100.`] })} />
                   <div className="hh-txt">
                     <b>{b.name}</b>
                     <small className="hh-rank">{b.rank ? RANK_WORD[b.rank] : ''}{b.rank ? ' · ' : ''}{b.cityName}{b.minRep && g.reputation < b.minRep ? ` · wants a name of ${b.minRep}` : ''}</small>
@@ -101,7 +126,7 @@ export function HouseholdSection() {
           const from = (h.contract ?? g.day) + FEAST_AFTER;
           return (
             <div className="hh-card" data-testid="hh-betrothed">
-              <Portrait src={brideArt(b.id)} name={b.short} />
+              <Portrait src={brideArt(b.id)} name={b.short} onOpen={() => setLook({ src: brideArt(b.id), name: b.name, person: personOf(b.id), lines: [`Promised to you. Daughter of ${b.father}, of ${b.cityName}.`, b.intro, b.brings] })} />
               <div className="hh-txt">
                 <b>{b.name}</b>
                 <small>The contract is written and the mahr paid. The wedding feast is held at her father's house in {b.cityName}, from {dateFor(from).short}: {fmt(b.feast)}{sp ? `, and her rooms in the house ${fmt(ROOMS_COST[wives.length] ?? 0)}` : ''}.</small>
@@ -117,7 +142,7 @@ export function HouseholdSection() {
           const home = at === 'giza';
           return (
             <div key={sp.id} className="hh-card" data-testid={`hh-spouse${tag}`}>
-              <Portrait src={brideArt(sp.id)} name={b.short} />
+              <Portrait src={brideArt(sp.id)} name={b.short} onOpen={() => setLook({ src: brideArt(sp.id), name: b.name, person: personOf(sp.id), lines: [`${wives.length > 1 ? `Your ${["first", "second", "third", "fourth"][wi]} wife. ` : 'Your wife. '}Married ${dateFor(sp.married).short} in ${b.cityName}.`, `Daughter of ${b.father}.`, `${contentWord(sp.content)}${home ? ', and you are home' : ''}.`, b.brings, `${h.children.filter((c) => (c.mother ?? wives[0]?.id) === sp.id).length || 'No'} children with you.`] })} />
               <div className="hh-txt">
                 <b>{b.short}{wives.length > 1 ? <em className="hh-nth"> · {["first", "second", "third", "fourth"][wi]} wife</em> : null}</b>
                 <small>Married {dateFor(sp.married).short} in {b.cityName}. {b.brings}</small>
@@ -143,7 +168,7 @@ export function HouseholdSection() {
           const shops = Object.keys(((g as unknown as { shops?: Record<string, unknown> }).shops) ?? {});
           return (
             <div key={c.id} className="hh-card kid" data-testid={`child-${c.id}`}>
-              <Portrait src={childArt(c, sp?.id)[0]} fallback={childArt(c, sp?.id)[1]} key={childArt(c, sp?.id)[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small />
+              <Portrait src={childArt(c, sp?.id)[0]} fallback={childArt(c, sp?.id)[1]} key={childArt(c, sp?.id)[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small onOpen={() => setLook({ src: childArt(c, sp?.id)[0], fallback: childArt(c, sp?.id)[1], name: c.name ?? `Your ${c.sex}, not yet named`, lines: [`${c.sex === 'son' ? 'Son' : 'Daughter'} of ${merchantName(g)}${c.mother ?? sp?.id ? ` and ${BRIDES[c.mother ?? sp!.id]?.short ?? ''}` : ''}.`, `Born ${dateFor(c.born).short}. ${age < 1 ? 'A baby.' : `${age} year${age > 1 ? 's' : ''} old.`}`, c.path ? `${PATH_WORD[c.path][0].toUpperCase()}${PATH_WORD[c.path].slice(1)}.` : '', c.role === 'apprentice' ? 'Travels with you as your apprentice.' : c.role === 'shop' ? `Keeps the shop in ${c.shopAt}.` : ''] })} />
               <div className="hh-txt">
                 <b>{c.name ?? `A ${c.sex}, not yet named`}{c.twinOf || h.children.some((x) => x.id !== c.id && x.born === c.born && (x.mother ?? '') === (c.mother ?? '')) ? <em className="hh-nth"> · {h.children.filter((x) => x.born === c.born && (x.mother ?? '') === (c.mother ?? '')).length === 3 ? 'a triplet' : 'a twin'}</em> : null}</b>
                 <small>{wives.length > 1 || c.mother ? `${BRIDES[c.mother ?? sp?.id ?? '']?.short ?? ''}'s ${c.sex}. ` : ''}{age < 1 ? 'A baby' : `${age} year${age > 1 ? 's' : ''}`}{c.path ? `, ${PATH_WORD[c.path]}` : ''}{c.role === 'apprentice' ? ', travelling with you' : c.role === 'shop' ? `, keeping the shop (${c.shopAt})` : ''}.{age >= PATH_AGE ? ` Learning ${Math.round(c.traits.learning)} · trade ${Math.round(c.traits.trade)} · craft ${Math.round(c.traits.craft)}` : ''}</small>
@@ -178,6 +203,7 @@ export function HouseholdSection() {
           </div>
         )}
         {msg && <p className="hh-msg" role="status" data-testid="hh-msg">{msg}</p>}
+        {look && <LookSheet look={look} onClose={() => setLook(null)} />}
       </Fold>
     </div>
   );

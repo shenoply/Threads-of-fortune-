@@ -177,6 +177,17 @@ try {
   await p.waitForTimeout(300);
   ok((await G(`return g.household.children.find((c) => c.id === 'cx').name;`)) === 'Zeinab', 'a name chosen from the list');
   await p.screenshot({ path: `${SHOTS}/family-household.png` });
+  // tap a face: the person seen close, with the way into the encyclopedia
+  await p.locator('[data-testid=hh-spouse] .hh-pt-open').click(); await p.waitForTimeout(300);
+  const lk = await p.evaluate(() => ({ open: !!document.querySelector('[data-testid=hh-look]'), text: document.querySelector('[data-testid=hh-look]')?.textContent ?? '', ency: !!document.querySelector('[data-testid=hh-look-ency]') }));
+  await p.screenshot({ path: `${SHOTS}/family-look.png` });
+  ok(lk.open && /Married/.test(lk.text) && lk.ency, 'tapping his wife shows her close, with her family in the encyclopedia', lk.text.slice(0, 90));
+  await p.click('[data-testid=hh-look-ency]'); await p.waitForTimeout(400);
+  ok((await p.locator('[data-testid=ency-person]').count()) > 0, 'and her page in the encyclopedia opens');
+  await p.click('[data-testid=ency-close]'); await p.waitForTimeout(200);
+  await p.locator('[data-testid=child-cx] .hh-pt-open').click(); await p.waitForTimeout(300);
+  ok(/Zeinab/.test(await p.locator('[data-testid=hh-look]').textContent()), 'and a child too');
+  await p.click('[data-testid=hh-look-close]');
 
   // the heir: Hassan dies, the eldest grown child carries on
   const rep0 = await G(`return g.reputation;`);
