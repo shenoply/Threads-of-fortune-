@@ -39,3 +39,7 @@
 .caravan-trade p { margin: 4px 0; font-family: var(--body); font-size: 14.5px; color: var(--text); }
 .ct-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 .ency-open { width: 100%; margin-bottom: 10px; }
+.folk-favour { width: 100%; padding: 10px 12px; border-radius: 12px; background: rgba(231,189,110,.1); box-shadow: inset 0 0 0 1px rgba(231,189,110,.4); }
+.folk-favour > small { font-family: var(--label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #c9a160; }
+.folk-favour > p { margin: 4px 0 8px; font-family: var(--body); font-size: 15.5px; color: var(--parchment); }
+.folk-favour-btns { display: flex; gap: 8px; flex-wrap: wrap; }

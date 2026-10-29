@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/state/store';
 import { person, houseOf, TRAIT_WORD, type Person } from '../../game/systems/population';
 import { relWord, topicWord, type Topic } from '../../game/systems/folkTalk';
+import { KIND_WORD, type Favour } from '../../game/systems/favours';
 import { settlementById } from '../../game/systems/world';
 import { audio } from '../../game/audio/engine';
 import { FolkFace } from './FolkFace';
@@ -47,6 +48,11 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
     audio.sfx('tap');
   };
   const topics: Topic[] = ['news', 'trade', 'family', 'gossip', 'self'];
+  // favours: what you could settle with them now, and what they might ask
+  const mine = (g.favours?.active ?? []).filter((f) => f.giver === p.id || f.to === p.id);
+  const [offer, setOffer] = useState<Favour | null | undefined>(undefined);
+  const settleWord = (f: Favour) => f.kind === 'letter' ? (f.to === p.id ? `Give ${p.sex === 'f' ? 'her' : 'him'} the letter from ${person(f.giver)?.short}` : '') : f.kind === 'rug' ? 'Show the rug you found' : f.kind === 'loan' ? 'Ask for the loan back' : `Tell ${p.sex === 'f' ? 'her' : 'him'} about ${f.leader}`;
+  const reply = (text: string, topic: Topic = 'self') => setSaid((x) => [...x, { topic, text, mentions: [] }]);
   const met = g.folk?.met[p.id] !== undefined;
   return (
     <div className="overlay folk-overlay" onClick={onClose} data-testid="folk-card">
@@ -71,6 +77,18 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
         ))}
         <div className="folk-topics">
           {topics.filter((t) => !asked.includes(t)).map((t) => <button key={t} className="btn" onClick={() => ask(t)} data-testid={`folk-${t}`}>{topicWord(t, p)}</button>)}
+          {mine.filter((f) => settleWord(f)).map((f) => <button key={f.id} className="btn primary" onClick={() => reply(useGame.getState().favourSettle(f.id, p.id))} data-testid={`favour-settle-${f.kind}`}>{settleWord(f)}{f.kind === 'rug' && <small>quality {f.tier} or better · from your packs</small>}</button>)}
+          {met && offer === undefined && !mine.some((f) => f.giver === p.id) && <button className="btn" onClick={() => { const o = useGame.getState().favourOffer(p.id); setOffer(o); if (!o) reply(`"Nothing today, my friend. But I will remember that you asked."`); }} data-testid="favour-ask">Can I do anything for you?</button>}
+          {offer && (
+            <div className="folk-favour" data-testid="favour-offer">
+              <small>{KIND_WORD[offer.kind]}</small>
+              <p>{offer.text}</p>
+              <div className="folk-favour-btns">
+                <button className="btn primary" onClick={() => { reply(useGame.getState().favourAccept(offer)); setOffer(null); }} data-testid="favour-accept">I will do it{offer.kind === 'loan' ? ` (lend the money)` : ''}</button>
+                <button className="ghost-btn" onClick={() => { setOffer(null); reply('"Another time, then."'); }} data-testid="favour-decline">Not now</button>
+              </div>
+            </div>
+          )}
           {extra}
           <button className="ghost-btn" onClick={onClose} data-testid="folk-bye">Go in peace</button>
         </div>

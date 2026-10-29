@@ -1,4 +1,5 @@
 import { Book } from '../Book/Book';
+import { favourLine } from '../../game/systems/favours';
 import { auctionable } from '../../game/storyRugs';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -63,6 +64,14 @@ export function Fortune() {
     <>
       <button className="btn ency-open" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency'))} data-testid="open-encyclopedia">The encyclopedia: people, families, towns, carpets, bands</button>
       <Book />
+      {(g.favours?.active.length ?? 0) > 0 && (
+        <Fold id="pr-favours" testid="favours" title="Favours you have taken on" gist={`${g.favours!.active.length}`}>
+          <div className="house">
+            <small>Keep your word and they remember it; let it lapse and they remember that too. Kept so far: {g.favours!.done}.</small>
+            {g.favours!.active.map((f) => <div key={f.id} className="goal"><span className="tick" />{favourLine(f)}<span className="prog">{f.kind === 'loan' ? (g.day >= f.due ? 'due now' : `in ${f.due - g.day} d`) : `${Math.max(0, f.due - g.day)} d left`}</span></div>)}
+          </div>
+        </Fold>
+      )}
       <Fold id="pr-house" testid="fortune" title={house.done ? 'The House of Fortune stands.' : 'The House of Fortune'} gist={`${house.parts.filter((p) => p.done).length} of ${house.parts.length}`}>
         <div className="house">
           <small>{house.done ? 'Your name is over a door in Khan el-Khalili, and kings know it.' : 'The life\'s work of a carpet merchant. All four, at once.'}</small>

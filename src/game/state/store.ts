@@ -19,6 +19,7 @@ import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { person, souqMaster, cultureOf, caravanMaster, registerFolkBrides, daughtersToMarry } from '../systems/population';
 import { greeting, talk as folkSay, FOLK_START, type FolkState, type Said, type Topic } from '../systems/folkTalk';
+import { favourFor, canSettle, rugPrice, favourLine, FAVOURS_START, type Favour, type FavourState } from '../systems/favours';
 import { ARM_BY_ID, GUNSMITH_TOWN } from '../../data/arms';
 import { ALL_THREE, errandsFor, giftFor, giftToday, pouchFor, pouchReady, type DailyState, type Gift, type Pouch } from '../systems/daily';
 import type { HeroLook } from '../heroLook';
@@ -363,6 +364,8 @@ export interface GameState {
   cousins?: 'won' | 'paid' | 'lost' | 'passed';
   /** the world's people: how each feels about you, whom you have met and heard of (systems/folkTalk) */
   folk?: FolkState;
+  /** favours taken on for the world's people (systems/favours.ts) */
+  favours?: FavourState;
   /** Farid told you to ask for Umm Salah */
   weaverLead?: boolean;
   /** you showed up Selim's dyes in front of the lane */
@@ -542,6 +545,11 @@ interface Actions {
   folkTalk: (personId: string, topic: Topic | 'greet') => Said;
   /** something passed between you and one of them: how they feel moves, and the log says why */
   folkAdjust: (personId: string, delta: number, text?: string) => void;
+  /** what this person would ask of you now, if anything */
+  favourOffer: (personId: string) => Favour | null;
+  favourAccept: (f: Favour) => string;
+  /** settle a favour with the person you are talking to; returns what happens */
+  favourSettle: (favourId: string, withPerson: string) => string;
   /** buy the rug a caravan master offered you, at the price you settled on */
   caravanBuy: (partyId: string, typeId: string, price: number) => string;
   /** Selim's cousins step out on the Suez road (WorldMap, on the way there) */
@@ -3127,6 +3135,72 @@ export const useGame = create<GameState & Actions>()(
           set({ folk: { ...f, rel: { ...f.rel, [id]: rel }, met: met ? f.met : { ...f.met, [id]: s.day }, talked: { ...f.talked, [id]: s.day }, heard, log: met ? f.log : [...f.log.slice(-300), { day: s.day, who: id, text: `Met ${p.name} in ${settlementById(p.home)?.name ?? p.home}.` }] } });
           return said;
         },
+        favourOffer: (id) => {
+          const s = get();
+          const p = person(id);
+          if (!p) return null;
+          const fv = s.favours ?? FAVOURS_START;
+          const c = combatOf(s);
+          const bands = wantedList(s).map((b) => ({ id: b.id, leader: b.leader.name, free: b.leader.status === 'free' }));
+          void c;
+          return favourFor(p, { day: s.day, rel: s.folk?.rel[id] ?? 0, last: fv.last[id], busy: fv.active.some((f) => f.giver === id), bands });
+        },
+        favourAccept: (f) => {
+          const s = get();
+          const fv = s.favours ?? FAVOURS_START;
+          const g = person(f.giver);
+          if (f.kind === 'loan') {
+            if (s.cash < (f.lent ?? 0)) return 'You do not have that much to lend.';
+            set({ cash: s.cash - (f.lent ?? 0), ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Lent to ${g?.name}`, amount: -(f.lent ?? 0) }] });
+          }
+          set({ favours: { ...fv, active: [...fv.active, f], last: { ...fv.last, [f.giver]: s.day } } });
+          get().folkAdjust(f.giver, 2, `You took on a favour: ${favourLine(f).toLowerCase()}.`);
+          audio.sfx('tap');
+          return f.kind === 'loan' ? `You count out ${fmt(f.lent ?? 0)}. ${g?.short} kisses the coins and puts them away.` : f.kind === 'letter' ? `${g?.short} seals the letter and gives it to you.` : `${g?.short} grips your hand. "I knew I could ask you."`;
+        },
+        favourSettle: (fid, withP) => {
+          const s = get();
+          const fv = s.favours ?? FAVOURS_START;
+          const f = fv.active.find((x) => x.id === fid);
+          if (!f) return '';
+          const c = combatOf(s);
+          const chk = canSettle(f, { talkingTo: withP, inventory: s.inventory, day: s.day, leaderJailed: (b) => ['jailed', 'held'].includes(c.leaders[b]?.status ?? '') && (c.leaderDay?.[b] ?? -1) >= f.day });
+          if (!chk.ok) return chk.why;
+          const g = person(f.giver), to = f.to ? person(f.to) : undefined;
+          const rest = fv.active.filter((x) => x.id !== fid);
+          const done = { ...fv, active: rest, done: fv.done + 1, last: { ...fv.last, [f.giver]: s.day } };
+          let cash = s.cash, rep = s.reputation, ledger = s.ledger, inventory = s.inventory, text = '';
+          if (f.kind === 'letter') {
+            cash += f.pay; rep += 1;
+            ledger = [...ledger, { day: s.day, kind: 'bonus', label: `Carried ${g?.name}'s letter to ${to?.name}`, amount: f.pay }];
+            text = `${to?.short} breaks the seal and reads it twice. "From ${g?.short}! You are a friend of ${g?.sex === 'f' ? 'hers' : 'his'}? Then you are a friend of mine." ${fmt(f.pay)} for the errand, as promised.`;
+          } else if (f.kind === 'rug') {
+            const price = rugPrice(chk.rug!);
+            inventory = inventory.filter((i) => i.uid !== chk.rug!.uid); cash += price;
+            ledger = [...ledger, { day: s.day, kind: 'sale', label: `${RUGS[chk.rug!.typeId].name} to ${g?.name} (a favour)`, amount: price, cost: chk.rug!.paid }];
+            text = `${g?.short} turns the corner of the ${RUGS[chk.rug!.typeId].name} over and looks at the knots for a long time. "Yes. This is the one." ${fmt(price)}, and more warmth than money.`;
+          } else if (f.kind === 'loan') {
+            // a greedy or slippery man asks for more time once, if the dice say so
+            const late = !f.delayed && (g?.traits.includes('greedy') || g?.traits.includes('cunning')) && f.day % 2 === 0;
+            if (late) {
+              set({ favours: { ...fv, active: fv.active.map((x) => (x.id === fid ? { ...x, due: s.day + 10, delayed: true } : x)) } });
+              get().folkAdjust(f.giver, -2);
+              return `${g?.short} spreads ${g?.sex === 'f' ? 'her' : 'his'} hands. "Next week, I swear it on my children." The loan stands ten days more.`;
+            }
+            cash += f.back ?? 0;
+            ledger = [...ledger, { day: s.day, kind: 'bonus', label: `${g?.name} repaid a loan`, amount: f.back ?? 0 }];
+            text = `${g?.short} counts ${fmt(f.back ?? 0)} into your hand. "With thanks. A man remembers who stood by him in a bad month."`;
+          } else {
+            cash += f.pay; rep += 3;
+            ledger = [...ledger, { day: s.day, kind: 'bonus', label: `${g?.name}'s reward for ${f.leader}`, amount: f.pay }];
+            text = `"They say ${f.leader} is in the cells." ${g?.short} pours you coffee with ${g?.sex === 'f' ? 'her' : 'his'} own hands. ${fmt(f.pay)}, and the whole town will hear of it.`;
+          }
+          set({ favours: done, cash, reputation: rep, ledger, inventory });
+          get().folkAdjust(f.giver, f.kind === 'band' ? 20 : f.kind === 'rug' ? 15 : 12, `You kept your word: ${favourLine(f).toLowerCase()}.`);
+          if (f.kind === 'letter' && f.to) get().folkAdjust(f.to, 6, `You brought a letter from ${g?.name}.`);
+          audio.sfx('coins');
+          return text;
+        },
         folkAdjust: (id, delta, text) => {
           const s = get();
           const f = s.folk ?? FOLK_START;
@@ -5160,6 +5234,14 @@ export function folkPrice(city: string) {
   return v >= 60 ? 0.9 : v >= 30 ? 0.95 : v <= -30 ? 1.08 : 1;
 }
 useGame.subscribe((s) => { if (s.folk?.rel !== FOLK_FX.rel) FOLK_FX.rel = s.folk?.rel ?? {}; });
+// a favour let lapse: it is dropped, and the one who asked it thinks less of you
+useGame.subscribe((s, prev) => {
+  if (!s.favours?.active.length || s.day === prev?.day) return;
+  const late = s.favours.active.filter((f) => f.kind !== 'loan' && s.day > f.due);
+  if (!late.length) return;
+  useGame.setState({ favours: { ...s.favours, active: s.favours.active.filter((f) => !late.includes(f)), failed: s.favours.failed + late.length }, journal: [...s.journal, ...late.map((f) => ({ day: s.day, text: `You let a favour lapse: ${favourLine(f).toLowerCase()}. ${person(f.giver)?.short} will not forget it.`, kind: 'road' as const }))] });
+  for (const f of late) useGame.getState().folkAdjust(f.giver, -10, `You let a favour lapse: ${favourLine(f).toLowerCase()}.`);
+});
 // every man behind the troop counts has a name: hires get one, men let go leave the roster
 const syncRoster = (s: GameState) => {
   if (!s.world?.party?.troops) return;
