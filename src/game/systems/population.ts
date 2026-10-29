@@ -164,6 +164,11 @@ const traitsOf = (r: () => number): Trait[] => { const a = pick(r, TRAITS); let 
 // faces: the closest free face in the pool for people, sex, age and class
 const POOL_REGION: Record<Culture, PoolRegion> = { egypt: 'egypt', levant: 'levant', anatolia: 'anatolia', iraq: 'iraq', persia: 'persia', bedouin: 'bedouin', armenian: 'armenian', greek: 'greek', copt: 'egypt', ...FOREIGN_POOL };
 const ageBand = (a: number): 'y' | 'm' | 'o' => (a < 33 ? 'y' : a < 55 ? 'm' : 'o');
+/** faces are never shared between two people (the owner's rule): when the pool runs out, a medallion */
+const SHARE_FACES = false;
+const missing: Record<string, number> = {};
+/** how many more pool faces would give everyone a face of their own, by "region-sex-age" */
+export const missingFaces = () => { world(); return { ...missing }; };
 
 export interface World { people: Record<string, Person>; houses: Record<string, House>; byCity: Record<string, string[]>; caravans: Record<string, string> }
 let built: World | null = null;
@@ -175,6 +180,7 @@ export function world(): World {
   const houses: Record<string, House> = {};
   const byCity: Record<string, string[]> = {};
   const used = new Set<string>();
+  const wantFace: [Person, 'humble' | 'trade' | 'notable'][] = [];
   const faceCities: Record<string, Set<string>> = {};
   const poolBy: Record<string, (typeof POOL)[number][]> = {};
   for (const f of POOL) (poolBy[`${f.region}:${f.sex}`] ??= []).push(f);
@@ -193,8 +199,9 @@ export function world(): World {
       mine,
     ];
     for (const list of order) { const free = list.find((f) => !used.has(f.id)); if (free) { used.add(free.id); (faceCities[free.id] ??= new Set()).add(p.home); if (p.house) (faceHouses[free.id] ??= new Set()).add(p.house); return free.id; } }
-    // the pool is spent for this people: share a face, but never with someone in the same town (so never
-    // with a sister or a neighbour), and spread the sharing over the whole set
+    // the pool is spent for this people: no face is ever used twice; the drawn medallion stands in until
+    // the pool has a face for them (missingFaces() says how many, by people, sex and age)
+    if (!SHARE_FACES) { (missing[`${reg}-${p.sex}-${band}`] ??= 0); missing[`${reg}-${p.sex}-${band}`]++; return undefined; }
     const all = order.find((l) => l.length) ?? [];
     const kin = all.filter((f) => !p.house || !faceHouses[f.id]?.has(p.house));
     const far = kin.filter((f) => !faceCities[f.id]?.has(p.home));
@@ -207,7 +214,7 @@ export function world(): World {
   const add = (p: Omit<Person, 'faith'> & { faith?: Person['faith'] }, cls: 'humble' | 'trade' | 'notable' = 'trade'): Person => {
     p.faith = p.faith ?? faithOf(p.name, p.culture);
     const q = p as Person;
-    if (!q.art && q.age >= 12) q.face = face(q, cls);
+    if (!q.art && q.age >= 12) wantFace.push([q, cls]);
     people[q.id] = q;
     (byCity[q.home] ??= []).push(q.id);
     return q;
@@ -389,22 +396,11 @@ export function world(): World {
     usedNames.add(tc.name);
     add({ id: `char-${tc.id}`, name: tc.name, short: tc.short, sex: tc.sex, age: tc.age, culture: tc.c as Culture, home: tc.city, role: 'character', title: tc.title, children: [], traits: traitsOf(r), bio: tc.bio, talk: tc.talk, look: tc.look, art: `art/people/char-${tc.id}.jpg`, foreign: NATIVE.has(tc.c as Culture) ? undefined : wordOf(tc.c as Culture) });
   }
-  // no family shares a face, and as few neighbours as the pool allows: a last pass over every house
-  const inTown: Record<string, Record<string, number>> = {};
-  for (const q of Object.values(people)) if (q.face) { const t = (inTown[q.home] ??= {}); t[q.face] = (t[q.face] ?? 0) + 1; }
-  for (const h of Object.values(houses)) {
-    const seenF = new Set<string>();
-    for (const m of h.members) {
-      const q = people[m];
-      if (!q?.face) continue;
-      if (!seenF.has(q.face)) { seenF.add(q.face); continue; }
-      const reg = POOL_REGION[q.culture], band = ageBand(q.age);
-      const cands = POOL.filter((f) => f.region === reg && f.sex === q.sex && !seenF.has(f.id));
-      const best = [...cands].sort((a, b) => (Number(a.age !== band) - Number(b.age !== band)) || ((inTown[q.home]?.[a.id] ?? 0) - (inTown[q.home]?.[b.id] ?? 0)))[0];
-      if (!best) continue;
-      inTown[q.home][q.face]--; q.face = best.id; inTown[q.home][best.id] = (inTown[q.home][best.id] ?? 0) + 1; seenF.add(best.id);
-    }
-  }
+  // faces, in order of who you will look at most: daughters of an age to marry (their faces are the bride
+  // cards), then the heads of houses and the people of the towns, then wives, then the rest of the families
+  const prio = (q: Person) => (q.sex === 'f' && q.role === 'kin' && q.father && q.age >= 15 && q.age <= 30 ? 0 : q.role !== 'kin' ? 1 : q.spouse && !q.father ? 2 : 3);
+  wantFace.sort((a, b) => prio(a[0]) - prio(b[0]));
+  for (const [q, cls] of wantFace) q.face = face(q, cls);
   built = { people, houses, byCity, caravans };
   return built;
 }
