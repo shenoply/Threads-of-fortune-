@@ -932,6 +932,8 @@ export default function App() {
             {label}
           </button>
         ))}
+        {/* the encyclopedia: everyone in the world, their families and towns, one tap from any screen */}
+        {g.started && <button onClick={() => { audio.sfx('tap'); window.dispatchEvent(new CustomEvent('tof:ency')); }} data-testid="nav-ency"><Icon name="people" />People</button>}
       </nav>
 
       {g.rescue && <Rescue />}
