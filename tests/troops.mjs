@@ -22,8 +22,10 @@ try {
   await p.click('[data-testid=nav-map]'); await p.waitForTimeout(1200);
   if (await has('district-world')) { await p.click('[data-testid=district-world]'); await p.waitForTimeout(900); }
   if (await has('venue-leave')) { await p.click('[data-testid=venue-leave]'); await p.waitForTimeout(900); }
+  // at most six tokens beside you, then "+n" for the rest (6 men + 5 animals = 6 shown, +5)
   const toks = await p.locator('[data-testid=me-train] .me-tok').count();
-  check(toks === 11, `train shows ${toks} tokens (6 men + 5 animals)`);
+  const more = (await p.locator('[data-testid=me-train] .me-more').textContent().catch(() => '')) ?? '';
+  check(toks === 6 && more.trim() === '+5', `train shows ${toks} tokens and ${more} (6 men + 5 animals)`);
   await p.screenshot({ path: `${S}/map.png` });
   // the limit (reputation 0 → 6 men): store refuses a 7th
   const r = await p.evaluate(async () => { const { useGame } = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const { recruitPool } = await import('/src/game/systems/caravan.ts'); const s = useGame.getState(); const pool = recruitPool('cairo', s.day, s.world.hired).find((x) => x.available); return pool ? useGame.getState().recruit(pool.troop, pool.key, 1) : 'no pool'; });
