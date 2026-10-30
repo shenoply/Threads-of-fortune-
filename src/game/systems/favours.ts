@@ -7,6 +7,8 @@ import { RUGS } from '../../data/rugs';
 import { SETTLEMENTS } from '../../data/world';
 import type { RugItem } from '../types';
 import { fmt } from '../economy/money';
+import { perceivedValue } from './negotiation';
+import { flawFactor } from './fakes';
 
 export type FavourKind = 'letter' | 'rug' | 'loan' | 'band';
 export interface Favour {
@@ -47,7 +49,7 @@ export const BAND_TOWNS: Record<string, string[]> = {
   rb4: ['damascus', 'baghdad'], rb5: ['aleppo', 'konya'], r0: ['sinai', 'bedouin', 'suez'], r1: ['damascus', 'aleppo', 'baghdad'],
 };
 
-export interface OfferCtx { day: number; rel: number; last?: number; busy: boolean; bands: { id: string; leader: string; free: boolean }[] }
+export interface OfferCtx { day: number; rel: number; last?: number; busy: boolean; loansOut?: number; bands: { id: string; leader: string; free: boolean }[] }
 
 /** What this person would ask of you today, or null: they must like you, not have asked lately, and you
  *  must not already be doing something for them. */
@@ -59,7 +61,7 @@ export function favourFor(p: Person, c: OfferCtx): Favour | null {
   const mult = RANK_MULT[h?.rank ?? 'trade'];
   const seed = hash(`${p.id}:${Math.floor(c.day / FAVOUR_GAP)}`);
   const band = c.bands.find((b) => b.free && BAND_TOWNS[b.id]?.includes(p.home));
-  const kinds: FavourKind[] = ['letter', 'letter', 'rug', 'loan', ...(band && c.rel >= 25 ? ['band' as const] : []), ...(p.role === 'souq' || p.role === 'dealer' || p.role === 'craft' ? ['rug' as const] : [])];
+  const kinds: FavourKind[] = ['letter', 'letter', 'rug', ...((c.loansOut ?? 0) < 2 ? ['loan' as const] : []), ...(band && c.rel >= 25 ? ['band' as const] : []), ...(p.role === 'souq' || p.role === 'dealer' || p.role === 'craft' ? ['rug' as const] : [])];
   const kind = kinds[seed % kinds.length];
   const base = { id: `fav-${p.id}-${c.day}`, giver: p.id, day: c.day };
   if (kind === 'letter') {
@@ -90,15 +92,17 @@ export function canSettle(f: Favour, at: { talkingTo: string; inventory: RugItem
   if (f.kind === 'letter') return at.talkingTo === f.to ? { ok: true, why: '' } : { ok: false, why: 'The letter is for someone else.' };
   if (at.talkingTo !== f.giver) return { ok: false, why: '' };
   if (f.kind === 'rug') {
-    const rug = [...at.inventory].filter((i) => !i.stored && (RUGS[i.typeId]?.tier ?? 0) >= (f.tier ?? 1)).sort((a, b) => (RUGS[a.typeId]?.tier ?? 0) - (RUGS[b.typeId]?.tier ?? 0))[0];
-    return rug ? { ok: true, why: '', rug } : { ok: false, why: `You carry nothing good enough yet: a rug of quality ${f.tier} or better.` };
+    // they want a rug for their own house: clean and whole, not dirty or damaged
+    const rug = [...at.inventory].filter((i) => !i.stored && i.condition !== 'Dirty' && i.condition !== 'Damaged' && (RUGS[i.typeId]?.tier ?? 0) >= (f.tier ?? 1)).sort((a, b) => (RUGS[a.typeId]?.tier ?? 0) - (RUGS[b.typeId]?.tier ?? 0))[0];
+    return rug ? { ok: true, why: '', rug } : { ok: false, why: `You carry nothing good enough yet: a clean, sound rug of quality ${f.tier} or better.` };
   }
   if (f.kind === 'loan') return at.day >= f.due ? { ok: true, why: '' } : { ok: false, why: `Not due until ${f.due - at.day} days from now.` };
   return f.band && at.leaderJailed(f.band) ? { ok: true, why: '' } : { ok: false, why: `${f.leader} is still free.` };
 }
 
-/** a rug handed over for a favour: its worth and a quarter more */
-export const rugPrice = (r: RugItem) => Math.round((RUGS[r.typeId]?.valueBand[1] ?? 100) * 1.25);
+/** a rug handed over for a favour: a fair price for it as it is (condition, papers, any flaw), and a tenth
+ *  more for the trouble; never the top of the market for whatever you happen to carry */
+export const rugPrice = (r: RugItem) => { const t = RUGS[r.typeId]; return t ? Math.round(perceivedValue(t, r) * flawFactor(r) * 1.1) : 100; };
 
 export const KIND_WORD: Record<FavourKind, string> = { letter: 'A letter to carry', rug: 'A rug to find', loan: 'A loan', band: 'A band to end' };
 export const favourLine = (f: Favour) => {

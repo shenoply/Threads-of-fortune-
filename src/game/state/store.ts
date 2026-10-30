@@ -840,13 +840,22 @@ export function passRisk(s: Pick<GameState, 'day' | 'condition' | 'world' | 'car
   return Math.max(0, base - ((s.cabinet?.rockets ?? 0) > 0 ? ROCKET_RISK : 0) - ((s.labUnlocked ?? []).includes('cargo') ? FOLIO_RISK : 0));
 }
 
+/** two plain rugs from Rashid's cheapest stock, at his price: the rescue for a merchant left with nothing */
+function rescueRugs(): { items: RugItem[]; cost: number } {
+  const cheap = Object.values(RUGS).filter((t) => (t.tier ?? 1) === 1).sort((a, b) => a.dealerCost - b.dealerCost)[0];
+  const items: RugItem[] = [0, 1].map(() => ({ uid: newUid('r'), typeId: cheap.id, condition: 'Worn', restored: false, provenance: cheap.provenance, paid: cheap.dealerCost, notes: ['On credit from Rashid, after the bad months.'], stored: false }));
+  return { items, cost: cheap.dealerCost * 2 };
+}
+
 export function localAskPrice(sid: string, day: number, typeId: string, condition: RugItem['condition'], friends: string[], rep = 0): number | undefined {
   const st = settlementById(sid);
   const i = st.sells.findIndex((o) => o.typeId === typeId);
   if (i < 0) return undefined;
   const o = st.sells[i];
   const t = RUGS[typeId];
-  const disc = friends.includes(sid) ? 0.85 : 1;
+  // every discount the player gets when buying here (a friend in town, first rank, the souq master's
+  // regard), so the buy-back cap below is always under what the player paid: no buy-and-sell-back loop
+  const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1) * folkPrice(sid);
   // Deliberately ignores cityClosed, chance and minRep: those gate what is freshly buyable today,
   // not what this dealer would recognise as the going rate for a type they trade in. The buy-back
   // cap in sellLocal() needs a price that always holds, or a shut market day / an unlucky chance
@@ -1630,6 +1639,7 @@ export const useGame = create<GameState & Actions>()(
           }
           // Loans fall due. Stavros adds a tenth for every week late; the bank only writes letters.
           let loans = (s.loans ?? []).map((l) => ({ ...l }));
+          let seizedShops: Shops | undefined;
           for (const l of loans) {
             if (day === l.due - 1) notes.push(`${LENDERS[l.lender].name} expects ${fmt(l.owed)} tomorrow.${l.lender === 'khan' ? ' Late, and he adds a tenth every week.' : ''}`);
             if (day === l.due + 1) notes.push(`${LENDERS[l.lender].name} expected ${fmt(l.owed)} yesterday.`);
@@ -1671,7 +1681,13 @@ export const useGame = create<GameState & Actions>()(
               }
             } else if (ruin.stage === 2 && late >= RUIN_STEPS.court) {
               bankruptcies += 1;
+              // the court's receiver takes the stock in your shops in other cities too, and their leases
+              if (s.shops && Object.keys(s.shops).length) seizedShops = Object.fromEntries(Object.entries(s.shops).map(([k, sh]) => [k, { ...sh, stock: [] }])) as Shops;
               inventory = [...inventory].sort((a, b) => rugValue(a) - rugValue(b)).slice(0, 3);
+              // your father's debt is not the court's to cancel, but Rashid stretches it: nothing due now
+              family = { ...family, due: 0, since: 0 };
+              // and so a man can begin again at all: if nothing is left to sell, Rashid sends two plain rugs on credit
+              if (!inventory.length && bankruptcies < 2) { const plain = rescueRugs(); inventory = plain.items; sup.debt += plain.cost; }
               upgrades = [];
               cash = 0;
               bills = { due: 0, since: 0, warned: 0, last: bills.last };
@@ -1826,12 +1842,22 @@ export const useGame = create<GameState & Actions>()(
             errandsDone: [],
           };
           patch.errands = []; // errands are retired; the field stays for old saves
+          if (seizedShops) patch.shops = seizedShops;
+          // broke with nothing to sell and no way to buy: once a week Rashid sends two plain rugs on credit,
+          // for your father's sake, so a bad run is a debt to work off and not the end of the game
+          if (!ended && !(patch.inventory ?? []).length && (patch.cash ?? 0) < 300 && day % 7 === 0 && (patch.ruin?.stage ?? 0) < 2) {
+            const plain = rescueRugs();
+            patch.inventory = plain.items;
+            patch.supplier = { ...(patch.supplier ?? sup), debt: (patch.supplier ?? sup).debt + plain.cost };
+            const text = `Rashid's boy brings two plain rugs to the stall. "My uncle says: for your father's sake. Pay when you sell." ${fmt(plain.cost)} added to what you owe him.`;
+            notes.push(text); patch.journal = [...(patch.journal ?? journal), { day, text, kind: 'due' }];
+          }
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
           for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, omensNight, weekGoalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
-            const wk = shopsWeek(s.shops, day, patch.cash ?? cash, rng);
+            const wk = shopsWeek(patch.shops ?? s.shops, day, patch.cash ?? cash, rng);
             patch.shops = wk.shops;
             for (const x of wk.sales) Object.assign(patch, recordCitySale({ ...s, ...patch } as GameState, x.sid, x.gross));
             patch.cash = (patch.cash ?? cash) + wk.cashIn - wk.cashOut;
@@ -2646,7 +2672,7 @@ export const useGame = create<GameState & Actions>()(
           // (the cap now lives in localBid; this guard only matters if a friend's discount ever drops
           // the asking price under it)
           const askToday = localAskPrice(sid, s.day, it.typeId, it.condition, s.world.friends, s.reputation);
-          if (askToday !== undefined && bid >= askToday) bid = snapDown(askToday * DEALER_BUYBACK);
+          if (askToday !== undefined && bid > askToday * DEALER_BUYBACK) bid = snapDown(askToday * DEALER_BUYBACK);
           bid = undercutBid(s, sid, bid);
           const ds = s.dealerSold?.day === s.day ? s.dealerSold.by : {};
           if (souqMaster(sid)) setTimeout(() => get().folkAdjust(souqMaster(sid)!.id, 1), 0);
@@ -3143,7 +3169,7 @@ export const useGame = create<GameState & Actions>()(
           const c = combatOf(s);
           const bands = wantedList(s).map((b) => ({ id: b.id, leader: b.leader.name, free: b.leader.status === 'free' }));
           void c;
-          return favourFor(p, { day: s.day, rel: s.folk?.rel[id] ?? 0, last: fv.last[id], busy: fv.active.some((f) => f.giver === id), bands });
+          return favourFor(p, { day: s.day, rel: s.folk?.rel[id] ?? 0, last: fv.last[id], busy: fv.active.some((f) => f.giver === id), bands, loansOut: fv.active.filter((f) => f.kind === 'loan').length });
         },
         favourAccept: (f) => {
           const s = get();
@@ -3182,6 +3208,13 @@ export const useGame = create<GameState & Actions>()(
           } else if (f.kind === 'loan') {
             // a greedy or slippery man asks for more time once, if the dice say so
             const late = !f.delayed && (g?.traits.includes('greedy') || g?.traits.includes('cunning')) && f.day % 2 === 0;
+            // and some never pay at all: about one loan in seven, one in four from a greedy man
+            const hsh = [...fid].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
+            if (hsh % (g?.traits.includes('greedy') ? 4 : 7) === 0) {
+              set({ favours: { ...fv, active: rest, failed: fv.failed + 1, last: { ...fv.last, [f.giver]: s.day } }, journal: [...s.journal, { day: s.day, text: `${g?.name} could not repay the ${fmt(f.lent ?? 0)} you lent. That money is gone.`, kind: 'due' }] });
+              get().folkAdjust(f.giver, -4);
+              return `${g?.short} will not meet your eye. "There is nothing. The month went worse than the last. Forgive me." The ${fmt(f.lent ?? 0)} is gone.`;
+            }
             if (late) {
               set({ favours: { ...fv, active: fv.active.map((x) => (x.id === fid ? { ...x, due: s.day + 10, delayed: true } : x)) } });
               get().folkAdjust(f.giver, -2);

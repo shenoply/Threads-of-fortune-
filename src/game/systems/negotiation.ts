@@ -1350,7 +1350,9 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
     if (mode === 'name' && !court && enc.rounds <= 2 && price >= w * 0.88) {
       const run = (ctx.spotRun ?? 0) + 1;
       enc.spotOn = run;
-      const tip = round5(price * Math.min(0.12, 0.03 * run));
+      // the tip never takes the price past what they would truly pay: an eye for the limit earns the
+      // whole of it, not more than it
+      const tip = Math.max(0, Math.min(round5(price * Math.min(0.12, 0.03 * run)), Math.floor((w - price) / 5) * 5));
       if (tip > 0) {
         say(enc, 'buyer', pick(SPOT_LINES, ctx.rng).replace('{price}', fmt(tip)));
         price += tip;
