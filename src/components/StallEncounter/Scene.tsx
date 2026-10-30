@@ -28,6 +28,8 @@ import { useSwipeAway } from './SwipeAway';
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';
 import { dressingArt, DRESSING_BY_ID } from '../../data/shops';
 import { StallSky } from '../Atmosphere/StallSky';
+import { buyerMarks } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import { STALL_SCENES, catAt, lookUps, sceneIdFor, placeStyle, placedRect, sceneFg, sceneImg, stallSceneFor, type Anchor, type StallScene } from '../../game/stallScenes';
 
 interface SceneProps {
@@ -335,6 +337,7 @@ export function InfoBand({ enc, presented, view, tierName, priorities, onSkip, p
           <button className="plate-row plate-row-btn" onClick={() => setProfileOpen(true)} data-testid="buyer-plate-open" aria-label={`${buyer.name}'s profile`}>
             <BuyerFace id={buyer.id} />
             <span className="name">{buyer.name}</span>
+            <TraitMarks marks={buyerMarks(buyer)} size={18} testid="buyer-marks" />
             <span className="tier" data-testid="enc-tier">{tierName}</span>
             <span className="role">{enc.asked.includes('room') ? prefsFor(enc).needLabel : buyer.role}</span>
           </button>

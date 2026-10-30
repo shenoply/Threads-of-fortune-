@@ -3,6 +3,8 @@ import { useGame, wantedList, combatOf } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { PRISONER_BOUNTY, TEMPER_WORD, ransomFor } from '../../game/systems/combat';
 import { dateFor } from '../../game/economy/economy';
+import { CHIEF_MARK } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import './Clash.css';
 
 /** The police post in a town: the posters on its wall, and a desk for any prisoners you bring in. */
@@ -31,7 +33,7 @@ export function WantedCard({ town, onClose }: { town: string; onClose: () => voi
         <ul className="wanted-list" data-testid="wanted-list">
           {list.map(({ id, road, leader: l }) => (
             <li key={id} className={`${l.status} ${l.robbed ? 'robbed' : ''}`} data-testid={`wanted-${id}`}>
-              <b>{l.name}</b>
+              <b>{l.name}{l.seen && <> <TraitMarks marks={[CHIEF_MARK[l.temper]]} size={20} testid={`chief-mark-${id}`} /></>}</b>
               <span>{road}{l.seen ? ` · ${TEMPER_WORD[l.temper]}` : ''}</span>
               <em>{l.status === 'jailed' ? `In the cells. The road is quiet until ${dateFor(l.clearUntil ?? g.day).short}` : l.status === 'held' ? 'Your prisoner' : `${fmt(l.bounty)} reward${l.robbed ? ' · robbed you' : l.grudge ? ' · has a grudge against you' : ''}`}</em>
             </li>

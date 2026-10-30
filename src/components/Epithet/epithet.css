@@ -47,7 +47,8 @@ button.rank-badge { cursor: pointer; }
 .trait-marks { display: inline-flex; gap: 3px; align-items: center; vertical-align: middle; }
 .trait-mark { display: inline-flex; align-items: center; gap: 6px; }
 .trait-marks.with-labels { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 2px 0 4px; }
-.trait-marks.with-labels .trait-mark { flex: 1 1 140px; min-width: 0; }
+.trait-marks.with-labels .trait-mark { flex: 0 1 auto; min-width: 0; }
+.trait-marks.with-labels .trait-mark:has(small) { flex: 1 1 140px; }
 .tm-text { display: flex; flex-direction: column; min-width: 0; }
 .tm-text b { font-size: 14px; font-weight: 600; color: var(--parchment); }
 .tm-text small { font-size: 14px; color: var(--text-dim); line-height: 1.25; }

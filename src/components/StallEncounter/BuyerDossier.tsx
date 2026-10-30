@@ -12,6 +12,8 @@ import { fmt } from '../../game/economy/money';
 import { PURSE, prefsFor, type Encounter } from '../../game/systems/negotiation';
 import { useDialogEscape } from '../useDialogEscape';
 import './dossier.css';
+import { buyerMarks } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import { filedAs } from '../../data/renamedIds';
 
 const LIKES: Record<string, string> = {
@@ -79,6 +81,7 @@ export function BuyerDossier({ enc, onClose }: { enc: Encounter; onClose: () => 
             <small>{visits > 1 ? `Visit ${visits}` : 'First visit'}{rel?.purchases ? ` · bought ${rel.purchases}` : ''}</small>
             <b>{b.name}</b>
             <span>{role}</span>
+            <TraitMarks marks={buyerMarks(b)} size={22} testid="dossier-marks" />
           </div>
           <button className="ds-close" onClick={onClose} aria-label="Close" data-testid="dossier-close">×</button>
         </div>

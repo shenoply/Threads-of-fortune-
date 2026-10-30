@@ -80,6 +80,7 @@ import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlo
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 import { HeirButton } from './components/Character/Household';
 import { LevelUpToast, SkillPops } from './components/Character/Character';
+import { RankChip } from './components/Epithet/Epithet';
 import { Loom } from './components/Loom/Loom';
 
 /** a link with ?weaver opens the weaver's workshop straight away, once a game is going */
@@ -922,6 +923,8 @@ export default function App() {
           <span data-testid="map-clock"><Icon name="calendar" /> <HudClock />{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · One life</i> : null}</span>
         </button>
         <div className="hud-stats">
+          {/* the merchant's rank: its seal, one tap to Me */}
+          {g.started && <RankChip onTap={() => setTab('hero')} disabled={tutorialActive} />}
           {/* the purse: tap for the money book (what came in, what went out) */}
           <button className={`hud-chip ${cashFlash ? 'flash' : ''} ${cashT.dir > 0 ? 'ff-up' : cashT.dir < 0 ? 'ff-down' : ''} ${g.cash < 300 ? 'purse-thin' : g.cash >= 20000 ? 'purse-fat' : ''}`} aria-label={`Your purse, ${fmt(g.cash)}. Open the ledger`} onClick={() => { audio.sfx('tap'); setMsub('book'); setTab('ledger'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
             <Icon name="coin" /><span className="ff-num">{cashT.shown >= 10000 ? `£${Math.floor(cashT.shown / 100).toLocaleString('en-GB')}` : fmt(cashT.shown)}</span>

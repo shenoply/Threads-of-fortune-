@@ -8,6 +8,8 @@ import { BAND_ART } from './BattleField';
 import { audio } from '../../game/audio/engine';
 import { buzz } from '../../game/feel';
 import { fmt } from '../../game/economy/money';
+import { CHIEF_MARK } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import { FORMATIONS, GROUNDS, TEMPER_WORD, duelWindow, sergeantWord, rngFrom, type Formation, type GroundId, type Leader, type Result, type Temper } from '../../game/systems/combat';
 import { battleOdds, command, losses, simulate, startBattle, step, volley, volleyRange, LIMIT, type Battle, type GOrder, type Group } from '../../game/systems/battle';
 import './Clash.css';
@@ -71,7 +73,7 @@ export function Clash({ info, onEnd, onBack, direct = false }: { info: ClashInfo
         <div className="clash-band" data-testid="clash-band">
           <img src={info.leaderImg} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.jpg'; }} />
           <div>
-            <b>{L ? L.name : 'Their leader'}</b>
+            <b>{L ? L.name : 'Their leader'}{info.known && <> <TraitMarks marks={[CHIEF_MARK[info.temper]]} size={22} testid="clash-chief-mark" /></>}</b>
             <span>{info.armsLine}</span>
             <span data-testid="clash-temper">{info.known ? <>Known to be <em>{TEMPER_WORD[info.temper]}</em></> : 'His temper: not known. Watch how he moves.'}</span>
             {L && <span className="clash-bounty">Wanted · {fmt(L.bounty)}{L.robbed ? ' · he robbed you' : L.grudge ? ' · he has a grudge' : ''}</span>}

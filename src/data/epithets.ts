@@ -8,7 +8,7 @@ import { levelOf } from './character';
 /** the drawn emblems (components/Epithet/Emblem.tsx) */
 export type EmblemId =
   | 'scales' | 'fox' | 'hand' | 'stone' | 'coins' | 'rose' | 'dalla' | 'staves' | 'fist' | 'rifles' | 'shackles'
-  | 'star' | 'eye' | 'palm' | 'flame' | 'anchor' | 'hourglass' | 'dagger' | 'gate' | 'lock' | 'cat'
+  | 'star' | 'eye' | 'palm' | 'flame' | 'anchor' | 'hourglass' | 'dagger' | 'gate' | 'lock' | 'cat' | 'beads'
   // the merchant's ranks (game/economy/progress.ts RANKS)
   | 'awning' | 'carpet' | 'arch' | 'compass' | 'crown';
 
@@ -127,3 +127,9 @@ export function buyerMarks(b: { patience: number; trust: number; embellishNotice
   if ((b.catAffinity ?? 0) > 0) out.push({ emblem: 'cat', label: 'Fond of cats', tip: 'Saffron helps.' });
   return out.slice(0, 3);
 }
+
+/** the townspeople's traits (systems/population.ts TRAIT_WORD), once you have met them */
+export const PERSON_MARK: Record<string, EmblemId> = {
+  honest: 'scales', greedy: 'coins', proud: 'crown', generous: 'hand', cunning: 'fox', pious: 'beads',
+  cheerful: 'rose', stern: 'stone', curious: 'eye', gossip: 'dalla',
+};

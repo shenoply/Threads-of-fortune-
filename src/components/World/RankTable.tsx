@@ -4,6 +4,9 @@ import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { standings, placeIn, seasonEnd, seasonName, seasonAhead, SEASON_PRIZE, ordinal, cityName, tableOf, standing, firstCities, type RanksState } from '../../game/systems/ranks';
 import { RIVAL } from '../../data/rivals';
+import { RIVAL_MARK, wornEpithet } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
+import { Emblem } from '../Epithet/Emblem';
 import { Fold } from '../Fold/Fold';
 import './rankTable.css';
 
@@ -45,6 +48,7 @@ export function RankTable({ town, inFold = false }: { town: string; inFold?: boo
   const best = standing(r, city);
   const cut = r?.undercut?.[city];
   const first = firstCities(g).includes(city);
+  const ep = wornEpithet(g.epithets, g.epithetWorn);
   return (
     <div className="rank-table" id={inFold ? undefined : 'sec-ranks'} data-testid={inFold ? 'fold-rank-table' : 'rank-table'}>
       <div className="section-label">THE RUG TRADE OF {cityName(city).toUpperCase()}</div>
@@ -54,7 +58,7 @@ export function RankTable({ town, inFold = false }: { town: string; inFold?: boo
           <li key={x.id} className={x.you ? 'rk-you' : x.rival ? 'rk-named' : ''} data-testid={`${inFold ? 'fold-' : ''}${x.you ? 'rank-you' : `rank-row-${x.id}`}`}>
             <span className="rk-n">{i + 1}</span>
             {x.rival ? <Medallion id={x.id} name={x.label} /> : <span className="rk-med rk-plain" aria-hidden="true" />}
-            <span className="rk-who"><b>{x.you ? 'You' : x.label}</b>{x.role && <small>{x.role}</small>}</span>
+            <span className="rk-who"><b>{x.you ? 'You' : x.label}{x.rival && <> <TraitMarks marks={[RIVAL_MARK[x.rival.temper]]} size={18} testid={`rival-mark-${x.id}`} /></>}{x.you && ep && <> <Emblem id={ep.emblem} size={16} title={`${ep.name}, ${ep.gloss}`} /></>}</b>{x.role ? <small>{x.role}{x.rival ? ` · ${RIVAL_MARK[x.rival.temper].label}` : ''}</small> : x.you && ep ? <small>{ep.name}, {ep.gloss.replace(/^The /, 'the ')}</small> : null}</span>
             <span className="rk-v">{fmt(x.value)}</span>
           </li>
         ))}

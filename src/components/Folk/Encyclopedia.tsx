@@ -14,6 +14,8 @@ import { dateFor } from '../../game/economy/economy';
 import { rugThumb } from '../RugViewer/rugArt';
 import { howToTell, fakesOf } from '../../data/rugLore';
 import { FolkFace } from './FolkFace';
+import { CHIEF_MARK, PERSON_MARK } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import { RelBar } from './FolkCard';
 import { relWord } from '../../game/systems/folkTalk';
 import './folk.css';
@@ -247,7 +249,7 @@ function PageView({ p, go, back }: { p: Page; go: (p: Page) => void; back: () =>
         {(x.foreign || x.mixed) && <p className="ency-said"><b>{x.mixed ? 'Mixed family:' : 'Foreigner:'}</b> {x.mixed ?? `${x.foreign}, living in ${placeName(x.home).split(',')[0]}`}</p>}
         {x.bio && <p>{x.bio}</p>}
         {x.role === 'character' && x.talk && <p className="ency-said"><b>You will hear:</b> {typeof x.talk === 'string' ? x.talk : x.talk[0]}</p>}
-        {met ? <p className="ency-traits">{x.traits.map((t) => TRAIT_WORD[t]).join(' · ')}</p> : <><p className="ency-said" data-testid="ency-hearsay"><b>What they say:</b> {hearsay(x)}</p><p className="ency-dim">You have not met. You will know {x.sex === 'f' ? 'her' : 'him'} better when you do.</p></>}
+        {met ? <TraitMarks labels marks={x.traits.map((t) => ({ emblem: PERSON_MARK[t], label: TRAIT_WORD[t], tip: '' }))} size={26} testid="ency-traits" /> : <><p className="ency-said" data-testid="ency-hearsay"><b>What they say:</b> {hearsay(x)}</p><p className="ency-dim">You have not met. You will know {x.sex === 'f' ? 'her' : 'him'} better when you do.</p></>}
         {h && <p data-testid="ency-person-house"><b>Family:</b> <button className="ency-link" onClick={() => go({ kind: 'house', id: h.id })}>{h.name}</button><br /><small className="ency-dim"><i className={`rk rk-${h.rank}`}>{4 - RANKS.indexOf(h.rank)}</i> {RANK_ONE[h.rank]} · {ord(placeInTown(h).n)} of {placeInTown(h).of} in {placeName(h.home).split(',')[0]} · {kinWord(x)}</small></p>}
         {(kin.some(([, id]) => id) || x.children.length > 0) && <><div className="ency-label">FAMILY</div><div className="ency-kin-grid">
           {kin.filter(([, id]) => id && person(id)).map(([k, id]) => <KinChip key={k} p={person(id!)!} label={k} go={go} />)}
@@ -316,7 +318,7 @@ function PageView({ p, go, back }: { p: Page; go: (p: Page) => void; back: () =>
   const b = wantedList(g).find((x) => x.id === p.id);
   return b ? (
     <article className="ency-page" data-testid="ency-band">
-      <h2>{b.leader.name}</h2><small className="ency-dim">Leads the band on {BAND_ROAD[b.id]}</small>
+      <h2>{b.leader.name}{b.leader.seen && <> <TraitMarks marks={[CHIEF_MARK[b.leader.temper]]} size={26} /></>}</h2><small className="ency-dim">Leads the band on {BAND_ROAD[b.id]}</small>
       <p>{b.leader.status === 'jailed' ? 'In the cells. His band keeps off its road until a new man takes it.' : b.leader.status === 'held' ? 'Your prisoner.' : `Free on ${b.road}. The police pay ${fmt(b.leader.bounty)} for him alive.`}{b.leader.robbed ? ' He robbed you, and has not paid for it.' : b.leader.grudge ? ' He got away from you once, and has not forgotten it.' : ''}</p>
       <p className="ency-dim">{b.leader.seen ? `Known to be ${b.leader.temper}.` : 'His temper: not known until you have seen him fight.'}</p>
     </article>

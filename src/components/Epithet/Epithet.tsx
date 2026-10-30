@@ -146,9 +146,9 @@ export function TraitMarks({ marks, size = 24, labels = false, testid }: { marks
   return (
     <span className={`trait-marks ${labels ? 'with-labels' : ''}`} data-testid={testid}>
       {marks.map((m) => (
-        <span key={m.label} className="trait-mark" title={`${m.label}: ${m.tip}`}>
+        <span key={m.label} className="trait-mark" title={m.tip ? `${m.label}: ${m.tip}` : m.label}>
           <Emblem id={m.emblem} shape="round" size={size} title={labels ? undefined : m.label} />
-          {labels && <span className="tm-text"><b>{m.label}</b><small>{m.tip}</small></span>}
+          {labels && <span className="tm-text"><b>{m.label}</b>{m.tip && <small>{m.tip}</small>}</span>}
         </span>
       ))}
     </span>

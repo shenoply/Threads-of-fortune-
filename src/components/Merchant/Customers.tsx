@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { buyerMarks } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import { useDialogEscape } from '../useDialogEscape';
 import { useGame, rankNeeded } from '../../game/state/store';
 import { rankOf, RANKS } from '../../game/economy/progress';
@@ -118,6 +120,7 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
           <span><small>Spends</small><b>{fmt(b.budget[0])} – {fmt(b.budget[1])}</b></span>
           <span><small>{locked ? 'Comes at' : 'Visits'}</small><b>{locked ? `Rep ${need}` : r?.visits ? r.visits : 'Not met'}</b></span>
         </div>
+        <TraitMarks labels marks={buyerMarks(b)} size={30} testid="buyer-card-marks" />
         <p className="buyer-bio">{b.bio}</p>
         {(onPrev || onNext) && (
           <div className="buyer-nav">

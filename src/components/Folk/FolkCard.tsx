@@ -3,6 +3,8 @@ import { fmt } from '../../game/economy/money';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/state/store';
 import { person, houseOf, folkBrideId, TRAIT_WORD, type Person } from '../../game/systems/population';
+import { PERSON_MARK } from '../../data/epithets';
+import { TraitMarks } from '../Epithet/Epithet';
 import { relWord, topicWord, type Topic } from '../../game/systems/folkTalk';
 import { KIND_WORD, FAVOUR_REL, canSettle, rugPrice, type Favour } from '../../game/systems/favours';
 import { settlementById } from '../../game/systems/world';
@@ -79,7 +81,7 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
             <RelBar p={p} />
           </div>
         </div>
-        {met && <p className="folk-traits">{p.traits.map((t) => TRAIT_WORD[t]).join(' · ')}</p>}
+        {met && <TraitMarks labels marks={p.traits.map((t) => ({ emblem: PERSON_MARK[t], label: TRAIT_WORD[t], tip: '' }))} size={24} testid="folk-traits" />}
         <p className="folk-say" data-testid="folk-greet">{greet}</p>
         {said.map((s, i) => (
           <div key={i} className="folk-reply">
