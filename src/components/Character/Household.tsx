@@ -4,7 +4,7 @@ import { person } from '../../game/systems/population';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
-import { Fold } from '../Fold/Fold';
+import { Fold, openFoldNext } from '../Fold/Fold';
 import {
   BRIDES, RANK_WORD, availableBrides, ASK_AT, FEAST_AFTER, MATCH_REP, PACES, PATH_AGE, GROWN, PRESENT, SON_NAMES, DAUGHTER_NAMES, PATH_WORD, ROLE_WORD, VISIT_HOURS,
   LIKES_WORD, REGARD_WORD, COND_WORD,
@@ -67,7 +67,8 @@ export function HouseholdSection() {
   const [look, setLook] = useState<Look | null>(null);
   const [giftFor, setGiftFor] = useState<BrideId | null>(null);
   const personOf = (id: BrideId) => BRIDES[id]?.folk ?? `bride-${id}`;
-  const act = (a: HouseholdAct) => setMsg(g.householdAct(a));
+  // whatever is done here, the Household stays open on the next visit to Me
+  const act = (a: HouseholdAct) => { openFoldNext('me-household'); if ('bride' in a && a.bride && wivesOf(h).length) openFoldNext('me-household-others'); setMsg(g.householdAct(a)); };
   const at = g.world.at;
   const sp = h.spouse;
   const wives = wivesOf(h);

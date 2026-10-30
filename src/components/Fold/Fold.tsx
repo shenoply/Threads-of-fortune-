@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import './fold.css';
 
 // Which sections the player left open or closed, kept for the session and (when the browser allows) across visits.
@@ -23,6 +23,8 @@ export function Fold({ id, title, gist, attention = false, testid, rowTestid, cl
   id: string; title: ReactNode; gist?: ReactNode; attention?: boolean; testid?: string; rowTestid?: string; className?: string; children: ReactNode;
 }) {
   const [open, setOpen] = useState(() => folds()[id] ?? attention);
+  // opened for attention and dealt with inside: it stays open when the player comes back to it
+  useEffect(() => { if (!attention && open && folds()[id] === undefined) remember(id, true); }, [attention, open, id]);
   return (
     <details className={`fold ${attention ? 'fold-new' : ''} ${className}`} open={open} data-testid={testid ?? `fold-${id}`}
       onToggle={(e) => { const o = e.currentTarget.open; if (o !== open) { setOpen(o); remember(id, o); } }}>

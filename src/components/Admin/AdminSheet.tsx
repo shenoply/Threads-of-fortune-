@@ -24,7 +24,7 @@ import { BAND_ROAD } from '../../game/systems/combat';
 import { strength } from '../../game/systems/caravan';
 import { forceRoadEvent } from '../../game/systems/roadEvents';
 import { roadEventById } from '../../data/roadEvents';
-import { hh, heirOf, ageOf, childName, BRIDES, type HouseholdState } from '../../game/systems/household';
+import { hh, heirOf, ageOf, childName, BRIDES, tidyHousehold, type HouseholdState } from '../../game/systems/household';
 import { persiaOpen } from '../../game/unlocks';
 import type { MapIntent } from '../World/Campaign';
 import type { MerchantSub } from '../Merchant/Merchant';
@@ -137,7 +137,7 @@ const home = (nav: AdminNav) => { const at = S().world.at; nav.map(at === 'giza'
 
 // the household, written whole where the game has no action for a step
 // (a man already married stays as he is: re-writing the betrothal beside his wife made her twice)
-const married = (h: HouseholdState, day: number): HouseholdState => (h.spouse ? h : { ...h, stage: 'married', chosen: undefined, contract: undefined, terms: undefined, scene: undefined, offered: h.offered ?? day - 20, suitors: {},
+const married = (h: HouseholdState, day: number): HouseholdState => (h.spouse ? tidyHousehold(h) : { ...h, stage: 'married', chosen: undefined, contract: undefined, terms: undefined, scene: undefined, offered: h.offered ?? day - 20, suitors: {},
   spouse: { id: h.chosen ?? 'nadia', married: day, content: 70, role: 'home', lastHome: day, regard: 'warm', homeDays: 0 }, birthIn: h.birthIn ?? 330 });
 /** what a night skipped by the tester cost, from the ledger: the money that went, and where */
 const nightCost = (cash0: number, ledger0: number) => {
