@@ -21,7 +21,7 @@ export type MerchantSub = 'road' | 'me' | 'skills' | 'customers' | 'collection' 
 /** The Merchant page: who you are, what you can do, what you own, and the book of accounts. */
 import { openGuide } from '../Guide/Guide';
 
-export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: MerchantSub) => void }) {
+export function Merchant({ sub, setSub, onBack }: { sub: MerchantSub; setSub: (s: MerchantSub) => void; onBack?: () => void }) {
   const g = useGame();
   // each tab says what is in it, and a small dot marks what is new since it was last opened
   const met = Object.entries(g.relationships).filter(([id, r]) => BUYERS[id] && r.visits > 0).length;
@@ -40,6 +40,7 @@ export function Merchant({ sub, setSub }: { sub: MerchantSub; setSub: (s: Mercha
   useEffect(() => { g.markMerchantSeen(); if (sub === 'customers' && !g.onboard?.buyers) useGame.setState({ onboard: { ...(g.onboard ?? {}), buyers: true } }); }, [sub]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="screen merchant" data-testid="merchant">
+      {onBack && <button className="sub-back" onClick={onBack} data-testid="progress-back">‹ Me</button>}
       <Standing compact={sub !== 'road'} />
       <div className="merchant-tabs" role="tablist">
         {([['road', 'Road'], ['customers', 'Buyers'], ['collection', 'Collection'], ['book', 'Ledger'], ['post', 'Post']] as [MerchantSub, string][]).map(([k, label]) => {

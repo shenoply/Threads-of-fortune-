@@ -20,7 +20,7 @@ import './ency.css';
 type Kind = 'person' | 'house' | 'place' | 'rug' | 'band';
 type Section = 'people' | 'houses' | 'places' | 'rugs' | 'bands';
 interface Page { kind: Kind; id: string }
-const SECTION_WORD: Record<Section, string> = { people: 'People', houses: 'Families', places: 'Towns', rugs: 'Carpets', bands: 'Bands' };
+const SECTION_WORD: Record<Section, string> = { people: 'People', houses: 'Families', places: 'Towns', rugs: 'Rugs', bands: 'Bands' };
 const ROLE_WORD: Record<string, string> = { souq: 'Souq master', dealer: 'Dealer on the tables', merchant: 'Merchant', notable: 'Man of standing', craft: 'Craftsman', caravan: 'Caravan master', kin: 'Family', resident: 'Foreign resident', character: 'A character of the town' };
 const placeName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
 // a family's standing: the four ranks of house, highest first, and its place among its own town's houses
@@ -79,6 +79,10 @@ export function Encyclopedia({ start, onClose }: { start?: Page | null; onClose:
           </>
         )}
       </div>
+      {/* a large way out at the foot of the page, where the thumb is; the small one at the top stays */}
+      <footer className="ency-foot">
+        <button className="ency-bigback" onClick={page ? back : onClose} data-testid="ency-done">{page ? '‹ Back' : 'Back to the game'}</button>
+      </footer>
     </div>
   );
 }
@@ -150,7 +154,8 @@ function PersonCard({ p, go, tag, label }: { p: Person; go: (p: Page) => void; t
 function List({ section, q, go, town, setTown }: { section: Section; q: string; go: (p: Page) => void; town: string; setTown: (t: string) => void }) {
   const g = useGame();
   const [more, setMore] = useState(PAGE);
-  const [who, setWho] = useState<'all' | 'locals' | 'foreign' | 'characters'>('all');
+  // the people you know come first: once you have met anyone, the list opens on them
+  const [who, setWho] = useState<'met' | 'all' | 'locals' | 'foreign' | 'characters'>(() => (Object.keys(g.folk?.met ?? {}).length ? 'met' : 'all'));
   useEffect(() => setMore(PAGE), [section, q]);
   const w = world();
   const f = g.folk;
@@ -159,7 +164,7 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
     // everyone in the world is listed from the start: heads, wives and children alike
     const all = Object.values(w.people);
     const towns = SETTLEMENTS.filter((st) => all.some((p) => p.home === st.id));
-    const hit = all.filter((p) => (who === 'all' || (who === 'foreign' ? !!p.foreign || !!p.mixed : who === 'characters' ? p.role === 'character' : !p.foreign && p.role !== 'character')) && (!town || p.home === town) && (!q || `${p.name} ${p.title} ${placeName(p.home)}`.toLowerCase().includes(q)))
+    const hit = all.filter((p) => (who === 'all' || (who === 'met' ? f?.met[p.id] !== undefined : (who === 'foreign' ? !!p.foreign || !!p.mixed : who === 'characters' ? p.role === 'character' : !p.foreign && p.role !== 'character'))) && (!town || p.home === town) && (!q || `${p.name} ${p.title} ${placeName(p.home)}`.toLowerCase().includes(q)))
       .sort((a, b) => Number(f?.met[b.id] !== undefined) - Number(f?.met[a.id] !== undefined) || Number(known(b.id)) - Number(known(a.id))
         || (a.house && w.houses[a.house] ? RANKS.indexOf(w.houses[a.house].rank) : 9) - (b.house && w.houses[b.house] ? RANKS.indexOf(w.houses[b.house].rank) : 9) || a.name.localeCompare(b.name));
     const [shown, setShown] = [Math.min(hit.length, more), setMore];
@@ -172,7 +177,7 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
           </select>
           <small className="ency-count">{hit.length} people · {Object.keys(f?.met ?? {}).length} met</small>
         </div>
-        <div className="ency-chips-row">{(['all', 'locals', 'foreign', 'characters'] as const).map((k) => <button key={k} className={who === k ? 'on' : ''} onClick={() => { setWho(k); setMore(PAGE); }} data-testid={`ency-who-${k}`}>{{ all: 'Everyone', locals: 'Locals', foreign: 'Foreigners', characters: 'Characters' }[k]}</button>)}</div>
+        <div className="ency-chips-row">{(['met', 'all', 'locals', 'foreign', 'characters'] as const).map((k) => <button key={k} className={who === k ? 'on' : ''} onClick={() => { setWho(k); setMore(PAGE); }} data-testid={`ency-who-${k}`}>{{ met: 'People you have met', all: 'Everyone', locals: 'Locals', foreign: 'Foreigners', characters: 'Characters' }[k]}</button>)}</div>
         <div className="ency-grid">
           {hit.slice(0, shown).map((p) => <PersonCard key={p.id} p={p} go={go} tag={f?.met[p.id] !== undefined ? relWord(f.rel[p.id] ?? 0, true) : known(p.id) ? 'Heard of' : ''} />)}
         </div>

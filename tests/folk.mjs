@@ -43,7 +43,7 @@ await p.locator('[data-testid=ency-person] .ency-link').first().click(); await p
 check(await has('[data-testid=ency-place], [data-testid=ency-house], [data-testid=ency-person]'), 'and his page links on');
 await p.click('[data-testid=ency-close]'); await p.click('[data-testid=folk-bye]').catch(() => {});
 // the encyclopedia from the top bar, any time: everyone listed from the start, and each family's standing
-check(await has('[data-testid=hud-ency]') && await has('[data-testid=set-ency]'), 'an encyclopedia button in the top bar, and in the town tabs');
+check(await has('[data-testid=set-ency]'), 'an encyclopedia button in the town tabs (People also opens it from Me)');
 await p.screenshot({ path: `${SHOTS}/folk-hud.png` });
 await p.click('[data-testid=set-ency]'); await p.waitForSelector('[data-testid=ency-people]');
 const everyone = await p.evaluate(async () => Object.keys((await import('/src/game/systems/population.ts')).world().people).length);

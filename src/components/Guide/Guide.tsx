@@ -49,7 +49,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     img: 'art/stall-seller.jpg', pos: '25% 40%',
     id: 'radio',
     title: 'The paper and the radio',
-    lines: ['Every day is a real day of 1925. The Courier and Radio Giza carry the real news of that day.', 'What happens in the world moves prices, brings buyers, and makes some roads safer or worse. Read it in the morning.', 'On the radio, "Skip to the news" jumps past the greeting; tap any line to hear it from there. Films of the people you meet play once and wait on the Buyers list (Progress tab).'],
+    lines: ['Every day is a real day of 1925. The Courier and Radio Giza carry the real news of that day.', 'What happens in the world moves prices, brings buyers, and makes some roads safer or worse. Read it in the morning.', 'On the radio, "Skip to the news" jumps past the greeting; tap any line to hear it from there. Films of the people you meet play once and wait on the Buyers list (Me, then Progress).'],
   },
   {
     id: 'rugs', img: 'art/stall2/stall-empty-patched.webp', pos: '50% 60%',

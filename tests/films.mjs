@@ -65,7 +65,7 @@ try {
   console.log('second visit: plays by itself', again, '| replay button', btn, '| replays on request', replay, '| skipped, gone:', (await has('film-abuhamid')) === 0);
   await p.keyboard.press('Escape'); await p.evaluate(() => localStorage.setItem('tof-films-once', '1')); await reload();
   // the shelf
-  await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
+  await p.click('[data-testid=nav-hero]').catch(() => {}); await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
   await p.click('text=Customers').catch(() => {}); await p.waitForTimeout(500);
   console.log('shelf:', (await p.locator('[data-testid=film-shelf]').innerText().catch(() => 'none')).replace(/\s+/g, ' '));
 } catch (e) { console.log('FAILED', e.message.split('\n').filter((l, i) => i === 0 || /waiting for locator|intercepts/.test(l)).slice(0, 3).join(' / ')); await p.screenshot({ path: `${S}/films-fail.png` }); }

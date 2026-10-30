@@ -1,5 +1,6 @@
-// The gift chest in the top bar, and the page it opens: today's gift (a week of days in a row, a
-// little more each day), and the day's three errands with their pay. It never opens by itself.
+// "Today" in the top bar, and the page it opens: today's gift (a week of days in a row, a little more
+// each day), the day's three errands with their pay, Uncle Rashid's warehouse and the day's paper.
+// It never opens by itself.
 import { DRESSING_BY_ID } from '../../data/shops';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -37,7 +38,7 @@ export function useDailyWaiting() {
 const lookedKey = () => `tof-gift-looked-${new Date().toDateString()}`;
 const lookedToday = () => { try { return localStorage.getItem(lookedKey()) === '1'; } catch { return false; } };
 
-export function GiftButton() {
+export function GiftButton({ guide = false }: { guide?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [looked, setLooked] = useState(lookedToday);
   const w = useDailyWaiting();
@@ -45,8 +46,8 @@ export function GiftButton() {
   const calling = waiting && !looked;
   return (
     <>
-      <button className={`icon-btn gift-btn ${calling ? 'calling' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); try { localStorage.setItem(lookedKey(), '1'); } catch { /* private mode */ } setLooked(true); }} aria-label={waiting ? 'Your gift and errands: something is waiting' : 'Your gift and errands'} data-testid="gift-btn" data-waiting={waiting ? '1' : undefined}>
-        <Icon name="gift" />
+      <button className={`hud-chip today-btn gift-btn ${calling ? 'calling' : ''} ${guide ? 'tour-target' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); try { localStorage.setItem(lookedKey(), '1'); } catch { /* private mode */ } setLooked(true); }} aria-label={waiting ? 'Today: something is waiting' : 'Today'} data-testid="gift-btn" data-waiting={waiting ? '1' : undefined}>
+        <span>Today</span>
         {waiting && <span className="gift-dot" aria-hidden="true" />}
       </button>
       {open && <DailySheet onClose={() => setOpen(false)} />}
@@ -97,6 +98,14 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
         <button className="btn close" onClick={onClose} data-testid="daily-close">Done</button>
       </div>
       <div className="daily-body">
+        <section className="daily-links" data-testid="today-links">
+          <button className="daily-link" onClick={() => { onClose(); window.dispatchEvent(new Event('tof:open-rashid')); }} data-testid="today-rashid">
+            <b>Uncle Rashid's warehouse</b><span>His stock, the sealed bale and your father's debt</span>
+          </button>
+          <button className="daily-link" onClick={() => { onClose(); window.dispatchEvent(new Event('tof:paper-read')); }} data-testid="paper-btn">
+            <b>Today's paper</b><span>{(g.paperSeen ?? 0) < g.day ? 'Not read yet · a quarter of an hour' : 'Read this morning'}</span>
+          </button>
+        </section>
         <Pouch />
         <section className="daily-gift">
           <h3>Your gift <small>{gift.run > 1 || !gift.open ? `day ${gift.run} in a row` : 'day 1'}</small></h3>

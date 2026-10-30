@@ -65,7 +65,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
       {page && <TroopPage id={page} onClose={() => setPage(null)} onHire={pageRow ? () => setNote(g.recruit(pageRow.troop, pageRow.key, 1)) : undefined} hireDisabled={!pageRow?.available || g.cash < TROOPS[page].cost || full} hireLabel={full ? 'Your caravan is full' : `Hire one · ${TROOPS[page].cost ? fmt(TROOPS[page].cost) : 'free'}`} />}
       {note && <p className="set-note" data-testid="supply-note">{note}</p>}
       {show.includes('food') && (<>
-      <div className="section-label">PROVISIONS</div>
+      <div className="section-label" id="cv-food">PROVISIONS</div>
       <p className="set-demand prov-sum" data-testid="food-summary">You have {p.food} ration{p.food === 1 ? '' : 's'}, the caravan eats {dailyFood(p)} a day ({foodDaysLeft(p)} day{foodDaysLeft(p) === 1 ? '' : 's'}).</p>
       <div className="mkt prov">
         {provisionsAt(sid).map((it) => {
@@ -179,13 +179,7 @@ export function CaravanRoster() {
     <div data-testid="caravan-roster">
       {page && <TroopPage id={page} onClose={() => setPage(null)} />}
       {talk && <MenTalk onClose={() => setTalk(false)} />}
-      <div className="section-label">YOUR CARAVAN</div>
-      <CaravanStrip />
-      <Herd />
-      <p className="set-demand" style={{ marginTop: 6 }}>
-        Wages {fmt(wages(p))} a day · food {dailyFood(p)} ration{dailyFood(p) === 1 ? '' : 's'} a day · {sp.over ? 'overloaded, moving slowly' : `carrying ${Math.round(sp.load)} of ${sp.cap} loads`}
-        {sp.hungry ? ' · out of food' : ''}
-      </p>
+      <div className="section-label" id="cv-men">YOUR MEN</div>
       {troops.length === 0 ? (
         <p className="set-demand">No guards. Raiders will come looking for you. Hire men in villages, towns and the Bedouin camp.</p>
       ) : (
@@ -208,6 +202,13 @@ export function CaravanRoster() {
           ))}
         </div>
       )}
+      <div className="section-label" id="cv-string">YOUR STRING AND LOAD</div>
+      <CaravanStrip />
+      <Herd />
+      <p className="set-demand" style={{ marginTop: 6 }}>
+        Wages {fmt(wages(p))} a day · food {dailyFood(p)} ration{dailyFood(p) === 1 ? '' : 's'} a day · {sp.over ? 'overloaded, moving slowly' : `carrying ${Math.round(sp.load)} of ${sp.cap} loads`}
+        {sp.hungry ? ' · out of food' : ''}
+      </p>
     </div>
   );
 }

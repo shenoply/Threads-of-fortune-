@@ -8,12 +8,18 @@ import { OUTFITS, START_WARDROBE, heroCharisma, wornOutfit } from '../../data/wa
 import { TITLES } from '../../data/titles';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
+import { nextStep, roadOf, nearness, type Need } from '../../game/road';
+
+/** a need as the road in Progress writes it: "Reputation 3 / 8", the same figures in both places */
+const needText = (n: Need) => `${n.label} ${n.money ? fmt(Math.max(0, n.have)) : Math.max(0, Math.round(n.have))} / ${n.money ? fmt(n.want) : n.want}${n.have >= n.want ? ' ✓' : ''}`;
 
 const pct = (v: number) => `${Math.max(3, Math.min(100, v * 100))}%`;
 
 export function MeNext({ onWardrobe }: { onWardrobe: () => void }) {
   const g = useGame();
-  const { next, worth, blockedByStory, blockingMission } = rankOf(g);
+  const { blockedByStory, blockingMission } = rankOf(g);
+  // the same next step as the top of Progress, so the two never show different targets
+  const step = nextStep(roadOf(g));
   const w = g.wardrobe ?? START_WARDROBE;
   const clean = g.attire?.clean ?? 100;
   const ch = heroCharisma(w, clean);
@@ -27,19 +33,17 @@ export function MeNext({ onWardrobe }: { onWardrobe: () => void }) {
   const got = new Set(g.titles ?? []);
   const listed = TITLES.filter((t) => !t.quiet || got.has(t.id));
   const title = listed.find((t) => !got.has(t.id) && !t.secret);
-  const repP = next ? g.reputation / Math.max(1, next.rep) : 1;
-  const worthP = next ? Math.max(0, worth) / Math.max(1, next.worth) : 1;
   const go = (f: () => void) => () => { audio.sfx('tap'); f(); };
   return (
     <section className="me-next" data-testid="me-next">
       <h3>Next for you</h3>
-      {next && (
+      {step && (
         <button className="mn-row" onClick={go(() => window.dispatchEvent(new Event('tof:open-road')))} data-testid="me-next-rank">
           <Icon name="crown" />
           <span className="mn-body">
-            <b>{next.name}</b>
-            <i className="mn-bar"><em style={{ width: pct(Math.min(repP, worthP)) }} /></i>
-            <small>Reputation {g.reputation}/{next.rep}{repP >= 1 ? ' ✓' : ''} · worth {fmt(worth)}/{fmt(next.worth)}{worthP >= 1 ? ' ✓' : ''}</small>
+            <b>{step.title}</b>
+            <i className="mn-bar"><em style={{ width: pct(nearness(step)) }} /></i>
+            <small>{step.needs.map(needText).join(' · ')}</small>
             {blockedByStory && blockingMission && <small className="mn-held" data-testid="rank-story-lock">Held back until you settle: {blockingMission.title}</small>}
           </span>
         </button>

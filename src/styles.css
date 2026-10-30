@@ -3681,3 +3681,115 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .world-map.overview .place.kind-city .plbl, .world-map.overview .place.kind-port .plbl, .world-map.overview .place.kind-home .plbl, .world-map.overview .place.here .plbl { font-size: 15.5px; padding: 1px 7px; font-weight: 600; }
 .world-map.overview .party:not(.party-raiders) { opacity: 0; pointer-events: none; }
 .world-map.overview .party-raiders:not(.hunting) .pname { display: none !important; }
+
+/* ==========================================================================
+   One-thumb rules (phone HUD round 2). Two tokens carry them: every control in the
+   top bar, the bottom bar, the encyclopedia and the caravan rows is at least --tap
+   tall, and no label or body text on the main screens is under --fs-min. They come
+   last so they settle the older layered rules above; nothing below is a one-off size.
+   ========================================================================== */
+:root { --tap: 44px; --fs-min: 14px; --fs-s: 14px; }
+
+/* top bar: place and clock · purse · Today · settings, and a worded warning row when needed */
+.app .hud { flex-wrap: wrap; row-gap: 4px; }
+.app .hud .hud-cal { min-height: var(--tap); justify-content: center; }
+.app .hud .hud-place span { font-size: var(--fs-min); }
+.app .hud .hud-chip { min-height: var(--tap); height: var(--tap); font-size: 15px; }
+.app .hud .icon-btn { width: var(--tap); height: var(--tap); min-width: var(--tap); }
+.app .hud .today-btn { position: relative; padding: 0 13px; font-family: var(--label); font-size: var(--fs-min); letter-spacing: .06em; color: #f3dca6; animation: none; }
+.app .hud .today-btn::before { content: none; }
+.app .hud .today-btn .gift-dot { position: absolute; right: 3px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--k-saffron, #f2b13c); box-shadow: 0 0 0 2px #150d07; }
+.hud-warn {
+  flex: 1 0 100%; display: flex; align-items: center; gap: 8px; min-height: var(--tap);
+  padding: 0 12px; border: 1px solid #b4583a; border-radius: 6px; background: #3b160d;
+  color: #ffe0cc; font-family: var(--label); font-size: 15px; letter-spacing: .03em; text-align: left; cursor: pointer;
+}
+.hud-warn svg { flex: none; width: 18px; height: 18px; color: #f2a47a; }
+.hud-warn span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-warn em { flex: none; font-style: normal; font-size: var(--fs-min); color: #f6c4a6; text-decoration: underline; text-underline-offset: 3px; }
+.hud-warn.warn-food, .hud-warn.warn-rashid, .hud-warn.warn-pay { border-color: #b98a3a; background: #33230d; color: #ffe7b8; }
+.hud-warn.warn-food svg, .hud-warn.warn-rashid svg, .hud-warn.warn-pay svg { color: #f0c060; }
+
+/* bottom bar: five tabs, one lit at a time */
+.app .nav button { min-height: 56px; font-size: var(--fs-min); justify-content: center; }
+.app .nav button svg { width: 21px; height: 21px; }
+.app .nav button:not([aria-current='page']):not(.tour-target) { color: var(--text-dim); background: none; box-shadow: none; }
+.app .nav button.nav-world:not([aria-current='page']) svg { filter: none; }
+.app .nav button:focus:not(:focus-visible) { outline: none; }
+
+/* Me: People and Progress as two large doors at the top */
+.me-doors { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.me-door {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 12px;
+  border: 1px solid var(--line-strong); border-radius: 6px; background: var(--umber, #1e140b);
+  color: var(--text); text-align: left; cursor: pointer;
+}
+.me-door > svg { flex: none; width: 24px; height: 24px; color: var(--brass-hi); }
+.me-door span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.me-door b { font-family: var(--display); font-weight: 500; font-size: 18px; color: var(--parchment); }
+.me-door small { font-size: var(--fs-min); line-height: 1.25; color: var(--text-dim); }
+.me-door-new { position: absolute; top: 6px; right: 8px; font-style: normal; font-family: var(--label); font-size: var(--fs-min); color: #f2b13c; }
+.sub-back { align-self: start; justify-self: start; min-height: var(--tap); padding: 0 14px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 22px; background: rgba(0,0,0,.25); color: var(--parchment); font-family: var(--label); font-size: 15px; cursor: pointer; }
+
+/* Ledger: net worth, the one place it is shown */
+.net-worth-line { display: grid; gap: 4px; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 6px; background: #170f08; }
+.net-worth-line span { display: flex; align-items: baseline; gap: 10px; }
+.net-worth-line small { font-family: var(--label); font-size: var(--fs-min); letter-spacing: .08em; color: var(--text-dim); }
+.net-worth-line b { font-family: var(--display); font-size: 20px; color: var(--parchment); }
+.net-worth-line p { margin: 0; font-size: var(--fs-min); line-height: 1.4; color: var(--text-dim); }
+.standing small, .standing.compact small { font-size: var(--fs-min); }
+
+/* the objective line and its little badge */
+.objective-bar .ob-text small, .objective-bar.opening .ob-text small, .objective-bar .ob-eye small { font-size: var(--fs-min) !important; }
+.ob-due { font-size: var(--fs-min); min-height: 24px; }
+.objective-bar .ob-eye { flex-wrap: wrap !important; white-space: normal; row-gap: 0 !important; }
+.objective-bar .ob-text small { letter-spacing: .04em; }
+.ob-btn { min-height: var(--tap) !important; font-size: 15px !important; }
+.ob-skip { font-size: var(--fs-min) !important; min-height: var(--tap); display: inline-flex; align-items: center; }
+.side-task { min-height: var(--tap); font-size: var(--fs-min); }
+.ns-x, .ob-x { min-width: var(--tap); min-height: var(--tap); }
+.news-strip .ns-text small, .news-strip .ns-text b { font-size: var(--fs-min); }
+.ns-text { min-height: var(--tap); }
+
+/* health: Tired / Fed / Water */
+.hs-row { min-height: var(--tap); font-size: var(--fs-min); }
+.hs .hs-m .hs-g b, .hs-g b { font-size: var(--fs-min); }
+.hs-ill { font-size: var(--fs-min); }
+@media (max-width: 380px) { .hs .hs-m .hs-g b, .hs-g b { font-size: var(--fs-min); } }
+
+/* the newspaper: the painted front page keeps only what reads at phone size; the full paper is a tap away */
+.paper-ear, .paper-dateline, .paper-kicker, .paper-foot, .paper-glance > b { font-size: var(--fs-min); }
+.paper-close { width: var(--tap); height: var(--tap); }
+.pov-date { font-size: max(var(--fs-min), 1.9cqw); }
+.pov-also { font-size: max(var(--fs-min), 2cqw); letter-spacing: .08em; }
+.pov-page h2 { font-size: max(17px, 3.4cqw); }
+.pov-page h4 { font-size: max(15px, 2.9cqw); }
+.pov-page p { font-size: max(var(--fs-min), 2.5cqw); }
+@media (max-width: 600px) { .pov-page p { display: none; } }
+
+/* encyclopedia: big tabs and filters, and a Back button at the foot of the page */
+.ency { grid-template-rows: auto 1fr auto; animation: none; }
+.ency-back { width: var(--tap); height: var(--tap); }
+.ency-tabs button, .ency-chips-row button { min-height: var(--tap); font-size: var(--fs-min); color: var(--parchment); box-shadow: inset 0 0 0 1px rgba(214,164,84,.45); }
+.ency-tabs button.on { color: #2b1b0d; box-shadow: none; }
+.ency-chips-row button.on { color: #ffe1a0; box-shadow: inset 0 0 0 1px rgba(231,189,110,.8); background: rgba(231,189,110,.24); }
+.ency-filter select, .ency-search { min-height: var(--tap); font-size: 15px; }
+.ency-count, .ency-card-label, .ency-card-age, .ency-card-text small { font-size: var(--fs-min); }
+.ency-more { min-height: var(--tap); }
+.ency-foot { padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(214,164,84,.2); background: #120c06; }
+.ency-bigback { width: 100%; min-height: 52px; border: 1px solid rgba(214,164,84,.55); border-radius: 8px; background: #2a1c0e; color: #ffe1a0; font-family: var(--label); font-size: 16px; letter-spacing: .06em; cursor: pointer; }
+
+/* caravan: the tiles are buttons into their sections; rows and their buttons are thumb-sized */
+.cv-tile { min-height: var(--tap); width: 100%; color: inherit; font: inherit; cursor: pointer; }
+.cv-tile small, .cv-tile b .cv-max { font-size: var(--fs-min); }
+.caravan-screen .mkt-row { min-height: var(--tap); }
+.caravan-screen .mkt-row .btn, .caravan-screen .cv-part > summary, .caravan-screen .btn { min-height: var(--tap); }
+.caravan-screen .mkt-row small, .caravan-screen .set-demand, .caravan-screen .section-label { font-size: var(--fs-min); }
+.caravan-screen [id^='cv-'] { scroll-margin-top: 8px; }
+
+/* the Today panel: Rashid's warehouse and the paper, above the gift */
+.daily-links { display: grid; gap: 8px; }
+.daily-link { display: flex; flex-direction: column; gap: 2px; min-height: 56px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: #1e140b; color: var(--text); text-align: left; cursor: pointer; }
+.daily-link b { font-family: var(--display); font-weight: 500; font-size: 17px; color: var(--parchment); }
+.daily-link span { font-size: var(--fs-min); color: var(--text-dim); }
+.daily-sheet h3 small { font-size: var(--fs-min); }

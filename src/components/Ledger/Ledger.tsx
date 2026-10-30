@@ -32,22 +32,22 @@ export function sourcesOf(id: string) {
   return out.length ? out.join(' · ') : 'Only by chance on the road';
 }
 
-/** The top of Progress: rank, net worth and reputation, the next rank, and the goal in front of you. */
+/** The top of Progress: rank, purse and reputation, the next rank, and the goal in front of you. */
 export function Standing({ compact = false }: { compact?: boolean } = {}) {
   const g = useGame();
-  const { idx, rank, next, worth } = rankOf(g);
+  const { idx, rank, next } = rankOf(g);
   if (compact) return (
     <div className="standing compact" data-testid="standing">
       <span><b data-testid="rank">{rank.name}</b> <small>rank {idx + 1} of {RANKS.length}</small></span>
-      <span><small>worth</small> <b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b></span>
-      <span><small>rep</small> <b>{g.reputation}</b></span>
+      <span><small>purse</small> <b data-testid="standing-purse" data-pt={g.cash}>{fmt(g.cash)}</b></span>
+      <span><small>reputation</small> <b>{g.reputation}</b></span>
     </div>
   );
   return (
     <div className="standing" data-testid="standing">
       <div className="rank-row">
         <div><small>RANK {idx + 1} OF {RANKS.length}</small><b data-testid="rank">{rank.name}</b></div>
-        <div className="worth"><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b>{liabilities(g) > 0 && <small data-testid="net-worth-debts">after what you owe: {owedParts(g)}</small>}</div>
+        <div className="worth"><small>PURSE</small><b data-testid="standing-purse" data-pt={g.cash}>{fmt(g.cash)}</b></div>
         <div className="worth"><small>REPUTATION</small><b>{g.reputation}</b></div>
       </div>
       <CurrentGoal />
@@ -111,6 +111,18 @@ export function goalProgress(g: ReturnType<typeof useGame.getState>, goal: Goal)
   return [g.supplier.debt, g.supplier.debt === 0];
 }
 
+/** The one place net worth is shown, with what it means: ranks go by it, the purse is what you can spend. */
+function NetWorth() {
+  const g = useGame();
+  const { worth } = rankOf(g);
+  return (
+    <div className="net-worth-line" data-testid="net-worth-line">
+      <span><small>NET WORTH</small><b data-testid="net-worth" data-pt={worth}>{fmt(worth)}</b></span>
+      <p>Your purse, your rugs and your property, less what you owe{liabilities(g) > 0 ? <> (<span data-testid="net-worth-debts">{owedParts(g)}</span>)</> : ''}. Your rank goes by this figure; the purse in the top bar is what you can spend.</p>
+    </div>
+  );
+}
+
 export function Ledger() {
   const g = useGame();
   const sales = g.ledger.filter((l) => l.kind === 'sale');
@@ -123,6 +135,7 @@ export function Ledger() {
   const bought = BUYER_ORDER.reduce((n, id) => n + (g.relationships[id]?.purchases ?? 0), 0);
   return (
     <div className="screen" data-testid="ledger">
+      <NetWorth />
       <PurseBook />
       <ProudSales />
       <p className="ledger-alltime">All told: sold <b>{fmt(revenue)}</b> of rugs at a <b className={margin > 0 ? 'pos' : ''}>{margin}%</b> margin, and paid <b className={expenses ? 'neg' : ''}>{fmt(expenses)}</b> in costs.</p>

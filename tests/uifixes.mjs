@@ -14,8 +14,8 @@ await p.reload(); if (await has('continue')) await p.click('[data-testid=continu
 // customers list
 await p.screenshot({ path: `${S}/u-start.png` });
 console.log('navs:', await p.evaluate(() => [...document.querySelectorAll('[data-testid^=nav-]')].map((e) => e.dataset.testid).join(',')));
-const nav = ['nav-me', 'nav-ledger'];
-for (const n of nav) if (await has(n)) { await p.click(`[data-testid=${n}]`); break; }
+// Progress is a door inside Me
+for (const n of ['nav-hero', 'nav-ledger']) if (await has(n)) { await p.click(`[data-testid=${n}]`); await p.waitForTimeout(500); }
 await p.waitForTimeout(500);
 if (!(await has('customers'))) { const t = p.getByText('Customers', { exact: false }).first(); if (await t.count()) await t.click(); await p.waitForTimeout(400); }
 console.log('customers open:', await has('customers'), '| cohen:', await has('cust-cohen'), '| nabil:', await has('cust-nabil'));

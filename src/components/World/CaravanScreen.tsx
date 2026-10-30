@@ -21,14 +21,20 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
   const sp = speedInfo(p, g.inventory);
   const food = foodDaysLeft(p);
   const town = g.world.at ? settlementById(g.world.at) : null;
-  const tiles: { icon: string; label: string; value: string; max?: number; warn?: boolean }[] = [
-    { icon: 'bag', label: 'Food', value: `${food} day${food === 1 ? '' : 's'}`, warn: food < 3 },
-    { icon: 'run', label: 'Pace', value: `${milesPerDay(sp.pxPerDay)} mi/day`, warn: sp.over || sp.hungry },
-    { icon: 'shield', label: 'Strength', value: String(strength(p)), max: strengthCap(p, g.reputation) },
-    { icon: 'camel', label: 'Animals', value: String(animalCount(p)), max: animalCap(p) },
-    { icon: 'sword', label: 'Guards', value: String(troopCount(p)), max: troopCap(g.reputation), warn: troopCount(p) === 0 },
-    { icon: 'scale', label: 'Load', value: `${Math.round(sp.load)}/${sp.cap}`, warn: sp.over },
+  // each tile is a way into its own part of the page
+  const tiles: { icon: string; label: string; value: string; max?: number; warn?: boolean; to: string }[] = [
+    { icon: 'bag', label: 'Food', value: `${food} day${food === 1 ? '' : 's'}`, warn: food < 3, to: 'cv-food' },
+    { icon: 'run', label: 'Pace', value: `${milesPerDay(sp.pxPerDay)} mi/day`, warn: sp.over || sp.hungry, to: sp.over ? 'cv-over' : 'cv-string' },
+    { icon: 'shield', label: 'Strength', value: String(strength(p)), max: strengthCap(p, g.reputation), to: 'cv-men' },
+    { icon: 'camel', label: 'Animals', value: String(animalCount(p)), max: animalCap(p), to: 'cv-string' },
+    { icon: 'sword', label: 'Guards', value: String(troopCount(p)), max: troopCap(g.reputation), warn: troopCount(p) === 0, to: 'cv-men' },
+    { icon: 'scale', label: 'Load', value: `${Math.round(sp.load)}/${sp.cap}`, warn: sp.over, to: sp.over ? 'cv-over' : 'cv-string' },
   ];
+  const jump = (id: string) => {
+    const el = document.getElementById(id) ?? document.getElementById('cv-men');
+    if (el instanceof HTMLDetailsElement) el.open = true;
+    el?.scrollIntoView({ block: 'start' });
+  };
   return (
     <div className="screen caravan-screen" data-testid="caravan-screen">
       <div className="screen-head"><div>
@@ -38,15 +44,17 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
       </div></div>
       <div className="cv-tiles">
         {tiles.map((t) => (
-          <div key={t.label} className={`cv-tile ${t.warn ? 'warn' : ''}`}>
+          <button key={t.label} className={`cv-tile ${t.warn ? 'warn' : ''}`} onClick={() => jump(t.to)} data-testid={`cv-tile-${t.label.toLowerCase()}`}>
             <Icon name={t.icon} />
             <small>{t.label}</small>
             <b>{t.value}{t.max !== undefined && <small className="cv-max"> / {t.max}</small>}</b>
-          </div>
+          </button>
         ))}
       </div>
+      {/* your men first: who walks with you matters more than the shop below */}
+      <CaravanRoster />
       {sp.over && (
-        <div className="cv-over" data-testid="cv-over">
+        <div className="cv-over" id="cv-over" data-testid="cv-over">
           <p><b>Overloaded:</b> {Math.round(sp.load * 10) / 10} loads, and the caravan can carry {sp.cap}. You move slowly until you lighten it.</p>
           <small>{carried(g.inventory).length} rug{carried(g.inventory).length === 1 ? '' : 's'} carried · food {Math.round((p.food / FOOD_PER_LOAD) * 10) / 10} loads ({p.food} rations)</small>
           <div className="cv-over-acts">
@@ -62,7 +70,7 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
         <TownSupplies fold />
       ) : (
         <>
-          <p className="set-demand">You can buy food, animals and guards in any town or village.</p>
+          <p className="set-demand" id="cv-food" data-testid="cv-food">You can buy food, animals and guards in any town or village.</p>
           {food <= 0 && animalCount(p) > 0 && (
             <div className="cv-butcher" data-testid="cv-butcher">
               <p className="set-demand warn">The sacks are empty out here. As a last resort, you can butcher a pack animal for meat: you lose it for good.</p>
@@ -76,7 +84,6 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
           )}
         </>
       )}
-      <CaravanRoster />
     </div>
   );
 }

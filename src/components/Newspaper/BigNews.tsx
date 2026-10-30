@@ -60,7 +60,8 @@ export function BigNews({ onRead }: { onRead: () => void }) {
   return (
     <div className={`news-strip ${open ? 'open' : ''}`} data-testid="big-news" role="status">
       <div className="ns-row">
-        <button className="ns-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="big-news-more">
+        {/* read once: opening it and closing it again puts the news away (the paper keeps it) */}
+        <button className="ns-text" onClick={() => (open ? done() : setOpen(true))} aria-expanded={open} data-testid="big-news-more">
           <small>News</small><b>{head.eve ? `Tomorrow: ${head.e.name}` : head.e.name}{fresh.length > 1 ? ` +${fresh.length - 1}` : ''}</b>
         </button>
         <button className="ns-x" onClick={done} aria-label="Dismiss" data-testid="big-news-ok">×</button>

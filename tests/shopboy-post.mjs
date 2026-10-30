@@ -140,7 +140,7 @@ try {
   await shot('4-letter-morning');
   await closeCards();
   // the post list, under Progress
-  await p.click('[data-testid=nav-ledger]'); await p.waitForTimeout(500);
+  await p.click('[data-testid=nav-hero]').catch(() => {}); await p.click('[data-testid=nav-ledger]'); await p.waitForTimeout(500);
   await p.click('[data-testid=msub-post]'); await p.waitForTimeout(400);
   await shot('5-post');
   ok(await has('post-letter') > 0, 'the Post list under Progress shows the letter');
@@ -184,7 +184,7 @@ try {
   ok(!!insp && /fine/.test(insp.text), 'the inspector called and fined the lapsed licence', insp?.text);
   await p.waitForTimeout(400); await shot('9-inspector'); await closeCards();
   // the licence in the ledger
-  await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
+  await p.click('[data-testid=nav-hero]').catch(() => {}); await p.click('[data-testid=nav-ledger]').catch(() => {}); await p.waitForTimeout(500);
   await p.click('[data-testid=msub-book]').catch(() => {});
   await p.waitForTimeout(500);
   if (await has('licence-card')) { await p.locator('[data-testid=licence-card]').scrollIntoViewIfNeeded(); await shot('10-ledger'); ok(true, 'licence shown in the Ledger', await p.locator('[data-testid=licence-card]').innerText()); }

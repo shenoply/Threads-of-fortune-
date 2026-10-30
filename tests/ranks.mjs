@@ -106,7 +106,7 @@ if (await table.count()) {
   await p.screenshot({ path: '/dev/shm/tests-shots/ranks-table.png' });
 }
 await p.locator('[data-testid=leave-settlement]').click({ timeout: 2000 }).catch(() => {});
-await p.click('[data-testid=nav-ledger]', { timeout: 3000 }).catch(() => {});
+await p.click('[data-testid=nav-hero]').catch(() => {}); await p.click('[data-testid=nav-ledger]', { timeout: 3000 }).catch(() => {});
 await p.waitForTimeout(400);
 await p.click('[data-testid=msub-collection]', { timeout: 3000 }).catch(() => {});
 await p.waitForTimeout(400);

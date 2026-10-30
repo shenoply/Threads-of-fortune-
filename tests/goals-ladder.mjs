@@ -146,7 +146,7 @@ if (await bar.count()) {
   await p.click('[data-testid=milestone-expand]'); await p.waitForTimeout(300);
   check(/Reward:/.test(await bar.innerText()) && /Main mission: By royal appointment/.test(await bar.innerText()), 'tap shows the detail, reward and the main mission');
 }
-await p.click('[data-testid=nav-ledger]', { timeout: 3000 }).catch(() => {});
+await p.click('[data-testid=nav-hero]').catch(() => {}); await p.click('[data-testid=nav-ledger]', { timeout: 3000 }).catch(() => {});
 await p.waitForTimeout(400);
 await p.click('[data-testid=msub-collection]', { timeout: 3000 }).catch(() => {});
 await p.waitForTimeout(400);

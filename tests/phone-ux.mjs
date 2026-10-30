@@ -17,7 +17,7 @@ await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introS
 await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]'); await p.waitForTimeout(1200);
 const report = async (n) => { await shot(n); console.log(n, '| page wider than screen:', await overflow(), '| small taps:', (await small()).join(', ')); };
 await report('01-map');
-for (const [tab, n] of [['nav-stall', '02-stall'], ['nav-caravan', '03-caravan'], ['nav-inventory', '04-stock'], ['nav-ledger', '05-progress'], ['nav-hero', '06-me']]) { await p.click(`[data-testid=${tab}]`).catch(() => {}); await p.waitForTimeout(900); await report(n); }
+for (const [tab, n] of [['nav-stall', '02-stall'], ['nav-caravan', '03-caravan'], ['nav-inventory', '04-stock'], ['nav-hero', '06-me'], ['nav-ledger', '05-progress']]) { await p.click(`[data-testid=${tab}]`).catch(() => {}); await p.waitForTimeout(900); await report(n); }
 await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(700); if (await has('stall-wait')) await p.click('[data-testid=stall-wait]'); await p.waitForTimeout(2500); await report('07-encounter');
 await p.click('[data-testid=settings-btn]').catch(() => {}); await p.waitForTimeout(500); await report('08-settings');
 await b.close();

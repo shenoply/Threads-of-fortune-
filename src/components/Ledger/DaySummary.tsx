@@ -13,7 +13,7 @@ import { WeekTables } from '../World/RankTable';
 /** the morning's reason to look: today's errands are new, and the gift may be waiting */
 function DailyTeaser() {
   const w = useDailyWaiting();
-  return <p className="daily-teaser" data-testid="daily-teaser"><b>Three new errands today.</b>{w.gift ? ` Your gift is waiting in the chest at the top${w.run > 0 ? ` (${w.run + 1} days in a row)` : ''}.` : ''}</p>;
+  return <p className="daily-teaser" data-testid="daily-teaser"><b>Three new errands today, under Today at the top.</b>{w.gift ? ` Your gift is waiting there too${w.run > 0 ? ` (${w.run + 1} days in a row)` : ''}.` : ''}</p>;
 }
 
 export function DaySummary() {

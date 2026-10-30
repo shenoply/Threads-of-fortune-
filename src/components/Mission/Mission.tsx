@@ -147,6 +147,20 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
     document.addEventListener('pointerdown', off);
     return () => document.removeEventListener('pointerdown', off);
   }, [open]);
+  // mission news is read once: opened and closed again, or left until the next morning, it clears
+  // itself (the mission stays in the objective line and in Progress); it never sits there for days
+  const newsDay = useRef<{ id: string; day: number } | null>(null);
+  const seenOpen = useRef(false);
+  useEffect(() => {
+    if (!news || news === 'house-done') { newsDay.current = null; seenOpen.current = false; return; }
+    if (newsDay.current?.id !== news) { newsDay.current = { id: news, day: g.day }; seenOpen.current = false; return; }
+    if (g.day > newsDay.current.day) g.clearMissionNews();
+  }, [news, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!news || news === 'house-done') return;
+    if (open) seenOpen.current = true;
+    else if (seenOpen.current) { seenOpen.current = false; g.clearMissionNews(); }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const activeId = MAIN_ORDER.find((m) => g.missions?.[m] === 'active');
   const nm = news ? MISSIONS[news.replace('-done', '')] : undefined;
   // the last chapter gets a proper ending, not a one-line strip

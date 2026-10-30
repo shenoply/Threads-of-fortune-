@@ -18,8 +18,10 @@ import { afterFirstSale } from './game/preload';
 import { openingStep } from './game/opening';
 import { isOpen, UNLOCKS } from './game/unlocks';
 import { UnlockNotice } from './components/Tips/Unlocks';
-import { guideTarget } from './game/guide';
-import { HealthStrip } from './components/Health/HealthStrip';
+import { HealthStrip, wellness } from './components/Health/HealthStrip';
+import { foodDaysLeft, troopCount, animalCount } from './game/systems/caravan';
+import { DISEASE } from './game/systems/disease';
+import { firstDue } from './game/firstWeek';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
@@ -74,7 +76,7 @@ import { overdue, ruinRisk, RUIN_STEPS } from './game/systems/finance';
 import { slotCrashed, crashedLabel, slotSaveText } from './game/state/crashedSlot';
 import { SLOT_COUNT, readSlots, saveToSlot, loadFromSlot, clearSlot, slotLabel, slotIsIronman, type SlotInfo } from './game/state/slots';
 import { HeirButton } from './components/Character/Household';
-import { LevelUpToast, SkillPops, merchantLevel } from './components/Character/Character';
+import { LevelUpToast, SkillPops } from './components/Character/Character';
 import { Loom } from './components/Loom/Loom';
 
 /** a link with ?weaver opens the weaver's workshop straight away, once a game is going */
@@ -147,7 +149,8 @@ export default function App() {
     window.addEventListener(SAVE_FAILED_EVENT, bad); window.addEventListener(SAVE_OK_EVENT, ok); window.addEventListener(OTHER_TAB_EVENT, tab);
     return () => { window.removeEventListener(SAVE_FAILED_EVENT, bad); window.removeEventListener(SAVE_OK_EVENT, ok); window.removeEventListener(OTHER_TAB_EVENT, tab); };
   }, []);
-  const stamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // the game's own clock: the real-world time beside the game clock only confused players
+  const stamp = () => { const st = useGame.getState(); return `${clock(st.world.hour)} ${dateFor(st.day).weekday.slice(0, 3)}`; };
   // only the "last saved" label follows autosave's own on/off switch — Save now and the slots
   // update it through their own handlers regardless. The write happens just after the change, so
   // the label waits a moment and is only moved on when the write went through.
@@ -272,7 +275,6 @@ export default function App() {
     freshGame(false);
     return true;
   };
-  const guideNext = g.started ? guideTarget(g as unknown as Parameters<typeof guideTarget>[0]) : null;
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS.find((b) => b.src === (window as Window & { __tofTitle?: string }).__tofTitle) ?? TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
@@ -442,6 +444,42 @@ export default function App() {
   // (not while the opening runs: its own steps say what to do, and two guides glowing at once confused testers)
   const tourStep = g.tutorial.done && !firstDays ? (['news', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
   const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
+  // one warning in the top bar, only when something cannot wait: money overdue, an illness, a caravan
+  // nearly out of food, a payment due within two days, or a man close to collapse. Worded, never an icon.
+  type Warn = { kind: 'debt' | 'ill' | 'food' | 'rashid' | 'pay' | 'body'; text: string };
+  const warn: Warn | null = (() => {
+    if (!g.started || tutorialActive) return null;
+    if (inDebt) return { kind: 'debt', text: 'Money overdue' };
+    const ills = g.illnesses ?? [];
+    if (ills.length) return { kind: 'ill', text: ills.length === 1 ? `Ill: ${DISEASE(ills[0].id)?.name ?? 'unwell'}` : `${ills.length} ailments` };
+    const p = g.world.party;
+    if (troopCount(p) > 0 || animalCount(p) > 0) {
+      const d = foodDaysLeft(p);
+      if (d < 2) return { kind: 'food', text: d <= 0 ? 'Out of food' : 'Food for 1 day' };
+    }
+    const inDays = (n: number) => (n <= 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`);
+    const fw = firstDue(g.family, g.day);
+    if (fw && fw.days <= 2) return { kind: 'rashid', text: `Rashid ${fmt(fw.owed)} ${inDays(fw.days)}` };
+    const loan = (g.loans ?? []).filter((l) => l.due - g.day <= 2).sort((a, b) => a.due - b.due)[0];
+    if (loan) return { kind: 'pay', text: `Loan due ${inDays(loan.due - g.day)}` };
+    if ((g.family?.due ?? 0) > 0) { const left = FAMILY_GRACE - (g.day - (g.family?.since ?? 0)); if (left <= 2) return { kind: 'pay', text: `Instalment due ${inDays(left)}` }; }
+    if ((g.bills?.due ?? 0) > 0) { const left = 5 - (g.day - (g.bills?.since ?? 0)); if (left <= 2) return { kind: 'pay', text: `Rent due ${inDays(left)}` }; }
+    const needsOn = !g.sim || g.sim.needs || !!g.ironman;
+    const w = wellness(g.condition);
+    if (needsOn && w.tired === 'bad') return { kind: 'body', text: 'Worn out: rest' };
+    if (needsOn && w.hungry === 'bad') return { kind: 'body', text: 'Hungry: eat' };
+    if (needsOn && w.thirsty === 'bad') return { kind: 'body', text: 'Thirsty: drink' };
+    return null;
+  })();
+  /** the warning chip takes the player to the trouble itself */
+  const goWarn = (w: Warn) => {
+    audio.sfx('tap');
+    const seek = (sel: string) => { let n = 0; const find = () => { const el = document.querySelector(sel); if (el) el.scrollIntoView({ block: 'start' }); else if (++n < 20) window.setTimeout(find, 100); }; window.setTimeout(find, 120); };
+    if (w.kind === 'debt' || w.kind === 'pay') setFinance(true);
+    else if (w.kind === 'rashid') { setTab('supplier'); seek('[data-testid="family-debt"]'); }
+    else if (w.kind === 'food') { setTab('caravan'); seek('[data-testid="cv-butcher"], [data-testid="food-summary"], [data-testid="cv-food"]'); }
+    else setTab('hero');
+  };
   useEffect(() => {
     // the music follows where you are (in a town, or out on the road), not which screen is open:
     // looking at the map or your stock does not change the score
@@ -459,8 +497,10 @@ export default function App() {
     const p = () => { const st = useGame.getState(); setPaper(st.day); if ((st.paperSeen ?? 0) < st.day) useGame.setState({ paperSeen: st.day }); };
     const r = () => setRadioOpen(true);
     const gr = () => setGramophoneOpen(true);
-    window.addEventListener('tof:paper', p); window.addEventListener('tof:radio', r); window.addEventListener('tof:gramophone', gr);
-    return () => { window.removeEventListener('tof:paper', p); window.removeEventListener('tof:radio', r); window.removeEventListener('tof:gramophone', gr); };
+    // from the Today panel: the same as the old paper button (reading it takes a quarter of an hour)
+    const pr = () => openPaper();
+    window.addEventListener('tof:paper', p); window.addEventListener('tof:paper-read', pr); window.addEventListener('tof:radio', r); window.addEventListener('tof:gramophone', gr);
+    return () => { window.removeEventListener('tof:paper', p); window.removeEventListener('tof:paper-read', pr); window.removeEventListener('tof:radio', r); window.removeEventListener('tof:gramophone', gr); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // map jobs speak up when you arrive
   useEffect(() => {
@@ -583,6 +623,8 @@ export default function App() {
       const cancel = card && [...card.querySelectorAll('button')].find((b) => /^(Cancel|OK)$/.test((b.textContent ?? '').trim()));
       if (vis(cancel)) { cancel.click(); return true; }
     }
+    // Progress opens from Me, so back from it is Me
+    if (tab === 'ledger') { setTab('hero'); return true; }
     if (tab !== 'map' && !(tab === 'stall' && g.encounter && !g.encounter.outcome)) { setTab('map'); return true; }
     return false;
   };
@@ -801,27 +843,27 @@ export default function App() {
     <div className={`app ${g.started ? (g.cash < 300 ? 'mood-poor' : g.cash >= 20000 ? 'mood-rich' : '') : ''}`}>
       {/* the purse colours the world: cold and dusty when broke, warm lamplight when rich */}
       <div className="purse-mood" aria-hidden="true" />
-      <header className="hud">
+      <header className={`hud ${warn ? 'has-warn' : ''}`}>
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
           {(() => { const nm = g.world.at ? settlementById(g.world.at).name.split(',')[0] : 'Road'; return <b className={nm.length > 11 ? 'long' : undefined}>{nm}</b>; })()}
-          <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · ☠ Ironman</i> : null}</span>
+          <span data-testid="map-clock">{clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · One life</i> : null}</span>
         </button>
         <div className="hud-stats">
-          <button className={`hud-chip ${cashFlash ? 'flash' : ''} ${cashT.dir > 0 ? 'ff-up' : cashT.dir < 0 ? 'ff-down' : ''} ${g.cash < 300 ? 'purse-thin' : g.cash >= 20000 ? 'purse-fat' : ''}`} title="Your money. Tap to see what you can buy" onClick={() => { const at = useGame.getState().world.at; audio.sfx('tap'); if (at && at !== 'giza') mapGo({ view: 'world', panel: at, tab: 'market' }); else setTab('supplier'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
+          {/* the purse: tap for the money book (what came in, what went out) */}
+          <button className={`hud-chip ${cashFlash ? 'flash' : ''} ${cashT.dir > 0 ? 'ff-up' : cashT.dir < 0 ? 'ff-down' : ''} ${g.cash < 300 ? 'purse-thin' : g.cash >= 20000 ? 'purse-fat' : ''}`} aria-label={`Your purse, ${fmt(g.cash)}. Open the ledger`} onClick={() => { audio.sfx('tap'); setMsub('book'); setTab('ledger'); }} disabled={tutorialActive} data-testid="hud-cash" data-pt={g.cash}>
             <Icon name="coin" /><span className="ff-num">{cashT.shown >= 10000 ? `£${Math.floor(cashT.shown / 100).toLocaleString('en-GB')}` : fmt(cashT.shown)}</span>
           </button>
-          {inDebt && <button className="hud-chip hud-debt" onClick={() => setFinance(true)} title="You owe money that is overdue" data-testid="hud-debt">Debts</button>}
-          <button className={`hud-chip hud-rep ${repT.dir > 0 ? 'ff-up' : repT.dir < 0 ? 'ff-down' : ''}`} title="Your character: reputation, manner and skills" onClick={() => setTab('hero')} data-testid="hud-rep" data-v={g.reputation}>
-            <Icon name="star" /><span className="ff-num">{repT.shown}</span>
-          </button>
           {/* always there; while the opening runs they don't pulse, so the step's own button is the one that calls */}
-          {g.started && !tutorialActive && <GiftButton />}
-          <button className="icon-btn ency-btn" onClick={() => { audio.sfx('tap'); window.dispatchEvent(new CustomEvent('tof:ency')); }} aria-label="The encyclopedia: people, families, towns" title="Encyclopedia" data-testid="hud-ency"><Icon name="book" /></button>
-          <button className={`icon-btn paper-btn ${(g.paperSeen ?? 0) < g.day && !firstDays ? 'nav-new' : ''} ${tourStep === 'news' ? 'tour-target' : ''}`} onClick={openPaper} aria-label="Today's newspaper (a quarter of an hour)" data-testid="paper-btn"><Icon name="news" /></button>
+          {g.started && !tutorialActive && <GiftButton guide={tourStep === 'news'} />}
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />
           </button>
         </div>
+        {warn && (
+          <button className={`hud-warn warn-${warn.kind}`} onClick={() => goWarn(warn)} data-testid={warn.kind === 'debt' ? 'hud-debt' : 'hud-warn'} data-kind={warn.kind}>
+            <Icon name="warn" /><span>{warn.text}</span><em>See to it</em>
+          </button>
+        )}
       </header>
       <RevealHost />
       <MomentHost />
@@ -886,8 +928,8 @@ export default function App() {
         ))}
         {tab === 'supplier' && <Supplier toast={toast} />}
         {tab === 'inventory' && <Inventory onRashid={() => setTab('supplier')} />}
-        {tab === 'ledger' && <Merchant sub={msub} setSub={setMsub} />}
-        {tab === 'hero' && <Suspense fallback={null}><HeroHub /></Suspense>}
+        {tab === 'ledger' && <Merchant sub={msub} setSub={setMsub} onBack={() => setTab('hero')} />}
+        {tab === 'hero' && <Suspense fallback={null}><HeroHub onProgress={() => { audio.sfx('tap'); setMsub('road'); setTab('ledger'); }} progressNew={progressScore(g) > (g.merchantSeen ?? 0)} /></Suspense>}
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
         {tab === 'map' && <Campaign key={mapIntent?.n ?? 0} intent={mapIntent} onGo={chapterGo} frozen={frozen} clearIntent={() => setMapIntent(null)} />}
         {cal && <Suspense fallback={null}><Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} /></Suspense>}
@@ -923,20 +965,21 @@ export default function App() {
         {(
           [
             ['map', 'Map', 'map'],
-            ['stall', g.world.at === 'giza' && !g.dayOver ? 'Stall' : 'Stall', 'store'],
+            ['stall', 'Stall', 'store'],
             ['caravan', 'Caravan', 'camel'],
             ['inventory', 'Stock', 'scroll'],
             ['hero', 'Me', 'face'],
-            ['ledger', 'Progress', 'star'],
           ] as [Tab, string, string][]
-        ).map(([id, label, icon]) => (
-          <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? `nav-world ${!g.guideSeen && !tutorialActive ? 'beckon' : ''}` : id === 'ledger' && tab !== 'ledger' && progressScore(g) > (g.merchantSeen ?? 0) ? 'nav-new' : ''} ${tourStep && tourNav[tourStep] === id ? 'tour-target' : ''} ${id === 'map' && tab !== 'map' && guideNext?.city ? 'tour-target' : ''}`}>
-            {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /><i className="nav-lvl" data-testid="nav-level">{merchantLevel(g.skills)}</i></span> : <Icon name={icon} />}
+        ).map(([id, label, icon]) => {
+          // Progress lives inside Me, so Me stays lit while it is open; only one tab is ever lit
+          const on = tab === id || (id === 'hero' && tab === 'ledger');
+          return (
+          <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}${!on && tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
+            {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /></span> : <Icon name={icon} />}
             {label}
           </button>
-        ))}
-        {/* the encyclopedia: everyone in the world, their families and towns, one tap from any screen */}
-        {g.started && <button onClick={() => { audio.sfx('tap'); window.dispatchEvent(new CustomEvent('tof:ency')); }} data-testid="nav-ency"><Icon name="people" />People</button>}
+          );
+        })}
       </nav>
 
       {g.rescue && <Rescue />}

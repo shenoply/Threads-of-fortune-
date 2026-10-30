@@ -14,7 +14,7 @@ await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-se
 await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1500);
 check((await p.locator('[data-testid=first-hour]').count()) > 0, 'the objective shows on the map');
-await p.click('[data-testid=nav-ledger]'); await p.waitForTimeout(500);
+await p.click('[data-testid=nav-hero]').catch(() => {}); await p.click('[data-testid=nav-ledger]'); await p.waitForTimeout(500);
 check((await p.locator('[data-testid=first-hour], [data-testid=mission-banner]').count()) === 0, 'no objective banner over the Progress page');
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(400);
 await p.click('[data-testid=settings-btn]'); await p.waitForTimeout(400);

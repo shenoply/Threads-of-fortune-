@@ -69,7 +69,7 @@ export const MILESTONES: Record<string, Milestone> = {
   'ms-regulars': {
     aim: 'Three buyers who have each bought from you twice', id: 'ms-regulars', title: 'Buyers who come back', giver: 'Bilgin', speaker: 'Bilgin',
     brief: 'One sale is luck. A buyer who comes back is a business. When three of your buyers have each bought from you twice, the lane starts to talk about your corner.',
-    steps: ['Sell twice or more to three different buyers', 'The Buyers page on the Progress tab shows who has bought and how often', 'A good fit and an honest word bring people back'],
+    steps: ['Sell twice or more to three different buyers', 'The Buyers page in Progress (under Me) shows who has bought and how often', 'A good fit and an honest word bring people back'],
     locks: '',
     reward: { cash: 0, rep: 2, trust: 0, text: '"Your name came up at my tables twice this week. Both times from people who had bought from you."' },
     opens: 'One more buyer comes to your stall each day',
@@ -97,7 +97,7 @@ export const MILESTONES: Record<string, Milestone> = {
   'ms-name': {
     aim: 'Ten kinds of carpet in your Register', id: 'ms-name', title: 'A name among Cairo dealers', giver: 'Hagop Boyajian', speaker: 'Hagop Boyajian',
     brief: 'The dealers of the Khan el-Khalili take a young man seriously once he can tell a Konya from a Kayseri. Enter ten kinds of carpet in your Register, and Hagop will give you a seat at the dealers\' table.',
-    steps: [`Enter ${REGISTER_TARGET} kinds of carpet in your Carpet Register: every kind you buy is entered`, 'The Register (Progress tab, Collection) says where each kind is sold', 'Rashid, the markets of Alexandria and Tanta, and the Cairo sale rooms all have kinds you lack'],
+    steps: [`Enter ${REGISTER_TARGET} kinds of carpet in your Carpet Register: every kind you buy is entered`, 'The Register (Me, Progress, Collection) says where each kind is sold', 'Rashid, the markets of Alexandria and Tanta, and the Cairo sale rooms all have kinds you lack'],
     locks: '',
     reward: { cash: 0, rep: 3, trust: 0, text: '"Ten kinds, and you know which is which. Come and sit with us on Thursday."' },
     opens: 'Cairo dealers bid a tenth more for your rugs',
@@ -119,7 +119,7 @@ export const MILESTONES: Record<string, Milestone> = {
   'ms-agent': {
     aim: 'A net worth of £70', id: 'ms-agent', title: 'An agent in Alexandria', giver: 'Uncle Rashid', speaker: 'Uncle Rashid',
     brief: 'A merchant cannot stand in every market at once. Rashid knows a man in the Souq el-Attarin, Ibrahim Nahhas, who shows other people\'s rugs for a share. He will keep a shop in Alexandria for you once your business is worth £70, after your debts.',
-    steps: [`Reach a net worth of ${fmt(AGENT_WORTH)}: cash and stock, less everything you owe`, 'Net worth is on the Progress tab, under Collection', `He sends ${fmt(AGENT_PAY)} every Monday for the other merchants\' rugs on the wall, and sells any rugs you leave with him for a tenth`],
+    steps: [`Reach a net worth of ${fmt(AGENT_WORTH)}: cash and stock, less everything you owe`, 'Net worth is in the Ledger: Me, Progress, Ledger', `He sends ${fmt(AGENT_PAY)} every Monday for the other merchants\' rugs on the wall, and sells any rugs you leave with him for a tenth`],
     locks: '',
     reward: { cash: 0, rep: 2, trust: 0, text: '"He is honest, mostly. I will keep an eye on him for you."' },
     opens: `A shop in Alexandria, kept by Rashid's man, and ${fmt(AGENT_PAY)} every Monday`,
