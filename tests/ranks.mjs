@@ -40,18 +40,18 @@ const r = await p.evaluate(async () => {
   out.sale = { bid, you: g().ranks.tables.cairo.you, place: R.placeIn(g().ranks, 'cairo'), seen: g().ranks.seen };
   // a town with no table of its own counts in the nearest (Giza's stall -> Cairo); one far off counts nowhere
   out.noTable = JSON.stringify(R.recordCitySale(g(), 'konya', 500)) === '{}';
-  // passing Selim Haddad (aggressive): one notice, his prices cut in Cairo; passing him again: nothing more
+  // passing Selim Tannous (aggressive): one notice, his prices cut in Cairo; passing him again: nothing more
   const t = { ...g().ranks.tables.cairo, you: 1000, 'rival-selim': 1500 };
   set({ ranks: { ...g().ranks, tables: { ...g().ranks.tables, cairo: t } }, jobNote: undefined });
   const j0 = g().journal.length;
   set(R.recordCitySale(g(), 'cairo', 1000));
-  const said = g().journal.slice(j0).filter((j) => j.text.includes('Selim Haddad'));
+  const said = g().journal.slice(j0).filter((j) => j.text.includes('Selim Tannous'));
   out.react1 = { lines: said.length, undercut: g().ranks.undercut?.cairo?.by, pending: g().ranks.pending ?? null, text: said[0]?.text };
   const bidCut = R.undercutBid(g(), 'cairo', 1000);
   set({ ranks: { ...g().ranks, tables: { ...g().ranks.tables, cairo: { ...g().ranks.tables.cairo, 'rival-selim': 5000 } } } });
   const j1 = g().journal.length;
   set(R.recordCitySale(g(), 'cairo', 4000));
-  out.react2 = g().journal.slice(j1).filter((j) => j.text.includes('Selim Haddad')).length;
+  out.react2 = g().journal.slice(j1).filter((j) => j.text.includes('Selim Tannous')).length;
   out.bidCut = bidCut;
   // the season ends on day 91: you lead Cairo, so the title, and the tables start again
   const lead = Object.fromEntries(Object.keys(g().ranks.tables.cairo).map((k) => [k, 100]));
@@ -73,7 +73,7 @@ check(r.rows >= 10 && r.rows <= 15 && r.allCities, `a city table has ten to fift
 check(r.bottom.place === r.bottom.of, `you start at the bottom (${r.bottom.place} of ${r.bottom.of})`);
 check(r.sale.bid > 0 && r.sale.you === r.sale.bid && r.sale.place.place < r.bottom.of && r.sale.seen.includes('cairo'), `a dealer sale counts in Cairo and lifts you to ${r.sale.place.place}`);
 check(r.noTable, 'a town without a table counts nowhere');
-check(r.react1.lines === 1 && r.react1.undercut === 'rival-selim' && !r.react1.pending, `passing Selim Haddad brings one answer: ${r.react1.text}`);
+check(r.react1.lines === 1 && r.react1.undercut === 'rival-selim' && !r.react1.pending, `passing Selim Tannous brings one answer: ${r.react1.text}`);
 check(r.bidCut === 900, 'while he cuts his prices Cairo dealers pay less');
 check(r.react2 === 0, 'passing him again this season brings nothing more');
 check(r.welcome, 'top ten: Cairo\'s auction houses welcome you');
@@ -100,7 +100,7 @@ const table = p.locator('[data-testid=rank-table]');
 check((await table.count()) === 1 && (await p.locator('[data-testid=rank-you]').count()) === 1, 'the town menu leads to Cairo\'s table');
 if (await table.count()) {
   const txt = await table.innerText();
-  check(/Boghos Tavitian/.test(txt) && /Yanni Stavrou/.test(txt) && /Selim Haddad/.test(txt), 'the Cairo houses are named in it');
+  check(/Boghos Tavitian/.test(txt) && /Yanni Stavrou/.test(txt) && /Selim Tannous/.test(txt), 'the Cairo houses are named in it');
   const box = await table.boundingBox();
   check(box && box.width <= 412, `it fits the phone (${box?.width}px)`);
   await p.screenshot({ path: '/dev/shm/tests-shots/ranks-table.png' });
