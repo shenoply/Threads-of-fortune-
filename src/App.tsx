@@ -1,4 +1,7 @@
 import { openFoldNext } from './components/Fold/Fold';
+import { testerNow } from './game/tester';
+import { installTesterHook } from './game/testerHook';
+installTesterHook();
 import { EncyclopediaHost } from './components/Folk/Encyclopedia';
 import { recordPlayer } from './game/audio/recordPlayer';
 import { recordsOwned } from './data/records';
@@ -947,7 +950,7 @@ export default function App() {
               <button className="btn" onClick={() => setSettings(false)} data-testid="settings-close" aria-label="Close">Close ×</button>
             </div>
             {/* the tester's sheet: every new feature, one tap away (this beta build only; never in Ironman) */}
-            <button className="btn" style={{ width: '100%', margin: '4px 0 10px', borderStyle: 'dashed', borderColor: 'var(--warn)' }} disabled={!!g.ironman} onClick={() => { setSettings(false); setAdmin(true); }} data-testid="admin-open">Tester's sheet <small style={{ display: 'block', opacity: 0.7 }}>{g.ironman ? 'Not in an Ironman game' : 'For testing this beta: every new feature, one tap away'}</small></button>
+{testerNow() && (            <button className="btn" style={{ width: '100%', margin: '4px 0 10px', borderStyle: 'dashed', borderColor: 'var(--warn)' }} disabled={!!g.ironman} onClick={() => { setSettings(false); setAdmin(true); }} data-testid="admin-open">Tester's sheet <small style={{ display: 'block', opacity: 0.7 }}>{g.ironman ? 'Not in an Ironman game' : 'For testing this beta: every new feature, one tap away'}</small></button>)}
             {/* saving, in plain words: what happens on its own, one Save button, separate games in slots,
                 and a backup file for moving to another phone (folded away: most people never need it) */}
             <h3 className="set-h">Saving</h3>

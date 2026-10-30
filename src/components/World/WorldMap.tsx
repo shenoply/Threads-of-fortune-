@@ -1,4 +1,5 @@
 import { CROSSINGS } from '../../data/barriers';
+import { testerNow, FAST_SPEEDS } from '../../game/tester';
 import './worldmap-fixes.css';
 import { venueFor } from '../../data/venues';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
@@ -1215,12 +1216,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             </button>
             {moving ? (
               <span className="bl-speeds">
-                {[0, 1, 2, 4].map((k) => (
+                {[0, 1, 2, 4, ...(testerNow() ? FAST_SPEEDS : [])].map((k) => (
                   <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => {
                     // a question on the card (nightfall, a well, the narrows) is answered there, not by the clock
                     if (k > 0 && (nightfall || pass)) { setReport(nightfall ? 'Night has fallen: make camp or march on first.' : 'Choose how to cross the narrows first.'); audio.sfx('tap'); return; }
                     setTimeScale(k); audio.sfx('tap');
-                  }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : '▶︎▶︎▶︎'}</button>
+                  }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : k === 4 ? '▶︎▶︎▶︎' : `${k}×`}</button>
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}

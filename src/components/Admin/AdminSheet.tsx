@@ -29,6 +29,7 @@ import { persiaOpen } from '../../game/unlocks';
 import type { MapIntent } from '../World/Campaign';
 import type { MerchantSub } from '../Merchant/Merchant';
 import type { RugItem } from '../../game/types';
+import { skipDays } from '../../game/testerHook';
 import './admin.css';
 
 type S = GameState;
@@ -208,6 +209,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         return `${l}: the clock is at ${hr}:00.`;
       } })),
       { label: 'Next day', testid: 'adm-nextday', run: async () => { S().endDay(); await leave(() => home(nav)); return `Morning of ${longDate(S().day)}.`; } },
+      ...([['Skip 7 days', 7], ['Skip 30 days', 30], ['Skip 90 days', 90]] as const).map(([l, n]) => ({ label: l, testid: `adm-skip-${n}`, run: async () => { const r = skipDays(n); await leave(() => home(nav)); return r; } })),
       { label: 'Winter grey day', testid: 'adm-grey', run: async () => {
         const d = nextDay((x) => skyOn(x, 'giza') === 'grey');
         if (!d) return 'No grey day ahead here.';
