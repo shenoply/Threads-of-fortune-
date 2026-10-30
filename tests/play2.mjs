@@ -17,7 +17,7 @@ await tap('[data-testid=act-ask_room]'); await tap('[data-testid=rug-desert-star
 // a closer look (the strip may fold away once a rug is on the table)
 await p.click('[data-testid=rug-desert-star]', { timeout: 5000 }).then(() => p.click('[data-testid=zoom-in]', { timeout: 5000 })).then(() => p.click('[data-testid=inspector-close]', { timeout: 5000 })).catch(() => console.log('  (inspector not reachable; skipped)'));
 await tap('[data-testid=act-story]'); await p.click('[data-testid=act-name_price]'); await tap('[data-testid=offer-price]');
-await tap('[data-testid=act-halfway]'); if (await has('[data-testid=act-accept_offer]')) await tap('[data-testid=act-accept_offer]');
+if (await has('[data-testid=act-halfway]')) await tap('[data-testid=act-halfway]'); if (await has('[data-testid=act-accept_offer]')) await tap('[data-testid=act-accept_offer]');
 await shot('tut-done');
 const hasRestock = await has('[data-testid=goto-rashid]');
 console.log('restock button after tutorial:', hasRestock);
@@ -25,11 +25,11 @@ await p.click('[data-testid=goto-rashid]'); await p.waitForTimeout(300); await s
 console.log('rashid offers:', (await p.locator('.offer h3').allTextContents()).join(', '));
 // Rashid's shelf changes with balance work: haggle over the first rug he offers, then buy what we can afford.
 const offers = p.locator('.offer[data-testid^=offer-]');
-await offers.first().locator('[data-testid=haggle]').click(); await p.waitForTimeout(200);
+await offers.first().locator('[data-testid=haggle]').click({ timeout: 5000 }).catch(() => offers.first().locator('[data-testid=haggle]').click({ force: true })); await p.waitForTimeout(200);
 console.log('haggle ->', await p.textContent('[data-testid=rashid-line]'));
 for (let i = 0; i < (await offers.count()) && i < 3; i++) {
   const buy = offers.nth(i).locator('[data-testid=buy-cash]');
-  if ((await buy.count()) && (await buy.isEnabled())) { await buy.click(); await p.waitForTimeout(200); console.log('bought', await offers.nth(i).getAttribute('data-testid').catch(() => '(sold)')); }
+  if ((await buy.count()) && (await buy.isEnabled())) { await buy.click(); await p.waitForTimeout(200); console.log('bought', await offers.nth(i).getAttribute('data-testid', { timeout: 1000 }).catch(() => '(sold)')); }
 }
 await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(300);
 
@@ -94,10 +94,10 @@ async function playBuyer(tag) {
 for (let day = 1; day <= 6; day++) {
   let guard = 0;
   while (!(await has('[data-testid=day-end]')) && guard++ < 10) {
-    if (await has('[data-testid=next-visit]')) { await p.click('[data-testid=next-visit]').catch(() => {}); await p.waitForTimeout(200); continue; }
+    if (await has('[data-testid=next-visit]') && (await p.click('[data-testid=next-visit]', { timeout: 2000 }).then(() => true).catch(() => false))) { await p.waitForTimeout(200); continue; } // behind the morning card it cannot be tapped: serveFirstCustomer clears the card
     // between buyers the game shows the Giza district / stall view: call the next one
     if (!(await has('[data-testid=buyer-plate]'))) {
-      if (!(await has('[data-testid=stall-wait]'))) await p.click('[data-testid=nav-stall]').catch(() => {});
+      if (!(await has('[data-testid=stall-wait]'))) await p.click('[data-testid=nav-stall]', { timeout: 2000 }).catch(() => {}); // under the morning card: serveFirstCustomer clears it
       await serveFirstCustomer(p, '[data-testid=buyer-plate], [data-testid=day-end]');
       if (await has('[data-testid=day-end]')) break;
     }
@@ -118,7 +118,7 @@ for (let day = 1; day <= 6; day++) {
   }
   if (await has('[data-testid=step-away]')) await p.click('[data-testid=step-away]'); // the nav bar hides during a sale on phones
   await p.click('[data-testid=nav-inventory]');
-  for (let k = 0; k < 4; k++) { const r = p.locator('[data-testid=restore]:not([disabled])').first(); if (await r.count()) { await r.click(); await p.locator('[data-testid=treat-options] [data-testid^=treat-]:not([data-testid=treat-none]):not([disabled])').first().click(); } else break; }
+  for (let k = 0; k < 4; k++) { const r = p.locator('[data-testid=restore]:not([disabled])').first(); if (await r.count()) { await r.click(); const t = p.locator('[data-testid=treat-options] [data-testid^=treat-]:not([data-testid=treat-none]):not([disabled])').first(); if (await t.count()) await t.click(); else { await r.click(); break; /* every treatment greyed: short of cash for it */ } } else break; }
   for (const u of ['mat','tea','bazaar']) { const b2 = p.locator(`[data-testid=upgrade-${u}]:not([disabled])`); if (await b2.count()) { await b2.click(); console.log('bought upgrade', u); } }
   await p.click('[data-testid=close-stall]'); await p.waitForTimeout(600);
   st = await S(); console.log(`  next day: ${st.day}`);
