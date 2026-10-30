@@ -176,7 +176,7 @@
 .mbook__stamp { display: inline-block; margin-top: 4px; font-family: var(--label); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #8c2a17; border: 2px solid rgba(140,42,23,0.7); border-radius: 4px; padding: 1px 8px; transform: rotate(-4deg); }
 .mbook__foot { margin: 14px 4px 0; font-size: 13.5px; font-style: italic; color: #5a3a1e; text-align: center; }
 .mbook__fine { font-size: 12px; opacity: 0.85; }
-.mbook__num { position: absolute; left: 0; right: 0; bottom: 10px; margin: 0; text-align: center; font-family: 'Amiri', serif; color: #7a5232; font-size: 14px; }
+.mbook__num { margin: 12px 0 0; text-align: center; font-family: 'Amiri', serif; color: #7a5232; font-size: 14px; pointer-events: none; } /* in the flow at the page's foot: a tall page scrolls, and an absolute number sat over its last dish */
 .mbook__nav { display: flex; align-items: center; gap: 8px; }
 .mbook__nav .btn[disabled] { opacity: 0.35; }
 .mbook__dots { display: flex; gap: 6px; margin: 0 4px; }
