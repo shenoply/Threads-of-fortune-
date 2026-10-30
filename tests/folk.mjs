@@ -46,6 +46,9 @@ await p.click('[data-testid=ency-close]'); await p.click('[data-testid=folk-bye]
 check(await has('[data-testid=set-ency]'), 'an encyclopedia button in the town tabs (People also opens it from Me)');
 await p.screenshot({ path: `${SHOTS}/folk-hud.png` });
 await p.click('[data-testid=set-ency]'); await p.waitForSelector('[data-testid=ency-people]');
+// it opens on the people you have met (one so far); Everyone lists the whole world
+check((await p.locator('[data-testid=ency-who-met].on').count()) === 1 && (await p.locator('[data-testid=ency-people] .ency-card').count()) === 1, 'it opens on the people you have met');
+await p.click('[data-testid=ency-who-all]'); await p.waitForTimeout(200);
 const everyone = await p.evaluate(async () => Object.keys((await import('/src/game/systems/population.ts')).world().people).length);
 const counted = await p.textContent('[data-testid=ency-people] .ency-count');
 const cards = await p.locator('[data-testid=ency-people] .ency-card').count();
@@ -95,7 +98,7 @@ const match = await p.evaluate(async () => {
   m.useGame.setState({ folk: { ...f, rel: { ...f.rel, [fa]: 12 }, met: { ...f.met, [fa]: 1 } } });
   const said = m.useGame.getState().folkTalk(fa, 'family');
   const h = m.useGame.getState().household;
-  const hm = await import('/src/game/systems/household.ts');
+  const hm = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/systems/household.ts')) ?? '/src/game/systems/household.ts'); // the copy the page loaded (its brides are registered there)
   return { said: said.text, known: h?.known ?? [], id: pop.folkBrideId(d.id), bride: !!hm.BRIDES[pop.folkBrideId(d.id)], n: pop.eligibleDaughters(s.day).length };
 });
 check(match.known.includes(match.id) && match.bride && /age to marry/.test(match.said), `a father speaks of his daughter, and her family would receive you (${match.n} daughters of age in the world): ${match.said.slice(-110)}`);
