@@ -13,7 +13,8 @@ import { settlementById } from '../../game/systems/world';
 import { SETTLEMENTS } from '../../data/world';
 import { skyOn } from '../Atmosphere/Weather';
 import { dustToday } from '../../game/economy/seasons';
-import { eventsOn } from '../../game/economy/life';
+import { eventsOn, dayOf } from '../../game/economy/life';
+import { ERA_EVENTS, hintDay, timesOn } from '../../game/economy/era';
 import { firstDue, countdown, dueDate, FIRST_SUM } from '../../game/firstWeek';
 import { MILESTONES, MILESTONE_ORDER, activeMilestone, milestonesDone } from '../../data/milestones';
 import { ALL_OPEN } from '../../game/unlocks';
@@ -250,6 +251,19 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         if (!d) return 'No Eid ahead in the calendar.';
         jumpTo(d); await leave(() => void toStall(nav)); return `${longDate(d)}: ${eventsOn(d).find((e) => /^Eid/i.test(e.name))?.name}.`;
       } },
+    ] },
+    { id: 'era', title: 'The years', gist: (() => { const t = timesOn(g.day); return t.now.length ? t.now.slice(0, 2).map((x) => x.name).join(' · ') : t.talk.length ? 'talk in the coffee houses' : 'steady times'; })(), acts: [
+      ...[1926, 1927, 1928, 1929, 1930].map((y) => ({ label: `1 Jan ${y}`, testid: `adm-year-${y}`, run: async () => {
+        pastOpening(); jumpTo(dayOf(1, 1, y)); await leave(() => home(nav)); return `Morning of ${longDate(S().day)}. ${timesOn(S().day).now.map((x) => x.name).join(', ') || 'Steady times.'}`;
+      } })),
+      { label: 'Next talk', testid: 'adm-era-talk', run: async () => {
+        const e = ERA_EVENTS.filter((x) => x.hint && hintDay(x) > S().day).sort((a, b) => hintDay(a) - hintDay(b))[0];
+        if (!e) return 'No more talk ahead.';
+        jumpTo(hintDay(e)); await leave(() => home(nav)); return `${longDate(S().day)}: the coffee houses talk of ${e.name}, ${e.from - S().day} days off.`;
+      } },
+      ...ERA_EVENTS.map((e) => ({ label: `${e.icon ?? ''} ${e.name}`.trim(), testid: `adm-era-${e.id}`, run: async () => {
+        pastOpening(); jumpTo(e.from); await leave(() => home(nav)); return `${longDate(e.from)}: ${e.name}. ${e.times}`;
+      } })),
     ] },
     { id: 'week', title: 'First week', gist: fw ? countdown(fw.owed, fw.days) : g.family?.first?.done ? `Rashid's £10 settled (${g.family.first.how})` : 'no instalment', acts: [
       { label: 'Show it at Rashid\'s', testid: 'adm-week-show', run: async () => {

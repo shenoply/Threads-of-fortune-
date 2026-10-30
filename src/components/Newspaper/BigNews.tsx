@@ -8,6 +8,7 @@ import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { eventsOn, eventsStarting, type GameEvent } from '../../game/economy/life';
 import { settlementById } from '../../game/systems/world';
 import { swipeProps, useSwipeAway } from '../Touch/SwipeAway';
+import { eraMeans } from '../../game/economy/era';
 
 const town = (sid: string) => { try { return settlementById(sid)?.name ?? sid; } catch { return sid; } };
 const words = (t: string) => t.replace(/([A-Z])/g, ' $1').toLowerCase();
@@ -25,12 +26,13 @@ export function whatItMeans(e: GameEvent): string[] {
   // the seasons (calendar1925.ts)
   if (e.footfall) out.push(e.footfall > 0 ? 'More buyers come by your stall.' : e.footfall <= -2 ? 'Hardly anyone comes by your stall.' : 'Fewer buyers come by your stall.');
   if (e.patience && e.patience !== 1) out.push(`Buyers at the stall haggle for less time (about ${pct(e.patience)}).`);
-  const who: Record<string, string> = { foreign: 'foreign visitors and hotel buyers', coptic: 'Coptic buyers', cotton: 'cotton money', pious: 'buyers shopping for the feast' };
+  const who: Record<string, string> = { foreign: 'foreign visitors and hotel buyers', coptic: 'Coptic buyers', cotton: 'cotton money', pious: 'buyers shopping for the feast', american: 'American collectors', luxury: 'rich buyers for the dear pieces', persian: 'Persian merchants' };
   for (const [g, m] of Object.entries(e.callers ?? {})) if (m && m !== 1) out.push(m > 1 ? `More ${who[g] ?? g} at your stall.` : `Fewer ${who[g] ?? g} at your stall.`);
   if (e.want) out.push(`Stall buyers pay about ${pct(e.want.mult)} more for ${e.want.label}.`);
   if (e.dust) out.push('Walking is slower in the sand around Giza and Cairo.', 'Sand gets into rugs left out. Rugs in your store are safe; on the road the khamsin kit covers the bales.');
   if (e.flood) out.push('The Giza ferry takes longer against the current, and walking in the Delta is slower. The railway is not affected.');
   for (const [sid, n] of Object.entries(e.sea ?? {})) out.push(`Ships from ${town(sid)} are held: ${n} extra day${n > 1 ? 's' : ''} at sea.`);
+  out.push(...eraMeans(e));
   if (e.advice) out.push(e.advice);
   return out;
 }

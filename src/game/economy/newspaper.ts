@@ -5,6 +5,7 @@ import { upcomingGrandSales } from '../auction/sessions';
 import { wiresOn } from '../../data/daily1925';
 import { SETTLEMENTS } from '../../data/world';
 import { dateLine } from './dateLine';
+import { isEra, timesOn, type Times } from './era';
 
 export interface Article extends Story { kind: 'event' | 'surprise' | 'filler' | 'wire'; eg?: boolean; advice?: string; id: string; img?: string; caption?: string }
 export interface Paper {
@@ -21,6 +22,8 @@ export interface Paper {
   shipping: string;
   ad: { title: string; body: string };
   ad2: { title: string; body: string };
+  /** the years 1926-30: what has changed in the trade, and the talk of what is coming (era.ts) */
+  times: Times;
 }
 
 const r = (n: number) => Math.abs(Math.sin(n * 12.9898 + 4.1414) * 43758.5453) % 1;
@@ -60,6 +63,7 @@ const article = (e: GameEvent): Article => {
   const n = EVENT_NEWS[newsId(e)];
   const pic = imageFor(e);
   if (e.surprise) return { id: e.id, kind: 'surprise', headline: e.name, body: e.text, advice: e.advice, ...pic };
+  if (isEra(e)) return { id: e.id, kind: 'event', ...e.article, advice: e.advice, ...pic };
   return n ? { id: e.id, kind: 'event', ...n.article, advice: n.advice, ...pic } : { id: e.id, kind: 'event', headline: e.name, body: e.text, ...pic };
 };
 const weight = (e: GameEvent) => (e.surprise ? 1 : 2) + (e.closed ? 1 : 0) + (e.danger ? 0.5 : 0);
@@ -122,7 +126,7 @@ export function paperFor(day: number, extras: { bills?: boolean; commissions?: {
     if (f.headline !== lead.headline && !more.some((m) => m.headline === f.headline)) more.push({ id: `f${day}-${i}`, kind: 'filler', ...f });
   }
   // long-running stories get a line of what they mean for the trade
-  const still = ongoing.filter((e) => e.id !== lead.id).slice(0, 4).map((e) => ({ name: e.name, advice: (e.surprise ? e.advice : EVENT_NEWS[newsId(e)]?.advice) ?? e.text }));
+  const still = ongoing.filter((e) => e.id !== lead.id).slice(0, 4).map((e) => ({ name: e.name, advice: (e.surprise || isEra(e) ? e.advice : EVENT_NEWS[newsId(e)]?.advice) ?? e.text }));
   // the fixtures of the coming fortnight
   const comingUp: Paper['comingUp'] = [];
   for (const e of ALL_EVENTS) {
@@ -143,6 +147,6 @@ export function paperFor(day: number, extras: { bills?: boolean; commissions?: {
   const ad = pick(ADS, day * 7.7);
   let ad2 = pick(ADS, day * 8.9);
   if (ad2.title === ad.title) ad2 = ADS[(ADS.indexOf(ad) + 1) % ADS.length];
-  return { day, number: 1850 + day, date: dateLine(day), lead, more, still, comingUp: comingUp.slice(0, 6), trade: trade.slice(0, 6), glance: glanceFor(day, comingUp[0]), weather, shipping, ad, ad2 };
+  return { day, number: 1850 + day, date: dateLine(day), lead, more, still, comingUp: comingUp.slice(0, 6), trade: trade.slice(0, 6), glance: glanceFor(day, comingUp[0]), weather, shipping, ad, ad2, times: timesOn(day) };
 }
 const num = (w: string) => (w === 'Today' ? 0 : w === 'Tomorrow' ? 1 : w.startsWith('In ') ? parseInt(w.slice(3)) : w.startsWith('By day') ? 50 : 40);

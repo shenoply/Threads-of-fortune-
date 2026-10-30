@@ -90,6 +90,7 @@ import { malekItem, type MalekItemId } from '../../data/malekMenu';
 import { MALEK_AGAIN, MALEK_RETURN } from '../../data/malekBuyer';
 import { seasonCallers, seasonAtStall, khamsinDust } from '../economy/seasons';
 import { setSeasonDay, ferryHours } from '../economy/calendar1925';
+import { eraNight } from '../economy/era';
 import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type TalkTopic } from '../systems/malek';
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, RATION_FED, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
@@ -863,7 +864,7 @@ export function localOffersRaw(sid: string, day: number, bought: string[], frien
       const condition: RugItem['condition'] = h < 0.2 ? 'Dirty' : h < 0.32 ? 'Worn' : 'Good';
       const t = RUGS[o.typeId];
       const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1) * folkPrice(sid);
-      const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
+      const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid, o.typeId));
       const key = `${day}:${sid}:${o.typeId}`;
       // village rugs come in stacks; the finer the rug, the fewer the copies. A city's souq has bales
       // of its own weave enough to load a caravan; a village has a few pieces
@@ -917,7 +918,7 @@ export function localAskPrice(sid: string, day: number, typeId: string, conditio
   // roll / a reputation dip would knock the cap out (askToday undefined) and let the uncapped,
   // much higher localBid() through — reopening the exact buy-low-sell-high loop this cap exists
   // to close, town by town, every time one of those day-to-day gates happens not to line up.
-  return snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
+  return snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid, o.typeId));
 }
 
 /** What the local dealer pays for one of your rugs here. */
@@ -1760,6 +1761,8 @@ export const useGame = create<GameState & Actions>()(
           const commissionsLeft = s.commissions.map((c) => (!c.done && c.until && day > c.until ? { ...c, done: true, expired: true } : c));
           commissionsLeft.forEach((c, i) => { if (c.expired && !s.commissions[i].expired) notes.push(`${BUYERS[c.buyerId]?.name ?? 'A buyer'} found another dealer for "${c.label}".`); });
           for (const e of eventsStarting(day)) notes.push(`${e.name}. ${e.text}`);
+          // the times (era.ts): coffee-house talk of what is coming, and a journal line when the trade shifts
+          { const era = eraNight(day); notes.push(...era.notes); for (const t of era.journal) journal.push({ day, text: t, kind: 'times' }); }
           // Restoration
           let inventory = s.inventory.map((i) => {
             if (i.restoringUntil && day >= i.restoringUntil) {

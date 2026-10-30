@@ -6,6 +6,7 @@ import { motorLorry, SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, RAIL_FAR
 import { PAINT_W, EAST_W, PERSIA_ROADS } from '../../data/persiaMap';
 import { BREEDS } from '../../data/animals';
 import { seaDelayOn, SEASON_NOW } from '../economy/calendar1925';
+import { eraMotor } from '../economy/era';
 
 export interface Pt { x: number; y: number }
 
@@ -363,9 +364,11 @@ export const motorRoutesFrom = (id: string, party?: FareParty) =>
   MOTOR_ROUTES.filter((r) => r.a === id || r.b === id).map((r) => {
     const to = r.a === id ? r.b : r.a;
     const car = !motorLorry(id, to);
-    const f = partyFare(r.fare, car && party ? { people: party.people, animals: {} } : party);
+    // the times (era.ts): more Nairn cars from 1927, the Shah's road from 1928
+    const m = eraMotor(SEASON_NOW.day, r.a, r.b, r);
+    const f = partyFare(m.fare, car && party ? { people: party.people, animals: {} } : party);
     const noAnimals = car && !!party && Object.entries(party.animals ?? {}).some(([b, n]) => n > 0 && !!BREEDS[b]);
-    return { to, days: r.days, fare: f.total, perPerson: r.fare, bill: f.lines, noAnimals };
+    return { to, days: m.days, fare: f.total, perPerson: m.fare, bill: f.lines, noAnimals };
   });
 
 /** Quickest railway journey between two stations (Dijkstra over the 1925 network). The fare goes by

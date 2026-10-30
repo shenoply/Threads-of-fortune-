@@ -9,6 +9,7 @@ import type { Visit } from '../../data/jobs';
 import { openJobs } from '../../data/jobs';
 import { dateFor } from '../economy/economy';
 import { settlementById } from './world';
+import { eraFlag } from '../economy/era';
 
 export interface Letter {
   id: string;
@@ -55,7 +56,11 @@ export function post(p: PostState | undefined, l: Omit<Letter, 'id'>): PostState
 /** a day that is not his Sabbath */
 const notSaturday = (d: number) => (dateFor(d).weekday === 'Saturday' ? d + 1 : d);
 /** a letter's days on the road: a day or two from Cairo, two or three from further off */
-const delay = (city: string, rng: () => number) => (EGYPT.includes(city) ? 1 + Math.floor(rng() * 2) : 2 + Math.floor(rng() * 2));
+const delay = (city: string, rng: () => number, day = 0) => {
+  const d = EGYPT.includes(city) ? 1 + Math.floor(rng() * 2) : 2 + Math.floor(rng() * 2);
+  // from January 1927 the Baghdad mail flies (era.ts): a day
+  return city === 'baghdad' && eraFlag(day, 'airmail') ? 1 : d;
+};
 
 type Night = Pick<GameState, 'post' | 'visits' | 'cohen' | 'queue' | 'arrivals' | 'jobsDone' | 'reputation' | 'day'>;
 
@@ -71,7 +76,7 @@ export function postNight(s: Night, patch: Partial<GameState>, notes: string[], 
   if (patch.visits) {
     const visits: Visit[] = patch.visits.map((v) => {
       if (before.has(v.id) || v.heard !== undefined) return v;
-      const d = delay(v.city, rng);
+      const d = delay(v.city, rng, day);
       const i = notes.findIndex((x) => x.startsWith(`${v.who} is in `));
       if (i >= 0) notes.splice(i, 1);
       p = post(p, { day: day + d, sent: day, kind: 'letter', from: v.who, title: `A buyer in ${settlementById(v.city).name}`, body: `${v.text} Staying until ${dateFor(v.until + d).short}.` });
@@ -110,7 +115,7 @@ export function postNight(s: Night, patch: Partial<GameState>, notes: string[], 
   if (!p.jobsKnown) p = { ...p, jobsKnown: jobs };
   else for (const j of openJobs(s.jobsDone, patch.reputation ?? s.reputation)) {
     if (p.jobsKnown!.includes(j.id)) continue;
-    const d = delay(j.target, rng);
+    const d = delay(j.target, rng, day);
     p = { ...post(p, { day: day + d, sent: day, kind: 'letter', from: j.giver, title: j.title, body: j.text }), jobsKnown: [...p.jobsKnown!, j.id] };
   }
 

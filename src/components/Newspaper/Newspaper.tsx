@@ -11,6 +11,7 @@ import { marketOn } from '../../game/economy/market';
 import { RIVAL_NAME, rivalOf, yourStall } from '../../game/systems/laneRival';
 import { BUYERS } from '../../data/buyers';
 import { pageProps, useSwipePages } from '../Touch/SwipePages';
+import { TheTimes } from '../Era/TheTimes';
 
 /** The Giza Courier for a given day, laid out like a broadsheet folded for the pocket. */
 export function Newspaper({ day: asked, onClose }: { day: number; onClose: () => void }) {
@@ -94,6 +95,7 @@ export function Newspaper({ day: asked, onClose }: { day: number; onClose: () =>
           {p.lead.advice && <p className="paper-advice"><b>For the trade.</b> {p.lead.advice}</p>}
         </section>
 
+        <TheTimes day={day} kind="paper" times={p.times} />
         <LaneWeek day={day} />
         <div className="paper-cols">
           <div className="paper-col">

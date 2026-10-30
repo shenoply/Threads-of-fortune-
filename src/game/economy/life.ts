@@ -6,6 +6,7 @@ import { upcomingGrandSales } from '../auction/sessions';
 import { SURPRISES } from '../../data/news';
 import { SETTLEMENTS } from '../../data/world';
 import { SEASON_EVENTS, CAL_END, withExtras, seasonLane, type SeasonFx } from './calendar1925';
+import { ERA_EVENTS, eraSellMult, eraBuyMult } from './era';
 
 export const dateOfDay = (day: number) => new Date(Date.UTC(1925, 2, 9 + day));
 /** "Wednesday 18 March": a sale named by its date, which still reads right when repeated later */
@@ -156,14 +157,15 @@ function buildSurprises(): GameEvent[] {
 // the khamsin now comes from the seasons (calendar1925.ts), with its own morning card
 export const SURPRISE_EVENTS = buildSurprises().filter((e) => e.surprise !== 'khamsin');
 EVENTS.forEach(withExtras);
-export const ALL_EVENTS: GameEvent[] = [...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS];
+// the years 1926-30 (era.ts): the shifts that change the trade in the middle and late game
+export const ALL_EVENTS: GameEvent[] = [...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS, ...ERA_EVENTS];
 /** Draw this game's incidents from its seed (the arrays are refilled in place, so importers keep them). */
 export function setWorldSeed(seed: number) {
   const k = (Math.abs(Math.floor(seed)) % 100003) / 7.31;
   if (k === surpriseSeed) return;
   surpriseSeed = k;
   SURPRISE_EVENTS.splice(0, SURPRISE_EVENTS.length, ...buildSurprises().filter((e) => e.surprise !== 'khamsin'));
-  ALL_EVENTS.splice(0, ALL_EVENTS.length, ...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS);
+  ALL_EVENTS.splice(0, ALL_EVENTS.length, ...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS, ...ERA_EVENTS);
   onCache.clear(); laneCache.clear();
 }
 
@@ -178,7 +180,8 @@ export const eventsOn = (day: number): GameEvent[] => {
 export const eventsStarting = (day: number) => ALL_EVENTS.filter((e) => e.from === day);
 export const budgetMod = (day: number) => eventsOn(day).reduce((m, e) => m * (e.budget ?? 1), 1);
 export const cityBidMod = (day: number, sid: string) => eventsOn(day).reduce((m, e) => m * (e.cityBid?.[sid] ?? 1), 1);
-export const cityBuyMod = (day: number, sid: string) => eventsOn(day).reduce((m, e) => m * (e.cityBuy?.[sid] ?? 1), 1);
+/** what rugs cost in a town's market today; with a rug, the times' word on that kind of rug too (era.ts) */
+export const cityBuyMod = (day: number, sid: string, typeId?: string) => eventsOn(day).reduce((m, e) => m * (e.cityBuy?.[sid] ?? 1), 1) * (typeId ? eraBuyMult(day, typeId, sid) : 1);
 export const cityClosed = (day: number, sid: string) => eventsOn(day).some((e) => e.closed?.includes(sid));
 export const closedNote = (day: number, sid: string) => eventsOn(day).find((e) => e.closed?.includes(sid))?.closedNote ?? 'The souqs are shut today.';
 export const dangerAt = (day: number, sid: string) => eventsOn(day).find((e) => e.danger?.includes(sid));
@@ -225,7 +228,7 @@ export function rumoursOn(day: number): Rumour[] {
 }
 /** How today's rumours change what a dealer in this town pays for this rug. */
 export function rumourBid(day: number, sid: string, typeId: string, traits: Trait[]): number {
-  let m = cityBidMod(day, sid);
+  let m = cityBidMod(day, sid) * eraSellMult(day, typeId, sid);
   for (const d of eventDemand(day, sid)) if (d.traits.some((t) => traits.includes(t))) m *= d.mult;
   for (const r of rumoursOn(day)) {
     if (r.sid !== sid) continue;

@@ -1,6 +1,7 @@
 // "Today" in the top bar, and the page it opens: Rashid's runner at dawn, today's gift (a week of days
 // in a row, a little more each day), the day's three errands with their pay, Uncle Rashid's warehouse
 // and the day's paper. All of it comes round with the game's days, not the clock on the wall.
+import { TheTimes } from '../Era/TheTimes';
 import { DRESSING_BY_ID } from '../../data/shops';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -110,6 +111,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
             <b>Today's paper</b><span>{(g.paperSeen ?? 0) < g.day ? 'Not read yet · a quarter of an hour' : 'Read this morning'}</span>
           </button>
         </section>
+        <TheTimes day={g.day} kind="today" />
         <Pouch />
         <section className="daily-gift">
           <h3>Your gift <small>{gift.run > 1 || !gift.open ? `day ${gift.run} in a row` : 'day 1'}</small></h3>

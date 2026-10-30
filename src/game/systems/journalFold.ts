@@ -20,11 +20,14 @@ function brief(month: Entry[]): Entry {
   const missions = month.filter((e) => e.kind === 'mission' && /^(Mission complete|Goal reached|New main mission)/.test(e.text)).map((e) => e.text.replace(/\.$/, ''));
   const towns = [...new Set(month.map((e) => /^Arrived in (.+)\.$/.exec(e.text)?.[1]).filter(Boolean) as string[])];
   const sales = month.reduce((n, e) => n + Number(/^Closed the stall\. (\d+) sale/.exec(e.text)?.[1] ?? 0), 0);
+  // the times (era.ts): the shifts in the trade that month, by name
+  const times = month.filter((e) => e.kind === 'times' && e.text.startsWith('The times: ')).map((e) => e.text.slice(11).split('.')[0]);
   const parts: string[] = [];
   if (missions.length) parts.push(`${missions.slice(0, 4).join('. ')}.`);
+  if (times.length) parts.push(`The times: ${list(times.slice(0, 3))}.`);
   if (towns.length) parts.push(`Went to ${list(towns.slice(0, 8))}${towns.length > 8 ? ' and other towns' : ''}.`);
   if (sales) parts.push(`${sales} sale${sales === 1 ? '' : 's'} at the stall.`);
-  const rest = month.length - missions.length;
+  const rest = month.length - missions.length - times.length;
   parts.push(rest > 0 ? `${rest} ${missions.length ? 'other ' : ''}entr${rest === 1 ? 'y' : 'ies'} for the month are no longer kept in full.` : '');
   return { day: first, text: `${BRIEF}${monthLabel(first)}: ${parts.filter(Boolean).join(' ')}`, kind: 'quiet' };
 }

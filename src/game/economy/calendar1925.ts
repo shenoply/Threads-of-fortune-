@@ -6,9 +6,13 @@ import type { GameEvent, LaneDay } from './life';
 import { RUGS } from '../../data/rugs';
 
 /** stall callers whose visits a season makes likelier or rarer */
-export type CallerGroup = 'foreign' | 'coptic' | 'cotton' | 'pious';
+export type CallerGroup = 'foreign' | 'coptic' | 'cotton' | 'pious' | 'american' | 'luxury' | 'persian';
 export const CALLERS: Record<CallerGroup, string[]> = {
   foreign: ['hollister', 'yusuf', 'levy', 'martel'], // the winter visitors and the hotels and shops that serve them
+  // the years 1926-30 (era.ts): the American collector, the dear end of the trade, the Persian merchant from Baghdad
+  american: ['hollister'],
+  luxury: ['shivakiar', 'hollister', 'wasif'],
+  persian: ['rustam'],
   coptic: ['antonios', 'wasif'],
   cotton: ['benakis', 'samira'],
   pious: ['salem', 'hassan', 'mariam'],

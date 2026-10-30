@@ -1,0 +1,9 @@
+/* The times (TheTimes.tsx) */
+.era-today ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.era-today li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: rgba(255, 236, 200, 0.06); border: 1px solid rgba(214, 178, 112, 0.25); }
+.era-today li.era-talk { border-style: dashed; background: rgba(255, 236, 200, 0.03); }
+.era-today .era-ic { font-size: 18px; line-height: 22px; min-width: 22px; text-align: center; color: var(--brass-hi); }
+.era-today b { font-size: 15px; color: var(--text, #f3e6cc); }
+.era-today small { font-size: 13.5px; color: var(--text-dim); margin-left: 4px; }
+.era-today p { margin: 3px 0 0; font-size: 14.5px; line-height: 1.4; color: var(--text-dim, #d8c8a8); }
+.era-paper .era-talk { font-size: 14.5px; }

@@ -4,6 +4,7 @@
 // sees the same Cairo on the same day.
 import { RUGS } from '../../data/rugs';
 import type { RugType } from '../types';
+import { eraSellMult, eraBuyMult } from './era';
 
 export interface Family { id: string; label: string; test: (t: RugType) => boolean; up: string[]; down: string[] }
 
@@ -55,7 +56,8 @@ export function demandFor(typeId: string, day?: number): number {
   if (day === undefined) return 1;
   const m = marketOn(day), t = RUGS[typeId];
   if (!m || !t) return 1;
-  let k = 1;
+  // the times (era.ts): American buyers, the slump, a tariff
+  let k = eraSellMult(day, typeId, 'giza');
   if (m.up.test(t)) k *= 1 + m.upBy;
   if (m.down.test(t)) k *= 1 - m.downBy * 0.6;
   return k;
@@ -65,7 +67,7 @@ export function demandFor(typeId: string, day?: number): number {
 export function supplyFor(typeId: string, day: number): number {
   const m = marketOn(day), t = RUGS[typeId];
   if (!m || !t) return 1;
-  let k = 1;
+  let k = eraBuyMult(day, typeId, 'giza');
   if (m.down.test(t)) k *= 1 - m.downBy;
   if (m.up.test(t)) k *= 1 + m.upBy * 0.4;
   return k;
