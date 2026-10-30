@@ -36,6 +36,8 @@ import { rankOf, RANKS } from '../economy/progress';
 import { bandsNight, type Scattered } from '../systems/bands';
 import { foldJournal, trimWhereabouts, lastAt } from '../systems/journalFold';
 import { TITLES, type TitleCtx } from '../../data/titles';
+import { epithetChanges, EPITHET, type EpithetCtx } from '../../data/epithets';
+import { HERO_NAME } from '../../data/hero';
 import { recordCitySale, ranksNight, rankReaction, undercutBid, auctionWelcome, firstCities, freshRanks, RANK_FX, FIRST_DISCOUNT, type RanksState } from '../systems/ranks';
 import { progressScore } from '../economy/progress';
 import { START_MANNER, SKILLS, levelOf, hasPerk, ATTIRE, HAMMAMS, BOOKS, type SkillId, type Manner } from '../../data/character';
@@ -106,7 +108,7 @@ import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } fro
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
-export const SAVE_VERSION = 28;
+export const SAVE_VERSION = 29;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -203,8 +205,13 @@ export interface GameState {
   titles: string[];
   /** abroadSold: rug sales made outside Egypt, in piastres (the 'A caravan abroad' milestone) */
   stats: { liesOk?: number; liesCaught?: number; auctionsWon?: number; rivalSales?: number; abroadSold?: number };
-  /** titles waiting to be announced */
+  /** titles waiting to be announced (an epithet won is announced here too, as 'ep:<id>') */
   titleNews: string[];
+  /** epithets the bazaar gives you (data/epithets.ts), in the order won; the one worn after your name */
+  epithets?: string[];
+  epithetWorn?: string;
+  /** an older save's first look: epithets already deserved are given without the toast */
+  epithetQuiet?: boolean;
   merchantSeen?: number;
   tipsSeen: string[];
   /** evenings out: per venue, the last visit, the night a table was paid for, and who was on the bill */
@@ -573,6 +580,8 @@ interface Actions {
   practise: (skill: SkillId, xp: number) => void;
   popLevelUp: () => void;
   popTitle: () => void;
+  /** wear this epithet after your name (undefined: the latest won) */
+  wearEpithet: (id?: string) => void;
   markMerchantSeen: () => void;
   seeTip: (id: string) => void;
   buyAttire: (id: string) => string;
@@ -1064,6 +1073,7 @@ function initial(): Omit<GameState, keyof Actions> {
     titles: [],
     stats: {},
     titleNews: [],
+    epithets: [],
     tipsSeen: [],
     encounter: null,
     audienceStash: null,
@@ -3528,6 +3538,7 @@ export const useGame = create<GameState & Actions>()(
         practise: (skill, xp) => set(growth(get(), { [skill]: xp })),
         popLevelUp: () => set({ levelUps: (get().levelUps ?? []).slice(1) }),
         popTitle: () => set({ titleNews: (get().titleNews ?? []).slice(1) }),
+        wearEpithet: (id) => set({ epithetWorn: id && (get().epithets ?? []).includes(id) ? id : undefined }),
         markMerchantSeen: () => set({ merchantSeen: progressScore(get()) }),
         seeTip: (id) => set({ tipsSeen: [...new Set([...(get().tipsSeen ?? []), id])] }),
         // the old whole-outfit actions, kept for anything that still calls them
@@ -5268,6 +5279,8 @@ export const useGame = create<GameState & Actions>()(
         // clothes are twenty ready outfits now: older saves get the outfits matching what they owned
         p.wardrobe = wardrobeFromOld(p.wardrobe, p.attire);
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
+        // save 29: epithets; an older game earns those it already deserves on the next change, quietly
+        if (version < 29) { p.epithets = p.epithets ?? []; p.epithetQuiet = true; }
         // dominoes with the coffee-house regulars and knot counting arrived with save 24: an empty record of each
         if (version < 24) { p.dominoes = p.dominoes ?? {}; p.knotCounts = p.knotCounts ?? {}; p.knotTally = p.knotTally ?? { tries: 0, close: 0 }; }
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
@@ -5687,6 +5700,28 @@ useGame.subscribe((s) => {
   const fresh = TITLES.filter((t) => !have.includes(t.id) && t.test(s as unknown as TitleCtx)).map((t) => t.id);
   if (!fresh.length) return;
   useGame.setState({ titles: [...have, ...fresh], titleNews: [...(s.titleNews ?? []), ...fresh], journal: [...s.journal, ...fresh.map((id) => ({ day: s.day, text: `Earned the title: ${TITLES.find((t) => t.id === id)!.name}.` }))] });
+});
+
+// Epithets: the bazaar's name for you, won past a mark and announced once; an opposite name pushes
+// the old one out. A save from before epithets takes what it has earned without the fanfare.
+useGame.subscribe((s) => {
+  if (!s.started) return;
+  const have = s.epithets ?? [];
+  const { won, lost, next } = epithetChanges(s as unknown as EpithetCtx, have);
+  if (!won.length && !lost.length) { if (s.epithetQuiet) useGame.setState({ epithetQuiet: undefined }); return; }
+  const quiet = !!s.epithetQuiet;
+  const name = HERO_NAME;
+  const lines = [
+    ...lost.map((id) => ({ day: s.day, text: `No one in the bazaar calls you ${EPITHET[id].name} any more.` })),
+    ...won.map((id) => ({ day: s.day, text: `The bazaar has begun to call you ${name} ${EPITHET[id].name}, ${EPITHET[id].gloss.replace(/^The /, 'the ')}.` })),
+  ];
+  useGame.setState({
+    epithets: next,
+    epithetQuiet: undefined,
+    ...(s.epithetWorn && !next.includes(s.epithetWorn) ? { epithetWorn: undefined } : {}),
+    ...(quiet ? {} : { titleNews: [...(s.titleNews ?? []), ...won.map((id) => `ep:${id}`)] }),
+    journal: [...s.journal, ...lines],
+  });
 });
 
 // What ails him slows the caravan and cuts what it can carry (illness and injury effects).

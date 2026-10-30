@@ -2,7 +2,6 @@ import { HealthStrip } from '../Health/HealthStrip';
 import { HERO_NAME } from '../../data/hero';
 import { useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { rankOf } from '../../game/economy/progress';
 import { mannerTitle, START_MANNER } from '../../data/character';
 import { START_WARDROBE, heroCharisma, wornOutfit } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
@@ -15,6 +14,7 @@ import { headFace } from '../../game/heroLook';
 import { silhouetteFor } from '../../game/silhouette';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
+import { HeroName, RankBadge, EpithetRow } from '../Epithet/Epithet';
 import './HeroHub.css';
 
 /** Everything about the merchant himself: how he looks, what he has, how he is growing. */
@@ -24,7 +24,6 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
   const w = g.wardrobe ?? START_WARDROBE;
   const clean = g.attire?.clean ?? 100;
   const ch = heroCharisma(w, clean);
-  const { rank } = rankOf(g);
   const met = Object.keys(g.folk?.met ?? {}).length;
   // after the house has passed on, the heir is the merchant: his or her name and face
   const head = hh(g).merchant;
@@ -60,10 +59,11 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
         )}
         <div className="hh-stats">
           <small>THE MERCHANT OF GIZA</small>
-          <h2 data-testid="hero-name">{head?.name ?? HERO_NAME}</h2>
+          <HeroName name={head?.name ?? HERO_NAME} plain={!!head} />
           {head && <p className="hh-called" data-testid="hero-lineage">{head.sex === 'daughter' ? 'Daughter' : 'Son'} of {head.father}, head of the house since it passed on</p>}
-          <p className="hh-called">{rank.name}</p>
+          <RankBadge onTap={onProgress} />
           <p className="hh-called">The bazaar calls you <b>{mannerTitle(g.manner ?? START_MANNER)}</b>.</p>
+          {!head && <EpithetRow />}
           <dl>
             <div><dt>Reputation</dt><dd data-testid="hud-rep" data-v={g.reputation}>{g.reputation}</dd></div>
             <div><dt>Charisma</dt><dd>{ch}</dd></div>

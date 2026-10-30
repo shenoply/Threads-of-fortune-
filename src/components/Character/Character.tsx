@@ -13,6 +13,10 @@ import { TITLES } from '../../data/titles';
 import { lowerName } from '../../game/text';
 import { Icon } from '../Icon';
 import { Fold } from '../Fold/Fold';
+import { HERO_NAME } from '../../data/hero';
+import { EPITHET } from '../../data/epithets';
+import { Emblem } from '../Epithet/Emblem';
+import { HeroName, RankBadge, EpithetRow, EpithetsFold } from '../Epithet/Epithet';
 import './charsheet.css';
 
 /** Short lines, each with a small icon: the gist of a section at a glance. */
@@ -57,7 +61,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
     <div className="charsheet inline" data-testid="character">
       {!hideDress && (
       <div className="cs-head">
-          <div><small>THE MERCHANT OF GIZA</small><h2>{rank.name}</h2><span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span></div>
+          <div><small>THE MERCHANT OF GIZA</small><HeroName name={HERO_NAME} testid="cs-hero-name" /><RankBadge /><span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span><EpithetRow /></div>
         </div>
       )}
 {hideDress ? null : (
@@ -111,6 +115,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
         ]} />
         <Why id="charisma"><p className="cs-note">Clothes and cleanliness set your charisma. Every piece is sold separately: hats, coats, shoes, rings, even rifles.</p></Why>
       </Fold>}
+      <EpithetsFold />
       <Titles />
     </div>
   );
@@ -199,6 +204,15 @@ export function LevelUpToast() {
       </div>
     );
   }
+  const ep = title?.startsWith('ep:') ? EPITHET[title.slice(3)] : undefined;
+  if (ep) return (
+    <div className="levelup title ep-toast" data-testid="title-toast" data-epithet={ep.id} onClick={() => g.popTitle()}>
+      <Emblem id={ep.emblem} size={48} />
+      <small>THE BAZAAR CALLS YOU</small>
+      <b>{HERO_NAME} {ep.name}</b>
+      <span>{ep.gloss}. {ep.how}</span>
+    </div>
+  );
   const t = title ? TITLES.find((x) => x.id === title) : undefined;
   if (!t) return null;
   return (
