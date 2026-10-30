@@ -1387,6 +1387,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   return (
     <div className="world" data-testid="world">
+      <Tip id="world" />
       <div
         className={`world-map ${z <= minZ * 1.2 ? 'overview' : ''}`}
         ref={wrap}

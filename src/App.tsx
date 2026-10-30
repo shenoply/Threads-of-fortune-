@@ -180,7 +180,7 @@ const appView = (g: AppState) => {
     progressNew: progressScore(g) > (g.merchantSeen ?? 0),
     levelTip: Object.values(g.skills ?? {}).some((x) => levelOf(x ?? 0) >= 2),
     warnKind: warn?.kind, warnText: warn?.text,
-    fhText: fh?.text, fhBtn: fh?.btn, fhN: fh?.n, fhOf: fh?.of, fhGo: fh?.go,
+    fhText: fh?.text, fhBtn: fh?.btn, fhN: fh?.n, fhOf: fh?.of, fhGo: fh?.go, fhLabel: fh?.label,
     setVolume: g.setVolume, setSetting: g.setSetting, beginDayOne: g.beginDayOne, seeTip: g.seeTip, skipTutorial: g.skipTutorial,
     markGuide: g.markGuide, endDay: g.endDay, setAutosave: g.setAutosave, setSim: g.setSim, reset: g.reset,
   };
@@ -370,6 +370,7 @@ export default function App() {
   const [msub, setMsub] = useState<MerchantSub>('road');
   const [guide, setGuide] = useState(false);
   const [guideAt, setGuideAt] = useState(0);
+  const [lessonsNote, setLessonsNote] = useState('');
   // a "?" anywhere opens How to play on its page
   useEffect(() => {
     const on = (e: Event) => { setGuideAt(guidePage((e as CustomEvent<string | undefined>).detail)); setGuide(true); };
@@ -522,12 +523,9 @@ export default function App() {
   };  toastRef.current = toast;
 
   const tutorialActive = !g.tutorialDone;
-  const firstDays = g.firstDays;
   const caravanOpen = g.caravanOpen;
-  // the first-day tour points at the button to press next
-  // (not while the opening runs: its own steps say what to do, and two guides glowing at once confused testers)
-  const tourStep = g.tutorialDone && !firstDays ? (['news', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
-  const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
+  // (the old first-days tour that lit the paper, Rashid and the map in turn is gone: the hints at the
+  // point of use (components/Tips/Tip.tsx) say each of those once, where it is)
   const warn: Warn | null = g.warnKind ? { kind: g.warnKind, text: g.warnText ?? '' } : null;
   /** the warning chip takes the player to the trouble itself */
   const goWarn = (w: Warn) => {
@@ -931,7 +929,7 @@ export default function App() {
             <Icon name="coin" /><span className="ff-num">{cashT.shown >= 10000 ? `£${Math.floor(cashT.shown / 100).toLocaleString('en-GB')}` : fmt(cashT.shown)}</span>
           </button>
           {/* always there; while the opening runs they don't pulse, so the step's own button is the one that calls */}
-          {g.started && !tutorialActive && <GiftButton guide={tourStep === 'news'} />}
+          {g.started && !tutorialActive && <GiftButton guide={false} />}
           <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Save, sound and settings" data-testid="settings-btn">
             <Icon name="gear" />
           </button>
@@ -974,11 +972,14 @@ export default function App() {
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
           Progress, Stock and Caravan they only took room from the page */}
       {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
-        const fh = g.fhText !== undefined ? { text: g.fhText, btn: g.fhBtn!, n: g.fhN!, of: g.fhOf!, go: g.fhGo! } : null;
+        const fh = g.fhText !== undefined ? { text: g.fhText, btn: g.fhBtn!, n: g.fhN!, of: g.fhOf!, go: g.fhGo!, label: g.fhLabel } : null;
+        // no button to the screen you are already on: the thing to press there is lit instead
+        const here = fh && ((fh.go === 'supplier' && tab === 'supplier') || (fh.go === 'stall' && tab === 'stall'));
+        const goStall = () => (g.at === 'giza' ? mapGo({ view: 'district', stall: true }) : chapterGo('district'));
         return (
           <ObjectiveBar onMenu={() => { forceSave(); audio.stopAll(); setPhase('title'); }}
-            onGo={(t) => t && chapterGo(t as Target)}
-            firstHour={fh ? { text: fh.text, btn: fh.btn, n: fh.n, of: fh.of, skip: () => { if (window.confirm('Skip the opening? Every city opens now, and the step-by-step guide goes away.')) { g.seeTip(FIRST_HOUR_TIP); g.skipTutorial(); } }, go: () => (fh.go === 'stall' ? mapGo({ view: 'district', stall: true }) : chapterGo(fh.go as Target)) } : null}
+            onGo={(t) => { if (t === 'stall') goStall(); else if (t) chapterGo(t as Target); }}
+            firstHour={fh ? { text: fh.text, btn: here ? '' : fh.btn, n: fh.n, of: fh.of, label: fh.label, skip: () => { useGame.getState().skipLessons(); }, go: () => (fh.go === 'stall' ? goStall() : chapterGo(fh.go as Target)) } : null}
           />
         );
       })()}
@@ -1013,10 +1014,11 @@ export default function App() {
         {cal && <Suspense fallback={null}><Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} /></Suspense>}
         {howView}
         {guide && <Guide start={guideAt} onClose={() => { setGuide(false); setGuideAt(0); g.markGuide(); }} />}
-        <Tip id="rashid" when={tab === 'supplier'} />
-        <Tip id="stock" when={tab === 'inventory'} />
-        <Tip id="map" when={tab === 'map'} />
-        <Tip id="levelup" when={tab !== 'ledger' && tab !== 'stall' && g.levelTip} />
+        <Tip id="rashid" when={tab === 'supplier' && !settings && !guide} />
+        <Tip id="stock" when={tab === 'inventory' && !settings && !guide} />
+        <Tip id="me" when={tab === 'hero' && !settings && !guide} />
+        <Tip id="caravan" when={tab === 'caravan' && !settings && !guide} />
+        <Tip id="levelup" when={tab !== 'ledger' && tab !== 'stall' && g.levelTip && !settings && !guide} />
       </main>
 
       {g.dayOver && (
@@ -1052,7 +1054,7 @@ export default function App() {
           // Progress lives inside Me, so Me stays lit while it is open; only one tab is ever lit
           const on = tab === id || (id === 'hero' && tab === 'ledger');
           return (
-          <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}${!on && tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
+          <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}`}>
             {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={g.face ?? HERO_FACE} alt="" /></span> : <Icon name={icon} />}
             {label}
           </button>
@@ -1131,8 +1133,14 @@ export default function App() {
             )}
             {soundOptions}
             <SimOptions value={g.sim ?? FULL_SIM} onChange={g.setSim} locked={!!g.ironman} />
+            <h3 className="set-h">Lessons</h3>
+            <p className="dim" data-testid="lessons-state">{lessonsNote || 'Short hints show once, the first time you reach each part of the game.'}</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn" onClick={() => { useGame.getState().showLessons(); setLessonsNote('The lessons are back. Each hint shows once more, the first time you reach its place.'); }} data-testid="lessons-show">Show the lessons again</button>
+              <button className="btn" onClick={() => { useGame.getState().skipLessons(); setLessonsNote('No lessons and no hints. The whole map is open.'); }} data-testid="lessons-skip">Skip the lessons</button>
+            </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-              <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">Guided tour of the screens</button>
+              <button className="btn" onClick={() => { setSettings(false); setGuide(true); }} data-testid="guide-btn">How to play, page by page</button>
               <button className="btn" onClick={() => { setSettings(false); openHowItPlays(); }} data-testid="how-btn">▶ How it plays</button>
               <InstallButton />
               <FullScreenButton />

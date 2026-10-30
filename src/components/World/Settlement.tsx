@@ -155,7 +155,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   };
   const objLine = (where: string) => obj && (
     <div className={`set-obj ${where}`} data-testid={`set-objective-${where}`}>
-      <span><small>{obj.n ? `Step ${obj.n} of ${obj.of}` : 'Objective'}</small><b>{obj.text}</b></span>
+      <span><small>{obj.label ?? (obj.n ? `Step ${obj.n} of ${obj.of}` : 'Objective')}</small><b>{obj.text}</b></span>
       {obj.btn && !(where === 'panel' && obj.go === tab) && <button className="btn slim" onClick={objGo} data-testid={`set-objective-go-${where}`}>{obj.btn}</button>}
     </div>
   );
@@ -326,7 +326,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(['city', 'town', 'port', 'home'].includes(st.kind) ? [['scroll', 'Police post · Wanted', (() => { const n = (g.combat?.prisoners ?? []).reduce((a, p) => a + p.n + (p.leader ? 1 : 0), 0); return n ? `Hand over your ${n === 1 ? 'prisoner' : `${n} prisoners`} for the bounty` : 'Rewards for the leaders of the road bands'; })(), () => setWanted(true), 'menu-wanted'] as [string, string, string, () => void, string]] : []),
     ...(houses.length ? [['scale', `Auction houses · ${houses.length}`, houses.some((h) => saleOn(h.id, g.day)) ? 'A sale is on today' : `Next sale ${dateLabel(Math.min(...houses.map((h) => nextSale(h.id, g.day))))}`, () => goTo('town', 'sec-houses'), 'menu-houses'] as [string, string, string, () => void, string]] : []),
     ...(rankLine(g.ranks, id) ? [['ledger', `The rug trade of ${cityName(tableOf(id)!)}`, rankLine(g.ranks, id)!, () => goTo('town', 'sec-ranks'), 'menu-ranks'] as [string, string, string, () => void, string]] : []),
-    ...(GARAGE_TOWNS.includes(id) ? [['gear', 'Motor garage', g.car ? (g.car.at === id ? `Your ${carName(g.car.model)} stands here` : `Cars for sale · yours is in ${settlementById(g.car.at).name}`) : `${carsSoldIn(id).length} motor cars for sale`, () => goTo('town', 'sec-garage'), 'menu-garage'] as [string, string, string, () => void, string]] : []),
+    ...(GARAGE_TOWNS.includes(id) && on('garage') ? [['gear', 'Motor garage', g.car ? (g.car.at === id ? `Your ${carName(g.car.model)} stands here` : `Cars for sale · yours is in ${settlementById(g.car.at).name}`) : `${carsSoldIn(id).length} motor cars for sale`, () => goTo('town', 'sec-garage'), 'menu-garage'] as [string, string, string, () => void, string]] : []),
     ...(railTo ? [['camel', 'The station', `Trains to ${railTo} town${railTo > 1 ? 's' : ''}: times and fares`, () => setStation(true), 'menu-station'] as [string, string, string, () => void, string]] : []),
     ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
     ...(notablesOf(id).filter((x) => !x.npc).length ? [['people', `Notables of ${st.name}`, notablesOf(id).filter((x) => !x.npc).slice(0, 3).map((x) => x.short).join(' · '), () => goTo('town', 'sec-notables'), 'menu-notables'] as [string, string, string, () => void, string]] : []),
@@ -563,7 +563,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           </>
         )}
 
-        <MotorGarage id={id} onNote={setNote} />
+        {on('garage') && <MotorGarage id={id} onNote={setNote} />}
         {id === 'giza' && <StallOverhead onOpen={() => { onClose(); onStall(); }} />}
         {rankLine(g.ranks, id) && <RankTable town={id} />}
         </>)}

@@ -1,3 +1,4 @@
+import { Tip } from '../Tips/Tip';
 import { Icon } from '../Icon';
 import { Loom } from '../Loom/Loom';
 import { Catalogue } from '../Wardrobe/Catalogue';
@@ -474,7 +475,7 @@ const LOCAL_MIN_PER_SEC = 10;
 let objectiveTap: { poi: string; at: number } | null = null;
 const OBJECTIVE_BTNS = '[data-testid="first-hour-go"], [data-testid="objective-go"]';
 
-export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false }: { onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
+export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false, sheetOpen = false }: { sheetOpen?: boolean; onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
   const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
   const district = useGame((s) => s.world.district);
   // your marker on the walk: the same round face as the "Me" tab, kept in step with the wardrobe
@@ -509,15 +510,16 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   // opens, its places are marked on the plan at once, as the notice that goes with it says
   const caravanOn = useGame((s) => isOpen(s, 'caravan'));
   const labOn = useGame((s) => isOpen(s, 'lab'));
+  const loomsOn = useGame((s) => isOpen(s, 'looms'));
   const hidden = useRef(new Set<string>());
-  hidden.current = new Set([...(caravanOn ? [] : ['animals', 'guards']), ...(labOn ? [] : ['lab'])]);
+  hidden.current = new Set([...(caravanOn ? [] : ['animals', 'guards']), ...(labOn ? [] : ['lab']), ...(loomsOn ? [] : ['looms'])]);
   useEffect(() => {
     const s = st.current;
     // opened by its moment (not by skipping the opening): the two yards are pointed out, not left to find
-    const add = caravanOn && !allOpen(useGame.getState()) ? ['animals', 'guards'] : [];
+    const add = [...(caravanOn && !allOpen(useGame.getState()) ? ['animals', 'guards'] : []), ...(loomsOn && !allOpen(useGame.getState()) ? ['looms'] : [])];
     if (add.some((id) => !s.seen.has(id))) { add.forEach((id) => s.seen.add(id)); setSeen([...s.seen]); }
     s.dirty = true; redraw.current();
-  }, [caravanOn, labOn]);
+  }, [caravanOn, labOn, loomsOn]);
   const [toast, setToast] = useState('');
   const [panel, setPanel] = useState<SetTab | null>(initialPanel);
   const [talk, setTalk] = useState(false);
@@ -993,6 +995,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const unknown = POIS.filter((p) => !hidden.current.has(p.id)).length - seen.filter((id) => !hidden.current.has(id)).length;
   return (
     <div className="district" ref={box} data-testid="district">
+      <Tip id="district" when={!frozen && !sheetOpen} />
+      <Tip id="today" when={!frozen && !sheetOpen } />
       <div className="district-stage">
         <canvas
           ref={cvs}

@@ -5,7 +5,8 @@ import { PERSIA_IDS, isPersian } from '../../data/persiaMap';
 import { motorLorry } from '../../data/world';
 import { provisionById, provisionPrice, COMFORT_CAP } from '../../data/provisions';
 import { create } from 'zustand';
-import { openingStep, OPENING } from '../opening';
+import { openingStep, OPENING, OPENING_TIP, LESSONS_OFF, LESSONS_ON } from '../opening';
+import { TIPS, ONCE } from '../../data/tips';
 import { migrateOpen, ALL_OPEN, persiaOpen } from '../unlocks';
 import { CAR_BY_ID, GARAGE_TOWNS, RESALE, CAR_FREIGHT, DESERT_PAPERS } from '../../data/cars';
 import { carRoute, carFit, carCost, rollTrip, carName, type OwnCar } from '../systems/cars';
@@ -597,6 +598,10 @@ interface Actions {
   wearOutfit: (id: string) => void;
   /** leave the first-sale lesson: everything unlocks, the current customer stays as an ordinary sale */
   skipTutorial: () => void;
+  /** Settings: no lessons, no hints, the whole map open */
+  skipLessons: () => void;
+  /** Settings: the hints come back, and on the first days the opening too */
+  showLessons: () => void;
   bathe: (sid: string) => string;
   /** Dr Feras treats one illness or injury: a fee by how serious it is; the rest of it is halved */
   treatIllness: (id: string, mode?: 'full' | 'remedy') => string;
@@ -3637,6 +3642,21 @@ export const useGame = create<GameState & Actions>()(
           if (s.tutorial.done) return;
           set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false } : s.encounter });
         },
+        skipLessons: () => {
+          const s = get();
+          set({ tipsSeen: [...new Set([...(s.tipsSeen ?? []).filter((t) => t !== LESSONS_ON), OPENING_TIP, LESSONS_OFF])] });
+          get().skipTutorial();
+        },
+        showLessons: () => {
+          const s = get();
+          const hints = new Set<string>([...Object.keys(TIPS), ...Object.keys(ONCE), LESSONS_OFF]);
+          // the opening comes back only on the first days: later on it would shut the map again
+          const early = s.day <= 2 && !(s.tipsSeen ?? []).includes(ALL_OPEN);
+          if (early) hints.add(OPENING_TIP);
+          const tipsSeen = [...(s.tipsSeen ?? []).filter((t) => !hints.has(t)), LESSONS_ON];
+          const lessonAgain = s.day === 1 && (s.totalSales ?? 0) === 0 && !s.encounter;
+          set({ tipsSeen, ...(lessonAgain ? { tutorial: { done: false, step: 'room', inspected: false } } : {}) });
+        },
         catchForTest: (id) => {
           const s = get();
           const d = DISEASE(id);
@@ -3932,8 +3952,9 @@ export const useGame = create<GameState & Actions>()(
           playFx(fx);
           let tutorial = s.tutorial;
           if (tut && fx.tutorialAdvance === 'presented') {
-            enc.log.push({ speaker: 'narrator', text: NARRATOR.step3 });
-            tutorial = { ...tutorial, step: 'inspect' };
+            // straight to the talk: looking closer is taught later, by a hint in the viewer, not by the lesson
+            enc.log.push({ speaker: 'narrator', text: NARRATOR.step4 });
+            tutorial = { ...tutorial, step: 'argue', inspected: true };
           }
           let patch: Partial<GameState> = { encounter: enc, tutorial, ...growth(s, fx.xp, fx.manner) };
           if (enc.outcome) patch = { ...patch, ...settle({ ...s, ...patch } as GameState, enc), visitIdx: enc.venue ? s.visitIdx : s.visitIdx + 1 };

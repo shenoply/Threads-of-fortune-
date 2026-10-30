@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { FAMILY_INSTALMENT, FAMILY_START } from '../../game/state/store';
+import { FIRST_SUM, EARLY_OFF } from '../../game/firstWeek';
 import { fmt } from '../../game/economy/money';
 import { openHowItPlays } from './HowItPlays';
 
 // How to play: short pages, plain words. Opens from Settings.
 const PAGES: { id?: string; img: string; pos?: string; title: string; lines: string[] }[] = [
   {
-    img: 'art/world/giza-district.jpg', pos: '50% 50%',
+    id: 'map', img: 'art/world/giza-district.jpg', pos: '50% 50%',
     title: 'The map is home',
     lines: ['The game lives on one map. Tap a place to walk there, or a town to travel. Drag to look around; pinch or use + and \u2212 to zoom.', 'Zoom out from the Giza lanes and the whole region opens up. The scroll button on the map lists your story, jobs and visitors.'],
   },
@@ -16,17 +17,32 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     lines: ['The clock only moves while you travel or wait. It stops while you read the paper, listen to the radio or look at a menu, though the first read of the day costs a quarter of an hour.', 'The stall shuts at eight in the evening. A small note shows the day\'s takings; press Next day when you are ready.'],
   },
   {
-    img: 'art/stall-samira-v2.jpg', pos: '70% 35%',
+    id: 'stall', img: 'art/stall-samira-v2.jpg', pos: '70% 35%',
     title: 'Your stall',
-    lines: ['Your stall is in the Giza district: tap it in the lane to open it. Buyers only come when you press Wait.', 'Ask about their room and taste, lay a rug on the table, argue what they care about, and name a price. Every good sale adds to your name.'],
+    lines: ['Your stall is in the Giza district: tap it in the lane to open it. Buyers only come when you press Wait.', 'Ask about their room and taste, lay a rug on the table, argue what they care about, and name a price. Every good sale adds to your name.', 'Interest is how much they want the rug. Patience is how long they will stay. Trust is how far they believe you. When patience runs out, they leave.'],
   },
   {
-    img: 'art/portraits/rashid.jpg', pos: '50% 30%',
+    id: 'today', img: 'art/stall-empty.webp', pos: '50% 50%',
+    title: 'Today',
+    lines: ['The Today button at the top holds three small things. Your gift: a present each day you play, a bigger one on the seventh. Rashid\'s runner: a purse he leaves for you. The errands: three small tasks a day, each paid in coin when done.', 'None of them is needed. They help on a thin day.'],
+  },
+  {
+    id: 'rashid', img: 'art/portraits/rashid.jpg', pos: '50% 30%',
     title: 'Uncle Rashid and the family debt',
-    lines: [`Rashid sells you stock. Buy well below what Giza pays, and restore dirty rugs before you sell them.`, `Your father owes him ${fmt(FAMILY_START.left)}. ${fmt(FAMILY_INSTALMENT)} is taken on the 1st of every month, with rent and dues. Do his errand in Alexandria and he gives credit and better rugs.`],
+    lines: [`Rashid sells you stock. The estimate under each rug is what Giza buyers pay for it in good condition: buy well below it. Dirty or worn rugs are cheap; repair them in Stock before you sell them.`, `Your father owes him ${fmt(FAMILY_START.left)}. The first ${fmt(FIRST_SUM)} is due on the seventh day; pay it early at the foot of his page and he takes ${fmt(EARLY_OFF)} off. After that, ${fmt(FAMILY_INSTALMENT)} is taken on the 1st of every month, with rent and dues.`, 'Do his errand in Alexandria and he gives credit (rugs now, money later) and better rugs.'],
   },
   {
-    img: 'art/world/travel-map.jpg', pos: '30% 70%',
+    id: 'stock', img: 'art/stall2/stall-empty-patched.webp', pos: '50% 60%',
+    title: 'Your stock',
+    lines: ['Stock lists every rug you own. Tap Inspect to look closer. Condition matters: a dirty or worn rug sells for less until it is repaired, and repair takes a little money and a few hours.', 'Pack a rug for the road to sell it in another town. Rugs left behind stay at the stall. Put a rug aside for a buyer who liked it, and nobody else is shown it for a week.'],
+  },
+  {
+    id: 'me', img: 'art/hero/hero-portrait.webp', pos: '50% 30%',
+    title: 'Me: rank, reputation and names',
+    lines: ['Your rank runs from Stall keeper to Purveyor to Kings. Each rank needs a reputation and a net worth (what you own, less what you owe). Me shows what the next rank needs.', 'Reputation rises with good sales and kept promises, and falls with cheating. As your name grows, the bazaar gives you names from how you trade, like al-Sadiq, the Truthful, or al-Shatir, the Shrewd. Titles are earned for single deeds. Skills grow by doing.'],
+  },
+  {
+    id: 'travel', img: 'art/world/travel-map.jpg', pos: '30% 70%',
     title: 'Travel',
     lines: ['Tap a town, then Travel. Walking is slow: about twelve days to Damascus. The Nile ferry takes you to Cairo in an hour and a half; trains, ships and the Nairn motor car go further, for a fare.', 'The ground sets the pace. Roads are quickest, farmland is fair going, open desert and hills are slow. No caravan crosses the mountains or the sea: the roads go through the passes, and ships go round.', 'Everyone eats. Buy food in a town before a long road, and pack rugs in your Stock to sell elsewhere.'],
   },
@@ -36,12 +52,17 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     lines: ['Jobs wait in a town. Arrive with what the job asks for, a packed rug or two animals, and it pays on the spot.', 'Visitors stay in a town for a few days and want a certain grade of rug. Get there before they leave and they pay well.'],
   },
   {
-    img: 'art/troops/escort-road.jpg', pos: '50% 40%',
+    id: 'caravan', img: 'art/troops/guard.jpg', pos: '50% 30%',
+    title: 'Your caravan',
+    lines: ['The Caravan tab shows who travels with you: your men, your animals, your food and your load. Guards make you strong on the road. Animals carry rugs and go faster. Everyone eats a ration a day and the men are paid each morning; unpaid men go home.', 'Strength is your men added up. Load is how many rugs you can carry.'],
+  },
+  {
+    id: 'fights', img: 'art/troops/escort-road.jpg', pos: '50% 40%',
     title: 'Guards and ambushes',
     lines: ['Raiders ride some roads, above all through Palestine and Syria. The map warns you before you set off. They weigh your strength against their own, and a strong caravan is left alone.', 'Hire guards in the town yards. They are paid every morning. If you are caught short, you can pay, fight, or turn back.'],
   },
   {
-    img: 'art/auction/pov/cairo-grand-pov.webp', pos: '50% 50%',
+    id: 'auction', img: 'art/auction/pov/cairo-grand-pov.webp', pos: '50% 50%',
     title: 'Auctions',
     lines: ['Cairo, Alexandria, Jerusalem, Damascus, Amman, Baghdad and Constantinople each have sale rooms. The calendar shows the sale days.', 'Anyone may sit and watch. Inspect a lot before you bid; grand sales charge a premium, dealers\' rooms have bargains.'],
   },
@@ -105,6 +126,31 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     id: 'post', img: 'art/newspaper-stall.webp', pos: '50% 50%',
     title: 'Letters and telegrams',
     lines: ['News of trade comes by post: a buyer staying in a town, a new job, Cohen saying when he will call. Letters take a day or more, longer from the Levant, and wait in your post list. Towns with a telegraph office (Cairo, Alexandria, Port Said, Jerusalem, Damascus, Beirut, Baghdad, Constantinople) let you wire Rashid for stock or ask a dealer\'s prices for a few piastres.'],
+  },
+  {
+    id: 'loans', img: 'art/portraits/rashid.jpg', pos: '50% 30%',
+    title: 'Loans',
+    lines: ['The Khan moneylender and the Banque Misr lend money in Cairo and Alexandria. The moneylender asks no questions and charges a lot; the bank is cheaper but wants stock worth the loan. Each loan has a date. Pay it late and the interest grows.', 'Debts and loans are all on one page: tap the warning under the top bar, or see Progress.'],
+  },
+  {
+    id: 'weaving', img: 'art/loom/workshop-768.webp', pos: '50% 50%',
+    title: 'Weaving your own carpet',
+    lines: ['The weavers of Kerdasa, in the Giza lanes, weave a carpet to your design: choose the size, the pattern and the colours, and pay. It comes off the loom in a few weeks. A good design in the colours a town wants sells well.'],
+  },
+  {
+    id: 'words', img: 'art/stall-seller.jpg', pos: '25% 40%',
+    title: 'Words used in the game',
+    lines: [
+      'Estimate (≈ £): what a rug usually fetches in good condition.',
+      'Condition: good, dirty or worn. Dirty and worn rugs sell for less until repaired.',
+      'Reputation: your good name in the bazaar. It opens ranks, buyers and doors.',
+      'Net worth: your money and rugs, less what you owe.',
+      'Credit: rugs from Rashid now, paid for later.',
+      'Errands: three small paid tasks each day, under Today.',
+      'Strength: your guards added up. Raiders count it.',
+      'Rations: food for the road, one a day for each person.',
+      'Rumours: word in the bazaar. A town paying well, a buyer looking. They fade in a few days.',
+    ],
   },
   {
     id: 'licence', img: 'art/counter-stall.webp', pos: '50% 50%',

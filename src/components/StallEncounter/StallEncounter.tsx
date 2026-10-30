@@ -663,7 +663,7 @@ const LESSON_WHY: Partial<Record<string, string>> = {
   rug: 'Show them a rug first',
   inspect: 'Look closer at the rug first',
   inspect2: 'Look closer at the rug first',
-  argue: 'In the lesson, one point at a time',
+  argue: 'Pick one of the other points',
   price: 'Name your price first',
   counter: 'Answer their offer first',
 };

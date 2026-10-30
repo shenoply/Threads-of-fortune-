@@ -1,7 +1,7 @@
 // Where the player should go next, in one place, so every screen can light the way: the Map tab, the town on the
 // map, the right button on the town menu, and the right marker in the streets.
 import type { GameState } from './state/store';
-import { OPENING, openingStep } from './opening';
+import { OPENING, openingStep, stepGo, stepLabel } from './opening';
 import { MISSIONS, MAIN_ORDER, AMBUSH_STRENGTH, strengthOf, type MissionState } from '../data/missions';
 import { housesIn } from './auction/sessions';
 
@@ -52,6 +52,8 @@ export interface ObjectiveLine {
   btn: string;
   /** where it goes: an opening step's or mission's target (App's chapterGo), 'stall' or 'stock' */
   go: string;
+  /** "Day one · n of 5" during the opening */
+  label?: string;
   /** "Step n of m" during the opening */
   n?: number;
   of?: number;
@@ -62,10 +64,11 @@ export function objectiveLine(s: GameState): ObjectiveLine | null {
   const op = openingStep(s);
   if (op) {
     // Rashid's errand has no button until he has actually given it (as in the objective bar)
-    const btn = op.step.id === 'auction' && s.missions?.alexandria !== 'active' && s.world.at !== 'alexandria' ? '' : op.step.btn;
+    const sg = stepGo(s, op.step);
+    const btn = op.step.id === 'auction' && s.missions?.alexandria !== 'active' && s.world.at !== 'alexandria' ? '' : sg.btn;
     // once in Alexandria the way on is its market, not the map
     if (op.step.id === 'auction' && s.world.at === 'alexandria') return { text: op.step.text(s), btn: 'To the market', go: 'market', n: op.n + 1, of: OPENING.length };
-    return { text: op.step.text(s), btn, go: op.step.go, n: op.n + 1, of: OPENING.length };
+    return { text: op.step.text(s), btn, go: sg.go, n: op.n + 1, of: OPENING.length, label: stepLabel(op.n) };
   }
   const activeId = MAIN_ORDER.find((id) => s.missions?.[id] === 'active');
   const m = activeId ? MISSIONS[activeId] : undefined;

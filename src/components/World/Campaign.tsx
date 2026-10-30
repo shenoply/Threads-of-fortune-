@@ -64,6 +64,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
             initialPanel={intent?.tab ?? null}
             onPanelClosed={clearIntent}
             frozen={frozen}
+            sheetOpen={stall}
             onZoomOut={() => setLayer('world', 'out')}
             startZoomedOut={anim === 'in'}
           />

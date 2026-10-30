@@ -69,10 +69,11 @@ const g1 = await gizaPlaces();
 check(g1.length > 0 && !g1.includes('poi-lab') && !g1.includes('poi-guards') && !g1.includes('poi-animals'), `Giza on the first days: no lab, guard yard or animal market (${g1.join(' ')})`);
 await p.click('[data-testid=nav-caravan]'); await p.waitForTimeout(300);
 check((await has('[data-testid=caravan-screen], .caravan-screen')) === 0, 'tapping the dimmed Caravan tab does not open it');
-check(/caravan: opens/i.test(await p.locator('.toast').first().innerText().catch(() => '')), 'and one short line says when it opens');
+check(/caravan: opens tomorrow/i.test(await p.locator('.toast').first().innerText().catch(() => '')), 'and one short line says when it opens');
 
 // 2. the opening asks for a guard: the guard yard, the animal market and the Caravan tab open, with a line
-await edit(`s.world.at = 'giza'; s.world.x = 146.9; s.world.y = 443.7; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
+// (day one is the stall and Rashid's ten pounds; the guard step is the next morning's)
+await edit(`s.world.at = 'giza'; s.world.x = 146.9; s.world.y = 443.7; s.day = 2; s.totalSales = 2; s.cash = 1500; s.family.first.paid = s.family.first.sum; s.family.first.done = 1; s.family.first.how = 'early'; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
 const n2 = await note();
 check(/guard yard/i.test(n2), `the guard step brings a short notice: "${n2}"`);
 check((await has('.overlay [data-testid=unlock-note], [role=dialog] [data-testid=unlock-note]')) === 0, 'the notice is not a card');
@@ -111,7 +112,7 @@ await p.screenshot({ path: `${SHOTS}/unlocks-cairo-open.png` });
 // 5. Skip the opening: everything at once, no notices
 await fresh();
 await edit(UNTUT.replace(/s\.ledger\.push\([^;]*\);/, ''));
-if (await has('[data-testid=first-hour-skip]')) await p.click('[data-testid=first-hour-skip]');
+if (await has('[data-testid=first-hour-skip]')) { await p.click('[data-testid=first-hour-skip]'); await p.waitForTimeout(150); await p.click('[data-testid=first-hour-skip]'); }
 await p.waitForTimeout(600);
 check(!(await note()), 'Skip brings no notices');
 await edit(IN_CAIRO());

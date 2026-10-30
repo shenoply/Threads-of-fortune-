@@ -1,17 +1,38 @@
-// Tips as you go: each one appears the first time you reach the thing it explains, then never again.
-export interface TipDef { id: string; title: string; lines: string[] }
+// Hints at the point of use (components/Tips/Tip.tsx): one short line the first time you reach a thing,
+// in the voice of someone who would say it, pointing at the control it is about. Shown once (kept in
+// tipsSeen), gone with a tap or a swipe, never over the game. "What's this?" opens How to play at `guide`.
+export interface TipDef {
+  id: string;
+  /** who says it, shown in bold before the line; none for a plain line */
+  who?: string;
+  text: string;
+  /** How to play page (components/Guide/Guide.tsx) for "What's this?" */
+  guide?: string;
+  /** the control it is about, lit while the line shows */
+  point?: string;
+}
+
+const T = (id: string, text: string, o: Omit<TipDef, 'id' | 'text'> = {}): TipDef => ({ id, text, ...o });
 
 export const TIPS: Record<string, TipDef> = {
-  rashid: { id: 'rashid', title: 'Uncle Rashid, your supplier', lines: ['Buy rugs here to sell at your stall. The estimate shows what Giza buyers pay in good condition: buy well below it.', 'Dirty or worn rugs are cheap. Restore them from your Stock and sell them as good. "Ask for better" can win a discount, once a day.'] },
-  map: { id: 'map', title: 'The World', lines: ['You start in your own district. Tap anywhere to walk. Places appear as the fog lifts.', 'Press World map for the whole region: tap a town, then Travel, or take the train. Your mission town is marked ✦.'] },
-  town: { id: 'town', title: 'In a town', lines: ['Town: people to talk to, the city streets, baths, tailors and books. Market: local rugs, often cheaper where they are woven, and dealers who buy yours.', 'Animals and Guards: pack animals carry more and go faster; guards keep raiders off. Everyone eats and is paid every morning.'] },
-  road: { id: 'road', title: 'On the road', lines: ['Pilgrims, caravans, Bedouin and raiders share the roads. Talk, pay, hire, fight or move on.', 'Raiders weigh your guards against their numbers. A strong caravan is left alone.'] },
-  stock: { id: 'stock', title: 'Your stock', lines: ['Tap a rug to inspect it. Restore dirty or worn rugs here before you sell them.', 'Pack rugs for the road to sell in other towns. Rugs left at the stall stay safe and do not slow the caravan.'] },
-  levelup: { id: 'levelup', title: 'Your skills grew', lines: ['Skills rise by doing: talking raises Speech, bargaining raises Haggling, inspecting raises Appraisal, travel raises Riding and Survival.', 'Every fifth level brings a perk. See them all under Me, with your reputation, your manner and your titles.'] },
-  audience: { id: 'audience', title: 'At court', lines: ['Royals only look at Exceptional and Legendary rugs, and they want them in good condition.', 'Dress for it: the chamberlain turns away a work galabiya or road dust. Each royal will see you once a week.'] },
-  bills: { id: 'bills', title: 'The first of the month', lines: ['Rent, market dues and your household are paid on the first of every month. The Calendar shows what is due.', 'Miss it and the landlord adds interest; miss it for two weeks and you lose your pitch.'] },
-  rumours: { id: 'rumours', title: 'Word in the bazaar', lines: ['Rumours change every day: a town paying double for blue, a buyer looking for a rare piece. Act on them before they fade.'] },
-  auction: { id: 'auction', title: 'The sale room', lines: ['Anyone may sit and watch, even with empty pockets. Every sale you see teaches you what that rug really fetches.', 'Inspect a lot before you bid: your Appraisal narrows the estimate. Dealers\' rooms have bargains and damaged stock; grand sales charge a 5% premium.'] },
+  district: T('district', 'This is your district. Tap a place to walk there. Your stall is the S.', { guide: 'map', point: '[data-testid="poi-stall"]' }),
+  today: T('today', '"My runner leaves you a purse now and then, and there are small errands for coin. Look under Today."', { who: 'Rashid', guide: 'today', point: '[data-testid="gift-btn"]' }),
+  rashid: T('rashid', '"Buy below the estimate and sell dearer at your stall. Your father\'s debt is paid at the foot of the page."', { who: 'Rashid', guide: 'rashid' }),
+  stock: T('stock', '"Every rug you own is here. A worn or dirty one sells better once it is repaired."', { who: 'Your father', guide: 'stock' }),
+  inspect: T('inspect', 'Drag to turn the rug. The tabs below give its condition, weave and story.', { guide: 'rugs' }),
+  me: T('me', 'Your rank and your name in the bazaar. Good sales raise your reputation, and the bazaar starts to give you names.', { guide: 'me', point: '[data-testid="rank-badge"], [data-testid="epithet-row"]' }),
+  world: T('world', 'The world map. Tap a town, then choose how to go. The number by a town is your place among its rug sellers.', { guide: 'travel' }),
+  caravan: T('caravan', 'Your men, animals and food for the road. Everyone is fed and paid each morning.', { guide: 'caravan' }),
+  town: T('town', 'A town. Its market buys and sells rugs; the Guards and Animals tabs make your caravan.', { guide: 'travel' }),
+  road: T('road', 'Others share the road. Tap a party on the map to meet them.', { guide: 'fights' }),
+  fights: T('fights', 'Raiders weigh your strength against theirs. The number on each choice is your chance.', { guide: 'fights' }),
+  loans: T('loans', '"A loan is quick money and slow trouble. Read the rate before you sign."', { who: 'Rashid', guide: 'loans' }),
+  weaving: T('weaving', 'Choose a design and colours, pay the weavers, and the carpet is yours in a few weeks.', { guide: 'weaving' }),
+  levelup: T('levelup', 'A skill grew. Skills rise by doing; see them all under Me.', { guide: 'me', point: '[data-testid="nav-hero"]' }),
+  audience: T('audience', 'Royals only look at Exceptional and Legendary rugs in good condition. Dress for it.', { guide: 'me' }),
+  bills: T('bills', 'Rent, dues and the household are paid on the 1st of each month. The Calendar shows what is due.', { guide: 'rashid' }),
+  rumours: T('rumours', 'Rumours change every day. A town paying well for a colour is worth the trip.', { guide: 'words' }),
+  auction: T('auction', 'Anyone may sit and watch. Inspect a lot before you bid.', { guide: 'auction' }),
 };
 
 // Words said once, set into the screen at the moment they matter (components/Tips/OnceLine.tsx).

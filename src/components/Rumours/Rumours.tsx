@@ -16,7 +16,7 @@ export function Rumours({ max = 5, compact = false }: { max?: number; compact?: 
       {list.map((r) => (
         <p key={r.id} className={`rumour ${r.kind}`}><i>{r.kind === 'event' ? '☾' : r.kind === 'glut' ? '▼' : r.kind === 'buyer' ? '✦' : '▲'}</i><span>{r.text}{r.kind !== 'event' && r.until > g.day ? <small> · {r.until - g.day + 1} days</small> : null}</span></p>
       ))}
-      {!compact && <Tip id="rumours" />}
+      {!compact && <Tip id="rumours" when={g.day >= 2} />}
     </div>
   );
 }

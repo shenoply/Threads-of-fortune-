@@ -14,7 +14,8 @@ import { voice, quotes } from '../../game/audio/voice';
 import '../../game/missionRules';
 import { HouseEnding } from './HouseEnding';
 import './mission-scene.css';
-import { countdown, firstDue } from '../../game/firstWeek';
+import { countdown, firstDue, dueDate } from '../../game/firstWeek';
+import { fmt } from '../../game/economy/money';
 
 /** Rashid's first-week instalment, as a short countdown at the end of the objective line; a tap opens his
  *  page at your father's debt. Nothing once it is paid. */
@@ -138,7 +139,7 @@ const objectiveView = (s: GS) => {
   const msNext = ms?.next?.(st);
   const mNext = am?.next?.(st);
   return {
-    news: s.missionNews, day: s.day, missionTold: s.missionTold, at: s.world.at, due: !!firstDue(s.family, s.day),
+    news: s.missionNews, day: s.day, missionTold: s.missionTold, at: s.world.at, due: !!firstDue(s.family, s.day), dueOwed: firstDue(s.family, s.day)?.owed ?? 0, dueBy: firstDue(s.family, s.day)?.by ?? 0, dueShort: (firstDue(s.family, s.day)?.owed ?? 0) > s.cash,
     activeId, msId, mWaits: !!am?.waits?.(st),
     msHint: ms?.hint(st), msNextGo: msNext?.go, msNextBtn: msNext?.btn,
     mHint: am?.hint(st), mNextGo: mNext?.go, mNextBtn: mNext?.btn,
@@ -146,10 +147,13 @@ const objectiveView = (s: GS) => {
 };
 
 /** One objective at a time, in one line under the top bar: new mission news first, then the mission, then the first-hour step, then a job. */
-export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; skip?: () => void } | null; onMenu?: () => void }) {
+export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; label?: string; skip?: () => void } | null; onMenu?: () => void }) {
   // what the line shows, worked out from the store as plain values (the clock moving on the road does not re-render it)
   const g = useGame(useShallow(objectiveView));
   const [open, setOpen] = useState(false);
+  // Skip asks once, in the bar itself (no pop-up): a second tap within a few seconds skips
+  const [sure, setSure] = useState(false);
+  useEffect(() => { if (!sure) return; const t = window.setTimeout(() => setSure(false), 4000); return () => window.clearTimeout(t); }, [sure]);
   const news = g.news;
   useEffect(() => {
     const mm = news ? MISSIONS[news.replace('-done', '')] : undefined;
@@ -210,9 +214,9 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
     return (
       <div className="objective-bar opening" data-testid="first-hour">
         <div className="ob-row">
-          <span className="ob-text"><span className="ob-eye"><small>{firstHour.n ? `Step ${firstHour.n} of ${firstHour.of}` : 'Objective'}</small><WeekDue onGo={onGo} /></span><b>{firstHour.text}</b></span>
+          <span className="ob-text"><span className="ob-eye"><small>{firstHour.label ?? (firstHour.n ? `Step ${firstHour.n} of ${firstHour.of}` : 'Objective')}</small><WeekDue onGo={onGo} /></span><b>{firstHour.text}</b></span>
           {firstHour.btn && <button className="btn ob-btn" onClick={firstHour.go} data-testid="first-hour-go">{firstHour.btn}</button>}
-          {firstHour.skip && <button className="ob-skip" onClick={firstHour.skip} data-testid="first-hour-skip" aria-label="Skip the opening">Skip</button>}
+          {firstHour.skip && <button className={`ob-skip ${sure ? 'sure' : ''}`} onClick={() => { if (sure) { setSure(false); firstHour.skip!(); } else setSure(true); }} data-testid="first-hour-skip" aria-label={sure ? 'Tap again to skip the lessons' : 'Skip the lessons'}>{sure ? 'Skip all?' : 'Skip'}</button>}
         </div>
       </div>
     );
@@ -266,10 +270,12 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
   }
   // nothing else in hand: Rashid's instalment is the objective
   if (g.due) {
+    const short = g.dueShort;
     return (
       <div className="objective-bar" data-testid="week-bar">
         <div className="ob-row">
-          <span className="ob-text"><span className="ob-eye"><small>Objective</small><WeekDue onGo={onGo} /></span><b>Your father's first instalment</b></span>
+          <span className="ob-text"><span className="ob-eye"><small>Objective</small><WeekDue onGo={onGo} /></span><b>{short ? `Sell rugs: Rashid wants ${fmt(g.dueOwed)} by ${dueDate(g.dueBy)}.` : `Pay Rashid ${fmt(g.dueOwed)} at his warehouse.`}</b></span>
+          <button className="btn ob-btn" onClick={() => onGo(short ? 'stall' : 'supplier')} data-testid="week-go">{short ? 'Your stall' : 'Go to Rashid'}</button>
         </div>
       </div>
     );

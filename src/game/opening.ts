@@ -4,8 +4,12 @@
 import type { GameState } from './state/store';
 import { isPersian } from '../data/persiaMap';
 import { persiaOpen, persiaWhy, shopTowns } from './unlocks';
+import { fmt as fmtP } from './economy/money';
 
 export const OPENING_TIP = 'first-hour'; // the old first-hour hint's id: dismissing either skips both
+/** Settings' "Skip the lessons" and "Show the lessons again", kept in tipsSeen */
+export const LESSONS_OFF = 'lessons-off';
+export const LESSONS_ON = 'lessons-on';
 type S = GameState;
 
 export interface OpeningStep {
@@ -27,17 +31,44 @@ const troops = (s: S) => Object.values(s.world.party.troops ?? {}).reduce((a, n)
 /** the line Bilgin gives (data/world.ts, node 'sellmore'): hearing it finishes his step */
 export const BILGIN_TIP = 'Khan el-Khalili pays a third more';
 
-// Malek's grill and Bilgin's tip were steps once; they are there to find, not to be sent to, so the
-// first hour is selling, stocking, a guard and the road.
+const sales = (s: S) => s.totalSales ?? s.ledger.filter((l) => l.kind === 'sale').length;
+/** Rashid's first instalment still open: what he wants and how much is in the purse */
+const owing = (s: S) => { const f = s.family?.first; return f && !f.done && f.paid < f.sum ? f.sum - f.paid : 0; };
+
+// Day one is the stall and Rashid's debt, one thing at a time: the first sale (the lesson at the stall),
+// a rug from Rashid, a second sale, his ten pounds paid, and the rest of the day at the stall. Rashid's
+// errand (a guard, Cairo, the train, a rug bought in Alexandria) begins the next morning.
+// Malek's grill and Bilgin's tip were steps once; they are there to find, not to be sent to.
+export const DAY_ONE = 5;
+/** what Rashid's errand costs, about: a guard, the ferry and the train, and the cheapest rug in Alexandria */
+export const ERRAND_PURSE = 350;
 export const OPENING: OpeningStep[] = [
   { id: 'stall', text: () => 'Sell your first rug.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
-  { id: 'rashid', text: () => 'Restock: buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
-  { id: 'guards', text: () => 'Hire a guard at the guard yard.', btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
+  { id: 'rashid', text: () => 'Buy a rug from Uncle Rashid to sell on.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
+  { id: 'sell2', text: () => 'Sell another rug at your stall.', btn: 'Go to your stall', go: 'stall', done: (s) => sales(s) >= 2 || s.day >= 2 },
+  {
+    id: 'pay',
+    text: (s) => { const o = owing(s); return o && s.cash < o ? `Sell more. Rashid wants ${fmtP(o)}, and you have ${fmtP(s.cash)}.` : `Pay Rashid his ${fmtP(o || 1000)} at the warehouse.`; },
+    btn: 'Go to Rashid', go: 'supplier',
+    done: (s) => !owing(s) || s.day >= 3,
+  },
+  { id: 'night', text: () => 'Sell what you can until the stall shuts for the night.', btn: 'Go to your stall', go: 'stall', done: (s) => s.day >= 2 },
+  { id: 'guards', text: (s) => (s.cash < ERRAND_PURSE ? `Sell rugs first. The errand needs about ${fmtP(ERRAND_PURSE)}, and you have ${fmtP(s.cash)}.` : 'Hire a guard at the guard yard for the road.'), btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
   { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
   { id: 'bandits', text: () => 'Take the train to Alexandria: 3½ hours.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
   // any rug bought in Alexandria, whether or not Rashid has given his errand yet (it counts for that too)
   { id: 'auction', text: () => 'Buy one rug in Alexandria.', btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction || s.ledger.some((l) => l.kind === 'purchase' && l.label.endsWith(' in Alexandria')) },
 ];
+/** the button for a step as things stand: the pay step sends you to the stall while the purse is short */
+export function stepGo(s: S, st: OpeningStep): { btn: string; go: string; flash: string } {
+  if (st.id === 'pay' && owing(s) > s.cash) return { btn: 'Go to your stall', go: 'stall', flash: 'stall' };
+  if (st.id === 'guards' && s.cash < ERRAND_PURSE) return { btn: 'Go to your stall', go: 'stall', flash: 'stall' };
+  return { btn: st.btn, go: st.go, flash: st.id };
+}
+/** the eyebrow over the step: "Day one · 2 of 5", then "Rashid's errand · 1 of 4" */
+export function stepLabel(n: number): string {
+  return n < DAY_ONE ? `Day one · ${n + 1} of ${DAY_ONE}` : `Rashid's errand · ${n - DAY_ONE + 1} of ${OPENING.length - DAY_ONE}`;
+}
 /** A step stays done once a later one is: you cannot have reached Alexandria without the guard and the
  *  ferry, even if the guard has since gone home. So the opening never steps backwards. */
 function stepsDone(s: S): boolean[] {
@@ -48,6 +79,8 @@ function stepsDone(s: S): boolean[] {
 
 // test runs (and anyone who set the old developer switch) start with the opening skipped
 const devSkip = (() => { try { return typeof localStorage !== 'undefined' && localStorage.getItem('tof-skip-chapters') === '1'; } catch { return false; } })();
+/** no hints: the player asked for none, or Sandbox (which skips the lessons unless asked for them) */
+export const lessonsOff = (s: S) => (s.tipsSeen ?? []).includes(LESSONS_OFF) || (s.playMode === 'sandbox' && !(s.tipsSeen ?? []).includes(LESSONS_ON));
 export const openingSkipped = (s: S) => devSkip || s.playMode === 'sandbox' || (s.tipsSeen ?? []).includes(OPENING_TIP);
 /** the step in hand, or null once the opening is finished or skipped */
 export function openingStep(s: S): { step: OpeningStep; n: number } | null {

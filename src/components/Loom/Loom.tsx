@@ -3,6 +3,7 @@
 // steps, one row of choices and the button. Each choice shows what it adds to the price. The weaver
 // keeps the proportions and outlines, so whatever you choose is woven properly.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Tip } from '../Tips/Tip';
 import { CarpetView } from '../RugViewer/CarpetView';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
@@ -154,6 +155,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className="overlay loom-screen" data-testid="loom" onClick={(e) => e.stopPropagation()}
       style={{ backgroundImage: 'linear-gradient(180deg, rgba(15,10,6,.5), rgba(15,10,6,.9) 34%, #0f0a06 62%), url(art/loom/workshop-768.webp), radial-gradient(ellipse 120% 60% at 50% 22%, #2e1f12, #0f0a06 70%)', backgroundSize: 'auto, 100% auto, auto', backgroundRepeat: 'no-repeat', backgroundPosition: 'top center' }}>
+      <Tip id="weaving" card />
       <div className="lm-head">
         <img className="lm-weaver" src="art/portraits/small/weaver-kerdasa.webp" alt="" />
         <h2>{owned ? 'Your loom house' : 'The weavers of Kerdasa'}<small>Sitt Zeinab, master weaver</small></h2>

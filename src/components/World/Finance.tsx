@@ -1,3 +1,4 @@
+import { Tip } from '../Tips/Tip';
 import { useState } from 'react';
 import { useGame, FAMILY_GRACE } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
@@ -36,6 +37,7 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
     <div className="overlay" onClick={onClose}>
       <div className="modal-card finance" onClick={(e) => e.stopPropagation()} data-testid="finance">
         <h2>Debts and loans</h2>
+        <Tip id="loans" card />
         {note && <p className="set-note" data-testid="finance-note">{note}</p>}
 
         {ruin.stage > 0 && (() => {

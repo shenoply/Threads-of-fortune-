@@ -12,7 +12,7 @@ import { BOY_OFFERED } from './systems/stallNight';
 import { settlementById } from './systems/world';
 
 type S = GameState;
-export type Sys = 'caravan' | 'abroad' | 'auction' | 'bank' | 'cabaret' | 'lab' | 'clinic' | 'boy';
+export type Sys = 'caravan' | 'abroad' | 'auction' | 'bank' | 'cabaret' | 'lab' | 'clinic' | 'boy' | 'looms' | 'garage';
 export const ALL_OPEN = 'open-all';
 const mark = (k: Sys) => `open-${k}`;
 
@@ -40,13 +40,13 @@ export const UNLOCKS: Record<Sys, Rule> = {
   // the guard yard, the animal market and the Caravan screen: when the opening asks for a guard
   caravan: {
     when: (s) => reached(s, 'guards') || count(s.world.party.troops) > 0 || count(s.world.party.animals) > 0,
-    line: () => 'The guard yard and the animal market are open to you. Your men and animals are kept under Caravan.',
-    later: 'Opens when you need men for the road.',
+    line: () => 'The guard yard and the animal market are now marked in your district. Your men and animals are under Caravan.',
+    later: 'Opens tomorrow, with Rashid\'s errand.',
   },
   // the wider world: ships, the Passport Office, telegraph offices and the palaces, once Rashid's errand is done
   abroad: {
     when: (s) => finished(s) || !!s.passport,
-    line: () => 'Rashid\'s errand is done and the roads are open: ships, telegraph offices, the Passport Office and the palaces now show in the towns.',
+    line: () => 'Rashid\'s errand is done. Every town on the map is open to you now.',
     later: 'Opens once Rashid\'s errand in Alexandria is done.',
   },
   // the sale rooms: the first time, after the opening, you stand in a town that has one
@@ -82,6 +82,18 @@ export const UNLOCKS: Record<Sys, Rule> = {
     when: (s) => finished(s) || (s.illnesses ?? []).length > 0,
     line: (s) => ((s.illnesses ?? []).length ? 'You are unwell. Dr Feras keeps a clinic in Cairo.' : ''),
     later: 'Opens when you need a doctor.',
+  },
+  // the weavers of Kerdasa: once the opening is behind you (or a design is already on the loom)
+  looms: {
+    when: (s) => finished(s) || (s.loom?.designs?.length ?? 0) > 0 || (s.loom?.weaving?.length ?? 0) > 0,
+    line: () => 'The weavers of Kerdasa will weave a carpet to your own design. They are marked in your district.',
+    later: 'Opens once Rashid\'s errand is done.',
+  },
+  // the motor garages: once a car is within reach, or after a few weeks of trade
+  garage: {
+    when: (s) => (finished(s) && (s.cash >= 15000 || s.day >= 21)) || !!s.car,
+    line: () => 'The motor garages in Cairo, Jaffa, Beirut and Baghdad will sell you a car.',
+    later: 'Opens when you have £150 for a motor car.',
   },
   // the boy who minds the stall: Haj Mahmoud's morning offer after a buyer is lost is his moment
   boy: {

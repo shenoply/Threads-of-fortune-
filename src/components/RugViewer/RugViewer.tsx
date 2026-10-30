@@ -6,6 +6,7 @@ import { RUGS } from '../../data/rugs';
 import type { RugItem } from '../../game/types';
 import { rugSrc, simulatedBack } from './rugArt';
 import { Icon } from '../Icon';
+import { Tip } from '../Tips/Tip';
 import { perceivedValue } from '../../game/systems/negotiation';
 import { useEscapeClose } from './useEscapeClose';
 import { FLAW_CLUES, eyeOf, flawFactorFor, flawNotes } from '../../game/systems/fakes';
@@ -73,6 +74,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
 
   return (
     <div ref={box} className="overlay" role="dialog" aria-modal="true" aria-label={`Inspecting ${t.name}`} data-testid="inspector">
+      <Tip id="inspect" card />
       <div className="overlay-head">
         <div>
           <h2 className={`t-tier-${t.tier ?? 1}`}>{t.name}</h2>

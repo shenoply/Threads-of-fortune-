@@ -33,6 +33,8 @@ import { stallWifeLine } from '../../game/systems/household';
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   useAtStall();
   const g = useGame();
+  // during the first-sale lesson the stall shows only what that sale needs
+  const lessonDone = g.tutorial.done;
   const [board, setBoard] = useState(false);
   const [tidy, setTidy] = useState(false);
   // the stall's lesser things, folded away; open once and they stay open
@@ -81,7 +83,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {!shut && g.day >= INTRO.rival && <>{g.day < INTRO.rival + 2 && <NewNote text="Shukri Mansour keeps the stall across the lane. He saves for the same stalls you do." />}<RivalLine /></>}
         {!shut && g.day >= INTRO.week && <>{g.day < INTRO.week + 2 && <NewNote text="Rashid now sets you a target each week, with a purse if you meet it." />}<WeekLine /></>}
         {!shut && g.day >= INTRO.season && <SeasonLine />}
-        {!shut && <SkillGoal />}
+        {!shut && lessonDone && <SkillGoal />}
         {g.world.at === 'giza' && stallWifeLine(g) && <p className="idle-missed idle-wife" data-testid="idle-wife">{stallWifeLine(g)}</p>}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
@@ -100,7 +102,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
           </div>
         )}
         {/* the flying-carpet dream, on demand (components/Dream) */}
-        <button className="btn small idle-dream" onClick={() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'nap' }))} data-testid="idle-dream"><Icon name="moon" /> Doze with Saffron</button>
+        {lessonDone && <button className="btn small idle-dream" onClick={() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'nap' }))} data-testid="idle-dream"><Icon name="moon" /> Doze with Saffron</button>}
         {g.visitIdx > 0 && g.journal.some((j) => j.day === g.day && j.text.includes('found it empty')) && <p className="idle-missed">You missed a customer while you were away.</p>}
       </div>
 

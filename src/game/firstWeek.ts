@@ -49,4 +49,4 @@ export function countdown(owed: number, days: number) {
 }
 
 /** Rashid's word on the first morning, as the day-one card and the journal give it */
-export const FIRST_WORD = `Uncle Rashid sends word: the first ${fmt(FIRST_SUM)} of your father's debt by ${dueDate(FIRST_BY)}. Pay before then and he takes ${fmt(EARLY_OFF)} off.`;
+export const FIRST_WORD = `Uncle Rashid sends word: he wants the first ${fmt(FIRST_SUM)} of your father's ${fmt(10000)} debt by ${dueDate(FIRST_BY)}. Pay before then and he takes ${fmt(EARLY_OFF)} off. Sell rugs at your stall to raise it.`;

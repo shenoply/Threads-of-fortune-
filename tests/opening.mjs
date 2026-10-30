@@ -1,4 +1,5 @@
-// The opening: a new game shows "Getting started · 1 of 6" with the needed button pulsing; cities
+// The opening: a new game shows "Day one · 1 of 5" with the needed button pulsing; day one is the stall
+// and Rashid's ten pounds, his errand starts on day two ("Rashid's errand · 1 of 4"); cities
 // beyond Giza and Cairo are locked (greyed, and tapping one says why); each step ticks itself off;
 // on the way to Alexandria a small band of robbers stops you once and costs you no rugs; a rug won
 // or bought in Alexandria finishes it; Skip unlocks everything; an older save that is under way skips it.
@@ -22,13 +23,24 @@ const bar = async () => (await p.locator('[data-testid=first-hour]').innerText()
 await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-fullscreen', 'off'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */ await p.waitForTimeout(1200);
-check((await bar()).includes('1 of 6'), `a new game starts the opening: "${(await bar()).slice(0, 80)}"`);
+check((await bar()).includes('day one · 1 of 5'), `a new game starts the opening: "${(await bar()).slice(0, 80)}"`);
 check((await has('.guide-flash')) > 0, 'the button it needs is pulsing');
 await p.screenshot({ path: `${S}/1-start.png` });
 
-// past the first sale and Rashid: the third step
+// past the first sale and Rashid: a second sale, then his ten pounds, then the rest of the day
 await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek','arran','abuhamid','bilgin-chess','rashid','nabil','cohen']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.totalSales = 1; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 });`);
-check((await bar()).includes('3 of 6') && /guard/i.test(await bar()), `after a sale and Rashid, the guard yard: "${(await bar()).slice(0, 90)}"`);
+check((await bar()).includes('day one · 3 of 5') && /another rug/i.test(await bar()), `after a sale and Rashid, a second sale: "${(await bar()).slice(0, 90)}"`);
+await edit(`s.totalSales = 2; s.cash = 500;`);
+check((await bar()).includes('4 of 5') && /sell more/i.test(await bar()) && (await p.locator('[data-testid=first-hour-go]').innerText()).toLowerCase().includes('stall'), `short of his ten pounds: sell more, the button goes to the stall: "${(await bar()).slice(0, 90)}"`);
+await edit(`s.cash = 1500;`);
+check((await bar()).includes('4 of 5') && /pay rashid/i.test(await bar()), `with the money: pay Rashid: "${(await bar()).slice(0, 90)}"`);
+await edit(`s.family.first.paid = s.family.first.sum; s.family.first.done = s.day; s.family.first.how = 'early';`);
+check((await bar()).includes('5 of 5') && /stall shuts/i.test(await bar()), `paid: the rest of the day at the stall: "${(await bar()).slice(0, 90)}"`);
+check((await p.locator('[data-testid=nav-caravan]').getAttribute('class') || '').includes('nav-later'), 'no caravan on day one');
+await edit(`s.day = 2; s.cash = 100;`);
+check(/rashid's errand · 1 of 4/.test(await bar()) && /sell rugs first/i.test(await bar()), `day two, short of the errand's money: sell first: "${(await bar()).slice(0, 90)}"`);
+await edit(`s.cash = 1500;`);
+check(/rashid's errand · 1 of 4/.test(await bar()) && /guard/i.test(await bar()), `day two with the money: the guard yard: "${(await bar()).slice(0, 90)}"`);
 
 // the map: Damascus is shut, Cairo is open
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(700);
@@ -41,9 +53,9 @@ await p.screenshot({ path: `${S}/2-map.png` });
 
 // Malek, Bilgin, the guard, Cairo
 await edit(`s.totalSales = 2; s.ledger.push({ day: s.day, kind: 'expense', label: "Malek's: kofta", amount: -3 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
-check((await bar()).includes('3 of 6') && /guard/i.test(await bar()), `Malek and Bilgin are not steps any more: "${(await bar()).slice(0, 90)}"`);
+check(/1 of 4/.test(await bar()) && /guard/i.test(await bar()), `Malek and Bilgin are not steps any more: "${(await bar()).slice(0, 90)}"`);
 await edit(`s.world.party.troops = { watchman: 1 }; s.world.at = 'cairo'; s.whereabouts = { ...(s.whereabouts||{}), [s.day]: 'cairo' }; s.cash = 5000; s.world.hour = 9;`);
-check((await bar()).includes('5 of 6'), `in Cairo with a guard: "${(await bar()).slice(0, 90)}"`);
+check(/3 of 4/.test(await bar()), `in Cairo with a guard: "${(await bar()).slice(0, 90)}"`);
 
 // to Alexandria by train: the robbers stop it
 await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
@@ -78,7 +90,7 @@ void freed;
 // Skip
 await edit(`s.journey = undefined; s.onboard = {}; s.tipsSeen = []; s.missions = { ...(s.missions||{}), alexandria: 'active' }; s.world.at = 'giza'; s.world.party.troops = {};`);
 check((await has('[data-testid=first-hour]')) > 0, 'the opening is back when not done');
-if (await has('[data-testid=first-hour-skip]')) await p.click('[data-testid=first-hour-skip]');
+if (await has('[data-testid=first-hour-skip]')) { await p.click('[data-testid=first-hour-skip]'); await p.waitForTimeout(200); check((await p.locator('[data-testid=first-hour-skip]').innerText()).includes('Skip all?'), 'Skip asks once, in the bar'); await p.click('[data-testid=first-hour-skip]'); }
 await p.waitForTimeout(400);
 await p.screenshot({ path: `${S}/4-skip.png` });
 check((await has('[data-testid=first-hour]')) === 0 && ((await st()).tipsSeen || []).includes('first-hour'), 'Skip ends the opening');

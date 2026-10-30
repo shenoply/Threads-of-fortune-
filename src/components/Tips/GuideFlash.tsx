@@ -8,7 +8,10 @@ import { firstHourStep } from './FirstHour';
 /** what to pulse for each step; for a list of buttons (Rashid's rugs) only the first one you can use */
 export const GUIDE_TARGETS: Record<string, string[]> = {
   stall: ['[data-testid="poi-stall"]', '[data-testid="nav-stall"]', '[data-testid="stall-wait"]'],
-  rashid: ['[data-testid="nav-supplier"]', '[data-testid="goto-rashid"]', '[data-testid="stock-rashid"]', '[data-testid="visit-rashid-evening"]', 'first:[data-testid="buy-cash"]:not(:disabled)'],
+  sell2: ['[data-testid="poi-stall"]', '[data-testid="nav-stall"]', '[data-testid="stall-wait"]', '[data-testid="next-visit"]'],
+  night: ['[data-testid="poi-stall"]', '[data-testid="nav-stall"]', '[data-testid="stall-wait"]', '[data-testid="next-visit"]'],
+  pay: ['[data-testid="poi-rashid"]', '[data-testid="goto-rashid"]', '[data-testid="pay-week"]'],
+  rashid: ['[data-testid="poi-rashid"]', '[data-testid="nav-supplier"]', '[data-testid="goto-rashid"]', '[data-testid="stock-rashid"]', '[data-testid="visit-rashid-evening"]', 'first:[data-testid="buy-cash"]:not(:disabled)'],
   profit: ['[data-testid="poi-stall"]', '[data-testid="nav-stall"]', '[data-testid="stall-wait"]'],
   malek: ['[data-testid="poi-malek"]', '[data-testid="idle-hungry"] button', '[data-testid="idle-wait-malek"]', '[data-testid="malek-hot-menu"]', 'first:[data-testid^="malek-buy-"]', '[data-testid="malek-pay"]'],
   bilgin: ['[data-testid="poi-coffee"]', '[data-testid="cafe-hot-bilgin"]', '[data-testid="cafe-spot-bilgin"]', 'has:[data-testid="dialogue"] button|new man'],
@@ -22,7 +25,7 @@ export const GUIDE_TARGETS: Record<string, string[]> = {
 const CLS = 'guide-flash';
 
 export function GuideFlash() {
-  const step = useGame((g) => firstHourStep(g)?.id ?? null);
+  const step = useGame((g) => firstHourStep(g)?.flash ?? null);
   useEffect(() => {
     const clear = () => document.querySelectorAll('.' + CLS).forEach((el) => el.classList.remove(CLS));
     const sels = step ? GUIDE_TARGETS[step] : undefined;
