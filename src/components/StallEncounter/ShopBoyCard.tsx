@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import './stallhelp.css';
 import { useGame } from '../../game/state/store';
 import { isOpen } from '../../game/unlocks';
@@ -142,6 +143,39 @@ export function BoyChip({ onOpen, inScene }: { onOpen?: () => void; inScene?: bo
       <span><b>{b?.hired ? boyName(b) : 'A boy to mind the stall'}</b><small>{inScene ? (b!.mode === 'sell' ? 'sells plain rugs' : 'keeps them waiting') : job}</small></span>
     </>
   );
-  if (inScene) return <div className="boy-chip in-scene" data-testid="boy-chip-scene" aria-label={`${boyName(b)}, your shop boy`}>{body}</div>;
+  if (inScene) return <BoyInScene />;
   return <button className={`boy-chip${b?.owed ? ' owed' : ''}`} onClick={onOpen} data-testid="boy-chip">{body}<span className="go" aria-hidden="true">›</span></button>;
+}
+
+/** The boy at your elbow while you sell: his face in the corner of the picture. A tap and he asks what
+ *  you want; he can bring the tea or fetch the other rugs. One line under the talk, never a box. */
+function BoyInScene() {
+  const g = useGame();
+  const b = g.shopBoy!;
+  const [ask, setAsk] = useState(false);
+  const enc = g.encounter;
+  const teaOk = !!enc && !enc.outcome && g.upgrades.includes('tea') && !enc.teaUsed && !enc.venue;
+  const band = typeof document !== 'undefined' ? document.querySelector('.stall > .band') : null;
+  const name = boyName(b);
+  const all = typeof document !== 'undefined' ? document.querySelector('[data-testid="change-rugs"]') as HTMLButtonElement | null : null;
+  const moreRugs = all && !all.disabled ? all : null;
+  return (
+    <>
+      <button className={`boy-scene${ask ? ' on' : ''}`} onClick={() => setAsk((x) => !x)} data-testid="boy-chip-scene" aria-label={`${name}, your shop boy`} aria-expanded={ask}>
+        <BoyFace who={b.who} />
+        <small>{name}</small>
+      </button>
+      {ask && band && createPortal(
+        <div className="boy-ask" data-testid="boy-ask">
+          <span><b>{name}</b> leans in: “Effendi?”</span>
+          <div>
+            {teaOk && <button className="btn small" onClick={() => { setAsk(false); useGame.getState().act('tea'); }} data-testid="boy-tea">Bring tea</button>}
+            {moreRugs && <button className="btn small" onClick={() => { setAsk(false); moreRugs.click(); }} data-testid="boy-rugs">Fetch the other rugs</button>}
+            <button className="btn small" onClick={() => setAsk(false)} data-testid="boy-later">Not now</button>
+          </div>
+        </div>,
+        band,
+      )}
+    </>
+  );
 }
