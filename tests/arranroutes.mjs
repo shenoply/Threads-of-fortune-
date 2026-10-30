@@ -47,7 +47,8 @@ const walkTo = async (town, label) => {
     if (await has('rescue')) await p.click('[data-testid=rescue] .btn.primary').catch(() => {});
     for (const id of ['close-stall', 'march-on', 'food-go', 'encounter-leave', 'ambush-ok', 'event-ok', 'arrive-ok']) if (await has(id)) await p.click(`[data-testid=${id}]`).catch(() => {});
     if (await has('travel')) await p.click('[data-testid=travel]').catch(() => {});
-    if (await has('speed-4')) await p.click('[data-testid=speed-4]').catch(() => {});
+    // the tester's fast speed (on in the dev build): the two Sinai walks have to fit the runner's four minutes
+    if (await has('speed-16')) await p.click('[data-testid=speed-16]').catch(() => {}); else if (await has('speed-4')) await p.click('[data-testid=speed-4]').catch(() => {});
     await p.waitForTimeout(500);
   }
   return false;
