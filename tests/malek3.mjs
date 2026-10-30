@@ -27,7 +27,7 @@ try {
   // 1. at the stall: Malek buys a rug
   await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(800);
   await p.click('[data-testid=stall-wait]'); await p.waitForTimeout(1500);
-  for (let i = 0; i < 20 && (await game(`return g.encounter?.buyerId ?? null`)) !== 'malek'; i++) { if (await has('stall-wait')) await p.click('[data-testid=stall-wait]').catch(() => {}); await p.waitForTimeout(500); }
+  for (let i = 0; i < 20 && (await game(`return g.encounter?.buyerId ?? null`)) !== 'malek'; i++) { if (await game(`return g.encounter && g.encounter.buyerId !== 'malek' ? 1 : 0`)) { await game(`g.queue = ['malek', ...(g.queue ?? []).filter((x) => x !== 'malek')]; return null`); if (await has('let-go')) await p.click('[data-testid=let-go]').catch(() => {}); if (await has('next-customer')) await p.click('[data-testid=next-customer]').catch(() => {}); } if (await has('stall-wait')) await p.click('[data-testid=stall-wait]').catch(() => {}); await p.waitForTimeout(500); }
   // show him the darkest, toughest rug you have and take whatever he offers
   // this test is about what follows a sale, so play a Malek who is already convinced (how hard he is
   // to convince is measured in tests/malek-haggle.ts)
