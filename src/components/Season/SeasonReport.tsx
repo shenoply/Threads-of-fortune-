@@ -40,11 +40,17 @@ export function seasonSummary(ledger: L[], season: number, prevProfit: number) {
 const skipAll = (() => { try { return localStorage.getItem('tof-skip-chapters') === '1' && localStorage.getItem('tof-season') !== '1'; } catch { return false; } })();
 
 export function SeasonReport() {
+  // only whether the report is due is read on every change; the card reads the rest once it is up
+  const due = useGame((g) => { const last = g.ranks?.last; return !skipAll && !!last && g.day - last.day <= 3 && g.seasonSeen !== last.season; });
+  useEffect(() => { if (due) audio.sfx('reward'); }, [due]);
+  if (!due) return null;
+  return <SeasonCard />;
+}
+
+function SeasonCard() {
   const g = useGame();
   const last = g.ranks?.last;
-  const due = !skipAll && !!last && g.day - last.day <= 3 && g.seasonSeen !== last.season;
-  useEffect(() => { if (due) audio.sfx('reward'); }, [due]);
-  if (!due || !last) return null;
+  if (!last) return null;
   const prev = last.season > 0 ? seasonSummary(g.ledger, last.season - 1, 0).profit : 0;
   const sum = seasonSummary(g.ledger, last.season, prev);
   const grade = GRADES.find((x) => sum.score >= x.min)!;

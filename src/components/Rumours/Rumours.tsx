@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../../game/state/store';
 import { rumoursOn, monthlyBill, billTotal, stallKey } from '../../game/economy/life';
 import { rankOf } from '../../game/economy/progress';
@@ -6,7 +7,7 @@ import { Tip } from '../Tips/Tip';
 
 /** What the bazaar is saying today: demand, gluts, collectors and the events of the year. */
 export function Rumours({ max = 5, compact = false }: { max?: number; compact?: boolean }) {
-  const g = useGame();
+  const g = { day: useGame((s) => s.day) };
   const list = rumoursOn(g.day).slice(0, max);
   if (!list.length) return null;
   return (
@@ -22,9 +23,9 @@ export function Rumours({ max = 5, compact = false }: { max?: number; compact?: 
 
 /** The month's bill, as it stands. */
 export function BillCard({ folded = false }: { folded?: boolean } = {}) {
-  const g = useGame();
-  const lines = monthlyBill(g.upgrades, rankOf(g).idx, g.inventory.filter((i) => i.stored).length);
-  const due = g.bills?.due ?? 0;
+  const g = useGame(useShallow((s) => ({ upgrades: s.upgrades, rank: rankOf(s).idx, stored: s.inventory.filter((i) => i.stored).length, due: s.bills?.due ?? 0 })));
+  const lines = monthlyBill(g.upgrades, g.rank, g.stored);
+  const due = g.due;
   if (folded) return (
     <details className="billcard folded" data-testid="billcard">
       <summary><span>Next bill <b>{fmt(billTotal(lines))}</b> · due on the 1st{due > 0 ? <> · <em className="bill-owed">overdue {fmt(due)}</em></> : null}</span></summary>

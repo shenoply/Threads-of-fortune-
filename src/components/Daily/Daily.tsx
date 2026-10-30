@@ -4,6 +4,7 @@
 import { DRESSING_BY_ID } from '../../data/shops';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../../game/state/store';
 import { rankOf } from '../../game/economy/progress';
 import { fmt } from '../../game/economy/money';
@@ -20,7 +21,9 @@ const giftShort = (g: Gift) => (g.kind === 'cash' ? fmt(g.amount) : g.kind === '
 
 /** whether anything waits: today's gift unopened, or a finished errand not yet paid */
 export function useDailyWaiting() {
-  const g = useGame();
+  return useGame(useShallow(dailyWaiting));
+}
+function dailyWaiting(g: ReturnType<typeof useGame.getState>) {
   const gift = giftToday(g.daily, g.day);
   const rk = rankOf(g).idx;
   const paid = g.daily?.paid ?? [];

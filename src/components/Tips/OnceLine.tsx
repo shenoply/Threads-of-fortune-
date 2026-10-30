@@ -10,8 +10,7 @@ import './once.css';
 
 /** true while this line is being told: the first time `when` holds, for as long as the caller stays mounted */
 export function useOnce(id: string, when = true): boolean {
-  const g = useGame();
-  const eligible = when && g.started && g.tutorial.done && !openingStep(g) && !(g.tipsSeen ?? []).includes(id);
+  const eligible = useGame((g) => when && g.started && g.tutorial.done && !openingStep(g) && !(g.tipsSeen ?? []).includes(id));
   const shown = useRef(false);
   if (eligible) shown.current = true;
   useEffect(() => { if (eligible) useGame.getState().seeTip(id); }, [eligible, id]);

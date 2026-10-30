@@ -10,7 +10,7 @@ import { migrateOpen, ALL_OPEN } from '../unlocks';
 import { renameBuyerIds } from '../../data/renamedIds';
 import { midName, count, lowerName } from '../text';
 import { auctionable } from '../storyRugs';
-import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage, type PersistStorage, type StorageValue } from 'zustand/middleware';
 import type { Goal, LedgerEntry, Relationship, RugItem, SupplierOffer } from '../types';
 import { BUYERS, BUYER_ORDER, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, celebUnlock } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
@@ -1121,15 +1121,7 @@ const safeStorage: StateStorage = {
   },
   setItem: (k, v) => {
     if (!autosaveEnabled) return;
-    try {
-      localStorage.setItem(k, v);
-      if (saveFailed) { saveFailed = false; notifySave(false); }
-    } catch (e) {
-      // storage full or unavailable: remember it and tell the page, so the player can be warned
-      const first = !saveFailed;
-      saveFailed = true;
-      if (first) notifySave(true, e);
-    }
+    writeSave(k, v);
   },
   removeItem: (k) => {
     try {
@@ -1139,12 +1131,58 @@ const safeStorage: StateStorage = {
     }
   },
 };
+/** one write of the save to disk (the autosave switch was checked when the write was asked for) */
+function writeSave(k: string, v: string) {
+    try {
+      localStorage.setItem(k, v);
+      if (saveFailed) { saveFailed = false; notifySave(false); }
+    } catch (e) {
+      // storage full or unavailable: remember it and tell the page, so the player can be warned
+      const first = !saveFailed;
+      saveFailed = true;
+      if (first) notifySave(true, e);
+    }
+}
+
+// The save is about 90 KB of JSON. On the road the state changes several times a second, so writing it on
+// every change cost a phone a stringify and a disk write each time: the latest state is written at most
+// once a second instead, and at once when the page is hidden or closed, and on Save now / the slots
+// (forceSave). Whether a change may be written (autosave on, or a forced write) is decided when it happens,
+// as before; the save guard (saveGuard.ts) still sees every write. Under test automation (navigator.webdriver)
+// every change is written at once, as the tests read the save straight after acting.
+const SAVE_EVERY = typeof navigator !== 'undefined' && navigator.webdriver ? 0 : 1000;
+const jsonStorage = createJSONStorage<GameState & Actions>(() => safeStorage)!;
+let pendingSave: { name: string; value: StorageValue<GameState & Actions> } | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+/** Write the change waiting to be saved, if there is one, now. */
+export function flushSave() {
+  if (saveTimer !== undefined) { clearTimeout(saveTimer); saveTimer = undefined; }
+  const p = pendingSave;
+  if (!p) return;
+  pendingSave = null;
+  writeSave(p.name, JSON.stringify(p.value));
+}
+const throttledStorage: PersistStorage<GameState & Actions> = {
+  getItem: (name) => jsonStorage.getItem(name),
+  setItem: (name, value) => {
+    if (!autosaveEnabled) return;
+    pendingSave = { name, value };
+    if (!SAVE_EVERY) { flushSave(); return; }
+    if (saveTimer === undefined) saveTimer = setTimeout(flushSave, SAVE_EVERY);
+  },
+  removeItem: (name) => { pendingSave = null; if (saveTimer !== undefined) { clearTimeout(saveTimer); saveTimer = undefined; } return jsonStorage.removeItem(name); },
+};
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(); });
+}
 
 /** Force one write of the current state to disk even while autosave is off (used by "Save now"). */
 export function forceSave() {
   const prev = autosaveEnabled;
   autosaveEnabled = true;
   useGame.setState({});
+  flushSave();
   autosaveEnabled = prev;
 }
 
@@ -5100,7 +5138,7 @@ export const useGame = create<GameState & Actions>()(
     {
       name: 'threads-of-fortune-save',
       version: SAVE_VERSION,
-      storage: createJSONStorage(() => safeStorage),
+      storage: throttledStorage,
       partialize: (s) => {
         // dayOver is kept: a stall shut for the day stays shut after a reload
         const { encounter, seed, audienceStash, held, milestoneNews, ...rest } = s as GameState & Actions;

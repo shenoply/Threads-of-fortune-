@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { nextToGo } from '../../game/systems/men';
 import { fmt } from '../../game/economy/money';
 import { localMoney } from '../../game/economy/currency';
@@ -17,21 +18,24 @@ import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } fro
 import './provisions.css';
 
 /** One-line caravan status used on the map and in towns. */
-export function CaravanStrip() {
-  const g = useGame();
-  const p = g.world.party;
-  const sp = speedInfo(p, g.inventory);
+// plain numbers from the store, and memo: the map re-renders many times a second on the road, the strip only when a figure moves
+export const CaravanStrip = memo(function CaravanStrip() {
+  const v = useGame(useShallow((g) => {
+    const p = g.world.party;
+    const sp = speedInfo(p, g.inventory);
+    return { size: partySize(p), animals: animalCount(p), animalCap: animalCap(p), food: foodDaysLeft(p), over: !!sp.over, load: Math.round(sp.load * 10) / 10, cap: sp.cap, mult: sp.mult.toFixed(1), strength: strength(p), strengthCap: strengthCap(p, g.reputation) };
+  }));
   return (
     <div className="cstrip" data-testid="caravan-strip">
-      <span title="People in your caravan"><Icon name="people" />{partySize(p)}</span>
-      <span title="Animals: camels, horses, donkeys and mules (most you can lead)"><Icon name="camel" />{animalCount(p)}<small className="cs-max">/{animalCap(p)}</small></span>
-      <span className={foodDaysLeft(p) < 2 ? 'warn' : ''} title="Days of food"><Icon name="bag" />{foodDaysLeft(p)}d</span>
-      <span className={sp.over ? 'warn' : ''} title="Load / capacity"><Icon name="scale" />{Math.round(sp.load * 10) / 10}/{sp.cap}</span>
-      <span title="Travel speed"><Icon name="sun" />{sp.mult.toFixed(1)}×</span>
-      <span title="Fighting strength (most your name lets you lead)"><Icon name="shield" />{strength(p)}<small className="cs-max">/{strengthCap(p, g.reputation)}</small></span>
+      <span title="People in your caravan"><Icon name="people" />{v.size}</span>
+      <span title="Animals: camels, horses, donkeys and mules (most you can lead)"><Icon name="camel" />{v.animals}<small className="cs-max">/{v.animalCap}</small></span>
+      <span className={v.food < 2 ? 'warn' : ''} title="Days of food"><Icon name="bag" />{v.food}d</span>
+      <span className={v.over ? 'warn' : ''} title="Load / capacity"><Icon name="scale" />{v.load}/{v.cap}</span>
+      <span title="Travel speed"><Icon name="sun" />{v.mult}×</span>
+      <span title="Fighting strength (most your name lets you lead)"><Icon name="shield" />{v.strength}<small className="cs-max">/{v.strengthCap}</small></span>
     </div>
   );
-}
+});
 
 /** Food, animals and volunteers for the settlement you are in. */
 export type SupplyPart = 'food' | 'animals' | 'recruits';

@@ -2,6 +2,7 @@
 // first morning you are back from the road after it began), a short card says what happened and what
 // it means for your trade, with the paper one tap away. Each event is told once.
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../../game/state/store';
 import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { eventsOn, eventsStarting, type GameEvent } from '../../game/economy/life';
@@ -41,14 +42,14 @@ export function freshNews(day: number, seen: string[]): { e: GameEvent; eve: boo
 }
 
 export function BigNews({ onRead }: { onRead: () => void }) {
-  const g = useGame();
+  const g = useGame(useShallow((s) => ({ day: s.day, newsSeen: s.newsSeen, journey: !!s.journey, busy: waitsTurn(s) })));
   const [open, setOpen] = useState(false);
   const seen = g.newsSeen ?? [];
   // it says its piece at the top for a few seconds and goes; the paper keeps the story
   const freshIds = freshNews(g.day, seen).map((x) => x.e.id).join(',');
   // a card or a fight on screen comes first; the news waits its turn (game/cardTurn.ts)
   const hold = useHeld();
-  const wait = hold || waitsTurn(g);
+  const wait = hold || g.busy;
   useEffect(() => {
     if (!freshIds || open || g.journey || wait) return;
     const t = window.setTimeout(() => { const s = useGame.getState(); useGame.setState({ newsSeen: [...new Set([...(s.newsSeen ?? []), ...freshIds.split(',')])] }); }, 7000);

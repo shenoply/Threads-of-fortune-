@@ -70,9 +70,9 @@ window.addEventListener('error', (e) => {
   window.setTimeout(() => { im.src = `${url}${url.includes('?') ? '&' : '?'}r=${n + 1}`; }, 1200 * (n + 1));
 }, true);
 
-// The loading screen in index.html stays up until the game is ready to be played, not just drawn: the
-// title picture, the fonts, and the first stall pictures are fetched behind it, so nothing pops in after
-// it lifts. Its bar shows how many have arrived. On a later visit they come from the phone at once.
+// The loading screen in index.html stays up until the title is ready: the code, the fonts and the title's
+// own picture. The stall pictures the title does not show follow once it is up, in a quiet moment (and
+// at once on Play: App.tsx enterGame asks for them first). On a later visit they come from the phone at once.
 // It never waits longer than BOOT_MAX, however slow the line.
 const BOOT_MAX = 20000;
 const W = window as Window & { __bootP?: number };
@@ -93,18 +93,20 @@ async function bootGate() {
   track(capped(document.fonts?.ready ?? Promise.resolve(), 6000));
   // (a title picture that has come in is noted, so a later visit opens on one already on the phone)
   track(capped(titlePicture().then((src) => imgLoad(src).then(() => keepTitle(src))), 15000), 4);
-  // the first things the game shows after the title: the Giza lane (its small copy) and the stall
-  for (const src of BOOT_ART) track(imgLoad(src), /\.jpg$/.test(src) ? 4 : 1);
   window.setTimeout(() => say('Opening the stall…'), 1500);
   await capped(Promise.all(jobs), BOOT_MAX);
   W.__bootP = 100;
   // a moment at full so the bar visibly completes, unless it was all already on the phone
   await new Promise((r) => window.setTimeout(r, Date.now() - t0 > 600 ? 250 : 0));
-  // the full district painting follows at once, while the title is up (the small copy stands in till then)
-  for (const src of BOOT_LATER) void imgLoad(src);
-  // and the world map's code (its own file: src/components/World/Campaign.tsx), for a game that resumes on the road
-  window.setTimeout(() => { void loadWorldMap().catch(() => {}); }, 300);
-  const l = document.getElementById('boot'); if (!l) return;
-  l.classList.add('done'); window.setTimeout(() => l.remove(), 400);
+  const l = document.getElementById('boot');
+  if (l) { l.classList.add('done'); window.setTimeout(() => l.remove(), 400); }
+  // once the title has been up a moment and the phone is idle: the first stall pictures (the Giza lane's
+  // small copy first), then the full district painting, then the world map's code
+  // (its own file: src/components/World/Campaign.tsx), one after another so they do not share the line
+  const idle = (fn: () => void) => { const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }; if (w.requestIdleCallback) w.requestIdleCallback(fn, { timeout: 3000 }); else window.setTimeout(fn, 200); };
+  window.setTimeout(() => idle(async () => {
+    for (const src of [...BOOT_ART, ...BOOT_LATER]) await imgLoad(src);
+    void loadWorldMap().catch(() => {});
+  }), 1500);
 }
 void bootGate();

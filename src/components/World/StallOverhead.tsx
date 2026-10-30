@@ -271,10 +271,10 @@ function paintGround(g: Ctx) {
 interface Walker { x: number; y: number; v: number; kind: number; robe: string; t: number }
 
 export function StallOverhead({ onOpen, compact }: { onOpen?: () => void; compact?: boolean }) {
-  const g = useGame();
+  const inventory = useGame((s) => s.inventory);
+  const upgrades = useGame((s) => s.upgrades);
   const ref = useRef<HTMLCanvasElement>(null);
-  const shown = g.inventory.filter((i) => !i.restoringUntil).slice(0, 5).map((i) => i.typeId);
-  const upgrades = g.upgrades;
+  const shown = inventory.filter((i) => !i.restoringUntil).slice(0, 5).map((i) => i.typeId);
 
   useEffect(() => {
     const c = ref.current;
@@ -380,7 +380,7 @@ export function StallOverhead({ onOpen, compact }: { onOpen?: () => void; compac
       });
       // rolled rugs stacked along the back
       const rolls = ['#8e2a1c', '#2c3b6b', '#a8742a', '#6b2418', '#3e5a3a'];
-      for (let i = 0; i < Math.min(5, 2 + g.inventory.length); i++) {
+      for (let i = 0; i < Math.min(5, 2 + inventory.length); i++) {
         const ry = S.h - 12 + (i % 2) * 5, rx = 8 + i * 30;
         ctx.fillStyle = 'rgba(30,16,6,0.3)'; roundRect(ctx, rx + 3, ry + 3, 28, 11, 5); ctx.fill();
         const rg = ctx.createLinearGradient(0, ry, 0, ry + 11);

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
-import { useGame, clock, arrivalAt } from '../../game/state/store';
+import { useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { dateFor } from '../../game/economy/economy';
 import { District } from './District';
@@ -26,10 +26,9 @@ export const openStallNext = () => { memo.layer = 'giza'; memo.stall = true; };
 
 /** One continuous map: the region, zoom in to Giza's lanes, zoom in again to your stall. One clock runs through all of it. */
 export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIntent | null; frozen: boolean; onGo: (t: Target) => void; clearIntent?: () => void }) {
-  const g = useGame();
+  const at = useGame((s) => s.world.at);
   // picked once, so the map is not drawn afresh when its file arrives part way through
   const [WorldMap] = useState(() => worldMapReady ?? LazyWorldMap);
-  const at = g.world.at;
   const [layer, setLayerRaw] = useState<'giza' | 'world'>(() => {
     if (intent?.view === 'world' || at !== 'giza') return 'world';
     if (intent?.view === 'district') return 'giza';
@@ -51,11 +50,6 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
     const t = setTimeout(() => useGame.setState({ onboard: { ...(useGame.getState().onboard ?? {}), map: true } }), 1200);
     return () => clearTimeout(t);
   }, [layer]);
-  const hour = g.world.hour;
-  // someone at the stall (or a sale you stepped away from) waits for you; nothing pulls you there
-  const waiting = at === 'giza' && !g.encounter && !g.dayOver && !g.stallShut ? (g.held ? g.held.encounter.buyerId : g.visitIdx < g.queue.length && hour >= arrivalAt(g, g.visitIdx) ? g.queue[g.visitIdx] : null) : null;
-  const night = hour >= 20 || hour < 5;
-  const icon = night ? 'moon' : hour < 7 || hour >= 18 ? 'dawn' : 'sun';
   // Escape and the phone's Back fold the stall sheet away, back to the lane
   const sheet = useRef<HTMLDivElement>(null);
   useDialogEscape(sheet, () => setStall(false), stall && layer === 'giza');

@@ -2,7 +2,7 @@
 // (it writes them into index.html as preload hints, so they download alongside the code instead of
 // after it has started).
 
-/** Fetched behind the loading screen: the district's small copy and the stall screens of day one. */
+/** Fetched once the title is up (main.tsx), and first on Play: the district's small copy and the stall screens of day one. */
 export const BOOT_ART = [
   'art/world/giza-district-small.webp', 'art/stalls/giza-borrowed-768.webp', 'art/stalls/giza-borrowed.webp',
   'art/stalls/giza-borrowed-fg.webp', 'art/hero/outfits/classic-stall-stall.webp',

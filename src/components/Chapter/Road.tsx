@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../../game/state/store';
 import { rankOf, RANKS } from '../../game/economy/progress';
 import { MAIN_ORDER, MISSIONS, missionsDone } from '../../data/missions';
@@ -7,8 +8,8 @@ const UNLOCKS = ['', 'Fine households start coming to your stall (£6–£18 bud
 
 /** The road ahead: what the next rank asks for and what it opens. Always visible on the stall panel. */
 export function RoadCard({ onMap }: { onMap?: () => void }) {
-  const g = useGame();
-  const r = rankOf(g);
+  const g = useGame(useShallow((s) => { const rk = rankOf(s); return { idx: rk.idx, next: rk.next, worth: rk.worth, missions: s.missions, reputation: s.reputation, warrants: s.court.warrants.length }; }));
+  const r = g;
   const next = r.next;
   if (!next) return null;
   const done = missionsDone(g.missions);
@@ -18,7 +19,7 @@ export function RoadCard({ onMap }: { onMap?: () => void }) {
     { ok: !needMission, label: needMission ? `Story: ${active ? MISSIONS[active].title : 'the next mission'}` : 'Story mission done' },
     { ok: g.reputation >= next.rep, label: `Reputation ${Math.min(g.reputation, next.rep)} / ${next.rep}` },
     { ok: r.worth >= next.worth, label: `Net worth ${fmt(Math.min(r.worth, next.worth))} / ${fmt(next.worth)}` },
-    ...(next.warrants ? [{ ok: g.court.warrants.length >= next.warrants, label: `Royal warrants ${g.court.warrants.length} / ${next.warrants}` }] : []),
+    ...(next.warrants ? [{ ok: g.warrants >= next.warrants, label: `Royal warrants ${g.warrants} / ${next.warrants}` }] : []),
   ];
   return (
     <div className="road-card" data-testid="road-card">

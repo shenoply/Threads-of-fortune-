@@ -1,3 +1,4 @@
+import { memo } from 'react';
 const P: Record<string, string> = {
   scroll: 'M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4Zm0 0a2 2 0 0 0-2 2v2h2M9 9h7M9 13h7M9 17h4',
   crown: 'M4 18h16M5 15l-1-8 5 4 3-6 3 6 5-4-1 8H5Z',
@@ -55,10 +56,11 @@ const P: Record<string, string> = {
   dawn: 'M3 18h18M6 18a6 6 0 0 1 12 0M12 5v3M4.5 10.5l2 2M19.5 10.5l-2 2',
 };
 
-export function Icon({ name, className }: { name: string; className?: string }) {
+// memo: icons sit in every list and bar, and their two props are plain strings
+export const Icon = memo(function Icon({ name, className }: { name: string; className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={P[name] ?? P.star} />
     </svg>
   );
-}
+});

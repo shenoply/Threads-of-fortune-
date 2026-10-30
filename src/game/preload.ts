@@ -69,10 +69,16 @@ function next() {
   im.src = src;
 }
 
+// the game itself has opened (the stall's first pictures were asked for, App.tsx): what the title does not show waits for it
+let playing = false;
+const playWaiters: (() => void)[] = [];
+const onPlay = (fn: () => void) => { if (playing) fn(); else playWaiters.push(fn); };
+
 /** Queue pictures to fetch ahead of time; `soon` puts them at the front. */
 export function preload(srcs: string[], soon = false) {
   // the stall's first screens are asked for: the rest of the stall's pictures follow when the line is clear
   if (srcs.includes(STALL_ART[0])) {
+    playing = true; playWaiters.splice(0).forEach((f) => f());
     later.push(...STALL_LATER.filter((s) => !seen.has(s) && !later.includes(s)));
     afterSale.push(...STALL_AFTER_SALE.filter((s) => !seen.has(s) && !afterSale.includes(s)));
     watchSale();
@@ -204,7 +210,8 @@ export function installLookahead() {
   // the world map: its small painting as soon as the stall is up (95 KB), so the map never opens on an
   // empty frame; the sharp one after the first sale, or at once when it is already kept on the phone
   // (and the stall seen from above, which the map shows in its round window over Giza)
-  window.setTimeout(() => idle(() => { warmPaintedMap(swControlled()); preload(['art/opt/stall-top-1024.webp']); }), 4000);
+  // (not while the title is up: it does not show them)
+  onPlay(() => window.setTimeout(() => idle(() => { warmPaintedMap(swControlled()); preload(['art/opt/stall-top-1024.webp']); }), 4000));
   afterFirstSale(() => idle(() => {
     warmPaintedMap(true);
     // one more title picture for next time, the lightest ones first

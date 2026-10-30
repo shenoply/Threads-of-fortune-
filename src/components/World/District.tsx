@@ -476,16 +476,17 @@ const OBJECTIVE_BTNS = '[data-testid="first-hour-go"], [data-testid="objective-g
 
 export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false }: { onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
   const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
-  const g = useGame();
+  const heroLook = useGame((s) => s.heroLook);
+  const district = useGame((s) => s.world.district);
   // your marker on the walk: the same round face as the "Me" tab, kept in step with the wardrobe
-  const faceUrl = lookFor(g.heroLook);
+  const faceUrl = lookFor(heroLook);
   const faceRef = useRef(faceUrl); faceRef.current = faceUrl;
   const markerRef = useRef<PortraitMarker | null>(null);
   useEffect(() => { markerRef.current?.setFace(faceUrl); }, [faceUrl]);
   const box = useRef<HTMLDivElement>(null);
   const walked = useRef(0);
   const cvs = useRef<HTMLCanvasElement>(null);
-  const d0 = g.world.district;
+  const d0 = district;
   const initFog = useMemo(() => {
     if (d0?.fog && d0.fog.length === FW * FH) return d0.fog.split('').map((c) => c === '1');
     const f = new Array(FW * FH).fill(false);

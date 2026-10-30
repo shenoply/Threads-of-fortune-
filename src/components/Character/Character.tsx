@@ -1,5 +1,6 @@
 import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../../game/state/store';
 import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER, type SkillId } from '../../data/character';
 import { START_WARDROBE, heroCharisma, wornOutfit } from '../../data/wardrobe';
@@ -175,10 +176,10 @@ export function Titles() {
 
 /** "Speech increased to 4" and new titles, announced once, like in Kingdom Come. */
 export function LevelUpToast() {
-  const g = useGame();
+  const g = useGame(useShallow((s) => ({ busy: waitsTurn(s), levelUps: s.levelUps, titleNews: s.titleNews, popLevelUp: s.popLevelUp, popTitle: s.popTitle })));
   // held while a road fight or a card has the screen, then shown (game/cardTurn.ts)
   const hold = useHeld();
-  const wait = hold || waitsTurn(g);
+  const wait = hold || g.busy;
   const up = wait ? undefined : g.levelUps?.[0];
   const title = !up && !wait ? g.titleNews?.[0] : undefined;
   useEffect(() => {

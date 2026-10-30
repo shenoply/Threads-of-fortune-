@@ -2,6 +2,7 @@ import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
+import { useShallow } from 'zustand/react/shallow';
 import { MISSIONS, MAIN_ORDER, type MissionState } from '../../data/missions';
 import { useEffect } from 'react';
 import { GIVER_VOICE } from '../../data/jobs';
@@ -18,8 +19,8 @@ import { countdown, firstDue } from '../../game/firstWeek';
 /** Rashid's first-week instalment, as a short countdown at the end of the objective line; a tap opens his
  *  page at your father's debt. Nothing once it is paid. */
 function WeekDue({ onGo }: { onGo: (target?: string) => void }) {
-  const g = useGame();
-  const wk = firstDue(g.family, g.day);
+  const [family, day] = useGame(useShallow((s) => [s.family, s.day] as const));
+  const wk = firstDue(family, day);
   if (!wk) return null;
   // his page opens at the top; bring the debt into view once it is there
   const go = () => {
@@ -108,8 +109,9 @@ export function MissionCard({ onMap }: { onMap: () => void }) {
 
 /** a mission's goals as bars, in the objective's drop-down */
 function Goals({ m }: { m: (typeof MISSIONS)[string] }) {
-  const g = useGame();
-  const gs = m.goals?.(g as unknown as MissionState);
+  // read as plain strings, so the drop-down only re-renders when a count moves
+  const keys = useGame(useShallow((s) => (m.goals?.(s as unknown as MissionState) ?? []).map((x) => JSON.stringify([x.label, x.have, x.need]))));
+  const gs = keys.map((k) => { const [label, have, need] = JSON.parse(k) as [string, number, number]; return { label, have, need }; });
   if (!gs?.length) return <ol>{m.steps.map((s) => <li key={s}>{s}</li>)}</ol>;
   return (
     <ul className="ob-goals" data-testid="ob-goals">
@@ -125,11 +127,29 @@ export function goObjective(go: string, onGo: (target?: string) => void) {
   else if (go) onGo(go);
 }
 
+type GS = ReturnType<typeof useGame.getState>;
+const objectiveView = (s: GS) => {
+  const st = s as unknown as MissionState;
+  const activeId = MAIN_ORDER.find((m) => s.missions?.[m] === 'active');
+  const am = activeId ? MISSIONS[activeId] : undefined;
+  const msId = activeMilestone(s.missions);
+  const ms = msId ? MILESTONES[msId] : undefined;
+  const msNext = ms?.next?.(st);
+  const mNext = am?.next?.(st);
+  return {
+    news: s.missionNews, day: s.day, missionTold: s.missionTold, at: s.world.at, due: !!firstDue(s.family, s.day),
+    activeId, msId, mWaits: !!am?.waits?.(st),
+    msHint: ms?.hint(st), msNextGo: msNext?.go, msNextBtn: msNext?.btn,
+    mHint: am?.hint(st), mNextGo: mNext?.go, mNextBtn: mNext?.btn,
+  };
+};
+
 /** One objective at a time, in one line under the top bar: new mission news first, then the mission, then the first-hour step, then a job. */
 export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; skip?: () => void } | null; onMenu?: () => void }) {
-  const g = useGame();
+  // what the line shows, worked out from the store as plain values (the clock moving on the road does not re-render it)
+  const g = useGame(useShallow(objectiveView));
   const [open, setOpen] = useState(false);
-  const news = g.missionNews;
+  const news = g.news;
   useEffect(() => {
     const mm = news ? MISSIONS[news.replace('-done', '')] : undefined;
     const sp = mm && GIVER_VOICE[mm.giver];
@@ -155,14 +175,14 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
   useEffect(() => {
     if (!news || news === 'house-done') { newsDay.current = null; seenOpen.current = false; return; }
     if (newsDay.current?.id !== news) { newsDay.current = { id: news, day: g.day }; seenOpen.current = false; return; }
-    if (g.day > newsDay.current.day) g.clearMissionNews();
+    if (g.day > newsDay.current.day) useGame.getState().clearMissionNews();
   }, [news, g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!news || news === 'house-done') return;
     if (open) seenOpen.current = true;
-    else if (seenOpen.current) { seenOpen.current = false; g.clearMissionNews(); }
+    else if (seenOpen.current) { seenOpen.current = false; useGame.getState().clearMissionNews(); }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  const activeId = MAIN_ORDER.find((m) => g.missions?.[m] === 'active');
+  const activeId = g.activeId;
   const nm = news ? MISSIONS[news.replace('-done', '')] : undefined;
   // the last chapter gets a proper ending, not a one-line strip
   if (news === 'house-done') return <HouseEnding onMenu={onMenu} />;
@@ -176,7 +196,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
             <b>{nm.title}</b>
             <Icon name={open ? 'up' : 'down'} />
           </button>
-          <button className="btn ob-btn" onClick={() => { setOpen(false); g.clearMissionNews(); }} data-testid="mission-ok">{done ? 'Good' : 'Noted'}</button>
+          <button className="btn ob-btn" onClick={() => { setOpen(false); useGame.getState().clearMissionNews(); }} data-testid="mission-ok">{done ? 'Good' : 'Noted'}</button>
         </div>
         {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button>{done ? <><p>{g.missionTold?.[nm.id] ? `${g.missionTold[nm.id]} ` : ''}{nm.reward.text}</p><p className="mission-reward">{rewardLine(nm.reward)}</p></> : <><p>{nm.brief}</p><ol>{nm.steps.map((x) => <li key={x}>{x}</li>)}</ol>{nm.locks && <p className="mission-lock">{nm.locks}</p>}</>}</div>}
       </div>
@@ -196,16 +216,16 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
   }
   // the current milestone takes the line when there is no main mission, or the main mission is only
   // waiting on reputation; otherwise it is one line in the drop-down
-  const msId = activeMilestone(g.missions);
+  const msId = g.msId;
   const ms = msId ? MILESTONES[msId] : undefined;
-  if (ms && (!activeId || MISSIONS[activeId].waits?.(g as unknown as MissionState))) {
-    const nx = ms.next?.(g as unknown as MissionState);
+  if (ms && (!activeId || g.mWaits)) {
+    const nx = g.msNextGo !== undefined ? { go: g.msNextGo, btn: g.msNextBtn! } : null;
     return (
       <div ref={barRef} className={`objective-bar goal ${open ? 'open' : ''}`} data-testid="milestone-bar">
         <div className="ob-row">
           <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="milestone-expand">
             <small>Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}</small>
-            <b>{ms.hint(g as unknown as MissionState)}</b>
+            <b>{g.msHint}</b>
             <Icon name={open ? 'up' : 'down'} />
           </button>
           {nx && <button className="btn ob-btn" onClick={() => goObjective(nx.go, onGo)} data-testid="milestone-go">{nx.btn}</button>}
@@ -215,7 +235,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
             <p><b>{ms.title}.</b> {ms.brief}</p>
             <ol>{ms.steps.map((x) => <li key={x}>{x}</li>)}</ol>
             <p className="mission-reward">Reward: {ms.opens}.</p>
-            {activeId && <p className="mission-lock">Main mission: {MISSIONS[activeId].title}. {MISSIONS[activeId].hint(g as unknown as MissionState)}</p>}
+            {activeId && <p className="mission-lock">Main mission: {MISSIONS[activeId].title}. {g.mHint}</p>}
           </div>
         )}
       </div>
@@ -223,9 +243,9 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
   }
   if (activeId) {
     const m = MISSIONS[activeId];
-    const hint = m.hint ? m.hint(g) : m.steps[0];
+    const hint = g.mHint;
     // a step that has to come first (pack the rug, hire the guards) gets its own button instead of the Map
-    const nx = m.next?.(g as unknown as MissionState);
+    const nx = g.mNextGo !== undefined ? { go: g.mNextGo, btn: g.mNextBtn! } : null;
     return (
       <div ref={barRef} className={`objective-bar ${open ? 'open' : ''}`} data-testid="mission-banner">
         <div className="ob-row">
@@ -235,14 +255,14 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
             <Icon name={open ? 'up' : 'down'} />
           </button>
           {nx ? <button className="btn ob-btn" onClick={() => goObjective(nx.go, onGo)} data-testid="objective-go">{nx.btn}</button>
-            : m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.world.at === m.target ? 'Go' : 'Map'}</button>}
+            : m.target && <button className="btn ob-btn" onClick={() => onGo(m.target)} data-testid="objective-go">{g.at === m.target ? 'Go' : 'Map'}</button>}
         </div>
-        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><Goals m={m} />{ms && <p className="mission-lock" data-testid="ob-goal">Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}, {ms.title}: {ms.hint(g as unknown as MissionState)} Reward: {ms.opens}.</p>}</div>}
+        {open && <div className="ob-more"><button className="ob-x" onClick={() => setOpen(false)} aria-label="Close" data-testid="ob-close">×</button><p><b>{m.title}.</b> {m.brief}</p><Goals m={m} />{ms && <p className="mission-lock" data-testid="ob-goal">Goal {MILESTONE_ORDER.indexOf(msId!) + 1}/{MILESTONE_ORDER.length}, {ms.title}: {g.msHint} Reward: {ms.opens}.</p>}</div>}
       </div>
     );
   }
   // nothing else in hand: Rashid's instalment is the objective
-  if (firstDue(g.family, g.day)) {
+  if (g.due) {
     return (
       <div className="objective-bar" data-testid="week-bar">
         <div className="ob-row">
@@ -259,7 +279,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
  * for Cohen. The main objective stays in charge; these only keep a promise in sight.
  */
 export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only?: 'arran' }) {
-  const g = useGame();
+  const g = useGame(useShallow((s) => ({ arranBooks: s.arranBooks, arranVisit: s.arranVisit, cargo: s.cargo, cohen: s.cohen, at: s.world.at })));
   const [sideOpen, setSideOpen] = useState(false);
   const items: { id: string; text: string; target?: string }[] = [];
   for (const id of BOOK_ORDER) {
@@ -281,7 +301,7 @@ export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only
   if (only !== 'arran' && o?.status === 'accepted') items.push({ id: 'cohen', text: `Cohen's order: two corridor rugs by ${dateFor(o.dueDay).short}`, target: 'giza' });
   if (!items.length) return null;
   // one line at a time: the errand that matters most (one for the town you are in first), the rest behind "+N"
-  const at = g.world.at;
+  const at = g.at;
   const ordered = [...items.filter((t) => t.target === at), ...items.filter((t) => t.target !== at)];
   const shown = sideOpen ? ordered : ordered.slice(0, 1);
   return (
@@ -323,11 +343,17 @@ export function MilestoneNotice() {
 /** A mission's closing scene: who, what happens, and a choice that decides how it ends. It comes only
  *  when you have done what the mission asked, and closes the mission when you choose. */
 export function MissionScene() {
-  const g = useGame();
-  const id = g.missionScene;
-  const m = id ? MISSIONS[id] : undefined;
+  // the whole store is read only while a scene is up
+  const id = useGame((s) => s.missionScene);
   const [told, setTold] = useState<string | null>(null);
   const [pic, setPic] = useState(true);
+  if (!id) return null;
+  return <SceneCard id={id} told={told} setTold={setTold} pic={pic} setPic={setPic} />;
+}
+
+function SceneCard({ id, told, setTold, pic, setPic }: { id: string; told: string | null; setTold: (t: string | null) => void; pic: boolean; setPic: (p: boolean) => void }) {
+  const g = useGame();
+  const m = id ? MISSIONS[id] : undefined;
   // gone stale (the rug sold before the choice, a reload): put it away until the condition holds again
   useEffect(() => { if (id && m && !told && !(m.check?.(g as unknown as MissionState) ?? true)) useGame.setState({ missionScene: undefined }); });
   if (!id || !m?.scene) return null;

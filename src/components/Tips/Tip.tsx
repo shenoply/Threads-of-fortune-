@@ -12,11 +12,11 @@ const subscribe = (f: () => void) => { listeners.add(f); return () => { listener
 
 /** Shows a tip the first time its moment comes. */
 export function Tip({ id, when = true }: { id: string; when?: boolean }) {
-  const g = useGame();
-  const eligible = when && g.started && g.tutorial.done && !(g.tipsSeen ?? []).includes(id) && !!TIPS[id];
+  const eligible = useGame((g) => when && g.started && g.tutorial.done && !(g.tipsSeen ?? []).includes(id) && !!TIPS[id]);
+  const seeTip = useGame((g) => g.seeTip);
   const showing = useSyncExternalStore(subscribe, () => current);
   // tips no longer pop up over the game: they are marked as read quietly, and live in How to play
-  useEffect(() => { if (eligible) g.seeTip(id); }, [eligible, id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (eligible) seeTip(id); }, [eligible, id]); // eslint-disable-line react-hooks/exhaustive-deps
   void claim; void showing;
   if (eligible || !eligible) return null;
   const t = TIPS[id];
@@ -25,7 +25,7 @@ export function Tip({ id, when = true }: { id: string; when?: boolean }) {
       <small>TIP</small>
       <b>{t.title}</b>
       {t.lines.map((l) => <p key={l}>{l}</p>)}
-      <button className="btn" onClick={() => { g.seeTip(id); release(id); }} data-testid="tip-ok">Got it</button>
+      <button className="btn" onClick={() => { seeTip(id); release(id); }} data-testid="tip-ok">Got it</button>
     </div>
   );
 }

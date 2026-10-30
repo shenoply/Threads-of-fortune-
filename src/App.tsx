@@ -37,6 +37,7 @@ import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
 import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame, dateFor, clock, forceSave, FULL_SIM, SAVE_VERSION, FAMILY_GRACE, type SimSettings } from './game/state/store';
 import * as storeModule from './game/state/store';
 import { SAVE_KEY, BEFORE_LOAD_KEY, SAVE_FAILED_EVENT, SAVE_OK_EVENT, OTHER_TAB_EVENT, saveFailedNow, otherTabActive, blockSaves, memorySave, checkSave, readKey, writeKey } from './game/state/saveGuard';
@@ -122,14 +123,81 @@ const TITLE_BGS: { src: string; place: string; pos?: string }[] = [
 
 type Phase = 'title' | 'documentary' | 'dayone' | 'game';
 
+type AppState = ReturnType<typeof useGame.getState>;
+type Warn = { kind: 'debt' | 'ill' | 'food' | 'rashid' | 'pay' | 'body'; text: string };
+// money trouble shows in the top bar: an empty purse, a late bill, a loan past due, the creditors
+const inDebtOf = (g: AppState) => g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day, (g.family?.due ?? 0) > 0 && g.day - (g.family?.since ?? 0) >= FAMILY_GRACE ? g.family!.due : 0) > 0);
+// one warning in the top bar, only when something cannot wait: money overdue, an illness, a caravan
+// nearly out of food, a payment due within two days, or a man close to collapse. Worded, never an icon.
+const warnOf = (g: AppState): Warn | null => {
+  if (!g.started || !g.tutorial.done) return null;
+  if (inDebtOf(g)) return { kind: 'debt', text: 'Money overdue' };
+  const ills = g.illnesses ?? [];
+  if (ills.length) return { kind: 'ill', text: ills.length === 1 ? `Ill: ${DISEASE(ills[0].id)?.name ?? 'unwell'}` : `${ills.length} ailments` };
+  const p = g.world.party;
+  if (troopCount(p) > 0 || animalCount(p) > 0) {
+    const d = foodDaysLeft(p);
+    if (d < 2) return { kind: 'food', text: d <= 0 ? 'Out of food' : 'Food for 1 day' };
+  }
+  const inDays = (n: number) => (n <= 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`);
+  const fw = firstDue(g.family, g.day);
+  if (fw && fw.days <= 2) return { kind: 'rashid', text: `Rashid ${fmt(fw.owed)} ${inDays(fw.days)}` };
+  const loan = (g.loans ?? []).filter((l) => l.due - g.day <= 2).sort((a, b) => a.due - b.due)[0];
+  if (loan) return { kind: 'pay', text: `Loan due ${inDays(loan.due - g.day)}` };
+  if ((g.family?.due ?? 0) > 0) { const left = FAMILY_GRACE - (g.day - (g.family?.since ?? 0)); if (left <= 2) return { kind: 'pay', text: `Instalment due ${inDays(left)}` }; }
+  if ((g.bills?.due ?? 0) > 0) { const left = 5 - (g.day - (g.bills?.since ?? 0)); if (left <= 2) return { kind: 'pay', text: `Rent due ${inDays(left)}` }; }
+  const needsOn = !g.sim || g.sim.needs || !!g.ironman;
+  const w = wellness(g.condition);
+  if (needsOn && w.tired === 'bad') return { kind: 'body', text: 'Worn out: rest' };
+  if (needsOn && w.hungry === 'bad') return { kind: 'body', text: 'Hungry: eat' };
+  if (needsOn && w.thirsty === 'bad') return { kind: 'body', text: 'Thirsty: drink' };
+  return null;
+};
+/** What App shows, read from the store as plain values: the world clock and the caravan move several
+ *  times a second on the road, and App (with every screen under it) only re-renders when one of these changes. */
+const appView = (g: AppState) => {
+  const warn = warnOf(g);
+  const fh = firstHourStep(g);
+  const hour = g.world.hour;
+  return {
+    started: g.started, day: g.day, cash: g.cash, reputation: g.reputation, ironman: g.ironman, playMode: g.playMode,
+    settings: g.settings, volumes: g.volumes, autosaveOn: g.autosaveOn, sim: g.sim, encounter: g.encounter, dayOver: g.dayOver,
+    visitIdx: g.visitIdx, queue: g.queue, upgrades: g.upgrades, stallLook: g.stallLook, stallSpots: g.stallSpots,
+    tutorialDone: g.tutorial.done, onboard: g.onboard, illCount: (g.illnesses ?? []).length, ended: g.ended, rescue: g.rescue,
+    jobNote: g.jobNote, lastSummary: g.lastSummary, dayStats: g.dayStats, billsDue: g.bills?.due, ruin: g.ruin, bankruptcies: g.bankruptcies,
+    introSeen: g.introSeen, momentsSeen: g.momentsSeen, dreamsLast: g.dreams?.last, wardrobe: g.wardrobe, heroLook: g.heroLook,
+    newsSeen: g.newsSeen, held: g.held,
+    at: g.world.at,
+    // the clock only as far as App uses it: the stall closes at eight, Malek serves supper until nine, the lane thins at five and seven
+    late: hour >= 20, supper: hour < 21, dusk: hour >= 19 ? 0.45 : hour >= 17 ? 0.7 : 1,
+    journeyOn: !!g.journey, onRoad: !!g.journey && !g.journey.train && !g.journey.mode,
+    sales: g.ledger.filter((l) => l.kind === 'sale').length,
+    firstDays: !!openingStep(g),
+    // the Caravan tab stands dimmed until men and animals first matter (game/unlocks.ts)
+    caravanOpen: isOpen(g, 'caravan'),
+    progressNew: progressScore(g) > (g.merchantSeen ?? 0),
+    levelTip: Object.values(g.skills ?? {}).some((x) => levelOf(x ?? 0) >= 2),
+    warnKind: warn?.kind, warnText: warn?.text,
+    fhText: fh?.text, fhBtn: fh?.btn, fhN: fh?.n, fhOf: fh?.of, fhGo: fh?.go,
+    setVolume: g.setVolume, setSetting: g.setSetting, beginDayOne: g.beginDayOne, seeTip: g.seeTip, skipTutorial: g.skipTutorial,
+    markGuide: g.markGuide, endDay: g.endDay, setAutosave: g.setAutosave, setSim: g.setSim, reset: g.reset,
+  };
+};
+/** the top bar's clock: the one part of App that follows the minutes */
+function HudClock() {
+  const t = useGame((s) => `${clock(s.world.hour)} ${dateFor(s.day).weekday.slice(0, 3)}`);
+  return <>{t}</>;
+}
+
 export default function App() {
-  const g = useGame();
+  const g = useGame(useShallow(appView));
   // the save: zustand writes it to localStorage on every change; this is only so the player can see
   // that, keep a copy as a file, and bring a copy back
   const [savedAt, setSavedAt] = useState('');
+  // the label is kept in a ref and shown when Settings opens: setting it on every change re-rendered the whole game
+  const savedAtRef = useRef('');
+  const settingsOpen = useRef(false);
   const [finance, setFinance] = useState(false);
-  // money trouble shows in the top bar: an empty purse, a late bill, a loan past due, the creditors
-  const inDebt = g.started && ((g.ruin?.stage ?? 0) > 0 || overdue(g.cash, g.bills?.due ?? 0, (g.bills?.due ?? 0) > 0 && g.day - (g.bills?.since ?? 0) >= 5, g.loans ?? [], g.day, (g.family?.due ?? 0) > 0 && g.day - (g.family?.since ?? 0) >= FAMILY_GRACE ? g.family!.due : 0) > 0);
   // the creditors' road, once a lawyer's letter has gone out: 0 at the letter, 100 the moment the
   // court would declare you bankrupt. A second bankruptcy ends the game for good, so that one gets
   // the starkest framing.
@@ -158,7 +226,7 @@ export default function App() {
   // the label waits a moment and is only moved on when the write went through.
   useEffect(() => useGame.subscribe(() => {
     if (useGame.getState().autosaveOn === false) return;
-    window.setTimeout(() => { if (failedNow()) { setSaveFail(true); return; } if (!otherTabActive()) setSavedAt(stamp()); }, 0);
+    window.setTimeout(() => { if (failedNow()) { setSaveFail(true); return; } if (!otherTabActive()) { savedAtRef.current = stamp(); if (settingsOpen.current) setSavedAt(savedAtRef.current); } }, 0);
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
   // the save as text: from disk, or from memory when the disk copy is out of date (a write failed)
   const liveSave = (): string | null => (failedNow() || !readKey(SAVE_KEY) ? memorySave(useGame.getState(), SAVE_VERSION) : readKey(SAVE_KEY));
@@ -230,7 +298,7 @@ export default function App() {
     clearSlot(n); refreshSlots();
   };
   // the stall, the merchant and the next few customers are fetched ahead, so nobody pops in late
-  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3), lookUps(g)); }, [g.started, g.queue, g.visitIdx, g.upgrades, g.stallLook]);
+  useEffect(() => { if (g.started) preloadStall(g.queue.slice(g.visitIdx, g.visitIdx + 3), lookUps(useGame.getState())); }, [g.started, g.queue, g.visitIdx, g.upgrades, g.stallLook]);
   const [phase, setPhase] = useState<Phase>('title');
   const [titleOpts, setTitleOpts] = useState(false);
   const [sbx, setSbx] = useState<'' | 'choose' | 'yourself'>('');
@@ -296,7 +364,7 @@ export default function App() {
     const i = f.indexOf(document.activeElement as HTMLElement);
     if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
   };
-  useEffect(() => { if (settings) refreshSlots(); }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { settingsOpen.current = settings; if (settings) { refreshSlots(); setSavedAt(savedAtRef.current); } }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
   const [msub, setMsub] = useState<MerchantSub>('road');
   const [guide, setGuide] = useState(false);
   const [guideAt, setGuideAt] = useState(0);
@@ -345,14 +413,14 @@ export default function App() {
     if (g.day === dreamDay.current) return;
     const slept = g.day > dreamDay.current;
     dreamDay.current = g.day;
-    if (!slept || !g.started || !g.tutorial.done || g.day < 6 || navigator.webdriver) return;
-    if (g.day - (g.dreams?.last ?? 0) < 9 || Math.random() > 0.08) return;
+    if (!slept || !g.started || !g.tutorialDone || g.day < 6 || navigator.webdriver) return;
+    if (g.day - (g.dreamsLast ?? 0) < 9 || Math.random() > 0.08) return;
     window.setTimeout(() => window.dispatchEvent(new Event('tof:dream')), 600);
   }, [g.day]); // eslint-disable-line react-hooks/exhaustive-deps
   // the short films (components/Moment): the first sale once the buyer has gone, the first caravan out
-  const firstSold = g.ledger.filter((l) => l.kind === 'sale').length === 1;
+  const firstSold = g.sales === 1;
   useEffect(() => { if (firstSold && !g.encounter && !(g.momentsSeen ?? []).includes('first-sale')) window.dispatchEvent(new CustomEvent('tof:moment', { detail: 'first-sale' })); }, [firstSold, g.encounter]); // eslint-disable-line react-hooks/exhaustive-deps
-  const onRoad = !!g.journey && !g.journey.train && !g.journey.mode;
+  const onRoad = g.onRoad;
   useEffect(() => { if (onRoad && !(g.momentsSeen ?? []).includes('caravan-road')) window.dispatchEvent(new CustomEvent('tof:moment', { detail: 'caravan-road' })); }, [onRoad]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mapIntent, setMapIntent] = useState<MapIntent | null>(null);
   // the map clock stops while you read, listen, or look at a menu
@@ -416,12 +484,12 @@ export default function App() {
   };
   const [loadOpen, setLoadOpen] = useState(false);
   const toastTimer = useRef<number>();
-  const illCount = useRef((g.illnesses ?? []).length);
+  const illCount = useRef(g.illCount);
   useEffect(() => {
-    const n = (g.illnesses ?? []).length;
+    const n = g.illCount;
     if (n > illCount.current) toast('You have fallen ill. Tap the strip under the header, or see Dr Feras in Cairo.');
     illCount.current = n;
-  }, [(g.illnesses ?? []).length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [g.illCount]); // eslint-disable-line react-hooks/exhaustive-deps
   const toast = (m: string) => {
     if (!m) return;
     // one short line at the top, gone in a few seconds: the first sentence carries the news (and any
@@ -438,41 +506,14 @@ export default function App() {
     toastTimer.current = window.setTimeout(() => setToast(''), Math.min(money ? 4500 : 3500, Math.max(2500, m.length * 50)));
   };  toastRef.current = toast;
 
-  const tutorialActive = !g.tutorial.done;
-  const firstDays = !!openingStep(g);
-  // the Caravan tab stands dimmed until men and animals first matter (game/unlocks.ts)
-  const caravanOpen = isOpen(g, 'caravan');
+  const tutorialActive = !g.tutorialDone;
+  const firstDays = g.firstDays;
+  const caravanOpen = g.caravanOpen;
   // the first-day tour points at the button to press next
   // (not while the opening runs: its own steps say what to do, and two guides glowing at once confused testers)
-  const tourStep = g.tutorial.done && !firstDays ? (['news', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
+  const tourStep = g.tutorialDone && !firstDays ? (['news', 'rashid', 'map'] as const).find((k) => !g.onboard?.[k]) : undefined;
   const tourNav: Record<string, string> = { buyers: 'ledger', rashid: 'supplier', map: 'map' };
-  // one warning in the top bar, only when something cannot wait: money overdue, an illness, a caravan
-  // nearly out of food, a payment due within two days, or a man close to collapse. Worded, never an icon.
-  type Warn = { kind: 'debt' | 'ill' | 'food' | 'rashid' | 'pay' | 'body'; text: string };
-  const warn: Warn | null = (() => {
-    if (!g.started || tutorialActive) return null;
-    if (inDebt) return { kind: 'debt', text: 'Money overdue' };
-    const ills = g.illnesses ?? [];
-    if (ills.length) return { kind: 'ill', text: ills.length === 1 ? `Ill: ${DISEASE(ills[0].id)?.name ?? 'unwell'}` : `${ills.length} ailments` };
-    const p = g.world.party;
-    if (troopCount(p) > 0 || animalCount(p) > 0) {
-      const d = foodDaysLeft(p);
-      if (d < 2) return { kind: 'food', text: d <= 0 ? 'Out of food' : 'Food for 1 day' };
-    }
-    const inDays = (n: number) => (n <= 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`);
-    const fw = firstDue(g.family, g.day);
-    if (fw && fw.days <= 2) return { kind: 'rashid', text: `Rashid ${fmt(fw.owed)} ${inDays(fw.days)}` };
-    const loan = (g.loans ?? []).filter((l) => l.due - g.day <= 2).sort((a, b) => a.due - b.due)[0];
-    if (loan) return { kind: 'pay', text: `Loan due ${inDays(loan.due - g.day)}` };
-    if ((g.family?.due ?? 0) > 0) { const left = FAMILY_GRACE - (g.day - (g.family?.since ?? 0)); if (left <= 2) return { kind: 'pay', text: `Instalment due ${inDays(left)}` }; }
-    if ((g.bills?.due ?? 0) > 0) { const left = 5 - (g.day - (g.bills?.since ?? 0)); if (left <= 2) return { kind: 'pay', text: `Rent due ${inDays(left)}` }; }
-    const needsOn = !g.sim || g.sim.needs || !!g.ironman;
-    const w = wellness(g.condition);
-    if (needsOn && w.tired === 'bad') return { kind: 'body', text: 'Worn out: rest' };
-    if (needsOn && w.hungry === 'bad') return { kind: 'body', text: 'Hungry: eat' };
-    if (needsOn && w.thirsty === 'bad') return { kind: 'body', text: 'Thirsty: drink' };
-    return null;
-  })();
+  const warn: Warn | null = g.warnKind ? { kind: g.warnKind, text: g.warnText ?? '' } : null;
   /** the warning chip takes the player to the trouble itself */
   const goWarn = (w: Warn) => {
     audio.sfx('tap');
@@ -485,14 +526,18 @@ export default function App() {
   useEffect(() => {
     // the music follows where you are (in a town, or out on the road), not which screen is open:
     // looking at the map or your stock does not change the score
-    audio.setScene(g.world.at ? 'market' : 'road');
-  }, [g.world.at]);
+    audio.setScene(g.at ? 'market' : 'road');
+  }, [g.at]);
+  // the clock follows the store directly: App does not re-render for every minute on the road
   useEffect(() => {
-    audio.setClock(g.world.hour, g.dayOver);
-  }, [g.world.hour, g.dayOver]);
+    let h = NaN, d: boolean | undefined;
+    const on = (s: AppState) => { if (s.world.hour !== h || s.dayOver !== d) { h = s.world.hour; d = s.dayOver; audio.setClock(h, d); } };
+    on(useGame.getState());
+    return useGame.subscribe(on);
+  }, []);
   // the lane's crowd follows the day and your name: a quiet corner at first, a busy stall once you are known
   // ...and thins out as the light goes: after five the lane empties, after seven it is nearly still
-  const dusk = g.world.hour >= 19 ? 0.45 : g.world.hour >= 17 ? 0.7 : 1;
+  const dusk = g.dusk;
   // the Eid days have their own music and a cue in the lane
   useEffect(() => { audio.setFeast(eventsOn(g.day).some((e) => /^Eid/i.test(e.name)), g.day); }, [g.day]);
   // the Day One card: the town track begins as the opening film closes, not after the lane has loaded
@@ -540,7 +585,7 @@ export default function App() {
   const shownEnc = useRef<string | null>(null);
   if (tab === 'stall' && g.encounter) shownEnc.current = g.encounter.id;
   useEffect(() => {
-    if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.world.at === 'giza' && shownEnc.current !== g.encounter.id) {
+    if (phase === 'game' && g.encounter && !g.encounter.venue && tab === 'map' && g.at === 'giza' && shownEnc.current !== g.encounter.id) {
       shownEnc.current = g.encounter.id;
       setTab('stall');
     }
@@ -549,17 +594,17 @@ export default function App() {
   // Resume a saved game: bring the next buyer in.
   useEffect(() => {
     // at the stall, a customer who has arrived walks straight up; otherwise the stall waits
-    if (phase === 'game' && g.started && !g.encounter && !g.dayOver && !g.journey && g.world.at === 'giza' && (tab === 'stall' || tab === 'map') && !frozen) {
+    if (phase === 'game' && g.started && !g.encounter && !g.dayOver && !g.journeyOn && g.at === 'giza' && (tab === 'stall' || tab === 'map') && !frozen) {
       // the stall day ends at eight in the evening, not when the last customer has been
       // served — but not while you're already on the road out of Giza (g.journey): the
       // evening-strip would otherwise snap down mid-journey and freeze travel in place,
       // with no obvious way out ("stuck, won't move").
-      if (g.world.hour >= 20) useGame.setState({ dayOver: true });
+      if (g.late) useGame.setState({ dayOver: true });
       // a customer who arrives waits at the stall; you choose when to serve them
     }
     // a sale is over: back to the lane, with the stall open
-    if (phase === 'game' && tab === 'stall' && g.tutorial.done && !g.encounter && !g.dayOver) { if (!g.held) openStallNext(); setTab('map'); }
-  }, [phase, g.started, g.encounter, g.dayOver, g.journey, g.visitIdx, g.queue.length, g, tab, g.world.hour]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (phase === 'game' && tab === 'stall' && g.tutorialDone && !g.encounter && !g.dayOver) { if (!g.held) openStallNext(); setTab('map'); }
+  }, [phase, g.started, g.encounter, g.dayOver, g.journeyOn, g.at, g.visitIdx, g.queue.length, g.late, g.tutorialDone, g.held, frozen, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the hero as he is dressed now, ready before the wardrobe or a mirror shows him
   useEffect(() => {
@@ -569,7 +614,7 @@ export default function App() {
   }, [phase, g.wardrobe]);
 
   // the wireless stays at the stall: leaving Giza switches it off
-  useEffect(() => { if (g.world.at !== 'giza') radio.stop(); }, [g.world.at]);
+  useEffect(() => { if (g.at !== 'giza') radio.stop(); }, [g.at]);
 
   // today's customers: fetch their pictures before they walk up, the next one first
   useEffect(() => {
@@ -663,22 +708,29 @@ export default function App() {
   const quietNews = (() => { try { return localStorage.getItem('tof-skip-chapters') === '1' && localStorage.getItem('tof-news') !== '1'; } catch { return false; } })();
   // big news the player has not been told yet (BigNews makes the same test), not in the middle of a sale
   // test runs that jump between dates (the old developer switch) leave the news card out unless they ask for it
-  const newsUp = !quietNews && !g.journey && !(g.encounter && !g.encounter.outcome) && freshNews(g.day, g.newsSeen ?? []).length > 0;
+  const newsUp = !quietNews && !g.journeyOn && !(g.encounter && !g.encounter.outcome) && freshNews(g.day, g.newsSeen ?? []).length > 0;
   // the night's summary card is up (the same test DaySummary makes before it shows itself)
   const summaryUp = !!g.lastSummary && !g.lastSummary.seen && (g.lastSummary.notes.some((n) => n.trim()) || g.lastSummary.sales > 0 || g.lastSummary.revenue > 0);
   // the purse and reputation roll to their new value (feel.ts); tests read data-pt / data-v
   // the stall as it is dressed and the rugs you carry, fetched as soon as the game is open, so
   // the stall shows dressed at once instead of filling in piece by piece
+  // (on the title they wait a few seconds and ask quietly: the title does not show them, and its own picture comes first)
   useEffect(() => {
     if (phase !== 'game' && phase !== 'title') return;
-    const srcs = [...stallDressing(g), ...g.inventory.slice(0, 8).map((it) => RUGS[it.typeId]).filter(Boolean).map((t) => rugThumb(t))];
-    for (const src of srcs) { const im = new Image(); (im as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'high'; im.src = src; }
+    const go = () => {
+      const st = useGame.getState();
+      const srcs = [...stallDressing(st), ...st.inventory.slice(0, 8).map((it) => RUGS[it.typeId]).filter(Boolean).map((t) => rugThumb(t))];
+      for (const src of srcs) { const im = new Image(); if (phase === 'game') (im as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'high'; im.src = src; }
+    };
+    if (phase === 'game') { go(); return; }
+    const t = window.setTimeout(go, 4000);
+    return () => window.clearTimeout(t);
   }, [phase, g.day, g.stallSpots]); // eslint-disable-line react-hooks/exhaustive-deps
   const cashT = useTween(g.cash);
   const repT = useTween(g.reputation);
   const vibrate = useVibration();
   // on the map in a town, fetch the screens opened next (Malek, the cafe, the telegraph) in a quiet moment
-  useEffect(() => { if (phase === 'game' && tab === 'map' && g.world.at) prefetchNextScreens(); }, [phase, tab, g.world.at]);
+  useEffect(() => { if (phase === 'game' && tab === 'map' && g.at) prefetchNextScreens(); }, [phase, tab, g.at]);
   const [cashFlash, setCashFlash] = useState(false);
   const prevCash = useRef(g.cash);
   useEffect(() => {
@@ -853,8 +905,8 @@ export default function App() {
       <div className="purse-mood" aria-hidden="true" />
       <header className={`hud ${warn ? 'has-warn' : ''}`}>
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
-          {(() => { const nm = shortName(g.world.at); return <b className={nm.length > 11 ? 'long' : nm.length > 5 ? 'mid' : undefined}>{nm}</b>; })()}
-          <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · One life</i> : null}</span>
+          {(() => { const nm = shortName(g.at); return <b className={nm.length > 11 ? 'long' : nm.length > 5 ? 'mid' : undefined}>{nm}</b>; })()}
+          <span data-testid="map-clock"><Icon name="calendar" /> <HudClock />{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · One life</i> : null}</span>
         </button>
         <div className="hud-stats">
           {/* the purse: tap for the money book (what came in, what went out) */}
@@ -905,7 +957,7 @@ export default function App() {
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
           Progress, Stock and Caravan they only took room from the page */}
       {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
-        const fh = firstHourStep(g);
+        const fh = g.fhText !== undefined ? { text: g.fhText, btn: g.fhBtn!, n: g.fhN!, of: g.fhOf!, go: g.fhGo! } : null;
         return (
           <ObjectiveBar onMenu={() => { forceSave(); audio.stopAll(); setPhase('title'); }}
             onGo={(t) => t && chapterGo(t as Target)}
@@ -922,14 +974,14 @@ export default function App() {
       )}
       {upgradesOpen && <UpgradesSheet onClose={() => setUpgradesOpen(false)} />}
       <main ref={mainRef} style={{ minHeight: 0, display: 'grid' }}>
-        {tab === 'stall' && (g.world.at === 'giza' ? (
+        {tab === 'stall' && (g.at === 'giza' ? (
           !g.encounter && !g.dayOver ? <StallIdle onGo={chapterGo} /> :
           <StallEncounter onGoto={(t) => setTab(t)} />
         ) : (
           <div className="screen away" data-testid="away">
             <div className="screen-head"><div>
               <div className="eyebrow">YOUR CORNER IS CLOSED</div>
-              <h2>{g.world.at ? `You are in ${settlementById(g.world.at).name}` : 'You are on the road'}</h2>
+              <h2>{g.at ? `You are in ${settlementById(g.at).name}` : 'You are on the road'}</h2>
               <p>Samira, Yusuf and Mariam can only find you in Giza. Rent, dues and household are still due on the 1st of the month.</p>
             </div></div>
             <button className="btn primary" onClick={() => setTab('map')} data-testid="goto-world">Open the world map</button>
@@ -938,7 +990,7 @@ export default function App() {
         {tab === 'supplier' && <Supplier toast={toast} />}
         {tab === 'inventory' && <Inventory onRashid={() => setTab('supplier')} />}
         {tab === 'ledger' && <Merchant sub={msub} setSub={setMsub} onBack={() => setTab('hero')} />}
-        {tab === 'hero' && <Suspense fallback={null}><HeroHub onProgress={() => { audio.sfx('tap'); setMsub('road'); setTab('ledger'); }} progressNew={progressScore(g) > (g.merchantSeen ?? 0)} /></Suspense>}
+        {tab === 'hero' && <Suspense fallback={null}><HeroHub onProgress={() => { audio.sfx('tap'); setMsub('road'); setTab('ledger'); }} progressNew={g.progressNew} /></Suspense>}
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
         {tab === 'map' && <Campaign key={mapIntent?.n ?? 0} intent={mapIntent} onGo={chapterGo} frozen={frozen} clearIntent={() => setMapIntent(null)} />}
         {cal && <Suspense fallback={null}><Calendar onClose={() => setCal(false)} onPaper={(d) => setPaper(d)} /></Suspense>}
@@ -947,7 +999,7 @@ export default function App() {
         <Tip id="rashid" when={tab === 'supplier'} />
         <Tip id="stock" when={tab === 'inventory'} />
         <Tip id="map" when={tab === 'map'} />
-        <Tip id="levelup" when={tab !== 'ledger' && tab !== 'stall' && Object.values(g.skills ?? {}).some((x) => levelOf(x ?? 0) >= 2)} />
+        <Tip id="levelup" when={tab !== 'ledger' && tab !== 'stall' && g.levelTip} />
       </main>
 
       {g.dayOver && (
@@ -960,11 +1012,11 @@ export default function App() {
               <span><i>Takings</i> {fmt(g.dayStats.revenue)}</span>
               {/* the rug margin less what the day cost you so far (deliveries, repairs) */}
               {(() => { const net = g.dayStats.gross - g.dayStats.expenses; return <span><i>Profit</i> <em className={net > 0 ? 'pos' : net < 0 ? 'neg' : ''}>{fmt(net)}</em></span>; })()}
-              {g.bills?.due ? <span><i>Owed</i> {fmt(g.bills.due)}</span> : null}
+              {g.billsDue ? <span><i>Owed</i> {fmt(g.billsDue)}</span> : null}
             </span>
           </span>
           {tab !== 'supplier' && <button className="btn" onClick={() => setTab('supplier')} data-testid="visit-rashid-evening">Rashid</button>}
-          {g.world.at === 'giza' && g.world.hour < 21 && <button className="btn" onClick={() => openMalek()} data-testid="malek-evening">Supper at Malek's</button>}
+          {g.at === 'giza' && g.supper && <button className="btn" onClick={() => openMalek()} data-testid="malek-evening">Supper at Malek's</button>}
           <button className="btn primary" onClick={() => { g.endDay(); setMapIntent(useGame.getState().journey ? { view: 'world', n: Date.now() } : { view: 'district', n: Date.now() }); setTab('map'); }} data-testid="close-stall">
             Next day
           </button>
@@ -983,7 +1035,7 @@ export default function App() {
           // Progress lives inside Me, so Me stays lit while it is open; only one tab is ever lit
           const on = tab === id || (id === 'hero' && tab === 'ledger');
           return (
-          <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.world.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}${!on && tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
+          <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}${!on && tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
             {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /></span> : <Icon name={icon} />}
             {label}
           </button>
@@ -1020,7 +1072,7 @@ export default function App() {
               </p>
             )}
             <div className="save-row">
-              <button className="btn primary" onClick={() => { forceSave(); window.setTimeout(() => { if (failedNow()) { setSaveFail(true); setSaveWarn(true); toast(FULL_MSG); } else { setSaveFail(false); setSavedAt(stamp()); audio.sfx('tap'); } }, 0); }} data-testid="save-now">Save</button>
+              <button className="btn primary" onClick={() => { forceSave(); window.setTimeout(() => { if (failedNow()) { setSaveFail(true); setSaveWarn(true); toast(FULL_MSG); } else { setSaveFail(false); savedAtRef.current = stamp(); setSavedAt(savedAtRef.current); audio.sfx('tap'); } }, 0); }} data-testid="save-now">Save</button>
             </div>
             <div className="toggle-row">
               <span>
@@ -1086,7 +1138,7 @@ export default function App() {
             <small>THE EGYPTIAN GAZETTE · {dateFor(g.ended.day).long.toUpperCase()}</small>
             <h2>{g.ended.cause === 'death' ? 'Hassan is dead' : 'A Giza carpet stall closes'}</h2>
             <p>{g.ended.text}</p>
-            <p className="dim">You traded for {g.ended.day} days, sold {g.ledger.filter((l) => l.kind === 'sale').length} rugs and reached reputation {g.reputation}.</p>
+            <p className="dim">You traded for {g.ended.day} days, sold {g.sales} rugs and reached reputation {g.reputation}.</p>
             {g.ended.cause === 'death' && <p className="dim">{g.ironman ? 'There is no second life. The run is over.' : ''}</p>}
             <HeirButton />
             <button className="btn primary" onClick={() => { audio.stopAll(); g.reset(); setPhase('title'); }} data-testid="ending-restart">{g.ended.cause === 'death' ? 'Start a new life' : 'Begin again'}</button>

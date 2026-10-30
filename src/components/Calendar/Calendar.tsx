@@ -2,6 +2,7 @@ import { firstDue } from '../../game/firstWeek';
 import { useState } from 'react';
 import { Icon } from '../Icon';
 import { fmt } from '../../game/economy/money';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../../game/state/store';
 import { settlementById } from '../../game/systems/world';
 import { RUGS } from '../../data/rugs';
@@ -24,7 +25,10 @@ export function timeOfDay(hour: number) {
 type Mark = { icon: string; cls: string; label: string };
 
 export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: (day: number) => void }) {
-  const g = useGame();
+  const g = useGame(useShallow((s) => ({
+    day: s.day, whereabouts: s.whereabouts, at: s.world.at, time: timeOfDay(s.world.hour), journal: s.journal, family: s.family, supplier: s.supplier,
+    inventory: s.inventory, court: s.court, commissions: s.commissions, appointments: s.appointments, dayOver: s.dayOver, queue: s.queue, visitIdx: s.visitIdx,
+  })));
   const today = dateOf(g.day);
   // months counted from January 1925, so 14 is March 1926
   const [month, setMonth] = useState((today.getUTCFullYear() - 1925) * 12 + today.getUTCMonth());
@@ -32,7 +36,7 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
 
   const where = (day: number): string | undefined => {
     const w = g.whereabouts ?? {};
-    if (day === g.day) return g.world.at ?? 'road';
+    if (day === g.day) return g.at ?? 'road';
     if (w[day]) return w[day];
     if (day > g.day) return undefined;
     for (let d = day; d >= 1; d--) if (w[d] && w[d] !== 'road') return w[d];
@@ -81,7 +85,7 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
   const selDate = dateOf(sel);
   const selEntries = g.journal.filter((e) => e.day === sel);
   const selMarks = marksFor(sel);
-  const hereNow = g.world.at ? settlementById(g.world.at).name : 'On the road';
+  const hereNow = g.at ? settlementById(g.at).name : 'On the road';
 
   return (
     <div className="cal-wrap" role="dialog" aria-label="Calendar" data-testid="calendar">
@@ -89,8 +93,8 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
         <div className="cal-head">
           <div>
             <small>TODAY · DAY {g.day}</small>
-            <b>{today.getUTCDate()} {MONTHS[today.getUTCMonth()]} {today.getUTCFullYear()} · {timeOfDay(g.world.hour)}</b>
-            <span>{hereNow}{g.world.at === 'giza' ? (g.dayOver ? ' · the stall is closed for the day' : (() => { const n = Math.max(0, g.queue.length - g.visitIdx); return n === 0 ? ' · no more buyers expected today' : ` · ${n} buyer${n === 1 ? '' : 's'} still expected today`; })()) : g.world.at ? ' · away from your stall' : ' · the stall is closed while you travel'}</span>
+            <b>{today.getUTCDate()} {MONTHS[today.getUTCMonth()]} {today.getUTCFullYear()} · {g.time}</b>
+            <span>{hereNow}{g.at === 'giza' ? (g.dayOver ? ' · the stall is closed for the day' : (() => { const n = Math.max(0, g.queue.length - g.visitIdx); return n === 0 ? ' · no more buyers expected today' : ` · ${n} buyer${n === 1 ? '' : 's'} still expected today`; })()) : g.at ? ' · away from your stall' : ' · the stall is closed while you travel'}</span>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {onPaper && <button className="btn" onClick={() => onPaper(g.day)} data-testid="calendar-paper"><Icon name="news" /> Today's paper</button>}
