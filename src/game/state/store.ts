@@ -93,7 +93,7 @@ import { TAB_PLATES, malekGreeting, tabCovers, topicCtx, fedOf, waterOf, type Ta
 import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvailability, eatServing, eatRation, RATION_FED, malekLine, nightMeters, parcelDays, parcelFresh, pickScene, storyComplete, storyStageFor, wellFedNow, malekDue, type FoodParcel, type LineCtx, type MalekScene, type MalekState, type MealReport } from '../systems/malek';
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
-import { boyWait, type ShopBoyState } from '../systems/shopBoy';
+import { boyName, boyTrait, boyWait, type ShopBoyState } from '../systems/shopBoy';
 import { applyHousehold, HOUSEHOLD_START, BRIDES, canCourt, housekeeping, tidyHousehold, type HouseholdState, type HouseholdAct } from '../systems/household';
 import { post as postLetter, TELEGRAPH_TOWNS, telegramFee, type PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
@@ -1938,6 +1938,11 @@ export const useGame = create<GameState & Actions>()(
           // Fridays are quiet, Thursdays and feast days busy
           const lane = laneDay(day);
           queue = queue.slice(0, Math.max(1, 3 + (s.missions?.['ms-regulars'] === 'done' ? 1 : 0) + (s.upgrades.includes('bazaar') ? 1 : 0) + (s.upgrades.includes('khan') ? 1 : 0) + (rng() < 0.3 ? 1 : 0) + (placedPieces(s).some((d) => DRESSING_BY_ID[d]?.buyerWeek) && rng() < 1 / 7 ? 1 : 0) + lane.extra));
+          // a boy who knows the lane now and then brings back someone who has bought from you before
+          if (boyTrait(s) === 'lane' && atStall && rng() < 0.25) {
+            const back = BUYER_ORDER.filter((id) => !queue.includes(id) && (s.relationships[id]?.purchases ?? 0) > 0 && (s.relationships[id]?.bad ?? 0) < 3 && (BUYER_UNLOCK[id] ?? 0) <= s.reputation);
+            if (back.length) { const id = back[Math.floor(rng() * back.length)]; queue.push(id); notes.push(`${boyName(s.shopBoy)} has told ${BUYERS[id]?.name ?? 'an old buyer'} you have new rugs. They will look in today.`); }
+          }
           if (lane.note) notes.push(lane.note);
           // now and then a famous name of 1925 drops by the stall
           // Cohen: a promise missed closes that order and costs his trust; never on his Sabbath
@@ -2040,7 +2045,7 @@ export const useGame = create<GameState & Actions>()(
             dayOver: false,
             encounter: null,
             world: { ...s.world, party },
-            arrivals: arrivalTimes(queue.length, rng, lane.late, lane.fast),
+            arrivals: callIn(arrivalTimes(queue.length, rng, lane.late, lane.fast), boyTrait(s) === 'voice'),
             errandsDone: [],
           };
           patch.errands = []; // errands are retired; the field stays for old saves
@@ -2091,6 +2096,11 @@ export const useGame = create<GameState & Actions>()(
 
 
       /** Customers spread through the day, the first soon after the stall opens. */
+      /** a boy with a good voice calls buyers in from the lane: each after the first comes a quarter of an hour sooner */
+      function callIn(times: number[], on: boolean) {
+        if (!on) return times;
+        return times.map((t, i) => (i === 0 ? t : Math.max(times[i - 1], Math.round((t - 0.25) * 4) / 4)));
+      }
       function arrivalTimes(n: number, rnd: () => number, late = false, fast = false) {
         const out: number[] = [];
         if (fast) {
@@ -5172,7 +5182,8 @@ export const useGame = create<GameState & Actions>()(
           if (s.cash < fee) return `The wire and the freight come to ${fmt(fee)}.`;
           const name = settlementById(sid).name;
           const egypt = settlementById(sid).region === 'Egypt';
-          const arrives = s.day + (egypt ? RAIL_DAYS.egypt : RAIL_DAYS.abroad);
+          // a quick boy has them at the station the same morning: a day sooner, never sooner than tomorrow
+          const arrives = s.day + Math.max(1, (egypt ? RAIL_DAYS.egypt : RAIL_DAYS.abroad) - (boyTrait(s) === 'quick' ? 1 : 0));
           const names = items.length === 1 ? `the ${RUGS[items[0].typeId].name}` : `${items.length} rugs`;
           const ids = new Set(items.map((i) => i.uid));
           set({

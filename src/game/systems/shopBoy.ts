@@ -34,7 +34,25 @@ export interface ShopBoyState {
   /** piastres found short in the tin, all told */
   short: number;
   days: number;
+  /** a boy from one of the lane's own families (systems/laneBoys.ts) in Sami's place: who he is, what
+   *  he is called, his one gift, and his pay by the week; none of these for Sami */
+  who?: string;
+  name?: string;
+  trait?: BoyTrait;
+  weekly?: number;
 }
+export type BoyTrait = 'sharp' | 'quick' | 'voice' | 'honest' | 'lane' | 'reads';
+/** the boy's name: Sami, or the lane boy taken on in his place */
+export const boyName = (b?: Pick<ShopBoyState, 'name'>) => b?.name ?? BOY.name;
+/** the hired boy's gift, if he has one */
+export const boyTrait = (s: Pick<GameState, 'shopBoy'>): BoyTrait | undefined => (s.shopBoy?.hired ? s.shopBoy.trait : undefined);
+/** tonight's pay: Sami's day rate, or a lane boy's week spread over seven nights in whole piastres */
+export const wageTonight = (b: Pick<ShopBoyState, 'weekly' | 'days'>, nights = 1) => {
+  if (!b.weekly) return BOY.wage * nights;
+  // tonight is night days+1; the nights still owed are the ones before it
+  const d = b.days + 1;
+  return Math.floor((d * b.weekly) / 7) - Math.floor((Math.max(0, d - nights) * b.weekly) / 7);
+};
 
 export const BOY = {
   name: 'Sami',
@@ -86,7 +104,7 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
   if (!boy?.hired) return null;
   const { rng } = opts;
   // someone else may mind the stall in his place (your wife: systems/household.ts)
-  const who = opts.name ?? BOY.name;
+  const who = opts.name ?? boyName(boy);
   let idx = s.visitIdx;
   let inventory = s.inventory;
   let cash = s.cash;
@@ -109,7 +127,8 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
       let price = asked;
       let how: BoySale['how'];
       if (rng() < 0.35 * slack) { price = snapDown(asked * (0.85 + rng() * 0.05)); how = 'down'; }
-      else if (rng() < 0.12 * slack) { price = snapDown(asked * 0.75); how = 'cheap'; }
+      // a boy who can read your ticket does not take a first low offer
+      else if (rng() < 0.12 * slack && boy.trait !== 'reads') { price = snapDown(asked * 0.75); how = 'cheap'; }
       if (price >= asked) how = undefined;
       const name = RUGS[item.typeId].name;
       inventory = inventory.filter((i) => i.uid !== item.uid);
@@ -129,7 +148,8 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
   }
   if (left.length && opts.final) lines.push(`${left.length === 1 ? left[0] : `${left.slice(0, -1).join(', ')} and ${left[left.length - 1]}`} came by. ${who} asked them to wait, but they could not stay.`);
   let short = 0;
-  if (sold && rng() < 0.25 * slack) {
+  // an honest boy's tin is never short
+  if (sold && boy.trait !== 'honest' && rng() < 0.25 * slack) {
     short = Math.min(cash, 1 + Math.floor(rng() * 3));
     cash -= short;
     ledger.push({ day: s.day, kind: 'expense', label: `Short in ${who}'s takings`, amount: -short });
@@ -146,21 +166,22 @@ export function boyMinds(s: Mind, hour: number, opts: { arrivalAt: (i: number) =
 export function boyNight(s: Pick<GameState, 'shopBoy' | 'cash' | 'ledger' | 'day'>): { patch: Partial<GameState>; lines: string[] } | null {
   const boy = s.shopBoy;
   if (!boy?.hired) return null;
-  const due = BOY.wage * (1 + boy.owed);
+  const due = wageTonight(boy, 1 + boy.owed);
+  const nm = boyName(boy), home = boy.who ? 'his family' : 'his uncle\'s shop';
   const lines: string[] = [];
   let cash = s.cash;
   const ledger = [...s.ledger];
   let next: ShopBoyState = { ...boy, days: boy.days + 1, trust: Math.min(BOY.maxTrust, boy.trust + 1) };
   if (cash >= due) {
     cash -= due;
-    ledger.push({ day: s.day, kind: 'expense', label: `Wages for ${BOY.name}, the shop boy${boy.owed ? ` (and ${boy.owed} day${boy.owed > 1 ? 's' : ''} owed)` : ''}`, amount: -due });
+    ledger.push({ day: s.day, kind: 'expense', label: `Wages for ${nm}, the shop boy${boy.owed ? ` (and ${boy.owed} day${boy.owed > 1 ? 's' : ''} owed)` : ''}`, amount: -due });
     next.owed = 0;
   } else if (boy.owed + 1 >= BOY.quitAfter) {
     next = { ...next, hired: false, owed: 0 };
-    lines.push(`${BOY.name} has gone back to his uncle's shop. You owed him ${BOY.quitAfter} days' pay.`);
+    lines.push(`${nm} has gone back to ${home}. You owed him ${BOY.quitAfter} days' pay.`);
   } else {
     next.owed = boy.owed + 1;
-    lines.push(`You could not pay ${BOY.name} tonight. He will wait a day or two.`);
+    lines.push(`You could not pay ${nm} tonight. He will wait a day or two.`);
   }
   return { patch: { cash, ledger, shopBoy: next }, lines };
 }

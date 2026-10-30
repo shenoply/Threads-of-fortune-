@@ -38,8 +38,11 @@ export function omensNight(s: GameState, day: number): { patch: Partial<GameStat
   // the night that was warned of has passed
   if (o && o.night === day - 1) {
     const guard = o.guarded || (s.world.at === 'giza' && Object.values(s.world.party.troops ?? {}).some((n) => (n ?? 0) > 0));
+    // a sharp-eyed boy hears of it while you are away and sleeps across the stall
+    const boy = !guard && s.world.at !== 'giza' && s.shopBoy?.hired && s.shopBoy.trait === 'sharp' ? s.shopBoy.name ?? 'The boy' : '';
     const can = reachable(s);
-    if (guard || !can.length) notes.push(guard ? 'The thief came to the lane in the night and went away with nothing. Your stall was watched.' : 'A thief worked the lane in the night. There was nothing at your stall to take.');
+    if (boy && can.length) notes.push(`The thief came to the lane in the night. ${boy} slept across your stall, and he went away with nothing.`);
+    else if (guard || !can.length) notes.push(guard ? 'The thief came to the lane in the night and went away with nothing. Your stall was watched.' : 'A thief worked the lane in the night. There was nothing at your stall to take.');
     else {
       const sorted = [...can].sort((a, b) => a.paid - b.paid);
       const gone = sorted[Math.floor(sorted.length / 2)];

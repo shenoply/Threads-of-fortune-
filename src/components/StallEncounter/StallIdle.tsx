@@ -23,7 +23,7 @@ import { laneDay } from '../../game/economy/life';
 import { affordableUpgrades, openUpgrades } from '../Inventory/StallUpgrades';
 import { openMalek } from '../../game/nav';
 import { fedOf, shopOpen as malekOpen } from '../../game/systems/malek';
-import { ShopBoyCard } from './ShopBoyCard';
+import { BoyChip, ShopBoyCard } from './ShopBoyCard';
 import { ErrandStrip } from '../Daily/ErrandStrip';
 import { UPGRADES } from '../../data/suppliers';
 import { fmt } from '../../game/economy/money';
@@ -71,6 +71,8 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       }} data-testid="stall-wait">{shut ? 'Start the next day' : g.held ? 'Go back to them' : next === null ? 'Close up for the evening' : mins === 0 ? 'Serve them' : `Wait for the customer (${clock(next)})`}</button>
       <div className="idle-next idle-info">
         <ErrandStrip />
+        {/* the shop boy in plain sight, not only in the folded part: a tap opens his card */}
+        <BoyChip onOpen={() => { setMore(true); window.setTimeout(() => document.querySelector('[data-testid="boy-card"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); }} />
         {!shut && <TodaysChance />}
         {/* each part of the trade arrives on its own day, marked new for its first two days, so the
             stall screen grows with the player instead of greeting him with everything at once */}

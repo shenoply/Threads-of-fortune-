@@ -5,7 +5,10 @@ import { RUGS } from '../../data/rugs';
 import { fmt } from '../economy/money';
 import { dateFor } from '../economy/economy';
 import { settlementById } from './world';
-import { BOY, hireBoy as hire, type ShopBoyState } from './shopBoy';
+import { BOY, boyName, hireBoy as hire, type ShopBoyState } from './shopBoy';
+import type { LaneBoy } from './laneBoys';
+
+const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 import { post, telegramFee, TELEGRAPH_TOWNS } from './post';
 import { renew, officeTown } from './inspector';
 import { audio } from '../audio/engine';
@@ -13,12 +16,23 @@ import { audio } from '../audio/engine';
 const g = () => useGame.getState();
 const jot = (text: string, kind = 'stall') => [...g().journal, { day: g().day, text, kind }];
 
-export function hireBoy(): string {
+/** take on Sami, or (`kid`) a boy from one of the lane's families in his place: one boy at a time */
+export function hireBoy(kid?: LaneBoy): string {
   const s = g();
   if (s.shopBoy?.hired) return '';
-  const again = !!s.shopBoy;
-  const text = again ? `${BOY.name} is back at the stall, a little warier than before.` : `You take on ${BOY.who}, to mind the stall when you are away: ${BOY.wage} piastres a day.`;
-  useGame.setState({ shopBoy: hire(s.shopBoy, s.day), journal: jot(text) });
+  const prev = s.shopBoy;
+  // the same boy taken back keeps his record; another boy starts his own
+  const same = !!prev && (prev.who ?? '') === (kid?.id ?? '');
+  const base = hire(same ? prev : undefined, s.day);
+  const next: ShopBoyState = kid
+    ? { ...base, who: kid.id, name: kid.short, trait: kid.trait, weekly: kid.weekly, ...(same ? {} : { sales: [], short: 0, days: 0 }) }
+    : { ...base, who: undefined, name: undefined, trait: undefined, weekly: undefined, ...(same ? {} : { sales: [], short: 0, days: 0 }) };
+  const text = same
+    ? `${boyName(next)} is back at the stall, a little warier than before.`
+    : kid
+      ? `You take on ${kid.name}, ${kid.age}, ${lower(kid.family)}, to mind the stall when you are away: ${kid.weekly} piastres a week.`
+      : `You take on ${BOY.who}, to mind the stall when you are away: ${BOY.wage} piastres a day.`;
+  useGame.setState({ shopBoy: next, journal: jot(text) });
   audio.sfx('tap');
   return text;
 }
@@ -27,13 +41,14 @@ export function fireBoy(): string {
   const s = g();
   const b = s.shopBoy;
   if (!b?.hired) return '';
-  const owed = b.owed * BOY.wage;
+  const owed = b.owed ? (b.weekly ? Math.round((b.owed * b.weekly) / 7) : b.owed * BOY.wage) : 0;
   const pay = Math.min(owed, Math.max(0, s.cash));
-  const text = `You let ${BOY.name} go${pay ? ` and pay him the ${fmt(pay)} you owed` : ''}. He goes back to his uncle's shop.`;
+  const nm = boyName(b);
+  const text = `You let ${nm} go${pay ? ` and pay him the ${fmt(pay)} you owed` : ''}. He goes back to ${b.who ? 'his family' : 'his uncle\'s shop'}.`;
   useGame.setState({
     shopBoy: { ...b, hired: false, owed: 0 },
     cash: s.cash - pay,
-    ...(pay ? { ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Wages owed to ${BOY.name}`, amount: -pay }] } : {}),
+    ...(pay ? { ledger: [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Wages owed to ${nm}`, amount: -pay }] } : {}),
     journal: jot(text),
   });
   audio.sfx('tap');

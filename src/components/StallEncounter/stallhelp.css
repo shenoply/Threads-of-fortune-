@@ -46,3 +46,29 @@
 /* four tabs (Story, Jobs, Visitors, Post) fit a 360px phone */
 .obj-tabs { overflow-x: auto; scrollbar-width: none; }
 .obj-tabs button { padding: 8px 7px; white-space: nowrap; }
+.boy-face { overflow: hidden; }
+.boy-face img, .boy-face .boy-sil { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* boys from the lane's own families, to take on in Sami's place */
+.lane-boys { margin-top: 8px; border-top: 1px dotted var(--line); padding-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+.lane-boys-k { margin: 0; font-family: var(--label); font-size: 14px; letter-spacing: .06em; color: var(--brass); }
+.lane-boy { display: flex; align-items: flex-start; gap: 8px; }
+.lane-boy .boy-face { width: 44px; height: 44px; }
+.lane-boy > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.lane-boy small { font-size: 14px; }
+.lane-boy .lane-boy-gift i { color: var(--brass-hi); font-style: normal; }
+.lane-boy .btn { margin: 0; flex: none; display: flex; flex-direction: column; align-items: center; min-height: 44px; line-height: 1.15; }
+.lane-boy .btn small { font-size: 14px; color: inherit; opacity: .8; }
+/* the shop boy as a chip: between customers it opens his card; in the picture it only shows */
+.boy-chip { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; margin: 6px 0; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: 24px; background: rgba(21, 14, 8, .82); color: var(--text); text-align: left; cursor: pointer; }
+.boy-chip > span { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.boy-chip b { font-family: var(--display); font-weight: 500; font-size: 15px; color: var(--brass-hi); }
+.boy-chip small { font-size: 14px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boy-chip .boy-face { width: 38px; height: 38px; }
+.boy-chip .go { font-size: 22px; color: var(--brass); padding: 0 4px; }
+.boy-chip.owed { border-color: var(--bad); }
+.boy-chip.in-scene { position: absolute; top: 8px; left: 8px; z-index: 8; width: auto; max-width: 46%; min-height: 0; margin: 0; padding: 3px 10px 3px 3px; cursor: default; pointer-events: none; background: rgba(20, 12, 7, .78); backdrop-filter: blur(2px); }
+.boy-chip.in-scene .boy-face { width: 32px; height: 32px; }
+.boy-chip.in-scene b { font-size: 14px; }
+.boy-chip.in-scene small { font-size: 14px; }
+.boy-chip b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boy-chip > .go { flex: none; }

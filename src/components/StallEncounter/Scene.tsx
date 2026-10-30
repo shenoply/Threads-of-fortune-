@@ -24,6 +24,7 @@ import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { stallFigure } from './stallArt';
 import { BuyerCard } from '../Merchant/Customers';
 import { useSwipeAway } from './SwipeAway';
+import { BoyChip } from './ShopBoyCard';
 
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';
 import { dressingArt, DRESSING_BY_ID } from '../../data/shops';
@@ -198,6 +199,8 @@ export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: ScenePro
         </button>
       )}
       {know && enc && <BuyerDossier enc={enc} onClose={() => setKnow(false)} />}
+      {/* the shop boy, when you have one: his face and his job, in the corner over the awning */}
+      <BoyChip inScene />
       <div className="stage" style={{ width: sw, height: sh, left: (W - sw) / 2, top: 'auto', bottom: -cb, ['--rug-b' as string]: `${(edge * 100 - 8).toFixed(2)}%`, ['--fig-h' as string]: `${figH}px`, ['--buyer-h' as string]: `${buyerH}px`, ['--buyer-b' as string]: `${buyerB}px`, ['--hero-h' as string]: `${heroH}px`, ['--crop' as string]: `${crop}px`, ['--edge' as string]: `${(edge * 100).toFixed(2)}%` }}>
         <img className="stage-bg" src={STAGE_IMG} alt={`Your stall: ${sc.label}`} data-lamps={sc.lamps} data-scene={sc.id} data-testid="stage-bg" draggable={false} />
         {sc.sky && <StallSky scene={sc.id} />}
