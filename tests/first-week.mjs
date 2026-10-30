@@ -31,7 +31,8 @@ await p.waitForTimeout(600);
 const c1 = await chip();
 check(c1 === 'Rashid £10 · 6 days', `day one: the countdown reads "${c1}" (${await visibleIds(p)})`);
 const oneLine = await p.evaluate(() => { const r = document.querySelector('.objective-bar .ob-row'); const d = document.querySelector('[data-testid=week-due]'); return r && d ? { row: Math.round(r.getBoundingClientRect().height), chip: Math.round(d.getBoundingClientRect().height), same: Math.abs(r.getBoundingClientRect().top - d.getBoundingClientRect().top) < 20, w: document.documentElement.scrollWidth } : null; });
-check(!!oneLine && oneLine.row <= 48 && oneLine.same && oneLine.w <= 390, `the objective bar stays one thin line on a phone: ${JSON.stringify(oneLine)}`);
+// 14px text and 44px tap targets on the HUD: one line is up to ~56px now (goals-ladder checks the same bar < 60)
+check(!!oneLine && oneLine.row <= 58 && oneLine.same && oneLine.w <= 390, `the objective bar stays one thin line on a phone: ${JSON.stringify(oneLine)}`);
 check((await p.locator('[data-testid=first-hour]').innerText().catch(() => '')).toLowerCase().includes('of 6'), 'the countdown rides on the opening step, not a second objective');
 const j1 = await G(`return g.journal.some((j) => /Uncle Rashid sends word/.test(j.text));`);
 check(j1, 'the journal keeps Rashid\'s word');
@@ -76,7 +77,7 @@ const m3 = await G(`set({ day: 14, cash: 0 }); g.endDay(); return { f: g.family,
 check(m3.f.first.how === 'rolled' && m3.f.due === 1200 && m3.trust === 5 && !m3.ended, `missed again: £12 overdue in his book (${JSON.stringify(m3.f)})`);
 await G(`set({ day: 7, cash: 2000, family: { left: 10000, due: 0, since: 0, paid: 0, first: { sum: 1000, by: 7, paid: 400 } }, supplier: { ...g.supplier, trust: 20 } });`);
 const ot = await G(`g.endDay(); return { f: g.family, cash: g.cash, trust: g.supplier.trust };`);
-check(ot.f.first.how === 'onTime' && ot.f.left === 9400 && ot.trust === 22, `on the night itself the rest is taken from the purse (${JSON.stringify(ot.f)})`);
+check(ot.f.first.how === 'onTime' && ot.f.left === 9400 && ot.trust === 24, /* paid on the day: trust +4 */ `on the night itself the rest is taken from the purse (${JSON.stringify(ot.f)})`);
 
 // 5. an older save already past the first days is never asked
 await p.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k)); d.version = 22; d.state.day = 12; d.state.family = { left: 10000, due: 0, since: 0, paid: 0 }; const w = Storage.prototype.setItem; Storage.prototype.setItem = function (key, v) { if (key === k) return; return w.call(this, key, v); }; w.call(localStorage, k, JSON.stringify(d)); }, K);
