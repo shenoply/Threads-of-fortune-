@@ -499,6 +499,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
   const [cam, setCam] = useState({ s: startZoomedOut ? 0.01 : 1, cx: d0?.x ?? 760, cy: d0?.y ?? 480 });
   const camRef = useRef(cam);
   camRef.current = cam;
+  // a pinch in progress (see onMove): the canvas is moved by CSS until the fingers lift
+  const gest = useRef<{ m0: { x: number; y: number }; m: { x: number; y: number }; wx: number; wy: number; sc0: number; k: number } | null>(null);
   // the map is drawn on demand: anything that changes what it shows calls this to wake the loop
   const redraw = useRef<() => void>(() => {});
   useEffect(() => { redraw.current(); }, [cam]);
@@ -769,9 +771,10 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         if (walked.current >= 40 * 5) { walked.current -= 40 * 5; useGame.getState().passTime(5); }
         reveal(s.x, s.y);
         // camera follows
+        // (not mid-pinch: the fingers hold the camera until they lift)
         const cm = camRef.current;
         const k = Math.min(1, dt * 3);
-        setCam({ ...cm, cx: cm.cx + (s.x - cm.cx) * k, cy: cm.cy + (s.y - cm.cy) * k });
+        if (!gest.current) setCam({ ...cm, cx: cm.cx + (s.x - cm.cx) * k, cy: cm.cy + (s.y - cm.cy) * k });
       } else if (s.route.length) {
         const n = s.route.shift()!;
         s.tx = n.x; s.ty = n.y;
@@ -910,6 +913,9 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     const cm = camRef.current;
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
+      const m0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const w0 = toWorld(m0.x, m0.y);
+      gest.current = { m0, m: m0, wx: w0.x, wy: w0.y, sc0: w0.sc, k: 1 };
       drag.current = { x: 0, y: 0, cx: cm.cx, cy: cm.cy, moved: true, pinch: Math.hypot(a.x - b.x, a.y - b.y), s0: cm.s };
     } else drag.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, cx: cm.cx, cy: cm.cy, moved: false };
   };
@@ -920,10 +926,19 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
     pointers.current.set(e.pointerId, { x: e.clientX - rect.left, y: e.clientY - rect.top });
     const cm = camRef.current;
     if (d.pinch && pointers.current.size === 2) {
+      // mid-pinch only the canvas is scaled and moved by CSS, anchored between the fingers; the camera
+      // is committed once, when a finger lifts (as on the world map)
       const [a, b] = [...pointers.current.values()];
       const want = (d.s0 ?? 1) * (Math.hypot(a.x - b.x, a.y - b.y) / d.pinch);
-      if (onZoomOut && want < minScale() * 0.82) { drag.current = null; pointers.current.clear(); save(); onZoomOut(); return; }
-      setCam(clampCam({ ...cm, s: want }));
+      if (onZoomOut && want < minScale() * 0.82) { endPinch(false); drag.current = null; pointers.current.clear(); save(); onZoomOut(); return; }
+      const gs = gest.current;
+      if (gs) {
+        gs.m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        gs.k = Math.max(minScale(), Math.min(2.4, gs.sc0 * (want / (d.s0 || 1)))) / gs.sc0;
+        const c = cvs.current!;
+        c.style.transformOrigin = '0 0';
+        c.style.transform = `translate(${gs.m.x - gs.m0.x * gs.k}px, ${gs.m.y - gs.m0.y * gs.k}px) scale(${gs.k})`;
+      }
       return;
     }
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
@@ -933,9 +948,29 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
       setCam(clampCam({ s: cm.s, cx: d.cx - (x - d.x) / sc, cy: d.cy - (y - d.y) / sc }));
     }
   };
+  /** the fingers lift: the pinch's CSS transform becomes the camera (commit) or is dropped */
+  const endPinch = (commit = true) => {
+    const gs = gest.current;
+    if (!gs) return;
+    gest.current = null;
+    const c = cvs.current;
+    if (c) c.style.transform = '';
+    if (!commit || !c) return;
+    const sc1 = gs.sc0 * gs.k;
+    const W = c.clientWidth, H = c.clientHeight;
+    setCam(clampCam({ s: sc1, cx: gs.wx + (W / 2 - gs.m.x) / sc1, cy: gs.wy + (H / 2 - gs.m.y) / sc1 }));
+  };
   const onUp = (e: React.PointerEvent) => {
     const d = drag.current;
     pointers.current.delete(e.pointerId);
+    if (gest.current && pointers.current.size < 2) {
+      endPinch();
+      // the finger left on the glass carries on as a drag from where it is now
+      const rest = [...pointers.current.values()][0];
+      if (rest) { const cm = camRef.current; drag.current = { x: rest.x, y: rest.y, cx: cm.cx, cy: cm.cy, moved: true }; window.setTimeout(() => { if (drag.current) { drag.current.cx = camRef.current.cx; drag.current.cy = camRef.current.cy; } }, 0); }
+      else drag.current = null;
+      return;
+    }
     if (!d || d.moved) { if (pointers.current.size === 0) drag.current = null; return; }
     drag.current = null;
     const rect = cvs.current!.getBoundingClientRect();
