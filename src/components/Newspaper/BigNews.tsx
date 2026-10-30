@@ -3,6 +3,7 @@
 // it means for your trade, with the paper one tap away. Each event is told once.
 import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
+import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { eventsOn, eventsStarting, type GameEvent } from '../../game/economy/life';
 import { settlementById } from '../../game/systems/world';
 
@@ -45,15 +46,18 @@ export function BigNews({ onRead }: { onRead: () => void }) {
   const seen = g.newsSeen ?? [];
   // it says its piece at the top for a few seconds and goes; the paper keeps the story
   const freshIds = freshNews(g.day, seen).map((x) => x.e.id).join(',');
+  // a card or a fight on screen comes first; the news waits its turn (game/cardTurn.ts)
+  const hold = useHeld();
+  const wait = hold || waitsTurn(g);
   useEffect(() => {
-    if (!freshIds || open || g.journey) return;
+    if (!freshIds || open || g.journey || wait) return;
     const t = window.setTimeout(() => { const s = useGame.getState(); useGame.setState({ newsSeen: [...new Set([...(s.newsSeen ?? []), ...freshIds.split(',')])] }); }, 7000);
     return () => window.clearTimeout(t);
-  }, [freshIds, open, g.journey]);
+  }, [freshIds, open, g.journey, wait]);
   // only news that began during the game (what was already under way on day one is in the first paper)
   const fresh = freshNews(g.day, seen);
   // a strip, never a wall: it waits off the road and keeps out of the way until tapped
-  if (!fresh.length || g.journey) return null;
+  if (!fresh.length || g.journey || wait) return null;
   const shown = fresh.slice(0, 2);
   const done = () => { setOpen(false); useGame.setState({ newsSeen: [...seen, ...fresh.map((x) => x.e.id)] }); };
   const head = fresh[0];

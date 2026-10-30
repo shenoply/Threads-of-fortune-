@@ -1,5 +1,6 @@
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
+import { waitsTurn } from '../../game/cardTurn';
 
 /** A buyer or a job in town that wants one of your packed rugs: nothing is sold until you say yes. */
 export function JobOffer() {
@@ -7,7 +8,9 @@ export function JobOffer() {
   const at = useGame((s) => s.world.at);
   const accept = useGame((s) => s.acceptJobOffer);
   const decline = useGame((s) => s.declineJobOffer);
-  if (!offer || offer.city !== at) return null;
+  // one card at a time: the frontier, a fall or a mission's scene come first (game/cardTurn.ts)
+  const wait = useGame((s) => waitsTurn(s, 'job'));
+  if (!offer || offer.city !== at || wait) return null;
   return (
     <div className="overlay" onClick={decline} data-testid="job-offer">
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>

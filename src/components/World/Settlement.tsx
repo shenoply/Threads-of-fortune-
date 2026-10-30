@@ -21,7 +21,7 @@ import { OnceLine, useOnce } from '../Tips/OnceLine';
 import { ONCE } from '../../data/tips';
 import { currencyAt } from '../../game/economy/currency';
 import { drawWorld, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
-import { localAskPrice, localBid, localOffers, useGame } from '../../game/state/store';
+import { bestMarket, localAskPrice, localBid, localOffers, useGame } from '../../game/state/store';
 import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
 import { RUGS } from '../../data/rugs';
 import { settlementById, seaRoutesFrom, railJourney } from '../../game/systems/world';
@@ -569,10 +569,13 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                   const t = RUGS[o.typeId];
                   const offerKey = `${o.key}#${g.world.boughtLocal.filter((b) => b === o.key).length}`;
                   const flaw = flawFor(offerKey, 'dealer', o.typeId);
+                  // where it would fetch the most: the dealers of another known town, if any pay more than it costs here
+                  const far = bestMarket(g, { typeId: o.typeId, condition: o.condition, provenance: t.provenance }, id);
+                  const farLine = far && far.bid > o.price ? ` · dealers in ${settlementById(far.sid).name} pay about ${fmt(far.bid)}` : '';
                   return (
                     <div className="mkt-row" key={o.key} data-testid={`buy-${o.typeId}`}>
                       <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
-                      <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}</small><OfferFlags typeId={o.typeId} flaw={flaw} /></span>
+                      <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}{farLine}</small><OfferFlags typeId={o.typeId} flaw={flaw} /></span>
                       <button className="btn primary" disabled={g.cash < o.price} onClick={() => setNote(g.buyLocal(id, o.key))}>Buy {localMoney(o.price, id, g.day)}</button>
                     </div>
                   );
@@ -601,7 +604,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                     return (
                       <div className="mkt-row" key={i.uid} data-testid={`sell-${t.id}`}>
                         <img src={rugSrc(t)} alt="" />
-                        <span><b>{t.name}</b><small>{i.condition} · {i.provenance} · you paid {fmt(i.paid)}</small></span>
+                        <span><b>{t.name}</b><small>{i.condition} · {i.provenance} · you paid {fmt(i.paid)}{i.paid > bid ? <em className="warn" data-testid="sell-loss"> · a loss of {fmt(i.paid - bid)}</em> : null}</small></span>
                         <button className="btn" onClick={() => { const b = g.sellLocal(i.uid, id); setNote(`Sold ${t.name} for ${localMoneyLong(b, id, g.day)}.`); }}>Sell {localMoney(bid, id, g.day)}</button>
                       </div>
                     );

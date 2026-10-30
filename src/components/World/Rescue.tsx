@@ -2,6 +2,7 @@
 // on the platform, anywhere else) gets him to Dr Feras. Three short beats, then the clinic.
 import { useEffect, useState } from 'react';
 import { useGame } from '../../game/state/store';
+import { waitsTurn } from '../../game/cardTurn';
 import { fmt } from '../../game/economy/money';
 import { settlementById } from '../../game/systems/world';
 import { PersonCameo, type PersonSpec } from '../People/Person';
@@ -17,6 +18,8 @@ export function Rescue() {
   const [clinic, setClinic] = useState(false);
   useEffect(() => { setBeat(0); setClinic(false); }, [r?.day, r?.from]);
   if (!r) return null;
+  // the frontier post first: the fall waits its turn (game/cardTurn.ts)
+  if (waitsTurn(g, 'rescue')) return null;
   if (clinic) return <Clinic onClose={() => { g.clearRescue(); }} />;
   const toClinic = r.by === 'alone' ? false : r.by === 'men' ? !!r.clinic : r.by !== 'passerby' || !!r.clinic;
   const from = settlementById(r.from).name;

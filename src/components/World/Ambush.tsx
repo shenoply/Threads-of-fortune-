@@ -14,13 +14,14 @@ import { buzz } from '../../game/feel';
 import { BATTLE_ART, fieldFor } from './BattleField';
 import { Clash, setupOf, type ClashEnd, type ClashInfo } from './Clash';
 import { forecast, forecastWhy, simulate, losses as battleLosses } from '../../game/systems/battle';
-import { PRISONER_BOUNTY, ransomFor } from '../../game/systems/combat';
+import { PRISONER_BOUNTY, ransomFor, roadToll } from '../../game/systems/combat';
 import { lookFor } from '../../game/heroLook';
 import { groundsAt, isWin, type GroundId } from '../../game/systems/combat';
 import { terrainAt, dist } from '../../game/systems/world';
 import { ROAD_WELLS, SETTLEMENTS } from '../../data/world';
 import { Chase } from './Chase';
 import { speedInfo } from '../../game/systems/caravan';
+import { setHold } from '../../game/cardTurn';
 import type { ChaseSetup, ChaseState } from '../../game/systems/chase';
 
 type Stage = 'standoff' | 'demand' | 'battle' | 'result' | 'chase';
@@ -57,7 +58,10 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const ratio = theirs / Math.max(1, mine);
   // your name in their book (robbed once with nothing to pay): the price is doubled until you pay in full
   const marked = (g.banditMark ?? 0) > 0;
-  const tax = Math.max(20, Math.min(g.cash, Math.round(g.cash * (0.08 + 0.05 * Math.min(3, ratio))))) * (marked ? 2 : 1);
+  // the band's going rate for the road, by its ground and its size, never a share of a merchant's fortune (systems/combat.ts)
+  const tax = roadToll(threat.id, size, g.cash, { ratio }) * (marked ? 2 : 1);
+  // what they take by force: more than the toll, and still only what a band can carry off
+  const robbed = (mult: number, share: number) => Math.min(g.cash, roadToll(threat.id, size, g.cash, { ratio, mult, share }));
   const token = !rebels && (g.chiefTokenUntil ?? 0) >= g.day;
   const canDeter = mine >= theirs * 1.5;
   // what they ask, against what you have: short of it, they take what there is and something in kind
@@ -116,6 +120,8 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   useEffect(() => { voice.load().then(() => voice.preload([speaker])); return () => voice.stop(); }, [speaker]);
   // a buzz on the phone as they ride out at you (feel.ts)
   useEffect(() => { buzz(25); }, []);
+  // level-ups and other notices wait until the encounter is over (game/cardTurn.ts)
+  useEffect(() => { setHold('fight', true); return () => setHold('fight', false); }, []);
   // the battlefield pictures, fetched while they talk so a fight opens on a painted field
   const field = useMemo(() => fieldFor(threat.id, party.id, g.day), [threat.id, party.id, g.day]);
   useEffect(() => { for (const src of [field, ...BATTLE_ART]) new Image().src = src; }, [field]);
@@ -161,7 +167,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       mySide: mySide.map((u) => ({ id: u.id, n: u.n, start: u.start })), troops: { ...g.world.party.troops }, party: g.world.party,
       rifles, mounted,
       // a big band takes more when it wins: loads by its size, and a share of the purse
-      stakes: { loads: Math.max(1, Math.min(carried.length || 1, size >= 12 ? 3 : size >= 7 ? 2 : 1)), cash: Math.round(g.cash * (size >= 12 ? 0.25 : 0.15)) },
+      stakes: { loads: Math.max(1, Math.min(carried.length || 1, size >= 12 ? 3 : size >= 7 ? 2 : 1)), cash: robbed(size >= 12 ? 1.8 : 1.5, size >= 12 ? 0.45 : 0.35) },
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // one honest forecast, from the same battle the field runs: never certain, and what it usually costs
@@ -277,7 +283,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     }
     if (retreat) {
       const wound = Math.random() < 0.25 ? ` ${st.hurt('fight')}` : '';
-      base = st.ambushOutcome(party.id, { cashLoss: Math.round(g.cash * 0.15), rugsLost: 1 + letGo, troopsLost: lost, delayHours: 6, enemyLost: kills, text: `You pull your caravan back and run for it, leaving a bale and some coin behind.${sideLine}${lostLine}${wound}` });
+      base = st.ambushOutcome(party.id, { cashLoss: robbed(0.8, 0.2), rugsLost: 1 + letGo, troopsLost: lost, delayHours: 6, enemyLost: kills, text: `You pull your caravan back and run for it, leaving a bale and some coin behind.${sideLine}${lostLine}${wound}` });
     } else if (isWin(res)) {
       audio.sfx('coins');
       const winWound = heroDown ? ` ${st.hurt('fight')}` : '';
@@ -373,7 +379,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(`You pay ${fmt(tax)}. They let you go.`)} data-testid="amb-pay"><Icon name="coin" /> Pay <small>{fmt(tax)}</small></button>}
-              <button className="btn" onClick={() => { if (ratio >= 2) { const loss = Math.round(g.cash * 0.5); settle({ cashLoss: loss, rugsLost: 2, rep: -1, text: `${lines.strip}${takenLine(loss)}` }); } else { fight(); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
+              <button className="btn" onClick={() => { if (ratio >= 2) { const loss = robbed(2, 0.5); settle({ cashLoss: loss, rugsLost: 2, rep: -1, text: `${lines.strip}${takenLine(loss)}` }); } else { fight(); } }} data-testid="amb-refuse"><Icon name="hand" /> Refuse <small>{ratio >= 2 ? 'they are far stronger' : 'they will fight'}</small></button>
               {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Fight <small>{fightNote}</small></button>}
             </div>
           </>

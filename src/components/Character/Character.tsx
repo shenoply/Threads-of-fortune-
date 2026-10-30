@@ -1,3 +1,4 @@
+import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/state/store';
 import { SKILLS, SKILL_ORDER, MANNER_AXES, BOOKS, levelOf, xpFor, MAX_LEVEL, mannerTitle, START_MANNER, type SkillId } from '../../data/character';
@@ -175,8 +176,11 @@ export function Titles() {
 /** "Speech increased to 4" and new titles, announced once, like in Kingdom Come. */
 export function LevelUpToast() {
   const g = useGame();
-  const up = g.levelUps?.[0];
-  const title = !up ? g.titleNews?.[0] : undefined;
+  // held while a road fight or a card has the screen, then shown (game/cardTurn.ts)
+  const hold = useHeld();
+  const wait = hold || waitsTurn(g);
+  const up = wait ? undefined : g.levelUps?.[0];
+  const title = !up && !wait ? g.titleNews?.[0] : undefined;
   useEffect(() => {
     if (!up && !title) return;
     const perk = up && SKILLS[up.skill].perks.some((p) => p.level === up.level);

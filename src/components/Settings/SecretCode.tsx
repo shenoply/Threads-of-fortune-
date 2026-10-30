@@ -1,5 +1,6 @@
 // A quiet "Have a code?" line at the foot of the settings: the owner's code tops up the purse (for
 // testing the late game without grinding). Only the code's SHA-256 is in the build, not the code.
+import { dailyFood } from '../../game/systems/caravan';
 import { useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
@@ -25,10 +26,11 @@ export const CHEATS: Record<string, { what: string; run: (s: S) => Partial<S> }>
   rested: { what: 'rested, fed, watered and well', run: (s) => ({ condition: { ...(s.condition ?? { fatigue: 0, dependence: 0 }), fatigue: 0, fed: 100, water: 100 }, illnesses: [] }) },
   guards: { what: 'four Giza watchmen join you', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, troops: { ...s.world.party.troops, watchman: (s.world.party.troops?.watchman ?? 0) + 4 } } } }) },
   camels: { what: 'two camels', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, animals: { ...s.world.party.animals, falahi: (s.world.party.animals?.falahi ?? 0) + 2 } } } }) },
-  rations: { what: 'ten days of food', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, food: (s.world.party.food ?? 0) + 10 } } }) },
+  // party.food is in rations (one person or beast for one day): days of food are counted for the whole party
+  rations: { what: 'ten days of food', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, food: (s.world.party.food ?? 0) + 10 * dailyFood(s.world.party) } } }) },
   loaded: { what: '£5,000, reputation +100, papers and every city open', run: (s) => ({ cash: s.cash + 500000, reputation: s.reputation + 100, passport: { day: s.day }, tipsSeen: [...new Set([...(s.tipsSeen ?? []), 'first-hour'])], tutorial: { done: true, step: 'done', inspected: true } }) },
   army: { what: 'six veterans and six Cairo sentinels join you', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, troops: { ...s.world.party.troops, veteran: (s.world.party.troops?.veteran ?? 0) + 6, sentinel: (s.world.party.troops?.sentinel ?? 0) + 6 } } } }) },
-  feast: { what: 'sixty days of food and four camels', run: (s) => ({ world: { ...s.world, party: { ...s.world.party, food: (s.world.party.food ?? 0) + 60, animals: { ...s.world.party.animals, falahi: (s.world.party.animals?.falahi ?? 0) + 4 } } } }) },
+  feast: { what: 'sixty days of food and four camels', run: (s) => { const party = { ...s.world.party, animals: { ...s.world.party.animals, falahi: (s.world.party.animals?.falahi ?? 0) + 4 } }; return { world: { ...s.world, party: { ...party, food: (party.food ?? 0) + 60 * dailyFood(party) } } }; } },
   nodebt: { what: 'every debt paid off', run: (s) => ({ supplier: { ...s.supplier, debt: 0 }, loans: [], family: s.family ? { ...s.family, left: 0, due: 0 } : s.family, bills: s.bills ? { ...s.bills, due: 0 } : s.bills }) },
 };
 export const BETA_CODES = Object.entries(CHEATS).map(([code, c]) => ({ code, what: c.what }));

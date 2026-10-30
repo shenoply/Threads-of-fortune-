@@ -13,10 +13,11 @@ import { OnceLine } from '../Tips/OnceLine';
 installBorders();
 
 /**
- * The frontier post: papers, then the rugs you carry. Shown over the town you have just reached,
- * until you go on (or are turned back, when `onDone` gets the town you are sent back to).
+ * The frontier post: papers, then the rugs you carry. Met on the road with the caravan held at the post
+ * (or, coming by sea, at the port's customs house), until you go on. `onDone` gets the town you are
+ * bound for, or the one you are sent back to (`back`).
  */
-export function BorderCard({ onDone }: { onDone: (town: string) => void }) {
+export function BorderCard({ onDone }: { onDone: (town: string, back: boolean) => void }) {
   const g = useGame();
   const b = g.border;
   const [busy, setBusy] = useState(false);
@@ -42,7 +43,7 @@ export function BorderCard({ onDone }: { onDone: (town: string) => void }) {
         <h2>{b.post.replace(/^the /, '').replace(/^./, (c) => c.toUpperCase())}</h2>
         {!b.result ? (
           <>
-            <p>The frontier of {countryRule(b.toC, g.day)}. Beyond it lies the road to {toName}.</p>
+            <p>{b.onRoad ? <>The frontier of {countryRule(b.toC, g.day)}. Beyond it lies the road to {toName}.</> : <>The customs house at {toName}, in {countryRule(b.toC, g.day)}. Your papers and your bales first, then the town.</>}</p>
             <p className="small" data-testid="border-papers">
               <b>Papers:</b> {papers ? 'your passport and visas are in order.' : refused
                 ? (b.toC === 'persia'
@@ -79,7 +80,7 @@ export function BorderCard({ onDone }: { onDone: (town: string) => void }) {
           <>
             <p className="pass-outcome" data-testid="border-outcome" data-kind={b.result.kind}>{b.result.text}</p>
             {b.result.lines.length > 0 && <ul className="dim small">{b.result.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
-            <button type="button" className="btn primary" onClick={() => { const t = finishBorder(); if (t) onDone(t); }} data-testid="border-continue">{b.result.kind === 'back' ? `Back to ${settlementById(b.from).name}` : `On to ${toName}`}</button>
+            <button type="button" className="btn primary" onClick={() => { const back = b.result?.kind === 'back'; const t = finishBorder(); if (t) onDone(t, back); }} data-testid="border-continue">{b.result.kind === 'back' ? `Back to ${settlementById(b.from).name}` : b.onRoad ? `On to ${toName}` : `Into ${toName}`}</button>
           </>
         )}
       </div>

@@ -121,7 +121,7 @@ export function resolvePass(risk: number, roll: number, strength: number, cash: 
   // raiders: your strength against theirs
   const theirs = 4 + Math.round(risk / 10);
   if (strength >= theirs) return { kind: 'raiders_driven_off', text: `Raiders come down at the narrows, about ${theirs} strong. Your men hold, and they ride off. Nobody is badly hurt.`, fatigue: 22, foodLost: 1, cashLost: 0, cargoLost: false, extraDays: 0 };
-  return { kind: 'raiders_robbed', text: `Raiders come down at the narrows, about ${theirs} strong, more than you can hold. They take a share of your money and whatever cargo they can carry, and leave you the rest.`, fatigue: 28, foodLost: Math.min(food, 3), cashLost: Math.round(cash * 0.2), cargoLost: true, extraDays: 1 };
+  return { kind: 'raiders_robbed', text: `Raiders come down at the narrows, about ${theirs} strong, more than you can hold. They take the money they find in the saddlebags and whatever cargo they can carry, and leave you the rest.`, fatigue: 28, foodLost: Math.min(food, 3), cashLost: Math.min(Math.round(cash * 0.2), 1500), cargoLost: true, extraDays: 1 };
 }
 
 // ---------------- cargo and the law of 1925 ----------------

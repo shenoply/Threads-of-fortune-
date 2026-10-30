@@ -3115,6 +3115,8 @@ body.travelling .world-hud { display: none; }
 @media (max-width: 480px) {
   /* a long town name takes two smaller lines rather than losing its end */
   .hud-place b.long { font-size: 13.5px; line-height: 1.05; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; text-overflow: clip; }
+  /* a middling name (Damascus, Baghdad) is set a little smaller and closer, so it reads whole */
+  .hud-place b.mid { font-size: 13.5px; letter-spacing: 0; text-overflow: clip; }
   .hud-chip { padding: 0 7px; }
   .hud-stats { gap: 1px; }
   [data-testid="settings"] .slot-row .slot-info { align-self: center; }

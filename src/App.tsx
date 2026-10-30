@@ -65,6 +65,7 @@ import { Rumours } from './components/Rumours/Rumours';
 import { levelOf } from './data/character';
 import { Merchant, progressScore, type MerchantSub } from './components/Merchant/Merchant';
 import { settlementById } from './game/systems/world';
+import { shortName } from './data/world';
 import { RUGS } from './data/rugs';
 import { rentFor } from './data/suppliers';
 import { paintedMap } from './game/systems/mapRender';
@@ -851,8 +852,8 @@ export default function App() {
       <div className="purse-mood" aria-hidden="true" />
       <header className={`hud ${warn ? 'has-warn' : ''}`}>
         <button className="hud-place hud-cal" onClick={() => setCal(true)} aria-label="Open the calendar" data-testid="hud-calendar">
-          {(() => { const nm = g.world.at ? settlementById(g.world.at).name.split(',')[0] : 'Road'; return <b className={nm.length > 11 ? 'long' : undefined}>{nm}</b>; })()}
-          <span data-testid="map-clock">{clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · One life</i> : null}</span>
+          {(() => { const nm = shortName(g.world.at); return <b className={nm.length > 11 ? 'long' : nm.length > 5 ? 'mid' : undefined}>{nm}</b>; })()}
+          <span data-testid="map-clock"><Icon name="calendar" /> {clock(g.world.hour)} {dateFor(g.day).weekday.slice(0, 3)}{g.playMode === 'sandbox' ? <i className="hud-mode" data-testid="hud-sandbox"> · Sandbox</i> : g.ironman ? <i className="hud-mode iron" data-testid="hud-ironman"> · One life</i> : null}</span>
         </button>
         <div className="hud-stats">
           {/* the purse: tap for the money book (what came in, what went out) */}

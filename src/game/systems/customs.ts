@@ -15,14 +15,17 @@
 //   consulates. Without them most posts fine you and write a pass for the one crossing; the
 //   Turkish Republic turns you back.
 //
-// The crossing is noticed when you arrive in a town of another country (by road, rail or sea). It is
-// resolved once, from a roll on the stored seed, and kept on the pending record until you go on, so a
+// On a road, a railway or the desert car the caravan is held at the frontier post itself, part way
+// along (frontierAt, borderOnRoad); by sea the customs house is at the port, so the crossing is noticed
+// when you arrive (and on any arrival the road check missed). It is resolved once, from a roll on the stored seed, and kept on the pending record until you go on, so a
 // reload shows the same outcome.
 import { useGame } from '../state/store';
 import { fmt, snap } from '../economy/money';
 import { COUNTRY_NAME, COUNTRY_RULE, CHANGER_WHY, changerFee, countryOf, currencyAt, type Country } from '../economy/currency';
 import { eventsOn } from '../economy/life';
-import { settlementById } from './world';
+import { settlementById, dist, type Pt } from './world';
+import { SETTLEMENTS, ROAD_WELLS } from '../../data/world';
+import { CROSSINGS } from '../../data/barriers';
 import { rollFor } from './fieldwork';
 import { RUGS } from '../../data/rugs';
 import { heroCharisma } from '../../data/wardrobe';
@@ -50,7 +53,7 @@ export const tightFrontier = (day: number, a?: Country, b?: Country) => eventsOn
 
 export type DeclareChoice = 'full' | 'under' | 'baksheesh';
 export interface BorderResult { choice: DeclareChoice | 'none' | 'back'; kind: 'clear' | 'caught' | 'refused' | 'back'; text: string; lines: string[] }
-export interface BorderPending { key: string; from: string; to: string; fromC: Country; toC: Country; day: number; post: string; result?: BorderResult }
+export interface BorderPending { key: string; from: string; to: string; fromC: Country; toC: Country; day: number; post: string; result?: BorderResult; /** met on the way, with the caravan held at the post (not on arrival) */ onRoad?: boolean }
 type BorderState = ReturnType<typeof useGame.getState>;
 
 const get = () => useGame.getState() as BorderState;
@@ -113,6 +116,52 @@ function onArrive(at: string) {
   if (!last || !fromC || fromC === toC || last === at) { set({ lastTown: at, changer: undefined }); return; }
   const post = postFor(last, at);
   set({ changer: undefined, border: { key: `${last}>${at}:${s.day}`, from: last, to: at, fromC, toC, day: s.day, post } });
+}
+
+/** where the posts stand, for the ones the map can place: the caravan halts at the nearest point of its route */
+const POST_PLACES: { name: string; at: Pt }[] = [
+  ...CROSSINGS.filter((c) => c.name.startsWith('Kantara')).map((c) => ({ name: 'Kantara', at: { x: c.x, y: c.y } })),
+  ...ROAD_WELLS.filter((w) => w.id === 'well-rutba').map((w) => ({ name: 'Rutba', at: { x: w.x, y: w.y } })),
+];
+const countryNear = (p: Pt) => {
+  let best: { c?: Country; d: number } = { d: Infinity };
+  for (const s of SETTLEMENTS) { if (s.gateway) continue; const d = dist(s, p); if (d < best.d) best = { c: countryOf(s.id), d }; }
+  return best.c;
+};
+/** How far along a route (in map px) the frontier between two towns' countries lies: at the post when
+ *  the map knows where it stands and the route passes it, else where the land of the first country
+ *  ends. Undefined when the trip stays in one country. */
+export function frontierAt(path: Pt[], from: string | null | undefined, to: string | undefined): number | undefined {
+  const fc = countryOf(from), tc = countryOf(to);
+  if (!from || !to || !fc || !tc || fc === tc || path.length < 2) return undefined;
+  const post = postFor(from, to);
+  const named = POST_PLACES.find((p) => post.includes(p.name));
+  let run = 0, flip: number | undefined, near = { d: Infinity, at: 0 };
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1], b = path[i], seg = dist(a, b);
+    const steps = Math.max(1, Math.ceil(seg / 3));
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps, p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, at = run + seg * t;
+      if (named) { const d = dist(p, named.at); if (d < near.d) near = { d, at }; }
+      if (flip === undefined) { const c = countryNear(p); if (c && c !== fc) flip = at; }
+    }
+    run += seg;
+  }
+  if (named && near.d < 30) return Math.min(near.at, run * 0.95);
+  return Math.min(flip ?? run * 0.5, run * 0.95);
+}
+
+/** The caravan has reached the frontier on its way from `from` to `to`: hold it at the post until the
+ *  card is answered. False when there is nothing to cross (already crossed on this trip, the same
+ *  country, or a card already open). */
+export function borderOnRoad(from: string, to: string): boolean {
+  const s = get();
+  if (s.border) return false;
+  const last = s.lastTown ?? from;
+  const fromC = countryOf(last), toC = countryOf(to);
+  if (!fromC || !toC || fromC === toC) return false;
+  set({ changer: undefined, border: { key: `${last}>${to}:${s.day}`, from: last, to, fromC, toC, day: s.day, post: postFor(last, to), onRoad: true } });
+  return true;
 }
 
 /** pay what is owed; short of cash, the customs keep your cheapest rug in bond for the rest */
@@ -218,6 +267,8 @@ export function finishBorder(): string | undefined {
   if (!b) return undefined;
   if (b.result?.kind === 'back') {
     set({ border: undefined, lastTown: b.from });
+    // held on the road: the map walks the caravan back the way it came
+    if (b.onRoad) return b.from;
     get().arriveAt(b.from);
     get().passTime(8 * 60);
     return b.from;

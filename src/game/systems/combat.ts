@@ -373,6 +373,27 @@ export function newLeader(partyId: string, threatId: string, strength: number, g
 export const PRISONER_BOUNTY = 60;
 /** what his band will pay to have their leader back: more than the bounty, but he goes free */
 export const ransomFor = (l: Leader) => Math.round(l.bounty * 1.6);
+/** What a band asks for the road, in piastres, by the ground it rides: a few pounds on the Egyptian and
+ *  Palestine roads, more out in the desert. The low figure is a band of three, the high one fourteen or more. */
+export const ROAD_TOLL: Record<string, [number, number]> = {
+  'egypt-rural-highway-robbers': [150, 450],
+  'palestine-road-thieves': [200, 650],
+  'syria-1925-rebels': [250, 900],
+  'sinai-transjordan-desert-raiders': [350, 1300],
+  'iraq-border-smuggler-brigands': [450, 1600],
+  'zagros-tribal-raiders': [450, 1600],
+};
+/** The price of the road: the band's going rate for its size (a little more when it is much the stronger),
+ *  never more than `share` of the cash you carry. A band stops a caravan for what it can carry off in a
+ *  saddlebag, not for a merchant's fortune. `mult` scales the going rate (a band that was refused, a lost fight). */
+export function roadToll(bandId: string, size: number, cash: number, o: { ratio?: number; share?: number; mult?: number } = {}): number {
+  const [lo, hi] = ROAD_TOLL[bandId] ?? ROAD_TOLL['egypt-rural-highway-robbers'];
+  const k = Math.max(0, Math.min(1, (size - 3) / 11));
+  const strong = 1 + 0.1 * Math.max(0, Math.min(3, (o.ratio ?? 1) - 1));
+  const going = (lo + (hi - lo) * k) * strong * (o.mult ?? 1);
+  const purse = Math.max(0, cash) * (o.share ?? 0.3);
+  return Math.max(5, Math.round(Math.min(going, Math.max(20, purse)) / 5) * 5);
+}
 /** days a band keeps off its road after its leader is jailed */
 export const CLEAR_DAYS = 25;
 /** wins before weak bands step aside for you */

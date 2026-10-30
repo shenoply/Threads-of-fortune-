@@ -1,3 +1,4 @@
+import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
@@ -298,13 +299,17 @@ export function SideTasks({ onGo, only }: { onGo: (target: string) => void; only
 /** A milestone just reached: one short notice above the bottom bar for a few seconds, nothing to tap. */
 export function MilestoneNotice() {
   const id = useGame((s) => s.milestoneNews);
+  // it waits while a card or a fight has the screen (game/cardTurn.ts)
+  const busy = useGame((s) => waitsTurn(s));
+  const hold = useHeld();
+  const wait = busy || hold;
   useEffect(() => {
-    if (!id) return;
+    if (!id || wait) return;
     const t = window.setTimeout(() => useGame.setState({ milestoneNews: undefined }), 6500);
     return () => window.clearTimeout(t);
-  }, [id]);
+  }, [id, wait]);
   const m = id ? MILESTONES[id] : undefined;
-  if (!m) return null;
+  if (!m || wait) return null;
   return (
     <div className="levelup milestone" role="status" data-testid="milestone-notice">
       <small>GOAL REACHED · {MILESTONE_ORDER.indexOf(m.id) + 1}/{MILESTONE_ORDER.length}</small>
@@ -326,6 +331,8 @@ export function MissionScene() {
   // gone stale (the rug sold before the choice, a reload): put it away until the condition holds again
   useEffect(() => { if (id && m && !told && !(m.check?.(g as unknown as MissionState) ?? true)) useGame.setState({ missionScene: undefined }); });
   if (!id || !m?.scene) return null;
+  // the frontier or a fall in the street first (game/cardTurn.ts)
+  if (waitsTurn(g, 'scene')) return null;
   const sc = m.scene;
   const choices = sc.choices.filter((c) => !c.when || c.when(g));
   return (

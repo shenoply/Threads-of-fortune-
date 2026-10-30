@@ -101,7 +101,11 @@ export const MISSIONS: Record<string, Mission> = {
     target: 'alexandria',
     locks: 'Until then Rashid sells only Common rugs, gives no credit, and your rank cannot rise past Stall keeper.',
     reward: { cash: 200, rep: 3, trust: 15, text: 'Rashid reads your receipt twice. "Not bad. Not good, but not bad." He pays you £2 for the errand, opens his back room and his credit book.' },
-    hint: (s) => (s.world.at === 'alexandria' ? 'Buy one rug in the market here.' : 'Alexandria, 4 hours by train: buy one rug.'),
+    // said from where you stand: four hours is the train from Cairo, not from Damascus
+    hint: (s) => (s.world.at === 'alexandria' ? 'Buy one rug in the market here.'
+      : !s.world.at || s.world.at === 'giza' || s.world.at === 'cairo' ? 'Alexandria, 4 hours by train: buy one rug.'
+      : countryOf(s.world.at) === 'egypt' ? 'Alexandria, by train or road: buy one rug.'
+      : 'Back in Egypt, go to Alexandria and buy one rug for Rashid.'),
   },
   beasts: {
     id: 'beasts', title: 'Beasts of burden', giver: 'Uncle Rashid',

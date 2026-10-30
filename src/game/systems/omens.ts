@@ -14,6 +14,8 @@ export interface Omen {
   night: number;
   /** a watchman paid for that night */
   guarded?: boolean;
+  /** the warning came while you were away from Giza: nobody told you */
+  away?: boolean;
 }
 
 const h = (day: number, salt: string) => {
@@ -43,14 +45,16 @@ export function omensNight(s: GameState, day: number): { patch: Partial<GameStat
       const gone = sorted[Math.floor(sorted.length / 2)];
       patch.inventory = s.inventory.filter((i) => i.uid !== gone.uid);
       patch.journal = [...(s.journal ?? []), { day, text: `A thief took the ${RUGS[gone.typeId]?.name ?? 'rug'} from the stall in the night (it cost you ${fmt(gone.paid)}).`, kind: 'loss' }];
-      notes.push(`A thief took the ${RUGS[gone.typeId]?.name ?? 'rug'} from your stall in the night. You were warned.`);
+      notes.push(o.away || s.world.at !== 'giza'
+        ? `While you were away, a thief took the ${RUGS[gone.typeId]?.name ?? 'rug'} from the rugs you left at your stall.`
+        : `A thief took the ${RUGS[gone.typeId]?.name ?? 'rug'} from your stall in the night. You were warned.`);
     }
     patch.omen = undefined;
     return { patch, notes };
   }
   // a new warning, about once a fortnight, after the first week
   if (!o && day >= 8 && h(day, 'thief') < 1 / 14 && reachable(s).length) {
-    patch.omen = { kind: 'thief', night: day };
+    patch.omen = { kind: 'thief', night: day, ...(s.world.at !== 'giza' ? { away: true } : {}) };
     notes.push(`Hajj Mahmoud says a thief has been working the lane at night. Tonight it may be your stall. A watchman costs ${fmt(WATCH_COST)}.`);
   }
   return { patch, notes };

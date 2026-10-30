@@ -71,8 +71,8 @@ import { CONDITION_FACTOR } from '../../data/rugs';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
-import { capacity } from '../systems/caravan';
-import { BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
+import { capacity, load as caravanLoad } from '../systems/caravan';
+import { roadToll, BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
 import { syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList } from '../systems/men';
 import { threatForParty } from '../../data/travelThreats1925';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
@@ -794,6 +794,13 @@ function initialWorld(): WorldState {
   return { x: g.x, y: g.y, at: 'giza', fog, known: ['giza', 'cairo', 'alexandria', 'portsaid', 'jaffa', 'jerusalem', 'beirut', 'damascus', 'aleppo', 'istanbul', 'baghdad', 'konya', 'amman', 'ankara', ...PERSIAN_ROAD], hour: 8, parties: spawnParties(rng), quests: {}, rumours: [], boughtLocal: [], appraised: [], friends: [], party: startingParty(), hired: {} };
 }
 
+/** said when a purchase loads the caravan past what it can carry (it then goes slower: caravan.ts speedInfo) */
+function overloadNote(s: Pick<GameState, 'world' | 'inventory'>) {
+  const l = caravanLoad(s.world.party, s.inventory), c = capacity(s.world.party);
+  return l > c + 0.01 ? ` The caravan is overloaded now (${Math.round(l)} loads on ${Math.round(c)}) and will go slower. Leave some behind, or take another animal.` : '';
+}
+/** how many times the village stack a market holds of its own common and fine rugs, by kind of place */
+export const MARKET_DEPTH: Record<string, number> = { city: 4, port: 3, town: 2 };
 /** What a settlement's own market has today, before stock is filtered out. Used both to show what is
  *  still buyable and — with stock ignored — to cap what the same dealer will pay back the same day. */
 export function localOffersRaw(sid: string, day: number, bought: string[], friends: string[], rep = 0): LocalOffer[] {
@@ -813,8 +820,9 @@ export function localOffersRaw(sid: string, day: number, bought: string[], frien
       const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1) * folkPrice(sid);
       const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid));
       const key = `${day}:${sid}:${o.typeId}`;
-      // village rugs come in stacks; the finer the rug, the fewer the copies
-      const qty = (t.tier ?? 1) === 1 ? 3 : (t.tier ?? 1) === 2 ? 2 : 1;
+      // village rugs come in stacks; the finer the rug, the fewer the copies. A city's souq has bales
+      // of its own weave enough to load a caravan; a village has a few pieces
+      const qty = ((t.tier ?? 1) === 1 ? 3 : (t.tier ?? 1) === 2 ? 2 : 1) * ((t.tier ?? 1) >= 3 ? 1 : MARKET_DEPTH[st.kind] ?? 1);
       return { key, typeId: o.typeId, condition, price, left: qty - bought.filter((b) => b === key).length };
     });
 }
@@ -932,6 +940,24 @@ export const DEALER_BUYBACK = 0.8;
 export const DEALER_SHARE = 0.48;
 /** and each rug he has already taken from you today lowers the next bid by a tenth */
 export const DEALER_GLUT = 0.9;
+/** A weave no dealer in this country stocks is a rarity there: an importer pays this share of its
+ *  worth to a buyer, before local demand. This is what a trade run lives on: buy a town's own rug at
+ *  home, carry it abroad, sell it where nobody else has it. */
+export const FAR_SHARE = 0.9;
+/** and foreign goods sell by the bale: each one already taken today lowers the next bid only a little */
+export const FAR_GLUT = 0.99;
+const farMemo = new Map<string, boolean>();
+/** no town in this settlement's country stocks this type of rug */
+export function farGoods(sid: string, typeId: string): boolean {
+  const k = `${sid}:${typeId}`;
+  let v = farMemo.get(k);
+  if (v === undefined) {
+    const c = countryOf(sid);
+    v = !!c && !SETTLEMENTS.some((x) => countryOf(x.id) === c && x.sells.some((o) => o.typeId === typeId));
+    farMemo.set(k, v);
+  }
+  return v;
+}
 /** rugs sold to dealers today, town by town: kept in step with the store (dealerSold) */
 export const DEALER_SAT: { day: number; by: Record<string, number> } = { day: 0, by: {} };
 /** milestone rewards the pure price functions need to know about (kept in step with the save below) */
@@ -947,9 +973,23 @@ export function localBid(sid: string, item: RugItem, day = 1): number {
   // each rug already sold to this town's dealers today knocks a tenth off the next one
   const sold = DEALER_SAT.day === day ? DEALER_SAT.by[sid] ?? 0 : 0;
   // a dealer knows a dyed or aged copy when he sees one (systems/fakes.ts)
-  const bid = snap(perceivedValue(t, item) * flawFactor(item) * DEALER_SHARE * m * Math.pow(DEALER_GLUT, sold) * (2 - folkPrice(sid)));
+  const far = farGoods(sid, item.typeId);
+  const bid = snap(perceivedValue(t, item) * flawFactor(item) * (far ? FAR_SHARE : DEALER_SHARE) * m * Math.pow(far ? FAR_GLUT : DEALER_GLUT, sold) * (2 - folkPrice(sid)));
   const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
   return ask === undefined ? bid : Math.min(bid, snapDown(ask * DEALER_BUYBACK));
+}
+
+/** The known town whose dealers pay best for this rug today (not counting `except`), with their bid:
+ *  what the market card and the trip card name as the place to take it. */
+export function bestMarket(s: Pick<GameState, 'day' | 'world'>, item: Pick<RugItem, 'typeId' | 'condition' | 'provenance'> & Partial<RugItem>, except?: string | null): { sid: string; bid: number } | undefined {
+  const it = { uid: '', restored: false, paid: 0, notes: [], stored: false, ...item } as RugItem;
+  let best: { sid: string; bid: number } | undefined;
+  for (const st of SETTLEMENTS) {
+    if (st.id === except || st.gateway || !s.world.known.includes(st.id) || !st.sells.length || PERSIA_IDS.includes(st.id)) continue;
+    const bid = localBid(st.id, it, s.day);
+    if (!best || bid > best.bid) best = { sid: st.id, bid };
+  }
+  return best;
 }
 
 function initial(): Omit<GameState, keyof Actions> {
@@ -2097,7 +2137,8 @@ export const useGame = create<GameState & Actions>()(
             const ev = dangerAt(s.day, id);
             if (ev) {
               const g2 = get();
-              const fee = Math.min(g2.cash, Math.max(50, Math.round(g2.cash * 0.05)));
+              // a soldier's "fee" is what he can pocket: a pound or two, three at most
+              const fee = Math.min(g2.cash, Math.max(50, Math.min(300, Math.round(g2.cash * 0.05))));
               if (fee > 0) set({ cash: g2.cash - fee, ledger: [...g2.ledger, { day: g2.day, kind: 'expense', label: `Checkpoint at ${settlementById(id).name}`, amount: -fee }], journal: [...g2.journal, { day: g2.day, text: `${ev.name}: soldiers at the gate of ${settlementById(id).name} searched the bales. The "inspection fee" was ${fmt(fee)}.`, kind: 'arrive' }] });
             }
           }
@@ -2525,6 +2566,7 @@ export const useGame = create<GameState & Actions>()(
           const party = { people: 1 + troopCount(s.world.party), animals: s.world.party.animals ?? {} };
           const r = from ? (mode === 'motor' ? motorRoutesFrom(from, party) : seaRoutesFrom(from, party)).find((x) => x.to === to) : undefined;
           if (!r) return mode === 'motor' ? 'No motor service runs there from here.' : 'No ship sails there from here.';
+          if ('noAnimals' in r && r.noAnimals) return 'The Nairn car takes people only. Sell your animals, or walk.';
           if (s.cash < r.fare) return 'You cannot afford the fare.';
           set({ cash: s.cash - r.fare, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: mode === 'motor' ? (motorLorry(from, to) ? `Motor lorry to ${settlementById(to).name}` : `Nairn desert car to ${settlementById(to).name}`) : `Deck passage to ${settlementById(to).name}`, amount: -r.fare }] });
           const dest = settlementById(to);
@@ -2764,7 +2806,8 @@ export const useGame = create<GameState & Actions>()(
           } else if (choice === 'toll' || (choice === 'talk' && !s.world.rumours.some((r) => r.includes('Salim')) && rng() >= 0.5)) {
             const talked = choice === 'talk';
             const marked = (s.banditMark ?? 0) > 0;
-            const toll = (talked ? Math.max(15, Math.round(cash * 0.18)) : Math.max(10, Math.round(cash * 0.1))) * (marked ? 2 : 1);
+            // the band's going rate for its road and size, not a share of your fortune (systems/combat.ts)
+            const toll = roadToll(threatForParty(p, s.day).id, p.size ?? 4, cash, { mult: talked ? 1.5 : 1 }) * (marked ? 2 : 1);
             if ((s.chiefTokenUntil ?? 0) >= s.day) {
               msg = 'You hold up the chief\'s knotted cord. They look at it and wave you through.';
             } else if (cash >= toll) {
@@ -2823,7 +2866,7 @@ export const useGame = create<GameState & Actions>()(
               return msg;
             }
             casualties(0.3);
-            const lostCash = Math.round(cash * 0.3);
+            const lostCash = Math.min(cash, roadToll(threatForParty(p, s.day).id, p.size ?? 4, cash, { mult: 1.6, share: 0.4 }));
             cash -= lostCash;
             let inventory = s.inventory;
             const carriedRugs = inventory.filter((i) => !i.stored);
@@ -2985,7 +3028,7 @@ export const useGame = create<GameState & Actions>()(
           if (s.cash < price) return 'Not enough cash.';
           set({ cash: s.cash - price, world: { ...s.world, party: { ...s.world.party, food: s.world.party.food + n } }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `${n} rations in ${settlementById(sid).name}`, amount: -price }] });
           audio.sfx('coin');
-          return `Bought ${n} ration${n === 1 ? '' : 's'} of bread and dates for ${fmt(price)}.`;
+          return `Bought ${n} ration${n === 1 ? '' : 's'} of bread and dates for ${fmt(price)}.${overloadNote(get())}`;
         },
 
         buyLivestock: (id) => {
@@ -3024,7 +3067,7 @@ export const useGame = create<GameState & Actions>()(
           set({ cash: s.cash - price, world: { ...s.world, party }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `${item.name} in ${settlementById(sid).name}`, amount: -price }] });
           audio.sfx('coin');
           const got = item.rations ? `${item.rations * n} ration${item.rations * n === 1 ? '' : 's'}` : 'enough for the evening';
-          return `Bought ${item.name}, ${got}, for ${fmt(price)}.${lifts ? ' The men are pleased.' : ''}`;
+          return `Bought ${item.name}, ${got}, for ${fmt(price)}.${lifts ? ' The men are pleased.' : ''}${overloadNote(get())}`;
         },
 
         /** A last resort on the road with the sacks empty: butcher a pack animal for rations. You lose the animal for good. */

@@ -4,6 +4,9 @@ import './worldmap-fixes.css';
 import { venueFor } from '../../data/venues';
 import { PassCard, PASS_TOWNS, needsPass } from './PassCard';
 import { BorderCard, TripMoney, TripPapers } from './BorderCard';
+import { borderOnRoad, frontierAt } from '../../game/systems/customs';
+import { setHold } from '../../game/cardTurn';
+import { isPersian } from '../../data/persiaMap';
 import { Tip } from '../Tips/Tip';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { FolkCard } from '../Folk/FolkCard';
@@ -14,7 +17,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { lookFor } from '../../game/heroLook';
 import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
-import { nameOnRoad, useGame, ferryFare } from '../../game/state/store';
+import { nameOnRoad, useGame, ferryFare, localBid } from '../../game/state/store';
 import { rankChip } from './RankTable';
 import { SETTLEMENTS, ROAD_WELLS, motorLorry, type Settlement } from '../../data/world';
 import { waterOf } from '../../game/systems/malek';
@@ -25,7 +28,7 @@ import { routeDanger, tripEstimate, durationLabel, type FareLine,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
-import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf } from '../../game/systems/caravan';
+import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf, fatiguePace, healthMods } from '../../game/systems/caravan';
 import { MenTalk } from './Troops';
 import { Icon } from '../Icon';
 import { SHOP_CITIES } from '../../data/shops';
@@ -64,6 +67,10 @@ function seasonOf(day: number) {
   return m < 2 || m === 11 ? 'Winter' : m < 5 ? 'Spring' : m < 8 ? 'Summer' : 'Autumn';
 }
 
+/** a fifth over what a walk is expected to eat, for a slow road ("Buy rations and go") */
+const FOOD_MARGIN = 1.2;
+/** how much longer than its plain march a walk takes for a worn-out merchant (caravan.ts fatiguePace) */
+const roadDrag = () => 1 / Math.max(0.3, fatiguePace());
 /** "1 day", "3 days" */
 const daysWord = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
 /** A name in the middle of a sentence: lower case, but places and peoples keep their capital
@@ -115,7 +122,7 @@ interface Plan {
   days: number;
   train?: { days: number; fare: number; stops: string[]; bill?: FareLine[] };
   ships: { to: string; days: number; fare: number; bill?: FareLine[] }[];
-  motor: { to: string; days: number; fare: number; bill?: FareLine[] }[];
+  motor: { to: string; days: number; fare: number; bill?: FareLine[]; noAnimals?: boolean }[];
   /** the port or town this plan was made from, so a ship can still be booked from it even after
    *  you've since set off on foot and world.at has gone back to null on the road */
   from?: Settlement;
@@ -205,6 +212,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const [pass, setPass] = useState<{ key: string } | null>(null);
   // a trip into or out of the Sinai: where along the path the narrows are, and the key the crossing is stored under
   const passTrip = useRef<{ key: string; atPx: number } | null>(null);
+  // a trip into another country: where along the path the frontier post is (systems/customs.ts frontierAt)
+  const borderTrip = useRef<{ atPx: number; from: string; to: string } | null>(null);
+  const planBorder = (path: Pt[], dest?: string) => {
+    const from = useGame.getState().lastTown ?? useGame.getState().world.at;
+    const at = dest && from ? frontierAt(path, from, dest) : undefined;
+    borderTrip.current = at !== undefined && from && dest ? { atPx: at, from, to: dest } : null;
+  };
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
   type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean };
@@ -301,11 +315,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
    *  escort at the Sinai narrows, and a day's rations for everyone at each midnight on the road. */
   const estimate = (walkDays: number, dest?: string, fromAt: string | null | undefined = useGame.getState().world.at) => {
     const st0 = useGame.getState();
+    // the road as it will really go: a tired or ill merchant camps, and his weariness slows the pace
+    // (floods, a khamsin and snow along the way are already in the plan's days: seasonPathMult)
+    const camp = nightRuleRef.current !== 'march' || (st0.condition?.fatigue ?? 0) >= 70 || (st0.illnesses ?? []).length > 0;
     return tripEstimate({
-      walkDays, startHour: st0.world.hour, camp: nightRuleRef.current !== 'march', perDay: dailyFood(st0.world.party),
+      walkDays: walkDays * roadDrag(), startHour: st0.world.hour, camp, perDay: dailyFood(st0.world.party),
       waitDays: needsPass(fromAt ?? undefined, dest) ? PASS_CHOICES.escort.extraDays : 0,
     });
   };
+  /** rations to buy before setting off: what the walk is expected to eat, and a fifth over for a slow road */
+  const rationsFor = (p: Plan) => Math.ceil(estimate(p.days, p.settlement?.id).rations * FOOD_MARGIN);
   const [sleeping, setSleeping] = useState(false); // the night passing in a short camp, then on at dawn
   const [rememberNight, setRememberNight] = useState(false);
   // the night's choice is made on the card, never by a tap on the speed buttons; a journey that ends
@@ -571,7 +590,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // the Objectives panel or the objective banner's Map button) — without this in both places, only
   // one of the two ways to start walking actually caught a caravan that could not make the distance.
   const offerFoodShort = (p: Plan) => {
-    const need = estimate(p.days, p.settlement?.id).rations - w.party.food;
+    const need = rationsFor(p) - Math.floor(w.party.food);
     if (need > 0 && w.at && MARKETS[w.at] && !moving) {
       setShort({ plan: p, need, price: Math.ceil(need * MARKETS[w.at].food) });
       setPlan(null);
@@ -595,6 +614,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     setNightfall(false);
     follow.current = true;
     if (w.at) walkBegun();
+    planBorder(p.path, p.settlement?.id);
     setMoving({ path: p.path, done: 0, train: false, dest: p.settlement?.id });
     setPlan(null);
     const ferry = (w.at === 'giza' && p.settlement?.id === 'cairo') || (w.at === 'cairo' && p.settlement?.id === 'giza');
@@ -631,7 +651,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (p.path) ways.push({ days: estimate(p.days, st.id).elapsedDays, go: () => start(false, p) });
     if (p.train && cash >= p.train.fare) ways.push({ days: p.train.days, go: () => start(true, p) });
     for (const r of p.ships) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'ship', p.from) });
-    for (const r of p.motor) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'motor', p.from) });
+    for (const r of p.motor) if (cash >= r.fare && !r.noAnimals) ways.push({ days: r.days, go: () => startSea(r, 'motor', p.from) });
     ways.sort((a, b) => a.days - b.days)[0]?.go();
   };
 
@@ -660,7 +680,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     passTrip.current = null;
     setAlt(null);
     setNightfall(false);
-    if (!path) { setMoving(null); setTimeScale(1); setReport(msg); return; }
+    if (!path) { borderTrip.current = null; setMoving(null); setTimeScale(1); setReport(msg); return; }
+    // a frontier already crossed on the way out is crossed again on the way back, at the post
+    planBorder(path, homeSt?.id);
     follow.current = true;
     setMoving({ path, done: 0, train: false, dest: homeSt?.id });
     setTimeScale(lastScale.current || 1);
@@ -682,6 +704,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (g.cash < plan.train.fare) return setReport('You cannot afford the train fare.');
       useGame.setState((st) => ({ cash: st.cash - plan.train!.fare, ledger: [...st.ledger, { day: st.day, kind: 'expense', label: `Third-class tickets to ${plan.settlement?.name}`, amount: -plan.train!.fare }] }));
       const path = routeThrough(plan.train.stops.map((id) => { const x = settlementById(id); return { x: x.x, y: x.y }; }), 'rail');
+      planBorder(path, plan.settlement?.id);
       follow.current = true;
       setMoving({ path, done: 0, train: true, dest: plan.settlement?.id, pxPerDay: pathLength(path) / plan.train.days });
       setPlan(null);
@@ -701,7 +724,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   /** Book passage by sea or by the Nairn desert car: pay now, then watch the ship or motor car
    *  actually cross the map along the route, the same way the train does, instead of jumping there. */
-  const startSea = (r: { to: string; days: number; fare: number }, mode: 'ship' | 'motor', origin?: Settlement) => {
+  const startSea = (r: { to: string; days: number; fare: number; noAnimals?: boolean }, mode: 'ship' | 'motor', origin?: Settlement) => {
+    if (r.noAnimals) { setReport('The Nairn car takes people only. Sell your animals, or walk.'); return; }
     if (g.cash < r.fare) { setReport('You cannot afford the fare.'); return; }
     const from = origin ?? here;
     if (!from) return;
@@ -712,6 +736,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       ledger: [...st.ledger, { day: st.day, kind: 'expense', label: mode === 'motor' ? (lorry ? `Motor lorry to ${dest.name}` : `Nairn desert car to ${dest.name}`) : `Deck passage to ${dest.name}`, amount: -r.fare }],
     }));
     const path = routeLeg({ x: from.x, y: from.y }, { x: dest.x, y: dest.y }, mode === 'motor' ? 'motor' : 'ship');
+    // by road the frontier post holds the car part way; by sea the customs house is at the port
+    if (mode === 'motor') planBorder(path, r.to); else borderTrip.current = null;
     follow.current = true;
     setMoving({ path, done: 0, train: true, dest: r.to, pxPerDay: pathLength(path) / Math.max(0.1, r.days), mode, lorry });
     setPlan(null);
@@ -734,6 +760,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const dest = settlementById(toId);
     // straight across the river, bank to bank (a sea route between the two wound a long way round)
     const path = [{ x: from.x, y: from.y }, { x: dest.x, y: dest.y }];
+    borderTrip.current = null;
     follow.current = true;
     setMoving({ path, done: 0, train: true, dest: toId, pxPerDay: pathLength(path) / ferryDays(), mode: 'ferry' });
     setPlan(null);
@@ -763,6 +790,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const st0 = useGame.getState();
+      // held at a frontier post: nothing moves until the card is answered
+      if (st0.border && moving.mode !== 'ferry') { raf = requestAnimationFrame(loop); return; }
       let speed = moving.train ? moving.pxPerDay ?? 220 : speedInfo(st0.world.party, st0.inventory).pxPerDay;
       // the ground underfoot: quick on a road, slow in sand and hills
       if (!moving.train && !moving.mode) speed *= terrainSpeed(livePos) || 1;
@@ -801,6 +830,21 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         // else would restart it once the crossing is chosen and the caravan sets off again
         raf = requestAnimationFrame(loop);
         return;
+      }
+      // reaching the frontier: the caravan (or the train, or the desert car) halts at the post, and
+      // papers and customs are dealt with there, before the journey goes on
+      const bt = borderTrip.current;
+      if (bt && moving.mode !== 'ship' && moving.mode !== 'ferry' && done >= bt.atPx) {
+        borderTrip.current = null;
+        if (borderOnRoad(bt.from, bt.to)) {
+          lastScale.current = scaleRef.current || lastScale.current;
+          setTimeScale(0);
+          setMoving({ ...moving, done });
+          setReport(`The frontier at ${useGame.getState().border?.post.replace(/^the /, '') ?? 'the post'}. Show your papers.`);
+          audio.sfx('pen');
+          raf = requestAnimationFrame(loop);
+          return;
+        }
       }
       // smooth every frame: the caravan glides and the camera eases after it
       const sc = sRef.current;
@@ -969,7 +1013,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // change as parties move
   const routeRisky = plan ? plan.risky : moving && !moving.train && !moving.mode ? routeDanger(moving.path, w.parties, g.day) > strength(w.party) : false;
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
-  const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food for ${daysWord(foodDaysLeft(w.party))}`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)} · strength ${strength(w.party)}`;
+  const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food for ${daysWord(foodDaysLeft(w.party))}`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)}${healthMods.carry < 0 ? ` (ill or hurt: you carry ${-Math.round(healthMods.carry)}% less)` : ''}${sp.over ? ', overloaded' : ''} · strength ${strength(w.party)}`;
   const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.mode === 'ferry' ? 'Crossing the Nile' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
@@ -996,6 +1040,19 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
+    // a town name or the stall's bubble at the edge of the screen slides back inside it, never cut off
+    const wr = wrap.current?.getBoundingClientRect();
+    if (wr) {
+      const keepIn = (el: HTMLElement) => {
+        el.style.translate = '';
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.bottom < wr.top || r.top > wr.bottom) return;
+        const dx = r.left < wr.left + 4 ? wr.left + 4 - r.left : r.right > wr.right - 4 ? wr.right - 4 - r.right : 0;
+        if (dx && Math.abs(dx) < r.width) el.style.translate = `${Math.round(dx)}px 0`;
+      };
+      inner.querySelectorAll<HTMLElement>('.place:not(.pl-off) .plbl').forEach(keepIn);
+      wrap.current?.querySelectorAll<HTMLElement>('.overhead-pin').forEach(keepIn);
+    }
     const ir = inner.getBoundingClientRect();
     const rel = (el: Element, pad = 0): Box => { const r = el.getBoundingClientRect(); return { l: r.left - ir.left - pad, t: r.top - ir.top - pad, r: r.right - ir.left + pad, b: r.bottom - ir.top + pad }; };
     const names = [...inner.querySelectorAll('.place:not(.pl-off) .plbl')].map((el) => rel(el, 1));
@@ -1219,13 +1276,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                 {[0, 1, 2, 4, ...(testerNow() ? FAST_SPEEDS : [])].map((k) => (
                   <button key={k} className={timeScale === k ? 'on' : ''} onClick={() => {
                     // a question on the card (nightfall, a well, the narrows) is answered there, not by the clock
-                    if (k > 0 && (nightfall || pass)) { setReport(nightfall ? 'Night has fallen: make camp or march on first.' : 'Choose how to cross the narrows first.'); audio.sfx('tap'); return; }
+                    if (k > 0 && (nightfall || pass || g.border)) { setReport(nightfall ? 'Night has fallen: make camp or march on first.' : g.border ? 'Show your papers at the frontier first.' : 'Choose how to cross the narrows first.'); audio.sfx('tap'); return; }
                     setTimeScale(k); audio.sfx('tap');
                   }} aria-label={k ? `${k} times speed` : 'Pause'} data-testid={`speed-${k}`}>{k === 0 ? '❚❚' : k === 1 ? '▶︎' : k === 2 ? '▶︎▶︎' : k === 4 ? '▶︎▶︎▶︎' : `${k}×`}</button>
                 ))}
               </span>
             ) : <span className="bl-still">{here ? here.name : 'Halted'}</span>}
-            {needRest && nightRule !== 'camp' && <small className="bl-rest" data-testid="need-rest">{(g.illnesses ?? []).length ? 'You are ill: camp at night.' : 'Worn out: camp tonight.'}</small>}
+            {needRest && nightRule !== 'camp' && !encounter && <small className="bl-rest" data-testid="need-rest">{(g.illnesses ?? []).length ? 'You are ill: camp at night.' : 'Worn out: camp tonight.'}</small>}
             {/* one small toggle: tap to cycle March -> Camp -> Ask. Its test id names what the next tap sets,
                 so a test (or a player) asking for "night-camp" gets Camp */}
             {(() => {
@@ -1247,7 +1304,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <span title="People: you and your men"><Icon name="people" />{partySize(w.party)}<em>People</em></span>
             <span className={foodDaysLeft(w.party) < 2 ? 'warn' : ''} title="Days of food at today's rate"><Icon name="bag" />{foodDaysLeft(w.party)}d<em>Food</em></span>
             <span title="Animals"><Icon name="camel" />{animalCount(w.party)}<em>Animals</em></span>
-            <span className={sp.over ? 'warn' : ''} title="Load / what you can carry"><Icon name="scale" />{Math.round(sp.load)}/{Math.round(sp.cap)}<em>Load</em></span>
+            <span className={sp.over ? 'warn' : ''} title={`Load / what you can carry${healthMods.carry < 0 ? `: ill or hurt, you carry ${-Math.round(healthMods.carry)}% less` : ''}${sp.over ? '. Overloaded: the caravan goes slower' : ''}`} data-testid="bl-load"><Icon name="scale" />{Math.round(sp.load)}/{Math.round(sp.cap)}<em>Load{sp.over ? ', overloaded' : healthMods.carry < 0 ? ', less while ill' : ''}</em></span>
             <span title="Fighting strength"><Icon name="shield" />{strength(w.party)}<em>Strength</em></span>
             <span className={sp.hungry || sp.over ? 'warn' : ''} title={`Travel speed on foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`} data-testid="bl-speed"><Icon name="run" />{milesPerDay(sp.pxPerDay)}<small>mi/d</small><em>Speed{sp.hungry ? ', hungry' : sp.over ? ', overloaded' : ''}</em></span>
           </button>}
@@ -1357,13 +1414,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <i className="re-sand" aria-hidden="true" style={{ animationDuration: `${CARD_MIN_MS}ms`, animationPlayState: timeScale > 0 ? 'running' : 'paused' }} />
           </div>
         )}
-        <BorderCard onDone={(t) => setPanel(t)} />
+        <BorderCard onDone={(t, back) => {
+          // met on the road: go on (or back) from the post; met at a port: into the town
+          if (moving) { if (back) turnBack('Turned back at the frontier.'); else setTimeScale(lastScale.current || 1); return; }
+          setPanel(t);
+        }} />
         {pass && <PassCard tripKey={pass.key} onCancel={() => { setPass(null); stop('You halt below the narrows. Turn back, or set off again when you are ready.'); }} onGo={() => { setPass(null); setTimeScale(lastScale.current || 1); }} />}
         {short && !moving && (
           <div className="wc-col" data-testid="food-short">
             <div className="wc-main">
               <b>Short of food for {short.plan.settlement ? short.plan.settlement.name : 'the road'}</b>
-              <span>The journey needs {short.need} more ration{short.need === 1 ? '' : 's'} than you carry.</span>
+              <span>The walk is reckoned at {durationLabel(estimate(short.plan.days, short.plan.settlement?.id).elapsedDays)}. Bread for that and a fifth over, for a slow road, is {short.need} more ration{short.need === 1 ? '' : 's'} than you carry.</span>
+              {Math.round(sp.load + short.need / 10) > Math.round(sp.cap) && <span className="warn" data-testid="food-overload">That much bread overloads the caravan ({Math.round(sp.load + short.need / 10)}/{Math.round(sp.cap)}): it will go slower. Another animal carries more.</span>}
             </div>
             <div className="wc-btns">
               <button className="btn primary" disabled={g.cash < short.price} onClick={() => { setReport(g.buyFood(short.need)); setOff(short.plan); }} data-testid="food-buy-go">Buy {short.need} ration{short.need === 1 ? '' : 's'} · {fmt(short.price)} and go</button>
@@ -1393,7 +1455,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               ...(ferry ? [{ key: 'ferry', days: ferryDays(), ok: g.cash >= ferryFare(g).total }] : []),
               ...(plan.train ? [{ key: 'train', days: plan.train.days, ok: g.cash >= plan.train.fare }] : []),
               ...plan.ships.map((r) => ({ key: 'ship' + r.to, days: r.days, ok: g.cash >= r.fare })),
-              ...plan.motor.map((r) => ({ key: 'motor' + r.to, days: r.days, ok: g.cash >= r.fare })),
+              ...plan.motor.map((r) => ({ key: 'motor' + r.to, days: r.days, ok: g.cash >= r.fare && !r.noAnimals })),
               { key: 'walk', days: est.elapsedDays, ok: true },
             ];
             // the quickest way you can pay for leads the card and is the only one called fastest
@@ -1402,7 +1464,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const bills = [
               plan.train?.bill && { k: 'Train', bill: plan.train.bill },
               ...plan.ships.map((r) => r.bill && { k: 'Ship', bill: r.bill }),
-              ...plan.motor.map((r) => r.bill && { k: 'Motor car', bill: r.bill }),
+              ...plan.motor.map((r) => r.bill && !r.noAnimals && { k: 'Motor car', bill: r.bill }),
             ].filter((x): x is { k: string; bill: FareLine[] } => !!x && (x.bill.length > 1 || x.bill[0].n > 1));
             return (
             <div className="wc-col">
@@ -1425,6 +1487,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   ].filter(Boolean);
                   return lines.length ? <span className="warn" data-testid="plan-warn">{lines.join(' ')}</span> : null;
                 })()}
+                <TripLoad here={w.at} dest={plan.settlement?.id} over={sp.over} load={sp.load} cap={sp.cap} />
                 <TripMoney from={w.at} to={plan.settlement?.id} />
                 <TripPapers from={w.at} to={plan.settlement?.id} onOffice={() => { if (w.at === 'cairo') { setPlan(null); setPanel('cairo'); } else { const c = settlementById('cairo'); planTo({ x: c.x, y: c.y }, c); } }} />
                 {bills.length > 0 && (
@@ -1442,7 +1505,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   <button key={r.to} className={`btn sail-btn${lead === 'ship' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'ship', plan.from)} data-testid="ship"><Icon name="anchor" /> Ship · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('ship' + r.to)}</button>
                 ))}
                 {plan.motor.map((r) => (
-                  <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 {motorLorry(plan.from?.id, r.to) ? 'Motor lorry' : 'Nairn motor car'} · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
+                  r.noAnimals
+                    ? <button key={r.to} className="btn sail-btn" disabled data-testid="motor" title="The Nairn car takes people only">🚚 Nairn motor car · people only: the animals cannot ride. Sell them, or walk</button>
+                    : <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 {motorLorry(plan.from?.id, r.to) ? 'Motor lorry' : 'Nairn motor car'} · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
                 ))}
                 {lead === 'walk'
                   ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
@@ -1559,6 +1624,8 @@ function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // a caravan has a master: you meet him, not a menu (systems/population, folkTalk)
   const master = party.kind === 'caravan' ? caravanMaster(party.id) : undefined;
   const [trading, setTrading] = useState(false);
+  // notices wait until the meeting on the road is over (game/cardTurn.ts)
+  useEffect(() => { setHold('road', true); return () => setHold('road', false); }, []);
   if (master) return (
     <FolkCard id={master.id} onClose={() => onDone(msg || `You part with ${master.name} and his caravan goes on.`)} extra={msg ? <p className="folk-say" data-testid="encounter-result">{msg}</p>
       : trading ? <CaravanTrade partyId={party.id} p={master} onDone={(m) => { setMsg(m); setTrading(false); }} />
@@ -1605,4 +1672,41 @@ function EncounterCard({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       </div>
     </div>
   );
+}
+
+/** The trip card, on what goes with you: the rugs packed for the road and the known market that pays
+ *  best for them; before leaving Giza, that only packed rugs travel (with the way to the Stock screen)
+ *  and that the rest stay at the stall unwatched; and a caravan loaded past what it can carry. */
+function TripLoad({ here, dest, over, load, cap }: { here: string | null; dest?: string; over: boolean; load: number; cap: number }) {
+  const g = useGame();
+  const packed = g.inventory.filter((i) => !i.stored && !i.restoringUntil);
+  const left = g.inventory.filter((i) => i.stored && !i.framed);
+  const key = packed.map((i) => i.uid).join(',');
+  const best = useMemo(() => {
+    if (!packed.length) return undefined;
+    let top: { sid: string; sum: number } | undefined;
+    for (const st of SETTLEMENTS) {
+      if (st.id === here || st.gateway || !st.sells.length || isPersian(st.id) || !g.world.known.includes(st.id)) continue;
+      const sum = packed.reduce((a, r) => a + localBid(st.id, r, g.day), 0);
+      if (!top || sum > top.sum) top = { sid: st.id, sum };
+    }
+    return top;
+  }, [key, here, g.day, g.world.known.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const atGiza = here === 'giza';
+  const lines: JSX.Element[] = [];
+  if (packed.length) {
+    lines.push(<span key="carry" data-testid="trip-carry">You carry {packed.length} rug{packed.length === 1 ? '' : 's'}{best ? <>. The best known market for {packed.length === 1 ? 'it' : 'them'}: {settlementById(best.sid).name}{best.sid === dest ? ', where you are going' : ''}, about {fmt(best.sum)}{packed.length > 1 ? ' for the lot' : ''} from the dealers.</> : '.'}</span>);
+  } else if (atGiza) {
+    lines.push(<span key="carry" data-testid="trip-carry">You carry no rugs.</span>);
+  }
+  if (atGiza && left.length) {
+    lines.push(
+      <span key="pack" className="warn" data-testid="trip-pack">
+        Only rugs packed at the Stock screen travel: {left.length} {left.length === 1 ? 'stays' : 'stay'} behind at the stall, unwatched while you are away.{' '}
+        <button type="button" className="btn small" onClick={() => window.dispatchEvent(new Event('tof:open-stock'))} data-testid="trip-pack-go">Pack rugs</button>
+      </span>,
+    );
+  }
+  if (over) lines.push(<span key="over" className="warn" data-testid="trip-over">Overloaded: {Math.round(load)} loads on a caravan that carries {Math.round(cap)}. It will go slower. Leave some bread or rugs behind, or take another animal.</span>);
+  return lines.length ? <>{lines}</> : null;
 }

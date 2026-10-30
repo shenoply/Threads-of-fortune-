@@ -205,6 +205,10 @@ export const ANIMAL_FREIGHT = { large: 2, small: 1 };
 // Beyond Baghdad, motor cars and lorries carried passengers and goods up the Persian road by Khanaqin,
 // Kermanshah and Hamadan to Tehran by the mid-1920s; the days and fares here are the game's, kept plausible.
 /** what runs on a motor route: the Nairn cars across the Syrian desert, motor lorries up the Persian road */
+/** a town's name where room is short (the bar at the top of the screen): the long ones cut down the way
+ *  people said them in 1925 */
+const SHORT_NAMES: Record<string, string> = { istanbul: 'Stamboul', fayoum: 'Fayoum', sinai: 'St Catherine', bedouin: 'Tarabin', alexandria: 'Alexandria', jerusalem: 'Jerusalem', kermanshah: 'Kermanshah' };
+export const shortName = (id: string | null | undefined) => (!id ? 'Road' : SHORT_NAMES[id] ?? (SETTLEMENTS.find((x) => x.id === id)?.name.split(',')[0] ?? id));
 export const motorLorry = (a?: string | null, b?: string | null) => isPersian(a) || isPersian(b);
 export const MOTOR_ROUTES: { a: string; b: string; days: number; fare: number }[] = [
   { a: 'damascus', b: 'baghdad', days: 2, fare: 2500 },
