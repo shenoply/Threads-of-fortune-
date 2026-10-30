@@ -1,6 +1,7 @@
 // The encyclopedia: every person, family, town, rug and band in the world, each a page, and every
 // name on a page a link to another. People you have met show what you know of them (their traits,
 // how they feel, what has passed between you); the rest show what anyone in the bazaar could tell you.
+import { favourLine } from '../../game/systems/favours';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame, wantedList } from '../../game/state/store';
@@ -241,6 +242,7 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
         </div></>}
         {x.route && <p><b>His road:</b> <button className="ency-link" onClick={() => go({ kind: 'place', id: x.route![0] })}>{placeName(x.route[0])}</button> to <button className="ency-link" onClick={() => go({ kind: 'place', id: x.route![1] })}>{placeName(x.route[1])}</button></p>}
         {x.bride && <p className="ency-note">A family that would receive a proposal: see Household, under Me.</p>}
+        {(() => { const ps = (useGame.getState().favours?.active ?? []).filter((f) => f.giver === x.id || f.to === x.id); return ps.length > 0 && <><div className="ency-label">PROMISES</div><ul className="ency-log" data-testid="ency-promises">{ps.map((f) => <li key={f.id}>{favourLine(f)} <small>· {Math.max(0, f.due - useGame.getState().day)} days left</small></li>)}</ul></>; })()}
         {log.length > 0 && <><div className="ency-label">BETWEEN YOU</div><ul className="ency-log">{log.map((l, i) => <li key={i}><small>{dateFor(l.day).short}</small> {l.text}</li>)}</ul></>}
       </article>
     );

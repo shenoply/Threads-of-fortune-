@@ -20,7 +20,7 @@ import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { person, souqMaster, cultureOf, caravanMaster, registerFolkBrides, daughtersToMarry } from '../systems/population';
 import { greeting, talk as folkSay, FOLK_START, type FolkState, type Said, type Topic } from '../systems/folkTalk';
-import { favourFor, canSettle, rugPrice, favourLine, FAVOURS_START, type Favour, type FavourState } from '../systems/favours';
+import { favourFor, canSettle, rugPrice, favourLine, favourDeed, favourPromise, FAVOURS_START, type Favour, type FavourState } from '../systems/favours';
 import { ARM_BY_ID, GUNSMITH_TOWN } from '../../data/arms';
 import { ALL_THREE, errandsFor, giftFor, giftToday, pouchFor, pouchReady, type DailyState, type Gift, type Pouch } from '../systems/daily';
 import type { HeroLook } from '../heroLook';
@@ -3182,7 +3182,7 @@ export const useGame = create<GameState & Actions>()(
             set({ cash: s.cash - (f.lent ?? 0), ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Lent to ${g?.name}`, amount: -(f.lent ?? 0) }] });
           }
           set({ favours: { ...fv, active: [...fv.active, f], last: { ...fv.last, [f.giver]: s.day } } });
-          get().folkAdjust(f.giver, 2, `You took on a favour: ${favourLine(f).toLowerCase()}.`);
+          get().folkAdjust(f.giver, 2, `You promised a favour: ${favourPromise(f)}.`);
           audio.sfx('tap');
           return f.kind === 'loan' ? `You count out ${fmt(f.lent ?? 0)}. ${g?.short} kisses the coins and puts them away.` : f.kind === 'letter' ? `${g?.short} seals the letter and gives it to you.` : `${g?.short} grips your hand. "I knew I could ask you."`;
         },
@@ -3231,8 +3231,10 @@ export const useGame = create<GameState & Actions>()(
             text = `"They say ${f.leader} is in the cells." ${g?.short} pours you coffee with ${g?.sex === 'f' ? 'her' : 'his'} own hands. ${fmt(f.pay)}, and the whole town will hear of it.`;
           }
           set({ favours: done, cash, reputation: rep, ledger, inventory });
-          get().folkAdjust(f.giver, f.kind === 'band' ? 20 : f.kind === 'rug' ? 15 : 12, `You kept your word: ${favourLine(f).toLowerCase()}.`);
+          get().folkAdjust(f.giver, f.kind === 'band' ? 20 : f.kind === 'rug' ? 15 : 12, `You kept your word: you ${favourDeed(f)}.`);
           if (f.kind === 'letter' && f.to) get().folkAdjust(f.to, 6, `You brought a letter from ${g?.name}.`);
+          // handing over a letter is a meeting: the recipient knows you now
+          if (f.kind === 'letter' && f.to) { const fk = get().folk; if (fk && fk.met[f.to] === undefined) set({ folk: { ...fk, met: { ...fk.met, [f.to]: s.day } } }); }
           audio.sfx('coins');
           return text;
         },
@@ -5275,8 +5277,8 @@ useGame.subscribe((s, prev) => {
   if (!s.favours?.active.length || s.day === prev?.day) return;
   const late = s.favours.active.filter((f) => f.kind !== 'loan' && s.day > f.due);
   if (!late.length) return;
-  useGame.setState({ favours: { ...s.favours, active: s.favours.active.filter((f) => !late.includes(f)), failed: s.favours.failed + late.length }, journal: [...s.journal, ...late.map((f) => ({ day: s.day, text: `You let a favour lapse: ${favourLine(f).toLowerCase()}. ${person(f.giver)?.short} will not forget it.`, kind: 'road' as const }))] });
-  for (const f of late) useGame.getState().folkAdjust(f.giver, -10, `You let a favour lapse: ${favourLine(f).toLowerCase()}.`);
+  useGame.setState({ favours: { ...s.favours, active: s.favours.active.filter((f) => !late.includes(f)), failed: s.favours.failed + late.length }, journal: [...s.journal, ...late.map((f) => ({ day: s.day, text: `You let a favour lapse: ${favourPromise(f)}. ${person(f.giver)?.short} will not forget it.`, kind: 'road' as const }))] });
+  for (const f of late) useGame.getState().folkAdjust(f.giver, -10, `You let a favour lapse: ${favourPromise(f)}.`);
 });
 // every man behind the troop counts has a name: hires get one, men let go leave the roster
 const syncRoster = (s: GameState) => {
