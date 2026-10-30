@@ -304,8 +304,10 @@ export function stampOn(targets: string[], word: string, onPress?: () => void, t
 /** A small star rising off the reputation chip. */
 export function starTick(delta = 1, sel = '[data-testid="hud-rep"]') {
   if (!hasWindow) return;
-  const chip = document.querySelector<HTMLElement>(sel);
-  const r = visibleRect(chip);
+  // reputation lives on Me now: the star lands on the figure when Me is open, else on the Me tab
+  let chip = document.querySelector<HTMLElement>(sel);
+  let r = visibleRect(chip);
+  if (!chip || !r) { chip = document.querySelector<HTMLElement>('[data-testid="nav-hero"]'); r = visibleRect(chip); }
   if (!chip || !r) return;
   const el = document.createElement('div');
   el.className = 'ff-star';
