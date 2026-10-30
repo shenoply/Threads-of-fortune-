@@ -26,12 +26,6 @@ export const TROOPS: Record<string, TroopType> = {
   reformed: { id: 'reformed', name: 'Reformed raider', plural: 'Reformed raiders', strength: 3, wage: 5, cost: 0, mounted: true, blurb: 'Rode against you last week. Rides with you this week.' },
 };
 
-export const ANIMALS = {
-  camel: { id: 'camel', name: 'Camel', plural: 'Camels', load: 8, price: 60, blurb: 'Carries eight loads. Steady, slow, and does not care for your opinion.' },
-  horse: { id: 'horse', name: 'Horse', plural: 'Horses', load: 2, price: 90, blurb: 'Carries a rider and a little cargo. Mounted parties travel much faster.' },
-} as const;
-export type AnimalId = keyof typeof ANIMALS;
-
 export const FOOD_PER_LOAD = 10; // ten days of bread and dates for one person fill one load
 export const WALKER_LOAD = 2; // what you carry yourself
 export const BASE_SPEED = 24; // map px per day on foot, about 40 km

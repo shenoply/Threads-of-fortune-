@@ -8,6 +8,7 @@ import { SHOP_CITIES } from '../data/shops';
 import { CELEB_INFO, celebUnlock } from '../data/buyers';
 import { sceneSmall } from './stallScenes';
 import { settlementById } from './systems/world';
+import { filedAs } from '../data/renamedIds';
 
 export interface Need { label: string; have: number; want: number; money?: boolean }
 export interface Step {
@@ -27,7 +28,7 @@ export interface Step {
 
 type S = GameState;
 const sales = (s: S) => s.ledger.filter((l) => l.kind === 'sale' && l.amount > 0 && !/^Seized/.test(l.label)).length;
-const celebPic = (p: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY') => `art/portraits/${Object.keys(CELEB_INFO).find((id) => CELEB_INFO[id as keyof typeof CELEB_INFO].prestige === p) ?? 'samira'}.jpg`;
+const celebPic = (p: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY') => `art/portraits/${filedAs(Object.keys(CELEB_INFO).find((id) => CELEB_INFO[id as keyof typeof CELEB_INFO].prestige === p) ?? 'samira')}.jpg`;
 const celebRep = (p: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY') => celebUnlock(Object.keys(CELEB_INFO).find((id) => CELEB_INFO[id as keyof typeof CELEB_INFO].prestige === p)!);
 
 export function roadOf(s: S): Step[] {
@@ -78,7 +79,7 @@ export function roadOf(s: S): Step[] {
   for (const sid of shopsBy(45, 999)) shopStep(sid, 3);
   rankStep(4);
   // and the end of the road
-  steps.push({ id: 'house', chapter: 4, title: 'The House of Fortune', line: 'A rich man’s fortune: your father’s name made good.', pic: sceneSmall('istanbul'), done: worth >= HOUSE_TARGET, needs: [{ label: 'Net worth', have: worth, want: HOUSE_TARGET, money: true }] });
+  steps.push({ id: 'house', chapter: 4, title: 'The House of Fortune', line: 'A rich man\'s fortune: your father\'s name made good.', pic: sceneSmall('istanbul'), done: worth >= HOUSE_TARGET, needs: [{ label: 'Net worth', have: worth, want: HOUSE_TARGET, money: true }] });
   return steps;
 }
 

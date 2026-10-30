@@ -7,6 +7,7 @@ import { provisionById, provisionPrice, COMFORT_CAP } from '../../data/provision
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
 import { migrateOpen, ALL_OPEN } from '../unlocks';
+import { renameBuyerIds } from '../../data/renamedIds';
 import { midName, count, lowerName } from '../text';
 import { auctionable } from '../storyRugs';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
@@ -100,7 +101,8 @@ import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } fro
 import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
-export const SAVE_VERSION = 27;
+import { filedAs } from '../../data/renamedIds';
+export const SAVE_VERSION = 28;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -1799,7 +1801,7 @@ export const useGame = create<GameState & Actions>()(
           let visits = (s.visits ?? []).filter((v) => v.until >= day);
           if (visits.length < 2 && (visits.length === 0 || day % 2 === 0)) {
             const tierOf = { FINE: 2, EXCEPTIONAL: 3, LEGENDARY: 4 } as const;
-            const celebs = CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !visits.some((v) => v.buyerId === id)).map((id) => ({ id, name: BUYERS[id].name, city: CELEB_INFO[id as keyof typeof CELEB_INFO].city, tier: tierOf[CELEB_INFO[id as keyof typeof CELEB_INFO].prestige], portrait: `art/portraits/${id}.jpg` }));
+            const celebs = CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !visits.some((v) => v.buyerId === id)).map((id) => ({ id, name: BUYERS[id].name, city: CELEB_INFO[id as keyof typeof CELEB_INFO].city, tier: tierOf[CELEB_INFO[id as keyof typeof CELEB_INFO].prestige], portrait: `art/portraits/${filedAs(id)}.jpg` }));
             const v = newVisit(day, rankIdx, rng, celebs);
             visits = [...visits, v];
             notes.push(`${v.who} is in ${settlementById(v.city).name} until ${dateFor(v.until).short}.`);
@@ -2610,7 +2612,7 @@ export const useGame = create<GameState & Actions>()(
               if (!it) { out.push('Farid has already seen that rug.'); continue; }
               w.appraised.push(it.uid);
               const good = rng() < 0.55;
-              inventory = inventory.map((i) => i.uid === it.uid ? { ...i, provenance: good ? 'Documented' : 'Disputed', notes: [...i.notes, good ? 'Farid al-Khatib: the Abu Salem looms at Fayoum, about 1898, the family that signs with a camel. He wrote it on his card.' : 'Farid al-Khatib: Beni Suef market work, about 1915. Honest wool, no family behind it.'] } : i);
+              inventory = inventory.map((i) => i.uid === it.uid ? { ...i, provenance: good ? 'Documented' : 'Disputed', notes: [...i.notes, good ? 'Farid al-Ajami: the Abu Salem looms at Fayoum, about 1898, the family that signs with a camel. He wrote it on his card.' : 'Farid al-Ajami: Beni Suef market work, about 1915. Honest wool, no family behind it.'] } : i);
               out.push(good ? 'Farid turns it over twice and finds the little camel. "Abu Salem. Your father knew what he was buying." Provenance: Documented.' : 'Farid turns it over once. "Beni Suef. Market work. Do not tell anyone it is a family piece." Provenance: Disputed.');
               journal.push({ day: s.day, text: good ? 'Farid documented your father\'s Fayoum Hearth.' : 'Farid judged the Fayoum Hearth a Beni Suef market piece.' });
             }
@@ -4940,7 +4942,8 @@ export const useGame = create<GameState & Actions>()(
         return out as unknown as GameState & Actions;
       },
       migrate: (persisted, version) => {
-        const p = (persisted ?? {}) as Partial<GameState>;
+        // save 28: the notable buyers whose ids were real people's names have neutral ids (data/renamedIds.ts)
+        const p = (version < 28 ? renameBuyerIds(persisted ?? {}) : (persisted ?? {})) as Partial<GameState>;
         // clothes are twenty ready outfits now: older saves get the outfits matching what they owned
         p.wardrobe = wardrobeFromOld(p.wardrobe, p.attire);
         if (version < 14) p.arranFindings = p.arranFindings ?? [];

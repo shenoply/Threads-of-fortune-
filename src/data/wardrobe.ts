@@ -28,16 +28,16 @@ const BIG = ['cairo', 'alexandria', 'istanbul'];
 const LEVANT = ['damascus', 'aleppo', 'beirut', 'jerusalem', 'baghdad'];
 
 export const OUTFITS: ReadyOutfit[] = [
-  { id: 'classic-stall', name: 'Your father’s stall clothes', price: 110, charisma: 1, where: [], dress: 'galabiya', note: 'Cream linen shirt, the brown embroidered vest, sirwal and yellow slippers. What the lane knows you in.' },
+  { id: 'classic-stall', name: 'Your father\'s stall clothes', price: 110, charisma: 1, where: [], dress: 'galabiya', note: 'Cream linen shirt, the brown embroidered vest, sirwal and yellow slippers. What the lane knows you in.' },
   { id: 'tarboosh-stall', name: 'Stall clothes with tarboosh', price: 160, charisma: 3, where: BIG, dress: 'galabiya', note: 'The same vest and shirt, with a red tarboosh. A shade more respectable.' },
   { id: 'market-work', name: 'Striped work galabiya', price: 40, charisma: 0, where: [], dress: 'galabiya', note: 'Brown and cream stripes and a white cap. Honest, and a little worn.' },
   { id: 'friday-white', name: 'Friday whites', price: 90, charisma: 2, where: [], dress: 'galabiya', note: 'A clean white galabiya and turban, red slippers. For Friday, and for guests.' },
   { id: 'coffee-house', name: 'Coffee-house afternoon', price: 140, charisma: 3, where: [], dress: 'galabiya', note: 'The vest with a burnt-orange silk scarf at the neck. Easy, and a little dashing.' },
   { id: 'evening-merchant', name: 'Evening merchant', price: 210, charisma: 4, where: BIG.concat(['portsaid', 'tanta']), dress: 'stambouli', note: 'Tarboosh, vest and dark pressed trousers, with a watch chain. For the evening trade.' },
-  { id: 'albanian-merchant', name: 'Albanian merchant', price: 260, charisma: 5, where: BIG, dress: 'stambouli', note: 'The white felt qeleshe of the old Cairo families, with the vest and dark trousers.' },
+  { id: 'albanian-merchant', name: 'Albanian merchant', price: 260, charisma: 5, where: BIG, dress: 'stambouli', note: 'The white felt qeleshe of an Albanian come lately from the Balkans, with the vest and dark trousers.' },
   { id: 'port-traveller', name: 'Port traveller', price: 300, charisma: 5, where: ['portsaid', 'suez', 'alexandria'], dress: 'stambouli', note: 'A cream linen field jacket and a leather satchel across the body. Made for the quays.' },
   { id: 'levant-trader', name: 'Levant trader', price: 360, charisma: 6, where: LEVANT, dress: 'stambouli', note: 'Silk turban, embroidered vest and a red silk sash. The souqs of Damascus nod at it.' },
-  { id: 'wool-dignitary', name: 'Omda’s wool', price: 420, charisma: 7, where: ['cairo', 'tanta', 'fayoum'], dress: 'stambouli', note: 'Fine navy wool galabiya with a gold watch chain. The dress of a village headman.' },
+  { id: 'wool-dignitary', name: 'Omda\'s wool', price: 420, charisma: 7, where: ['cairo', 'tanta', 'fayoum'], dress: 'stambouli', note: 'Fine navy wool galabiya with a gold watch chain. The dress of a village headman.' },
   { id: 'alexandria-linen', name: 'Alexandria linen suit', price: 450, charisma: 7, where: ['alexandria', 'portsaid', 'beirut'], dress: 'stambouli', note: 'Cream linen suit, striped tie, straw boater and two-tone shoes. The Corniche fashion.' },
   { id: 'cairo-effendi', name: 'Cairo effendi', price: 480, charisma: 8, where: BIG, dress: 'stambouli', note: 'Tarboosh and a buttoned black Stambouli jacket. Hotel owners and officials take you seriously.' },
   { id: 'contract-visit', name: 'Contract visit', price: 600, charisma: 9, where: BIG.concat(['beirut']), dress: 'stambouli', note: 'Cream jacket, dark tie and a leather briefcase. For signing things.' },
@@ -45,9 +45,9 @@ export const OUTFITS: ReadyOutfit[] = [
   { id: 'cold-night', name: 'Cold desert night', price: 160, charisma: 2, where: ['sinai', 'suez', 'amman', 'bedouin'], dress: 'galabiya', note: 'A heavy hooded wool burnous over a striped galabiya. Cold nights stop mattering.' },
   { id: 'caravan-rider', name: 'Caravan rider', price: 380, charisma: 4, where: ['damascus', 'aleppo', 'amman', 'baghdad', 'bedouin'], dress: 'galabiya', note: 'Keffiyeh, a long travel coat, satchel and boots. Dressed for the saddle.' },
   { id: 'damascus-silk', name: 'Damascus silk', price: 800, charisma: 10, where: LEVANT, dress: 'kaftan', note: 'A striped wine-red and gold silk kaftan and silk turban. Old families and sheikhs respect it.' },
-  { id: 'gold-bisht', name: 'Gold-edged bisht', price: 700, charisma: 10, where: ['baghdad', 'damascus', 'amman'], dress: 'kaftan', note: 'A camel-hair cloak edged in gold over white. A sheikh’s dress.' },
+  { id: 'gold-bisht', name: 'Gold-edged bisht', price: 700, charisma: 10, where: ['baghdad', 'damascus', 'amman'], dress: 'kaftan', note: 'A camel-hair cloak edged in gold over white. A sheikh\'s dress.' },
   { id: 'auction-house', name: 'Auction-house suit', price: 1100, charisma: 12, where: BIG, dress: 'stambouli', note: 'Tarboosh, black suit, waistcoat and spectacles. Auctioneers look to you first.' },
-  { id: 'court-formal', name: 'Court dress', price: 1800, charisma: 16, where: ['cairo', 'istanbul', 'alexandria'], dress: 'frockcoat', note: 'Black astrakhan kalpak and a court frock coat. Chamberlains admit you to a palace.' },
+  { id: 'court-formal', name: 'Court dress', price: 1800, charisma: 16, where: ['cairo', 'alexandria'], dress: 'frockcoat', note: 'A red tarboosh and a black stambouline frock coat, buttoned to the throat. The chamberlains at Abdeen admit you.' },
 ];
 export const OUTFIT: Record<string, ReadyOutfit> = Object.fromEntries(OUTFITS.map((o) => [o.id, o]));
 

@@ -8,6 +8,7 @@ import { warmPaintedMap } from './systems/mapRender';
 import { stallLayersSeen } from './feel';
 import { START_WARDROBE, stallSrc } from '../data/wardrobe';
 import { lookUps, sceneLayers } from './stallScenes';
+import { filedAs } from '../data/renamedIds';
 // Warm the browser cache for paintings the player is about to see: one at a time, in idle moments,
 // so a scene opens with its picture already there instead of popping in.
 const seen = new Set<string>();
@@ -85,7 +86,7 @@ export function preload(srcs: string[], soon = false) {
 /** A buyer's pictures, at the exact addresses the stall scene asks for: the figure at the counter
  *  (stallFigure picks one of -stall2 / -stall / the framed portrait) and the round face, which the
  *  stall and the district both draw from the .jpg. */
-export const buyerArt = (id: string) => [...new Set([stallFigure(id).src, `art/portraits/small/${id}.webp`, `art/portraits/${id}.jpg`])];
+export const buyerArt = (id: string) => [...new Set([stallFigure(id).src, `art/portraits/small/${filedAs(id)}.webp`, `art/portraits/${filedAs(id)}.jpg`])];
 // (the small round face beside the buyer's name under the stall picture is the small/ copy: BuyerFace)
 
 const prop = (p: string) => `art/stall2/props/${p}.webp`;

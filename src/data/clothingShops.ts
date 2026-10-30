@@ -1,7 +1,7 @@
 // The clothes shops of Egypt, 1925. Each shop prints a catalogue of the ready outfits it stocks (see
 // components/Wardrobe/Catalogue.tsx). Prices come from wardrobe.ts and are in piastres (100 to the pound).
 //
-//   Giza   Haj Mahmoud's: everyday dress, cheap and plain.
+//   Giza   Hajj Mahmoud's: everyday dress, cheap and plain.
 //   Cairo  Maison Lazarus, Opera Square: tailored wool, linen and court dress.
 //   Cairo  Abu Ali, hatter and haberdasher, Khan el-Khalili: tarbooshes, felt caps and the small things.
 //
@@ -25,7 +25,7 @@ export interface ClothingShop {
 export const CLOTHING_SHOPS: ClothingShop[] = [
   {
     id: 'haj-mahmoud',
-    name: 'Haj Mahmoud & Sons',
+    name: 'Hajj Mahmoud & Sons',
     town: 'giza',
     address: 'The cloth lane, below the Pyramids Road',
     est: 1887,

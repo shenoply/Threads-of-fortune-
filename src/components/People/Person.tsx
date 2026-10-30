@@ -2,6 +2,7 @@
 // Each spec picks skin, age, headwear, hair, facial hair and clothes, so buyers and townsfolk look different.
 // If a painted portrait is dropped into art/portraits/<id>.png it is used instead.
 import { useState } from 'react';
+import { filedAs } from '../../data/renamedIds';
 
 export type Headwear = 'fez' | 'tarha' | 'turban' | 'keffiyeh' | 'hat' | 'cowl' | 'bare' | 'kufi';
 export type Clothes = 'suit' | 'galabiya' | 'dress' | 'melaya' | 'abaya' | 'uniform' | 'vest' | 'robe';
@@ -617,7 +618,7 @@ export function PortraitOrCameo({ id, spec, size }: { id: string; spec: PersonSp
   return (
     <span className="cameo-wrap" style={{ width: size, height: size }}>
       {ok === false && <PersonCameo spec={spec} size={size} />}
-      <img src={size <= 72 ? `art/portraits/small/${id}.webp` : `art/portraits/${id}.jpg`} alt="" style={{ display: ok ? 'block' : 'none', width: size, height: size, objectFit: 'cover', objectPosition: '50% 22%', borderRadius: '50%' }} onLoad={() => setOk(true)} onError={() => setOk(false)} />
+      <img src={size <= 72 ? `art/portraits/small/${filedAs(id)}.webp` : `art/portraits/${filedAs(id)}.jpg`} alt="" style={{ display: ok ? 'block' : 'none', width: size, height: size, objectFit: 'cover', objectPosition: '50% 22%', borderRadius: '50%' }} onLoad={() => setOk(true)} onError={() => setOk(false)} />
     </span>
   );
 }

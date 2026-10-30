@@ -366,7 +366,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     traits: ['wool', 'hardwearing', 'bold', 'warm', 'darkField'],
     history: 'The villages on the slopes east of Tabriz weave large carpets with bold angular medallions, sold through the Tabriz bazaar.',
     storyLine: 'Heriz, from the villages above Tabriz. They draw their medallions straight, with corners, as if they were building a house.',
-    craftLine: 'Thick village wool, the copper in the local water gives it that strength. Count the knots: coarse, but very tight.',
+    craftLine: 'Thick village wool. They say the copper in the local water makes it strong. Count the knots: coarse, but very tight.',
     durabilityLine: 'Heriz carpets are said to wear for a hundred years. This one has made a good start.',
     weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 60 knots per sq. inch', foundation: 'Heavy cotton warp and weft' }, fringe: 'Original, a little short', backNote: 'Coarse, very firm back.',
   }),
@@ -601,7 +601,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'An Oushak. The English lords cannot get enough of them: they say the colours go with their dogs.',
     craftLine: 'Big, loose drawing and soft wool. These colours are faded on purpose, by the sun, and that is what the buyers pay for.',
     durabilityLine: 'Soft wool, room size. A drawing room, not a hall.',
-    weave: knots.town, fringe: 'Original', backNote: 'Loose knotting; wool wefts.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 50 knots per sq. inch', foundation: 'Wool warp and weft' }, fringe: 'Original', backNote: 'Loose knotting; wool warps and wefts.',
   }),
   rug('feraghan-herati', {
     name: 'Feraghan Carpet', tier: 3, origin: 'Persia / Feraghan plain', material: 'Fine wool on cotton', age: 'c.1880–1900', size: '280 × 180 cm',
@@ -656,7 +656,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'From the Sultan\'s own workshops at Hereke. The empire is gone; its silk is still here.',
     craftLine: 'Silk, and gold wrapped round silk. Turn it in the light and the colour changes with you.',
     durabilityLine: 'It belongs on a wall, or under glass. A foot on it is a crime.',
-    weave: knots.court, fringe: 'Silk, original', backNote: 'Over 400 knots per square inch.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'over 400 knots per sq. inch', foundation: 'Silk warp and weft' }, fringe: 'Silk, original', backNote: 'Silk throughout; over 400 knots per square inch.',
   }),
   rug('polonaise-silk', {
     name: 'Polonaise Silk Carpet', tier: 4, origin: 'Persia / Isfahan court, after the Safavid style', material: 'Silk with metal thread', age: 'After a 17th c. design', size: '200 × 130 cm',
@@ -667,7 +667,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'The Europeans call these Polish carpets, because they found them in a Polish prince\'s castle. They are as Persian as saffron.',
     craftLine: 'Silver thread wound on silk, laid into the pile. The colours were bright once; the fading is what makes them precious.',
     durabilityLine: 'A treasure for a wall. The metal thread breaks if it is walked on.',
-    weave: knots.court, fringe: 'Silk, some loss', backNote: 'Silk foundation; metal brocading.',
+    weave: { knot: 'Asymmetrical (Persian)', kpsi: 'about 200 knots per sq. inch', foundation: 'Cotton warp, silk wefts' }, fringe: 'Silk, some loss', backNote: 'Cotton warps and silk wefts; metal brocading.',
   }),
   rug('shah-treasury', {
     name: 'The Shah\'s Treasury Carpet', tier: 4, origin: 'Persia / Kashan court workshops', material: 'Silk and the finest wool', age: 'After a 16th c. design', size: '300 × 200 cm',

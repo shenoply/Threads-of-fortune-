@@ -5,7 +5,7 @@ export const PIASTRES_PER_EGYPTIAN_POUND = 100;
 export function formatAuctionMoney(pt: number): string {
   if (Math.abs(pt) < 100) return `${pt} pt`;
   const pounds = pt / 100;
-  return `£E${Number.isInteger(pounds) ? pounds.toFixed(0) : pounds.toFixed(2)}`;
+  return `£${Number.isInteger(pounds) ? pounds.toFixed(0) : pounds.toFixed(2)}`;
 }
 
 export function canAttendAuction(_house: AuctionHouse, _cashPt: number): boolean {

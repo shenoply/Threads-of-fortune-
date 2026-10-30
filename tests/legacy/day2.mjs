@@ -15,7 +15,7 @@ await p.screenshot({ path: '/home/claude/shots/d2-2.png' });
 await p.click('[data-testid=lesson-buyers-go]'); await p.waitForTimeout(600);
 await p.screenshot({ path: '/home/claude/shots/d2-3.png' });
 await p.locator('[data-testid=cust-shivakiar]').click(); await p.waitForTimeout(200);
-await p.locator('[data-testid=cust-umm-kulthum]').scrollIntoViewIfNeeded(); await p.screenshot({ path: '/home/claude/shots/d2-4.png' });
+await p.locator('[data-testid=cust-salwa-nassar]').scrollIntoViewIfNeeded(); await p.screenshot({ path: '/home/claude/shots/d2-4.png' });
 await p.click('[data-testid=nav-stall]'); await p.waitForTimeout(400);
 console.log('clock', await p.textContent('[data-testid=idle-clock]'), await p.textContent('[data-testid=idle-next]'));
 await p.locator('[data-testid=lesson-radio] button:has-text("Later")').click(); await p.locator('[data-testid=lesson-map] button:has-text("Stay")').click();

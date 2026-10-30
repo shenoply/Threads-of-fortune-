@@ -19,6 +19,7 @@ import { allOpen, isOpen } from '../../game/unlocks';
 import { Dialogue } from './Dialogue';
 import { DustHaze } from '../Atmosphere/DustHaze';
 import { CafeRoom } from '../Cafe/CafeRoom';
+import { filedAs } from '../../data/renamedIds';
 const CafeTable = lazy(() => import('../Cafe/CafeTable').then((m) => ({ default: m.CafeTable })));
 const DominoTable = lazy(() => import('../Cafe/DominoTable').then((m) => ({ default: m.DominoTable })));
 // Malek's grill loads only when you walk in
@@ -42,7 +43,7 @@ export const POIS: Poi[] = [
   { id: 'station', name: 'Giza station', sub: 'Trains north to Cairo and south up the valley', x: 1275, y: 330, glyph: 'R' },
   { id: 'ferry', name: 'Nile ferry', sub: 'Across the river to Cairo · a piastre a head', x: 1385, y: 680, glyph: 'N' },
   { id: 'lab', name: "Arran's laboratory", sub: 'Textile tests: fibre, dyes, fastness', x: 553, y: 318, glyph: 'L' },
-  { id: 'clothes', name: "Haj Mahmoud's cloth shop", sub: 'Galabiyas, tarbooshes and slippers', x: 985, y: 365, glyph: 'H' },
+  { id: 'clothes', name: "Hajj Mahmoud's cloth shop", sub: 'Galabiyas, tarbooshes and slippers', x: 985, y: 365, glyph: 'H' },
   { id: 'malek', name: "Malek's grill", sub: 'Kofta, kebab, tea and road parcels', x: 690, y: 420, glyph: 'M' },
   { id: 'rashid', name: "Uncle Rashid's warehouse", sub: 'Buy stock, on credit if he trusts you', x: 905, y: 560, glyph: 'U' },
   { id: 'looms', name: 'The weavers of Kerdasa', sub: 'Have a carpet woven to your own design', x: 395, y: 600, glyph: 'K' },
@@ -717,7 +718,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         : { x: 570 + r() * 520, y: 752 + r() * 16, vx: v, vy: 0, robe: robes[(i + 4) % 6], head: heads[(i + 3) % 5], t: r() * 10, lane };
     });
     const faces: Record<string, HTMLImageElement> = {};
-    const face = (id: string) => { if (!faces[id]) { const im = new Image(); im.src = `art/portraits/${id}.jpg`; faces[id] = im; } return faces[id]; };
+    const face = (id: string) => { if (!faces[id]) { const im = new Image(); im.src = `art/portraits/${filedAs(id)}.jpg`; faces[id] = im; } return faces[id]; };
     const stallPoi = POIS[0];
     // the same painted walking figure used for "you" on the world map between towns, so the
     // merchant stays himself once you walk into one instead of shrinking to an abstract token.

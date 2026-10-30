@@ -12,6 +12,7 @@ import { fmt } from '../../game/economy/money';
 import { PURSE, prefsFor, type Encounter } from '../../game/systems/negotiation';
 import { useDialogEscape } from '../useDialogEscape';
 import './dossier.css';
+import { filedAs } from '../../data/renamedIds';
 
 const LIKES: Record<string, string> = {
   restrained: 'Quiet patterns', story: 'A rug with a story', fineWeave: 'A fine weave', antique: 'Age', warm: 'Warm colours', bold: 'Bold patterns',
@@ -73,7 +74,7 @@ export function BuyerDossier({ enc, onClose }: { enc: Encounter; onClose: () => 
     <div className="overlay dossier-overlay" onClick={onClose} ref={box} role="dialog" aria-modal="true" aria-label={`${b.name}: what you know`}>
       <div className="dossier" style={{ ['--acc' as string]: accent }} onClick={(e) => e.stopPropagation()} data-testid="dossier">
         <div className="ds-top">
-          <img className="ds-face" src={`art/portraits/${enc.buyerId}.jpg`} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
+          <img className="ds-face" src={`art/portraits/${filedAs(enc.buyerId)}.jpg`} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
           <div className="ds-who">
             <small>{visits > 1 ? `Visit ${visits}` : 'First visit'}{rel?.purchases ? ` · bought ${rel.purchases}` : ''}</small>
             <b>{b.name}</b>

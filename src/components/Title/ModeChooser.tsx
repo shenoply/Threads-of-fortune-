@@ -13,12 +13,12 @@ import { FULL_SIM, type SimSettings } from '../../game/state/store';
 export type Mode = 'campaign' | 'ironman' | 'sandbox';
 
 export const MODES: { id: Mode; title: string; line: string; points: string[] }[] = [
-  { id: 'campaign', title: 'Campaign', line: 'Hassan’s story, from a borrowed corner in Giza.',
-    points: ['A guided start teaches the trade one step at a time; other cities open as you go.', 'Then the story missions: Rashid’s errands, your father’s rug, the House of Fortune.', 'Saves itself as you play. Save slots and save files work as usual.'] },
-  { id: 'ironman', title: '☠ Ironman campaign', line: 'The same story, with one life.',
+  { id: 'campaign', title: 'Campaign', line: 'Hassan\'s story, from a borrowed corner in Giza.',
+    points: ['A guided start teaches the trade one step at a time; other cities open as you go.', 'Then the story missions: Rashid\'s errands, your father\'s rug, the House of Fortune.', 'Saves itself as you play. Save slots and save files work as usual.'] },
+  { id: 'ironman', title: '☠ One-life campaign', line: 'The same story, with one life.',
     points: ['If Hassan dies, from sickness, a wound or a fight, the run is over for good.', 'It saves itself after everything you do, and autosave cannot be turned off.', 'No save slots, no save files, no loading: a death cannot be undone.'] },
   { id: 'sandbox', title: 'Sandbox', line: 'Free trade, at your own pace.',
-    points: ['No guided start: every city is open from the first day.', 'Play as Hassan, or as yourself (your own face on Hassan’s body).', 'Same trade, roads, dangers and saving as the campaign. The story missions still come to you if you want them.'] },
+    points: ['No guided start: every city is open from the first day.', 'Play as Hassan, or as yourself (your own face on Hassan\'s body).', 'Same trade, roads, dangers and saving as the campaign. The story missions still come to you if you want them.'] },
 ];
 
 interface Props {
@@ -48,7 +48,7 @@ export function ModeChooser({ current, slots, first, onStart: start, onBackup, o
   // focus the dialog so Escape reaches its onKeyDown straight away
   useEffect(() => { dialog.current?.focus({ preventScroll: true }); }, []);
   const primary: Mode = mode ?? 'campaign';
-  const label = (id: Mode) => (id === 'campaign' ? 'Play the campaign' : id === 'ironman' ? 'Play Ironman' : 'Play the sandbox');
+  const label = (id: Mode) => (id === 'campaign' ? 'Play the campaign' : id === 'ironman' ? 'Play one life' : 'Play the sandbox');
   return createPortal(
     <div className="sbx-back" role="dialog" aria-modal="true" aria-label="Start a new game" data-testid="mode-chooser" tabIndex={-1} ref={dialog} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
       <div className="sbx-card wide mc-card">
@@ -72,7 +72,7 @@ export function ModeChooser({ current, slots, first, onStart: start, onBackup, o
               <details className="mc-sim">
                 <summary>More options</summary>
                 <SimOptions value={sim} onChange={setSim} />
-                <small className="sbx-dim">Applies to the campaign and the sandbox. Ironman always uses the full simulation. You can change it later in Settings.</small>
+                <small className="sbx-dim">Applies to the campaign and the sandbox. A one-life game always uses the full simulation. You can change it later in Settings.</small>
               </details>
             </div>
             <button className="ghost-btn" onClick={onClose} data-testid="mode-close">Back</button>
@@ -80,8 +80,8 @@ export function ModeChooser({ current, slots, first, onStart: start, onBackup, o
         ) : (
           <div data-testid="mode-keep">
             <h2>{m?.title}: keep your current game?</h2>
-            <p className="sbx-dim">You are on day {current?.day} of {iron ? 'an Ironman run' : 'a game'}. Starting {mode === 'ironman' ? 'an Ironman campaign' : mode === 'sandbox' ? 'a sandbox game' : 'the campaign afresh'} replaces it in this browser.</p>
-            {iron && <p className="sbx-dim" data-testid="mode-keep-iron">An Ironman run has one life and one save, so it cannot be kept in a save slot: a copy could be loaded after a death. Starting a new game ends this run for good.</p>}
+            <p className="sbx-dim">You are on day {current?.day} of {iron ? 'a one-life run' : 'a game'}. Starting {mode === 'ironman' ? 'a one-life campaign' : mode === 'sandbox' ? 'a sandbox game' : 'the campaign afresh'} replaces it in this browser.</p>
+            {iron && <p className="sbx-dim" data-testid="mode-keep-iron">A one-life run has one life and one save, so it cannot be kept in a save slot: a copy could be loaded after a death. Starting a new game ends this run for good.</p>}
             {err && (
               <p className="mc-error" role="alert" data-testid="mode-keep-error">
                 {err}
@@ -98,7 +98,7 @@ export function ModeChooser({ current, slots, first, onStart: start, onBackup, o
                   </button>
                 ))
               )}
-              <button className="btn danger" onClick={() => { if (window.confirm(iron ? 'Start a new game? This Ironman run ends for good.' : 'Start without keeping your current game? It will be gone for good.')) onStart(mode!, null, sim); }} data-testid="start-without-keeping">Start without keeping it</button>
+              <button className="btn danger" onClick={() => { if (window.confirm(iron ? 'Start a new game? This one-life run ends for good.' : 'Start without keeping your current game? It will be gone for good.')) onStart(mode!, null, sim); }} data-testid="start-without-keeping">Start without keeping it</button>
               <button className="ghost-btn" onClick={() => setAsking(false)} data-testid="mode-back">Back</button>
             </div>
           </div>

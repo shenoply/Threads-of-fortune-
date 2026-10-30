@@ -64,7 +64,7 @@ export const JOBS: Job[] = [
     done: 'The cousin reads the letter twice, laughs, and pays you for your trouble.',
   },
   {
-    id: 'damascus-rose', title: 'A rose from Damascus', giver: 'Farid al-Khatib', target: 'damascus', minRep: 8,
+    id: 'damascus-rose', title: 'A rose from Damascus', giver: 'Farid al-Ajami', target: 'damascus', minRep: 8,
     text: 'A Damascus family is selling a Legendary rose carpet quietly, before the troubles. Bring £60 and buy it before anyone else hears.',
     reward: { rugs: ['damascus-rose'], fee: 6000, rep: 2 },
     done: 'In a courtyard off Straight Street, a widow unrolls the carpet. You pay, and it is yours.',
@@ -82,7 +82,7 @@ export const GIVER_VOICE: Record<string, string> = {
   'Uncle Rashid': 'rashid',
   'Bilgin': 'abuhamid',
   'Captain Reed': 'captainreed',
-  'Farid al-Khatib': 'farid',
+  'Farid al-Ajami': 'farid',
 };
 
 /** The jobs open to you now: up to four at a time, in order, as your reputation allows. */

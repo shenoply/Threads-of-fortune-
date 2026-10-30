@@ -28,7 +28,7 @@ export function Rescue() {
     : r.by === 'passerby'
     ? [r.reason === 'a beating' ? 'The last kick lands and the lane goes dark.' : 'The blow lands and the road goes dark.', `A traveller leading a mule finds you in the dust. He turns you over, gives you water from his skin and heaves you across the saddle. "Not here, effendi. The crows are patient."`, toClinic ? 'He takes you all the way to Dr Feras\u2019s door in Cairo, leaves you on the step, and is gone before you can thank him.' : `You come round in ${from}, on a bench in a coffee-house yard, with a cloth on your face. Your rescuer has gone on his way. Hours have passed.`]
     : r.by === 'carry'
-    ? [why, 'A carter, walking his donkey past, drops the reins. "Yallah, effendi, not here in the dust." He and a boy lift you onto the cart among the sacks.', 'The cart jolts through the lanes to Dr Feras’s door. You wake on his couch with a wet cloth on your forehead, an hour gone.']
+    ? [why, 'A carter, walking his donkey past, drops the reins. "Yallah, effendi, not here in the dust." He and a boy lift you onto the cart among the sacks.', 'The cart jolts through the lanes to Dr Feras\'s door. You wake on his couch with a wet cloth on your forehead, an hour gone.']
     : [why, `A stranger on the way to the station sees you fall in ${from}. He gets you onto the next train to Cairo, pays your fare${r.fare ? ` (${fmt(r.fare)} comes out of your purse later)` : ''} and does not give his name.`, 'Six hours later you are carried through a clinic door. Dr Feras is already rolling up his sleeves.'];
   return (
     <div className="rescue" role="dialog" aria-label="You passed out" data-testid="rescue">

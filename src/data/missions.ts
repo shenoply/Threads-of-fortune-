@@ -122,25 +122,25 @@ export const MISSIONS: Record<string, Mission> = {
   },
   farid: {
     id: 'farid', title: 'Your father\'s rug', giver: 'Uncle Rashid',
-    brief: 'Your father paid far too much for that old Fayoum rug, and never said why. "Farid al-Khatib in Damascus knows every loom from Aleppo to Kayseri. Show him." The rug travels with you.',
-    steps: ['A passport from the Cairo Passport Office (£E1) saves a fine at every frontier', 'Damascus: a day and a half by train', 'Show Farid the rug (People, in the town menu)'],
+    brief: 'Your father paid far too much for that old Fayoum rug, and never said why. "Farid al-Ajami in Damascus knows every loom from Aleppo to Kayseri. Show him." The rug travels with you.',
+    steps: ['A passport from the Cairo Passport Office (£1) saves a fine at every frontier', 'Damascus: a day and a half by train', 'Show Farid the rug (People, in the town menu)'],
     target: 'damascus',
     locks: 'Your rank cannot rise past Khan dealer until you know what your father bought.',
     reward: { cash: 0, rep: 4, trust: 5, text: 'The story travels back to Giza before you do. Merchants in the Khan say your father\'s name with respect now, and yours with curiosity.' },
     scene: {
-      art: 'art/portraits/farid.jpg', who: 'Farid al-Khatib, Damascus', title: 'Farid\'s verdict',
+      art: 'art/portraits/farid.jpg', who: 'Farid al-Ajami, Damascus', title: 'Farid\'s verdict',
       text: () => 'Farid turns the rug over and runs his thumb along the back, then laughs. "The camel in the corner: the Abu Salem looms of the Fayoum, and old Umm Salah\'s own hand. Your father did not overpay. He paid what it is worth, which nobody in Cairo knew." He names a price: £25.',
       choices: [
-        { id: 'sell', label: 'Sell it to Farid', note: '£25 now', apply: (s) => ({ patch: { ...pay(s, 2500, 'Your father\'s rug, to Farid al-Khatib'), inventory: s.inventory.filter((i) => !(i.typeId === 'fayoum-hearth' && (i.uid === 'start-fh' || !i.paid || i.notes?.some((n) => /father/i.test(n))))) }, text: 'Farid counts out the money in gold. "Your father would have done the same, and then regretted it."' }) },
-        { id: 'keep', label: 'Keep it, and hang it at the stall', note: 'framed, with Farid\'s card: reputation +3', apply: (s) => { const room = s.inventory.filter((i) => i.framed).length < 2; return { patch: { reputation: s.reputation + 3, inventory: s.inventory.map((i) => (i.typeId === 'fayoum-hearth' && (i.uid === 'start-fh' || !i.paid || i.notes?.some((n) => /father/i.test(n))) ? { ...i, provenance: 'Documented' as const, framed: room || i.framed, stored: false, notes: [...(i.notes ?? []), 'Farid al-Khatib\'s card: Abu Salem looms, Umm Salah\'s own hand.'] } : i)) }, text: room ? 'It goes up behind your counter with Farid\'s card pinned beside it. Buyers stop to read it.' : 'You keep it, with Farid\'s card. When there is wall room at the stall, it goes up.' }; } },
+        { id: 'sell', label: 'Sell it to Farid', note: '£25 now', apply: (s) => ({ patch: { ...pay(s, 2500, 'Your father\'s rug, to Farid al-Ajami'), inventory: s.inventory.filter((i) => !(i.typeId === 'fayoum-hearth' && (i.uid === 'start-fh' || !i.paid || i.notes?.some((n) => /father/i.test(n))))) }, text: 'Farid counts out the money in gold. "Your father would have done the same, and then regretted it."' }) },
+        { id: 'keep', label: 'Keep it, and hang it at the stall', note: 'framed, with Farid\'s card: reputation +3', apply: (s) => { const room = s.inventory.filter((i) => i.framed).length < 2; return { patch: { reputation: s.reputation + 3, inventory: s.inventory.map((i) => (i.typeId === 'fayoum-hearth' && (i.uid === 'start-fh' || !i.paid || i.notes?.some((n) => /father/i.test(n))) ? { ...i, provenance: 'Documented' as const, framed: room || i.framed, stored: false, notes: [...(i.notes ?? []), 'Farid al-Ajami\'s card: Abu Salem looms, Umm Salah\'s own hand.'] } : i)) }, text: room ? 'It goes up behind your counter with Farid\'s card pinned beside it. Buyers stop to read it.' : 'You keep it, with Farid\'s card. When there is wall room at the stall, it goes up.' }; } },
         { id: 'ask', label: 'Ask him about the camel mark', note: 'reputation +1; the Fayoum looms will remember you', apply: (s) => ({ patch: { reputation: s.reputation + 1, weaverLead: true } as Partial<GameState>, text: 'Farid draws the mark on the back of a bill. "Go to the Fayoum and ask for Umm Salah. Tell her whose son you are."' }) },
       ],
     },
     hint: (s) => {
       if (!hasHearth(s)) return s.world.at === 'damascus' ? 'Tell Farid what became of the rug.' : 'Rug lost: go and tell Farid in Damascus.';
-      if (s.world.at === 'damascus') return 'Show Farid al-Khatib the rug (People).';
+      if (s.world.at === 'damascus') return 'Show Farid al-Ajami the rug (People).';
       // Rashid's reminder: the frontier wants papers, and the office is in Cairo
-      return s.passport || countryOf(s.world.at) !== 'egypt' ? 'Show Farid the rug: Damascus, 1½ days.' : 'Papers first: the Passport Office in Cairo, £E1. Then Damascus, 1½ days.';
+      return s.passport || countryOf(s.world.at) !== 'egypt' ? 'Show Farid the rug: Damascus, 1½ days.' : 'Papers first: the Passport Office in Cairo, £1. Then Damascus, 1½ days.';
     },
     // lost for good (Rashid already bought it back once): telling Farid in Damascus is the end of it
     check: (s) => s.world.appraised.length > 0 || (s.world.at === 'damascus' && !hasHearth(s) && !!(s as unknown as { faridRecovered?: boolean }).faridRecovered),

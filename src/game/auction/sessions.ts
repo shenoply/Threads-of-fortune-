@@ -131,7 +131,7 @@ const SEATS: Seat[] = [
   { id: 'martel', name: 'the Comte de Martel', who: 'of the French High Commission', img: 'art/portraits/martel.jpg', budget: [2500, 9000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented', houses: 'grand', cities: ['damascus'] },
   { id: 'rustam', name: 'Rustam Isfahani', who: 'the Persian merchant', img: 'art/portraits/rustam.jpg', budget: [2500, 12000], aggression: 0.72, wants: (l) => has(l, 'fineWeave') || from(l, /Persia|Baghdad|Isfahan/i), houses: 'any', cities: ['baghdad', 'istanbul'] },
   { id: 'shivakiar', name: 'Nadia Selim', who: 'bidding for the Abdeen household', img: 'art/portraits/shivakiar.jpg', budget: [12000, 45000], aggression: 0.7, wants: (l) => tierOfLot(l) >= 4 || has(l, 'silk'), houses: 'grand', cities: ['cairo'] },
-  { id: 'wasif', name: 'Wasif Bey Ghali', who: 'the lawyer', img: 'art/portraits/wasif.jpg', budget: [2200, 8000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented' && has(l, 'antique'), houses: 'grand', cities: ['cairo'] },
+  { id: 'wasif', name: 'Wasif Bey Mikhail', who: 'the lawyer', img: 'art/portraits/wasif.jpg', budget: [2200, 8000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented' && has(l, 'antique'), houses: 'grand', cities: ['cairo'] },
   { id: 'salem', name: 'Sheikh Salem', who: 'the Tarabin notable', img: 'art/portraits/salem.jpg', budget: [300, 1800], aggression: 0.5, wants: (l) => has(l, 'hardwearing') || has(l, 'flatweave'), houses: 'small', cities: ['amman', 'cairo'] },
   // the small-room crowd
   { id: 'khan', name: 'A Khan dealer', who: 'buying stock to resell', budget: [400, 2600], aggression: 0.6, wants: (l) => l.bundle || l.conditions[0] === 'Dirty' || l.conditions[0] === 'Worn', houses: 'small' },

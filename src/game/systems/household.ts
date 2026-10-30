@@ -66,8 +66,8 @@ export const BRIDES: Record<string, Bride> = {
   layla: {
     id: 'layla', name: 'Layla al-Shami', short: 'Layla', city: 'damascus', cityName: 'Damascus', house: 'rival-shami', place: 5,
     father: 'Abu Nadim al-Shami, the old carpet dealer of the Souq al-Hamidiyya',
-    introducer: 'Farid al-Khatib',
-    intro: 'Farid al-Khatib says Abu Nadim al-Shami, the first house of Damascus, has a daughter of age. A Damascus family would open the Levant to you.',
+    introducer: 'Farid al-Ajami',
+    intro: 'Farid al-Ajami says Abu Nadim al-Shami, the first house of Damascus, has a daughter of age. A Damascus family would open the Levant to you.',
     brings: 'Her father\'s friends in Damascus and Aleppo: dealers there sell to you as to one of their own.',
     mahr: 6000, feast: 3000, feastRep: 6,
     gift: { label: 'a bolt of fine Egyptian cotton for the house', cost: 400 },
@@ -129,11 +129,11 @@ Object.assign(BRIDES, {
     likes: 'craft', role: 'rugs', friends: ['giza'],
   },
   yasmin: {
-    id: 'yasmin', name: 'Yasmin Haddad', short: 'Yasmin', city: 'cairo', cityName: 'Cairo', rank: 'trade', meet: 'city', house: 'rival-selim', place: 6,
-    father: 'Selim Haddad, the Cairo dealer who never stops counting',
-    introducer: 'Selim Haddad\'s clerk',
-    intro: 'Selim Haddad\'s daughter keeps his ledgers and corrects his sums.',
-    met: 'In Cairo, Selim Haddad\'s clerk mentions that his master\'s daughter Yasmin keeps the ledgers, and that Haddad wants a son-in-law who can count. He looks at you as he says it.',
+    id: 'yasmin', name: 'Yasmin Tannous', short: 'Yasmin', city: 'cairo', cityName: 'Cairo', rank: 'trade', meet: 'city', house: 'rival-selim', place: 6,
+    father: 'Selim Tannous, the Cairo dealer who never stops counting',
+    introducer: 'Selim Tannous\'s clerk',
+    intro: 'Selim Tannous\'s daughter keeps his ledgers and corrects his sums.',
+    met: 'In Cairo, Selim Tannous\'s clerk mentions that his master\'s daughter Yasmin keeps the ledgers, and that Tannous wants a son-in-law who can count. He looks at you as he says it.',
     brings: 'She keeps the books: no agent cheats a house where Yasmin reads the ledger.',
     mahr: 3500, feast: 2000, feastRep: 5, gift: { label: 'a fountain pen and a ledger bound in leather', cost: 300 },
     likes: 'dress', role: 'books', friends: ['tanta'],
@@ -191,27 +191,27 @@ Object.assign(BRIDES, {
   },
   hayat: {
     id: 'hayat', name: 'Hayat Kassab', short: 'Hayat', city: 'aleppo', cityName: 'Aleppo', rank: 'trade', meet: 'city', minRep: 30, house: 'rival-kassab', place: 5,
-    father: 'Haj Omar Kassab, a carpet dealer in the Aleppo souq',
-    introducer: 'Haj Omar himself, after a long bargain',
+    father: 'Hajj Omar Kassab, a carpet dealer in the Aleppo souq',
+    introducer: 'Hajj Omar himself, after a long bargain',
     intro: 'A rival dealer\'s daughter. She mends carpets in her father\'s back room and knows his prices better than he does.',
-    met: 'In Aleppo, after an hour of bargaining, Haj Omar Kassab says his daughter Hayat would have beaten you down further. He says it with some pride.',
+    met: 'In Aleppo, after an hour of bargaining, Hajj Omar Kassab says his daughter Hayat would have beaten you down further. He says it with some pride.',
     brings: 'Aleppo opens to you: her father\'s friends in the souq sell to you as family.',
     mahr: 4000, feast: 2200, feastRep: 5, gift: { label: 'Egyptian cotton and a brass tray for the house', cost: 300 },
     likes: 'craft', role: 'rugs', friends: ['aleppo'],
   },
   suad: {
     id: 'suad', name: 'Suad al-Najjar', short: 'Suad', city: 'baghdad', cityName: 'Baghdad', rank: 'grand', meet: 'city', minRep: 45, house: 'rival-najjar', place: 3,
-    father: 'Haj Jawad al-Najjar, the great carpet dealer of Baghdad',
+    father: 'Hajj Jawad al-Najjar, the great carpet dealer of Baghdad',
     introducer: 'a Persian merchant in the Baghdad souq',
     intro: 'The daughter of the greatest carpet house in Baghdad. Persian carpets have been her family\'s life for a century.',
-    met: 'In Baghdad a Persian merchant tells you Haj Jawad al-Najjar has asked about you twice. His daughter Suad, he says, chooses her father\'s Persian stock.',
+    met: 'In Baghdad a Persian merchant tells you Hajj Jawad al-Najjar has asked about you twice. His daughter Suad, he says, chooses her father\'s Persian stock.',
     brings: 'Her family\'s name in Baghdad and on the road to Persia: dealers from Baghdad to Khanaqin treat you as one of theirs.',
     mahr: 12000, feast: 7000, feastRep: 10, gift: { label: 'a fine Egyptian silk and gold-thread embroidery', cost: 1000 },
     likes: 'craft', role: 'rugs', friends: ['baghdad', 'khanaqin'],
   },
   emine: {
-    id: 'emine', name: 'Emine Tezcan', short: 'Emine', city: 'istanbul', cityName: 'Constantinople', rank: 'grand', meet: 'city', minRep: 50, house: 'rival-tezcan', place: 3,
-    father: 'Hüsnü Bey Tezcan, a carpet merchant of the Grand Bazaar',
+    id: 'emine', name: 'Emine Halıcızade', short: 'Emine', city: 'istanbul', cityName: 'Constantinople', rank: 'grand', meet: 'city', minRep: 50, house: 'rival-tezcan', place: 3,
+    father: 'Hüsnü Bey Halıcızade, a carpet merchant of the Grand Bazaar',
     introducer: 'an old porter at the Grand Bazaar',
     intro: 'A Constantinople merchant\'s daughter, educated at the American college, who speaks four languages.',
     met: 'At the Grand Bazaar an old porter says Hüsnü Bey\'s daughter Emine read your name in a dealer\'s letter from Cairo, and asked her father who you were.',
@@ -663,13 +663,13 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
   return no('');
 }
 
-const OFFER_NOTE = 'Uncle Rashid is pleased: "At last." He has spoken to a schoolteacher in Cairo; Farid al-Khatib writes of Abu Nadim al-Shami\'s daughter in Damascus; the Abu Salem weavers in the Fayoum have a daughter of age. The families would receive you, but they will want to know you first: call on them, send presents, and keep your name clean.';
+const OFFER_NOTE = 'Uncle Rashid is pleased: "At last." He has spoken to a schoolteacher in Cairo; Farid al-Ajami writes of Abu Nadim al-Shami\'s daughter in Damascus; the Abu Salem weavers in the Fayoum have a daughter of age. The families would receive you, but they will want to know you first: call on them, send presents, and keep your name clean.';
 
 /** letters from home, by her mood */
 function letterBody(h: HouseholdState, sp: Spouse, away: number, rng: () => number): { title: string; body: string } {
   const named = h.children.filter((c) => c.name);
   const kid = named.length ? named[Math.floor(rng() * named.length)] : undefined;
-  const kidLine = !kid ? '' : ageOf(kid) < 6 ? ` ${kid.name} asks every evening when Baba is coming home.` : kid.path === 'school' ? ` ${kid.name} has a good report from the school.` : kid.path === 'weaving' ? ` ${kid.name} finished a strip on the loom and wants you to see it.` : kid.path === 'shop' ? ` ${kid.name} sat at the stall with Haj Mahmoud's boy and sold nothing, but talked a great deal.` : '';
+  const kidLine = !kid ? '' : ageOf(kid) < 6 ? ` ${kid.name} asks every evening when Baba is coming home.` : kid.path === 'school' ? ` ${kid.name} has a good report from the school.` : kid.path === 'weaving' ? ` ${kid.name} finished a strip on the loom and wants you to see it.` : kid.path === 'shop' ? ` ${kid.name} sat at the stall with Hajj Mahmoud's boy and sold nothing, but talked a great deal.` : '';
   if (sp.content >= 60) {
     const warm = ['The house is well. The neighbours ask after you, and I tell them the trade goes well with you.', 'Everything is in order at home. Your mother\'s cousin came to visit and stayed for lunch.', 'The weather has turned and I have aired the winter bedding. All is well here.'];
     return { title: 'All is well at home', body: `${warm[Math.floor(rng() * warm.length)]}${kidLine} Come home safely.` };

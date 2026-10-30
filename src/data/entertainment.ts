@@ -41,29 +41,29 @@ export const VENUES_1925: Record<string, Venue1925> = {
   'alhambra-cairo': {
     id: 'alhambra-cairo', city: 'cairo', name: 'Alhambra Casino', kind: 'cabaret', street: 'Bab al-Bahri Street, Ezbekiyya',
     history: 'A music hall of the Ezbekiyya quarter, where Naima al-Masriyya sang through the 1920s. When it first opened its doors, nobody at the desk can tell you.',
-    contact: 'farid-nassar', ticket: 40, performers: ['munira-al-mahdiyya'], company: 'the house singer and her three musicians',
+    contact: 'farid-nassar', ticket: 40, performers: ['maha-qadri'], company: 'the house singer and her three musicians',
     evening: 'The lamps go down, the oud finds the key, and the room stops talking.',
     guests: ['yusuf', 'benakis', 'kassab', 'whitcombe', 'kasparian'],
   },
   qamar: {
     id: 'qamar', city: 'cairo', name: 'The Qamar', kind: 'music hall', street: 'Emad al-Din Street',
     history: 'A small music hall under a copper crescent, run by Nadia Wahba, who sang here herself before she bought the lease. Good company, a tired floor, and a proprietor who knows what a carpet is worth.',
-    contact: 'nadia-wahba', ticket: 30, performers: ['mohamed-abdel-wahab'], company: 'the Qamar company: a singer, an oud, a violin and a drum',
+    contact: 'nadia-wahba', ticket: 30, performers: ['adel-farouk'], company: 'the Qamar company: a singer, an oud, a violin and a drum',
     evening: 'Nadia nods to the band from the bureau. The singer takes the middle of the little stage.',
     guests: ['samira', 'mariam', 'hassan', 'kassab', 'levy'],
   },
   'sala-santi': {
     id: 'sala-santi', city: 'cairo', name: 'Sala Santi', kind: 'music hall', street: 'Ezbekiyya Gardens',
     history: 'A concert hall on the gardens, for people who come to listen. In July 1925 the papers announced an appearance here by a young singer from the Delta, Salwa Nassar.',
-    contact: 'youssef-hanna', ticket: 50, performers: ['umm-kulthum', 'mohamed-abdel-wahab'], from: { 'umm-kulthum': dayOf(7, 1, 1925) }, company: 'a takht of four and a singer from the conservatoire',
+    contact: 'youssef-hanna', ticket: 50, performers: ['salwa-nassar', 'adel-farouk'], from: { 'salwa-nassar': dayOf(7, 1, 1925) }, company: 'a takht of four and a singer from the conservatoire',
     evening: 'No one moves a chair. The garden windows go dark behind the singer while she holds the note.',
     guests: ['whitcombe', 'hollister', 'benakis', 'wasif', 'levy'],
   },
   'sala-badia': {
     id: 'sala-badia', city: 'cairo', name: 'Sala Nour', kind: 'cabaret', street: 'Emad al-Din Street',
     opens: { day: dayOf(1, 1, 1926), label: 'Opens 1926' },
-    history: 'Madame Nour Haddad\'s first sala: singing and short comic plays on a small stage, in a hall she has fitted out herself. The dancers came later; this is the first year.',
-    contact: 'salma-farid', ticket: 40, performers: ['munira-al-mahdiyya'], company: 'the sala\'s singer and two actors',
+    history: 'Madame Nour Salameh\'s first sala: singing and short comic plays on a small stage, in a hall she has fitted out herself. The dancers came later; this is the first year.',
+    contact: 'salma-farid', ticket: 40, performers: ['maha-qadri'], company: 'the sala\'s singer and two actors',
     evening: 'A song, then a sketch about a pasha and his cook, then the song again with the room joining in.',
     guests: ['samira', 'yusuf', 'kassab', 'martel', 'rustam'],
   },
@@ -71,7 +71,7 @@ export const VENUES_1925: Record<string, Venue1925> = {
     id: 'maxim-istanbul', city: 'istanbul', name: 'The Nightingale', kind: 'nightclub', street: 'Sıraselviler Caddesi, Taksim',
     since: 'Since 1921',
     history: 'Nikolai Orlov\'s club beneath a picture house: jazz, dancing and variety for the Pera crowd, run by a Russian who came by way of Odessa.',
-    contact: 'kemal-arslan', ticket: 80, performers: [], company: 'Kemal Arslan\'s band: piano, clarinet, bass and drums',
+    contact: 'kemal-arslan', ticket: 80, performers: [], company: 'Kemal Bey\'s band: piano, clarinet, bass and drums',
     evening: 'The band goes into a foxtrot and two couples are up before the first bar is finished.',
     guests: ['hollister', 'whitcombe', 'martel', 'rustam', 'shivakiar'],
   },
@@ -96,7 +96,7 @@ export const VENUE_QUESTS: Record<string, QuestDef> = {
   'qamar-floor': { id: 'qamar-floor', title: 'The Qamar\'s floor', giver: 'nadia-wahba', desc: 'Now that you own a share, Nadia wants the bare boards covered: an Exceptional rug for the centre of the room, paid for from the house.', reward: 900, rep: 3, target: 'cairo' },
   'santi-foyer': { id: 'santi-foyer', title: 'Quiet for the Sala Santi foyer', giver: 'youssef-hanna', desc: 'Youssef Hanna wants a restrained, well-made rug for the foyer where the audience waits. Fine or better; the hall pays a premium for something that does not shout.', reward: 350, rep: 2, target: 'cairo' },
   'badia-opening': { id: 'badia-opening', title: 'A carpet for Sala Nour\'s opening', giver: 'salma-farid', desc: 'Salma Farid is fitting out the sala for the opening. She wants an Exceptional rug for the foyer, and she will pay double for it.', reward: 1200, rep: 4, target: 'cairo' },
-  'maxim-bar': { id: 'maxim-bar', title: 'A carpet for the Nightingale\'s bar', giver: 'kemal-arslan', desc: 'Kemal Arslan wants a fine geometric rug for the bar end of the club, paid in the club\'s good money. Fine or better.', reward: 500, rep: 3, target: 'istanbul' },
+  'maxim-bar': { id: 'maxim-bar', title: 'A carpet for the Nightingale\'s bar', giver: 'kemal-arslan', desc: 'Kemal Bey wants a fine geometric rug for the bar end of the club, paid in the club\'s good money. Fine or better.', reward: 500, rep: 3, target: 'istanbul' },
 };
 
 /** The five contacts. Each greets, talks about the house, offers a contract and takes the rug when you bring it. */
@@ -242,7 +242,7 @@ export const VENUE_NPCS: Record<string, Npc> = {
     },
   },
   'kemal-arslan': {
-    id: 'kemal-arslan', name: 'Kemal Arslan', role: 'Bandleader and bookings, the Nightingale', look: 'bare', accent: '#2a3a6a',
+    id: 'kemal-arslan', name: 'Kemal Bey', role: 'Bandleader and bookings, the Nightingale', look: 'bare', accent: '#2a3a6a',
     voice: 'Turkish man, forty, poised, amused, speaks like a man counting a bar of music',
     nodes: {
       start: {

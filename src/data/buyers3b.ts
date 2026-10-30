@@ -89,7 +89,7 @@ export const BUYERS_3B: Record<string, BuyerDef> = {
   },
 
   wasif: {
-    id: 'wasif', name: 'Wasif Bey Ghali', role: 'Coptic advocate with chambers on Sharia Qasr el-Nil', roomWord: 'study',
+    id: 'wasif', name: 'Wasif Bey Mikhail', role: 'Coptic advocate with chambers on Sharia Qasr el-Nil', roomWord: 'study',
     bio: 'Paris-trained, a Wafdist since 1919, argues before the Mixed Courts. Weekends at a villa off the Pyramids Road, which is how he found your stall.',
     budget: [2200, 8000], patience: 70, trust: 40, interest: 45,
     values: { antique: 3, fineWeave: 3, rare: 3, story: 2, restrained: 1, wool: 1, humble: -3, flatweave: -2, washable: -1, bold: -1 },

@@ -56,7 +56,7 @@ export const SETTLEMENTS: Settlement[] = [
   },
   {
     id: 'tanta', name: 'Tanta', kind: 'town', x: 227.6, y: 371.6, region: 'Egypt', rail: true,
-    blurb: 'A Delta cotton town. Three times a year the moulid of Sayyid al-Badawi fills it with a million pilgrims and every trader in Egypt.',
+    blurb: 'A Delta cotton town. Three times a year the moulid of Sayyid al-Badawi fills it with half a million pilgrims and every trader in Egypt.',
     demand: { warm: 0.15, hardwearing: 0.1, humble: 0.1 }, sells: [{ typeId: 'tanta-courtyard', factor: 0.9 }, { typeId: 'delta-house', factor: 1 }, { typeId: 'assiut-shawl-rug', factor: 0.9 }], people: ['sheikhomar'],
   },
   {
@@ -122,7 +122,7 @@ export const SETTLEMENTS: Settlement[] = [
   },
   {
     id: 'istanbul', name: 'Constantinople', kind: 'city', rail: true, x: 167.1, y: 49.0, region: 'Anatolia', port: true,
-    blurb: 'The old capital, emptied of its sultan last year. Palace households are quietly selling their carpets.',
+    blurb: 'The old capital, emptied of its caliph and the Ottoman house last year. Palace households are quietly selling their carpets.',
     demand: { ornate: 0.2, silk: 0.15, antique: 0.15 }, sells: [{ typeId: 'konya-prayer-rug', factor: 1.15, minRep: 12, chance: 0.5 }, { typeId: 'golden-palm', factor: 1.1, minRep: 20, chance: 0.5 }, { typeId: 'istanbul-tulip', factor: 1.1, minRep: 50, chance: 0.2 }, { typeId: 'melas-arch', factor: 1.05, minRep: 10 }, { typeId: 'karabagh-rose', factor: 1.1, minRep: 12 }, { typeId: 'khotan-pomegranate', factor: 1.15, minRep: 25, chance: 0.4 }, { typeId: 'oushak-medallion', factor: 1.1, minRep: 20, chance: 0.5 }, { typeId: 'hereke-silk', factor: 1.05, minRep: 50, chance: 0.15 }, { typeId: 'polonaise-silk', factor: 1.1, minRep: 55, chance: 0.1 }], people: ['selim'],
   },
   {
@@ -282,7 +282,7 @@ export const NPCS: Record<string, Npc> = {
   },
   abuhamid: {
     id: 'abuhamid', name: 'Bilgin', role: 'Keeps the coffee house at the end of your lane', look: 'bare', accent: '#2f3d2a',
-    voice: 'Young Turkish coffee-house owner settled in Giza, once a chess champion in Istanbul: calm, hospitable, well connected, enjoys his own jokes',
+    voice: 'Young Turkish coffee-house owner settled in Giza, once a chess champion in Constantinople: calm, hospitable, well connected, enjoys his own jokes',
     nodes: {
       start: {
         text: 'Sit, sit. You look like a man who sold something today, or a man who wants to. Coffee?',
@@ -423,8 +423,8 @@ export const NPCS: Record<string, Npc> = {
         options: [{ label: 'Who would know?', next: 'who' }, bye()],
       },
       who: {
-        text: 'In Damascus there is a man called Farid al-Khatib. He knows every workshop from Aleppo to Kayseri. If anyone can tell you what that rug really is, he can. It will cost you the journey and a bruise to your pride.',
-        options: [{ label: 'Thank you, uncle.', effects: ['reveal:damascus', 'rumour:Farid al-Khatib in Damascus can appraise your father\'s Fayoum Hearth.'] }],
+        text: 'In Damascus there is a man called Farid al-Ajami. He knows every workshop from Aleppo to Kayseri. If anyone can tell you what that rug really is, he can. It will cost you the journey and a bruise to your pride.',
+        options: [{ label: 'Thank you, uncle.', effects: ['reveal:damascus', 'rumour:Farid al-Ajami in Damascus can appraise your father\'s Fayoum Hearth.'] }],
       },
       silk: {
         text: 'Old families in Heliopolis and Zamalek, and Hagop the Armenian in the Khan, who buys anything for resale. He pays little, but he pays today.',
@@ -617,13 +617,13 @@ export const NPCS: Record<string, Npc> = {
         options: [{ label: 'Who?', next: 'who' }, bye()],
       },
       who: {
-        text: 'Farid al-Khatib. He is rude, slow and always right. Over the mountains, half a day on the train.',
+        text: 'Farid al-Ajami. He is rude, slow and always right. Over the mountains, half a day on the train.',
         options: [{ label: 'Thank you.', effects: ['reveal:damascus'] }],
       },
     },
   },
   farid: {
-    id: 'farid', name: 'Farid al-Khatib', role: 'Antique dealer in the Souq al-Hamidiyya', look: 'fez', accent: '#2e2a22',
+    id: 'farid', name: 'Farid al-Ajami', role: 'Antique dealer in the Souq al-Hamidiyya', look: 'fez', accent: '#2e2a22',
     voice: 'Old Damascene expert, seventies, slow, severe, few words, occasional dry kindness',
     nodes: {
       start: {

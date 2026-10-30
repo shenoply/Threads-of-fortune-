@@ -113,7 +113,7 @@ export const RASHID = {
     "You owe me {amount}. Friday is not a suggestion.",
     "{amount}, nephew. I say it every morning like a prayer.",
     "Remember me? I am the old man you owe {amount}. I remember you very well.",
-    "{amount}. Tutankhamun paid his debts faster, and he has been dead three thousand years.",
+    "{amount}. The Nile has risen and fallen since you last paid me. Even the river is more regular.",
     "My book is crying. It says {amount} and your name. Wipe its tears.",
     "{amount} and not one piastre less. Do not look at the cat, the cat cannot help you.",
     "You owe {amount}. I am patient. My patience is not.",
@@ -145,7 +145,7 @@ export const RASHID = {
     "You wanted the {rug}? So did a pasha's wife. She came first and she smelled better.",
     "The {rug}? Gone like the Khedive. Keep up, nephew.",
     "I held the {rug} for you one whole hour. Then I remembered who you are.",
-    "The {rug} went to Istanbul this morning. Wave goodbye.",
+    "The {rug} went to Constantinople this morning. Wave goodbye.",
   ],
   rare: [
     "This one came in this morning. It will not be here tomorrow.",

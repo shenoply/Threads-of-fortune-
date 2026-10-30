@@ -46,15 +46,15 @@ export const UNLOCKS: Record<Sys, Rule> = {
   // the wider world: ships, the Passport Office, telegraph offices and the palaces, once Rashid's errand is done
   abroad: {
     when: (s) => finished(s) || !!s.passport,
-    line: () => 'Rashid’s errand is done and the roads are open: ships, telegraph offices, the Passport Office and the palaces now show in the towns.',
-    later: 'Opens once Rashid’s errand in Alexandria is done.',
+    line: () => 'Rashid\'s errand is done and the roads are open: ships, telegraph offices, the Passport Office and the palaces now show in the towns.',
+    later: 'Opens once Rashid\'s errand in Alexandria is done.',
   },
   // the sale rooms: the first time, after the opening, you stand in a town that has one
   auction: {
     when: (s) => (finished(s) && !!s.world.at && housesIn(s.world.at).length > 0) || s.missions?.auction === 'active'
       || Object.keys(s.world.walks ?? {}).some((k) => k.startsWith('auction-')) || (s.stats?.auctionsWon ?? 0) > 0,
     line: (s) => `${s.world.at ? settlementById(s.world.at).name : 'This town'} has an auction house. Sales are held on set days; the town menu gives the next one.`,
-    later: 'Opens after Rashid’s errand.',
+    later: 'Opens after Rashid\'s errand.',
   },
   // the moneylender, the bank and Lloyd's agent: when money runs short, or after a week on your own
   bank: {

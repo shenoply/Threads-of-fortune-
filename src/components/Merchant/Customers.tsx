@@ -15,6 +15,7 @@ import { Cutscene } from '../Malek/Cutscene';
 import { STORY_FILM } from '../Malek/storyFilm';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { FILMS, FILM_ORDER, type FilmId } from '../IntroFilm/films';
+import { filedAs } from '../../data/renamedIds';
 
 const TIER = ['', 'Common', 'Fine', 'Exceptional', 'Legendary'];
 const ROYALS = ['fuad', 'nazli', 'abdullah', 'faisal', 'ataturk'];
@@ -88,7 +89,7 @@ export function Customers() {
 function CustFace({ id }: { id: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <span className="cust-cameo" data-testid={`cameo-${id}`}><PersonCameo spec={personFor(id)} size={64} /></span>;
-  return <img src={`art/portraits/small/${id}.webp`} alt="" onError={() => setFailed(true)} />;
+  return <img src={`art/portraits/small/${filedAs(id)}.webp`} alt="" onError={() => setFailed(true)} />;
 }
 
 /** A buyer's card: who they are, what they buy and spend, and how things stand with them so far.
@@ -110,7 +111,7 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
     <div className="overlay buyer-card-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={b.name} ref={box}>
       <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card">
         <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="buyer-card-close">⟵ Back</button></div>
-        <img className="buyer-big" src={`art/portraits/${id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <img className="buyer-big" src={`art/portraits/${filedAs(id)}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <p className="buyer-role">{CELEB_INFO[id as keyof typeof CELEB_INFO]?.role ?? b.role}</p>
         <div className="buyer-facts">
           <span><small>Buys</small><b>{TIER[t[0]]}{t[1] > t[0] ? ` – ${TIER[t[1]]}` : ''}</b></span>

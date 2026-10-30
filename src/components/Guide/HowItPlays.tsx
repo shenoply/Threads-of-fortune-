@@ -19,7 +19,7 @@ export const FEATURES: Feature[] = [
   { id: 'inspect', name: 'Inspecting a rug', what: 'Know what you are selling before you price it.' },
   { id: 'travel', name: 'Travelling', what: 'The whole region is open to you.' },
   { id: 'caravan', name: 'Your caravan', what: 'Everything you take on the road.' },
-  { id: 'cafe', name: 'Chess and tawla', what: 'Bilgin’s coffee house, for an hour off.' },
+  { id: 'cafe', name: 'Chess and tawla', what: 'Bilgin\'s coffee house, for an hour off.' },
   { id: 'news', name: 'Paper and radio', what: 'Every day is a real day of 1925.' },
 ].filter((f) => HOW_FILMS[f.id]);
 const src = (id: string, kind: 'film' | 'loop' | 'poster') => (kind === 'film' ? `video/how/${id}.mp4` : kind === 'loop' ? `video/how/${id}-loop.mp4` : `video/how/${id}.webp`);

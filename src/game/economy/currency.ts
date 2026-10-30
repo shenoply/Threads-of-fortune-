@@ -123,17 +123,17 @@ export function inLocal(pt: number, c: Currency, day: number) {
   return { units, short, long: `${n} ${r === 1 ? cur.name : cur.plural}` };
 }
 
-/** "£S12 (£E2.40)" where the money is not Egyptian; plain "£2.40" where it is */
+/** "£S12 (£2.40)" where the money is not Egyptian; plain "£2.40" where it is */
 export function localMoney(pt: number, at: string | null | undefined, day: number) {
   const c = currencyAt(at, day);
   if (c === 'egp') return fmt(pt);
-  return `${inLocal(pt, c, day).short} (£E${fmt(pt).slice(1)})`;
+  return `${inLocal(pt, c, day).short} (${fmt(pt)})`;
 }
-/** "12 Syrian pounds (£E2.40)": the long form, for a sentence */
+/** "12 Syrian pounds (£2.40)": the long form, for a sentence */
 export function localMoneyLong(pt: number, at: string | null | undefined, day: number) {
   const c = currencyAt(at, day);
   if (c === 'egp') return fmt(pt);
-  return `${inLocal(pt, c, day).long} (£E${fmt(pt).slice(1)})`;
+  return `${inLocal(pt, c, day).long} (${fmt(pt)})`;
 }
 
 /** the money used in a place, in a line: "Syrian pounds, about 21 piastres each" */

@@ -56,10 +56,10 @@ export const AGENTS: Record<string, AgentOffer[]> = {
   portsaid: [
     { id: 'fahmy', name: 'Ali Fahmy', honesty: 0.85, skill: 0.5, wage: 100 },
     { id: 'kalogeras', name: 'Spiro Kalogeras', honesty: 0.45, skill: 0.75, wage: 160 },
-    { id: 'ghali', name: 'Abdu Ghali', honesty: 0.95, skill: 0.35, wage: 70 },
+    { id: 'ghali', name: 'Abdu Bishay', honesty: 0.95, skill: 0.35, wage: 70 },
   ],
   jaffa: [
-    { id: 'haddad', name: 'Elias Haddad', honesty: 0.8, skill: 0.6, wage: 110 },
+    { id: 'haddad', name: 'Elias Shalhoub', honesty: 0.8, skill: 0.6, wage: 110 },
     { id: 'abulaban', name: 'Musa Abu Laban', honesty: 0.95, skill: 0.45, wage: 80 },
     { id: 'levy', name: 'Nissim Levy', honesty: 0.5, skill: 0.8, wage: 170 },
   ],

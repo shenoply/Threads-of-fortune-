@@ -136,7 +136,7 @@ export const STALL_SCENES: Record<string, StallScene> = {
   amman: scene('amman', 'Amman · below the citadel', 64.0, [40.8, 6.2, 59.7, 16.4]),
   baghdad: scene('baghdad', 'Baghdad · Souq al-Saray', 62.0, [39.6, 1.2, 57.6, 13.6], { signDark: true }),
   istanbul: scene('istanbul', 'Constantinople · the Grand Bazaar', 64.5, [38.6, 3, 61.6, 11.5], { signDark: true }),
-  ankara: scene('ankara', 'Ankara · the Assembly quarter', 58.3, [35.6, 6.8, 64.4, 14.8]),
+  ankara: scene('ankara', 'Angora · the Assembly quarter', 58.3, [35.6, 6.8, 64.4, 14.8]),
 };
 
 /** the painting you trade in: the stall you hold now */

@@ -82,7 +82,7 @@ await p.locator('[data-testid=place-damascus]').dispatchEvent('click'); await p.
 await fromTownMenu(p, 'market');
 await p.waitForTimeout(400);
 const mkt = await p.locator('.set-body').innerText().catch(() => '');
-ok(/£S\d/.test(mkt) && /£E/.test(mkt), 'Damascus market priced in Syrian pounds with the Egyptian equivalent');
+ok(/£S\d/.test(mkt) && /\(£\d/.test(mkt), 'Damascus market priced in Syrian pounds with the Egyptian equivalent');
 console.log('   ', (mkt.match(/.*£S.*/g) ?? []).slice(0, 3).join(' | '));
 await shot('5-damascus-market');
 const cash0 = (await state()).cash;

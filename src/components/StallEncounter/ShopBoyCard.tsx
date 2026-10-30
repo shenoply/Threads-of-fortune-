@@ -9,7 +9,7 @@ import { fireBoy, hireBoy, setBoy } from '../../game/systems/stallHelpActions';
 import { BOY_OFFERED } from '../../game/systems/stallNight';
 import '../Tips/once.css';
 
-/** tipsSeen mark: the boy's card has been used once since Haj Mahmoud's offer */
+/** tipsSeen mark: the boy's card has been used once since Hajj Mahmoud's offer */
 const BOY_CARD_USED = 'boy-card-used';
 
 /** The boy who minds the stall while you are away: hire him, tell him what to do, let him go. */
@@ -18,10 +18,10 @@ export function ShopBoyCard() {
   const b = g.shopBoy;
   const [open, setOpen] = useState(false);
   if (!g.tutorial.done) return null;
-  // the boy comes into it when Haj Mahmoud first offers him (game/unlocks.ts)
+  // the boy comes into it when Hajj Mahmoud first offers him (game/unlocks.ts)
   if (!isOpen(g, 'boy')) return null;
   if (!b?.hired) {
-    // Haj Mahmoud has offered his nephew on a morning card: the card stands out until it is first used
+    // Hajj Mahmoud has offered his nephew on a morning card: the card stands out until it is first used
     const seen = g.tipsSeen ?? [];
     const fresh = !b && seen.includes(BOY_OFFERED) && !seen.includes(BOY_CARD_USED);
     return (

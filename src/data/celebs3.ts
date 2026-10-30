@@ -6,9 +6,9 @@ import type { Grooming } from './grooming';
 // names, careers, rug purchases, budgets, tastes and dialogue are all invented.
 
 export const CELEBS_3: Record<string, BuyerDef> = {
-  'youssef-wahbi': {
-    id: 'youssef-wahbi', name: 'Rafiq al-Najjar', role: 'Actor-manager of his own troupe, dressing his theatre on Emad el-Din', roomWord: 'theatre',
-    bio: 'Founded his own troupe two seasons ago and has made Emad el-Din take drama seriously. Wants carpets that play to the back row.',
+  'rafiq-najjar': {
+    id: 'rafiq-najjar', name: 'Rafiq al-Najjar', role: 'Actor-manager of his own troupe, dressing his theatre on Emad el-Din', roomWord: 'theatre',
+    bio: 'Runs his own company on Emad el-Din and plays the lead in most of its pieces. Wants carpets that play to the back row.',
     budget: [3000, 9000], patience: 60, trust: 50, interest: 55,
     values: { bold: 3, ornate: 2, darkField: 2, rare: 2, warm: 1, fineWeave: 1, humble: -3, lightField: -2, flatweave: -2, restrained: -1 },
     colourPref: { crimson: 3, gold: 1, indigo: 1, ivory: -2, mixed: 0 },
@@ -90,8 +90,8 @@ export const CELEBS_3: Record<string, BuyerDef> = {
     },
   },
 
-  'aziza-amir': {
-    id: 'aziza-amir', name: 'Muna al-Sayegh', role: 'Stage actress on Emad el-Din, furnishing her salon', roomWord: 'salon',
+  'muna-sayegh': {
+    id: 'muna-sayegh', name: 'Muna al-Sayegh', role: 'Stage actress on Emad el-Din, furnishing her salon', roomWord: 'salon',
     bio: 'A rising actress of the Cairo stage who never misses a new picture. Wants a salon that looks like a picture.',
     budget: [800, 2500], patience: 70, trust: 50, interest: 45,
     values: { soft: 3, ornate: 2, lightField: 1, warm: 1, fineWeave: 1, story: 1, hardwearing: -1, humble: -2, bold: -1, flatweave: -2 },
@@ -174,9 +174,9 @@ export const CELEBS_3: Record<string, BuyerDef> = {
     },
   },
 
-  'rose-al-youssef': {
-    id: 'rose-al-youssef', name: 'Dalia Barakat', role: 'Leading stage actress, furnishing the office of her new magazine', roomWord: 'office',
-    bio: 'A favourite of the Cairo stage, and about to launch a magazine of her own. Wants a rug people will talk about.',
+  'dalia-barakat': {
+    id: 'dalia-barakat', name: 'Dalia Barakat', role: 'Leading stage actress, furnishing the office of the company she has just formed', roomWord: 'office',
+    bio: 'A favourite of the Cairo stage, who has just formed a company of her own. Wants a rug people will talk about.',
     budget: [2500, 8500], patience: 70, trust: 45, interest: 55,
     values: { story: 3, bold: 2, rare: 2, ornate: 1, fineWeave: 1, antique: 1, humble: -2, washable: -1, fragile: -1 },
     colourPref: { crimson: 2, indigo: 1, gold: 1, ivory: 0, mixed: 1 },
@@ -188,7 +188,7 @@ export const CELEBS_3: Record<string, BuyerDef> = {
     directBudgetTrust: 2, pushyTrust: -3, embellishNotice: 0.6, catAffinity: 1,
     needs: [
       {
-        id: 'office', label: 'A rug for the magazine\'s office',
+        id: 'office', label: 'A rug for the company\'s office',
         room: ['I am starting a magazine. Writers, artists, visitors in and out all day. The office needs one thing on the floor that makes people stop and argue.'],
         values: { bold: 3, story: 2, hardwearing: 1, warm: 1, fragile: -2, humble: -1 },
         colourPref: { crimson: 2, indigo: 1, mixed: 1 },
@@ -258,8 +258,8 @@ export const CELEBS_3: Record<string, BuyerDef> = {
     },
   },
 
-  'fatma-rushdi': {
-    id: 'fatma-rushdi', name: 'Lamia Shafiq', role: 'Young actress from Alexandria, making her name on the Cairo stage', roomWord: 'flat',
+  'lamia-shafiq': {
+    id: 'lamia-shafiq', name: 'Lamia Shafiq', role: 'Young actress from Alexandria, making her name on the Cairo stage', roomWord: 'flat',
     bio: 'An Alexandrian girl who took the Cairo stage by storm. Buys with her heart, and fast.',
     budget: [700, 2400], patience: 55, trust: 55, interest: 60,
     values: { warm: 3, ornate: 2, bold: 1, soft: 1, story: 1, restrained: -2, cool: -1, humble: -1, lightField: -1 },
@@ -342,9 +342,9 @@ export const CELEBS_3: Record<string, BuyerDef> = {
     },
   },
 
-  'charles-corm': {
-    id: 'charles-corm', name: 'Georges Haddad', role: 'Beirut writer and businessman, in Cairo buying for his new salon', roomWord: 'salon',
-    bio: 'Poet, editor of a small Beirut review and motorcar agent on the coast. In Cairo on business, buying one fine piece for a modern Beirut salon.',
+  'georges-haddad': {
+    id: 'georges-haddad', name: 'Georges Haddad', role: 'Beirut writer and businessman, in Cairo buying for his new salon', roomWord: 'salon',
+    bio: 'Poet in his spare hours and importer of French furniture by trade. In Cairo on business, buying one fine piece for a modern Beirut salon.',
     budget: [3000, 9000], patience: 75, trust: 50, interest: 50,
     values: { fineWeave: 3, restrained: 2, rare: 1, story: 1, cool: 1, antique: 1, ornate: -1, humble: -2, flatweave: -1 },
     colourPref: { indigo: 2, ivory: 1, crimson: 1, gold: 0, mixed: -1 },
@@ -428,27 +428,27 @@ export const CELEBS_3: Record<string, BuyerDef> = {
 };
 
 export const CELEBS_3_MANNER: Record<string, Record<MannerKind, Reaction>> = {
-  'youssef-wahbi': {
+  'rafiq-najjar': {
     charm: { like: 1, good: 'Ah, you recognise talent. Go on, I am listening.', bad: 'Flattery must be performed well, my friend. That was a rehearsal.' },
     kind: { like: 0, good: 'The company is well, and exhausting. Thank you.', bad: 'I do not sit during the day. I pace.' },
     firm: { like: 0, good: 'A strong opening line. Very well, business.', bad: 'Firm, yes, but where is the flourish?' },
   },
-  'aziza-amir': {
+  'muna-sayegh': {
     charm: { like: 1, good: 'Oh, you are sweet. Say it again, slower.', bad: 'Everyone says that. Say something new.' },
     kind: { like: 1, good: 'Thank you. It is nice when someone asks, and means it.', bad: 'Thank you.' },
     firm: { like: -1, good: 'All right. Business, then.', bad: 'So serious. You sound like a theatre manager counting chairs.' },
   },
-  'rose-al-youssef': {
+  'dalia-barakat': {
     charm: { like: -1, good: 'Charming. I will pretend I believed it.', bad: 'Darling, I have heard every compliment in Cairo. Show me the rugs.' },
     kind: { like: 0, good: 'Thank you. Busy, as always. And you?', bad: 'I am fine, thank you. Now, what have you got?' },
     firm: { like: 1, good: 'Good. No performance. That is refreshing, from someone not on stage.', bad: 'Plain talk. I can work with that.' },
   },
-  'fatma-rushdi': {
+  'lamia-shafiq': {
     charm: { like: 1, good: 'Oh! You are a flatterer. Keep going.', bad: 'You say that to everyone, I can tell.' },
     kind: { like: 1, good: 'Thank you. My mother is well, God keep her. You are kind to ask.', bad: 'Thank you.' },
     firm: { like: -1, good: 'All right, all right.', bad: 'Oh, do not be so stern. It frightens me.' },
   },
-  'charles-corm': {
+  'georges-haddad': {
     charm: { like: 0, good: 'Very gracious. Merci.', bad: 'Compliments are an ornament. I prefer structure.' },
     kind: { like: 1, good: 'Thank you. My family is well. You are very hospitable.', bad: 'Thank you.' },
     firm: { like: 1, good: 'Good. Clarity saves time for both of us.', bad: 'Plainly said. Continue.' },
@@ -456,15 +456,15 @@ export const CELEBS_3_MANNER: Record<string, Record<MannerKind, Reaction>> = {
 };
 
 export const CELEBS_3_TIERS: Record<string, [number, number]> = {
-  'youssef-wahbi': [3, 3],
-  'aziza-amir': [2, 2],
-  'rose-al-youssef': [3, 3],
-  'fatma-rushdi': [2, 2],
-  'charles-corm': [3, 3],
+  'rafiq-najjar': [3, 3],
+  'muna-sayegh': [2, 2],
+  'dalia-barakat': [3, 3],
+  'lamia-shafiq': [2, 2],
+  'georges-haddad': [3, 3],
 };
 
 export const CELEBS_3_GROOMING: Record<string, Grooming> = {
-  'youssef-wahbi': {
+  'rafiq-najjar': {
     smell: [
       'My friend, even the backstage at the end of a summer run smells sweeter than this.',
       'I will stand stage left, if you do not mind. Upwind.',
@@ -485,7 +485,7 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
       'Good day. Rehearse your stock, and try again next season.',
     ],
   },
-  'aziza-amir': {
+  'muna-sayegh': {
     smell: [
       'Oh. Perhaps a little rosewater, my dear? Just a suggestion.',
       'Forgive me, I will stand by the door. The air is nicer there.',
@@ -506,7 +506,7 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
       'Goodbye for now. Next time, bring me romance.',
     ],
   },
-  'rose-al-youssef': {
+  'dalia-barakat': {
     smell: [
       'Darling, the hammam is cheaper than your worst rug. Consider it.',
       'I have shared dressing rooms with twelve actresses in August. This is worse.',
@@ -527,7 +527,7 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
       'Good day. I will not write about this visit, which is a kindness.',
     ],
   },
-  'fatma-rushdi': {
+  'lamia-shafiq': {
     smell: [
       'Oh! Oh, forgive me, it is only the smell. Is something wrong with the drains?',
       'My mother would send you straight to the hammam, and give you soap.',
@@ -548,7 +548,7 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
       'Goodbye. Do not be sad; I am always coming back.',
     ],
   },
-  'charles-corm': {
+  'georges-haddad': {
     smell: [
       'Forgive my frankness, but hygiene is the first principle of good business.',
       'I will stand in the doorway, if you permit. The air is better there.',
@@ -572,9 +572,9 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_3_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'youssef-wahbi': { category: 'theatre', city: 'Cairo', role: 'Actor-manager of an Emad el-Din theatre company', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/youssef-wahbi.jpg' },
-  'aziza-amir': { category: 'theatre_cinema', city: 'Cairo', role: 'Stage actress on Emad el-Din', prestige: 'FINE', portrait: 'art/historical-buyers/aziza-amir.jpg' },
-  'rose-al-youssef': { category: 'theatre_press', city: 'Cairo', role: 'Stage actress about to launch a magazine', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/rose-al-youssef.jpg' },
-  'fatma-rushdi': { category: 'theatre', city: 'Cairo / Alexandria', role: 'Young Alexandrian actress on the Cairo stage', prestige: 'FINE', portrait: 'art/historical-buyers/fatma-rushdi.jpg' },
-  'charles-corm': { category: 'intellectual_business', city: 'Beirut', role: 'Beirut writer and businessman', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/charles-corm.jpg' },
+  'rafiq-najjar': { category: 'theatre', city: 'Cairo', role: 'Actor-manager of an Emad el-Din theatre company', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/youssef-wahbi.jpg' },
+  'muna-sayegh': { category: 'theatre_cinema', city: 'Cairo', role: 'Stage actress on Emad el-Din', prestige: 'FINE', portrait: 'art/historical-buyers/aziza-amir.jpg' },
+  'dalia-barakat': { category: 'theatre_press', city: 'Cairo', role: 'Stage actress with a company of her own', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/rose-al-youssef.jpg' },
+  'lamia-shafiq': { category: 'theatre', city: 'Cairo / Alexandria', role: 'Young Alexandrian actress on the Cairo stage', prestige: 'FINE', portrait: 'art/historical-buyers/fatma-rushdi.jpg' },
+  'georges-haddad': { category: 'intellectual_business', city: 'Beirut', role: 'Beirut writer and businessman', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/charles-corm.jpg' },
 };

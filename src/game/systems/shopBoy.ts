@@ -38,7 +38,7 @@ export interface ShopBoyState {
 
 export const BOY = {
   name: 'Sami',
-  who: 'Sami, nephew of Haj Mahmoud the cloth seller',
+  who: 'Sami, nephew of Hajj Mahmoud the cloth seller',
   /** piastres a day, paid at night with the other wages: a labourer had 4 or 5, a boy 1 to 3 */
   wage: 2,
   /** hours more a buyer will wait when he is there to talk to them (the stall alone: AWAY_PATIENCE) */

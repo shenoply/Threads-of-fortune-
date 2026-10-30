@@ -177,7 +177,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
 
   const fire = async (sec: string, a: Act) => {
     const say = (m: string) => { lastMsg[sec] = m; setMsgs((x) => ({ ...x, [sec]: m })); };
-    if (S().ironman) { say('Not in an Ironman game.'); return; }
+    if (S().ironman) { say('Not in a one-life game.'); return; }
     say('…');
     let r: string;
     try { r = await a.run(); } catch (e) { r = `That did not work: ${(e as Error).message}`; }
@@ -557,7 +557,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
       </div>
       <div className="adm-body">
         <p className="adm-intro">Each button sets the game up and takes you straight to the feature. Everything you use here is noted in your journal.</p>
-        {ironman && <p className="adm-intro adm-warn" data-testid="admin-ironman">Not in an Ironman game: these buttons do nothing.</p>}
+        {ironman && <p className="adm-intro adm-warn" data-testid="admin-ironman">Not in a one-life game: these buttons do nothing.</p>}
         {sections.map((sec) => (
           <Fold key={sec.id} id={`adm-${sec.id}`} title={sec.title} gist={sec.gist} testid={`adm-sec-${sec.id}`} rowTestid={`adm-row-${sec.id}`}>
             <p className="adm-desc">{DESC[sec.id]}</p>

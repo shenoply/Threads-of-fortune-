@@ -43,7 +43,7 @@ export function SecretCode() {
     const cheat = testerNow() ? CHEATS[word] : undefined;
     if (cheat) {
       const s = useGame.getState();
-      if (s.ironman) { setMsg('Not in an Ironman game.'); return; }
+      if (s.ironman) { setMsg('Not in a one-life game.'); return; }
       useGame.setState({ ...cheat.run(s), journal: [...s.journal, { day: s.day, text: `Beta code "${word}": ${cheat.what}.`, kind: 'quiet' }] } as Partial<S>);
       audio.sfx('coins');
       setMsg(`Done: ${cheat.what}.`); setCode('');

@@ -6,9 +6,9 @@ import type { Grooming } from './grooming';
 // any likeness to a real person is unintended.
 
 export const CELEBS_1: Record<string, BuyerDef> = {
-  'saad-zaghloul': {
-    id: 'saad-zaghloul', name: 'Fawzi al-Badri', role: 'Civic leader, furnishing the reception hall of Bayt al-Umma', roomWord: 'reception hall',
-    bio: 'Former judge and a public man whose door is open to all comers. Here for a reception carpet that will take a hundred visitors a day.',
+  'fawzi-badri': {
+    id: 'fawzi-badri', name: 'Fawzi al-Badri', role: 'Civic leader, furnishing the reception hall of his house in Munira', roomWord: 'reception hall',
+    bio: 'A former judge and a deputy for a Delta district, who receives callers at his house in Munira from morning to night. Here for a reception carpet that will take a hundred visitors a day.',
     budget: [2500, 9000], patience: 70, trust: 45, interest: 40,
     values: { restrained: 3, hardwearing: 2, darkField: 2, fineWeave: 1, story: 1, wool: 1, ornate: -2, silk: -2, fragile: -2, bold: -1 },
     colourPref: { crimson: 2, indigo: 1, gold: 0, ivory: -1, mixed: 0 },
@@ -41,7 +41,7 @@ export const CELEBS_1: Record<string, BuyerDef> = {
       { id: 'story', when: (_t, i) => i.provenance === 'Uncertain' || i.provenance === 'Disputed', text: 'Where does it come from? I was a judge. I prefer evidence to eloquence.', honest: 'An honest answer. Worth more than a clever one.', facts: 'That is argument, not evidence. But it is well argued.', factsWorks: true },
       { id: 'price', when: () => true, text: 'State the reason for the price, plainly. I have no patience for ceremony.', honest: 'Clear. Thank you.', facts: 'The wool, the knots, the years. Very well, the case is made.', factsWorks: true },
     ],
-    commission: { traits: ['restrained', 'finely woven'], label: 'A sober, finely woven carpet for Bayt al-Umma', bonus: 1100, wants: (t) => t.traits.includes('restrained') && t.traits.includes('fineWeave') },
+    commission: { traits: ['restrained', 'finely woven'], label: 'A sober, finely woven carpet for the house in Munira', bonus: 1100, wants: (t) => t.traits.includes('restrained') && t.traits.includes('fineWeave') },
     lines: {
       arrival: ['An elderly gentleman in a dark suit and tarboosh steps down from a motorcar, leaning on his cane, and looks the stall over in silence.', 'Fawzi al-Badri arrives with two young secretaries, who stop at a respectful distance.'],
       greeting: ['Good morning. I have half an hour. Let us use it well.', 'Peace be upon you. I am told your prices are honest. I will judge that myself.'],
@@ -90,9 +90,9 @@ export const CELEBS_1: Record<string, BuyerDef> = {
     },
   },
 
-  'safiya-zaghloul': {
-    id: 'safiya-zaghloul', name: 'Nawal al-Badri', role: 'Hostess of Bayt al-Umma, choosing a carpet for the salon where she receives women visitors', roomWord: 'salon',
-    bio: 'Wife of Fawzi al-Badri and hostess of Bayt al-Umma, where the women of Cairo come to call. Here for a salon carpet.',
+  'nawal-badri': {
+    id: 'nawal-badri', name: 'Nawal al-Badri', role: 'Hostess of the al-Badri house in Munira, choosing a carpet for the salon where she receives women visitors', roomWord: 'salon',
+    bio: 'Wife of Fawzi al-Badri. Half the ladies of Munira call on her in a week. Here for a salon carpet.',
     budget: [2500, 8000], patience: 85, trust: 50, interest: 45,
     values: { warm: 3, soft: 2, fineWeave: 2, ornate: 1, story: 1, wool: 1, humble: -2, flatweave: -2, bold: -1 },
     colourPref: { crimson: 2, gold: 2, mixed: 1, indigo: 0, ivory: 0 },
@@ -174,9 +174,9 @@ export const CELEBS_1: Record<string, BuyerDef> = {
     },
   },
 
-  'huda-shaarawi': {
-    id: 'huda-shaarawi', name: 'Amina al-Hilmi', role: 'Organiser of a Cairo women\'s union, furnishing the Union\'s meeting room', roomWord: 'meeting room',
-    bio: 'Organiser of a women\'s union in Cairo and editor of its monthly bulletin. Here for a meeting-room carpet, and she knows fine work when she sees it.',
+  'amina-hilmi': {
+    id: 'amina-hilmi', name: 'Amina al-Hilmi', role: 'Secretary of a Cairo ladies\' welfare society, furnishing the Society\'s meeting room', roomWord: 'meeting room',
+    bio: 'Secretary of a ladies\' welfare society in Cairo that keeps a dispensary and a girls\' school. Here for a meeting-room carpet, and she knows fine work when she sees it.',
     budget: [2500, 8500], patience: 75, trust: 45, interest: 45,
     values: { fineWeave: 3, restrained: 2, cool: 1, soft: 1, story: 1, wool: 1, bold: -2, humble: -1, fragile: -1 },
     colourPref: { indigo: 2, ivory: 1, mixed: 1, crimson: 0, gold: -1 },
@@ -188,14 +188,14 @@ export const CELEBS_1: Record<string, BuyerDef> = {
     directBudgetTrust: 2, pushyTrust: -4, embellishNotice: 0.65, catAffinity: 1,
     needs: [
       {
-        id: 'union', label: 'A carpet for the Union\'s meeting room',
+        id: 'union', label: 'A carpet for the Society\'s meeting room',
         room: ['Our meeting room holds forty women and a great deal of argument. The carpet must be fine, quiet, and able to take a long evening.'],
         values: { fineWeave: 3, restrained: 2, hardwearing: 2, cool: 1, bold: -2, fragile: -2, silk: -1 },
         colourPref: { indigo: 2, mixed: 1, gold: -1 },
         budget: [4000, 8500], priorities: [{ id: 'work', label: 'Takes long meetings' }, { id: 'craft', label: 'Fine workmanship' }],
       },
       {
-        id: 'editorial', label: 'A rug for the office of the Union\'s bulletin',
+        id: 'editorial', label: 'A rug for the Society\'s office',
         room: ['The editorial office of our journal. Proofs, ink, visitors from Paris and from the provinces. I want something modern in spirit and beautifully made.'],
         values: { fineWeave: 2, restrained: 2, lightField: 1, soft: 1, bold: -1, ornate: -1 },
         colourPref: { indigo: 2, ivory: 2, crimson: -1 },
@@ -209,7 +209,7 @@ export const CELEBS_1: Record<string, BuyerDef> = {
       { id: 'story', when: (_t, i) => i.provenance === 'Uncertain' || i.provenance === 'Disputed', text: 'Where was it made, and by whom? I like to know who did the work.', honest: 'An honest answer. I respect that.', facts: 'That sounds more like a hope than a fact.', factsWorks: false },
       { id: 'price', when: () => true, text: 'Explain the price to me as you would explain it to anyone. No special rate, up or down.', honest: 'Good. That is how it should be done.', facts: 'The labour, the dyes, the time. Yes. That is a real argument.', factsWorks: true },
     ],
-    commission: { traits: ['Egyptian market', 'finely woven'], label: 'A finely woven carpet from the Cairo workshops for the Union', bonus: 1100, wants: (t) => t.traits.includes('fineWeave') && /Cairo|Egypt/.test(t.origin) },
+    commission: { traits: ['Egyptian market', 'finely woven'], label: 'A finely woven carpet from the Cairo workshops for the Society', bonus: 1100, wants: (t) => t.traits.includes('fineWeave') && /Cairo|Egypt/.test(t.origin) },
     lines: {
       arrival: ['A lady in an elegant dark coat walks straight to the stall and bends to look at the back of the nearest rug.', 'Amina al-Hilmi arrives with a folded journal under her arm and a secretary a pace behind.'],
       greeting: ['Good morning. I am told you know your stock. Let us find out together.', 'Bonjour, and good morning. I would like to see your best work, please. Not your most expensive. Your best.'],
@@ -219,7 +219,7 @@ export const CELEBS_1: Record<string, BuyerDef> = {
       budgetEarly: ['Straight to the purse? I have not seen a single carpet yet.'],
       budgetLate: ['For the meeting room, up to eighty-five pounds for the right carpet. For the office, perhaps sixty.'],
       decider: ['I decide. The committee will approve it afterwards. They usually do.'],
-      smallTalk: ['Our bulletin goes to press every month. Writing in French and arguing in Arabic, I am never short of words.', 'My father\'s library gave me a head full of ideas. Some of them have even come true.'],
+      smallTalk: ['The dispensary sees forty mothers on a good morning. The accounts see me every evening.', 'My father\'s library gave me a head full of ideas. Some of them have even come true.'],
       tea: ['Thank you. Tea, and a chair in the shade. You are a thoughtful merchant.'],
       earlyPresent: ['You show me a carpet before you know the room. That is how bad decisions are made.'],
       rugGood: ['Ah. Now that is work. May I turn over the corner?', 'Yes. Look at the drawing of the border. Very clean.'],
@@ -258,9 +258,9 @@ export const CELEBS_1: Record<string, BuyerDef> = {
     },
   },
 
-  'taha-hussein': {
-    id: 'taha-hussein', name: 'Yahya Mansur', role: 'University professor, choosing a rug for the study where he dictates his lectures', roomWord: 'study',
-    bio: 'Scholar of Arabic literature and professor at the university in Cairo. He judges a rug by touch and by the precision of your answers.',
+  'yahya-mansur': {
+    id: 'yahya-mansur', name: 'Yahya Mansur', role: 'University lecturer, choosing a rug for the study where he prepares his lectures', roomWord: 'study',
+    bio: 'Scholar of Arabic literature and professor at the university in Cairo. He judges a rug closely and expects precise answers.',
     budget: [700, 2500], patience: 80, trust: 40, interest: 50,
     values: { restrained: 3, story: 2, soft: 2, fineWeave: 1, wool: 1, antique: 1, bold: -2, ornate: -1, fragile: -1 },
     colourPref: { indigo: 1, crimson: 1, gold: 0, ivory: 0, mixed: 0 },
@@ -330,7 +330,7 @@ export const CELEBS_1: Record<string, BuyerDef> = {
       success: ['Thank you. I will think of this stall every time I walk across it.', 'Good. An honest bargain.'],
       badSale: ['I have bought it. My feet will tell me in a week whether I was right.'],
       walkAway: ['Not today, thank you.', 'I will reflect. Reflection costs nothing.'],
-      saffron: ['Something warm has just leaned against my ankle. A cat, and a large one.'],
+      saffron: ['A cat on the carpets, and a large one. She has chosen the best of them, I notice.'],
       commission: ['I would like a second rug for the study. Quiet, and with an origin you can vouch for. Find one and I will add something for your trouble.'],
       commissionDone: ['Soft, quiet, and its history holds together. Exactly right. Thank you, and here is what I promised.'],
       referral: ['I mentioned you to a colleague at the university. He will ask you twice as many questions as I did.'],
@@ -342,8 +342,8 @@ export const CELEBS_1: Record<string, BuyerDef> = {
     },
   },
 
-  'ahmed-shawqi': {
-    id: 'ahmed-shawqi', name: 'Jamil al-Rawi', role: 'Poet, furnishing the salon of Bayt al-Nakhil, his house in Giza', roomWord: 'salon',
+  'jamil-rawi': {
+    id: 'jamil-rawi', name: 'Jamil al-Rawi', role: 'Poet, furnishing the salon of his house by the river at Giza', roomWord: 'salon',
     bio: 'A poet much admired in the Cairo salons, who keeps open house by the river at Giza. Here for a carpet for his salon.',
     budget: [2500, 9000], patience: 85, trust: 50, interest: 55,
     values: { ornate: 3, story: 3, fineWeave: 2, silk: 1, warm: 1, soft: 1, humble: -2, flatweave: -2, restrained: -1 },
@@ -356,7 +356,7 @@ export const CELEBS_1: Record<string, BuyerDef> = {
     directBudgetTrust: -2, pushyTrust: -3, embellishNotice: 0.4, catAffinity: 3,
     needs: [
       {
-        id: 'salon', label: 'A floral carpet for the salon at Bayt al-Nakhil',
+        id: 'salon', label: 'A floral carpet for the salon by the river',
         room: ['My salon looks onto the Nile. I want a carpet that continues the garden into the room, so that my guests walk from roses onto roses.'],
         values: { ornate: 3, fineWeave: 2, story: 2, soft: 1, humble: -2, flatweave: -2 },
         colourPref: { mixed: 2, crimson: 1, gold: 1 },
@@ -382,7 +382,7 @@ export const CELEBS_1: Record<string, BuyerDef> = {
       arrival: ['A dapper gentleman in a light suit and tarboosh, a flower in his buttonhole, strolls up from the river road and stops at the first rug as if it had spoken to him.', 'Jamil al-Rawi arrives, murmuring to himself, and falls silent at the sight of your stock.'],
       greeting: ['Good morning. They say your carpets have stories in them. I have come to listen.', 'Peace be upon you. I live just down the road. It would be a poor neighbour who never visited.'],
       repeat: ['Good morning again. Your last carpet has become a regular at my evenings. The guests greet it.', 'I am back. A poet returns to the same well.'],
-      room: ['My salon at Bayt al-Nakhil. Windows onto the Nile, and evenings full of voices.', 'A room where friends recite until the lamps burn low. It should feel like a garden at dusk.'],
+      room: ['My salon at Giza. Windows onto the Nile, and evenings full of voices.', 'A room where friends recite until the lamps burn low. It should feel like a garden at dusk.'],
       drawnTo: ['Flowers. Persian flowers, the kind that never wilt because they were tied in knots.', 'A carpet with a tale in it. I will do the rest.'],
       budgetEarly: ['Money before beauty? That is the wrong order, like a poem that begins with its rhyme.'],
       budgetLate: ['For a carpet that sings, ninety pounds. For the writing room, perhaps sixty.'],
@@ -409,9 +409,9 @@ export const CELEBS_1: Record<string, BuyerDef> = {
       counter: ['Let us say {price}, and call it a rhyme.', 'I offer {price}. A generous couplet.', '{price}, and I will mention your stall in good company.'],
       holdGive: ['You are as stubborn as a meter that will not scan. Very well, {price}.'],
       holdRefuse: ['Then the poem must wait for another day.', 'No. Even I have a last line.'],
-      sweetener: ['You will carry it to Bayt al-Nakhil? It is only down the road. That changes the verse.'],
+      sweetener: ['You will carry it to my house? It is only down the river road. That changes the verse.'],
       impatience: ['Friends are coming this evening, and I have not finished my lines.', 'The afternoon is running away with my words.'],
-      success: ['Wonderful. Send it to Bayt al-Nakhil. Anyone on the river road can point the way.', 'Thank you. Tonight the salon will have one more guest.'],
+      success: ['Wonderful. Send it to my house at Giza. Anyone on the river road can point the way.', 'Thank you. Tonight the salon will have one more guest.'],
       badSale: ['I have bought it. Sometimes a poet buys an image and finds only a rug.'],
       walkAway: ['Not today. The muse is sulking.', 'I will come back when the carpets have something to say.'],
       saffron: ['A cat! Sitting on the best carpet, of course. Cats and poets always know.'],
@@ -428,27 +428,27 @@ export const CELEBS_1: Record<string, BuyerDef> = {
 };
 
 export const CELEBS_1_MANNER: Record<string, Record<MannerKind, Reaction>> = {
-  'saad-zaghloul': {
+  'fawzi-badri': {
     charm: { like: -1, good: 'Hm. Compliments. Show me the carpets.', bad: 'I have been flattered by experts. You are not one of them.' },
     kind: { like: 0, good: 'Thank you. My health is as God wills. Now, to business.', bad: 'I did not come to be looked after.' },
     firm: { like: 1, good: 'Good. Plain speech saves us both time.', bad: 'Plain speech. Continue.' },
   },
-  'safiya-zaghloul': {
+  'nawal-badri': {
     charm: { like: 0, good: 'You are kind. Let the carpets be as kind.', bad: 'Please. I hear compliments all day.' },
     kind: { like: 1, good: 'Thank you for asking. The household is well, and very busy. And yours?', bad: 'Thank you.' },
     firm: { like: 0, good: 'Very well. Let us be practical.', bad: 'Firm is well. Brusque is not.' },
   },
-  'huda-shaarawi': {
+  'amina-hilmi': {
     charm: { like: -1, good: 'Thank you. Now the carpets, please.', bad: 'I did not come here to be flattered. I came to buy.' },
     kind: { like: 0, good: 'Thank you. I am well, and very busy.', bad: 'That is kind, but let us not waste the morning.' },
     firm: { like: 1, good: 'Good. Direct and honest. That is how I prefer to be treated.', bad: 'Direct. Good.' },
   },
-  'taha-hussein': {
+  'yahya-mansur': {
     charm: { like: -1, good: 'Hm. Rhetoric. Let us return to the evidence.', bad: 'Flattery is an argument without premises.' },
     kind: { like: 1, good: 'Thank you. A chair, yes, and a moment to listen to the street. You are kind.', bad: 'Thank you.' },
     firm: { like: 1, good: 'Good. Exact speech. I value that above most things.', bad: 'Precisely. Go on.' },
   },
-  'ahmed-shawqi': {
+  'jamil-rawi': {
     charm: { like: 1, good: 'Ah, a merchant who speaks in images. We shall understand each other.', bad: 'Pretty words. I make my own.' },
     kind: { like: 1, good: 'You ask after me? The garden is in flower and the verses are slow. Thank you.', bad: 'Thank you.' },
     firm: { like: -1, good: 'Very well, very well.', bad: 'So much business. Where is the music in it?' },
@@ -456,15 +456,15 @@ export const CELEBS_1_MANNER: Record<string, Record<MannerKind, Reaction>> = {
 };
 
 export const CELEBS_1_TIERS: Record<string, [number, number]> = {
-  'saad-zaghloul': [3, 3],
-  'safiya-zaghloul': [3, 3],
-  'huda-shaarawi': [3, 3],
-  'taha-hussein': [2, 2],
-  'ahmed-shawqi': [3, 3],
+  'fawzi-badri': [3, 3],
+  'nawal-badri': [3, 3],
+  'amina-hilmi': [3, 3],
+  'yahya-mansur': [2, 2],
+  'jamil-rawi': [3, 3],
 };
 
 export const CELEBS_1_GROOMING: Record<string, Grooming> = {
-  'saad-zaghloul': {
+  'fawzi-badri': {
     smell: [
       'You will forgive a plain remark. The hammam is not expensive.',
       'I have stood in crowded halls all year. This is worse.',
@@ -485,7 +485,7 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
       'I will come back when your stock deserves the visit.',
     ],
   },
-  'safiya-zaghloul': {
+  'nawal-badri': {
     smell: [
       'Forgive me. Perhaps a little rosewater, before the next customer?',
       'I will stand in the breeze, if you do not mind. It is a warm day.',
@@ -506,7 +506,7 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
       'Good morning. I am sure next time will be better.',
     ],
   },
-  'huda-shaarawi': {
+  'amina-hilmi': {
     smell: [
       'I will be frank. You need a bath before you need a customer.',
       'I am standing upwind on purpose. I hope you understand.',
@@ -527,7 +527,7 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
       'Good morning. I hope to find more next time.',
     ],
   },
-  'taha-hussein': {
+  'yahya-mansur': {
     smell: [
       'My nose is as exacting as my students say I am. Today it is not happy with you.',
       'Forgive me. The hammam, perhaps, before the next customer?',
@@ -536,7 +536,7 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
     ragged: [
       'Your sleeve brushed my hand. It is frayed through. You should see to that.',
       'Your galabiya has seen better years. I am too polite to say more.',
-      'I do not judge a man by his clothes. My companion does, and he is wincing.',
+      'I do not judge a man by his clothes. My students do, and so will my wife.',
     ],
     mockStock: [
       'Everything under my hand today feels coarse. I am sorry.',
@@ -548,7 +548,7 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
       'Good morning. Better luck to both of us next time.',
     ],
   },
-  'ahmed-shawqi': {
+  'jamil-rawi': {
     smell: [
       'My friend, a rose would faint here. Perhaps the hammam, and then the carpets?',
       'I came for the scent of wool and found the scent of the road.',
@@ -572,9 +572,9 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_1_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'saad-zaghloul': { category: 'politician', city: 'Cairo', role: 'Civic leader and host of Bayt al-Umma', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/saad-zaghloul.jpg' },
-  'safiya-zaghloul': { category: 'public_figure', city: 'Cairo', role: 'Hostess of Bayt al-Umma', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/safiya-zaghloul.jpg' },
-  'huda-shaarawi': { category: 'public_figure', city: 'Cairo', role: 'Organiser of a Cairo women\'s union', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/huda-shaarawi.jpg' },
-  'taha-hussein': { category: 'intellectual', city: 'Cairo', role: 'University professor and scholar', prestige: 'FINE', portrait: 'art/historical-buyers/taha-hussein.jpg' },
-  'ahmed-shawqi': { category: 'intellectual', city: 'Cairo', role: 'Poet who keeps a salon at Giza', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ahmed-shawqi.jpg' },
+  'fawzi-badri': { category: 'politician', city: 'Cairo', role: 'Civic leader with a house in Munira', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/saad-zaghloul.jpg' },
+  'nawal-badri': { category: 'public_figure', city: 'Cairo', role: 'Hostess of the al-Badri house', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/safiya-zaghloul.jpg' },
+  'amina-hilmi': { category: 'public_figure', city: 'Cairo', role: 'Secretary of a Cairo ladies\' society', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/huda-shaarawi.jpg' },
+  'yahya-mansur': { category: 'intellectual', city: 'Cairo', role: 'University lecturer and scholar', prestige: 'FINE', portrait: 'art/historical-buyers/taha-hussein.jpg' },
+  'jamil-rawi': { category: 'intellectual', city: 'Cairo', role: 'Poet who keeps a salon at Giza', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ahmed-shawqi.jpg' },
 };

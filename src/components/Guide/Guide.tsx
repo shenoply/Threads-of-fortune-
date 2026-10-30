@@ -99,7 +99,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
   {
     id: 'boy', img: 'art/stall-empty.webp', pos: '50% 50%',
     title: 'Sami minds the stall',
-    lines: ['A buyer who finds your stall empty waits a couple of hours and goes elsewhere. Hire Sami, Haj Mahmoud\'s nephew, from the stall for two piastres a day: he keeps buyers waiting longer, or sells your plain rugs at the price you set. He is a boy, so now and then a buyer talks him down or a coin goes missing; he gets better the longer he works for you. Pay him, or he goes home.'],
+    lines: ['A buyer who finds your stall empty waits a couple of hours and goes elsewhere. Hire Sami, Hajj Mahmoud\'s nephew, from the stall for two piastres a day: he keeps buyers waiting longer, or sells your plain rugs at the price you set. He is a boy, so now and then a buyer talks him down or a coin goes missing; he gets better the longer he works for you. Pay him, or he goes home.'],
   },
   {
     id: 'post', img: 'art/newspaper-stall.webp', pos: '50% 50%',

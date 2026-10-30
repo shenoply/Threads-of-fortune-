@@ -6,8 +6,8 @@ import type { Grooming } from './grooming';
 // These are fictional people; any likeness to a real person is unintended.
 
 export const CELEBS_2: Record<string, BuyerDef> = {
-  'munira-al-mahdiyya': {
-    id: 'munira-al-mahdiyya', name: 'Maha al-Qadri', role: 'Singer, actress and head of her own theatre troupe, dressing a stage and a salon', roomWord: 'stage',
+  'maha-qadri': {
+    id: 'maha-qadri', name: 'Maha al-Qadri', role: 'Singer, actress and head of her own theatre troupe, dressing a stage and a salon', roomWord: 'stage',
     bio: 'A celebrated singer and stage star in Cairo, with her own troupe. Wants one carpet the whole city will talk about.',
     budget: [14000, 38000], patience: 70, trust: 50, interest: 55,
     values: { bold: 3, ornate: 3, rare: 2, silk: 2, story: 2, warm: 1, fineWeave: 1, restrained: -2, humble: -3, flatweave: -2 },
@@ -90,9 +90,9 @@ export const CELEBS_2: Record<string, BuyerDef> = {
     },
   },
 
-  'umm-kulthum': {
-    id: 'umm-kulthum', name: 'Salwa Nassar', role: 'Young singer from the Delta, now making her name in Cairo, furnishing the family\'s rehearsal room', roomWord: 'rehearsal room',
-    bio: 'A young singer from a Delta village whose voice is filling Cairo halls and gramophone records. Wants a quiet, well-made rug for the room where she rehearses.',
+  'salwa-nassar': {
+    id: 'salwa-nassar', name: 'Salwa Nassar', role: 'Young singer from Upper Egypt, now making her name in Cairo, furnishing the family\'s rehearsal room', roomWord: 'rehearsal room',
+    bio: 'A young singer from a village near Minya whose voice is beginning to fill the Cairo halls. Wants a quiet, well-made rug for the room where she rehearses.',
     budget: [700, 1800], patience: 85, trust: 40, interest: 40,
     values: { restrained: 3, fineWeave: 3, soft: 2, story: 1, wool: 1, bold: -2, ornate: -1, silk: -1, fragile: -1 },
     colourPref: { crimson: 1, indigo: 1, mixed: 1, ivory: 0, gold: 0 },
@@ -174,9 +174,9 @@ export const CELEBS_2: Record<string, BuyerDef> = {
     },
   },
 
-  'mohamed-abdel-wahab': {
-    id: 'mohamed-abdel-wahab', name: 'Adel Farouk', role: 'Young singer and composer under the patronage of a Giza poet, furnishing the room where he composes', roomWord: 'composing room',
-    bio: 'A young Cairo singer and composer taken up by the poet Jamil al-Rawi, whose house stands in Giza. Wants a modern, clean-lined rug for the room where he writes.',
+  'adel-farouk': {
+    id: 'adel-farouk', name: 'Adel Farouk', role: 'Young singer and composer, furnishing the room where he composes', roomWord: 'composing room',
+    bio: 'A young Cairo singer and composer, much asked for at weddings and in the recording rooms. Wants a modern, clean-lined rug for the room where he writes.',
     budget: [800, 2200], patience: 70, trust: 50, interest: 50,
     values: { fineWeave: 3, cool: 2, restrained: 2, lightField: 1, soft: 1, story: 1, humble: -2, hardwearing: -1, flatweave: -2, antique: -1 },
     colourPref: { indigo: 3, ivory: 2, mixed: 0, crimson: -1, gold: 0 },
@@ -218,7 +218,7 @@ export const CELEBS_2: Record<string, BuyerDef> = {
       drawnTo: ['Clean lines. Cool colour. Something you could hang in a European salon and still call Egyptian.', 'Refined. Like a melody with one good idea, not twenty.'],
       budgetEarly: ['Straight to money? You compose like a march. I prefer a slower introduction.'],
       budgetLate: ['Sixteen pounds, for the right thing. For something truly elegant, twenty-two, and I will eat bread for a week.'],
-      decider: ['I decide. Though if al-Rawi Bey frowns at it, I will hear about it.'],
+      decider: ['I decide. Though if my mother frowns at it, I will hear about it.'],
       smallTalk: ['Have you heard the new records from Europe? The orchestras there have a hundred players. Imagine that in Cairo.', 'Everyone is talking about the tomb at Luxor. Three thousand years, and still in the newspapers every week.'],
       tea: ['Tea, thank you. Not too sweet. Sugar is bad for the voice, they tell me.'],
       earlyPresent: ['You play the finale before the overture. Ask me about the room first.'],
@@ -258,8 +258,8 @@ export const CELEBS_2: Record<string, BuyerDef> = {
     },
   },
 
-  'sami-al-shawwa': {
-    id: 'sami-al-shawwa', name: 'Bassem al-Khoury', role: 'Violin virtuoso of Aleppine family, furnishing his music room in Cairo', roomWord: 'music room',
+  'bassem-khoury': {
+    id: 'bassem-khoury', name: 'Bassem al-Khoury', role: 'Violin virtuoso of Aleppine family, furnishing his music room in Cairo', roomWord: 'music room',
     bio: 'A much admired violinist, recording and performing from Cairo to Damascus and Aleppo. Wants a fine rug for the room where he plays.',
     budget: [3000, 8500], patience: 75, trust: 45, interest: 45,
     values: { fineWeave: 3, restrained: 3, antique: 2, rare: 1, story: 1, soft: 1, bold: -2, humble: -2, flatweave: -2, hardwearing: -1 },
@@ -342,8 +342,8 @@ export const CELEBS_2: Record<string, BuyerDef> = {
     },
   },
 
-  'daoud-hosni': {
-    id: 'daoud-hosni', name: 'Halim Saba', role: 'Veteran Cairo composer, furnishing the salon where he writes and receives singers', roomWord: 'salon',
+  'halim-saba': {
+    id: 'halim-saba', name: 'Halim Saba', role: 'Veteran Cairo composer, furnishing the salon where he writes and receives singers', roomWord: 'salon',
     bio: 'A respected composer of adwar, songs and theatre music, and a teacher to younger singers. Wants an intimate, finely woven rug with quiet flowers for his salon.',
     budget: [900, 2400], patience: 90, trust: 50, interest: 40,
     values: { fineWeave: 3, soft: 2, ornate: 2, story: 2, restrained: 1, wool: 1, bold: -2, humble: -1, flatweave: -2, hardwearing: -1 },
@@ -428,27 +428,27 @@ export const CELEBS_2: Record<string, BuyerDef> = {
 };
 
 export const CELEBS_2_MANNER: Record<string, Record<MannerKind, Reaction>> = {
-  'munira-al-mahdiyya': {
+  'maha-qadri': {
     charm: { like: 1, good: 'Flattery! Go on, I never tire of it. Now show me the carpets.', bad: 'Darling, I hear better compliments every evening, and from better men.' },
     kind: { like: 0, good: 'Thank you. The troupe is well, and exhausting. Now, the rugs.', bad: 'I do not need a chair. I need a carpet.' },
     firm: { like: 0, good: 'Plain dealing. Refreshing, for a change.', bad: 'Firm with me? I have fired stage managers for that tone.' },
   },
-  'umm-kulthum': {
+  'salwa-nassar': {
     charm: { like: -1, good: 'Thank you. Please, the rugs.', bad: 'Please do not speak to me like that. I came for rugs.' },
     kind: { like: 1, good: 'Thank you. My family is well, God be praised. You are kind to ask.', bad: 'Thank you.' },
     firm: { like: 1, good: 'Good. I prefer honest, simple words.', bad: 'Plain, yes. But please, politely.' },
   },
-  'mohamed-abdel-wahab': {
+  'adel-farouk': {
     charm: { like: 1, good: 'Ha! You flatter like a poet. I have learned to enjoy it.', bad: 'Compliments, compliments. Show me something elegant.' },
     kind: { like: 0, good: 'I am well, thank you. Busy, but well.', bad: 'No time to sit, forgive me.' },
     firm: { like: 0, good: 'Direct. Very modern. All right.', bad: 'So serious. Music needs a little lightness.' },
   },
-  'sami-al-shawwa': {
+  'bassem-khoury': {
     charm: { like: 0, good: 'You are generous with words. I hope your carpets are as fine.', bad: 'Flattery is like vibrato. A little is pleasant; too much is vulgar.' },
     kind: { like: 1, good: 'Thank you. It has been a long season of concerts. A glass of water is welcome.', bad: 'Thank you.' },
     firm: { like: 1, good: 'Good. Precise words, like precise notes.', bad: 'Firm, yes. But in tune, please.' },
   },
-  'daoud-hosni': {
+  'halim-saba': {
     charm: { like: 0, good: 'You are kind to an old composer. Now, the flowers.', bad: 'Save the sweet words for the young singers, my son.' },
     kind: { like: 1, good: 'Thank you, my son. I am well, God be praised. Sit with me a moment.', bad: 'Thank you.' },
     firm: { like: -1, good: 'Very well.', bad: 'So hurried. A good song takes its time, and so does a good sale.' },
@@ -456,15 +456,15 @@ export const CELEBS_2_MANNER: Record<string, Record<MannerKind, Reaction>> = {
 };
 
 export const CELEBS_2_TIERS: Record<string, [number, number]> = {
-  'munira-al-mahdiyya': [4, 4],
-  'umm-kulthum': [2, 2],
-  'mohamed-abdel-wahab': [2, 2],
-  'sami-al-shawwa': [3, 3],
-  'daoud-hosni': [2, 2],
+  'maha-qadri': [4, 4],
+  'salwa-nassar': [2, 2],
+  'adel-farouk': [2, 2],
+  'bassem-khoury': [3, 3],
+  'halim-saba': [2, 2],
 };
 
 export const CELEBS_2_GROOMING: Record<string, Grooming> = {
-  'munira-al-mahdiyya': {
+  'maha-qadri': {
     smell: [
       'Darling, my dressing room smells of roses. Your stall smells of something else.',
       'I will stand over here, by the jasmine. It is not personal.',
@@ -485,7 +485,7 @@ export const CELEBS_2_GROOMING: Record<string, Grooming> = {
       'Call me when you have something worthy of a star.',
     ],
   },
-  'umm-kulthum': {
+  'salwa-nassar': {
     smell: [
       'Forgive me. Perhaps a wash before customers come.',
       'I will stand in the doorway, if you do not mind. For the air.',
@@ -506,7 +506,7 @@ export const CELEBS_2_GROOMING: Record<string, Grooming> = {
       'I will look elsewhere today. Do not be offended.',
     ],
   },
-  'mohamed-abdel-wahab': {
+  'adel-farouk': {
     smell: [
       'My friend, there is eau de Cologne in every chemist on Fuad Street.',
       'Forgive me, I will stand upwind. My suit is new.',
@@ -527,7 +527,7 @@ export const CELEBS_2_GROOMING: Record<string, Grooming> = {
       'I must go. Good day, and good luck.',
     ],
   },
-  'sami-al-shawwa': {
+  'bassem-khoury': {
     smell: [
       'Forgive me, but I have a sensitive nose as well as a sensitive ear.',
       'I will stand a little further off. The violin case too.',
@@ -548,7 +548,7 @@ export const CELEBS_2_GROOMING: Record<string, Grooming> = {
       'Good day. I must go and tune.',
     ],
   },
-  'daoud-hosni': {
+  'halim-saba': {
     smell: [
       'My son, the hammam is a pleasant place. You should visit it.',
       'I will sit by the door, if I may. For the air.',
@@ -572,9 +572,9 @@ export const CELEBS_2_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_2_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'munira-al-mahdiyya': { category: 'musician', city: 'Cairo', role: 'Singer, actress and head of her own theatre troupe', prestige: 'LEGENDARY', portrait: 'art/historical-buyers/munira-al-mahdiyya.jpg' },
-  'umm-kulthum': { category: 'musician', city: 'Cairo', role: 'Young singer from the Delta, making her name in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/umm-kulthum.jpg' },
-  'mohamed-abdel-wahab': { category: 'musician', city: 'Cairo', role: 'Young singer and composer in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/mohamed-abdel-wahab.jpg' },
-  'sami-al-shawwa': { category: 'musician', city: 'Cairo / Damascus', role: 'Aleppine violin virtuoso with a music room in Cairo', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sami-al-shawwa.jpg' },
-  'daoud-hosni': { category: 'musician', city: 'Cairo', role: 'Cairo composer who teaches younger singers', prestige: 'FINE', portrait: 'art/historical-buyers/daoud-hosni.jpg' },
+  'maha-qadri': { category: 'musician', city: 'Cairo', role: 'Singer, actress and head of her own theatre troupe', prestige: 'LEGENDARY', portrait: 'art/historical-buyers/munira-al-mahdiyya.jpg' },
+  'salwa-nassar': { category: 'musician', city: 'Cairo', role: 'Young singer from Upper Egypt, making her name in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/umm-kulthum.jpg' },
+  'adel-farouk': { category: 'musician', city: 'Cairo', role: 'Young singer and composer in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/mohamed-abdel-wahab.jpg' },
+  'bassem-khoury': { category: 'musician', city: 'Cairo / Damascus', role: 'Aleppine violin virtuoso with a music room in Cairo', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sami-al-shawwa.jpg' },
+  'halim-saba': { category: 'musician', city: 'Cairo', role: 'Cairo composer who teaches younger singers', prestige: 'FINE', portrait: 'art/historical-buyers/daoud-hosni.jpg' },
 };

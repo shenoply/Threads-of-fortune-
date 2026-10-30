@@ -75,7 +75,7 @@ const NAMES: Record<Culture, { m: string[]; f: string[]; fam: string[] }> = {
   copt: {
     m: ['Boutros', 'Girgis', 'Mikhail', 'Tadros', 'Hanna', 'Wissa', 'Morcos', 'Fahim', 'Labib', 'Shenouda'],
     f: ['Mariam', 'Faiza', 'Wardah', 'Labiba', 'Victoria', 'Isis', 'Hoda', 'Marcelle', 'Tereza', 'Ilham'],
-    fam: ['Ghali', 'Wissa', 'Abdel-Malek', 'Girgis', 'Tadros', 'Hanna', 'Basili', 'Doss', 'Iskandar', 'Ebeid'],
+    fam: ['Bishay', 'Mina', 'Abdel-Malek', 'Girgis', 'Tadros', 'Hanna', 'Basili', 'Farag', 'Iskandar', 'Abdel-Masih'],
   },
   egypt: {
     m: ['Mahmoud', 'Ahmad', 'Hassan', 'Ibrahim', 'Mustafa', 'Abdel-Rahman', 'Sayed', 'Hamid', 'Fathi', 'Ragab', 'Shaaban', 'Mitwalli', 'Abdel-Aziz', 'Zaki', 'Tawfiq', 'Fouad', 'Hilmi', 'Rashad', 'Kamal', 'Anwar', 'Saad', 'Salah', 'Gamal', 'Yusuf', 'Abdu', 'Hafez', 'Ismail', 'Ali', 'Khalil', 'Darwish'],
@@ -90,7 +90,7 @@ const NAMES: Record<Culture, { m: string[]; f: string[]; fam: string[] }> = {
   anatolia: {
     m: ['Mehmet', 'Ahmet', 'Hasan', 'Hüseyin', 'Ali', 'Mustafa', 'Osman', 'Halil', 'İbrahim', 'Rıza', 'Hakkı', 'Necip', 'Şevket', 'Tevfik', 'Kâzım', 'Cemal', 'Hilmi', 'Nuri', 'Sadık', 'Rauf'],
     f: ['Ayşe', 'Fatma', 'Emine', 'Hatice', 'Zeynep', 'Hacer', 'Nazlı', 'Şükran', 'Saadet', 'Meliha', 'Naciye', 'Feride', 'Halide', 'Nimet'],
-    fam: ['Tezcan', 'Kalkan', 'Yılmaz', 'Demirci', 'Halıcı', 'Kuyumcu', 'Tüccar', 'Bezzaz', 'Kâtipzade', 'Hacıoğlu', 'Kuyucu', 'Demirtaş', 'Bayraktar', 'Çelebi', 'Hocazade'],
+    fam: ['Halıcızade', 'Kalkanoğlu', 'Yazıcıoğlu', 'Demirci', 'Halıcı', 'Kuyumcu', 'Tüccar', 'Bezzaz', 'Kâtipzade', 'Hacıoğlu', 'Kuyucu', 'Taşçızade', 'Bayraktar', 'Çelebi', 'Hocazade'],
   },
   iraq: {
     m: ['Jassim', 'Abbas', 'Kadhim', 'Hamid', 'Ja\'far', 'Mahdi', 'Salman', 'Hashim', 'Rauf', 'Abdul-Karim', 'Yasin', 'Nuri', 'Saleh', 'Mahmoud', 'Ezra', 'Menahem', 'Sassoon', 'Yusuf'],

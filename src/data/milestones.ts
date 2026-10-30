@@ -106,7 +106,7 @@ export const MILESTONES: Record<string, Milestone> = {
     progress: (s) => [Math.min(REGISTER_TARGET, registerHave(s)), REGISTER_TARGET],
   },
   'ms-abroad': {
-    aim: 'Sell £25 worth of rugs outside Egypt', id: 'ms-abroad', title: 'A caravan abroad', giver: 'Farid al-Khatib', speaker: 'Farid al-Khatib',
+    aim: 'Sell £25 worth of rugs outside Egypt', id: 'ms-abroad', title: 'A caravan abroad', giver: 'Farid al-Ajami', speaker: 'Farid al-Ajami',
     brief: 'Rugs that are ordinary in Giza are wanted in Jerusalem, and the other way round. Take stock across the frontier and sell £25 worth outside Egypt: to dealers, visitors, palaces, anyone.',
     steps: ['Pack rugs at your Giza stall: only packed rugs travel', 'A passport from the Passport Office in Cairo saves a fine at every frontier', 'Sell £25 worth of rugs in Palestine, Transjordan, Syria or further'],
     locks: '',

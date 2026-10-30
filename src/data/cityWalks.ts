@@ -73,7 +73,7 @@ export const CITY_WALKS: Record<string, Venue> = {
       { id: 'gate', name: 'Bab al-Jabiya', sub: 'Back to the town square', ...P(620, 630), glyph: '⇣', kind: 'exit' },
       { id: 'hamidiyya', name: 'Souq al-Hamidiyya', sub: 'Local rug market', ...P(497, 313), glyph: '◆', kind: 'goto', action: 'market' },
       { id: 'dominoes', name: 'The Nawfara', sub: 'Dominoes with Abu Sa\'id the weaver', ...P(770, 330), glyph: 'D', kind: 'goto', action: 'dominoes' },
-      { id: 'farid', name: 'Antique shop', sub: 'Farid al-Khatib', ...P(668, 468), glyph: 'F', kind: 'goto', action: 'npc:farid' },
+      { id: 'farid', name: 'Antique shop', sub: 'Farid al-Ajami', ...P(668, 468), glyph: 'F', kind: 'goto', action: 'npc:farid' },
       { id: 'khan', name: 'Khan and camel yard', sub: 'Camels, horses and mules', ...P(252, 365), glyph: '♞', kind: 'goto', action: 'animals' },
       { id: 'citadel', name: 'The Citadel', sub: 'Guards and gendarmes', ...P(130, 100), glyph: 'G', kind: 'goto', action: 'guards' },
       { id: 'umayyad', name: 'Umayyad Mosque', sub: 'Thirteen centuries old', ...P(700, 255), glyph: 'M', kind: 'note', text: ['The great courtyard shines after rain. Its floor is laid with carpets given by sultans, and the attendants will tell you which sultan gave which.'] },

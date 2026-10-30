@@ -59,7 +59,7 @@ export function BaleCard({ toast }: { toast?: (m: string) => void }) {
         {!freeNow && <Countdown until={(b?.freeAt ?? 0) + BALE_FREE_EVERY} span={BALE_FREE_EVERY} label="Next free bale" testid="bale-timer" />}
         <small>Unclaimed goods from the Port Said customs sheds, still corded under the lead seal. Most hold a rug or two of everyday stock; some a good trade rug; a few a city carpet; once in a long while, a treasure. Sometimes a curio, a gramophone record or a purse of old coins is packed in with them.</small>
         <button className="btn primary" disabled={!freeNow && g.cash < BALE_PRICE} onClick={cut} data-testid="bale-buy">
-          {freeNow ? 'Cut open Rashid’s free bale' : `Buy one and cut it open · ${fmt(BALE_PRICE)}`}
+          {freeNow ? 'Cut open Rashid\'s free bale' : `Buy one and cut it open · ${fmt(BALE_PRICE)}`}
         </button>
         <small className="bale-next">{freeNow ? 'Rashid gives you a bale free every twelve hours.' : 'Rashid gives one free every twelve hours; more can be bought.'}</small>
         {(b?.opened ?? 0) > 0 && <small className="bale-count">{b!.opened} opened{b!.treasures ? ` · ${b!.treasures} treasure${b!.treasures > 1 ? 's' : ''}` : ''}</small>}

@@ -1,4 +1,4 @@
-// Bad luck you can see coming. A thief works the lane at night now and then; Haj Mahmoud hears of it a
+// Bad luck you can see coming. A thief works the lane at night now and then; Hajj Mahmoud hears of it a
 // day ahead. Pay a watchman for the night, or keep a guard at the stall, and he goes away with nothing.
 // Ignore the warning and one of your rugs is gone in the morning. Hashed from the day, so it never
 // touches the store's dice.
@@ -51,7 +51,7 @@ export function omensNight(s: GameState, day: number): { patch: Partial<GameStat
   // a new warning, about once a fortnight, after the first week
   if (!o && day >= 8 && h(day, 'thief') < 1 / 14 && reachable(s).length) {
     patch.omen = { kind: 'thief', night: day };
-    notes.push(`Haj Mahmoud says a thief has been working the lane at night. Tonight it may be your stall. A watchman costs ${fmt(WATCH_COST)}.`);
+    notes.push(`Hajj Mahmoud says a thief has been working the lane at night. Tonight it may be your stall. A watchman costs ${fmt(WATCH_COST)}.`);
   }
   return { patch, notes };
 }

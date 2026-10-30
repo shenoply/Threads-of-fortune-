@@ -6,9 +6,9 @@ import type { Grooming } from './grooming';
 // Fictional people; names, posts, errands, tastes, budgets and dialogue are all invented.
 
 export const CELEBS_4: Record<string, BuyerDef> = {
-  'ronald-storrs': {
-    id: 'ronald-storrs', name: 'Edmund Fairburn', role: 'Senior British administrator in Jerusalem, back in Cairo on leave and hunting an old carpet for his study', roomWord: 'study',
-    bio: 'A senior British official in Jerusalem who served for years in Cairo before the war. Wants a carpet that starts a conversation.',
+  'edmund-fairburn': {
+    id: 'edmund-fairburn', name: 'Edmund Fairburn', role: 'British official of the Palestine government, back in Cairo on leave and hunting an old carpet for his study', roomWord: 'study',
+    bio: 'An official of the Palestine government with a house full of books and old things. Wants a carpet that starts a conversation.',
     budget: [3000, 8500], patience: 75, trust: 50, interest: 60,
     values: { antique: 3, story: 3, rare: 2, fineWeave: 1, restrained: 1, ornate: 1, humble: -2, washable: -2, flatweave: -1 },
     colourPref: { crimson: 2, indigo: 1, gold: 1, mixed: 1, ivory: -1 },
@@ -50,7 +50,7 @@ export const CELEBS_4: Record<string, BuyerDef> = {
       budgetEarly: ['You go straight to the purse. Very well: thirty pounds to start, and my respect if you are sensible.'],
       budgetLate: ['For the right piece I might reach eighty pounds. Perhaps a little more, if it sings.'],
       decider: ['I decide. My wife will tell me afterwards whether I decided well.'],
-      smallTalk: ['In Jerusalem the stone changes colour three times a day. I have given up describing it in letters home.', 'We are trying to mend a stretch of the city walls. Every stone seems to have its own committee.'],
+      smallTalk: ['In Jerusalem the stone changes colour three times a day. I have given up describing it in letters home.', 'Our offices are all stone and no warmth. Every visitor arrives with his own complaint about the cold.'],
       tea: ['Tea, yes, please. Mint, if you have it. Cairo taught me that.'],
       earlyPresent: ['Already? You have not asked me a single question. In diplomacy that is called a blunder.'],
       rugGood: ['Now that has some presence. Unroll it a little further, would you?', 'Oh, yes. That one clears its throat before it speaks.'],
@@ -90,8 +90,8 @@ export const CELEBS_4: Record<string, BuyerDef> = {
     silhouette: 'fez', accent: '#2f4a3a',
   },
 
-  'raghib-nashashibi': {
-    id: 'raghib-nashashibi', name: 'Salim al-Amin', role: 'Jerusalem municipal councillor, in Cairo on business and furnishing his reception hall', roomWord: 'reception hall',
+  'salim-amin': {
+    id: 'salim-amin', name: 'Salim al-Amin', role: 'Jerusalem municipal councillor, in Cairo on business and furnishing his reception hall', roomWord: 'reception hall',
     bio: 'A Jerusalem municipal councillor from one of the city\'s old families. Needs a large, formal carpet for receiving guests.',
     budget: [2800, 7500], patience: 70, trust: 55, interest: 50,
     values: { ornate: 3, warm: 2, rare: 2, fineWeave: 2, bold: 1, soft: 1, humble: -3, flatweave: -2, washable: -1 },
@@ -174,9 +174,9 @@ export const CELEBS_4: Record<string, BuyerDef> = {
     silhouette: 'fez', accent: '#6b2a2a',
   },
 
-  'sassoon-eskell': {
-    id: 'sassoon-eskell', name: 'Isaac Benatar', role: 'Iraqi treasury official passing through Cairo, looking for a well-documented Persian carpet for his Baghdad house', roomWord: 'library',
-    bio: 'A senior official of the Iraqi treasury in Baghdad. Buys a carpet the way he drafts a budget: every pound must answer for itself.',
+  'isaac-benatar': {
+    id: 'isaac-benatar', name: 'Isaac Benatar', role: 'Baghdad banker passing through Cairo, looking for a well-documented Persian carpet for his Baghdad house', roomWord: 'library',
+    bio: 'A partner in a Baghdad banking house. Buys a carpet the way he reads a ledger: every pound must answer for itself.',
     budget: [3500, 8500], patience: 80, trust: 45, interest: 45,
     values: { fineWeave: 3, antique: 2, rare: 2, restrained: 2, story: 1, wool: 1, bold: -1, humble: -2, fragile: -2 },
     colourPref: { crimson: 2, indigo: 2, mixed: 1, gold: 0, ivory: -1 },
@@ -236,14 +236,14 @@ export const CELEBS_4: Record<string, BuyerDef> = {
       priceLow: ['Accepted. That is below my figure.', 'Done. You have sold it well, and I have bought it better.'],
       priceFair: ['That balances. Agreed.', 'A fair figure. We have an agreement.'],
       priceHigh: ['That price assumes a buyer who cannot count.', 'Too high by about a fifth. I will not argue about the fifth. I will simply wait.'],
-      priceInsult: ['I have audited whole ministries. That figure would not survive the first reading.', 'That is not a price. That is a hope.'],
+      priceInsult: ['I read balance sheets for a living. That figure would not survive the first page.', 'That is not a price. That is a hope.'],
       counter: ['I propose {price}. I have worked it out carefully.', '{price}. The figure is fair, and it is final for now.', 'My calculation says {price}.'],
       holdGive: ['You are consistent. I respect consistency. {price}.'],
       holdRefuse: ['Then we do not agree, and nobody loses anything.', 'No. The figures do not permit it.'],
       sweetener: ['Packed and shipped to Baghdad at your cost? Then I can adjust upward, slightly.'],
       impatience: ['Time is also money. We are spending both.', 'Please. A decision, one way or the other.'],
       success: ['A good transaction. Both columns balance.', 'Excellent. This carpet will outlast several ledgers.'],
-      badSale: ['Well. I paid a little too much. It happens even to treasury men.'],
+      badSale: ['Well. I paid a little too much. It happens even to bankers.'],
       walkAway: ['Not today. The numbers do not agree.', 'I will wait. Carpets do not become more expensive by being ignored.'],
       saffron: ['The cat has chosen it. Cats, unlike markets, are rarely wrong.'],
       commission: ['Find me a Persian carpet of real quality with its origin written down, and I will add a bonus. Precisely calculated, of course.'],
@@ -258,9 +258,9 @@ export const CELEBS_4: Record<string, BuyerDef> = {
     silhouette: 'fez', accent: '#2c3b4a',
   },
 
-  'khalil-sakakini': {
-    id: 'khalil-sakakini', name: 'Tawfiq Nassar', role: 'Jerusalem educator and writer, visiting Cairo and looking for a modest rug for his study', roomWord: 'study',
-    bio: 'Jerusalem schoolmaster and writer with modern ideas about teaching. Wants a sensible, well-made rug to read on.',
+  'tawfiq-nassar': {
+    id: 'tawfiq-nassar', name: 'Tawfiq Nassar', role: 'Jerusalem educator and writer, visiting Cairo and looking for a modest rug for his study', roomWord: 'study',
+    bio: 'Jerusalem schoolmaster who writes school books in his spare hours. Wants a sensible, well-made rug to read on.',
     budget: [800, 2300], patience: 75, trust: 60, interest: 50,
     values: { restrained: 3, story: 2, hardwearing: 2, wool: 1, humble: 1, soft: 1, ornate: -2, silk: -3, fragile: -2, rare: -1 },
     colourPref: { mixed: 2, indigo: 1, gold: 1, crimson: 0, ivory: -1 },
@@ -302,7 +302,7 @@ export const CELEBS_4: Record<string, BuyerDef> = {
       budgetEarly: ['A teacher\'s purse is not deep. Eight pounds, perhaps, to begin.'],
       budgetLate: ['For the right rug, twenty pounds. My family will ask me to explain myself.'],
       decider: ['I decide. Then I explain it at home, at length.'],
-      smallTalk: ['I believe a child should be taught to ask questions, not only to recite. It sounds simple. It causes endless arguments.', 'Cairo has so many printing presses. In Jerusalem we envy you, a little.'],
+      smallTalk: ['I teach boys who would rather be at the football. Some days I agree with them.', 'Cairo has so many printing presses. In Jerusalem we envy you, a little.'],
       tea: ['Tea, thank you. A teacher lives on tea and patience.'],
       earlyPresent: ['A rug already? You have not asked me a single question. I would mark that down.'],
       rugGood: ['Yes. That one has a calm voice. I like it.', 'Now that is well made. Nothing wasted, nothing boasting.'],
@@ -342,9 +342,9 @@ export const CELEBS_4: Record<string, BuyerDef> = {
     silhouette: 'fez', accent: '#3a5a4a',
   },
 
-  'gertrude-bell': {
-    id: 'gertrude-bell', name: 'Margaret Hensley', role: 'Antiquities curator in Baghdad, stopping in Cairo on her way to England and looking for a tribal rug for her house', roomWord: 'house',
-    bio: 'Antiquities curator and seasoned traveller, cataloguing a collection in Baghdad. Knows exactly where a rug came from, and will tell you.',
+  'margaret-hensley': {
+    id: 'margaret-hensley', name: 'Margaret Hensley', role: 'English collector of tribal weaving, stopping in Cairo on her way to England and looking for a tribal rug for her house', roomWord: 'house',
+    bio: 'Collects tribal weaving for an English college and has lived in Baghdad for some years. Knows exactly where a rug came from, and will tell you.',
     budget: [3000, 8000], patience: 65, trust: 40, interest: 55,
     values: { antique: 3, story: 2, rare: 2, bold: 1, wool: 1, hardwearing: 1, ornate: -1, humble: -1, silk: -1 },
     colourPref: { crimson: 2, indigo: 2, mixed: 1, gold: 0, ivory: -1 },
@@ -386,7 +386,7 @@ export const CELEBS_4: Record<string, BuyerDef> = {
       budgetEarly: ['Directly to the purse. Very well. Thirty pounds to begin.'],
       budgetLate: ['For something genuinely fine, perhaps seventy. I shall regret it on the boat and not afterwards.'],
       decider: ['I decide. I have been deciding things for myself for a very long time.'],
-      smallTalk: ['I am cataloguing a collection in Baghdad, shelf by shelf. Every crate that arrives is a small miracle.', 'The excavations down the river have been extraordinary this season. The whole of Baghdad wants to see what comes out of the ground.'],
+      smallTalk: ['I am cataloguing the college\'s rugs, bale by bale. Every crate that arrives is a small miracle.', 'The tribes came in late from the desert this spring, and the wool came late with them.'],
       tea: ['Tea, thank you. I have drunk tea in more tents than I can count. Yours is a good deal better than most.'],
       earlyPresent: ['You have not asked me a thing, and you are already unrolling. I call that excavating without a plan.'],
       rugGood: ['Ah. Now that is genuine. Look at those dyes.', 'Yes. That one has travelled. Show me the back.'],
@@ -428,27 +428,27 @@ export const CELEBS_4: Record<string, BuyerDef> = {
 };
 
 export const CELEBS_4_MANNER: Record<string, Record<MannerKind, Reaction>> = {
-  'ronald-storrs': {
+  'edmund-fairburn': {
     charm: { like: 1, good: 'Flattery, beautifully done. I shall allow it, and even return it.', bad: 'A little heavy. Charm should be served like coffee, small and strong.' },
     kind: { like: 1, good: 'Thank you. The shade is very welcome. One forgets how Cairo bakes.', bad: 'Thank you. Now, the carpets.' },
     firm: { like: 0, good: 'Plain speaking. Refreshing, in small doses.', bad: 'Firm, yes. A little charm would not cost you anything.' },
   },
-  'raghib-nashashibi': {
+  'salim-amin': {
     charm: { like: 0, good: 'Kind words. I hear many of them. Show me the carpets.', bad: 'Compliments are the common currency of my hall. I came for carpets.' },
     kind: { like: 1, good: 'Thank you. Courtesy is a good beginning to any business.', bad: 'Thank you. Let us proceed.' },
     firm: { like: 1, good: 'Good. I prefer a man who speaks directly.', bad: 'Direct is good. Brusque is not.' },
   },
-  'sassoon-eskell': {
+  'isaac-benatar': {
     charm: { like: -1, good: 'Compliments have no line in my ledger. The carpets, please.', bad: 'Flattery is usually added to the price. I would rather you left it off.' },
     kind: { like: 0, good: 'Thank you. Water, yes. Then business.', bad: 'Thank you. We need not linger.' },
     firm: { like: 1, good: 'Excellent. Plain figures and plain talk. We shall get on.', bad: 'Firm is good. Firm and inaccurate is not.' },
   },
-  'khalil-sakakini': {
+  'tawfiq-nassar': {
     charm: { like: -1, good: 'Please. I am a schoolmaster, not a pasha. Just show me the rugs.', bad: 'Flattery is the first thing I teach my pupils to mistrust.' },
     kind: { like: 1, good: 'Thank you. You are kinder than most merchants, and kinder than most teachers.', bad: 'Thank you, you are kind.' },
     firm: { like: 1, good: 'Good. Say what you mean. That is the whole of good writing.', bad: 'Plain is good. Harsh is not.' },
   },
-  'gertrude-bell': {
+  'margaret-hensley': {
     charm: { like: -1, good: 'Very gallant. Now show me something I have not seen before.', bad: 'I have been flattered by sheikhs, pashas and ministers. You will have to do better, or not at all.' },
     kind: { like: 0, good: 'Thank you. The shade is welcome.', bad: 'Thank you. I have very little time.' },
     firm: { like: 1, good: 'Good. I prefer that. No theatre, just carpets.', bad: 'Plain speaking. Excellent. Now the carpets.' },
@@ -456,39 +456,39 @@ export const CELEBS_4_MANNER: Record<string, Record<MannerKind, Reaction>> = {
 };
 
 export const CELEBS_4_TIERS: Record<string, [number, number]> = {
-  'ronald-storrs': [3, 3],
-  'raghib-nashashibi': [3, 3],
-  'sassoon-eskell': [3, 3],
-  'khalil-sakakini': [2, 2],
-  'gertrude-bell': [3, 3],
+  'edmund-fairburn': [3, 3],
+  'salim-amin': [3, 3],
+  'isaac-benatar': [3, 3],
+  'tawfiq-nassar': [2, 2],
+  'margaret-hensley': [3, 3],
 };
 
 export const CELEBS_4_GROOMING: Record<string, Grooming> = {
-  'ronald-storrs': {
+  'edmund-fairburn': {
     smell: ['I have smelled the Jerusalem tanneries in August. You are running them close.', 'Forgive me if I admire the carpets from slightly upwind.', 'There is a hammam behind the Khan. I recommend it, as a friend.'],
     ragged: ['That galabiya has a history, I see. Rather more than some of your carpets.', 'A merchant should be at least as well kept as his stock.', 'Tired clothes make a customer wonder about tired prices.'],
     mockStock: ['Four rugs. I have seen fuller stalls at a church jumble sale.', 'A very select collection. Selected, I suspect, by misfortune.', 'Is this all? I had hoped for a treasure cave, and found a cupboard.'],
     mockLeave: ['I shall look elsewhere, I think. Do write when the stall has grown up.', 'Not enough to choose from. Good day.'],
   },
-  'raghib-nashashibi': {
+  'salim-amin': {
     smell: ['My friend, a wash would help your sales more than any carpet.', 'I will stand here, by the air. Forgive me.', 'In Jerusalem a merchant bathes before the market. It is good business.'],
     ragged: ['Your clothes are tired. It makes the carpets look tired too.', 'A man selling to a councillor should look the part.', 'Dust on the merchant, dust on the goods. My guests would notice.'],
     mockStock: ['So few carpets. Is the rest in storage, or in your imagination?', 'I came for a choice, not a single option.', 'A small stall for such a large city.'],
     mockLeave: ['There is nothing here for my hall. Good day.', 'Come back to me when your stall is worthy of a reception room.'],
   },
-  'sassoon-eskell': {
+  'isaac-benatar': {
     smell: ['The air here is costing you customers. I can put a figure on it.', 'A bath costs almost nothing. The sales you lose cost rather more.', 'I will stand a little further back. It improves my concentration.'],
     ragged: ['A shabby merchant invites a lower offer. I will make one.', 'Your clothes are depreciating faster than your stock.', 'Presentation is part of the price. You are discounting yourself.'],
     mockStock: ['This inventory would not fill a single line of my ledger.', 'Too little choice. Too little competition among your own carpets.', 'A portfolio of four is not a portfolio. It is a risk.'],
     mockLeave: ['Insufficient stock. I shall come back when the figures improve.', 'Nothing here meets the requirement. Good day.'],
   },
-  'khalil-sakakini': {
+  'tawfiq-nassar': {
     smell: ['Forgive me, my friend. Soap is cheap, and so is water.', 'I tell my pupils to wash before class. I would say the same to you.', 'I will sit on this side, if you do not mind. The breeze is kinder.'],
     ragged: ['A tired galabiya. I have one like it, but I do not wear it to work.', 'Look after yourself, and the customers will look after you.', 'You look as though you have not slept. A rug seller must be rested to bargain.'],
     mockStock: ['Only a few rugs. Like a library with one shelf.', 'It is a small stall. But small is not always bad. Sometimes it is only small.', 'Not much to choose from. I had hoped to browse.'],
     mockLeave: ['There is nothing for me today. Perhaps next time.', 'I will come back when you have more pages to turn.'],
   },
-  'gertrude-bell': {
+  'margaret-hensley': {
     smell: ['I have shared tents with camels that were fresher. Forgive my candour.', 'A bath, I think, before the next customer.', 'I will stand upwind. It is nothing personal. It is purely practical.'],
     ragged: ['You look as though you have crossed the desert on foot.', 'A merchant who looks neglected makes me wonder about his carpets.', 'Your clothes have seen better days. So, I suspect, have you.'],
     mockStock: ['Is that everything? I have catalogued fuller trenches.', 'Hardly a selection. More an accident.', 'Four rugs. I expected more of Giza.'],
@@ -497,9 +497,9 @@ export const CELEBS_4_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_4_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'ronald-storrs': { category: 'official', city: 'Jerusalem', role: 'British administrator in Jerusalem', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ronald-storrs.jpg' },
-  'raghib-nashashibi': { category: 'politician', city: 'Jerusalem', role: 'Jerusalem municipal councillor', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/raghib-nashashibi.jpg' },
-  'sassoon-eskell': { category: 'politician', city: 'Baghdad', role: 'Iraqi treasury official', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sassoon-eskell.jpg' },
-  'khalil-sakakini': { category: 'intellectual', city: 'Jerusalem', role: 'Jerusalem schoolmaster and writer', prestige: 'FINE', portrait: 'art/historical-buyers/khalil-sakakini.jpg' },
-  'gertrude-bell': { category: 'archaeology_public', city: 'Baghdad', role: 'Antiquities curator in Baghdad', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/gertrude-bell.jpg' },
+  'edmund-fairburn': { category: 'official', city: 'Jerusalem', role: 'British official in Jerusalem', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ronald-storrs.jpg' },
+  'salim-amin': { category: 'politician', city: 'Jerusalem', role: 'Jerusalem municipal councillor', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/raghib-nashashibi.jpg' },
+  'isaac-benatar': { category: 'politician', city: 'Baghdad', role: 'Baghdad banker', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sassoon-eskell.jpg' },
+  'tawfiq-nassar': { category: 'intellectual', city: 'Jerusalem', role: 'Jerusalem schoolmaster and writer', prestige: 'FINE', portrait: 'art/historical-buyers/khalil-sakakini.jpg' },
+  'margaret-hensley': { category: 'archaeology_public', city: 'Baghdad', role: 'Collector of tribal weaving in Baghdad', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/gertrude-bell.jpg' },
 };

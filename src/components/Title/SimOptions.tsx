@@ -27,7 +27,7 @@ export function SimOptions({ value, onChange, locked }: { value: SimSettings; on
           <span><b>{r.title}</b><small>{r.line}</small></span>
         </label>
       ))}
-      {locked && <small className="sim-note">Ironman always uses the full simulation.</small>}
+      {locked && <small className="sim-note">A one-life game always uses the full simulation.</small>}
     </div>
   );
 }

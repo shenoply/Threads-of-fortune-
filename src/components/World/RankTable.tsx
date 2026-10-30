@@ -11,7 +11,7 @@ import './rankTable.css';
 function Medallion({ id, name }: { id: string; name: string }) {
   const [ok, setOk] = useState(false);
   const [gone, setGone] = useState(false);
-  const letter = name.replace(/^(Signora|Haj|Abu|Abdel-|Hüsnü Bey)\s*/, '').charAt(0);
+  const letter = name.replace(/^(Signora|Hajj|Haj|Abu|Abdel-|Hüsnü Bey)\s*/, '').charAt(0);
   return (
     <span className="rk-med" aria-hidden="true">
       {!ok && <b>{letter}</b>}

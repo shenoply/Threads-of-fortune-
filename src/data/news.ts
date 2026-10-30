@@ -10,10 +10,10 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
     article: {
       headline: 'Kurdish Rising in Eastern Anatolia',
       deck: 'Martial Law Declared in the East; Wool Roads Closed',
-      body: 'The Kurdish tribes of eastern Anatolia have taken up arms against the Ankara government, and martial law has been proclaimed across the eastern provinces. Traffic from Diyarbakır and Elazığ has ceased. Istanbul merchants report that no wool or carpets have come west for some weeks.',
+      body: 'The Kurdish tribes of eastern Anatolia have taken up arms against the Angora government, and martial law has been proclaimed across the eastern provinces. Traffic from Diarbekir and Harput (Elâziz) has ceased. Constantinople merchants report that no wool or carpets have come west for some weeks.',
     },
     comingUp: 'The Kurdish rising in the east goes on: expect little Anatolian wool on the roads.',
-    advice: 'Istanbul dealers pay a little more while eastern goods are scarce. Ankara pays less and the roads there are watched by troops; travel with care.',
+    advice: 'Constantinople dealers pay a little more while eastern goods are scarce. Angora pays less and the roads there are watched by troops; travel with care.',
   },
   jeddah: {
     article: {
@@ -114,15 +114,6 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
     comingUp: 'The Paris Exposition opens on the 28th, and Europe will want bold rugs and kilims.',
     advice: 'Alexandria pays extra for bold rugs and flatweaves for the Paris trade, and Beirut a little more. Buy kilims where they are cheap.',
   },
-  adana: {
-    article: {
-      headline: 'Earthquake at Adana',
-      deck: 'Relief Committees Formed in Aleppo',
-      body: 'An earthquake has struck Adana, and many families are without a roof. Relief committees in Aleppo are buying plain, hard-wearing rugs for the homeless. The road north is crowded with carts.',
-    },
-    comingUp: 'Reports of tremors in the Adana district: keep an eye on the northern news.',
-    advice: 'Aleppo relief committees pay well for hard-wearing and humble rugs. Cheap village pieces will do.',
-  },
   hajj: {
     article: {
       headline: 'No Mahmal This Year',
@@ -163,10 +154,10 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
     article: {
       headline: 'Earthquake Destroys Isparta',
       deck: 'Carpet Town of Anatolia in Ruins; Looms Stopped',
-      body: 'An earthquake has destroyed some two thousand houses in Isparta, the carpet town of Anatolia. The looms have stopped. Istanbul and Konya dealers report that Turkish carpets are suddenly hard to find.',
+      body: 'An earthquake has destroyed some two thousand houses in Isparta, the carpet town of Anatolia. The looms have stopped. Constantinople and Konya dealers report that Turkish carpets are suddenly hard to find.',
     },
     comingUp: 'Tremors are reported in western Anatolia: the Isparta looms may be affected.',
-    advice: 'Istanbul and Konya pay more for rugs, but buying there costs more too. Bring stock in rather than buying locally.',
+    advice: 'Constantinople and Konya pay more for rugs, but buying there costs more too. Bring stock in rather than buying locally.',
   },
   nile: {
     article: {
@@ -199,18 +190,18 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
     article: {
       headline: 'The Prophet\'s Birthday',
       deck: 'Sufi Tents Pitched Across Cairo',
-      body: 'The Sufi orders have pitched their tents for the Mawlid al-Nabi, and the streets are lit each night. Every tent is floored with carpets. Sweets in the shape of dolls and horsemen are on sale at every corner.',
+      body: 'The Sufi orders have pitched their tents for the moulid al-Nabi, and the streets are lit each night. Every tent is floored with carpets. Sweets in the shape of dolls and horsemen are on sale at every corner.',
     },
-    comingUp: 'The Mawlid al-Nabi falls late in September, with Sufi tents across Cairo.',
+    comingUp: 'The moulid al-Nabi falls late in September, with Sufi tents across Cairo.',
     advice: 'Cairo dealers pay more for carpets to floor the tents, and buyers at the stall have a little more to spend.',
   },
   badawi: {
     article: {
       headline: 'The Great Fair at Tanta',
-      deck: 'Mawlid of Sayyid al-Badawi Draws the Whole Delta',
-      body: 'The Mawlid of Sayyid al-Badawi has opened at Tanta. The town is full of pilgrims, fairground tents and sellers from every village in the Delta. The trains from Cairo are packed.',
+      deck: 'Moulid of Sayyid al-Badawi Draws the Whole Delta',
+      body: 'The Moulid of Sayyid al-Badawi has opened at Tanta. The town is full of pilgrims, fairground tents and sellers from every village in the Delta. The trains from Cairo are packed.',
     },
-    comingUp: 'The great Mawlid at Tanta opens about 8 October: buy cheap, sell well.',
+    comingUp: 'The great moulid at Tanta opens about 8 October: buy cheap, sell well.',
     advice: 'Go to Tanta. Rugs are cheap to buy there this week and the dealers pay well.',
   },
   bombard: {
@@ -224,12 +215,12 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
   },
   republic: {
     article: {
-      headline: 'Ankara Keeps Republic Day',
+      headline: 'Angora Keeps Republic Day',
       deck: 'Second Anniversary Marked With Receptions',
-      body: 'The Turkish Republic is two years old. The new ministries and embassies in Ankara are giving receptions. Furnishers there say they cannot find enough good carpets.',
+      body: 'The Turkish Republic is two years old. The new ministries and embassies in Angora are giving receptions. Furnishers there say they cannot find enough good carpets.',
     },
-    comingUp: 'Ankara keeps Republic Day on the 29th, with receptions at the ministries.',
-    advice: 'Ankara pays extra for ornate, fine and bold rugs for the receptions.',
+    comingUp: 'Angora keeps Republic Day on the 29th, with receptions at the ministries.',
+    advice: 'Angora pays extra for ornate, fine and bold rugs for the receptions.',
   },
   season: {
     article: {
@@ -243,8 +234,8 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
   hadda: {
     article: {
       headline: 'Najd Border Fixed',
-      deck: 'Ma\'an and Aqaba to Transjordan; Desert Road Safer',
-      body: 'Britain and Ibn Saud have agreed the border of Najd with Transjordan, and Ma\'an and Aqaba now belong to the Emir Abdullah. Travellers say the desert road to Amman is safer than it has been for years.',
+      deck: 'Najd Border Fixed; Desert Road Safer',
+      body: 'Britain and Ibn Saud have agreed the border of Najd with Transjordan. Ma\'an and Aqaba, which Britain attached to Transjordan in June, stay with the Emir Abdullah for now. Travellers say the desert road to Amman is safer than it has been for years.',
     },
     comingUp: 'Talks on the Najd border are near an end; the Amman road may soon be safer.',
     advice: 'Amman dealers pay a little more while the news is fresh.',
@@ -262,19 +253,19 @@ export const EVENT_NEWS: Record<string, { article: Story; comingUp: string; advi
     article: {
       headline: 'Turkey Bans the Fez',
       deck: 'Protests in Erzerum and Rize; Gendarmes on the Roads',
-      body: 'Ankara has passed a law against the fez. There have been protests in Erzurum and Rize, and gendarmes are out on the roads. Istanbul dealers are cautious.',
+      body: 'Angora has passed a law against the fez. There have been protests in Erzerum and Rize, and gendarmes are out on the roads. Constantinople dealers are cautious.',
     },
     comingUp: 'A law on hats is before the Turkish assembly; trouble is expected in the provinces.',
-    advice: 'Istanbul pays a little less, and the roads to Ankara and Istanbul are watched. Travel in Turkey with care.',
+    advice: 'Constantinople pays a little less, and the roads to Angora and Constantinople are watched. Travel in Turkey with care.',
   },
   tekkes: {
     article: {
       headline: 'Dervish Lodges Closed',
       deck: 'Every Tekke and Tomb in Turkey Shut by Decree',
-      body: 'The Ankara government has closed every dervish lodge and tomb in Turkey. At Konya the lodges are emptying. Their old prayer rugs and felts are being sold off cheap.',
+      body: 'The Angora government has closed every dervish lodge and tomb in Turkey. At Konya the lodges are emptying. Their old prayer rugs and felts are being sold off cheap.',
     },
-    comingUp: 'Ankara is expected to act against the dervish lodges before the year is out.',
-    advice: 'Buy at Konya, where lodge rugs are cheap; Istanbul is a little cheaper too. Konya dealers pay less, so sell elsewhere.',
+    comingUp: 'Angora is expected to act against the dervish lodges before the year is out.',
+    advice: 'Buy at Konya, where lodge rugs are cheap; Constantinople is a little cheaper too. Konya dealers pay less, so sell elsewhere.',
   },
   mosul: {
     article: {

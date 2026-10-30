@@ -118,7 +118,7 @@ export function TripPapers({ from, to, onOffice }: { from: string | null | undef
   return (
     <>
       <span className="warn trip-papers" data-testid="trip-papers">
-        You need papers to cross into {COUNTRY_NAME[tc!]}: the Passport Office in Cairo, £E{fmt(PAPERS_FEE).slice(1)}.{refusesWithoutPapers(tc!) ? ' The Turks turn back anyone without them.' : ` Without them, a fine of ${fmt(papersFine(tc!))} at the post.`}
+        You need papers to cross into {COUNTRY_NAME[tc!]}: the Passport Office in Cairo, {fmt(PAPERS_FEE)}.{refusesWithoutPapers(tc!) ? ' The Turks turn back anyone without them.' : ` Without them, a fine of ${fmt(papersFine(tc!))} at the post.`}
         {near && onOffice && <button type="button" className="btn small" onClick={onOffice} data-testid="trip-papers-go">{g.world.at === PAPERS_TOWN ? 'Passport Office' : 'Go to Cairo'}</button>}
       </span>
       <OnceLine id="papers" />

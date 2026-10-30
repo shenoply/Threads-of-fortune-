@@ -214,8 +214,8 @@ export default function App() {
   const slotDownload = (n: number, info: SlotInfo) => { const raw = slotSaveText(n); if (raw) saveFile(raw, info.day); };
   const slotLoad = (n: number, info: SlotInfo) => {
     if (slotCrashed(info)) { window.alert('This slot holds a game that stopped the page. Loading it would most likely stop it again, so it can only be downloaded as a backup file.'); return; }
-    if (useGame.getState().started && useGame.getState().ironman) { window.alert('An Ironman run cannot be swapped for a saved game.'); return; }
-    if (info.mode === 'Ironman' || slotIsIronman(n)) { window.alert('This slot holds an Ironman run. An Ironman game has one life and cannot be loaded from a slot.'); return; }
+    if (useGame.getState().started && useGame.getState().ironman) { window.alert('A one-life run cannot be swapped for a saved game.'); return; }
+    if (info.mode === 'Ironman' || slotIsIronman(n)) { window.alert('This slot holds a one-life run. It cannot be loaded from a slot.'); return; }
     if (!window.confirm(`Load the save from day ${info.day}? Your current game will be replaced.`)) return;
     if (loadFromSlot(n)) { blockSaves(); window.location.reload(); }
     else window.alert('That slot could not be loaded. The storage on this phone may be full.');
@@ -252,7 +252,7 @@ export default function App() {
   const startMode = (mode: Mode, keepIn: number | null, sim: SimSettings): string | void => {
     audio.ensure();
     if (keepIn && useGame.getState().started) {
-      if (useGame.getState().ironman) return 'An Ironman run cannot be kept in a save slot. Start without keeping it, or go back.';
+      if (useGame.getState().ironman) return 'A one-life run cannot be kept in a save slot. Start without keeping it, or go back.';
       if (!keepInSlot(keepIn)) { setSaveWarn(true); return "The storage on this phone is full: your game could not be kept. Make a backup file of it first, then start."; }
     }
     freshGame(mode === 'ironman');
@@ -734,7 +734,7 @@ export default function App() {
           )}
           <button className="ghost-btn opt-toggle" onClick={() => setTitleOpts((o) => !o)} aria-expanded={titleOpts} data-testid="title-options">{titleOpts ? 'Hide options' : '⚙ Options · sound and volume'}</button>
           {titleOpts && <div className="title-opts modal-card-like" data-testid="title-options-panel">{soundOptions}</div>}
-          {g.started && g.ironman && <div className="iron-badge" data-testid="ironman-badge">⚔ Ironman · one life</div>}
+          {g.started && g.ironman && <div className="iron-badge" data-testid="ironman-badge">⚔ One life</div>}
           {g.started && g.playMode === 'sandbox' && <div className="iron-badge sbx-badge" data-testid="sandbox-badge">Sandbox · free play</div>}
           <div className="row">
             {g.started ? (
@@ -749,7 +749,7 @@ export default function App() {
                 <button className="big-btn" onClick={() => { audio.ensure(); setPhase('documentary'); }} data-testid="play-opening">
                   Play Campaign
                 </button>
-                <button className="ghost-btn iron-open" onClick={() => setChooser('ironman')} data-testid="open-ironman">☠ Ironman · one life</button>
+                <button className="ghost-btn iron-open" onClick={() => setChooser('ironman')} data-testid="open-ironman">☠ One life</button>
                 <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · free play</button>
                 <button className="ghost-btn sbx-open" onClick={() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'play' }))} data-testid="open-carpet">The flying carpet</button>
               </>
@@ -781,7 +781,7 @@ export default function App() {
                     {slotCrashed(info)
                       ? <button className="btn small" onClick={() => slotDownload(i + 1, info)} data-testid={`title-slot-download-${i + 1}`}>Download</button>
                       : info.mode === 'Ironman'
-                      ? <small className="dim" data-testid={`title-slot-iron-${i + 1}`}>Ironman runs cannot be loaded</small>
+                      ? <small className="dim" data-testid={`title-slot-iron-${i + 1}`}>One-life runs cannot be loaded</small>
                       : <button className="btn small" onClick={() => slotLoad(i + 1, info)} data-testid={`title-slot-load-${i + 1}`}>Load</button>}
                   </span>
                 </div>
@@ -836,7 +836,7 @@ export default function App() {
               {ruin.stage === 1
                 ? `The bailiff comes to the stall in ${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since))} day${Math.max(0, RUIN_STEPS.bailiff - (g.day - ruin.since)) === 1 ? '' : 's'} unless you pay.`
                 : `The court declares you bankrupt in ${daysToCourt} day${daysToCourt === 1 ? '' : 's'} unless you pay.`}
-              {finalStrike ? ' This bankruptcy ends your father’s business for good.' : ''}
+              {finalStrike ? ' This bankruptcy ends your father\'s business for good.' : ''}
             </span>
           </div>
           <div className="ruin-meter" aria-hidden="true"><i style={{ width: `${risk}%` }} /></div>
@@ -946,11 +946,11 @@ export default function App() {
         <div className="overlay" onClick={() => setSettings(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()} data-testid="settings" role="dialog" aria-modal="true" aria-label="Your game" ref={settingsRef} onKeyDown={trapSettings}>
             <div className="settings-head">
-              <h2>Your game <small>{g.ironman ? '☠ Ironman' : g.playMode === 'sandbox' ? 'Sandbox' : 'Campaign'}</small></h2>
+              <h2>Your game <small>{g.ironman ? '☠ One life' : g.playMode === 'sandbox' ? 'Sandbox' : 'Campaign'}</small></h2>
               <button className="btn" onClick={() => setSettings(false)} data-testid="settings-close" aria-label="Close">Close ×</button>
             </div>
             {/* the tester's sheet: every new feature, one tap away (this beta build only; never in Ironman) */}
-{testerNow() && (            <button className="btn" style={{ width: '100%', margin: '4px 0 10px', borderStyle: 'dashed', borderColor: 'var(--warn)' }} disabled={!!g.ironman} onClick={() => { setSettings(false); setAdmin(true); }} data-testid="admin-open">Tester's sheet <small style={{ display: 'block', opacity: 0.7 }}>{g.ironman ? 'Not in an Ironman game' : 'For testing this beta: every new feature, one tap away'}</small></button>)}
+{testerNow() && (            <button className="btn" style={{ width: '100%', margin: '4px 0 10px', borderStyle: 'dashed', borderColor: 'var(--warn)' }} disabled={!!g.ironman} onClick={() => { setSettings(false); setAdmin(true); }} data-testid="admin-open">Tester's sheet <small style={{ display: 'block', opacity: 0.7 }}>{g.ironman ? 'Not in a one-life game' : 'For testing this beta: every new feature, one tap away'}</small></button>)}
             {/* saving, in plain words: what happens on its own, one Save button, separate games in slots,
                 and a backup file for moving to another phone (folded away: most people never need it) */}
             <h3 className="set-h">Saving</h3>
@@ -961,7 +961,7 @@ export default function App() {
               </p>
             ) : (
               <p className="save-status" data-testid="save-status">
-                {g.ironman ? 'Ironman: the game saves itself after every move. There is one save, and no going back.'
+                {g.ironman ? 'One life: the game saves itself after every move. There is one save, and no going back.'
                   : g.autosaveOn === false ? 'Saving on its own is off. Tap Save before you stop, or you lose what you did.'
                   : 'Your game saves itself as you play.'}
                 {savedAt ? <> <b>Saved at {savedAt}.</b></> : null}
@@ -973,7 +973,7 @@ export default function App() {
             <div className="toggle-row">
               <span>
                 Save on its own
-                <small>{g.ironman ? 'Always on in Ironman.' : 'After everything you do.'}</small>
+                <small>{g.ironman ? 'Always on in a one-life game.' : 'After everything you do.'}</small>
               </span>
               <button className="switch" role="switch" aria-checked={g.ironman ? true : g.autosaveOn !== false} aria-label="Save on its own" disabled={!!g.ironman} onClick={() => { if (!g.ironman) g.setAutosave(!(g.autosaveOn !== false)); }} data-testid="toggle-autosave"><i>Off</i><i>On</i></button>
             </div>
@@ -1035,7 +1035,7 @@ export default function App() {
             <h2>{g.ended.cause === 'death' ? 'Hassan is dead' : 'A Giza carpet stall closes'}</h2>
             <p>{g.ended.text}</p>
             <p className="dim">You traded for {g.ended.day} days, sold {g.ledger.filter((l) => l.kind === 'sale').length} rugs and reached reputation {g.reputation}.</p>
-            {g.ended.cause === 'death' && <p className="dim">{g.ironman ? 'Ironman: there is no second life. The run is over.' : ''}</p>}
+            {g.ended.cause === 'death' && <p className="dim">{g.ironman ? 'There is no second life. The run is over.' : ''}</p>}
             <HeirButton />
             <button className="btn primary" onClick={() => { audio.stopAll(); g.reset(); setPhase('title'); }} data-testid="ending-restart">{g.ended.cause === 'death' ? 'Start a new life' : 'Begin again'}</button>
           </div>

@@ -23,5 +23,5 @@ export const ONCE: Record<string, { who?: string; text: string }> = {
   telegraph: { text: 'The telegraph office: wire Rashid for stock, or ask another town\'s prices.' },
   'arran-fakes': { who: 'Arran', text: '"And if a dealer swears a rug is old, or dyed with madder, bring it here first. The wash and the dye test show a tea stain or an aniline red in an afternoon."' },
 };
-/** Haj Mahmoud on the morning card, the first time a buyer gave up waiting at your empty stall */
-export const BOY_OFFER = 'Haj Mahmoud the cloth seller: "My nephew Sami could mind your stall for two piastres a day. Ask at your stall."';
+/** Hajj Mahmoud on the morning card, the first time a buyer gave up waiting at your empty stall */
+export const BOY_OFFER = 'Hajj Mahmoud the cloth seller: "My nephew Sami could mind your stall for two piastres a day. Ask at your stall."';

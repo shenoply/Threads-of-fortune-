@@ -10,6 +10,7 @@
 // hour of speech comes to some 400 MB of raw samples, and six such files at once had iPhones
 // reloading the page for want of memory.
 import { fetchMedia } from './cdn';
+import { FILED_AS } from '../../data/renamedIds';
 
 interface Frame { len: number; bytesPerSec: number }
 
@@ -209,6 +210,8 @@ class Voice {
 
   has(speaker: string, text: string) {
     if (!this.enabled) return false;
+    // a renamed buyer is still heard from the file recorded under the old id
+    if (!this.sprites[speaker]) speaker = FILED_AS[speaker] ?? speaker;
     const ok = !!this.segments(speaker, text);
     if (ok) this.preload([speaker]);
     return ok;
@@ -270,6 +273,7 @@ class Voice {
   /** Play a line. Resolves when it finishes (at once if there is no recording yet). */
   say(speaker: string, text: string): Promise<void> {
     this.stop();
+    if (!this.sprites[speaker]) speaker = FILED_AS[speaker] ?? speaker;
     if (!this.enabled || filmLock.active) return Promise.resolve();
     const segs = this.segments(speaker, text);
     if (!segs) return Promise.resolve();

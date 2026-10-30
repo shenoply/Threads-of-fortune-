@@ -19,7 +19,7 @@ export interface Rival {
 
 export const RIVALS: Rival[] = [
   { id: 'rival-boghos', name: 'Boghos Tavitian', role: 'Armenian dealer in the Khan', cities: ['cairo'], temper: 'old', season: 220000 },
-  { id: 'rival-selim', name: 'Selim Haddad', role: 'Dealer in Cairo', cities: ['cairo'], temper: 'aggressive', season: 150000 },
+  { id: 'rival-selim', name: 'Selim Tannous', role: 'Dealer in Cairo', cities: ['cairo'], temper: 'aggressive', season: 150000 },
   { id: 'rival-yanni', name: 'Yanni Stavrou', role: 'Greek importer in Cairo', cities: ['cairo'], temper: 'cunning', season: 180000 },
   { id: 'rival-costa', name: 'Costa Lambrakis', role: 'Dealer in Alexandria', cities: ['alexandria'], temper: 'aggressive', season: 160000 },
   { id: 'rival-lucia', name: 'Signora Lucia Valenti', role: 'Runs her late husband\'s firm in Alexandria', cities: ['alexandria'], temper: 'steady', season: 200000, she: true },
@@ -29,10 +29,10 @@ export const RIVALS: Rival[] = [
   { id: 'rival-tabet', name: 'Fuad Tabet', role: 'Dealer in Beirut', cities: ['beirut'], temper: 'cunning', season: 110000 },
   { id: 'rival-shami', name: 'Abu Nadim al-Shami', role: 'Dealer in Damascus', cities: ['damascus'], temper: 'old', season: 140000 },
   { id: 'rival-kouyoumdjian', name: 'Garabed Kouyoumdjian', role: 'Dealer in Aleppo', cities: ['aleppo'], temper: 'steady', season: 150000 },
-  { id: 'rival-kassab', name: 'Haj Omar Kassab', role: 'Dealer in Aleppo', cities: ['aleppo'], temper: 'old', season: 120000 },
-  { id: 'rival-najjar', name: 'Haj Jawad al-Najjar', role: 'Dealer in Baghdad', cities: ['baghdad'], temper: 'old', season: 130000 },
+  { id: 'rival-kassab', name: 'Hajj Omar Kassab', role: 'Dealer in Aleppo', cities: ['aleppo'], temper: 'old', season: 120000 },
+  { id: 'rival-najjar', name: 'Hajj Jawad al-Najjar', role: 'Dealer in Baghdad', cities: ['baghdad'], temper: 'old', season: 130000 },
   { id: 'rival-arslanian', name: 'Mihran Arslanian', role: 'Dealer in Constantinople', cities: ['istanbul'], temper: 'cunning', season: 250000 },
-  { id: 'rival-tezcan', name: 'Hüsnü Bey Tezcan', role: 'Dealer in Constantinople', cities: ['istanbul'], temper: 'aggressive', season: 200000 },
+  { id: 'rival-tezcan', name: 'Hüsnü Bey Halıcızade', role: 'Dealer in Constantinople', cities: ['istanbul'], temper: 'aggressive', season: 200000 },
   { id: 'rival-haddadin', name: 'Mansour Haddadin', role: 'Dealer in Amman', cities: ['amman'], temper: 'steady', season: 50000 },
 ];
 export const RIVAL: Record<string, Rival> = Object.fromEntries(RIVALS.map((r) => [r.id, r]));

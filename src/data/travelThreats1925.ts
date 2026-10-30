@@ -318,7 +318,7 @@ export const THREAT_LINES: Record<string, { open: string; demand: string; strip:
     open: 'Men with cudgels and one old rifle step out from the sugar cane and block the track.',
     demand: 'Their leader spits. "A merchant pays for the road. Everyone pays for the road."',
     strip: 'They go through your packs, count a good part of your purse into a cloth and leave you standing in the dust.',
-    talkOk: 'You talk about the price of cotton and the Tanta mawlid. Someone knows your father. They wave you on.',
+    talkOk: 'You talk about the price of cotton and the Tanta moulid. Someone knows your father. They wave you on.',
     talkBad: 'They laugh at your jokes and then name their price.',
   },
   'sinai-transjordan-desert-raiders': {

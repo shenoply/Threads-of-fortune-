@@ -46,7 +46,7 @@ export function BookPage({ id, onClose, speaking, onReplay, caption }: { id: str
   return createPortal(
     <div className="mb-reader cl-bookpage" role="dialog" aria-label="Dr Feras's Handbook" data-testid="book-page-view">
       <div className="mb-reader-head">
-        <b>{speaking ? 'Dr Feras reads from his Handbook…' : 'Feras’s Handbook of Diseases'}</b>
+        <b>{speaking ? 'Dr Feras reads from his Handbook…' : 'Feras\'s Handbook of Diseases'}</b>
         <span className="cl-bp-btns">
           {onReplay && <button className="btn small" onClick={onReplay} data-testid="plate-replay">▶ Again</button>}
           <button className="btn small primary" onClick={onClose} data-testid="plate-skip">{speaking ? 'Back to the desk ▸' : 'Close'}</button>

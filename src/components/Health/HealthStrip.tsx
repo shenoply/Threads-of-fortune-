@@ -65,7 +65,7 @@ export function HealthStrip({ always = false }: { always?: boolean }) {
   const w = wellness(c);
   const notable = (needsOn && !!(w.tired || w.hungry || w.thirsty)) || ills.length > 0;
   if (!notable && !(always && (needsOn || ills.length))) return null;
-  const tip = !needsOn ? '' : w.tired === 'bad' ? 'You are close to collapsing. Rest in a town.' : w.tired ? 'You are tired. Sleep in a town or at camp before you push on.' : w.hungry ? 'You are hungry. Eat at Malek’s grill or carry parcels.' : w.thirsty ? 'You are thirsty. Find a well or carry water.' : '';
+  const tip = !needsOn ? '' : w.tired === 'bad' ? 'You are close to collapsing. Rest in a town.' : w.tired ? 'You are tired. Sleep in a town or at camp before you push on.' : w.hungry ? 'You are hungry. Eat at Malek\'s grill or carry parcels.' : w.thirsty ? 'You are thirsty. Find a well or carry water.' : '';
   return (
     <div className={`hs ${always ? '' : 'hs-slim'}`} data-testid="health-strip">
       <button className="hs-row" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="health-toggle">

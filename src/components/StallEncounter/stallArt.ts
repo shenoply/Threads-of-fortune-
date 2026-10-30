@@ -5,8 +5,10 @@ const STALL2 = new Set(['sami', 'abuhamid', 'nabil', 'cohen', 'malek', 'antonios
 const STALL = new Set(['samira', 'nadia-wahba']);
 
 import { sceneLayers } from '../../game/stallScenes';
+import { filedAs } from '../../data/renamedIds';
 /** The picture of this buyer at the counter: the redrawn cut-out, the older one, or the framed portrait. */
-export function stallFigure(id: string): { src: string; framed: boolean } {
+export function stallFigure(buyer: string): { src: string; framed: boolean } {
+  const id = filedAs(buyer);
   if (STALL2.has(id)) return { src: `art/portraits/${id}-stall2.webp`, framed: false };
   if (STALL.has(id)) return { src: `art/portraits/${id}-stall.webp`, framed: false };
   return { src: `art/portraits/${id}.jpg`, framed: true };
