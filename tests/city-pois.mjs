@@ -14,13 +14,15 @@ const bad = [];
 const enter = async (c, x, y) => {
   await p.evaluate(([c, x, y]) => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.tutorial = { done: true, step: 'done', inspected: true }; d.state.guideSeen = true; d.state.missionNews = undefined; d.state.levelUps = []; d.state.titleNews = []; localStorage.setItem('tof-skip-chapters', '1'); d.state.world.hour = 10; Object.assign(d.state.world, { at: c, x, y }); delete d.state.venueWalk; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); }, [c, x, y]);
   await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]');
-  await p.click('[data-testid=nav-map]'); await p.waitForTimeout(600);
+  // waits on what is shown rather than fixed pauses: the whole run has to fit the runner's four minutes
+  await p.click('[data-testid=nav-map]');
+  await p.waitForSelector('[data-testid=guide-skip], [data-testid=enter], [data-testid=menu-walk], [data-testid=walk-city]', { timeout: 3000 }).catch(() => {});
   if (await has('[data-testid=guide-skip]')) await p.click('[data-testid=guide-skip]');
   if (await has('[data-testid=enter]')) await p.click('[data-testid=enter]');
-  await p.waitForTimeout(500);
+  await p.waitForSelector('[data-testid=menu-walk], [data-testid=walk-city]', { timeout: 2000 }).catch(() => {});
   if (await has('[data-testid=menu-walk]')) await p.click('[data-testid=menu-walk]');
   else if (await has('[data-testid=walk-city]')) await p.locator('[data-testid=walk-city]').click({ force: true });
-  await p.waitForTimeout(800);
+  await p.waitForSelector('[data-testid^=vpoi-]', { timeout: 3000 }).catch(() => {}); await p.waitForTimeout(150);
 };
 for (const [c, [x, y]] of Object.entries(pos)) {
   await enter(c, x, y);
