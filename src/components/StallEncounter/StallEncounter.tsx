@@ -21,6 +21,7 @@ import { Icon } from '../Icon';
 import { ErrandStrip } from '../Daily/ErrandStrip';
 import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
+import { RugScroll, longPress } from './RugScroll';
 import { audio } from '../../game/audio/engine';
 import './stall-fixes.css';
 
@@ -44,7 +45,6 @@ const everyday = (id: string) => !CELEB_INFO[id as keyof typeof CELEB_INFO] && !
 export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supplier') => void; onLeaveAudience?: () => void }) {
   const g = useGame();
   const enc = g.encounter;
-  const [offset, setOffset] = useState(0);
   const [inspect, setInspect] = useState<string | null>(null);
   const [dial, setDial] = useState<number | null>(null);
   // a buyer whose stature the counter would hide is first seen whole, once
@@ -72,7 +72,10 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     minTier: BUYER_TIERS[enc.buyerId]?.[0] ?? (BUYERS[enc.buyerId].royal ? 3 : 1),
   } : undefined;
   const ordered = front && avail.some((i) => i.uid === front) ? [avail.find((i) => i.uid === front)!, ...avail.filter((i) => i.uid !== front)] : avail;
-  const shown = ordered.length <= 3 ? ordered : [...ordered, ...ordered].slice(offset % ordered.length, (offset % ordered.length) + 3);
+  // every rug you can show, in one strip that the finger pages through, three to a view; a short
+  // stock keeps its empty spaces so the counter reads as three places
+  const shown: (typeof ordered[number] | null)[] = ordered.length >= 3 ? ordered : [...ordered, ...Array(3 - ordered.length).fill(null)];
+  const scroller = useRef<HTMLDivElement>(null);
   const presented = enc?.presented ? g.inventory.find((i) => i.uid === enc.presented) : undefined;
   // the rug tray starts open; its handle (a tap, or a swipe down/up) folds it away and back, and the
   // choice holds from one buyer to the next
@@ -332,9 +335,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         </button>
       )}
       <div className="rugstrip" data-testid="rugstrip">
-        {[0, 1, 2].map((k) => {
-          const it = shown[k];
-          if (!it) return <div key={k} className="rugcard empty">Empty space</div>;
+        <RugScroll ref={scroller} count={ordered.length}>
+        {shown.map((it, k) => {
+          if (!it) return <div key={`empty-${k}`} className="rugcard empty">Empty space</div>;
           const t = RUGS[it.typeId];
           const isP = enc?.presented === it.uid;
           const cat = enc?.saffronOn === it.uid;
@@ -343,13 +346,15 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <button
               key={it.uid}
               className={`rugcard ${isP ? 'presented' : ''} ${rugGlow(it.uid) ? 'glow' : ''} ${enc?.seek === t.id ? 'sought' : ''}`}
-              onClick={() => onRug(it.uid)}
+              onClick={(e) => { if ((e.currentTarget as HTMLElement).dataset.held === '1') { delete (e.currentTarget as HTMLElement).dataset.held; return; } onRug(it.uid); }}
+              {...longPress(tut ? undefined : () => inspectNow(it.uid))}
               disabled={disabledByTut}
               data-testid={`rug-${t.id}`}
+              data-uid={it.uid}
               aria-label={`${names[it.uid] ?? t.name}${isP ? ', on the table. Tap to inspect' : ''}`}
             >
               <div className="thumb">
-                <img src={rugThumb(t)} alt="" style={it.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                <img src={rugThumb(t)} alt="" draggable={false} style={it.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
               </div>
               {it.condition !== 'Good' && <span className="badge">{it.condition}</span>}
               {cat && (
@@ -367,6 +372,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             </button>
           );
         })}
+        </RugScroll>
         <div style={{ display: 'grid', gap: 6, gridTemplateRows: '1fr 1fr' }}>
           <button className={`side-btn${tut && step === 'inspect' ? ' glow' : ''}`} onClick={() => presented && inspectNow(presented.uid)} disabled={!presented || (tut && step !== 'inspect' && step !== 'inspect2')} aria-label="Inspect rug" data-testid="inspect-btn">
             <Icon name="search" />
@@ -378,10 +384,10 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             {/* a rug you own but cannot show (your father's, or one framed on the wall) is counted, so the tally agrees with what you hold */}
             {keptCount > 0 && <small data-testid="kept-count">+{keptCount} kept back</small>}
           </button>
-          {picker && <RugPicker rugs={avail} names={names} taste={taste} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
+          {picker && <RugPicker rugs={avail} names={names} taste={taste} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); scroller.current?.scrollTo({ left: 0, behavior: 'smooth' }); if (enc?.presented !== uid) onRug(uid); }} />}
         </div>
       </div>
-      {tray && <TrendLegend typeIds={shown.map((i) => i.typeId)} where="stall" />}
+      {tray && <TrendLegend typeIds={ordered.map((i) => i.typeId)} where="stall" />}
 
       <div className="actions" data-testid="actions">
         {/* the money on the table, where the buttons are: what you asked, what they offer */}
