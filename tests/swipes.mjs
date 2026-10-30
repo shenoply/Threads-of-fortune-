@@ -1,12 +1,12 @@
 // Touch gestures (src/components/Touch) on a Pixel 7a-sized screen with real touch events (CDP): swipe
 // away, pull down to close, swipe between pages, long press to inspect; the world map still pans.
-//   PORT=5173 SHOTS=/tmp/swipes node --import ./tests/_nohmr.mjs tests/swipes.mjs   (ONLY=toast,stock to run a part)
+//   PORT=5173 SHOTS=/tmp/swipes node --import ./tests/_nohmr.mjs tests/swipes.mjs   (ONLY=toast,stock to run a part; RM=1 with reduced motion)
 import { chromium } from 'playwright';
 import { PORT, SHOTS } from './_env.mjs';
 const OUT = SHOTS;
 const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
 const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: { width: 412, height: 800 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+const ctx = await b.newContext({ viewport: { width: 412, height: 800 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, reducedMotion: process.env.RM ? 'reduce' : 'no-preference' });
 const p = await ctx.newPage();
 p.on('dialog', (d) => d.accept());
 p.setDefaultTimeout(8000);
@@ -214,6 +214,42 @@ if (want('cal')) {
     check(a !== c, `the diary swipes to the day before (${a} -> ${c})`);
     await p.click('[data-testid=calendar-close]');
   } else check(false, 'calendar opened');
+}
+
+if (want('buyer')) {
+  await p.evaluate(() => window.dispatchEvent(new Event('tof:open-buyers')));
+  await waitId('customers', 5000);
+  const c = p.locator('[data-testid^=cust-]:not([data-testid^=cust-group]):not([data-testid=cust-goal])').first();
+  if (!(await c.isVisible().catch(() => false))) { await p.locator('[data-testid=cust-group-0] summary, [data-testid^=cust-group-0]').first().click().catch(() => {}); await sleep(400); }
+  await c.click().catch(() => {});
+  if (await waitId('buyer-card', 4000)) {
+    const name = () => p.locator('[data-testid=buyer-card] h2').textContent();
+    const n0 = await name();
+    const r = await box('[data-testid=buyer-card] .buyer-bio');
+    await drag(r.x + r.width - 30, r.y + 10, r.x + 30, r.y + 14, { mid: 'buyer-card-swipe' });
+    const n1 = await name();
+    check(n0 !== n1, `buyer card swipes to the next buyer (${n0} -> ${n1})`);
+    const h = await box('[data-testid=buyer-card] .big-card-head');
+    await drag(h.x + 40, h.y + h.height / 2, h.x + 40, h.y + 330, { mid: 'buyer-card-pull' });
+    check(!(await has('buyer-card')), 'buyer card pulls down to close');
+  } else check(false, 'buyer card opened');
+}
+
+if (want('picker')) {
+  // the stall's "all your rugs" sheet
+  await G('set({ world: { ...g.world, at: "giza" } })');
+  await p.click('[data-testid=nav-stall]');
+  if (await has('stall-wait')) await p.click('[data-testid=stall-wait]').catch(() => {});
+  await waitId('[data-testid=actions] .act', 15000);
+  await G('const r = g.inventory[0]; if (r) set({ inventory: [...g.inventory, ...[1,2,3,4].map((k) => ({ ...r, uid: r.uid + "x" + k }))] })');
+  await sleep(500);
+  const more = p.locator('[data-testid=change-rugs]').first();
+  if (await more.count()) await more.click().catch(() => {});
+  if (await waitId('rug-picker', 4000)) {
+    const h = await box('.rugpick__head');
+    await drag(h.x + 60, h.y + 16, h.x + 60, h.y + 320, { mid: 'rug-picker-pull' });
+    check(!(await has('rug-picker')), 'the rug picker pulls down to close');
+  } else console.log('note: rug picker not reached');
 }
 
 if (want('summary')) {
