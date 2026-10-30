@@ -164,7 +164,7 @@ try {
 
   // 5. cargo: unlock the folio and the ledger, check, take with and without papers
   await p.goto('about:blank'); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(300); // stop the walk before editing the save
-  await edit(`s.world.at = 'giza'; s.world.hour = 9; s.labUnlocked = [...s.labUnlocked, 'cargo', 'records']; s.cargo = []; s.cargoChecks = []; s.attention = 0;`); await reload();
+  await edit(`s.world.at = 'giza'; s.world.hour = 9; s.labUnlocked = [...s.labUnlocked, 'cargo', 'records']; s.cargo = []; s.cargoChecks = []; s.attention = 0; s.condition = { ...s.condition, fatigue: 20 }; s.rescue = undefined; /* the long walk over the pass tires him out: rested for the lab steps */`); await reload();
   await toLab(); await p.click('[data-testid=arran-tab-road]'); await p.waitForTimeout(200);
   await p.click('[data-testid=arran-cargo-checkbtn-cocaine]'); await p.waitForSelector('[data-testid=arran-confirm]');
   await p.click('[data-testid=arran-confirm-pay]'); await p.waitForTimeout(300);
