@@ -65,6 +65,8 @@ t = force('selim', 'court');
 ok(hs().courted.length === 1 && hs().courted[0].buyer === 'benakis', `Selim calls on your regular: "${t}"`);
 t = act('gift', 'selim', 'benakis');
 ok(hs().courted.length === 0 && !hs().defected.benakis, `a gift keeps him: "${t}"`);
+const news = H.houseNews(g(), g().day);
+ok(news.length === 1 && /calling on Mr Benakis/.test(news[0]) && !news.some((l) => /^You /.test(l)), `the Courier has his move in one line, and not your answer (${news.join(' | ')})`);
 force('selim', 'court');
 const until = hs().courted[0].until;
 set({ day: until, dayOver: false });

@@ -106,7 +106,7 @@ function HouseCard({ d }: { d: HouseDef }) {
         {!gone && !partner && !family && st.status === 'trading' && <Btn k="truce" label="Propose sharing a road" cost={truceCost(g.cash)} id="truce" />}
         {!gone && d.smuggler && <Btn k="tip" label="Tell the customs police" id="tip" />}
       </div>
-      {msg && <p className="rv-msg" role="status" data-testid={`rv-msg-${d.id}`}>{msg}</p>}
+      {msg && msg !== st.last?.text && <p className="rv-msg" role="status" data-testid={`rv-msg-${d.id}`}>{msg}</p>}
     </div>
   );
 }
@@ -118,7 +118,7 @@ export function RivalsFold() {
   const last = H.log[H.log.length - 1];
   const pressing = !!(H.cut && H.cut.until >= g.day) || H.courted.length > 0 || !!H.poach || !!(H.rumour && H.rumour.until >= g.day) || !!(H.sale && H.sale.until >= g.day);
   return (
-    <Fold id="pr-rivals" title="Rival houses" gist={last ? last.text : `${HOUSES.length} houses and the lane`} attention={pressing} testid="rivals-fold">
+    <Fold id="pr-rivals" title="Rival houses" gist={last ? last.text : `${HOUSES.length} houses and the lane`} attention={pressing} testid="rivals-fold" className="rv-fold">
       <div className="rv-list" data-testid="rivals">
         <LaneCard />
         {HOUSES.map((d) => <HouseCard key={d.id} d={d} />)}

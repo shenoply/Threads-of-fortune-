@@ -95,7 +95,7 @@ export interface HousesState {
   /** a failed house's stock, offered to the trade */
   sale?: { by: string; until: number; rugs: { typeId: string; price: number }[] };
   /** the houses' moves, one plain line each, newest last */
-  log: { day: number; by: string; text: string }[];
+  log: { day: number; by: string; text: string; /** your own answer: kept out of the paper */ you?: boolean }[];
   lastMove: number;
   lastHire?: number;
 }
@@ -165,9 +165,9 @@ export const matchCost = (who: 'boy' | 'agent') => (who === 'boy' ? 50 : 300);
 export const truceCost = (cash: number) => Math.max(500, Math.min(3000, snap(cash * 0.05)));
 
 type Out = { H: HousesState; patch: Partial<GameState>; note?: string; text: string };
-const log = (H: HousesState, day: number, by: string, text: string) => {
-  H.log = [...H.log, { day, by, text }].slice(-40);
-  H.list[by] = { ...H.list[by], last: { day, text } };
+const log = (H: HousesState, day: number, by: string, text: string, you?: boolean) => {
+  H.log = [...H.log, { day, by, text, ...(you ? { you } : {}) }].slice(-40);
+  if (!you) H.list[by] = { ...H.list[by], last: { day, text } };
 };
 
 /** One move by one house, if it can make it now. `day` is the day it takes effect. */
@@ -190,8 +190,7 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
     H.cut = { by: d.id, city, until: day + CUT_DAYS };
     const rk = s.ranks ?? freshRanks(s.day);
     patch.ranks = { ...rk, undercut: { ...(rk.undercut ?? {}), [city]: { by: d.rival, until: day + CUT_DAYS } } };
-    const text = `${name} is selling below cost in ${cityName(city)} until ${short(day + CUT_DAYS)}. Dealers there pay you less, and your buyers offer less.`;
-    return { H, patch, text, note: text };
+    return { H, patch, text: `${name} is selling below cost in ${cityName(city)}.`, note: `${name} is selling below cost in ${cityName(city)} until ${short(day + CUT_DAYS)}. Dealers there pay you less, and your buyers offer less.` };
   }
   if (kind === 'corner') {
     if (me.purse < 3000) return null;
@@ -205,8 +204,8 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
     const typeId = lines[Math.floor(hx(seed, day, `${d.id}:line`) * lines.length)].typeId;
     me.purse -= 2500; me.stock += 6;
     H.corners = [...H.corners.filter((c) => c.until >= day), { by: d.id, town, typeId, until: day + CORNER_DAYS }];
-    const text = `${name} has bought up the ${lineName(typeId)} in ${townName(town)}. The dealers there have fewer, and ask more, until ${short(day + CORNER_DAYS)}.`;
-    return { H, patch, text, note: yours.includes(town) ? text : undefined };
+    const text = `${name} has bought up the ${lineName(typeId)} in ${townName(town)}.`;
+    return { H, patch, text, note: yours.includes(town) ? `${text.slice(0, -1)}. The dealers there have fewer, and ask more, until ${short(day + CORNER_DAYS)}.` : undefined };
   }
   if (kind === 'court') {
     if (me.purse < 1000 || !['cairo', 'alexandria'].includes(d.home)) return null;
@@ -217,8 +216,7 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
     me.purse -= 600;
     H.courted = [...H.courted, { buyer, by: d.id, day, until: day + COURT_DAYS }];
     const b = BUYERS[buyer].name;
-    const text = `${name} has been calling on ${b}, with coffee and a better price. Sell to ${b} again by ${short(day + COURT_DAYS)}, or send a gift, or ${b} may go over to ${him(d)}.`;
-    return { H, patch, text, note: text };
+    return { H, patch, text: `${name} has been calling on ${b}, with coffee and a better price.`, note: `${name} has been calling on ${b}, with coffee and a better price. Sell to ${b} again by ${short(day + COURT_DAYS)}, or send a gift, or ${b} may go over to ${him(d)}.` };
   }
   if (kind === 'shop') {
     if (me.shop || me.purse < 20000) return null;
@@ -226,8 +224,7 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
     if (!towns.length) return null;
     const town = towns[Math.floor(hx(seed, day, `${d.id}:shop`) * towns.length)];
     me.purse -= 12000; me.shop = town; me.rep = Math.min(95, me.rep + 4);
-    const text = `${name} has opened a shop in ${townName(town)}. Its dealers have another buyer now, and pay you a little less.`;
-    return { H, patch, text, note: text };
+    return { H, patch, text: `${name} has opened a shop in ${townName(town)}.`, note: `${name} has opened a shop in ${townName(town)}. Its dealers have another buyer now, and pay you a little less.` };
   }
   if (kind === 'hire') {
     if (me.purse < 2000 || (H.lastHire !== undefined && day - H.lastHire < 60) || H.poach) return null;
@@ -239,8 +236,8 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
     H.poach = { by: d.id, who, shop: who === 'agent' ? agentShop : undefined, until: day + POACH_DAYS };
     H.lastHire = day;
     const man = who === 'boy' ? boyName(s.shopBoy) : `${s.shops![agentShop!].agent!.name}, your agent in ${townName(agentShop!)},`;
-    const text = `${name} has offered ${man} more money to work for ${him(d)}. Pay ${fmt(matchCost(who))} to keep him by ${short(day + POACH_DAYS)}, or he goes.`;
-    return { H, patch, text, note: text };
+    const text = `${name} has offered ${man} more money to work for ${him(d)}.`;
+    return { H, patch, text, note: `${text} Pay ${fmt(matchCost(who))} to keep him by ${short(day + POACH_DAYS)}, or he goes.` };
   }
   if (kind === 'rumour') {
     const caught = s.stats?.liesCaught ?? 0;
@@ -248,8 +245,8 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
     H.liesSeen = caught;
     H.rumour = { by: d.id, until: day + RUMOUR_DAYS };
     patch.reputation = Math.max(0, (s.reputation ?? 0) - 1);
-    const text = `${name} is telling the trade you were caught lying about a rug. Buyers offer a little less until ${short(day + RUMOUR_DAYS)}, unless you answer it. Reputation -1.`;
-    return { H, patch, text, note: text };
+    const text = `${name} is telling the trade you were caught lying about a rug.`;
+    return { H, patch, text, note: `${text} Buyers offer a little less until ${short(day + RUMOUR_DAYS)}, unless you answer it. Reputation -1.` };
   }
   return null;
 }
@@ -278,9 +275,8 @@ function goUnder(d: HouseDef, H: HousesState, day: number, seed: number) {
     return { typeId, price: snap(RUGS[typeId].dealerCost * 0.7) };
   });
   H.sale = { by: d.id, until: day + SALE_DAYS, rugs };
-  const text = `The house of ${houseName(d)} has failed. ${she(d) ? 'Her' : 'His'} creditors are selling the stock: five rugs at seven-tenths of the dealers' price, until ${short(day + SALE_DAYS)}.`;
-  log(H, day, d.id, text);
-  return text;
+  log(H, day, d.id, `The house of ${houseName(d)} has failed, and ${his(d)} creditors are selling the stock.`);
+  return `The house of ${houseName(d)} has failed. ${she(d) ? 'Her' : 'His'} creditors are selling the stock: five rugs at seven-tenths of the dealers' price, until ${short(day + SALE_DAYS)}.`;
 }
 
 /** The night for the houses: each sells its day and buys stock again, money troubles come and go, one may
@@ -293,7 +289,7 @@ export function housesNight(s: GameState, day: number): { patch: Partial<GameSta
   const notes: string[] = [];
   const patch: Partial<GameState> = {};
   const journal: GameState['journal'] = [];
-  const say = (by: string, text: string, note?: boolean) => { log(H, day, by, text); journal.push({ day, text, kind: 'stall' }); if (note) notes.push(text); };
+  const say = (by: string, text: string, note?: boolean | string) => { log(H, day, by, text); journal.push({ day, text, kind: 'stall' }); if (note) notes.push(note === true ? text : note); };
   // the day's trade
   for (const d of HOUSES) {
     const me = { ...H.list[d.id] };
@@ -318,7 +314,7 @@ export function housesNight(s: GameState, day: number): { patch: Partial<GameSta
       say(d.id, `${houseName(d)} has paid ${his(d)} creditors, and is trading again.`);
     } else if (me.status === 'failing' && (me.purse < BROKE || day - (me.since ?? day) >= FAIL_DAYS)) {
       const text = goUnder(d, H, day, seed);
-      journal.push({ day, text, kind: 'stall' });
+      journal.push({ day, text: H.log[H.log.length - 1].text, kind: 'stall' });
       notes.push(text);
     }
   }
@@ -377,7 +373,7 @@ export function housesNight(s: GameState, day: number): { patch: Partial<GameSta
         const r = doMove(k, d, { ...s, ...patch } as GameState, H, day, seed);
         if (!r) continue;
         H = r.H; Object.assign(patch, r.patch);
-        say(d.id, r.text, !!r.note);
+        say(d.id, r.text, r.note);
         H.lastMove = day;
         break;
       }
@@ -415,7 +411,7 @@ export function forceMove(s: GameState, id: string, kind: MoveKind | 'gone'): { 
   if (!r) return { patch: {}, text: `${houseName(d)} cannot make that move now.` };
   log(r.H, s.day, id, r.text);
   r.H.lastMove = s.day;
-  return { patch: { ...r.patch, houses: r.H, journal: [...s.journal, { day: s.day, text: r.text, kind: 'stall' }] }, text: r.text };
+  return { patch: { ...r.patch, houses: r.H, journal: [...s.journal, { day: s.day, text: r.text, kind: 'stall' }] }, text: r.note ?? r.text };
 }
 
 let uidN = 0;
@@ -434,7 +430,7 @@ export function houseCounter(s: GameState, kind: CounterKind, id: string, arg?: 
   const spend = (cost: number, label: string) => ({ cash: s.cash - cost, ledger: [...s.ledger, { day, kind: 'expense' as const, label, amount: -cost }] });
   const done = (msg: string, extra: Partial<GameState> = {}) => {
     H.list[id] = me;
-    log(H, day, id, msg);
+    log(H, day, id, msg, true);
     return { patch: { ...extra, houses: H, journal: [...(extra.journal ?? s.journal), { day, text: msg, kind: 'stall' }] }, msg };
   };
   const broke = (cost: number) => ({ patch: {}, msg: `You need ${fmt(cost)} for that.` });
@@ -542,7 +538,7 @@ export function houseCounter(s: GameState, kind: CounterKind, id: string, arg?: 
     const rug = stockRug(r.typeId, r.price, `From the stock of ${name}, after the house failed.`, day);
     const msg = `You bought a ${RUGS[r.typeId].name} from ${name}'s creditors for ${fmt(r.price)}. It goes to your store in Giza.`;
     H.list[id] = me;
-    H.log = [...H.log, { day, by: id, text: msg }].slice(-40);
+    H.log = [...H.log, { day, by: id, text: msg, you: true }].slice(-40);
     return { patch: { houses: H, cash: s.cash - r.price, inventory: [...s.inventory, rug], ledger: [...s.ledger, { day, kind: 'purchase', label: `${RUGS[r.typeId].name} from ${name}'s stock`, amount: -r.price, cost: r.price }] }, msg };
   }
   return { patch: {}, msg: '' };
@@ -550,7 +546,7 @@ export function houseCounter(s: GameState, kind: CounterKind, id: string, arg?: 
 
 /** The houses' moves for the paper of a day (made the night before it). */
 export function houseNews(s: Pick<GameState, 'houses'>, day: number): string[] {
-  return (s.houses?.log ?? []).filter((l) => l.day === day).map((l) => l.text);
+  return (s.houses?.log ?? []).filter((l) => l.day === day && !l.you).map((l) => l.text);
 }
 
 /** Houses that sit in an auction room in this city: grand sales in the towns they trade in, any sale at home. */

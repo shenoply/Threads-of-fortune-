@@ -1382,7 +1382,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               )}
               {rivalMarks[st.id] && shown && (tier > 0 || key) && (
                 <span className="prival" data-testid={`rival-pin-${st.id}`}>
-                  {rivalMarks[st.id].map((m) => { const d = HOUSE[m.by]; const rv = RIVAL[d.rival]; const t = `${rv.name}: ${m.kind === 'shop' ? 'a shop here' : 'buying up a line here'}`; return <i key={m.by + m.kind} className={m.kind} title={t} aria-label={t}><Emblem id={m.kind === 'shop' ? RIVAL_MARK[rv.temper].emblem : 'palm'} size={14} title={t} /></i>; })}
+                  {rivalMarks[st.id].map((m) => { const d = HOUSE[m.by]; const rv = RIVAL[d.rival]; const t = `${rv.name}: ${m.kind === 'shop' ? 'a shop here' : 'buying up a line here'}`; return <i key={m.by + m.kind} className={m.kind} title={t} aria-label={t}><Emblem id={m.kind === 'shop' ? RIVAL_MARK[rv.temper].emblem : 'palm'} shape="round" size={16} title={t} /></i>; })}
                 </span>
               )}
               {named ? <span className="plbl">{st.name}{rankChip(g.ranks, st.id) && <em className="prank" data-testid={`rank-chip-${st.id}`}>{rankChip(g.ranks, st.id)}</em>}{g.shops?.[st.id] && <i className="pshop" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}</span>
