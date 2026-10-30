@@ -99,7 +99,9 @@ export function DaySummary() {
   const atClose = net + night;
   const nightParts = [sum.wages ? `${fmt(sum.wages)} in wages` : '', sum.food ? `${fmt(sum.food)} for bread` : ''].filter(Boolean).join(' and ');
   return (
-    <div className="overlay" onClick={dismiss} data-testid="day-summary">
+    <div className="overlay" ref={(el) => { if (el && !el.dataset.t) el.dataset.t = String(performance.now()); }}
+      // a tap that ended the night (or landed as it faded) is not a tap to put the morning's news away unread
+      onClick={(e) => { if (performance.now() - Number(e.currentTarget.dataset.t ?? 0) > 800) dismiss(); }} data-testid="day-summary">
       <SwipeAway className="modal-card" onClick={(e) => e.stopPropagation()} onGone={dismiss}>
         <h2>{dateFor(sum.day + 1).long}</h2>
         {traded && (
@@ -124,7 +126,7 @@ export function DaySummary() {
         <Ahead />
         <WithinReach />
         <DailyTeaser />
-        <button className="btn primary" onClick={dismiss} data-testid="day-summary-ok">Open the day</button>
+        <button className="btn primary ds-ok" onClick={dismiss} data-testid="day-summary-ok">Open the day</button>
       </SwipeAway>
     </div>
   );

@@ -315,7 +315,7 @@ export const THREAT_VOICE: Record<string, string> = {
 
 export const THREAT_LINES: Record<string, { open: string; demand: string; strip: string; talkOk: string; talkBad: string }> = {
   'egypt-rural-highway-robbers': {
-    open: 'Men with cudgels and one old rifle step out from the sugar cane and block the track.',
+    open: 'Men with cudgels and old rifles step out from the sugar cane and block the track.',
     demand: 'Their leader spits. "A merchant pays for the road. Everyone pays for the road."',
     strip: 'They go through your packs, count a good part of your purse into a cloth and leave you standing in the dust.',
     talkOk: 'You talk about the price of cotton and the Tanta moulid. Someone knows your father. They wave you on.',

@@ -367,7 +367,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
             <div className="amb-opts">
               <button className="btn" onClick={() => { if (Math.random() < talkChance) settle({ rep: 1, theyLeave: true, text: lines.talkOk }); else { setText(lines.talkBad); setStage('demand'); } }} data-testid="amb-talk"><Icon name="talk" /> Talk your way through <small>{Math.round(talkChance * 100)}%{guide ? ', your guide helps' : ''}</small></button>
               {token && <button className="btn primary" onClick={() => settle({ theyLeave: true, text: 'You hold up the chief\'s knotted cord. They look at it, look at each other, and ride off without a word.' })} data-testid="amb-token"><Icon name="shield" /> Show the chief's cord <small>they will let you pass</small></button>}
-              {canDeter && <button className="btn" onClick={() => settle({ theyLeave: true, text: 'They count your guards, look at each other, and ride back the way they came.' })} data-testid="amb-deter"><Icon name="shield" /> Show them your guards <small>you are much the stronger</small></button>}
+              {canDeter && <button className="btn" onClick={() => settle({ theyLeave: true, text: 'They count your guards, look at each other, and go back the way they came.' })} data-testid="amb-deter"><Icon name="shield" /> Show them your guards <small>strength {mine} against {theirs}: they will not risk it</small></button>}
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
@@ -434,7 +434,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
                 <Icon name="run" /> Ride after them <small>{fled.size} {fled.size === 1 ? 'man is' : 'men are'} running{fled.leader ? `, ${fled.leader} with them` : ''}</small>
               </button>
             )}
-            <button className="btn primary big" disabled={!!clashSpoils?.leader && !leaderChoice} onClick={rideOn} data-testid="encounter-continue">{clashSpoils?.leader && !leaderChoice ? 'Decide about him first' : 'Ride on'}</button>
+            <button className="btn primary big" disabled={!!clashSpoils?.leader && !leaderChoice} onClick={rideOn} data-testid="encounter-continue">{clashSpoils?.leader && !leaderChoice ? 'Decide about him first' : 'Carry on'}</button>
           </div>
         )}
       </div>

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
 import { rugNames, typicalSale } from '../StallEncounter/RugPicker';
 import { fmt } from '../../game/economy/money';
-import { RESERVE_DAYS, heldFor, stallName, treatmentCharge, useGame } from '../../game/state/store';
+import { RESERVE_DAYS, heldFor, keptBack, stallName, treatmentCharge, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { dateFor } from '../../game/economy/economy';
 import { RUGS } from '../../data/rugs';
@@ -92,6 +92,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                     <span className="cond">{i.stored ? 'At your stall in Giza · return there to pack it for the road' : 'With the caravan'}</span>
                   )}
                   <ReserveControl uid={i.uid} />
+                  {!i.framed && keptBack(g, i) && <span className="reserved kept" data-testid="kept-back">Your father's rug · not for sale yet</span>}
                   {opts.length > 0 && !i.restoringUntil && (
                     <button className={`btn${treat === i.uid ? ' primary' : ''}`} onClick={() => setTreat(treat === i.uid ? null : i.uid)} aria-expanded={treat === i.uid} data-testid="restore">
                       {i.condition === 'Dirty' ? 'Clean it' : 'Repair it'} · from {fmt(Math.min(...opts.map((o) => treatmentCharge(g, i, o.mult))))}
@@ -121,6 +122,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
         })}
       </div>
 
+      <ReservePanel />
       <BillCard folded />
       {view && <RugViewer uid={view} onClose={() => setView(null)} />}
     </div>
@@ -152,33 +154,48 @@ function ParcelList() {
   );
 }
 
-/** Put a rug aside for one buyer you know: nobody else is shown it until the hold ends. */
+/** A rug put aside for one buyer: said on that rug only, with a way to free it. */
 function ReserveControl({ uid }: { uid: string }) {
   const g = useGame();
-  const [note, setNote] = useState('');
   const item = g.inventory.find((i) => i.uid === uid);
   if (!item) return null;
   const holder = heldFor(item, g.day);
+  if (!holder) return null;
+  return (
+    <span className="reserved" data-testid="reserved">
+      Kept for {BUYERS[holder]?.name ?? holder} until {dateFor(item.reservedUntil ?? g.day).short}{' '}
+      <button className="btn small" onClick={() => useGame.getState().reserveRug(uid, null)} data-testid="unreserve">Free it</button>
+    </span>
+  );
+}
+
+/** Put a rug aside for a buyer you know, once for the whole stock: which rug, and for whom. Nobody else
+ *  is shown it until the hold ends. */
+function ReservePanel() {
+  const g = useGame();
+  const [note, setNote] = useState('');
+  const [rug, setRug] = useState('');
   // buyers you have met at the stall (and Malek once you know his shop)
   const known = Object.entries(g.relationships).filter(([id, r]) => BUYERS[id] && r.visits > 0).map(([id]) => id);
   if (g.malek?.visits && !known.includes('malek')) known.push('malek');
-  if (holder) {
-    return (
-      <span className="reserved" data-testid="reserved">
-        Kept for {BUYERS[holder]?.name ?? holder} until {dateFor(item.reservedUntil ?? g.day).short}{' '}
-        <button className="btn small" onClick={() => setNote(useGame.getState().reserveRug(uid, null))} data-testid="unreserve">Free it</button>
-      </span>
-    );
-  }
-  if (!known.length) return null;
+  const free = g.inventory.filter((i) => !heldFor(i, g.day) && !i.restoringUntil && !keptBack(g, i));
+  if (!known.length || !free.length) return note ? <p className="reserve-done" role="status">{note}</p> : null;
+  const pick = free.find((i) => i.uid === rug)?.uid ?? free[0].uid;
   return (
-    <label className="reserve-pick">
-      <select value="" onChange={(e) => { if (e.target.value) setNote(useGame.getState().reserveRug(uid, e.target.value)); }} data-testid="reserve-select" aria-label="Put aside for a buyer">
-        <option value="">Put aside for…</option>
-        {known.map((id) => <option key={id} value={id}>{BUYERS[id].name}</option>)}
-      </select>
-      {note && <small role="status">{note}</small>}
-      <small className="reserve-hint">{RESERVE_DAYS} days; nobody else is shown it</small>
-    </label>
+    <div className="reserve-panel" data-testid="reserve-panel">
+      <b>Put a rug aside for a buyer</b>
+      <div className="reserve-row">
+        {free.length > 1 ? (
+          <select value={pick} onChange={(e) => setRug(e.target.value)} data-testid="reserve-rug" aria-label="Which rug">
+            {free.map((i) => <option key={i.uid} value={i.uid}>{RUGS[i.typeId]?.name ?? i.typeId}</option>)}
+          </select>
+        ) : <span className="reserve-one">{RUGS[free[0].typeId]?.name}</span>}
+        <select value="" onChange={(e) => { if (e.target.value) setNote(useGame.getState().reserveRug(pick, e.target.value)); }} data-testid="reserve-select" aria-label="Put aside for a buyer">
+          <option value="">for…</option>
+          {known.map((id) => <option key={id} value={id}>{BUYERS[id].name}</option>)}
+        </select>
+      </div>
+      <small className="reserve-hint">{note || `Kept ${RESERVE_DAYS} days; no other buyer is shown it.`}</small>
+    </div>
   );
 }

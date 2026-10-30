@@ -14,12 +14,15 @@ import { voice, filmLock } from '../../game/audio/voice';
 import { stopArranVoice } from '../../game/audio/arranVoice';
 import { stopMalekArabic } from '../../game/audio/malekArabic';
 import { radio } from '../../game/radio/player';
+import { setHold } from '../../game/cardTurn';
 import './IntroFilm.css';
 
 export { filmReady, filmDue, type FilmId } from './films';
 
 export function IntroFilm({ id, title: titleIn, onDone }: { id: FilmId; title?: string; onDone: () => void }) {
   const film = FILMS[id];
+  // the hints and short notices wait while a film has the screen
+  useEffect(() => { setHold(`film-${id}`, true); return () => setHold(`film-${id}`, false); }, [id]);
   const title = titleIn ?? film.title;
   const script = INTRO_FILMS[id] as { length: number; cues: IntroCue[] } | undefined;
   const video = useRef<HTMLVideoElement>(null);

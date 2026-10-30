@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useDialogEscape } from '../useDialogEscape';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
@@ -23,6 +23,10 @@ export type MapIntent = { view?: 'district' | 'world'; panel?: string; tab?: Set
 // remembered between visits to other screens, so coming back finds you where you were
 const memo = { layer: 'giza' as 'giza' | 'world', stall: false, scale: 1, intent: 0 };
 export const openStallNext = () => { memo.layer = 'giza'; memo.stall = true; };
+// whether the stall sheet is up, for the objective line (no "Go to your stall" over the stall itself)
+let sheetUp = false; const sheetSubs = new Set<() => void>();
+const setSheetUp = (v: boolean) => { if (sheetUp !== v) { sheetUp = v; sheetSubs.forEach((f) => f()); } };
+export const useStallSheetOpen = () => useSyncExternalStore((cb) => { sheetSubs.add(cb); return () => { sheetSubs.delete(cb); }; }, () => sheetUp);
 
 /** One continuous map: the region, zoom in to Giza's lanes, zoom in again to your stall. One clock runs through all of it. */
 export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIntent | null; frozen: boolean; onGo: (t: Target) => void; clearIntent?: () => void }) {
@@ -53,6 +57,7 @@ export function Campaign({ intent, frozen, onGo, clearIntent }: { intent?: MapIn
   // Escape and the phone's Back fold the stall sheet away, back to the lane
   const sheet = useRef<HTMLDivElement>(null);
   useDialogEscape(sheet, () => setStall(false), stall && layer === 'giza');
+  useEffect(() => { setSheetUp(stall && layer === 'giza'); return () => setSheetUp(false); }, [stall, layer]);
 
   return (
     <div className="campaign" data-testid="campaign" data-layer={layer}>

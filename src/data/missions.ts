@@ -96,14 +96,14 @@ const cudgelMan = (s: MissionState) => (s as unknown as { combat?: { leaders?: R
 export const MISSIONS: Record<string, Mission> = {
   alexandria: {
     id: 'alexandria', title: 'Rashid\'s errand in Alexandria', giver: 'Uncle Rashid',
-    brief: '"Prove you can buy with your own eyes. Go to Alexandria and bring me a receipt." Until then Rashid sells only village rugs, and gives no credit.',
-    steps: ['Alexandria: four hours by train', 'Buy any rug in its market (the Market tab)'],
+    brief: '"Prove you can buy with your own eyes. Go to Alexandria and bring me a receipt."',
+    steps: ['A guard for the road, from the guard yard', 'The ferry to Cairo, then the train to Alexandria: 3½ hours', 'Buy any rug in its market (the Market tab)'],
     target: 'alexandria',
-    locks: 'Until then Rashid sells only Common rugs, gives no credit, and your rank cannot rise past Stall keeper.',
+    locks: 'Until then Rashid sells only village rugs, gives no credit, and your rank cannot rise past Stall keeper.',
     reward: { cash: 200, rep: 3, trust: 15, text: 'Rashid reads your receipt twice. "Not bad. Not good, but not bad." He pays you £2 for the errand, opens his back room and his credit book.' },
-    // said from where you stand: four hours is the train from Cairo, not from Damascus
+    // said from where you stand: 3½ hours is the train from Cairo, not from Damascus
     hint: (s) => (s.world.at === 'alexandria' ? 'Buy one rug in the market here.'
-      : !s.world.at || s.world.at === 'giza' || s.world.at === 'cairo' ? 'Alexandria, 4 hours by train: buy one rug.'
+      : !s.world.at || s.world.at === 'giza' || s.world.at === 'cairo' ? 'Alexandria, 3½ hours by train: buy one rug.'
       : countryOf(s.world.at) === 'egypt' ? 'Alexandria, by train or road: buy one rug.'
       : 'Back in Egypt, go to Alexandria and buy one rug for Rashid.'),
   },

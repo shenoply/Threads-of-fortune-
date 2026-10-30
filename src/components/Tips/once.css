@@ -8,16 +8,16 @@
 /* a bottom tab not yet in use: dimmed, and a tap says when it opens */
 .nav button.nav-later { opacity: 0.4; }
 /* a hint at the point of use (Tip.tsx): one line above the bottom bar, gone with a tap or a swipe */
-.hint { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 68px); max-width: 520px; margin: 0 auto; z-index: 40;
+.hint[role=note] { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 68px); max-width: 520px; margin: 0 auto; z-index: 40;
   display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; min-height: 48px; box-sizing: border-box;
   background: #1d130bf2; border: 1px solid #d9a55a; border-left-width: 4px; border-radius: 10px; box-shadow: 0 6px 18px #0009;
   color: #f3e6c8; font-size: 15px; line-height: 1.35; touch-action: pan-y; cursor: pointer; animation: hintIn .3s ease-out; }
-.hint p { margin: 0; flex: 1; }
-.hint b { color: #ffd48a; font-weight: 600; }
+.hint[role=note] p { margin: 0; flex: 1; }
+.hint[role=note] b { color: #ffd48a; font-weight: 600; }
 .hint-what { flex: none; min-height: 44px; min-width: 44px; padding: 0 10px; border: 1px solid #d9a55a88; border-radius: 8px; background: transparent; color: #ffd48a; font: inherit; font-size: 14px; cursor: pointer; }
 @keyframes hintIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .hint { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hint[role=note] { animation: none; } }
 /* the control a hint is about */
 .hint-point { outline: 2px solid #ffc85a !important; outline-offset: 2px; }
 /* in a full-screen card or fight (no bottom bar there): at the top, over the heading, clear of the choices */
-.hint.in-card { z-index: 95; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 8px); }
+.hint[role=note].in-card { z-index: 95; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 8px); }

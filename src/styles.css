@@ -888,7 +888,7 @@ table.ledger .neg { color: var(--bad); }
 .whatsnew b { color: var(--brass-hi); font-family: var(--label); letter-spacing: .06em; }
 .whatsnew span { font-size: 15.5px; line-height: 1.4; color: var(--text); }
 .guide-btn { font-family: var(--display); font-weight: 700; font-size: 17px; }
-.guide { position: fixed; inset: 0; z-index: 120; background: rgba(8,5,3,.82); display: grid; place-items: center; padding: 14px; animation: fadein2 .25s; }
+.guide[role=dialog] { position: fixed; inset: 0; z-index: 120; background: rgba(8,5,3,.82); display: grid; place-items: center; padding: 14px; animation: fadein2 .25s; }
 @keyframes fadein2 { from { opacity: 0; } }
 .guide-card { width: min(520px, 100%); max-height: 100%; overflow: auto; background: linear-gradient(#22170d, #150e07); border: 1px solid var(--brass); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.6); display: flex; flex-direction: column; }
 .guide-img { aspect-ratio: 16 / 8; background-size: cover; border-bottom: 1px solid var(--line-strong); flex: none; }
@@ -3853,3 +3853,19 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .cvh-card > span b { font-size: 15px; font-weight: 500; color: var(--parchment); }
 .cvh-card > span small { font-size: 14px; color: var(--text-dim); }
 .cvh-more { margin-top: 8px; min-height: 44px; }
+
+/* the morning card: "Open the day" stays in reach at the foot of the card, however long the news */
+.modal-card .ds-ok { position: sticky; bottom: -18px; display: block; width: 100%; min-height: 48px; margin-top: 4px; box-shadow: 0 -12px 14px -2px #150e08, 0 10px 0 8px #150e08; }
+/* mission news reached inside a town (a rug bought in Alexandria's souq): the banner floats over the town
+   sheet until it is read, instead of waiting unseen under it */
+body:has(.settlement) .app > .objective-bar.news { z-index: 55; box-shadow: 0 0 0 2px rgba(240,200,106,.45), 0 8px 24px rgba(0,0,0,.6); }
+/* Stock: putting a rug aside, asked once above the list (not under every rug) */
+.reserve-panel { margin: 8px 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: #1a110a; display: flex; flex-direction: column; gap: 6px; }
+.reserve-panel > b { font-family: var(--label); font-size: 14px; letter-spacing: .04em; color: var(--brass-hi, #e3bd6b); }
+.reserve-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.reserve-row select { min-height: 44px; flex: 1 1 140px; background: var(--umber-3, #2a1d12); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 15px; }
+.reserve-one { flex: 1 1 140px; font-size: 15px; color: var(--parchment); }
+.reserved .btn.small { min-height: 44px; }
+.reserved.kept { color: var(--brass-hi, #e3bd6b); }
+.family-debt .fd-btns .btn { min-height: 44px; }
+.idle-bare .btn.small { min-height: 44px; margin-left: 4px; }

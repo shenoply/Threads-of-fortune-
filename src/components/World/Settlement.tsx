@@ -76,6 +76,7 @@ import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { WantedCard } from './Wanted';
 import { createPortal } from 'react-dom';
 import './Settlement.css';
+import '../Fold/fold.css';
 import { BOOKS as ARRAN_BOOKS, LIBRARIES } from '../../game/systems/arranBooks';
 import { LENDERS, INSURERS } from '../../game/systems/finance';
 
@@ -133,6 +134,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
   // arriving in a town opens its menu first, Bannerlord-style: the town's picture and what there is
   // to do, each a big button into the part of the panel below that does it
   const [menu, setMenu] = useState(back ? back.menu : initialTab === 'town');
+  // the town's notables and its foreigners and characters, folded until asked for (the menu's Notables tile opens them)
+  const [folkOpen, setFolkOpen] = useState({ notables: false, others: false });
   // opened from a yard in the Giza district (the souk, the animal market, the guard yard): it is that
   // place, not the whole town, and closing it goes back to the district, not to the map
   const yard = id === 'giza' && initialTab !== 'town' ? ({ market: 'Food souk', animals: 'Animal market', guards: 'Guard yard' } as Record<SetTab, string>)[initialTab] : null;
@@ -329,7 +332,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     ...(GARAGE_TOWNS.includes(id) && on('garage') ? [['gear', 'Motor garage', g.car ? (g.car.at === id ? `Your ${carName(g.car.model)} stands here` : `Cars for sale · yours is in ${settlementById(g.car.at).name}`) : `${carsSoldIn(id).length} motor cars for sale`, () => goTo('town', 'sec-garage'), 'menu-garage'] as [string, string, string, () => void, string]] : []),
     ...(railTo ? [['camel', 'The station', `Trains to ${railTo} town${railTo > 1 ? 's' : ''}: times and fares`, () => setStation(true), 'menu-station'] as [string, string, string, () => void, string]] : []),
     ...(ships.length ? [['anchor', 'Sail from here', ships.map((r) => settlementById(r.to).name).join(' · '), () => goTo('town', 'sec-sail'), 'menu-sail'] as [string, string, string, () => void, string]] : []),
-    ...(notablesOf(id).filter((x) => !x.npc).length ? [['people', `Notables of ${st.name}`, notablesOf(id).filter((x) => !x.npc).slice(0, 3).map((x) => x.short).join(' · '), () => goTo('town', 'sec-notables'), 'menu-notables'] as [string, string, string, () => void, string]] : []),
+    ...(notablesOf(id).filter((x) => !x.npc).length ? [['people', `Notables of ${st.name}`, notablesOf(id).filter((x) => !x.npc).slice(0, 3).map((x) => x.short).join(' · '), () => { setFolkOpen((f) => ({ ...f, notables: true })); goTo('town', 'sec-notables'); }, 'menu-notables'] as [string, string, string, () => void, string]] : []),
     ...(people.length ? [['people', 'People', people.map((pid) => NPCS[pid].name.split(' ')[0]).join(' · '), () => goTo('town', 'sec-people'), 'menu-people'] as [string, string, string, () => void, string]] : []),
     ...(venues.length ? [['star', 'Cabarets and theatres', venues.map((v) => v.name).slice(0, 3).join(' · '), () => goTo('town', 'sec-venues'), 'menu-venues'] as [string, string, string, () => void, string]] : []),
     ...(Object.values(LENDERS).some((l) => l.towns.includes(id)) || INSURERS.includes(id) ? [['coin', Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Bank, loans and insurance' : 'Cargo insurance', (g.loans ?? []).length ? `You owe ${(g.loans ?? []).length} lender${(g.loans ?? []).length > 1 ? 's' : ''}` : Object.values(LENDERS).some((l) => l.towns.includes(id)) ? 'Borrow, repay, insure your cargo' : 'Cover the rugs you carry', () => setFinance(true), 'menu-finance'] as [string, string, string, () => void, string]] : []),
@@ -428,27 +431,6 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
           <button className="btn primary big" onClick={() => { onClose(); onStall(); }} data-testid="open-stall-world">Open your stall</button>
         )}
 
-        {notablesOf(id).filter((x) => !x.npc).length > 0 && (
-          <>
-            <div className="section-label" id="sec-notables">NOTABLES OF {st.name.toUpperCase()}</div>
-            <div className="folk-list" data-testid="notables">
-              {notablesOf(id).filter((x) => !x.npc).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}
-            </div>
-            <button className="ghost-btn" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency', { detail: { kind: 'place', id } }))} data-testid="town-ency">{st.name} in the encyclopedia ›</button>
-          </>
-        )}
-        {residentsOf(id).length > 0 && (
-          <>
-            <div className="section-label" id="sec-foreigners">FOREIGNERS IN {st.name.toUpperCase()}</div>
-            <div className="folk-list" data-testid="foreigners">{residentsOf(id).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div>
-          </>
-        )}
-        {charactersOf(id).length > 0 && (
-          <>
-            <div className="section-label" id="sec-characters">CHARACTERS OF {st.name.toUpperCase()}</div>
-            <div className="folk-list" data-testid="characters">{charactersOf(id).map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div>
-          </>
-        )}
         {st.people.filter((pid) => pid !== 'kassab' || g.missions?.rival).length > 0 && (
           <>
             <div className="section-label" id="sec-people">PEOPLE</div>
@@ -469,6 +451,42 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
             </div>
           </>
         )}
+
+        {/* the town's people, met a few at a time: those you know stay in sight; the rest wait in two folds,
+            so a first visit opens on the places and the few people who matter (Rashid, Hagop) */}
+        {(() => {
+          const notables = notablesOf(id).filter((x) => !x.npc);
+          const others = [...residentsOf(id), ...charactersOf(id)];
+          const met = g.folk?.met ?? {};
+          const known = [...notables, ...others].filter((x) => met[x.id] !== undefined);
+          const restN = notables.filter((x) => met[x.id] === undefined);
+          const foreign = residentsOf(id).filter((x) => met[x.id] === undefined);
+          const chars = charactersOf(id).filter((x) => met[x.id] === undefined);
+          if (!notables.length && !others.length) return null;
+          const names = (xs: { short: string }[]) => xs.slice(0, 3).map((x) => x.short).join(', ') + (xs.length > 3 ? '…' : '');
+          return (
+            <>
+              <div className="section-label" id="sec-notables">{st.people.length ? "OTHERS IN " : "PEOPLE OF "}{st.name.toUpperCase()}</div>
+              {known.length > 0 && <div className="folk-list" data-testid="folk-known">{known.map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div>}
+              {restN.length > 0 && (
+                <details className="fold town-folk" open={folkOpen.notables} onToggle={(e) => { const o = e.currentTarget.open; if (o !== folkOpen.notables) setFolkOpen((f) => ({ ...f, notables: o })); }} data-testid="fold-notables">
+                  <summary className="fold-row" data-testid="fold-row-notables"><b>{known.length ? 'More notables' : 'Notables'} · {restN.length}</b><span className="fold-gist">{names(restN)}</span><i className="fold-chev" aria-hidden="true" /></summary>
+                  <div className="fold-body"><div className="folk-list" data-testid="notables">{restN.map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div></div>
+                </details>
+              )}
+              {foreign.length + chars.length > 0 && (
+                <details className="fold town-folk" open={folkOpen.others} onToggle={(e) => { const o = e.currentTarget.open; if (o !== folkOpen.others) setFolkOpen((f) => ({ ...f, others: o })); }} data-testid="fold-townsfolk">
+                  <summary className="fold-row" data-testid="fold-row-townsfolk"><b>Foreigners and characters · {foreign.length + chars.length}</b><span className="fold-gist">{names([...foreign, ...chars])}</span><i className="fold-chev" aria-hidden="true" /></summary>
+                  <div className="fold-body">
+                    {foreign.length > 0 && <><div className="section-label" id="sec-foreigners">FOREIGNERS IN {st.name.toUpperCase()}</div><div className="folk-list" data-testid="foreigners">{foreign.map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div></>}
+                    {chars.length > 0 && <><div className="section-label" id="sec-characters">CHARACTERS OF {st.name.toUpperCase()}</div><div className="folk-list" data-testid="characters">{chars.map((x) => <FolkRow key={x.id} p={x} onTalk={() => setFolkTalk(x.id)} />)}</div></>}
+                  </div>
+                </details>
+              )}
+              {notables.length > 0 && <button className="ghost-btn" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency', { detail: { kind: 'place', id } }))} data-testid="town-ency">{st.name} in the encyclopedia ›</button>}
+            </>
+          );
+        })()}
 
         {(HAMMAMS[id] || OUTFITS.some((o) => soldIn(o, id)) || Object.values(BOOKS).some((b) => b.where.includes(id))) && (
           <>
@@ -763,7 +781,8 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       )}
       {cairoPlace && <EscLayer onEsc={() => setCairoPlace(null)}><CairoPlace place={cairoPlace} onClose={() => setCairoPlace(null)} /></EscLayer>}
       {cityFilm && createPortal(<IntroFilm id="alexandria" onDone={() => { useGame.getState().markIntroSeen('alexandria'); setCityFilm(false); }} />, document.body)}
-      <Tip id="town" when={!menu && !inCity && !inVenue && !talkTo && !inAuction} />
+      {/* the town hint is for a town of your own finding, not Giza's yards (the district has its own) */}
+      <Tip id="town" when={id !== 'giza' && !menu && !inCity && !inVenue && !talkTo && !inAuction && !cityFilm} />
       {look && <div className="venue-overlay"><RugViewer preview={look} onClose={() => setLook(null)} /></div>}
       {/* Walking the streets stays open underneath whatever shop or hall it leads to, so stepping back
           out of that door returns you to the same street, not all the way out to the town panel. */}

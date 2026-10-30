@@ -1,5 +1,6 @@
 import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { useRef, useState } from 'react';
+import { useStallSheetOpen } from '../World/Campaign';
 import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -150,6 +151,7 @@ const objectiveView = (s: GS) => {
 export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: string) => void; firstHour?: { text: string; btn: string; go: () => void; n?: number; of?: number; label?: string; skip?: () => void } | null; onMenu?: () => void }) {
   // what the line shows, worked out from the store as plain values (the clock moving on the road does not re-render it)
   const g = useGame(useShallow(objectiveView));
+  const sheetUp = useStallSheetOpen();
   const [open, setOpen] = useState(false);
   // Skip asks once, in the bar itself (no pop-up): a second tap within a few seconds skips
   const [sure, setSure] = useState(false);
@@ -275,7 +277,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
       <div className="objective-bar" data-testid="week-bar">
         <div className="ob-row">
           <span className="ob-text"><span className="ob-eye"><small>Objective</small><WeekDue onGo={onGo} /></span><b>{short ? `Sell rugs: Rashid wants ${fmt(g.dueOwed)} by ${dueDate(g.dueBy)}.` : `Pay Rashid ${fmt(g.dueOwed)} at his warehouse.`}</b></span>
-          <button className="btn ob-btn" onClick={() => onGo(short ? 'stall' : 'supplier')} data-testid="week-go">{short ? 'Your stall' : 'Go to Rashid'}</button>
+          {!(short && sheetUp) && <button className="btn ob-btn" onClick={() => onGo(short ? 'stall' : 'supplier')} data-testid="week-go">{short ? 'Your stall' : 'Go to Rashid'}</button>}
         </div>
       </div>
     );

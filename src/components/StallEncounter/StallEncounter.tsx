@@ -530,7 +530,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 price, so the day's routine trade does not have to be haggled every time */}
             {!enc.presented && !enc.outcome && !tut && everyday(enc.buyerId) && (() => {
               const prefs = prefsFor(enc);
-              const pick = avail.filter((i) => RUGS[i.typeId]?.tier === 1).sort((a, b) => fitScore(prefs, RUGS[b.typeId], b) - fitScore(prefs, RUGS[a.typeId], a))[0];
+              // never at a loss: a "fair price" that comes in under what you paid is no deal (talk it through instead)
+              const pick = avail.filter((i) => RUGS[i.typeId]?.tier === 1 && quickPrice(enc, i) >= (i.paid ?? 0)).sort((a, b) => fitScore(prefs, RUGS[b.typeId], b) - fitScore(prefs, RUGS[a.typeId], a))[0];
               if (!pick) return null;
               return (
                 <button className="quick-sale" onClick={() => { g.present(pick.uid); window.setTimeout(() => { const e = useGame.getState().encounter; if (e && !e.outcome && e.presented === pick.uid) g.act('quick_sale'); }, 60); }} data-testid="quick-deal">

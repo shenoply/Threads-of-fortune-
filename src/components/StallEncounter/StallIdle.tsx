@@ -16,7 +16,7 @@ import { AuctionBoard } from '../Auction/AuctionBoard';
 import type { Target } from '../World/Campaign';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
-import { useGame, arrivalAt, clock } from '../../game/state/store';
+import { useGame, arrivalAt, clock, availableRugs } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
 import { useFilmSound } from '../../game/audio/useFilmSound';
 import { laneDay } from '../../game/economy/life';
@@ -53,6 +53,8 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
   const hungry = fedOf(g.condition) < 20;
   // the day is over (the last customer has gone, or you shut early): waiting for a customer would do nothing
   const shut = g.dayOver && !g.held;
+  // nothing left to lay out: a buyer would walk up to bare boards
+  const bare = lessonDone && !shut && !g.held && next !== null && availableRugs(g).length === 0;
 
   return (
     <div className="screen idle" data-testid="stall-idle">
@@ -63,6 +65,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       <div className="idle-next" data-testid="idle-next">
         {shut ? <p>The stall is shut for the evening. Count the day's takings below, have supper, or start the next day.</p> : g.held ? <p><b>{BUYERS[g.held.encounter.buyerId]?.name} is still waiting for you.</b></p> : next === null ? <p>No more customers today.</p> : friday ? <p>It is Friday. The lane is quiet until after the noon prayer. Customers come from <b>{clock(next)}</b>.</p> : midday ? <p>The lane is empty in the midday heat. Customers come back around <b>{clock(next)}</b>.</p> : mins === 0 ? <p><b>Someone is walking up to your stall.</b></p> : <p>Next customer <b>{clock(next)}</b> · in {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}</p>}
         {!shut && <OmenLine />}
+        {bare && <p className="idle-missed idle-bare" data-testid="idle-bare">Nothing left on the stall to sell. <button className="btn small" onClick={() => onGo('supplier')} data-testid="idle-bare-rashid">Buy at Rashid's</button></p>}
       </div>
       {/* once the stall is shut for the day the big button is the evening's own: it turns the page to
           the next morning, the same as Next day on the ledger slip below */}
@@ -96,7 +99,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
             <div className="idle-wait__row">
               {malekHere && <button className="btn small" onClick={() => openMalek()} data-testid="idle-wait-malek"><Icon name="tea" /> {meal} at Malek's{hungry ? ' (you are hungry)' : ''}</button>}
               <button className="btn small" onClick={() => onGo('supplier')} data-testid="idle-wait-supplier"><Icon name="bag" /> Stock up at Rashid's</button>
-              {g.world.at === 'giza' && <button className="btn small" onClick={() => onGo('district')} data-testid="idle-wait-district"><Icon name="map" /> Walk Giza (Arran's lab)</button>}
+              {g.world.at === 'giza' && <button className="btn small" onClick={() => onGo('district')} data-testid="idle-wait-district"><Icon name="map" /> Walk the lanes of Giza</button>}
               <button className="btn small" onClick={() => onGo('paper')} data-testid="idle-wait-paper"><Icon name="book" /> Read the paper</button>
             </div>
           </div>

@@ -81,12 +81,12 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
     const r = g.openGift();
     if (!r) return;
     setGot(r);
-    if (r.kind === 'bale') { const lb = useGame.getState().lastBale; if (lb) showBale(lb.result, lb.items, `Your gift · day ${gift.run} in a row`); return; }
+    if (r.kind === 'bale') { const lb = useGame.getState().lastBale; if (lb) showBale(lb.result, lb.items, (gift.run > 1 ? `Your gift · day ${gift.run} in a row` : 'Your gift')); return; }
     const t = r.kind === 'rug' ? RUGS[r.typeId] : null;
     const inv = useGame.getState().inventory;
     const uid = r.kind === 'rug' ? inv[inv.length - 1]?.uid : undefined;
     const piece = r.kind === 'piece' ? DRESSING_BY_ID[r.id] : undefined;
-    reveal({ uid, ...(piece ? { pic: piece.art, picKind: 'prop' as const } : {}), kicker: `Today's gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', ...(t ? { pic: rugSrc(t), picKind: 'rug' as const } : {}) });
+    reveal({ uid, ...(piece ? { pic: piece.art, picKind: 'prop' as const } : {}), kicker: gift.run > 1 ? `Today's gift · day ${gift.run} in a row` : "Today's gift", title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', ...(t ? { pic: rugSrc(t), picKind: 'rug' as const } : {}) });
   };
   const collect = (id: string) => {
     const amt = id === 'all' ? ALL_THREE(rk, g.day) : errs.find((e) => e.id === id)?.reward ?? 0;
@@ -114,7 +114,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
         <TheTimes day={g.day} kind="today" />
         <Pouch />
         <section className="daily-gift">
-          <h3>Your gift <small>{gift.run > 1 || !gift.open ? `day ${gift.run} in a row` : 'day 1'}</small></h3>
+          <h3>Your gift <small>{gift.run > 1 ? `day ${gift.run} in a row` : 'day 1 of 7'}</small></h3>
           {gift.lost && <p className="dim small" data-testid="gift-lost">Welcome back. A new week of gifts starts today.</p>}
           <ol className="gift-week" data-testid="gift-week">
             {week.map((n) => {

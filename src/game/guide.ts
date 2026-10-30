@@ -17,6 +17,7 @@ export interface GuideTarget {
 const OPENING_TARGET: Record<string, GuideTarget> = {
   malek: { city: 'giza', poi: 'malek', tile: 'menu-malek' },
   bilgin: { city: 'giza', poi: 'coffee' },
+  stall: { city: 'giza', poi: 'stall' },
   guards: { city: 'giza', poi: 'guards', tile: 'menu-guards' },
   cairo: { city: 'cairo' },
   bandits: { city: 'alexandria' },
@@ -27,7 +28,8 @@ const OPENING_TARGET: Record<string, GuideTarget> = {
 /** The one thing to point at now, or null. The opening comes first, then being ill, then the story mission. */
 export function guideTarget(s: GameState): GuideTarget | null {
   const op = openingStep(s);
-  if (op) return OPENING_TARGET[op.step.id] ?? null;
+  // the step as things stand: short of the money, the guard yard waits and the stall is lit instead
+  if (op) return OPENING_TARGET[stepGo(s, op.step).flash] ?? null;
   if (s.started && (s.illnesses ?? []).length > 0 && (!s.sim || s.sim.illness || s.sim.injuries || s.ironman)) return { city: 'cairo', tile: 'menu-clinic', poi: 'clinic' };
   const activeId = MAIN_ORDER.find((id) => s.missions?.[id] === 'active');
   const ms = s as unknown as MissionState;
@@ -67,7 +69,7 @@ export function objectiveLine(s: GameState): ObjectiveLine | null {
     const sg = stepGo(s, op.step);
     const btn = op.step.id === 'auction' && s.missions?.alexandria !== 'active' && s.world.at !== 'alexandria' ? '' : sg.btn;
     // once in Alexandria the way on is its market, not the map
-    if (op.step.id === 'auction' && s.world.at === 'alexandria') return { text: op.step.text(s), btn: 'To the market', go: 'market', n: op.n + 1, of: OPENING.length };
+    if (op.step.id === 'auction' && s.world.at === 'alexandria') return { text: op.step.text(s), btn: 'To the market', go: 'market', n: op.n + 1, of: OPENING.length, label: stepLabel(op.n) };
     return { text: op.step.text(s), btn, go: sg.go, n: op.n + 1, of: OPENING.length, label: stepLabel(op.n) };
   }
   const activeId = MAIN_ORDER.find((id) => s.missions?.[id] === 'active');

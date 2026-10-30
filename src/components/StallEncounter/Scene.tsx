@@ -296,8 +296,17 @@ export function InfoBand({ enc, presented, view, tierName, priorities, onSkip, p
   const said = who === 'seller' ? view.seller : view.buyer;
   const shown = said && view.speaking === who && view.active ? said.slice(0, view.typed) : said;
   const mood = who === 'buyer' && (view.buyerMood === 'pleased' || view.buyerMood === 'warm') ? 'mood-good' : who === 'buyer' && (view.buyerMood === 'skeptical' || view.buyerMood === 'leaving') ? 'mood-bad' : '';
+  // the narrator's line is the lesson's instruction: when the talk above it runs long, the band scrolls
+  // to keep it in sight instead of leaving it under the rug tray
+  const bandRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const band = bandRef.current; const n = band?.querySelector<HTMLElement>(':scope > .narrator');
+    if (!band || !n) return;
+    const over = n.getBoundingClientRect().bottom - band.getBoundingClientRect().bottom;
+    if (over > 0) band.scrollTop += over + 4;
+  }, [view.narrator, shown]);
   return (
-    <div className={`band ${view.narrator ? 'has-narr' : ''}`} data-testid="band">
+    <div ref={bandRef} className={`band ${view.narrator ? 'has-narr' : ''}`} data-testid="band">
       {said && (
         <div className={`speech ${mood}`} data-testid="speech" onClick={view.busy ? onSkip : undefined} style={view.busy ? { cursor: 'pointer' } : undefined}>
           <b>{who === 'seller' ? 'You' : buyer?.name ?? 'Samira'}</b>

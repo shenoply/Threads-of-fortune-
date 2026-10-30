@@ -60,7 +60,7 @@ import { HomeSceneCard } from './components/Character/HomeScene';
 import { firstHourStep, FIRST_HOUR_TIP } from './components/Tips/FirstHour';
 import { GuideFlash } from './components/Tips/GuideFlash';
 import { CaravanScreen } from './components/World/CaravanScreen';
-import { Campaign, openStallNext, type MapIntent, type Target } from './components/World/Campaign';
+import { Campaign, openStallNext, useStallSheetOpen, type MapIntent, type Target } from './components/World/Campaign';
 import type { SetTab } from './components/World/Settlement';
 import { Tip } from './components/Tips/Tip';
 import { Rumours } from './components/Rumours/Rumours';
@@ -350,6 +350,7 @@ export default function App() {
   const [titleBg, setTitleBg] = useState(() => TITLE_BGS.find((b) => b.src === (window as Window & { __tofTitle?: string }).__tofTitle) ?? TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)]);
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
+  const stallSheetUp = useStallSheetOpen();
   // each screen comes in with a short fade and rise when the bottom tabs switch (feel.ts)
   const mainRef = useRef<HTMLElement>(null);
   useEnterAnimation(mainRef, tab);
@@ -974,7 +975,7 @@ export default function App() {
       {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
         const fh = g.fhText !== undefined ? { text: g.fhText, btn: g.fhBtn!, n: g.fhN!, of: g.fhOf!, go: g.fhGo!, label: g.fhLabel } : null;
         // no button to the screen you are already on: the thing to press there is lit instead
-        const here = fh && ((fh.go === 'supplier' && tab === 'supplier') || (fh.go === 'stall' && tab === 'stall'));
+        const here = fh && ((fh.go === 'supplier' && tab === 'supplier') || (fh.go === 'stall' && (tab === 'stall' || (tab === 'map' && stallSheetUp))));
         const goStall = () => (g.at === 'giza' ? mapGo({ view: 'district', stall: true }) : chapterGo('district'));
         return (
           <ObjectiveBar onMenu={() => { forceSave(); audio.stopAll(); setPhase('title'); }}

@@ -3659,7 +3659,8 @@ export const useGame = create<GameState & Actions>()(
         skipTutorial: () => {
           const s = get();
           if (s.tutorial.done) return;
-          set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false } : s.encounter });
+          // the lesson's narrator goes with it: a skipped lesson leaves no instruction on screen
+          set({ tutorial: { done: true, step: 'done', inspected: true }, encounter: s.encounter?.tutorial ? { ...s.encounter, tutorial: false, log: [...s.encounter.log, { speaker: 'narrator', text: '' }] } : s.encounter });
         },
         skipLessons: () => {
           const s = get();

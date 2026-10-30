@@ -43,26 +43,26 @@ export const DAY_ONE = 5;
 /** what Rashid's errand costs, about: a guard, the ferry and the train, and the cheapest rug in Alexandria */
 export const ERRAND_PURSE = 350;
 export const OPENING: OpeningStep[] = [
-  { id: 'stall', text: () => 'Sell your first rug.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
+  { id: 'stall', text: () => 'Sell your first rug.', btn: 'Your stall', go: 'stall', done: (s) => s.tutorial.done },
   { id: 'rashid', text: () => 'Buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
-  { id: 'sell2', text: () => 'Sell another rug at your stall.', btn: 'Go to your stall', go: 'stall', done: (s) => sales(s) >= 2 || s.day >= 2 },
+  { id: 'sell2', text: () => 'Sell another rug at your stall.', btn: 'Your stall', go: 'stall', done: (s) => sales(s) >= 2 || s.day >= 2 },
   {
     id: 'pay',
     text: (s) => { const o = owing(s); return o && s.cash < o ? `Sell more: you have ${fmtP(s.cash)} of his ${fmtP(o)}.` : `Pay Rashid his ${fmtP(o || 1000)}.`; },
     btn: 'Go to Rashid', go: 'supplier',
     done: (s) => !owing(s) || s.day >= 3,
   },
-  { id: 'night', text: () => 'Sell until the stall shuts tonight.', btn: 'Go to your stall', go: 'stall', done: (s) => s.day >= 2 },
-  { id: 'guards', text: (s) => (s.cash < ERRAND_PURSE ? `Sell first: the errand needs about ${fmtP(ERRAND_PURSE)}.` : 'Hire a guard for the road.'), btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
+  { id: 'night', text: () => 'Sell until the stall shuts tonight.', btn: 'Your stall', go: 'stall', done: (s) => s.day >= 2 },
+  { id: 'guards', text: (s) => (s.cash < ERRAND_PURSE ? `Sell first: the trip costs ${fmtP(ERRAND_PURSE)}.` : 'Hire a guard for the road.'), btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
   { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
-  { id: 'bandits', text: () => 'Take the train to Alexandria: 3½ hours.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
+  { id: 'bandits', text: () => 'Train to Alexandria: 3½ hours.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
   // any rug bought in Alexandria, whether or not Rashid has given his errand yet (it counts for that too)
   { id: 'auction', text: () => 'Buy one rug in Alexandria.', btn: 'Show Alexandria', go: 'alexandria', done: (s) => s.missions?.alexandria === 'done' || !!s.onboard?.auction || s.ledger.some((l) => l.kind === 'purchase' && l.label.endsWith(' in Alexandria')) },
 ];
 /** the button for a step as things stand: the pay step sends you to the stall while the purse is short */
 export function stepGo(s: S, st: OpeningStep): { btn: string; go: string; flash: string } {
-  if (st.id === 'pay' && owing(s) > s.cash) return { btn: 'Go to your stall', go: 'stall', flash: 'stall' };
-  if (st.id === 'guards' && s.cash < ERRAND_PURSE) return { btn: 'Go to your stall', go: 'stall', flash: 'stall' };
+  if (st.id === 'pay' && owing(s) > s.cash) return { btn: 'Your stall', go: 'stall', flash: 'stall' };
+  if (st.id === 'guards' && s.cash < ERRAND_PURSE) return { btn: 'Your stall', go: 'stall', flash: 'stall' };
   return { btn: st.btn, go: st.go, flash: st.id };
 }
 /** the eyebrow over the step: "Day one · 2 of 5", then "Rashid's errand · 1 of 4" */

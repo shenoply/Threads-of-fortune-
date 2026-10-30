@@ -160,7 +160,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
             <i className="fd-bar"><span style={{ width: `${100 - (fam.left / FAMILY_START.left) * 100}%` }} /></i>
             {wk && <small className="fd-week" data-testid="family-week">{wk.second ? 'One more week: ' : 'Rashid wants '}<b>{fmt(wk.owed)}</b> by {dueDate(wk.by)}{wk.days === 0 ? ' (today)' : ''}.{!wk.second && wk.days > 0 ? ` Pay it before then and he takes ${fmt(EARLY_OFF)} off. ` : ' '}That night he takes it from your purse, if it is there.</small>}
             {g.family?.first?.how === 'early' && g.family.first.done === g.day && <small className="fd-week">Paid before the day. Rashid took {fmt(EARLY_OFF)} off the debt.</small>}
-            <small>{fam.due > 0 ? <em>{fmt(fam.due)} is overdue. It is taken from your cash each morning.</em> : <>{fmt(Math.min(FAMILY_INSTALMENT, fam.left))} is taken on the 1st of every month.</>}</small>
+            <small>{fam.due > 0 ? <em>{fmt(fam.due)} is overdue. It is taken from your cash each morning.</em> : <>{wk ? 'After that, ' : ''}{fmt(Math.min(FAMILY_INSTALMENT, fam.left))} is taken on the 1st of every month.</>}</small>
           </div>
           <div className="fd-btns">
             {wk && wk.owed !== 500 && <button className="btn primary" disabled={g.cash < wk.owed} onClick={() => g.payFamily(wk.owed)} data-testid="pay-week">Pay {fmt(wk.owed)}</button>}

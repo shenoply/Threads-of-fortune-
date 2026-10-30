@@ -1399,7 +1399,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
   return (
     <div className="world" data-testid="world">
-      <Tip id="world" />
+      {/* not over a trip being planned: its choices sit where the hint would */}
+      <Tip id="world" when={!plan && !lock} />
       <div
         className={`world-map ${z <= minZ * 1.2 ? 'overview' : ''}`}
         ref={wrap}
