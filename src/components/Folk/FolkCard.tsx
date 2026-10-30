@@ -2,12 +2,13 @@ import { RUGS } from '../../data/rugs';
 import { fmt } from '../../game/economy/money';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/state/store';
-import { person, houseOf, TRAIT_WORD, type Person } from '../../game/systems/population';
+import { person, houseOf, folkBrideId, TRAIT_WORD, type Person } from '../../game/systems/population';
 import { relWord, topicWord, type Topic } from '../../game/systems/folkTalk';
 import { KIND_WORD, FAVOUR_REL, canSettle, rugPrice, type Favour } from '../../game/systems/favours';
 import { settlementById } from '../../game/systems/world';
 import { audio } from '../../game/audio/engine';
 import { FolkFace } from './FolkFace';
+import { BRIDES, hh, canCourt, availableBrides, ASK_AT, VISIT_HOURS, type BrideId } from '../../game/systems/household';
 import './folk.css';
 
 /** open a page of the encyclopedia from anywhere */
@@ -56,6 +57,16 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
   const settleWord = (f: Favour) => f.kind === 'letter' ? (f.to === p.id ? `Give ${p.sex === 'f' ? 'her' : 'him'} the letter from ${person(f.giver)?.short}` : '') : f.kind === 'rug' ? 'Show the rug you found' : f.kind === 'loan' ? 'Ask for the loan back' : `Tell ${p.sex === 'f' ? 'her' : 'him'} about ${f.leader}`;
   const reply = (text: string, label = 'A favour') => setSaid((x) => [...x, { topic: 'self', text, mentions: [], label }]);
   const met = g.folk?.met[p.id] !== undefined;
+  // a father (or widowed mother) whose daughter's family would receive you: the courtship, from his own door
+  const hs = hh(g);
+  const open = canCourt(hs) && hs.stage !== 'betrothed' ? new Set(availableBrides(hs)) : new Set<string>();
+  const daughters = p.children.map((c) => person(c)).filter((d): d is Person => !!d && d.sex === 'f')
+    .map((d) => (d.bride && BRIDES[d.bride as BrideId] ? d.bride : folkBrideId(d.id)) as BrideId).filter((b) => open.has(b));
+  const court = (b: BrideId, scene: 'call' | 'ask') => {
+    const r = useGame.getState().householdAct({ kind: 'scene', scene, bride: b });
+    if (r) reply(r, BRIDES[b].short); else onClose();
+  };
+  const toHousehold = (b: BrideId) => { onClose(); window.dispatchEvent(new CustomEvent('tof:open-household', { detail: b })); };
   return (
     <div className="overlay folk-overlay" onClick={onClose} data-testid="folk-card">
       <div className="modal-card folk-card" onClick={(e) => e.stopPropagation()}>
@@ -91,6 +102,21 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
               </div>
             </div>
           )}
+          {daughters.map((b) => {
+            const br = BRIDES[b];
+            const su = hs.suitors[b] ?? { favour: 0, visits: 0, gifts: 0 };
+            const here = g.world.at === br.city;
+            const called = su.lastVisit === g.day;
+            const late = g.world.hour + VISIT_HOURS > 20;
+            return (
+              <div key={b} className="folk-favour folk-court" data-testid={`folk-court-${b}`}>
+                <small>{br.short} · her family's opinion of you {su.favour} of 100</small>
+                <button className="btn" disabled={!here || called || late} onClick={() => court(b, 'call')} data-testid={`folk-court-call-${b}`}>{called ? 'You called today · come again tomorrow' : late ? 'Too late to call on the house today' : !here ? `Call on the house in ${br.cityName}` : su.visits ? `Call on the house about ${br.short}` : `Ask to call on the house about ${br.short}`}</button>
+                {su.favour >= ASK_AT && <button className="btn primary" disabled={!here} onClick={() => court(b, 'ask')} data-testid={`folk-court-ask-${b}`}>Ask for {br.short}'s hand</button>}
+                <button className="ghost-btn" onClick={() => toHousehold(b)} data-testid={`folk-court-hh-${b}`}>Presents and the rest: Household ›</button>
+              </div>
+            );
+          })}
           {extra}
           <button className="ghost-btn" onClick={onClose} data-testid="folk-bye">Go in peace</button>
         </div>

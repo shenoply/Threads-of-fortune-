@@ -440,6 +440,19 @@ export default function App() {
   useEffect(() => { const on = () => { openFoldNext('pr-ranks'); setMsub('collection'); setTab('ledger'); window.setTimeout(() => document.querySelector('[data-testid=ranks-fold]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); }; window.addEventListener('tof:open-tables', on); return () => window.removeEventListener('tof:open-tables', on); }, []);
   // open the map at a place from anywhere (the encyclopedia, tests): detail is a map intent
   useEffect(() => { const on = (e: Event) => mapGo((e as CustomEvent).detail); window.addEventListener('tof:go', on); return () => window.removeEventListener('tof:go', on); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // a bride's father in the street: his daughter's card in Me > Household
+  useEffect(() => {
+    const on = (e: Event) => {
+      const b = (e as CustomEvent<string>).detail;
+      openFoldNext('me-household'); openFoldNext('me-household-others'); setTab('hero');
+      window.setTimeout(() => {
+        for (const t of ['fold-me-household', 'hh-others']) { const d = document.querySelector(`[data-testid=${t}]`) as HTMLDetailsElement | null; if (d && !d.open) d.open = true; }
+        document.querySelector(`[data-testid="bride-${b}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 350);
+    };
+    window.addEventListener('tof:open-household', on);
+    return () => window.removeEventListener('tof:open-household', on);
+  }, []);
   useEffect(() => { const on = () => setTab('inventory'); window.addEventListener('tof:open-stock', on); return () => window.removeEventListener('tof:open-stock', on); }, []);
   useEffect(() => { const on = () => setTab('supplier'); window.addEventListener('tof:open-rashid', on); return () => window.removeEventListener('tof:open-rashid', on); }, []);
   // a deep screen (Arran's notebook, an errand card) asks for a route to a town: show the map with it planned
