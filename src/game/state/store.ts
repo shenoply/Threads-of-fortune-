@@ -1488,6 +1488,10 @@ export const useGame = create<GameState & Actions>()(
       const rollover = (s: GameState, o: { camped?: boolean } = {}): { patch: Partial<GameState>; summary: DaySummary } => {
           const notes: string[] = [];
           const pre = nightBefore(s, { arrivalAt, patience: AWAY_PATIENCE + boyWait(s), rng }); s = pre.s; notes.push(...pre.notes);
+          // the first-sale lesson belongs to day one (Samira comes only then). A night passing without it ends
+          // it, or the Today chip (gift and runner), the errands and the missions would wait on it for good
+          const lessonOver = !s.tutorial.done;
+          if (lessonOver) s = { ...s, tutorial: { done: true, step: 'done', inspected: true } };
           const ledger = [...s.ledger];
           const journal = [...s.journal];
           // Rent and household are paid monthly, on the first (see below).
@@ -2070,6 +2074,7 @@ export const useGame = create<GameState & Actions>()(
           const home = s.world.at === 'giza' && s.whereabouts?.[s.day] !== 'giza' ? { ...(s.whereabouts ?? {}), [s.day]: 'giza' } : s.whereabouts;
           const where = trimWhereabouts(home, day, [lastAt(home, 'giza', day + 1) ?? 0]);
           if (where !== s.whereabouts) patch.whereabouts = where;
+          if (lessonOver) patch.tutorial = s.tutorial;
           return { patch, summary };
         };
 
@@ -5478,7 +5483,8 @@ export const useGame = create<GameState & Actions>()(
         if (state.reoffers?.some((r) => !auctionable(r.typeId))) state.reoffers = state.reoffers.filter((r) => auctionable(r.typeId));
         // A visit in progress is not saved; the same buyer returns on reload.
         if (state.started && !state.tutorial.done) {
-          state.tutorial = { done: false, step: 'room', inspected: false };
+          // a save past day one whose lesson never ran (no first sale on day one) is let out of it
+          state.tutorial = (state.day ?? 1) > 1 ? { done: true, step: 'done', inspected: true } : { done: false, step: 'room', inspected: false };
         }
       },
     },
