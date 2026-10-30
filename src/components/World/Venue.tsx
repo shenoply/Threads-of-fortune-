@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useDialogEscape } from '../useDialogEscape';
 import { streetRoute } from '../../game/systems/streets';
 import { guideTarget } from '../../game/guide';
-import { lookFor } from '../../game/heroLook';
+import { headFace } from '../../game/heroLook';
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { useGame } from '../../game/state/store';
 import { audio } from '../../game/audio/engine';
@@ -49,7 +49,7 @@ export function Venue({ id, def, onLeave, onAction, onExitCity, exitLabel, backL
   const v = def ?? VENUES[id!];
   const g = useGame();
   // your marker on the walk: the same round face as the "Me" tab, kept in step with the wardrobe
-  const faceUrl = lookFor(g.heroLook);
+  const faceUrl = headFace(g);
   const faceRef = useRef(faceUrl); faceRef.current = faceUrl;
   const markerRef = useRef<PortraitMarker | null>(null);
   useEffect(() => { markerRef.current?.setFace(faceUrl); }, [faceUrl]);

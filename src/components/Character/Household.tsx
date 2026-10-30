@@ -12,14 +12,16 @@ import {
   kinOf, bindingWife, presentsFor, roleLine, feastOf,
   type BrideId, type Child, type ChildPath, type SpouseRole, type HouseholdAct,
 } from '../../game/systems/household';
+import { silhouetteFor } from '../../game/silhouette';
 import './household.css';
 
-/** A framed portrait: the painting once it has loaded, the sitter's initial until then (or if there is none). */
-function Portrait({ src, name, small = false, fallback, onOpen, big = false }: { src: string; name: string; small?: boolean; fallback?: string; onOpen?: () => void; big?: boolean }) {
+type Sitter = 'son' | 'daughter' | 'f';
+/** A framed portrait: the painting once it has loaded, a plain silhouette until then (or if there is none). */
+function Portrait({ src, name, small = false, fallback, onOpen, big = false, sex = 'f', young = false }: { src: string; name: string; small?: boolean; fallback?: string; onOpen?: () => void; big?: boolean; sex?: Sitter; young?: boolean }) {
   const [ok, setOk] = useState(false);
   const [use, setUse] = useState(src);
   const inner = <>
-    <b>{name.replace(/^(the|al-)\s*/i, '')[0]}</b>
+    <img className="hh-sil" src={silhouetteFor(sex, young)} alt="" />
     {use && <img src={use} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => { setOk(false); if (fallback && use !== fallback) setUse(fallback); }} style={{ opacity: ok ? 1 : 0 }} />}
   </>;
   // tap a face to see the person: the picture large, and what you know of them
@@ -29,7 +31,7 @@ function Portrait({ src, name, small = false, fallback, onOpen, big = false }: {
 }
 
 /** someone of the household seen close: the picture large, who they are, and a way into the encyclopedia */
-interface Look { src: string; fallback?: string; name: string; lines: string[]; person?: string }
+interface Look { src: string; fallback?: string; name: string; lines: string[]; person?: string; sex?: Sitter; young?: boolean }
 /** a name in a card: opens the same close view as the face beside it */
 const openCard = (e: { currentTarget: HTMLElement }) => (e.currentTarget.closest('.hh-card')?.querySelector('.hh-pt-open') as HTMLButtonElement | null)?.click();
 const NameBtn = ({ children }: { children: ReactNode }) => <button className="hh-name" onClick={openCard}>{children}</button>;
@@ -39,7 +41,7 @@ function LookSheet({ look, onClose }: { look: Look; onClose: () => void }) {
   return createPortal(
     <div className="hh-look-wrap" onClick={onClose} data-testid="hh-look">
       <div className="hh-look" role="dialog" aria-label={look.name} onClick={(e) => e.stopPropagation()}>
-        <div className="hh-look-pic"><Portrait src={look.src} fallback={look.fallback} name={look.name} big /></div>
+        <div className="hh-look-pic"><Portrait src={look.src} fallback={look.fallback} name={look.name} sex={look.sex} young={look.young} big /></div>
         <h3>{look.name}</h3>
         {look.lines.filter(Boolean).map((l, i) => <p key={i}>{l}</p>)}
         <div className="hh-btns">
@@ -215,7 +217,7 @@ export function HouseholdSection() {
           const parent = kin === 'child' ? merchantName(g) : head?.father ?? 'Hassan';
           return (
             <div key={c.id} className="hh-card kid" data-testid={`child-${c.id}`}>
-              <Portrait src={art[0]} fallback={art[1]} key={art[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small onOpen={() => setLook({ src: art[0], fallback: art[1], name: c.name ?? `Your ${c.sex}, not yet named`, lines: [`${c.sex === 'son' ? 'Son' : 'Daughter'} of ${parent}${mother ? ` and ${mother}` : ''}.`, `Born ${dateFor(c.born).short}. ${age < 1 ? 'A baby.' : `${age} year${age > 1 ? 's' : ''} old.`}`, c.path ? `${PATH_WORD[c.path][0].toUpperCase()}${PATH_WORD[c.path].slice(1)}.` : '', c.role === 'apprentice' ? 'Travels with you as your apprentice.' : c.role === 'shop' ? `Keeps the shop in ${c.shopAt}.` : '', age >= GROWN && !art[0] ? 'No portrait yet.' : ''] })} />
+              <Portrait src={art[0]} fallback={art[1]} key={art[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} sex={c.sex} young={age < 12} small onOpen={() => setLook({ src: art[0], fallback: art[1], sex: c.sex, young: age < 12, name: c.name ?? `Your ${c.sex}, not yet named`, lines: [`${c.sex === 'son' ? 'Son' : 'Daughter'} of ${parent}${mother ? ` and ${mother}` : ''}.`, `Born ${dateFor(c.born).short}. ${age < 1 ? 'A baby.' : `${age} year${age > 1 ? 's' : ''} old${age > Math.floor((g.day - c.born) / 365) ? ': the years at home have passed faster than the calendar' : ''}.`}`, c.path ? `${PATH_WORD[c.path][0].toUpperCase()}${PATH_WORD[c.path].slice(1)}.` : '', c.role === 'apprentice' ? 'Travels with you as your apprentice.' : c.role === 'shop' ? `Keeps the shop in ${c.shopAt}.` : '', age >= GROWN && !art[0] ? 'No portrait yet.' : ''] })} />
               <div className="hh-txt">
                 <b><NameBtn>{c.name ?? `A ${c.sex}, not yet named`}</NameBtn>{c.twinOf || h.children.some((x) => x.id !== c.id && x.born === c.born && (x.mother ?? '') === (c.mother ?? '')) ? <em className="hh-nth"> · {h.children.filter((x) => x.born === c.born && (x.mother ?? '') === (c.mother ?? '')).length === 3 ? 'a triplet' : 'a twin'}</em> : null}</b>
                 <small>{whose}{age < 1 ? 'A baby' : `${age} year${age > 1 ? 's' : ''}`}{c.path ? `, ${PATH_WORD[c.path]}` : ''}{c.role === 'apprentice' ? ', travelling with you' : c.role === 'shop' ? `, keeping the shop (${c.shopAt})` : ''}.{age >= PATH_AGE ? ` Learning ${Math.round(c.traits.learning)} · trade ${Math.round(c.traits.trade)} · craft ${Math.round(c.traits.craft)}` : ''}</small>

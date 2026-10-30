@@ -9,7 +9,7 @@ import { takeMalekRequest, travelTo } from '../../game/nav';
 import { IntroFilm, filmDue, filmReady, type FilmId } from '../IntroFilm/IntroFilm';
 const unseen = (id: FilmId) => filmDue(id, useGame.getState().introSeen);
 import { guideTarget } from '../../game/guide';
-import { lookFor } from '../../game/heroLook';
+import { headFace } from '../../game/heroLook';
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { useGame, arrivalAt } from '../../game/state/store';
 import { HAMMAMS } from '../../data/character';
@@ -476,10 +476,9 @@ const OBJECTIVE_BTNS = '[data-testid="first-hour-go"], [data-testid="objective-g
 
 export function District({ onStall, onWorld, initialPanel = null, onPanelClosed, scale = 1, frozen = false, onZoomOut, startZoomedOut = false }: { onStall: () => void; onWorld: (openPanel?: string) => void; initialPanel?: SetTab | null; onPanelClosed?: () => void; scale?: number; frozen?: boolean; onZoomOut?: () => void; startZoomedOut?: boolean }) {
   const guidePoi = useGame((s) => (s.started ? guideTarget(s)?.poi : undefined));
-  const heroLook = useGame((s) => s.heroLook);
   const district = useGame((s) => s.world.district);
   // your marker on the walk: the same round face as the "Me" tab, kept in step with the wardrobe
-  const faceUrl = lookFor(heroLook);
+  const faceUrl = useGame(headFace);
   const faceRef = useRef(faceUrl); faceRef.current = faceUrl;
   const markerRef = useRef<PortraitMarker | null>(null);
   useEffect(() => { markerRef.current?.setFace(faceUrl); }, [faceUrl]);

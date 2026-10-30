@@ -15,7 +15,7 @@ import { caravanMaster } from '../../game/systems/population';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
-import { lookFor } from '../../game/heroLook';
+import { headFace } from '../../game/heroLook';
 import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
 import { nameOnRoad, useGame, ferryFare, localBid } from '../../game/state/store';
 import { rankChip } from './RankTable';
@@ -187,7 +187,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // once onto its own small canvas and moved by CSS, never redrawn per frame
   const medalRef = useRef<HTMLCanvasElement>(null);
   const markerRef = useRef<PortraitMarker | null>(null);
-  const faceUrl = lookFor(g.heroLook);
+  const faceUrl = headFace(g);
   useEffect(() => {
     const paintMedal = () => {
       const cv = medalRef.current, mk = markerRef.current;

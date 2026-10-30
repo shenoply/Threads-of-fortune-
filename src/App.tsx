@@ -29,7 +29,7 @@ import { eventsOn, eventsStarting, laneDay } from './game/economy/life';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
-import { lookFor } from './game/heroLook';
+import { headFace, HERO_FACE } from './game/heroLook';
 import { PlayAsYourself, SandboxChoose } from './components/Sandbox/PlayAsYourself';
 import { ModeChooser, type Mode } from './components/Title/ModeChooser';
 import { Rescue } from './components/World/Rescue';
@@ -165,7 +165,7 @@ const appView = (g: AppState) => {
     visitIdx: g.visitIdx, queue: g.queue, upgrades: g.upgrades, stallLook: g.stallLook, stallSpots: g.stallSpots,
     tutorialDone: g.tutorial.done, onboard: g.onboard, illCount: (g.illnesses ?? []).length, ended: g.ended, rescue: g.rescue,
     jobNote: g.jobNote, lastSummary: g.lastSummary, dayStats: g.dayStats, billsDue: g.bills?.due, ruin: g.ruin, bankruptcies: g.bankruptcies,
-    introSeen: g.introSeen, momentsSeen: g.momentsSeen, dreamsLast: g.dreams?.last, wardrobe: g.wardrobe, heroLook: g.heroLook,
+    introSeen: g.introSeen, momentsSeen: g.momentsSeen, dreamsLast: g.dreams?.last, wardrobe: g.wardrobe, face: headFace(g),
     newsSeen: g.newsSeen, held: g.held,
     at: g.world.at,
     // the clock only as far as App uses it: the stall closes at eight, Malek serves supper until nine, the lane thins at five and seven
@@ -1036,7 +1036,7 @@ export default function App() {
           const on = tab === id || (id === 'hero' && tab === 'ledger');
           return (
           <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}${!on && tourStep && tourNav[tourStep] === id ? 'tour-target' : ''}`}>
-            {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={lookFor(g.heroLook) ?? 'art/hero/hero-face-small.webp'} alt="" /></span> : <Icon name={icon} />}
+            {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={g.face ?? HERO_FACE} alt="" /></span> : <Icon name={icon} />}
             {label}
           </button>
           );

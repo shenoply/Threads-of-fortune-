@@ -492,7 +492,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         S().endDay();
         await leave(() => nav.tab('hero')); await openFold('me-household');
         const bare = hh(S()).children.filter((c) => !c.name).length;
-        return `Grown: ${hh(S()).children.map((c) => `${childName(c)} (${ageOf(c)})`).join(', ')}.${bare ? ' Name them under Household.' : ''}` + nightCost(cash0, l0);
+        return `Grown: ${hh(S()).children.map((c) => `${childName(c)} (${ageOf(c)})`).join(', ')}.${bare ? ' Name them under Household.' : ''} Only the children are moved on: the calendar stays where it is, as with the faster pace at home.` + nightCost(cash0, l0);
       } },
       { label: 'Show the heir', testid: 'adm-fam-heir', run: async () => {
         const hr = heirOf(hh(S()));

@@ -5,7 +5,7 @@ const p = await b.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFa
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await p.goto(`http://localhost:${__PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1'))); await p.reload(); // skip the opening chapter, which locks every town but Giza and Cairo
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
-await p.evaluate(() => { const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); d.state.tutorial={done:true,step:'done',inspected:true}; d.state.cash=2000; /* fares, a frontier fine and Farid's 20 pt */ (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
+await p.evaluate(() => { const k='threads-of-fortune-save'; const d=JSON.parse(localStorage.getItem(k)); d.state.tutorial={done:true,step:'done',inspected:true}; d.state.cash=2000; /* fares and a frontier fine */ (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
 await p.reload(); await p.click('[data-testid=continue]'); await p.waitForTimeout(300);
 const S = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state);
 const has = async (s) => (await p.locator(s).count()) > 0;
@@ -49,8 +49,10 @@ await go('alexandria', 'train'); await shot('alex');
 await talk('pericles','Where do your ships go?','Go in peace');
 await go('jaffa', 'ship');
 await go('damascus'); await shot('damascus');
-await talk('farid','Look at this silk rug','Pay 20 pt and wait');
-const dr = (await S()).inventory.find(i=>i.typeId==='damascus-rose'); console.log('  damascus rose provenance', dr?.provenance, dr?.notes.slice(-1));
+// Farid looks at your father's rug (Fayoum Hearth) for nothing: the opinion was paid for years ago
+await talk('farid', "Look at my father's old rug", 'Wait while he looks');
+const fh = (await S()).inventory.find(i=>i.typeId==='fayoum-hearth'); console.log('  father\'s rug provenance', fh?.provenance, fh?.notes.slice(-1));
+if (!fh || !/Farid/.test(fh.notes.join(' '))) console.log('FAIL Farid did not look at the father\'s rug');
 await shot('farid');
 console.log('known', (await S()).world.known.join(','));
 console.log('errors', errs);

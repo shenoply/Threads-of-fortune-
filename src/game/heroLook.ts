@@ -1,3 +1,5 @@
+import { childArt, type HouseholdState } from './systems/household';
+import { silhouetteFor } from './silhouette';
 // "Play as Yourself": the player makes ONE picture of their head in their own ChatGPT account, in the game's
 // painted style, and uploads it. The game puts that head on Hassan's own body (every outfit, both poses).
 // Nothing is sent anywhere: the picture is shrunk in the browser and kept in the save.
@@ -130,3 +132,16 @@ export function composeHero(outfitSrc: string, head: string, pose: 'full' | 'sta
 /** What each small round face draws for the hero (null = Hassan's own). */
 export const lookFor = (look: HeroLook | undefined | null, _pose: 'portrait' = 'portrait') => (look && look.kind === 'custom' && look.portrait ? look.portrait : null);
 export const headOf = (look: HeroLook | undefined | null) => (look && look.kind === 'custom' && look.head ? look.head : null);
+/** Hassan's own round face (the Me tab's button, the map medal) */
+export const HERO_FACE = 'art/hero/hero-face-small.webp';
+type FaceState = { heroLook?: HeroLook | null; household?: HouseholdState };
+/** The face of whoever heads the house now, where it differs from Hassan's own: the heir's once the house
+ *  has passed on (a silhouette while he or she has no portrait), else the player's own uploaded face;
+ *  null means Hassan's. */
+export function headFace(s: FaceState): string | null {
+  const m = s.household?.merchant;
+  if (m) return (m.child && childArt(m.child)[0]) || silhouetteFor(m.sex ?? 'son');
+  return lookFor(s.heroLook);
+}
+/** the same, with Hassan's face for null: for an <img> */
+export const heroFace = (s: FaceState) => headFace(s) ?? HERO_FACE;

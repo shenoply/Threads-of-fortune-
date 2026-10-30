@@ -10,7 +10,9 @@ import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { MeNext } from './MeNext';
 import { MeSection, SkillsSection } from '../Character/Character';
 import { HouseholdSection } from '../Character/Household';
-import { hh, childArt } from '../../game/systems/household';
+import { hh } from '../../game/systems/household';
+import { headFace } from '../../game/heroLook';
+import { silhouetteFor } from '../../game/silhouette';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
 import './HeroHub.css';
@@ -26,7 +28,7 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
   const met = Object.keys(g.folk?.met ?? {}).length;
   // after the house has passed on, the heir is the merchant: his or her name and face
   const head = hh(g).merchant;
-  const headArt = head?.child ? childArt(head.child)[0] : '';
+  const headArt = head ? headFace(g) ?? '' : '';
   const dresses = !head || head.sex !== 'daughter';
   return (
     <div className="screen hero-hub" data-testid="hero-hub">
@@ -48,7 +50,7 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
       <section className="hh-top">
         {head ? (
           <div className="hh-room hh-room-head" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} data-testid="hh-figure">
-            <span className="hh-head-face" aria-hidden="true"><b>{head.name[0]}</b>{headArt && <img src={headArt} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}</span>
+            <span className="hh-head-face" aria-hidden="true"><img src={headArt} alt="" data-testid="hh-head-img" onError={(e) => { e.currentTarget.src = silhouetteFor(head.sex); }} /></span>
           </div>
         ) : (
           <button className="hh-room" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} onClick={() => setOpen(true)} aria-label="Open the wardrobe" data-testid="hh-figure">

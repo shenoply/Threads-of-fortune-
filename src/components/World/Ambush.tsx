@@ -15,7 +15,7 @@ import { BATTLE_ART, fieldFor } from './BattleField';
 import { Clash, setupOf, type ClashEnd, type ClashInfo } from './Clash';
 import { forecast, forecastWhy, simulate, losses as battleLosses } from '../../game/systems/battle';
 import { PRISONER_BOUNTY, ransomFor, roadToll } from '../../game/systems/combat';
-import { lookFor } from '../../game/heroLook';
+import { heroFace } from '../../game/heroLook';
 import { groundsAt, isWin, type GroundId } from '../../game/systems/combat';
 import { terrainAt, dist } from '../../game/systems/world';
 import { ROAD_WELLS, SETTLEMENTS } from '../../data/world';
@@ -141,7 +141,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   // your own share of the strength is what strength() gives you without your men: you, and any arms you carry
   const heroStr = strength({ ...g.world.party, troops: {} });
   const mySide: Unit[] = useMemo(() => [
-    { id: 'you', name: 'You', img: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', str: heroStr, n: 1, start: 1 },
+    { id: 'you', name: 'You', img: heroFace(g), str: heroStr, n: 1, start: 1 },
     ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.jpg`, str: TROOPS[id].strength, n: n ?? 0, start: n ?? 0 })),
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
   const enemy = { n: size, str: theirs / size };
@@ -165,7 +165,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const myPow = mine + Math.min(combat.rifles, men) + (combat.sergeant ? 2 : 0);
     return {
       bandId: threat.id, bandName: threat.displayName, place, field, size, enPow: theirs + (leader?.grudge ? 2 : 0), myPow,
-      leader, leaderImg: threat.leaderImage, heroImg: lookFor(g.heroLook) ?? 'art/stall-seller.jpg', heroArt: 'hero',
+      leader, leaderImg: threat.leaderImage, heroImg: heroFace(g), heroArt: 'hero',
       temper, known: !!leader?.seen || close, scout: scouted, grounds, camels,
       mountedMen: Object.entries(g.world.party.troops).some(([id, n]) => (n ?? 0) > 0 && TROOPS[id].mounted),
       sergeant: combat.sergeant?.name, arms: g.world.party.arms ?? 0, armsLine, seed: `${party.id}:${g.day}:${combat.wins + combat.losses}`,
