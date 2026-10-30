@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AUCTIONEER, type AuctionCall } from '../../data/auctioneer';
 import { voice } from '../../game/audio/voice';
 import { useGame } from '../../game/state/store';
+import { houseBidders } from '../../game/systems/houses';
 import { HOUSES, art, catalogue, roomFor, ceilingFor, increment, saleOn, nextSale, saleStart, type Lot, type RoomBidder } from '../../game/auction/sessions';
 import { canAffordBid, totalAuctionCost } from '../../game/auction/auctionSystem';
 import { AUCTION_UI_RULES } from '../../game/auction/uiContract';
@@ -41,7 +42,8 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
   // Selim only sits in while "The stall next door" is actually running — once it's 'done' he has left
   // for Port Said and has no business bidding against you (missions?.rival is still a truthy string
   // once the mission is done, so this has to check the value, not just whether the key exists).
-  const [room] = useState(() => roomFor(houseId, saleStart(houseId, day) ?? day, { cash: g.cash, rep: g.reputation, rival: g.missions?.rival === 'active' }));
+  // a rival house trading in the city takes a seat too, and bids against you (systems/houses.ts)
+  const [room] = useState(() => [...roomFor(houseId, saleStart(houseId, day) ?? day, { cash: g.cash, rep: g.reputation, rival: g.missions?.rival === 'active' }), ...houseBidders(g, h.city, h.tier)]);
   const [seated, setSeated] = useState(false);
   const [results, setResults] = useState<{ title: string; text: string; you: boolean }[]>([]);
   const firstOpen = lots.findIndex((l) => !(g.lotsSold ?? []).includes(l.key));

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../game/state/store';
 import { paperFor } from '../../game/economy/newspaper';
 import { seasonNews } from '../../game/systems/ranks';
+import { houseNews } from '../../game/systems/houses';
 import { isFirstOfMonth } from '../../game/economy/life';
 import { audio } from '../../game/audio/engine';
 import { dateFor } from '../../game/economy/economy';
@@ -30,7 +31,7 @@ export function Newspaper({ day: asked, onClose }: { day: number; onClose: () =>
     </div>
   );
   const billSoon = Array.from({ length: 7 }, (_, i) => day + i + 1).some((d) => isFirstOfMonth(d));
-  const p = useMemo(() => paperFor(day, { bills: billSoon, commissions: day === g.day ? g.commissions.filter((c) => !c.done) : [], ranks: seasonNews(g, day) }), [day, billSoon, g.day, g.commissions, g.ranks]);
+  const p = useMemo(() => paperFor(day, { bills: billSoon, commissions: day === g.day ? g.commissions.filter((c) => !c.done) : [], ranks: [...houseNews(g, day), ...seasonNews(g, day)] }), [day, billSoon, g.day, g.commissions, g.ranks, g.houses]);
   useEffect(() => { audio.sfx('paper'); }, [day]);
   const first = p.lead.body.charAt(0), rest = p.lead.body.slice(1);
   // First you hold it up and glance at the front: masthead, date and the day's headlines, printed on the

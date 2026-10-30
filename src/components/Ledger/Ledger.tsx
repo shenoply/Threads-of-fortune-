@@ -22,6 +22,7 @@ import { dateFor } from '../../game/economy/economy';
 import { settlementById } from '../../game/systems/world';
 
 import { RanksFold } from '../World/RankTable';
+import { RivalsFold } from '../World/Rivals';
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
@@ -87,6 +88,7 @@ export function Fortune() {
 
       <ShopsFold />
       <RanksFold />
+      <RivalsFold />
     </>
   );
 }

@@ -15,6 +15,11 @@ import { caravanMaster } from '../../game/systems/population';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
+import { houseMarks, HOUSE } from '../../game/systems/houses';
+import { RIVAL } from '../../data/rivals';
+import { RIVAL_MARK } from '../../data/epithets';
+import { Emblem } from '../Epithet/Emblem';
+import './rivals.css';
 import { headFace } from '../../game/heroLook';
 import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } from './mapIcons';
 import { nameOnRoad, useGame, ferryFare, localBid } from '../../game/state/store';
@@ -1183,6 +1188,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useEffect(() => { if (huntedBy) { audio.pushEnv('map-danger', 'road', 'danger'); return () => audio.popEnv('map-danger'); } }, [huntedBy]);
   const visibleParties = w.parties.filter((p) => isExplored(w.fog, p) || dist(p, moving && live ? live : w) < (p.kind === 'raiders' ? 48 : 30));
   const news = newsMarks(g.day);
+  // a rival house's shop, or its caravan buying up a line (systems/houses.ts)
+  const rivalMarks = houseMarks(g);
   const sandZones = khamsinZones(g.day);
   // under way, the road ahead keeps its dashed line and the road behind becomes a faint dotted trail
   const split = !plan && moving && live && moving.mode !== 'ferry' ? travelledPart(moving.path, live) : null;
@@ -1373,11 +1380,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                   {news[st.id].map((m) => <i key={m} className={`pn-${m}`} title={NEWS_TIP[m]} aria-label={NEWS_TIP[m]}><Icon name={NEWS_ICON[m]} /></i>)}
                 </span>
               )}
+              {rivalMarks[st.id] && shown && (tier > 0 || key) && (
+                <span className="prival" data-testid={`rival-pin-${st.id}`}>
+                  {rivalMarks[st.id].map((m) => { const d = HOUSE[m.by]; const rv = RIVAL[d.rival]; const t = `${rv.name}: ${m.kind === 'shop' ? 'a shop here' : 'buying up a line here'}`; return <i key={m.by + m.kind} className={m.kind} title={t} aria-label={t}><Emblem id={m.kind === 'shop' ? RIVAL_MARK[rv.temper].emblem : 'palm'} size={14} title={t} /></i>; })}
+                </span>
+              )}
               {named ? <span className="plbl">{st.name}{rankChip(g.ranks, st.id) && <em className="prank" data-testid={`rank-chip-${st.id}`}>{rankChip(g.ranks, st.id)}</em>}{g.shops?.[st.id] && <i className="pshop" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}</span>
                 : g.shops?.[st.id] && shown && <i className="pshop alone" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}
             </button>
             );
-          }), [s, tier, w.known, w.at, plan?.settlement?.id, moving?.dest, missionTarget, guideCity, g.jobsDone, g.reputation, g.visits, g.day, g.ranks, g.shops, lockedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+          }), [s, tier, w.known, w.at, plan?.settlement?.id, moving?.dest, missionTarget, guideCity, g.jobsDone, g.reputation, g.visits, g.day, g.ranks, g.shops, g.houses, lockedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // the scale bar: a round number of miles that fits in the corner, clear of the zoom buttons
   const scaleBar = (() => {
     const per100 = milesPx(s), maxW = Math.min(120, size.w * 0.32);

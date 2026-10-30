@@ -14,6 +14,7 @@ import { dateFor } from '../economy/economy';
 import type { GameState } from '../state/store';
 import { inLawHouses } from './household';
 import { eventsOn, budgetMod } from '../economy/life';
+import { HOUSE_FX } from './houseFx';
 
 export const SEASON_DAYS = 91;
 /** days a cut in prices lasts */
@@ -84,7 +85,8 @@ const ranksOf = (s: { ranks?: RanksState; day: number }) => s.ranks ?? freshRank
 export function standings(r: RanksState | undefined, city: string): Row[] {
   const t = r?.tables[city] ?? {};
   const rows: Row[] = [
-    ...RIVALS.filter((x) => x.cities.includes(city)).map((x) => ({ id: x.id, label: x.name, role: x.role, rival: x, value: t[x.id] ?? 0, target: x.season })),
+    // a house gone under (systems/houses.ts) leaves the table
+    ...RIVALS.filter((x) => x.cities.includes(city) && !HOUSE_FX.gone.includes(x.id)).map((x) => ({ id: x.id, label: x.name, role: x.role, rival: x, value: t[x.id] ?? 0, target: x.season })),
     ...lesserShops(city).map((x) => ({ id: x.id, label: x.label, value: t[x.id] ?? 0, target: x.season })),
     { id: 'you', label: 'You', value: t.you ?? 0, target: -1, you: true },
   ];

@@ -1,6 +1,8 @@
 import { weekGoalNight, type WeekGoal } from '../systems/weekGoal';
 import { omensNight, WATCH_COST, type Omen } from '../systems/omens';
 import { rivalNight, type LaneRival } from '../systems/laneRival';
+import { housesNight, houseCounter, syncHouseFx, freshHouses, type HousesState, type CounterKind } from '../systems/houses';
+import { houseAsk, houseThin, houseBid } from '../systems/houseFx';
 import { PERSIA_IDS, isPersian } from '../../data/persiaMap';
 import { motorLorry } from '../../data/world';
 import { provisionById, provisionPrice, COMFORT_CAP } from '../../data/provisions';
@@ -110,7 +112,7 @@ import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } fro
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -415,6 +417,8 @@ export interface GameState {
   ranks?: RanksState;
   /** Shukri Mansour, the rival across the lane in Giza (systems/laneRival.ts) */
   lane?: LaneRival;
+  /** the rival houses: purses, stock, moves against you and your answers (systems/houses.ts; save 30) */
+  houses?: HousesState;
   /** a warned danger (systems/omens.ts) */
   omen?: Omen;
   /** this week's target from Rashid (systems/weekGoal.ts) */
@@ -513,6 +517,8 @@ interface Actions {
   /** pay for a table on a performance night, once a night; returns a line for the player */
   takeTable: (id: string) => string;
   sellLocal: (uid: string, sid: string) => number;
+  /** answer a rival house (systems/houses.ts): returns what happened, in a line */
+  houseAct: (kind: CounterKind, id: string, arg?: string) => string;
   buyLocal: (sid: string, key: string) => string;
   partyChoice: (partyId: string, choice: string) => string;
   /** bandits stop you and you cannot pay: one of ten things happens instead; returns what did */
@@ -864,12 +870,14 @@ export function localOffersRaw(sid: string, day: number, bought: string[], frien
       const condition: RugItem['condition'] = h < 0.2 ? 'Dirty' : h < 0.32 ? 'Worn' : 'Good';
       const t = RUGS[o.typeId];
       const disc = (friends.includes(sid) ? 0.85 : 1) * (RANK_FX.first.includes(sid) ? FIRST_DISCOUNT : 1) * folkPrice(sid);
-      const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid, o.typeId));
+      const price = snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid, o.typeId) * houseAsk(sid, o.typeId, day));
       const key = `${day}:${sid}:${o.typeId}`;
       // village rugs come in stacks; the finer the rug, the fewer the copies. A city's souq has bales
       // of its own weave enough to load a caravan; a village has a few pieces
       const qty = ((t.tier ?? 1) === 1 ? 3 : (t.tier ?? 1) === 2 ? 2 : 1) * ((t.tier ?? 1) >= 3 ? 1 : MARKET_DEPTH[st.kind] ?? 1);
-      return { key, typeId: o.typeId, condition, price, left: qty - bought.filter((b) => b === key).length };
+      // a rival house buying up the line leaves the dealer fewer (systems/houses.ts)
+      const thin = houseThin(sid, o.typeId, day);
+      return { key, typeId: o.typeId, condition, price, left: (thin ? Math.max(1, qty - thin) : qty) - bought.filter((b) => b === key).length };
     });
 }
 
@@ -918,7 +926,7 @@ export function localAskPrice(sid: string, day: number, typeId: string, conditio
   // roll / a reputation dip would knock the cap out (askToday undefined) and let the uncapped,
   // much higher localBid() through — reopening the exact buy-low-sell-high loop this cap exists
   // to close, town by town, every time one of those day-to-day gates happens not to line up.
-  return snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid, o.typeId));
+  return snap(t.dealerCost * o.factor * CONDITION_FACTOR[condition] * disc * cityBuyMod(day, sid, typeId) * houseAsk(sid, typeId, day));
 }
 
 /** What the local dealer pays for one of your rugs here. */
@@ -1030,7 +1038,9 @@ export function localBid(sid: string, item: RugItem, day = 1): number {
   // the same day must still fetch less
   const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
   const cap = ask === undefined ? Infinity : snapDown(ask * DEALER_BUYBACK);
-  return Math.min(cap, bid < cap ? snap(bid * glut) : snapDown(cap * glut));
+  // a rival's shop in the town, or a partner house's trade (systems/houses.ts)
+  const hb = houseBid(sid);
+  return Math.min(cap, bid < cap ? snap(bid * glut * hb) : snapDown(cap * glut * Math.min(1, hb)));
 }
 
 /** The known town whose dealers pay best for this rug today (not counting `except`), with their bid:
@@ -2069,7 +2079,7 @@ export const useGame = create<GameState & Actions>()(
           }
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
-          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, omensNight, weekGoalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, housesNight, omensNight, weekGoalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
             const wk = shopsWeek(patch.shops ?? s.shops, day, patch.cash ?? cash, rng);
@@ -2902,6 +2912,12 @@ export const useGame = create<GameState & Actions>()(
           });
           const bill = onBill.charAt(0).toUpperCase() + onBill.slice(1);
           return `You take a table. ${bill} tonight.${meet ? ` At the next table sits ${BUYERS[meet].name}, who takes your card and promises to call at your stall in Giza the first morning you are there.` : ''}`;
+        },
+
+        houseAct: (kind, id, arg) => {
+          const r = houseCounter(get(), kind, id, arg);
+          if (Object.keys(r.patch).length) { set(r.patch); audio.sfx('coins'); }
+          return r.msg;
         },
 
         sellLocal: (uid, sid) => {
@@ -5369,6 +5385,8 @@ export const useGame = create<GameState & Actions>()(
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
         // save 29: epithets; an older game earns those it already deserves on the next change, quietly
         if (version < 29) { p.epithets = p.epithets ?? []; p.epithetQuiet = true; }
+        // save 30: the rival houses (systems/houses.ts) start trading the night after an older save loads
+        if (version < 30 && p.started && !p.houses) p.houses = freshHouses(p.day ?? 1);
         // dominoes with the coffee-house regulars and knot counting arrived with save 24: an empty record of each
         if (version < 24) { p.dominoes = p.dominoes ?? {}; p.knotCounts = p.knotCounts ?? {}; p.knotTally = p.knotTally ?? { tries: 0, close: 0 }; }
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }
@@ -5733,6 +5751,10 @@ function bandNear(s: GameState, home: string): { leader: string; road: string } 
   const l = id ? leaderOf(s, id) : undefined;
   return l && id ? { leader: l.name, road: BAND_ROAD[id] } : undefined;
 }
+let housesSeen: unknown, houseDay = -1, houseAt: string | null | undefined;
+const syncHouses = (s: GameState) => { if (s.houses === housesSeen && s.day === houseDay && s.world?.at === houseAt) return; housesSeen = s.houses; houseDay = s.day; houseAt = s.world?.at; syncHouseFx(s); };
+syncHouses(useGame.getState());
+useGame.subscribe(syncHouses);
 const syncRanks = (s: GameState) => { if (s.ranks === ranksSeen) return; ranksSeen = s.ranks; RANK_FX.first = firstCities(s); };
 syncRanks(useGame.getState());
 useGame.subscribe(syncRanks);

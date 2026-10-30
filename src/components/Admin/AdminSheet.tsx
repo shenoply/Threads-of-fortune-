@@ -31,6 +31,7 @@ import type { MapIntent } from '../World/Campaign';
 import type { MerchantSub } from '../Merchant/Merchant';
 import type { RugItem } from '../../game/types';
 import { skipDays } from '../../game/testerHook';
+import { forceMove, housesOf } from '../../game/systems/houses';
 import './admin.css';
 
 type S = GameState;
@@ -403,6 +404,39 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         return j ? j.text.split('. ').slice(0, 2).join('. ') : `Season over on ${longDate(end)}.`;
       } },
     ] },
+    { id: 'rivals', title: 'Rival houses', gist: (() => { const l = housesOf(g).log; return l.length ? l[l.length - 1].text.split('. ')[0] : 'no moves yet'; })(), acts: [
+      { label: 'Show the rivals', testid: 'adm-rv-show', run: async () => {
+        await leave(() => nav.merchant('collection'));
+        await openFold('rivals-fold');
+        return 'The rival houses, under Progress.';
+      } },
+      ...([
+        ['Selim cuts prices', 'selim', 'undercut', 'adm-rv-undercut'],
+        ['A line bought up', 'lucia', 'corner', 'adm-rv-corner'],
+        ['A regular courted', 'selim', 'court', 'adm-rv-court'],
+        ['A shop opened', 'lucia', 'shop', 'adm-rv-shop'],
+        ['The boy hired away', 'yanni', 'hire', 'adm-rv-hire'],
+        ['A rumour', 'yanni', 'rumour', 'adm-rv-rumour'],
+        ['A house goes under', 'selim', 'gone', 'adm-rv-gone'],
+      ] as const).map(([label, id, kind, testid]) => ({ label, testid, run: async () => {
+        pastOpening();
+        const s0 = S();
+        // set the stage each move needs: a regular to court, a boy to hire away, a town where you have been
+        if (kind === 'court' && !Object.values(s0.relationships).some((r) => (r.purchases ?? 0) >= 3)) set({ relationships: { ...s0.relationships, benakis: { visits: 4, purchases: 3, spent: 3000, affinity: 30, bad: 0, lastLines: [], lastPurchaseDay: s0.day - 5 } } });
+        if (kind === 'hire' && !s0.shopBoy?.hired) set({ shopBoy: { hired: true, since: s0.day, trust: 10, mode: 'wait', pct: 0.9, owed: 0, report: [], sales: [], short: 0, days: 3 } });
+        if (kind === 'shop') set({ whereabouts: { ...(s0.whereabouts ?? {}), [s0.day]: 'cairo' } });
+        const r = forceMove(S(), id, kind);
+        set(r.patch);
+        await leave(() => nav.merchant('collection'));
+        await openFold('rivals-fold');
+        return r.text;
+      } })),
+      { label: 'Ten days on', testid: 'adm-rv-skip', run: async () => {
+        const n0 = housesOf(S()).log.length;
+        const line = skipDays(10);
+        return `${line} ${housesOf(S()).log.length - n0} things heard of the houses.`;
+      } },
+    ] },
     { id: 'fight', title: 'Road fight', gist: `${combatOf(g).wins} won · ${combatOf(g).losses} lost`, acts: [
       ...([['Easy odds', 0.45, 3, 'adm-fight-easy'], ['Even odds', 1, 5, 'adm-fight-even'], ['Hard odds', 1.9, 9, 'adm-fight-hard']] as const).map(([l, ratio, size, testid]) => ({ label: l, testid, run: async () => {
         const f = roadFight(ratio, size);
@@ -613,6 +647,7 @@ const DESC: Record<string, string> = {
   unlocks: 'See everything at once, or put the game back to showing things one at a time.',
   dress: 'The pieces that dress the Giza stall, and money to buy them.',
   shops: 'A shop in Alexandria with an agent and three rugs on the wall; then the Monday takings.',
+  rivals: 'The four rival houses and Shukri: make any house move now, then answer it under Progress.',
   ranks: 'The dealers\' sales table for Cairo this season: your place, a push up it, the season\'s end.',
   fight: 'A band stops you on the road just outside Cairo, at the odds you pick.',
   road: 'Start the walk from Cairo to Suez with a road story set to happen in the first hour.',

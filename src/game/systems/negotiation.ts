@@ -1,4 +1,5 @@
 import { WEAVERY_LINES } from '../../data/weaveryLines';
+import { HOUSE_FX } from './houseFx';
 import { UNVOICED_SET } from '../../data/buyerLinesUnvoiced';
 import { demandFor } from '../economy/market';
 import { VOICE_COLOUR, HELLO, colourOf } from '../../data/voiceColour';
@@ -402,7 +403,8 @@ export function wtp(enc: Encounter, item: RugItem): number {
   // the town's mood today: the fashion pays more, and a buyer stretches the purse for it
   const dm = demandFor(item.typeId, enc.day);
   v *= dm;
-  return Math.round(Math.min(cap * Math.max(1, dm) * wantMult(enc.want, item.typeId), v));
+  // a rival house cutting prices in the city, or a rumour about your rugs (systems/houses.ts)
+  return Math.round(Math.min(cap * Math.max(1, dm) * wantMult(enc.want, item.typeId), v) * HOUSE_FX.pay);
 }
 
 /** A Common rug sold without the haggling: a fair price, a little under what patience would win. */
