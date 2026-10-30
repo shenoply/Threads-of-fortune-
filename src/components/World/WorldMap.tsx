@@ -20,6 +20,8 @@ import { modeIconUrl, bandIconUrl, MODE_LABEL, type TravelMode, type BandIcon } 
 import { nameOnRoad, useGame, ferryFare, localBid } from '../../game/state/store';
 import { rankChip } from './RankTable';
 import { SETTLEMENTS, ROAD_WELLS, motorLorry, type Settlement } from '../../data/world';
+import { CAR_BY_ID } from '../../data/cars';
+import { carRoute, carFit, carCost, carName } from '../../game/systems/cars';
 import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
@@ -123,6 +125,8 @@ interface Plan {
   train?: { days: number; fare: number; stops: string[]; bill?: FareLine[] };
   ships: { to: string; days: number; fare: number; bill?: FareLine[] }[];
   motor: { to: string; days: number; fare: number; bill?: FareLine[]; noAnimals?: boolean }[];
+  /** your own motor car, when it stands here and a motor road leads there: ok, or why not */
+  drive?: { ok: boolean; why?: string; hours: number; cost: number; model: string; papers?: boolean };
   /** the port or town this plan was made from, so a ship can still be booked from it even after
    *  you've since set off on foot and world.at has gone back to null on the road */
   from?: Settlement;
@@ -221,7 +225,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   };
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
-  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean };
+  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean; car?: string };
   // resume a journey already under way, from where the caravan actually is along its path
   const [moving, setMovingRaw] = useState<null | Moving>(() => {
     const j = useGame.getState().journey;
@@ -542,6 +546,38 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     return () => document.body.classList.remove('travelling');
   }, [moving]);
 
+  /** Your own car on the trip card: offered when it stands in this town and a motor road leads there. */
+  const drivePlan = (from: string, to: string): Plan['drive'] => {
+    const s0 = useGame.getState();
+    const c = s0.car;
+    const m = c ? CAR_BY_ID[c.model] : undefined;
+    if (!c || !m || c.at !== from) return undefined;
+    const r = carRoute(from, to, c.model, s0.day, s0.seed);
+    if (!r.route) return r.why ? { ok: false, why: r.why, hours: 0, cost: 0, model: c.model } : undefined;
+    if (isPersian(to) && !persiaOpen(s0)) return { ok: false, why: persiaWhy(s0), hours: r.route.hours, cost: 0, model: c.model };
+    const cost = carCost(m, r.route);
+    const fit = carFit(m, { people: partySize(s0.world.party), animals: s0.world.party.animals ?? {}, flock: s0.world.party.flock }, s0.inventory.filter((i) => !i.stored && !i.restoringUntil).length);
+    const why = fit.ok ? (s0.cash < cost ? `Petrol is ${fmt(cost)}: you have ${fmt(s0.cash)}` : undefined) : fit.why;
+    return { ok: !why, why, hours: r.route.hours, cost, model: c.model, papers: r.route.desert > 0 };
+  };
+  /** Set off in your own car: the store pays petrol and papers and rolls the road; the car then runs the
+   *  roads on the map through every town on the way, like the Nairn car. */
+  const startDrive = (plan: Plan) => {
+    const to = plan.settlement?.id;
+    if (!to) return;
+    const res = useGame.getState().driveCar(to);
+    if (!res.ok) { setReport(res.text); return; }
+    const c = useGame.getState().car!;
+    const path = routeThrough(res.stops.map((id) => { const x = settlementById(id); return { x: x.x, y: x.y }; }), 'motor');
+    planBorder(path, to);
+    passTrip.current = null;
+    follow.current = true;
+    setMoving({ path, done: 0, train: true, dest: to, pxPerDay: pathLength(path) / Math.max(0.05, res.hours / 24), mode: 'motor', car: c.model });
+    setPlan(null);
+    setAlt(null);
+    setReport(res.text);
+    audio.sfx('tap');
+  };
   const planTo = (to: Pt, st?: Settlement, reroute = false): Plan | undefined => {
     if (moving && !reroute) return;
     setLock(null);
@@ -564,7 +600,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const train = here && st ? railJourney(here.id, st.id, fp) ?? undefined : undefined;
     // the same check setOff() warns about in text, done here too so the route line itself can go red
     const risky = !!path && routeDanger(path, w.parties, g.day) > strength(w.party);
-    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here, risky };
+    const p: Plan = { to: target, settlement: st, path, days, train, ships, motor, from: here, risky, drive: here && st ? drivePlan(here.id, st.id) : undefined };
     setPlan(p);
     audio.sfx('tap');
     return p;
@@ -579,7 +615,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // show the trip card, and let them choose how to go from there
     if (st && openingStep(useGame.getState())) { planTo(to, st); return; }
     // Giza and Cairo face each other across the river: the ferry takes an hour and a half, never days on foot
-    if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza'))) {
+    // (with your own car standing here, the card offers the drive over the bridge as well)
+    if (st && ((w.at === 'giza' && st.id === 'cairo') || (w.at === 'cairo' && st.id === 'giza')) && useGame.getState().car?.at !== w.at) {
       startFerry(st.id as 'giza' | 'cairo');
       return;
     }
@@ -588,7 +625,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // a port, a desert-car route or a railway gets you there faster than walking: show the card so
     // that choice is in view, rather than pricing a walking-food shortfall for a trip the player is
     // about to take by train (which has its own, usually much smaller, food needs)
-    if (p.ships.length || p.motor.length || p.train) return;
+    if (p.ships.length || p.motor.length || p.train || p.drive) return;
     if (offerFoodShort(p)) return;
     setOff(p);
   };
@@ -687,6 +724,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (p.train && cash >= p.train.fare) ways.push({ days: p.train.days, go: () => start(true, p) });
     for (const r of p.ships) if (cash >= r.fare) ways.push({ days: r.days, go: () => startSea(r, 'ship', p.from) });
     for (const r of p.motor) if (cash >= r.fare && !r.noAnimals) ways.push({ days: r.days, go: () => startSea(r, 'motor', p.from) });
+    if (p.drive?.ok) ways.push({ days: p.drive.hours / 24, go: () => startDrive(p) });
     ways.sort((a, b) => a.days - b.days)[0]?.go();
   };
 
@@ -1000,6 +1038,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         setMoving(null);
         setTimeScale(1);
         const dest = moving.dest;
+        if (dest && moving.car) useGame.getState().carArrived(dest);
         if (dest) {
           // the ferry fare, the hour and a half, and the journal line are g.ferry()'s own job, not
           // the generic arriveAt() every other arrival uses
@@ -1156,7 +1195,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const routeRisky = plan ? plan.risky : moving && !moving.train && !moving.mode ? routeDanger(moving.path, w.parties, g.day) > strength(w.party) : false;
   const hh = Math.floor(w.hour), mm = Math.floor((w.hour % 1) * 60);
   const caravanLine = `${partySize(w.party)} ${partySize(w.party) === 1 ? 'person' : 'people'} · ${animalCount(w.party)} animal${animalCount(w.party) === 1 ? '' : 's'} · ${foodDaysLeft(w.party) < 1 ? 'no food: buy some in a town' : `food for ${daysWord(foodDaysLeft(w.party))}`} · load ${Math.round(sp.load)}/${Math.round(sp.cap)}${healthMods.carry < 0 ? ` (ill or hurt: you carry ${-Math.round(healthMods.carry)}% less)` : ''}${sp.over ? ', overloaded' : ''} · strength ${strength(w.party)}`;
-  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? 'Crossing the desert' : moving.mode === 'ferry' ? 'Crossing the Nile' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
+  const status = moving ? (moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? (moving.car ? 'On the road by car' : 'Crossing the desert') : moving.mode === 'ferry' ? 'Crossing the Nile' : moving.train ? 'On the train' : timeScale === 0 ? 'Paused on the road' : 'On the road') : here ? `In ${here.name}` : 'Halted on the road';
   const giza = settlementById('giza');
   const gizaScreen = { x: giza.x * s + pan.x, y: giza.y * s + pan.y };
   // where you are on screen: when the map has been dragged away from you, a labelled button points back
@@ -1587,7 +1626,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <div className="wc-main">
               <b>{moving.dest ? `To ${settlementById(moving.dest).name}` : 'Travelling'}</b>
               <span>
-                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? (moving.lorry ? 'Motor lorry, the Persian road' : 'Nairn desert car') : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `On foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`}
+                {moving.mode === 'ship' ? 'At sea' : moving.mode === 'motor' ? (moving.car ? `Your ${carName(moving.car)}` : moving.lorry ? 'Motor lorry, the Persian road' : 'Nairn desert car') : moving.mode === 'ferry' ? 'The Nile ferry' : moving.train ? 'Egyptian State Railways' : `On foot${sp.over ? ', overloaded' : ''}${sp.hungry ? ', hungry' : ''}`}
               </span>
             </div>
             <button className="btn" onClick={() => { setAlt(null); setNightfall(false); stop('You halt on the road.'); }} data-testid="stop" disabled={!!moving.mode}>Stop</button>
@@ -1597,7 +1636,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           const destName = moving.dest ? settlementById(moving.dest).name : '';
           const name = reroute.st ? reroute.st.name : 'this spot';
           if (reroute.fixed) {
-            const by = moving.mode === 'ferry' ? 'the ferry' : moving.mode === 'ship' ? 'a ship' : moving.mode === 'motor' ? (moving.lorry ? 'the motor lorry' : 'the Nairn motor car') : 'the train';
+            const by = moving.mode === 'ferry' ? 'the ferry' : moving.mode === 'ship' ? 'a ship' : moving.mode === 'motor' ? (moving.car ? `your ${carName(moving.car)}` : moving.lorry ? 'the motor lorry' : 'the Nairn motor car') : 'the train';
             const why = moving.mode === 'ferry' ? 'The ferry only crosses the river and back' : moving.mode === 'ship' ? 'A ship keeps to its course' : moving.mode === 'motor' ? 'The motor car keeps to its route' : 'A train keeps to its line';
             return (
               <div className="wc-col reroute" data-testid="reroute">
@@ -1683,6 +1722,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               ...(plan.train ? [{ key: 'train', days: plan.train.days, ok: g.cash >= plan.train.fare }] : []),
               ...plan.ships.map((r) => ({ key: 'ship' + r.to, days: r.days, ok: g.cash >= r.fare })),
               ...plan.motor.map((r) => ({ key: 'motor' + r.to, days: r.days, ok: g.cash >= r.fare && !r.noAnimals })),
+              ...(plan.drive && plan.drive.hours ? [{ key: 'drive', days: plan.drive.hours / 24, ok: plan.drive.ok }] : []),
               { key: 'walk', days: est.elapsedDays, ok: true },
             ];
             // the quickest way you can pay for leads the card and is the only one called fastest
@@ -1736,6 +1776,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                     ? <button key={r.to} className="btn sail-btn" disabled data-testid="motor" title="The Nairn car takes people only">🚚 Nairn motor car · people only: the animals cannot ride. Sell them, or walk</button>
                     : <button key={r.to} className={`btn sail-btn${lead === 'motor' + r.to ? ' primary faster' : ''}`} onClick={() => startSea(r, 'motor', plan.from)} data-testid="motor">🚚 {motorLorry(plan.from?.id, r.to) ? 'Motor lorry' : 'Nairn motor car'} · {fmt(r.fare)} · {arrivalLabel(r.days)}{fast('motor' + r.to)}</button>
                 ))}
+                {plan.drive && (
+                  <button className={`btn sail-btn${lead === 'drive' ? ' primary faster' : ''}`} disabled={!plan.drive.ok} onClick={() => startDrive(plan)} data-testid="drive" title={plan.drive.why}>
+                    {plan.drive.ok || plan.drive.hours
+                      ? <>Drive · {durationLabel(plan.drive.hours / 24)} · {plan.drive.papers ? 'petrol and papers' : 'petrol'} {fmt(plan.drive.cost)}{fast('drive')}</>
+                      : <>Drive</>}
+                    {plan.drive.why && <small className="drive-why" data-testid="drive-why">{plan.drive.why}</small>}
+                  </button>
+                )}
                 {lead === 'walk'
                   ? <button className="btn primary" onClick={() => start(false)} data-testid="travel">Travel</button>
                   : <button className="btn" onClick={() => start(false)} data-testid="travel">{ferry ? 'Walk instead' : 'Walk'} · {plan.days < 0.1 ? 'a short walk' : `about ${durationLabel(est.elapsedDays)}`}</button>}

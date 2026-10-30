@@ -7,6 +7,7 @@ import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dail
 import { BREEDS } from '../../data/animals';
 import { milesPx } from '../../game/systems/mapRender';
 import { CaravanRoster, TownSupplies } from './CaravanPanels';
+import { OwnCarRow } from '../Cars/MotorGarage';
 import { settlementById } from '../../game/systems/world';
 import type { Target } from './Campaign';
 
@@ -53,6 +54,7 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
       </div>
       {/* your men first: who walks with you matters more than the shop below */}
       <CaravanRoster />
+      <OwnCarRow />
       {sp.over && (
         <div className="cv-over" id="cv-over" data-testid="cv-over">
           <p><b>Overloaded:</b> {Math.round(sp.load * 10) / 10} loads, and the caravan can carry {sp.cap}. You move slowly until you lighten it.</p>

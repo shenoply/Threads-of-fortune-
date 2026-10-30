@@ -1,12 +1,14 @@
 import { weekGoalNight, type WeekGoal } from '../systems/weekGoal';
 import { omensNight, WATCH_COST, type Omen } from '../systems/omens';
 import { rivalNight, type LaneRival } from '../systems/laneRival';
-import { PERSIA_IDS } from '../../data/persiaMap';
+import { PERSIA_IDS, isPersian } from '../../data/persiaMap';
 import { motorLorry } from '../../data/world';
 import { provisionById, provisionPrice, COMFORT_CAP } from '../../data/provisions';
 import { create } from 'zustand';
 import { openingStep, OPENING } from '../opening';
-import { migrateOpen, ALL_OPEN } from '../unlocks';
+import { migrateOpen, ALL_OPEN, persiaOpen } from '../unlocks';
+import { CAR_BY_ID, GARAGE_TOWNS, RESALE, CAR_FREIGHT, DESERT_PAPERS } from '../../data/cars';
+import { carRoute, carFit, carCost, rollTrip, carName, type OwnCar } from '../systems/cars';
 import { renameBuyerIds } from '../../data/renamedIds';
 import { midName, count, lowerName } from '../text';
 import { auctionable } from '../storyRugs';
@@ -64,7 +66,7 @@ import {
 } from '../systems/negotiation';
 import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from '../audio/engine';
 import { stopArranVoice, syncArranVolume } from '../audio/arranVoice';
-import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
+import { NPCS, QUESTS, SETTLEMENTS, SEA_ROUTES } from '../../data/world';
 import {
   blankFog, revealFog, fitFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom, partyFare, railJourney,
   type Party, type Pt,
@@ -77,7 +79,7 @@ import { capacity, load as caravanLoad } from '../systems/caravan';
 import { roadToll, BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
 import { syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList } from '../systems/men';
 import { threatForParty } from '../../data/travelThreats1925';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
+import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, partySize, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, billOn, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -331,7 +333,7 @@ export interface GameState {
   introSeen?: string[];
   /** a journey under way (path, how far along, by what): kept so a paid train or ship survives the map
    *  screen being rebuilt, a new day, or a reload */
-  journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry' };
+  journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean; /** your own car on this drive (its model id) */ car?: string };
   /** the khamsin kit protects until this day */
   khamsinUntil?: number;
   /** seasonal events already acted on (a khamsin's sand comes once per spell) */
@@ -417,6 +419,10 @@ export interface GameState {
   seed: number;
   /** this game's own draw of the world: surprise incidents, the rival houses' days (saved; made on a new game) */
   worldSeed?: number;
+  /** your own motor car (systems/cars.ts): the model, the town where you left it, the day bought, drives made */
+  car?: OwnCar;
+  /** the one-time reputation for owning a fine car has been given */
+  carNamed?: boolean;
 }
 
 export type QuestState = 'active' | 'ready' | 'done';
@@ -660,6 +666,16 @@ interface Actions {
   renameCarpet: (id: string, name: string) => void;
   /** buy from the gunsmith in the Muski; the piece in the same place is traded in at half its price */
   buyArm: (id: string) => string;
+  /** a motor car from the garage in this town (one at a time) */
+  buyCar: (id: string) => string;
+  /** the garage here buys your car back at 60% of its price; the car must be in this town */
+  sellCar: () => string;
+  /** your car as deck cargo to another port (it waits for you there) */
+  shipCar: (to: string) => string;
+  /** set off in your car: pays petrol, papers and anything that went wrong; the car moves on carArrived */
+  driveCar: (to: string) => { ok: true; stops: string[]; hours: number; text: string } | { ok: false; text: string };
+  /** the drive is over: the car stands at `to` */
+  carArrived: (to: string) => void;
   /** open today's gift (once a game day): what was in it, or null */
   openGift: () => Gift | null;
   /** Rashid's runner's purse, once each game day at dawn: what was in it, or null */
@@ -4789,6 +4805,100 @@ export const useGame = create<GameState & Actions>()(
           if (!amount) return false;
           set({ cash: s.cash + amount, daily: { ...(s.daily ?? { streak: 0, best: 0 }), paid: [...paid, key] }, ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: id === 'all' ? "All three of the day's errands" : `Errand: ${errs.find((e) => e.id === id)?.text ?? id}`, amount }] });
           return true;
+        },
+
+        buyCar: (id) => {
+          const s = get();
+          const m = CAR_BY_ID[id];
+          const here = s.world.at;
+          if (!m || !here) return '';
+          if (!m.soldIn.includes(here)) return `The ${m.name} is not sold in ${settlementById(here).name}.`;
+          if (s.car) return `You already own the ${carName(s.car.model)}. Sell it first: one car at a time.`;
+          if (s.cash < m.price) return `The ${m.name} is ${fmt(m.price)}. You have ${fmt(s.cash)}.`;
+          const rep = m.rep && !s.carNamed ? m.rep : 0;
+          set({
+            cash: s.cash - m.price,
+            car: { model: id, at: here, bought: s.day, trips: 0 },
+            ...(rep ? { reputation: s.reputation + rep, carNamed: true } : {}),
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Motor garage: the ${m.name}`, amount: -m.price }],
+            journal: [...s.journal, { day: s.day, text: `Bought the ${m.name} in ${settlementById(here).name}.${rep ? ' Word goes round: a man with a motor car.' : ''}` }],
+          });
+          audio.sfx('coins');
+          return `The ${m.name} is yours. It stands outside the garage in ${settlementById(here).name}.${rep ? ` Reputation +${rep}.` : ''}`;
+        },
+
+        sellCar: () => {
+          const s = get();
+          const c = s.car;
+          if (!c) return '';
+          const m = CAR_BY_ID[c.model];
+          if (!m) { set({ car: undefined }); return ''; }
+          if (s.world.at !== c.at) return `Your car is in ${settlementById(c.at).name}.`;
+          if (!GARAGE_TOWNS.includes(c.at)) return `There is no motor garage in ${settlementById(c.at).name} to buy it.`;
+          const back = Math.round(m.price * RESALE);
+          set({
+            cash: s.cash + back,
+            car: undefined,
+            ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: `Sold the ${m.name} back to the garage`, amount: back }],
+            journal: [...s.journal, { day: s.day, text: `Sold the ${m.name} back to the garage in ${settlementById(c.at).name} for ${fmt(back)}.` }],
+          });
+          audio.sfx('coins');
+          return `The garage gives you ${fmt(back)} for the ${m.name}.`;
+        },
+
+        shipCar: (to) => {
+          const s = get();
+          const c = s.car;
+          if (!c || s.world.at !== c.at) return '';
+          if (!SEA_ROUTES.some((r) => (r.a === c.at && r.b === to) || (r.b === c.at && r.a === to))) return 'No ship runs between those ports.';
+          if (s.cash < CAR_FREIGHT) return `Freight for a car is ${fmt(CAR_FREIGHT)}.`;
+          set({
+            cash: s.cash - CAR_FREIGHT,
+            car: { ...c, at: to },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Freight: the car to ${settlementById(to).name}`, amount: -CAR_FREIGHT }],
+            journal: [...s.journal, { day: s.day, text: `Sent the ${carName(c.model)} as deck cargo to ${settlementById(to).name}.` }],
+          });
+          audio.sfx('coins');
+          return `The ${carName(c.model)} is slung aboard and will wait for you on the quay at ${settlementById(to).name}.`;
+        },
+
+        driveCar: (to) => {
+          const s = get();
+          const c = s.car;
+          const m = c ? CAR_BY_ID[c.model] : undefined;
+          const here = s.world.at;
+          if (!c || !m) return { ok: false, text: 'You have no motor car.' };
+          if (!here || c.at !== here) return { ok: false, text: `Your car is in ${settlementById(c.at).name}.` };
+          if (isPersian(to) && !persiaOpen(s)) return { ok: false, text: 'The Persian road is shut to you for now.' };
+          const r = carRoute(here, to, c.model, s.day, s.seed);
+          if (!r.route) return { ok: false, text: r.why ?? `No motor road from ${settlementById(here).name} to ${settlementById(to).name}.` };
+          const party = s.world.party;
+          const fit = carFit(m, { people: partySize(party), animals: party.animals ?? {}, flock: party.flock }, s.inventory.filter((i) => !i.stored && !i.restoringUntil).length);
+          if (!fit.ok) return { ok: false, text: `${fit.why}.` };
+          const cost = carCost(m, r.route);
+          if (s.cash < cost) return { ok: false, text: `Petrol${r.route.desert ? ' and desert papers' : ''} for the drive come to ${fmt(cost)}. You have ${fmt(s.cash)}.` };
+          const roll = rollTrip(m, r.route, s.cash - cost, rng);
+          const repair = Math.min(roll.repair, Math.max(0, s.cash - cost));
+          const toll = Math.min(roll.toll, Math.max(0, s.cash - cost - repair));
+          const dest = settlementById(to).name;
+          const ledger = [...s.ledger, { day: s.day, kind: 'expense' as const, label: `Petrol and oil to ${dest}`, amount: -(cost - r.route.desert * DESERT_PAPERS) }];
+          if (r.route.desert) ledger.push({ day: s.day, kind: 'expense', label: 'Desert papers for the car', amount: -r.route.desert * DESERT_PAPERS });
+          if (repair) ledger.push({ day: s.day, kind: 'expense', label: 'Roadside repair to the car', amount: -repair });
+          if (toll) ledger.push({ day: s.day, kind: 'expense', label: 'Road toll', amount: -toll });
+          const text = [`You drive the ${m.name} to ${dest}.`, ...roll.lines].join(' ');
+          set({ cash: s.cash - cost - repair - toll, ledger, journal: [...s.journal, { day: s.day, text, kind: 'road' }] });
+          audio.sfx('tap');
+          return { ok: true, stops: r.route.stops, hours: r.route.hours + roll.delay, text };
+        },
+
+        carArrived: (to) => {
+          const s = get();
+          if (!s.car) return;
+          const m = CAR_BY_ID[s.car.model];
+          set({
+            car: { ...s.car, at: to, trips: s.car.trips + 1 },
+            ...(m?.rested ? { condition: { ...(s.condition ?? CONDITION_START), fatigue: 0 } } : {}),
+          });
         },
 
         buyArm: (id) => {
