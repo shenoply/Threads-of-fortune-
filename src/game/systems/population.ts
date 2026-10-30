@@ -169,6 +169,11 @@ const SHARE_FACES = false;
 const missing: Record<string, number> = {};
 /** how many more pool faces would give everyone a face of their own, by "region-sex-age" */
 export const missingFaces = () => { world(); return { ...missing }; };
+/** every pool face already given to someone in the world (the household's own come on top: systems/familyFaces) */
+export const worldFaces = (): Set<string> => new Set(Object.values(world().people).map((p) => p.face).filter((f): f is string => !!f));
+/** the portrait pool's people for a culture, and the age band for an age */
+export const poolRegionOf = (c: Culture): PoolRegion => POOL_REGION[c] ?? 'egypt';
+export const faceBand = ageBand;
 
 export interface World { people: Record<string, Person>; houses: Record<string, House>; byCity: Record<string, string[]>; caravans: Record<string, string> }
 let built: World | null = null;
@@ -468,7 +473,7 @@ export function registerFolkBrides(day = 0, keep: string[] = []) {
       intro: `${fa.short}'s daughter, ${ageNow(d, day)}: ${her}.`,
       brings, mahr: pr.mahr, feast: pr.feast, feastRep: pr.rep, gift: { label: pr.gift[0], cost: pr.gift[1] },
       likes, rank, meet: 'friend', minRep: pr.minRep, role: fa.role === 'craft' ? 'rugs' : fa.role === 'merchant' ? 'books' : fa.role === 'souq' ? 'stall' : 'home',
-      friends: [d.home], art: faceSrc(d), look: LOOK_OF[d.culture] ?? 'levant',
+      friends: [d.home], art: faceSrc(d), look: LOOK_OF[d.culture] ?? 'levant', faith: d.faith,
     };
   }
 }

@@ -10,6 +10,7 @@ import { Wardrobe } from '../Wardrobe/Wardrobe';
 import { MeNext } from './MeNext';
 import { MeSection, SkillsSection } from '../Character/Character';
 import { HouseholdSection } from '../Character/Household';
+import { hh, childArt } from '../../game/systems/household';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
 import './HeroHub.css';
@@ -23,6 +24,10 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
   const ch = heroCharisma(w, clean);
   const { rank } = rankOf(g);
   const met = Object.keys(g.folk?.met ?? {}).length;
+  // after the house has passed on, the heir is the merchant: his or her name and face
+  const head = hh(g).merchant;
+  const headArt = head?.child ? childArt(head.child)[0] : '';
+  const dresses = !head || head.sex !== 'daughter';
   return (
     <div className="screen hero-hub" data-testid="hero-hub">
       {/* the people of the world and the road ahead: two large doors at the top of Me */}
@@ -41,13 +46,20 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
       </div>
       <HealthStrip always />
       <section className="hh-top">
-        <button className="hh-room" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} onClick={() => setOpen(true)} aria-label="Open the wardrobe" data-testid="hh-figure">
-          <div className="hh-figure"><HeroFigure pose="wardrobe" outfitId={wornOutfit(w).id} /></div>
-          <span className="hh-tap">Tap to dress</span>
-        </button>
+        {head ? (
+          <div className="hh-room hh-room-head" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} data-testid="hh-figure">
+            <span className="hh-head-face" aria-hidden="true"><b>{head.name[0]}</b>{headArt && <img src={headArt} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}</span>
+          </div>
+        ) : (
+          <button className="hh-room" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} onClick={() => setOpen(true)} aria-label="Open the wardrobe" data-testid="hh-figure">
+            <div className="hh-figure"><HeroFigure pose="wardrobe" outfitId={wornOutfit(w).id} /></div>
+            <span className="hh-tap">Tap to dress</span>
+          </button>
+        )}
         <div className="hh-stats">
           <small>THE MERCHANT OF GIZA</small>
-          <h2 data-testid="hero-name">{HERO_NAME}</h2>
+          <h2 data-testid="hero-name">{head?.name ?? HERO_NAME}</h2>
+          {head && <p className="hh-called" data-testid="hero-lineage">{head.sex === 'daughter' ? 'Daughter' : 'Son'} of {head.father}, head of the house since it passed on</p>}
           <p className="hh-called">{rank.name}</p>
           <p className="hh-called">The bazaar calls you <b>{mannerTitle(g.manner ?? START_MANNER)}</b>.</p>
           <dl>
@@ -55,7 +67,7 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
             <div><dt>Charisma</dt><dd>{ch}</dd></div>
             <div><dt>Clothes</dt><dd>{clean >= 70 ? 'Clean' : clean >= 35 ? 'Dusty' : 'Filthy'} <small>{Math.round(clean)}%</small></dd></div>
           </dl>
-          <button className="btn primary" onClick={() => setOpen(true)} data-testid="hh-wardrobe">Wardrobe</button>
+          {dresses && <button className="btn primary" onClick={() => setOpen(true)} data-testid="hh-wardrobe">Wardrobe</button>}
         </div>
       </section>
       <MeNext onWardrobe={() => setOpen(true)} />

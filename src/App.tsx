@@ -55,6 +55,7 @@ import { Supplier } from './components/Supplier/Supplier';
 import { Inventory } from './components/Inventory/Inventory';
 import { Guide, guidePage } from './components/Guide/Guide';
 import { MilestoneNotice, MissionScene, ObjectiveBar, SideTasks } from './components/Mission/Mission';
+import { HomeSceneCard } from './components/Character/HomeScene';
 import { firstHourStep, FIRST_HOUR_TIP } from './components/Tips/FirstHour';
 import { GuideFlash } from './components/Tips/GuideFlash';
 import { CaravanScreen } from './components/World/CaravanScreen';
@@ -897,6 +898,7 @@ export default function App() {
       {phase === 'game' && <GuideFlash />}
       {phase === 'game' && <MilestoneNotice />}
       {phase === 'game' && <MissionScene />}
+      {phase === 'game' && <HomeSceneCard />}
       {phase === 'game' && <EncyclopediaHost />}
       {/* the character growing as you play: each skill gained, each level and perk earned */}
       {phase === 'game' && <><SkillPops /><LevelUpToast /></>}

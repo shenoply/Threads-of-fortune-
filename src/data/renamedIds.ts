@@ -33,7 +33,8 @@ export function renameBuyerIds<T>(v: T): T {
   const str = (s: string): string => {
     if (RENAMED_BUYERS[s]) return RENAMED_BUYERS[s];
     if (s.includes(':')) return s.split(':').map((p) => RENAMED_BUYERS[p] ?? p).join(':');
-    return s;
+    // the people renamed in the same save for name clashes, in journal lines and rug notes written before
+    return s.includes('Farid al-Khatib') || s.includes(' Haddad') ? s.replace(/Farid al-Khatib/g, 'Farid al-Ajami').replace(/\b(Selim|Yasmin) Haddad\b/g, '$1 Tannous') : s;
   };
   const walk = (x: unknown): unknown => {
     if (typeof x === 'string') return str(x);

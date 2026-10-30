@@ -136,8 +136,17 @@ async function toStall(nav: AdminNav) {
 const home = (nav: AdminNav) => { const at = S().world.at; nav.map(at === 'giza' ? { view: 'district' } : at ? { view: 'world', panel: at } : { view: 'world' }); };
 
 // the household, written whole where the game has no action for a step
-const married = (h: HouseholdState, day: number): HouseholdState => ({ ...h, stage: 'married', chosen: h.chosen ?? 'nadia', contract: h.contract ?? day - 7, offered: h.offered ?? day - 20,
-  spouse: h.spouse ?? { id: h.chosen ?? 'nadia', married: day, content: 70, role: 'home', lastHome: day }, birthIn: h.birthIn ?? 330 });
+// (a man already married stays as he is: re-writing the betrothal beside his wife made her twice)
+const married = (h: HouseholdState, day: number): HouseholdState => (h.spouse ? h : { ...h, stage: 'married', chosen: undefined, contract: undefined, terms: undefined, scene: undefined, offered: h.offered ?? day - 20, suitors: {},
+  spouse: { id: h.chosen ?? 'nadia', married: day, content: 70, role: 'home', lastHome: day, regard: 'warm', homeDays: 0 }, birthIn: h.birthIn ?? 330 });
+/** what a night skipped by the tester cost, from the ledger: the money that went, and where */
+const nightCost = (cash0: number, ledger0: number) => {
+  const s = useGame.getState();
+  const lines = s.ledger.slice(ledger0).filter((e) => e.amount < 0);
+  const d = s.cash - cash0;
+  if (Math.abs(d) < 1) return '';
+  return ` The night ${d < 0 ? `cost ${fmt(-d)}` : `brought ${fmt(d)}`}${lines.length ? ` (${lines.slice(0, 4).map((e) => `${e.label} ${fmt(-e.amount)}`).join(', ')}${lines.length > 4 ? '…' : ''}; see the ledger)` : ''}.`;
+};
 
 /** a fight on the road just outside Cairo: the nearest band brought up, `ratio` of your strength */
 function roadFight(ratio: number, size: number, wanted = false): { band: string; text: string } | null {
@@ -468,18 +477,22 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         if (s.world.at !== 'giza') teleport('giza');
         const n0 = hh(S()).children.length;
         set({ household: { ...married(hh(S()), S().day), birthIn: 1 } });
+        const cash0 = S().cash, l0 = S().ledger.length;
         S().endDay();
         const kids = hh(S()).children;
         await leave(() => nav.tab('hero')); await openFold('me-household');
-        return kids.length > n0 ? `A ${kids[kids.length - 1].sex} is born (morning of ${longDate(S().day)}).` : 'No birth tonight (the house may be full).';
+        return (kids.length > n0 ? `A ${kids[kids.length - 1].sex} is born (morning of ${longDate(S().day)}). Choose a name under Household.` : 'No birth tonight (the house may be full).') + nightCost(cash0, l0);
       } },
       { label: 'Children to 18', testid: 'adm-fam-grow', run: async () => {
         const s = S(); let h1 = married(hh(s), s.day);
         if (!h1.children.length) h1 = { ...h1, children: [{ id: `c${s.day}`, sex: 'son', name: 'Ahmad', born: s.day, ageDays: 0, traits: { learning: 5, trade: 5, craft: 5 } }] };
-        set({ household: { ...h1, children: h1.children.map((c) => ({ ...c, name: c.name ?? (c.sex === 'son' ? 'Ahmad' : 'Fatma'), path: c.path ?? 'shop', ageDays: Math.max(c.ageDays, 18 * 365 - 1) })) } });
+        // a child not yet named stays so: the Household asks for the name, as at the birth
+        set({ household: { ...h1, children: h1.children.map((c) => ({ ...c, path: c.path ?? 'shop', ageDays: Math.max(c.ageDays, 18 * 365 - 1) })) } });
+        const cash0 = S().cash, l0 = S().ledger.length;
         S().endDay();
         await leave(() => nav.tab('hero')); await openFold('me-household');
-        return `Grown: ${hh(S()).children.map((c) => `${childName(c)} (${ageOf(c)})`).join(', ')}.`;
+        const bare = hh(S()).children.filter((c) => !c.name).length;
+        return `Grown: ${hh(S()).children.map((c) => `${childName(c)} (${ageOf(c)})`).join(', ')}.${bare ? ' Name them under Household.' : ''}` + nightCost(cash0, l0);
       } },
       { label: 'Show the heir', testid: 'adm-fam-heir', run: async () => {
         const hr = heirOf(hh(S()));

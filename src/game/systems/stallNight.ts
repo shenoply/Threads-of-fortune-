@@ -7,6 +7,7 @@ import { postNight } from './post';
 import { licenceNight } from './inspector';
 import { BOY_OFFER } from '../../data/tips';
 import { householdNight, spouseMinds } from './household';
+import { assignFamilyFaces } from './familyFaces';
 
 /** tipsSeen marks: a buyer gave up waiting at the empty stall; Haj Mahmoud has offered Sami */
 export const AWAY_MISSED = 'away-missed';
@@ -48,6 +49,9 @@ export function nightAfter(s: GameState, patch: Partial<GameState>, notes: strin
   Object.assign(patch, postNight(s, patch, notes, day, rng));
   // the household: families, your wife and her letters, the children (systems/household.ts)
   Object.assign(patch, householdNight(s, patch, notes, day, rng));
+  // grown children and a wife whose years show: a face of their own from the portrait pool
+  const faced = assignFamilyFaces(patch.household ?? s.household, day);
+  if (faced !== (patch.household ?? s.household)) patch.household = faced;
   Object.assign(patch, licenceNight({ ...s, shopBoy: patch.shopBoy ?? s.shopBoy }, patch, notes, day, (patch.world ?? s.world).at, rng, quiet));
   // once: the morning after a buyer first gave up at your empty stall, a neighbour offers a boy to mind it
   const seen = patch.tipsSeen ?? s.tipsSeen ?? [];

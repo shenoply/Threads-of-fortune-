@@ -39,3 +39,14 @@ button.hh-pt-open:hover, button.hh-pt-open:focus-visible { box-shadow: 0 0 0 2px
 .hh-look .hh-btns { justify-content: center; margin-top: 12px; }
 .hh-name { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(231,189,110,.45); text-underline-offset: 3px; }
 button.hh-father { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+/* the household's scene cards (HomeScene.tsx): the faces of the moment side by side */
+.hs-faces { display: flex; justify-content: center; gap: 18px; margin: 0 0 10px; }
+.hs-face { position: relative; display: grid; justify-items: center; gap: 4px; }
+.hs-face b { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #4a3320, #241709); box-shadow: 0 0 0 3px #c9974a, 0 8px 20px rgba(0,0,0,.5); font: 700 34px/1 var(--display, serif); color: var(--brass-hi, #e7bd6e); }
+.hs-face img { position: absolute; top: 0; left: 50%; width: 92px; height: 92px; margin-left: -46px; border-radius: 50%; object-fit: cover; }
+.hs-face small { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #c9a160; }
+.hs-note { margin: -6px 0 12px; padding: 6px 8px; border-left: 2px solid var(--brass, #c9974a); font-size: 14px; line-height: 1.35; color: var(--text, #eadbbd); }
+.mscene-choice:disabled { opacity: .55; cursor: default; }
+.hh-others { margin-top: 8px; }
+.hh-reason { font-style: italic; }
+.idle-wife { font-style: italic; }

@@ -90,7 +90,7 @@ import { MALEK_START, MEAL_MINUTES, MORALE_PATIENCE, availability as malekAvaila
 
 import { nightBefore, nightAfter, boyOnReturn, AWAY_MISSED } from '../systems/stallNight';
 import { boyWait, type ShopBoyState } from '../systems/shopBoy';
-import { applyHousehold, HOUSEHOLD_START, BRIDES, canCourt, type HouseholdState, type HouseholdAct } from '../systems/household';
+import { applyHousehold, HOUSEHOLD_START, BRIDES, canCourt, housekeeping, tidyHousehold, type HouseholdState, type HouseholdAct } from '../systems/household';
 import { post as postLetter, TELEGRAPH_TOWNS, telegramFee, type PostState } from '../systems/post';
 import type { LicenceState } from '../systems/inspector';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALER_BONUS, activeMilestone } from '../../data/milestones';
@@ -1582,7 +1582,10 @@ export const useGame = create<GameState & Actions>()(
           let bills = { ...(s.bills ?? { due: 0, since: 0, warned: 0 }) };
           let upgrades = s.upgrades;
           if (isFirstOfMonth(day)) {
-            const lines = monthlyBill(s.upgrades, rankOf(s).idx, s.inventory.filter((i) => i.stored).length);
+            const lines0 = monthlyBill(s.upgrades, rankOf(s).idx, s.inventory.filter((i) => i.stored).length);
+            // a wife who keeps the books brings the household part down (systems/household.ts)
+            const kept = housekeeping(s, lines0);
+            const lines = kept ? [...lines0, kept] : lines0;
             const total = billTotal(lines);
             bills = { due: bills.due + total, since: bills.due > 0 ? bills.since : day, warned: bills.due > 0 ? bills.warned : 0, last: lines };
             notes.push(`The first of ${monthName(day)}. The month's bill is ${fmt(total)}.`);
@@ -5126,6 +5129,8 @@ export const useGame = create<GameState & Actions>()(
         // the household (wife, children, heir: systems/household.ts) arrived with save 24: every older
         // save starts unmarried, and families are approached on the next night that the name allows
         if (version < 24) p.household = p.household ?? { ...HOUSEHOLD_START, suitors: {}, children: [] };
+        // a betrothal left standing beside the wife it led to (the old tester step): cleared
+        if (p.household) p.household = tidyHousehold(p.household);
         if (version < 23) {
           const day = p.day ?? 1;
           const fam = p.family ?? { ...FAMILY_START };

@@ -5,13 +5,15 @@
 import { useSyncExternalStore } from 'react';
 
 /** the cards, most important first */
-export const CARD_ORDER = ['border', 'rescue', 'scene', 'job'] as const;
+export const CARD_ORDER = ['border', 'rescue', 'scene', 'home', 'job'] as const;
 export type CardKind = (typeof CARD_ORDER)[number];
 
 interface CardState {
   border?: unknown;
   rescue?: unknown;
   missionScene?: unknown;
+  /** a household moment: the call, the proposal, the feast, the keys of the house */
+  household?: { scene?: unknown };
   jobOffer?: { city?: string } | null;
   world: { at: string | null };
 }
@@ -22,6 +24,7 @@ export function cardsUp(s: CardState): CardKind[] {
   if (s.border) up.push('border');
   if (s.rescue) up.push('rescue');
   if (s.missionScene) up.push('scene');
+  if (s.household?.scene) up.push('home');
   if (s.jobOffer && s.jobOffer.city === s.world.at) up.push('job');
   return up;
 }

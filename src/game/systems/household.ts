@@ -60,6 +60,8 @@ export interface Bride {
   place?: number;
   /** a daughter of one of the world's families (systems/population): her person, her picture, her children's look */
   folk?: string; art?: string; look?: 'egypt' | 'levant' | 'desert';
+  /** the family's faith (a world family's, from systems/population; the named families are Muslim) */
+  faith?: 'muslim' | 'christian' | 'jewish';
 }
 
 export const BRIDES: Record<string, Bride> = {
@@ -238,7 +240,7 @@ export const RANK_WORD: Record<Rank, string> = { humble: 'A lane family', trade:
 /** the families you could court now: Rashid's three once you have asked him, and everyone you have met */
 export function availableBrides(h: HouseholdState): BrideId[] {
   const wed = new Set([...wivesOf(h).map((w) => w.id), ...(h.chosen ? [h.chosen] : [])]);
-  return [...new Set([...(h.stage === 'offered' || h.offered !== undefined ? BRIDE_ORDER : []), ...(h.known ?? [])])].filter((id) => BRIDES[id] && !wed.has(id));
+  return [...new Set([...(h.stage === 'offered' || h.offered !== undefined ? BRIDE_ORDER : []), ...(h.known ?? [])])].filter((id) => BRIDES[id] && !wed.has(id) && !h.suitors[id]?.lost);
 }
 
 export const BRIDE_ORDER: BrideId[] = ['nadia', 'amira', 'layla'];
@@ -248,11 +250,18 @@ const LOOK: Record<string, 'egypt' | 'levant' | 'desert'> = { layla: 'levant', f
 export const childLook = (mother?: BrideId) => (mother && (LOOK[mother] ?? BRIDES[mother]?.look)) || 'egypt';
 /** the child's portrait, and the plain one for that look to fall back on while the other faces are not yet drawn */
 export const childArt = (c: Child, firstWife?: BrideId): [string, string] => {
+  // grown: a face of their own (systems/familyFaces), or the sitter's initial when none is free
+  if (ageOf(c) >= 18) { const f = faceArt(c.face); return [f, f]; }
   if (ageOf(c) < 1) return [`art/family/child-baby-${c.sex}.jpg`, `art/family/child-baby-${c.sex}.jpg`];
   const base = `art/family/child-${childLook(c.mother ?? firstWife)}-${c.sex}-${ageOf(c) >= 18 ? 18 : ageOf(c) >= 12 ? 12 : 5}`;
   const v = c.look ?? 0;
   return [v ? `${base}-${v + 1}.jpg` : `${base}.jpg`, `${base}.jpg`];
 };
+
+/** a face given to someone of the household: a family picture ("fam:" and its name) or one from the portrait pool */
+export const faceArt = (face?: string) => (!face ? '' : face.startsWith('fam:') ? `art/family/${face.slice(4)}.jpg` : `art/people/${face}.jpg`);
+/** a wife's picture: her own as a bride, an older face once the years show (systems/familyFaces) */
+export const wifeArt = (sp: Pick<Spouse, 'id' | 'face'>) => (sp.face ? faceArt(sp.face) : brideArt(sp.id));
 
 /** standing needed before families will listen: reputation and a canopy stall or better */
 export const MATCH_REP = 25;
@@ -289,7 +298,35 @@ export const GROWN = 18;
 export const SON_NAMES = ['Ahmad', 'Mustafa', 'Hussein', 'Taha', 'Zaki', 'Anwar', 'Mahmoud', 'Ibrahim', 'Yusuf', 'Omar', 'Karim', 'Salah', 'Hamdi', 'Fathi', 'Adel', 'Sami', 'Rashid', 'Tawfiq'];
 export const DAUGHTER_NAMES = ['Fatma', 'Zeinab', 'Aisha', 'Huda', 'Safiya', 'Nabila', 'Amina', 'Khadija', 'Samira', 'Layla', 'Nawal', 'Souad', 'Ihsan', 'Laila', 'Thuraya', 'Hind', 'Basma', 'Rabab'];
 
-export interface Suitor { favour: number; visits: number; gifts: number; lastVisit?: number; lastGift?: number }
+/** how you present yourself on a call */
+export type CallWay = 'modest' | 'gift' | 'trade';
+/** what you send to her family's house */
+export type PresentKind = 'own' | 'sweets' | 'devout' | 'gold';
+export type FeastScale = 'modest' | 'proper' | 'lavish';
+/** what her family thinks of you after the wedding */
+export type Regard = 'cool' | 'warm' | 'proud';
+/** a condition her father has written into the contract */
+export type CondId = 'mother' | 'study' | 'one';
+/** the four moments that come as a scene card: the call, the proposal, the feast, the keys of the house */
+export type HomeSceneKind = 'call' | 'ask' | 'feast' | 'heir';
+export interface HomeScene {
+  kind: HomeSceneKind;
+  bride?: BrideId;
+  /** the proposal: what her father asks besides the agreed mahr, and the mahr he names */
+  demand?: 'none' | 'more' | CondId;
+  mahr?: number;
+  /** what happened, once a choice is made: the card shows it until you go on */
+  done?: string;
+  ok?: boolean;
+}
+export interface Suitor {
+  favour: number; visits: number; gifts: number; lastVisit?: number; lastGift?: number;
+  /** another man calling at the house, and the day her father decides by */
+  rival?: { who: string; by: number };
+  rivalSeen?: boolean;
+  /** her father gave her to the other man */
+  lost?: string;
+}
 export interface Spouse {
   id: BrideId;
   married: number;
@@ -304,6 +341,14 @@ export interface Spouse {
   workshop?: boolean;
   /** a later wife's own count to her next child (the first wife's is the house's birthIn) */
   birthIn?: number;
+  /** her family's regard after the feast, and the condition written into the contract */
+  regard?: Regard;
+  cond?: CondId;
+  /** days of home life since the wedding (a night adds the household pace): her years show in her face */
+  homeDays?: number;
+  /** an older face from the portrait pool, and the age band it was chosen for */
+  face?: string;
+  faceBand?: 'y' | 'm' | 'o';
 }
 export interface Child {
   id: string;
@@ -322,6 +367,11 @@ export interface Child {
   look?: number;
   /** an identical twin: the first-born of the pair */
   twinOf?: string;
+  /** a face of his or her own once grown (systems/familyFaces): a pool id, or "fam:" and a family picture */
+  face?: string;
+  /** the generation of the house the child was born into (unset: the first); a brother or sister of the
+   *  head of the house is never his heir */
+  gen?: number;
 }
 export interface HouseholdState {
   stage: 'none' | 'offered' | 'betrothed' | 'married';
@@ -340,9 +390,13 @@ export interface HouseholdState {
   birthIn?: number;
   pace: number;
   /** the merchant now at the head of the house, once an heir has taken over */
-  merchant?: { name: string; since: number; gen: number; father: string };
+  merchant?: { name: string; since: number; gen: number; father: string; sex?: Child['sex']; child?: Child };
   /** a widowed mother at home, after the house has passed on */
   mother?: BrideId;
+  /** the mahr and condition agreed at the contract, until the wedding */
+  terms?: { mahr: number; cond?: CondId };
+  /** a scene card in hand (components/Character/HomeScene) */
+  scene?: HomeScene;
 }
 export const HOUSEHOLD_START: HouseholdState = { stage: 'none', suitors: {}, children: [], pace: 1 };
 export const hh = (s: Pick<GameState, 'household'>): HouseholdState => s.household ?? HOUSEHOLD_START;
@@ -353,15 +407,19 @@ export const setWife = (h: HouseholdState, sp: Spouse): HouseholdState => (h.spo
 /** the name a family wants before giving a daughter to a man who already has wives */
 export const wifeRep = (h: HouseholdState) => MATCH_REP + WIFE_REP_STEP * wivesOf(h).length;
 /** room in the house for another wife, and no wedding already in hand */
-export const canCourt = (h: HouseholdState) => !h.merchant && !h.chosen && wivesOf(h).length < MAX_WIVES;
+export const canCourt = (h: HouseholdState) => !h.merchant && !h.chosen && wivesOf(h).length < MAX_WIVES && !wivesOf(h).some((w) => w.cond === 'one');
+/** a wife whose contract says no second wife without her consent */
+export const bindingWife = (h: HouseholdState) => wivesOf(h).find((w) => w.cond === 'one');
 const motherOf = (h: HouseholdState, c: Child) => c.mother ?? h.spouse?.id;
 
 export type HouseholdAct =
   | { kind: 'seek' }
-  | { kind: 'visit'; bride: BrideId }
-  | { kind: 'gift'; bride: BrideId }
-  | { kind: 'ask'; bride: BrideId }
-  | { kind: 'feast' }
+  | { kind: 'visit'; bride: BrideId; way?: CallWay }
+  | { kind: 'gift'; bride: BrideId; present?: PresentKind }
+  | { kind: 'ask'; bride: BrideId; answer?: 'agree' | 'hold' }
+  | { kind: 'feast'; scale?: FeastScale }
+  | { kind: 'scene'; scene: HomeSceneKind; bride?: BrideId }
+  | { kind: 'close' }
   | { kind: 'role'; role: SpouseRole; wife?: BrideId }
   | { kind: 'present'; wife?: BrideId }
   | { kind: 'evening'; wife?: BrideId }
@@ -369,7 +427,7 @@ export type HouseholdAct =
   | { kind: 'path'; child: string; path: ChildPath }
   | { kind: 'childRole'; child: string; role: ChildRole; shop?: string }
   | { kind: 'pace'; pace: number }
-  | { kind: 'inherit' };
+  | { kind: 'inherit'; way?: 'gathering' | 'quiet' };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 export const ageOf = (c: Child) => Math.floor(c.ageDays / 365);
@@ -391,22 +449,22 @@ export function visitGain(s: Pick<GameState, 'reputation' | 'wardrobe' | 'attire
   const clean = s.attire?.clean ?? 100;
   let g = 10 + Math.min(5, Math.floor(s.reputation / 10)) + Math.round(ch / 4) + clamp(Math.round(m.honesty / 20), -5, 5);
   let why = '';
-  if (b.likes === 'dress') { g += Math.round(ch / 4); why = ch >= 8 ? 'Her father looks at your coat before your face, and he is satisfied.' : 'Her father looks at your clothes a moment too long.'; }
+  if (b.likes === 'dress') { g += Math.round(ch / 4); why = ch >= 8 ? `${cap(fatherShort(b))} looks at your coat before your face, and is satisfied.` : `${cap(fatherShort(b))} looks at your clothes a moment too long.`; }
   if (b.likes === 'honesty') {
     g += clamp(Math.round(m.honesty / 10), -10, 5) + Math.min(3, Math.floor(levelOf(s.skills?.scholarship ?? 0) / 3));
-    const fa = id === 'nadia' ? 'The teacher' : b.father.split(',')[0];
-    why = m.honesty >= 10 ? `${fa} has asked about you in the bazaar, and heard you deal straight.` : m.honesty <= -10 ? `${fa} has heard you tell a good story in the bazaar. He is not sure he likes it.` : `${fa} asks how you trade, and listens to the answer.`;
+    const fa = id === 'nadia' ? 'The teacher' : cap(fatherShort(b));
+    why = m.honesty >= 10 ? `${fa} has asked about you in the bazaar, and heard you deal straight.` : m.honesty <= -10 ? `${fa} has heard you tell a good story in the bazaar, and is not sure about it.` : `${fa} asks how you trade, and listens to the answer.`;
   }
   if (b.likes === 'craft') {
     const eye = Math.min(6, Math.floor((levelOf(s.skills?.appraisal ?? 0) + levelOf(s.skills?.craft ?? 0)) / 3));
     g += eye + clamp(Math.round(m.kindness / 25), -2, 3);
-    const fa = id === 'amira' ? 'Hajj Mansur' : b.father.split(',')[0];
+    const fa = id === 'amira' ? 'Hajj Mansur' : cap(fatherShort(b));
     why = eye >= 3 ? `${fa} turns a rug over and you read the back together. A nod.` : `${fa} shows you the family's carpets. You do not know what to say about them.`;
   }
   if (b.likes === 'learning') {
     const lv = levelOf(s.skills?.scholarship ?? 0);
     g += Math.min(8, Math.floor(lv / 2));
-    why = lv >= 6 ? `You talk of books with ${b.father.split(',')[0]} until the coffee is cold.` : `${b.father.split(',')[0]} asks what you have read lately. You change the subject.`;
+    why = lv >= 6 ? `You talk of books with ${fatherShort(b)} until the coffee is cold.` : `${cap(fatherShort(b))} asks what you have read lately. You change the subject.`;
   }
   if (clean < 35) { g -= 4; why += ' You came in the dust of the road.'; }
   if (id === 'aziza' && (s as { selimShamed?: boolean }).selimShamed) { g -= 6; why += ' Her mother has not forgotten the business with Selim\'s dyes.'; }
@@ -414,13 +472,147 @@ export function visitGain(s: Pick<GameState, 'reputation' | 'wardrobe' | 'attire
   return { gain: Math.max(2, Math.round(g)), why: why.trim() };
 }
 
+/** her father as he is spoken of across the coffee: "Ustaz Fahmi", "Hajj Mansur", "Fikry Bey"; her
+ *  mother where her father has died */
+export function fatherShort(b: Bride): string {
+  const f = b.father.split(',')[0].trim();
+  if (/^the late\b/i.test(f)) return 'her mother';
+  const w = f.split(/\s+/);
+  if (/^(Ustaz|Hajj|Haj|Sheikh|Abu)$/.test(w[0]) && w[1]) return `${w[0]} ${w[1]}`;
+  if (w[1] === 'Bey') return `${w[0]} Bey`;
+  if (w[w.length - 1] === 'Bey' && w.length > 1) return `${w[w.length - 2]} Bey`;
+  return w[0];
+}
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+/** what her family weighs most in a suitor, in their own terms */
+export const LIKES_WORD: Record<Bride['likes'], string> = { dress: 'how a man dresses and carries himself', honesty: 'an honest name in the bazaar', craft: 'a man who knows carpets', learning: 'books and learning' };
+
+/** a generous gift taken on a call: half as much again as the present that suits the family */
+export const callGift = (b: Bride) => Math.max(100, Math.round((b.gift.cost * 1.5) / 10) * 10);
+/** how a way of presenting yourself goes down with this family: by its rank and what it weighs */
+export function callFit(b: Bride, way: CallWay, honesty = 0): { fit: -1 | 0 | 1; line: string } {
+  const fa = cap(fatherShort(b));
+  const rank = b.rank ?? 'trade';
+  if (way === 'modest') {
+    if (rank === 'grand' || (rank === 'notable' && b.likes === 'dress')) return { fit: -1, line: `${fa} expected more of a man who wants a daughter of this house. Eyes go to your plain coat, and stay there.` };
+    if (rank === 'humble' || b.likes === 'honesty' || b.likes === 'learning') return { fit: 1, line: `You come in a plain good coat, greet the old people first, and let ${fatherShort(b)} do the talking. It goes down well.` };
+    return { fit: 0, line: 'You are polite and say little. It does no harm.' };
+  }
+  if (way === 'gift') {
+    if (rank === 'humble') return { fit: -1, line: `A lane family cannot answer a gift like that. ${fa} gives thanks, and the room goes quiet.` };
+    if (b.likes === 'honesty') return { fit: -1, line: `${fa} gives thanks, stiffly, and seems to wonder what you are paying for.` };
+    if (rank === 'notable' || rank === 'grand' || b.likes === 'dress') return { fit: 1, line: 'The gift is opened in front of the women of the house, and talked about after you leave, which is the point.' };
+    return { fit: 0, line: `${fa} accepts the gift with thanks. It is noted.` };
+  }
+  if (b.likes === 'craft' || b.house) return { fit: 1, line: `You talk of looms, dyes and prices, and ${fatherShort(b)} forgets the time.` };
+  if (b.likes === 'learning') return { fit: -1, line: `${fa} wanted to talk of books. You talk of prices, and are allowed to.` };
+  if (b.likes === 'honesty' && honesty >= 10) return { fit: 1, line: 'You say plainly what you buy, what you sell and what you make on it. A nod at the figures.' };
+  return { fit: 0, line: `You talk of your trade. ${fa} listens politely.` };
+}
+
+export interface PresentOpt { kind: PresentKind; label: string; cost: number; fit: -1 | 0 | 1; lift: number; line: string }
+/** what may be sent to her family's house: the present that suits them, sweets, something for a devout
+ *  house of their own faith, and gold, which only a house of standing takes before the contract */
+export function presentsFor(b: Bride): PresentOpt[] {
+  const rank = b.rank ?? 'trade';
+  const faith = b.faith ?? 'muslim';
+  const devout = faith === 'christian' ? { label: 'tall beeswax candles and incense for their church', cost: 120 } : faith === 'jewish' ? { label: 'a pair of silver candlesticks for the house', cost: 200 } : { label: 'a string of amber prayer beads for her father', cost: 120 };
+  const pious = b.likes === 'honesty' || b.likes === 'learning';
+  const gold = Math.max(500, Math.round(b.mahr / 6 / 10) * 10);
+  return [
+    { kind: 'own', label: b.gift.label, cost: b.gift.cost, fit: 1, lift: 8, line: 'Chosen for this family, and they can tell.' },
+    { kind: 'sweets', label: 'a box of sweets for the house', cost: 60, fit: 0, lift: 3, line: 'Sweets are always welcome, and soon forgotten.' },
+    { kind: 'devout', ...devout, fit: pious ? 1 : 0, lift: pious ? 7 : 4, line: pious ? 'A present for a devout house, and taken as it was meant.' : 'A proper present. It is put by with thanks.' },
+    { kind: 'gold', label: 'a gold bangle for her', cost: gold, fit: rank === 'humble' ? -1 : rank === 'trade' ? 0 : 1, lift: rank === 'humble' ? -4 : rank === 'trade' ? 4 : 10,
+      line: rank === 'humble' ? 'Gold before the contract is too much for a lane family: it comes back with thanks, and a little hurt.' : rank === 'trade' ? 'Gold before the contract. Her mother wonders aloud whether you are showing off.' : 'Gold is what a house like theirs expects. Her mother puts it on her wrist herself.' },
+  ];
+}
+
+/** a good match draws other suitors: a house of standing, a big mahr, a dealer on the tables */
+export const goodMatch = (b: Bride) => b.rank === 'notable' || b.rank === 'grand' || b.mahr >= 3500 || !!b.house;
+export const RIVAL_DAYS = 12;
+/** the other young man calling at the house, as the quarter describes him */
+export function rivalWho(b: Bride): string {
+  const c = b.city;
+  if (c === 'alexandria' || c === 'cairo') return b.rank === 'notable' || b.rank === 'grand' ? 'a young lawyer of a good Cairo family' : 'a cotton broker\'s son from Mansoura';
+  if (c === 'damascus' || c === 'aleppo') return 'a silk merchant\'s son from Beirut';
+  if (c === 'jerusalem' || c === 'jaffa') return 'a young doctor lately back from Beirut';
+  if (c === 'baghdad') return 'a date merchant\'s son from Basra';
+  if (c === 'istanbul' || c === 'konya') return 'a tobacco merchant\'s son from Smyrna';
+  if (c === 'portsaid' || c === 'suez') return 'a shipping agent\'s clerk with good prospects';
+  return 'a grain merchant\'s son from the next town';
+}
+
+export const FEAST_SCALES: FeastScale[] = ['modest', 'proper', 'lavish'];
+/** what each size of feast costs and brings, and how her family takes it */
+export function feastOf(b: Bride, scale: FeastScale): { cost: number; rep: number; regard: Regard; label: string; note: string } {
+  const plain = b.rank === 'humble' || b.likes === 'honesty' || b.likes === 'learning';
+  if (scale === 'modest') return { cost: Math.round(b.feast * 0.5), rep: Math.max(1, b.feastRep - 3), regard: plain ? 'warm' : 'cool', label: 'A modest feast', note: 'Family and neighbours, a singer from the quarter' };
+  if (scale === 'lavish') return { cost: Math.round(b.feast * 1.8), rep: b.feastRep + 3, regard: plain ? 'warm' : 'proud', label: 'A lavish feast', note: 'A tent across the lane, two singers, lamps till dawn' };
+  return { cost: b.feast, rep: b.feastRep, regard: 'warm', label: 'A proper feast', note: 'The cooks, the singers and the lamps, as her family expects' };
+}
+export const REGARD_WORD: Record<Regard, string> = { cool: 'Her family had hoped for more of you', warm: 'Her family thinks well of you', proud: 'Her family is proud of the match' };
+const REGARD_CONTENT: Record<Regard, number> = { cool: 60, warm: 70, proud: 78 };
+
+/** the condition a father may write into the contract */
+export const COND_WORD: Record<CondId, string> = {
+  mother: 'she visits her mother every Friday, and spends the feasts with her family',
+  study: 'she goes on with her reading and her teaching after the wedding',
+  one: 'no second wife while she is in your house, unless she agrees',
+};
+/** the condition this father would ask */
+const condFor = (b: Bride, h: HouseholdState): CondId => (b.likes === 'learning' ? 'study' : !h.spouse && (b.rank === 'notable' || b.likes === 'honesty') ? 'one' : 'mother');
+/** a family gathering for the handing over of the house */
+export const GATHERING = 1000;
+export const HEIR_REP_GATHERING = 0.65;
+
+/** what each part of the house's work does, for the wife's card and the stall */
+export function roleLine(sp: Spouse, s: Pick<GameState, 'shopBoy'>): string {
+  const b = BRIDES[sp.id];
+  if (sp.content < 25) return `${b?.short ?? 'She'} is unhappy, and does nothing more than she must.`;
+  if (sp.role === 'stall') return s.shopBoy?.hired ? 'She looks in on the boy at the Giza stall: money short in the tin does not go unseen.' : 'She minds the Giza stall while you are away: it stays open, and she sells the plain rugs at their worth.';
+  if (sp.role === 'books') return 'She keeps the books: the household part of the monthly bill comes down by a fifth, and money short in the tin is found.';
+  if (sp.role === 'rugs') return `She washes dirty rugs from the store at home${sp.id === 'amira' ? ', and mends worn ones' : ''}.`;
+  return 'She keeps the house and teaches the children their letters: each child learns a little more every year.';
+}
+/** the line on the stall screen when a wife minds the stall */
+export function stallWifeLine(s: Pick<GameState, 'household' | 'shopBoy'>): string | null {
+  const w = wivesOf(hh(s)).find((x) => x.role === 'stall');
+  if (!w) return null;
+  const n = BRIDES[w.id]?.short ?? 'Your wife';
+  if (w.content < 25) return `${n} has stopped minding the stall: she is unhappy.`;
+  return s.shopBoy?.hired ? `${n} looks in on the boy while you are away: nothing goes missing from the tin.` : `${n} minds the stall while you are away: it stays open, and she sells the plain rugs at their worth.`;
+}
+/** the household part of the month's bill, cut by a wife who keeps the books */
+export function housekeeping(s: Pick<GameState, 'household'>, lines: { label: string; amount: number }[]): { label: string; amount: number } | null {
+  const w = wivesOf(hh(s)).find((x) => x.role === 'books' && x.content >= 25);
+  if (!w) return null;
+  const home = lines.find((l) => l.label.startsWith('Household'))?.amount ?? 0;
+  const save = Math.round(home * 0.2);
+  return save > 0 ? { label: `${BRIDES[w.id]?.short ?? 'Your wife'} keeps the household accounts`, amount: -save } : null;
+}
+/** a household whose betrothal was left standing after the wedding (an older save, a tester shortcut) */
+export function tidyHousehold(h: HouseholdState): HouseholdState {
+  if (h.chosen && wivesOf(h).some((w) => w.id === h.chosen)) return { ...h, chosen: undefined, contract: undefined, terms: undefined };
+  return h;
+}
+
 type Act = Pick<GameState, 'ranks' | 'household' | 'day' | 'cash' | 'reputation' | 'world' | 'ledger' | 'journal' | 'wardrobe' | 'attire' | 'manner' | 'skills' | 'stats' | 'ended'>;
 export interface ActResult { patch: Partial<GameState>; msg: string; ok: boolean }
 const no = (msg: string): ActResult => ({ patch: {}, msg, ok: false });
 
+/** a child of the house as the head of the house sees him or her: his own child, a brother or sister
+ *  (after the house has passed on), or of the generation before that */
+export const kinOf = (h: HouseholdState, c: Child): 'child' | 'sibling' | 'elder' => {
+  const d = (h.merchant?.gen ?? 1) - (c.gen ?? 1);
+  return d <= 0 ? 'child' : d === 1 ? 'sibling' : 'elder';
+};
+/** the head of the house: he or she */
+export const headSex = (h: HouseholdState): Child['sex'] => h.merchant?.sex ?? 'son';
+
 /** The heir: the eldest child who is grown. */
 export function heirOf(h: HouseholdState): Child | undefined {
-  return h.children.filter((c) => ageOf(c) >= GROWN && c.name).sort((a, b) => a.born - b.born || b.ageDays - a.ageDays)[0];
+  return h.children.filter((c) => ageOf(c) >= GROWN && c.name && kinOf(h, c) === 'child').sort((a, b) => a.born - b.born || b.ageDays - a.ageDays)[0];
 }
 
 /** A grown child left to keep a shop: the shop record carries `childAgent`, read with childAgentOf. */
@@ -461,7 +653,37 @@ const courting = (h: HouseholdState, id: BrideId) => !!BRIDES[id] && canCourt(h)
 /** courting keeps a married man's stage as it is */
 const courtStage = (h: HouseholdState): HouseholdState['stage'] => (h.spouse ? 'married' : 'offered');
 
-export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math.random): ActResult {
+/** her family's name, as on a ledger line: "the Abd al-Latif family" */
+const familyName = (b: Bride) => b.name.split(' ').slice(1).join(' ') || b.short;
+/** why the wedding feast cannot be held now, or null */
+export function feastBlock(s: Pick<GameState, 'household' | 'world' | 'day'>): string | null {
+  const h = hh(s);
+  if (!h.chosen || (h.stage !== 'betrothed' && !h.spouse)) return 'There is no wedding to hold.';
+  const b = BRIDES[h.chosen];
+  if (s.world.at !== b.city) return `The feast is held in ${b.cityName}, at her family's house.`;
+  const from = (h.contract ?? s.day) + FEAST_AFTER;
+  if (s.day < from) return `Her family is still preparing. The feast can be held from ${dateFor(from).short}.`;
+  return null;
+}
+
+/** A step in the household. The four key moments (the call, the proposal, the feast, the keys of the
+ *  house) open as a scene card first; the choice made on it is the act itself, and what happened stays
+ *  on the card until you go on. */
+export function applyHousehold(s0: Act, a: HouseholdAct, rng: () => number = Math.random): ActResult {
+  const h0 = tidyHousehold(hh(s0));
+  const s = h0 === s0.household ? s0 : { ...s0, household: h0 };
+  const r = act(s, a, rng);
+  const sc = h0.scene;
+  const resolves = !!sc && !sc.done && ((a.kind === 'visit' && sc.kind === 'call') || (a.kind === 'ask' && sc.kind === 'ask') || (a.kind === 'feast' && sc.kind === 'feast') || (a.kind === 'inherit' && sc.kind === 'heir'));
+  if (resolves && (r.ok || Object.keys(r.patch).length)) {
+    const nh = r.patch.household ?? h0;
+    return { ...r, patch: { ...r.patch, household: { ...nh, scene: { ...sc, done: r.msg, ok: r.ok } } } };
+  }
+  if (h0 !== s0.household && !r.patch.household && r.ok) return { ...r, patch: { ...r.patch, household: h0 } };
+  return r;
+}
+
+function act(s: Act, a: HouseholdAct, rng: () => number): ActResult {
   const h = hh(s);
   const at = s.world.at;
   const day = s.day;
@@ -485,14 +707,34 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
       if (!courting(h, a.bride)) return no('There is no family to call on.');
       if (at !== b.city) return no(`${b.short}'s family lives in ${b.cityName}. Call on them when you are there.`);
       const su = h.suitors[a.bride] ?? { favour: 0, visits: 0, gifts: 0 };
-      if (su.lastVisit === day) return no('You called on them today. Calling twice in a day is pressing.');
+      if (su.lastVisit === day) return no('You called on them today. Call again tomorrow: calling twice in a day is pressing.');
       if (hour + VISIT_HOURS > 20) return no('It is too late in the day to call on a family. Go in the morning.');
-      const { gain, why } = visitGain(s, a.bride);
+      const { gain: base, why } = visitGain(s, a.bride);
+      const first = !su.visits;
+      const fa = fatherShort(b);
+      // how you present yourself: what suits this family moves its opinion most; a wrong note on the
+      // first call costs ground, later only wastes the call
+      let gain = base, line = `You sit with ${fa} for coffee and talk of the trade.`, cost = 0;
+      if (a.way) {
+        const f = callFit(b, a.way, s.manner?.honesty ?? 0);
+        line = f.line;
+        gain = f.fit > 0 ? base + (first ? 8 : 3) : f.fit === 0 ? Math.round(base * 0.6) : first ? -6 : 1;
+        if (a.way === 'gift') { cost = callGift(b); if (s.cash < cost) return no(`A generous gift for this house costs ${fmt(cost)}. You have ${fmt(s.cash)}.`); }
+      }
+      if (su.rival) gain -= 2;
       const favour = clamp(su.favour + gain, 0, 100);
       const ready = favour >= ASK_AT;
-      const msg = `You sit with ${b.father.split(',')[0]} for coffee and talk of the trade. ${why} ${ready ? 'He would hear a proposal now.' : 'He will think about you.'}`.replace(/\s+/g, ' ');
+      // a good match draws another suitor now and then: her father will decide by a day
+      let rival = su.rival, rivalLine = '';
+      if (!rival && !su.rivalSeen && !first && goodMatch(b) && su.favour >= 20 && !ready && rng() < 0.35) {
+        rival = { who: rivalWho(b), by: day + RIVAL_DAYS };
+        rivalLine = ` On the stairs you pass another caller: ${rival.who}. ${cap(fa)} will not keep two families waiting long, and means to decide by ${dateFor(rival.by).short}.`;
+      }
+      const sign = gain >= 0 ? `+${gain}` : `${gain}`;
+      const msg = `${line} ${why} Her family's opinion of you ${sign}, now ${favour} of 100. ${ready ? 'Her father would hear a proposal now.' : 'Call again tomorrow.'}${rivalLine}`.replace(/\s+/g, ' ').trim();
       return { ok: true, msg, patch: {
-        household: { ...h, stage: courtStage(h), offered: h.offered ?? day, suitors: { ...h.suitors, [a.bride]: { ...su, favour, visits: su.visits + 1, lastVisit: day } } },
+        ...(cost ? pay(cost, `A gift for the ${familyName(b)} family`) : {}),
+        household: { ...h, stage: courtStage(h), offered: h.offered ?? day, suitors: { ...h.suitors, [a.bride]: { ...su, favour, visits: su.visits + 1, lastVisit: day, ...(rival ? { rival, rivalSeen: true } : {}) } } },
         world: { ...s.world, hour: Math.min(23.9, hour + VISIT_HOURS) },
         journal: jot(`Called on ${b.father.split(',')[0]} in ${b.cityName}.`),
       } };
@@ -501,75 +743,125 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
       const b = BRIDES[a.bride];
       if (!courting(h, a.bride)) return no('There is no family to send a present to.');
       const su = h.suitors[a.bride] ?? { favour: 0, visits: 0, gifts: 0 };
-      if (su.lastGift !== undefined && day - su.lastGift < GIFT_EVERY) return no('Your last present has hardly arrived. Another so soon looks like buying favour.');
-      if (s.cash < b.gift.cost) return no(`A fitting present costs ${fmt(b.gift.cost)}. You do not have it.`);
-      const lift = su.visits ? 8 : 4;
-      return { ok: true, msg: `You send ${b.gift.label} to the house in ${b.cityName}${su.visits ? '' : '. A present from a man they have not met counts for less'}.`, patch: {
-        ...pay(b.gift.cost, `A present for the ${b.name.split(' ').slice(1).join(' ')} family`),
-        household: { ...h, stage: courtStage(h), offered: h.offered ?? day, suitors: { ...h.suitors, [a.bride]: { ...su, favour: clamp(su.favour + lift, 0, 100), gifts: su.gifts + 1, lastGift: day } } },
+      if (su.lastGift === day) return no('You sent a present today. Send another tomorrow, if at all.');
+      const opt = presentsFor(b).find((x) => x.kind === (a.present ?? 'own'));
+      if (!opt) return no('');
+      if (s.cash < opt.cost) return no(`${cap(opt.label)} costs ${fmt(opt.cost)}. You have ${fmt(s.cash)}.`);
+      const back = opt.lift < 0;
+      let lift = opt.lift;
+      const why = [opt.line];
+      if (!back && !su.visits) { lift = Math.round(lift / 2); why.push('A present from a man they have not met counts for less.'); }
+      if (!back && su.lastGift !== undefined && day - su.lastGift < 3) { lift = Math.max(1, Math.round(lift / 2)); why.push('Another so soon looks a little like buying favour.'); }
+      const favour = clamp(su.favour + lift, 0, 100);
+      return { ok: true, msg: `You send ${opt.label} to the house in ${b.cityName}. ${why.join(' ')} Her family's opinion of you ${lift >= 0 ? '+' : ''}${lift}, now ${favour} of 100.`, patch: {
+        ...(back ? {} : pay(opt.cost, `A present for the ${familyName(b)} family`)),
+        household: { ...h, stage: courtStage(h), offered: h.offered ?? day, suitors: { ...h.suitors, [a.bride]: { ...su, favour, gifts: su.gifts + 1, lastGift: day } } },
       } };
     }
     case 'ask': {
       const b = BRIDES[a.bride];
       if (!courting(h, a.bride)) return no('You are not courting.');
-      if (h.spouse && s.reputation < wifeRep(h)) return no(`${b.father.split(',')[0]} knows you have a wife at home. For his daughter to join your house he wants a name of ${wifeRep(h)}.`);
-      if (h.spouse && b.rank === 'grand') return no(`${b.father.split(',')[0]} is courteous and very clear: a daughter of his house is no man's second wife.`);
+      const fa = cap(fatherShort(b));
+      if (h.spouse && s.reputation < wifeRep(h)) return no(`${fa} knows you have a wife at home. For his daughter to join your house he wants a name of ${wifeRep(h)}.`);
+      if (h.spouse && b.rank === 'grand') return no(`${fa} is courteous and very clear: a daughter of his house is no man's second wife.`);
       const need = houseNeed(s.ranks, b);
       if (need) return no(need);
-      if (b.minRep && s.reputation < b.minRep) return no(`${b.father.split(',')[0]} is polite, but his house looks higher: he wants a name of ${b.minRep} before he will hear you.`);
+      if (b.minRep && s.reputation < b.minRep) return no(`${fa} is polite, but the house looks higher: it wants a name of ${b.minRep} before it will hear you.`);
       if (at !== b.city) return no(`You ask in person, at her father's house in ${b.cityName}.`);
       const su = h.suitors[a.bride] ?? { favour: 0, visits: 0, gifts: 0 };
       if (su.favour < ASK_AT) {
         return { ok: false, msg: 'Her father says it is too soon; the families hardly know each other. Call again, and send word to the house.', patch: { household: { ...h, suitors: { ...h.suitors, [a.bride]: { ...su, favour: clamp(su.favour - 5, 0, 100) } } } } };
       }
       if (a.bride === 'nadia' && (s.manner?.honesty ?? 0) < -25) return no('The teacher has heard too many stories about your stories. He will not give his daughter to a fox.');
-      if (s.cash < b.mahr) return no(`The mahr agreed between the families is ${fmt(b.mahr)}, paid when the contract is written. You have ${fmt(s.cash)}.`);
-      return { ok: true, msg: `Her father gives his consent. The contract is written before the ma'zun, and the mahr of ${fmt(b.mahr)} is paid. The wedding feast in ${b.cityName} can be held from ${dateFor(day + FEAST_AFTER).short}.`, patch: {
-        ...pay(b.mahr, `Mahr for ${b.name} (the marriage contract)`),
-        household: { ...h, stage: h.spouse ? 'married' : 'betrothed', chosen: a.bride, contract: day },
-        journal: jot(`The marriage contract with ${b.name} is written in ${b.cityName}. Mahr ${fmt(b.mahr)}.`),
+      // what her father asks on the day (the proposal scene): the mahr agreed, more, or a condition
+      const sc = h.scene?.kind === 'ask' && h.scene.bride === a.bride ? h.scene : undefined;
+      const demand = sc?.demand ?? 'none';
+      let mahr = sc?.mahr ?? b.mahr;
+      let cond: CondId | undefined = demand !== 'none' && demand !== 'more' ? demand : undefined;
+      let lead = '';
+      if (a.answer === 'hold' && demand !== 'none') {
+        if (su.favour < 85) {
+          return { ok: false, msg: demand === 'more' ? `${fa} is offended. "We will speak again when you are ready to be generous." Her family's opinion of you falls.` : `${fa} is offended. "A father asks very little. Come back when you understand that." Her family's opinion of you falls.`,
+            patch: { household: { ...h, suitors: { ...h.suitors, [a.bride]: { ...su, favour: clamp(su.favour - 8, 0, 100) } } } } };
+        }
+        lead = demand === 'more' ? `${fa} laughs. "You bargain like a carpet man. Very well, as was agreed." ` : `${fa} looks at you a long moment, then lets it go. "You will be good to her. That is enough." `;
+        mahr = b.mahr; cond = undefined;
+      }
+      if (s.cash < mahr) return no(`The mahr is ${fmt(mahr)}, paid when the contract is written. You have ${fmt(s.cash)}.`);
+      return { ok: true, msg: `${lead}${/^the late/i.test(b.father) ? 'Her mother gives her' : 'Her father gives his'} consent. The contract is written before the ma'zun, and the mahr of ${fmt(mahr)} is paid.${cond ? ` Written into it: ${COND_WORD[cond]}.` : ''} The wedding feast in ${b.cityName} can be held from ${dateFor(day + FEAST_AFTER).short}.`, patch: {
+        ...pay(mahr, `Mahr for ${b.name} (the marriage contract)`),
+        household: { ...h, stage: h.spouse ? 'married' : 'betrothed', chosen: a.bride, contract: day, terms: { mahr, cond } },
+        journal: jot(`The marriage contract with ${b.name} is written in ${b.cityName}. Mahr ${fmt(mahr)}.${cond ? ` Her father's condition: ${COND_WORD[cond]}.` : ''}`),
       } };
     }
     case 'feast': {
-      if (!h.chosen || (h.stage !== 'betrothed' && !h.spouse)) return no('There is no wedding to hold.');
-      const b = BRIDES[h.chosen];
-      if (at !== b.city) return no(`The feast is held in ${b.cityName}, at her family's house.`);
-      const from = (h.contract ?? day) + FEAST_AFTER;
-      if (day < from) return no(`Her family is still preparing. The feast can be held from ${dateFor(from).short}.`);
+      const why = feastBlock(s);
+      if (why) return no(why);
+      const b = BRIDES[h.chosen!];
       const n = wivesOf(h).length;
       const rooms = ROOMS_COST[n] ?? 0;
-      if (s.cash < b.feast + rooms) return no(`The feast costs ${fmt(b.feast)}: the cooks, the singers, the lamps and the cart for her things.${rooms ? ` Her own rooms in the house cost ${fmt(rooms)} more.` : ''} You have ${fmt(s.cash)}.`);
+      const f = feastOf(b, a.scale ?? 'proper');
+      if (s.cash < f.cost + rooms) return no(`${f.label} costs ${fmt(f.cost)}.${rooms ? ` Her own rooms in the house cost ${fmt(rooms)} more.` : ''} You have ${fmt(s.cash)}.`);
       const friends = [...new Set([...s.world.friends, ...b.friends])];
       const birth = FIRST_CHILD[0] + Math.floor(rng() * (FIRST_CHILD[1] - FIRST_CHILD[0]));
+      const cond = h.terms?.cond;
+      const content = REGARD_CONTENT[f.regard] + (cond === 'mother' || cond === 'study' ? 5 : 0);
+      const scaleLine = a.scale === 'modest' ? `A modest feast at her father's house in ${b.cityName}: family, neighbours and a singer from the quarter.` : a.scale === 'lavish' ? `A great feast in ${b.cityName}: a tent across the lane, two singers, lamps till dawn, and the whole quarter fed.` : `The wedding feast is held at her father's house in ${b.cityName}. Half the quarter comes.`;
+      const regardLine = f.regard === 'cool' ? ' Her aunts say they had hoped for more, and say it more than once.' : f.regard === 'proud' ? ' Her family will talk of it for years.' : a.scale === 'lavish' ? ' Her father thinks it too much, but is pleased all the same.' : ' Her family is well pleased.';
+      const ledger = [...s.ledger, { day, kind: 'expense', label: `Wedding feast in ${b.cityName}`, amount: -f.cost } as LedgerEntry, ...(rooms ? [{ day, kind: 'expense', label: `Rooms for ${b.short} in the house`, amount: -rooms } as LedgerEntry] : [])];
+      const base = { ledger, cash: s.cash - f.cost - rooms, reputation: s.reputation + f.rep, world: { ...s.world, friends, hour: Math.min(23.9, hour + 4) } };
+      const clear = { chosen: undefined, contract: undefined, terms: undefined, suitors: {}, offered: undefined } as const;
       if (n) {
         const others = wivesOf(h).map((w) => ({ ...w, content: clamp(w.content - JEALOUSY, 0, 100) }));
-        const nw: Spouse = { id: b.id, married: day, content: 65, role: 'home', lastHome: day, birthIn: birth };
+        const nw: Spouse = { id: b.id, married: day, content: content - 5, role: 'home', lastHome: day, birthIn: birth, regard: f.regard, cond, homeDays: 0 };
         const [first, ...rest] = others;
         const names = others.map((w) => BRIDES[w.id].short).join(' and ');
-        return { ok: true, msg: `The wedding feast is held at her father's house in ${b.cityName}. ${b.short} comes to Giza, to rooms of her own. ${names} receive${others.length === 1 ? 's' : ''} her politely, and coolly. Reputation +${b.feastRep}.`, patch: {
-          ...pay(b.feast, `Wedding feast in ${b.cityName}`),
-          ledger: [...s.ledger, { day, kind: 'expense', label: `Wedding feast in ${b.cityName}`, amount: -b.feast } as LedgerEntry, { day, kind: 'expense', label: `Rooms for ${b.short} in the house`, amount: -rooms } as LedgerEntry],
-          cash: s.cash - b.feast - rooms,
-          reputation: s.reputation + b.feastRep,
-          world: { ...s.world, friends, hour: Math.min(23.9, hour + 4) },
-          household: { ...h, stage: 'married', spouse: first, wives: [...rest, nw], chosen: undefined, contract: undefined, suitors: {} },
+        return { ok: true, msg: `${scaleLine}${regardLine} ${b.short} comes to Giza, to rooms of her own. ${names} receive${others.length === 1 ? 's' : ''} her politely, and coolly. Reputation +${f.rep}.`, patch: {
+          ...base,
+          household: { ...h, ...clear, stage: 'married', spouse: first, wives: [...rest, nw] },
           journal: jot(`Married ${b.name} in ${b.cityName}, my ${['', 'second', 'third', 'fourth'][n]} wife.`),
         } };
       }
-      const spouse: Spouse = { id: b.id, married: day, content: 70, role: b.role, lastHome: day };
-      return { ok: true, msg: `The wedding feast is held at her father's house in ${b.cityName}. Half the quarter comes. ${b.short} goes ahead to your house in Giza with her things. Reputation +${b.feastRep}.`, patch: {
-        ...pay(b.feast, `Wedding feast in ${b.cityName}`),
-        reputation: s.reputation + b.feastRep,
-        world: { ...s.world, friends, hour: Math.min(23.9, hour + 4) },
-        household: { ...h, stage: 'married', spouse, chosen: undefined, contract: undefined, suitors: {}, birthIn: birth },
-        journal: jot(`Married ${b.name} in ${b.cityName}. The dealers of ${b.friends.map((f) => f[0].toUpperCase() + f.slice(1)).join(' and ')} now count you a friend of the family.`),
+      const spouse: Spouse = { id: b.id, married: day, content, role: b.role, lastHome: day, regard: f.regard, cond, homeDays: 0 };
+      return { ok: true, msg: `${scaleLine}${regardLine} ${b.short} goes ahead to your house in Giza with her things. Reputation +${f.rep}.`, patch: {
+        ...base,
+        household: { ...h, ...clear, stage: 'married', spouse, birthIn: birth },
+        journal: jot(`Married ${b.name} in ${b.cityName}. The dealers of ${b.friends.map((x) => x[0].toUpperCase() + x.slice(1)).join(' and ')} now count you a friend of the family.`),
       } };
     }
+    case 'scene': {
+      // the moment comes as a card: checked first, so a card never opens on something that cannot happen
+      const dry = () => 1;
+      if (a.scene === 'call') {
+        if (!a.bride) return no('');
+        const t = act(s, { kind: 'visit', bride: a.bride }, dry);
+        if (!t.ok) return no(t.msg);
+      } else if (a.scene === 'ask') {
+        if (!a.bride) return no('');
+        const t = act({ ...s, cash: 1e12 }, { kind: 'ask', bride: a.bride }, dry);
+        if (!t.ok) return no(t.msg);
+        const b = BRIDES[a.bride];
+        const su = h.suitors[a.bride]!;
+        const roll = rng();
+        const high = b.rank === 'notable' || b.rank === 'grand';
+        const demand: HomeScene['demand'] = su.favour >= 90 ? 'none' : roll < (high ? 0.45 : 0.25) ? 'more' : roll < (high ? 0.75 : 0.6) ? condFor(b, h) : 'none';
+        const mahr = demand === 'more' ? Math.round((b.mahr * 1.25) / 100) * 100 : b.mahr;
+        return { ok: true, msg: '', patch: { household: { ...h, scene: { kind: 'ask', bride: a.bride, demand, mahr } } } };
+      } else if (a.scene === 'feast') {
+        const why = feastBlock(s);
+        if (why) return no(why);
+        return { ok: true, msg: '', patch: { household: { ...h, scene: { kind: 'feast', bride: h.chosen } } } };
+      } else if (a.scene === 'heir') {
+        if (!heirOf(h)?.name) return no('There is no grown child to take on the house.');
+      }
+      return { ok: true, msg: '', patch: { household: { ...h, scene: { kind: a.scene, bride: a.bride } } } };
+    }
+    case 'close': return { ok: true, msg: '', patch: { household: { ...h, scene: undefined } } };
     case 'role': {
       const sp = pick(a.wife);
       if (!sp) return no('You are not married.');
       if (!ROLE_WORD[a.role]) return no('');
-      return { ok: true, msg: `${BRIDES[sp.id].short}: ${ROLE_WORD[a.role].toLowerCase()}.`, patch: { household: setWife(h, { ...sp, role: a.role }) } };
+      return { ok: true, msg: `${BRIDES[sp.id].short}: ${ROLE_WORD[a.role].toLowerCase()}. ${roleLine({ ...sp, role: a.role }, s as unknown as Pick<GameState, 'shopBoy'>)}`, patch: { household: setWife(h, { ...sp, role: a.role }) } };
     }
     case 'present': {
       const sp = pick(a.wife);
@@ -641,20 +933,27 @@ export function applyHousehold(s: Act, a: HouseholdAct, rng: () => number = Math
       const heir = heirOf(h);
       if (!heir?.name) return no('There is no grown child to take on the house.');
       const prev = h.merchant?.name ?? 'Hassan';
-      const why = s.ended?.cause === 'death' ? `${prev} is buried in the family tomb.` : s.ended ? `${prev} gives up the trade.` : `${prev} hands the keys of the house to ${heir.name} and sits at home with his pipe.`;
-      const rep = Math.round(s.reputation * HEIR_REP);
+      const gathering = a.way === 'gathering' && !s.ended;
+      if (gathering && s.cash < GATHERING) return no(`A gathering for the family costs ${fmt(GATHERING)}. You have ${fmt(s.cash)}.`);
+      const why = s.ended?.cause === 'death' ? `${prev} is buried in the family tomb.` : s.ended ? `${prev} gives up the trade.`
+        : gathering ? `The family gathers in the house at Giza. Before them all, ${prev} hands the keys to ${heir.name}, and the old dealers of the lane come to drink coffee with ${heir.sex === 'son' ? 'him' : 'her'}.`
+        : `${prev} hands the keys of the house to ${heir.name} and sits at home with his pipe.`;
+      const rep = Math.round(s.reputation * (gathering ? HEIR_REP_GATHERING : HEIR_REP));
       const shops = (s as unknown as { shops?: Record<string, Record<string, unknown> | undefined> }).shops;
       let nextShops = shops;
       if (heir.shopAt && shops?.[heir.shopAt]) { const { childAgent: _d, ...rest } = shops[heir.shopAt] as Record<string, unknown>; void _d; nextShops = { ...shops, [heir.shopAt]: rest }; }
       const next: HouseholdState = {
         ...h,
         stage: 'none', suitors: {}, chosen: undefined, contract: undefined, spouse: undefined, wives: undefined, birthIn: undefined, offered: undefined,
+        known: undefined, terms: undefined,
         mother: (heir.mother ?? h.spouse?.id) ?? h.mother,
-        children: h.children.filter((c) => c.id !== heir.id).map((c) => (c.role === 'apprentice' ? { ...c, role: 'home' as const } : c)),
-        merchant: { name: heir.name, since: day, gen: (h.merchant?.gen ?? 1) + 1, father: prev },
+        // the other children are the new head's brothers and sisters now: of the generation before
+        children: h.children.filter((c) => c.id !== heir.id).map((c) => ({ ...c, gen: c.gen ?? (h.merchant?.gen ?? 1), ...(c.role === 'apprentice' ? { role: 'home' as const } : {}) })),
+        merchant: { name: heir.name, since: day, gen: (h.merchant?.gen ?? 1) + 1, father: prev, sex: heir.sex, child: heir },
       };
       return { ok: true, msg: `${why} ${heir.name} takes on the trading house, its shops and stock, and something of the family name (reputation ${rep}).`, patch: {
         household: next, reputation: rep, ended: undefined,
+        ...(gathering ? pay(GATHERING, 'A family gathering for the handing over of the house') : {}),
         ...(nextShops !== shops ? { shops: nextShops } as Partial<GameState> : {}),
         journal: jot(`${why} ${heir.name} now heads the house.`),
       } };
@@ -685,8 +984,24 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
   const h0 = s.household;
   const rep = patch.reputation ?? s.reputation;
   const upgrades = patch.upgrades ?? s.upgrades;
-  let h: HouseholdState = h0 ?? HOUSEHOLD_START;
+  let h: HouseholdState = tidyHousehold(h0 ?? HOUSEHOLD_START);
   const out: Partial<GameState> = {};
+  // another suitor at a family's house: on the day her father decides, he takes the man who has asked,
+  // or who stands best with him
+  for (const [id, su] of Object.entries(h.suitors)) {
+    if (!su?.rival || su.lost || day <= su.rival.by) continue;
+    const b = BRIDES[id];
+    if (!b) continue;
+    const fa = fatherShort(b);
+    if (su.favour >= ASK_AT || h.chosen === id) {
+      h = { ...h, suitors: { ...h.suitors, [id]: { ...su, rival: undefined } } };
+      notes.push(`${fa.charAt(0).toUpperCase() + fa.slice(1)} has sent the other suitor away: the family is waiting for you to ask for ${b.short}.`);
+    } else {
+      h = { ...h, suitors: { ...h.suitors, [id]: { ...su, rival: undefined, lost: su.rival.who } } };
+      notes.push(`${b.short}'s family has given her to ${su.rival.who}. They thank you for your calls, and the matter is closed.`);
+    }
+    out.household = h;
+  }
   const at = (patch.world ?? s.world).at;
   const home = at === 'giza';
 
@@ -717,6 +1032,7 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
     let sp: Spouse = { ...sp0 };
     const kids = h.children.filter((c) => motherOf(h, c) === sp0.id).length;
     const away = day - sp.lastHome;
+    sp.homeDays = (sp.homeDays ?? 0) + h.pace;
     // at home her contentment settles towards what the house gives her: your evenings with her, your
     // presents, the children. Sleeping under the same roof alone keeps her settled, no more.
     if (home) {
@@ -745,7 +1061,7 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
     let ledger: LedgerEntry[] | undefined;
     const addLedger = (e: LedgerEntry) => { ledger = [...(ledger ?? out.ledger ?? patch.ledger ?? s.ledger), e]; };
     // the books: money short in the boy's tin is found and put back
-    if (willing && sp.role === 'books' && !tinDone) {
+    if (willing && (sp.role === 'books' || sp.role === 'stall') && !tinDone) {
       const short = (patch.ledger ?? s.ledger).filter((e) => e.day === s.day && e.label.startsWith('Short in')).reduce((n, e) => n - e.amount, 0);
       if (short > 0 && (sp.id === 'nadia' || rng() < 0.5)) {
         cash += short;
@@ -794,7 +1110,7 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
         const sexes: Child['sex'][] = [];
         const same = many > 1 && rng() < 1 / 3;
         for (let i = 0; i < many; i++) sexes.push(same && i ? sexes[0] : rng() < 0.5 ? 'son' : 'daughter');
-        const born = sexes.map((sex, i): Child => ({ id: `c${day}-${children.length + i}`, sex, born: day, ageDays: 0, look: Math.floor(rng() * 3), ...(same ? { twinOf: `c${day}-${children.length}` } : {}), traits: { learning: 5 + Math.floor(rng() * 10), trade: 5 + Math.floor(rng() * 10), craft: 5 + Math.floor(rng() * 10) }, ...(first ? {} : { mother: sp.id }) }));
+        const born = sexes.map((sex, i): Child => ({ id: `c${day}-${children.length + i}`, sex, born: day, ageDays: 0, look: Math.floor(rng() * 3), ...(h.merchant ? { gen: h.merchant.gen } : {}), ...(same ? { twinOf: `c${day}-${children.length}` } : {}), traits: { learning: 5 + Math.floor(rng() * 10), trade: 5 + Math.floor(rng() * 10), craft: 5 + Math.floor(rng() * 10) }, ...(first ? {} : { mother: sp.id }) }));
         if (same) born.forEach((c) => (c.look = born[0].look));
         children = [...children, ...born];
         birthIn = NEXT_CHILD[0] + Math.floor(rng() * (NEXT_CHILD[1] - NEXT_CHILD[0]));
@@ -809,6 +1125,8 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
   }
   // the years at home: the children grow whether or not their father is alive to see it
   if (h.children.length) {
+    // a wife who keeps the house teaches the children their letters; one whose contract keeps her reading teaches her own more
+    const teaching = wivesOf(h).filter((w) => w.content >= 25 && (w.role === 'home' || w.cond === 'study'));
     const children = h.children.map((c) => {
       const before = ageOf(c);
       const n: Child = { ...c, ageDays: c.ageDays + h.pace };
@@ -817,6 +1135,7 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
         const t = { ...n.traits };
         if (n.path === 'school') t.learning += 6; else if (n.path === 'shop') t.trade += 6; else if (n.path === 'weaving') t.craft += 6;
         if (after >= 6) { t.learning += 1; t.trade += 1; t.craft += 1; }
+        if (after < GROWN) for (const w of teaching) if (w.role === 'home' || motherOf(h, n) === w.id) t.learning += 1;
         n.traits = { learning: Math.min(100, t.learning), trade: Math.min(100, t.trade), craft: Math.min(100, t.craft) };
         if (after === PATH_AGE && !n.path) notes.push(`${childName(n)} is six: time to choose school, the stall or the loom (Me, Household).`);
         if (after === GROWN) notes.push(`${childName(n)} is grown, and can travel with you or keep a shop (Me, Household).`);

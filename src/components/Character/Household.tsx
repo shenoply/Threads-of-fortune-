@@ -6,8 +6,10 @@ import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { Fold } from '../Fold/Fold';
 import {
-  BRIDES, BRIDE_ORDER, RANK_WORD, availableBrides, ASK_AT, FEAST_AFTER, MATCH_REP, PACES, PATH_AGE, GROWN, PRESENT, SON_NAMES, DAUGHTER_NAMES, PATH_WORD, ROLE_WORD,
-  hh, ageOf, childName, contentWord, heirOf, brideArt, childArt, merchantName, standing, wivesOf, canCourt, wifeRep, houseNeed, houseName, HOUSE_PERK, MAX_WIVES, ROOMS_COST,
+  BRIDES, RANK_WORD, availableBrides, ASK_AT, FEAST_AFTER, MATCH_REP, PACES, PATH_AGE, GROWN, PRESENT, SON_NAMES, DAUGHTER_NAMES, PATH_WORD, ROLE_WORD, VISIT_HOURS,
+  LIKES_WORD, REGARD_WORD, COND_WORD,
+  hh, ageOf, contentWord, heirOf, brideArt, wifeArt, childArt, merchantName, standing, wivesOf, canCourt, wifeRep, houseNeed, houseName, HOUSE_PERK, MAX_WIVES, ROOMS_COST,
+  kinOf, bindingWife, presentsFor, roleLine, feastOf,
   type BrideId, type Child, type ChildPath, type SpouseRole, type HouseholdAct,
 } from '../../game/systems/household';
 import './household.css';
@@ -18,7 +20,7 @@ function Portrait({ src, name, small = false, fallback, onOpen, big = false }: {
   const [use, setUse] = useState(src);
   const inner = <>
     <b>{name.replace(/^(the|al-)\s*/i, '')[0]}</b>
-    <img src={use} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => { setOk(false); if (fallback && use !== fallback) setUse(fallback); }} style={{ opacity: ok ? 1 : 0 }} />
+    {use && <img src={use} alt="" loading="lazy" onLoad={() => setOk(true)} onError={() => { setOk(false); if (fallback && use !== fallback) setUse(fallback); }} style={{ opacity: ok ? 1 : 0 }} />}
   </>;
   // tap a face to see the person: the picture large, and what you know of them
   return onOpen
@@ -52,33 +54,94 @@ function LookSheet({ look, onClose }: { look: Look; onClose: () => void }) {
 
 const Bar = ({ v, testid }: { v: number; testid?: string }) => <i className="cs-bar hh-bar" data-testid={testid}><em style={{ width: `${Math.max(0, Math.min(100, v))}%` }} /></i>;
 
-/** Your household on the Me tab: the families, your wife, the children and the heir. */
+const capFirst = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/** Your household on the Me tab: your wife and children first once you are married, the families who
+ *  would receive you, and the heir. */
 export function HouseholdSection() {
   const g = useGame();
   const h = hh(g);
   const [msg, setMsg] = useState('');
-  const [handOver, setHandOver] = useState(false);
   const [look, setLook] = useState<Look | null>(null);
+  const [giftFor, setGiftFor] = useState<BrideId | null>(null);
   const personOf = (id: BrideId) => BRIDES[id]?.folk ?? `bride-${id}`;
   const act = (a: HouseholdAct) => setMsg(g.householdAct(a));
   const at = g.world.at;
   const sp = h.spouse;
   const wives = wivesOf(h);
+  const married = wives.length > 0;
   const courtable = canCourt(h) && h.stage !== 'betrothed' ? availableBrides(h) : [];
   const heir = heirOf(h);
+  const head = h.merchant;
   const named = h.children.filter((c) => c.name);
   const waiting = h.children.some((c) => !c.name || (ageOf(c) >= PATH_AGE && ageOf(c) < GROWN && !c.path));
-  const gist = wives.length > 1 ? `${wives.map((w) => BRIDES[w.id].short).join(', ')}${h.children.length ? ` · ${h.children.length} ${h.children.length === 1 ? 'child' : 'children'}` : ''}`
-    : sp ? `${BRIDES[sp.id].short} · ${contentWord(sp.content).toLowerCase()}${h.children.length ? ` · ${h.children.length} ${h.children.length === 1 ? 'child' : 'children'}` : ''}`
+  const kids = h.children.length ? ` · ${h.children.length} ${h.children.length === 1 ? 'child' : 'children'}` : '';
+  const gist = head ? `${head.name}, ${head.sex === 'daughter' ? 'daughter' : 'son'} of ${head.father}`
+    : wives.length > 1 ? `${wives.map((w) => BRIDES[w.id].short).join(', ')}${kids}`
+    : sp ? `${BRIDES[sp.id].short} · ${contentWord(sp.content).toLowerCase()}${kids}`
     : h.stage === 'betrothed' && h.chosen ? `Promised to ${BRIDES[h.chosen].short}`
-    : availableBrides(h).length ? `${availableBrides(h).length} famil${availableBrides(h).length === 1 ? 'y' : 'ies'} would receive you`
-    : h.merchant ? `${h.merchant.name}, son of ${h.merchant.father}` : 'Not married';
+    : courtable.length ? `${courtable.length} famil${courtable.length === 1 ? 'y' : 'ies'} would receive you`
+    : 'Not married';
+  const binding = bindingWife(h);
+
+  // a family who would receive you: who they are, what they weigh, and the calls and presents
+  const candidate = (id: BrideId) => {
+    const b = BRIDES[id];
+    const su = h.suitors[id] ?? { favour: 0, visits: 0, gifts: 0 };
+    const here = at === b.city;
+    const calledToday = su.lastVisit === g.day;
+    const late = g.world.hour + VISIT_HOURS > 20;
+    const sentToday = su.lastGift === g.day;
+    const visitLabel = !here ? `Call on them in ${b.cityName}` : calledToday ? 'Called today · call again tomorrow' : late ? 'Too late to call · go in the morning' : su.visits ? 'Call on the family' : 'Make the first call';
+    return (
+      <div key={id} className="hh-card" data-testid={`bride-${id}`}>
+        <Portrait src={brideArt(id)} name={b.short} onOpen={() => setLook({ src: brideArt(id), name: b.name, person: personOf(id), lines: [`${b.rank ? RANK_WORD[b.rank] + ' · ' : ''}${b.cityName}`, `Daughter of ${b.father}.`, b.intro, b.brings, `Her family's opinion of you: ${su.favour} of 100.`] })} />
+        <div className="hh-txt">
+          <b><NameBtn>{b.name}</NameBtn></b>
+          <small className="hh-rank">{b.rank ? RANK_WORD[b.rank] : ''}{b.rank ? ' · ' : ''}{b.cityName}{b.minRep && g.reputation < b.minRep ? ` · wants a name of ${b.minRep}` : ''}</small>
+          <small>Daughter of {b.father}. Through {b.introducer}.</small>
+          <small className="hh-intro">{b.intro}</small>
+          <small className="hh-brings">{b.brings}{b.house ? ` ${HOUSE_PERK}` : ''}</small>
+          <small data-testid={`likes-${id}`}>The family weighs {LIKES_WORD[b.likes]}.</small>
+          {b.house && <button className="hh-father" onClick={() => ency(b.house!)} data-testid={`hh-father-${id}`}><img src={`art/portraits/small/${b.house}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} /><small>Her father, {houseName(b)} ›</small></button>}
+          {b.house && <small className={`hh-house ${houseNeed(g.ranks, b) ? 'short' : 'ok'}`} data-testid={`house-${id}`}>{houseName(b)}'s house: {houseNeed(g.ranks, b) ? `wants you among the first ${b.place} of ${b.cityName}` : `you stand high enough in ${b.cityName}`}.</small>}
+          {sp && b.rank === 'grand' && <small className="hh-house short">A great house: no daughter of theirs becomes a second wife.</small>}
+          {su.rival && <small className="hh-house short" data-testid={`rival-${id}`}>Another suitor calls at the house: {su.rival.who}. Her father means to decide by {dateFor(su.rival.by).short}.</small>}
+          <Bar v={su.favour} testid={`favour-${id}`} />
+          <small>Her family's opinion of you: {su.favour}{su.visits ? ` · ${su.visits} call${su.visits > 1 ? 's' : ''}` : ''}{su.gifts ? ` · ${su.gifts} present${su.gifts > 1 ? 's' : ''}` : ''}</small>
+          <div className="hh-btns">
+            <button className="btn" disabled={!here || calledToday || late} onClick={() => act({ kind: 'scene', scene: 'call', bride: id })} data-testid={`visit-${id}`}>{visitLabel}</button>
+            <button className="btn" disabled={sentToday} onClick={() => setGiftFor(giftFor === id ? null : id)} aria-expanded={giftFor === id} data-testid={`gift-${id}`}>{sentToday ? 'Present sent today · another tomorrow' : `Send a present ${giftFor === id ? '▴' : '▾'}`}</button>
+            {su.favour >= ASK_AT && <button className="btn primary" disabled={!here} onClick={() => act({ kind: 'scene', scene: 'ask', bride: id })} data-testid={`ask-${id}`}>{here ? 'Ask for her hand' : `Ask for her hand in ${b.cityName}`}</button>}
+          </div>
+          {giftFor === id && !sentToday && (
+            <div className="hh-roles" data-testid={`gifts-${id}`}>
+              {presentsFor(b).map((p) => (
+                <button key={p.kind} className="hh-chip" disabled={g.cash < p.cost} onClick={() => { setGiftFor(null); act({ kind: 'gift', bride: id, present: p.kind }); }} data-testid={`gift-${id}-${p.kind}`}>{capFirst(p.label)} · {fmt(p.cost)}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const otherFamilies = (
+    <>
+      {binding ? <p className="cs-note" data-testid="hh-bound">By your contract with {BRIDES[binding.id].short}, no second wife unless she agrees.</p>
+        : wives.length >= MAX_WIVES ? <p className="cs-note" data-testid="hh-four">Four wives: the law allows no more.</p>
+        : <p className="cs-note" data-testid="hh-more">The law allows up to four wives, each in rooms of her own ({fmt(ROOMS_COST[wives.length] ?? 0)} for the next). A family gives a daughter to a man with a wife at home only if his name is big enough: reputation {wifeRep(h)}{g.reputation < wifeRep(h) ? `, you have ${g.reputation}` : ''}. The wives you have will feel it.</p>}
+      {canCourt(h) && h.offered === undefined && g.reputation >= wifeRep(h) && <button className="btn" onClick={() => act({ kind: 'seek' })} data-testid="hh-seek-more">Ask Rashid to look for another wife</button>}
+      {courtable.map(candidate)}
+    </>
+  );
+
   return (
     <div className="charsheet inline" data-testid="household">
       <Fold id="me-household" title="Household" gist={gist} attention={waiting || h.stage === 'offered' && !Object.keys(h.suitors).length}>
-        {h.merchant && <p className="cs-note" data-testid="hh-merchant">{h.merchant.name} heads the house now, since {dateFor(h.merchant.since).short}. {h.mother ? <>His mother <button className="hh-name" onClick={() => setLook({ src: brideArt(h.mother!), name: BRIDES[h.mother!].name, person: personOf(h.mother!), lines: [`Mother of ${h.merchant!.name}. She lives with him.`, `Daughter of ${BRIDES[h.mother!].father}.`] })} data-testid="hh-mother">{BRIDES[h.mother].short}</button> lives with him.</> : ''}</p>}
+        {head && <p className="cs-note" data-testid="hh-merchant">{head.name} heads the house now, since {dateFor(head.since).short}. {h.mother ? <>{head.sex === 'daughter' ? 'Her' : 'His'} mother <button className="hh-name" onClick={() => setLook({ src: brideArt(h.mother!), name: BRIDES[h.mother!].name, person: personOf(h.mother!), lines: [`Mother of ${head.name}. She lives with ${head.sex === 'daughter' ? 'her' : 'him'}.`, `Daughter of ${BRIDES[h.mother!].father}.`] })} data-testid="hh-mother">{BRIDES[h.mother].short}</button> lives with {head.sex === 'daughter' ? 'her' : 'him'}.</> : ''}</p>}
 
-        {h.stage === 'none' && !h.merchant && !availableBrides(h).length && (
+        {!married && h.stage === 'none' && !head && !courtable.length && (
           <>
             <p className="cs-note" data-testid="hh-none">
               {standing(g) ? 'You are not married. If you want a household, Uncle Rashid knows families who would hear of you. Winning one over takes calls, presents and a good name.' : `You are not married. Families will listen once your name is known (reputation ${MATCH_REP}) and you keep a stall with a canopy or better.`}
@@ -87,97 +150,76 @@ export function HouseholdSection() {
           </>
         )}
 
-        {sp && !h.merchant && !h.chosen && (wives.length >= MAX_WIVES
-          ? <p className="cs-note" data-testid="hh-four">Four wives: the law allows no more.</p>
-          : <p className="cs-note" data-testid="hh-more">The law allows up to four wives, each in rooms of her own ({fmt(ROOMS_COST[wives.length] ?? 0)} for the next). A family gives a daughter to a man with a wife at home only if his name is big enough: reputation {wifeRep(h)}{g.reputation < wifeRep(h) ? `, you have ${g.reputation}` : ''}. The wives you have will feel it.</p>)}
-        {sp && canCourt(h) && h.offered === undefined && g.reputation >= wifeRep(h) && <button className="btn" onClick={() => act({ kind: 'seek' })} data-testid="hh-seek-more">Ask Rashid to look for another wife</button>}
-
-        {courtable.length > 0 && (h.stage === 'offered' || h.stage === 'none' || h.stage === 'married') && (
+        {!married && courtable.length > 0 && (
           <>
             {h.stage === 'none' && standing(g) && <button className="btn" onClick={() => act({ kind: 'seek' })} data-testid="hh-seek">Ask Rashid to look for a match as well</button>}
-            <p className="cs-note">Call on a family in their town, send presents to the house, and when her father thinks well enough of you ({ASK_AT}), ask for her hand. Your name, your clothes and your honesty all count, and a dealer's family looks at where you stand on his city's table.</p>
-            {courtable.map((id: BrideId) => {
-              const b = BRIDES[id];
-              const su = h.suitors[id] ?? { favour: 0, visits: 0, gifts: 0 };
-              const here = at === b.city;
-              return (
-                <div key={id} className="hh-card" data-testid={`bride-${id}`}>
-                  <Portrait src={brideArt(id)} name={b.short} onOpen={() => setLook({ src: brideArt(id), name: b.name, person: personOf(id), lines: [`${b.rank ? RANK_WORD[b.rank] + ' · ' : ''}${b.cityName}`, `Daughter of ${b.father}.`, b.intro, b.brings, `Her father's opinion of you: ${su.favour} of 100.`] })} />
-                  <div className="hh-txt">
-                    <b><NameBtn>{b.name}</NameBtn></b>
-                    <small className="hh-rank">{b.rank ? RANK_WORD[b.rank] : ''}{b.rank ? ' · ' : ''}{b.cityName}{b.minRep && g.reputation < b.minRep ? ` · wants a name of ${b.minRep}` : ''}</small>
-                    <small>Daughter of {b.father}. Through {b.introducer}.</small>
-                    <small className="hh-intro">{b.intro}</small>
-                    <small className="hh-brings">{b.brings}{b.house ? ` ${HOUSE_PERK}` : ''}</small>
-                    {b.house && <button className="hh-father" onClick={() => ency(b.house!)} data-testid={`hh-father-${id}`}><img src={`art/portraits/small/${b.house}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} /><small>Her father, {houseName(b)} ›</small></button>}
-                    {b.house && <small className={`hh-house ${houseNeed(g.ranks, b) ? 'short' : 'ok'}`} data-testid={`house-${id}`}>{houseName(b)}'s house: {houseNeed(g.ranks, b) ? `wants you among the first ${b.place} of ${b.cityName}` : `you stand high enough in ${b.cityName}`}.</small>}
-                    {sp && b.rank === 'grand' && <small className="hh-house short">A great house: no daughter of theirs becomes a second wife.</small>}
-                    <Bar v={su.favour} testid={`favour-${id}`} />
-                    <small>Her father's opinion of you: {su.favour}{su.visits ? ` · ${su.visits} call${su.visits > 1 ? 's' : ''}` : ''}{su.gifts ? ` · ${su.gifts} present${su.gifts > 1 ? 's' : ''}` : ''}</small>
-                    <div className="hh-btns">
-                      <button className="btn" disabled={!here} onClick={() => act({ kind: 'visit', bride: id })} data-testid={`visit-${id}`}>{here ? 'Call on the family' : `In ${b.cityName}`}</button>
-                      <button className="btn" onClick={() => act({ kind: 'gift', bride: id })} data-testid={`gift-${id}`}>Present {fmt(b.gift.cost)}</button>
-                      {su.favour >= ASK_AT && <button className="btn primary" disabled={!here} onClick={() => act({ kind: 'ask', bride: id })} data-testid={`ask-${id}`}>Ask for her hand · mahr {fmt(b.mahr)}</button>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            <p className="cs-note">Call on a family in their town once a day, send a present to the house, and when her father thinks well enough of you ({ASK_AT}), ask for her hand. How you present yourself, what you send, your name, your clothes and your honesty all count, and a dealer's family looks at where you stand on his city's table.</p>
+            {courtable.map(candidate)}
           </>
         )}
 
-        {h.chosen && (() => {
-          const b = BRIDES[h.chosen];
-          const from = (h.contract ?? g.day) + FEAST_AFTER;
-          return (
-            <div className="hh-card" data-testid="hh-betrothed">
-              <Portrait src={brideArt(b.id)} name={b.short} onOpen={() => setLook({ src: brideArt(b.id), name: b.name, person: personOf(b.id), lines: [`Promised to you. Daughter of ${b.father}, of ${b.cityName}.`, b.intro, b.brings] })} />
-              <div className="hh-txt">
-                <b><NameBtn>{b.name}</NameBtn></b>
-                <small>The contract is written and the mahr paid. The wedding feast is held at her father's house in {b.cityName}, from {dateFor(from).short}: {fmt(b.feast)}{sp ? `, and her rooms in the house ${fmt(ROOMS_COST[wives.length] ?? 0)}` : ''}.</small>
-                <div className="hh-btns"><button className="btn primary" disabled={at !== b.city || g.day < from} onClick={() => act({ kind: 'feast' })} data-testid="hold-feast">Hold the wedding feast</button></div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {wives.map((sp, wi) => {
-          const b = BRIDES[sp.id];
-          const tag = wi ? `-${sp.id}` : '';
+        {wives.map((w, wi) => {
+          const b = BRIDES[w.id];
+          const tag = wi ? `-${w.id}` : '';
           const home = at === 'giza';
+          const eveningDone = wives.some((x) => x.lastEvening === g.day);
+          const presentFrom = w.lastPresent !== undefined && g.day - w.lastPresent < PRESENT.every ? w.lastPresent + PRESENT.every : null;
+          const mine = h.children.filter((c) => (c.mother ?? wives[0]?.id) === w.id).length;
           return (
-            <div key={sp.id} className="hh-card" data-testid={`hh-spouse${tag}`}>
-              <Portrait src={brideArt(sp.id)} name={b.short} onOpen={() => setLook({ src: brideArt(sp.id), name: b.name, person: personOf(sp.id), lines: [`${wives.length > 1 ? `Your ${["first", "second", "third", "fourth"][wi]} wife. ` : 'Your wife. '}Married ${dateFor(sp.married).short} in ${b.cityName}.`, `Daughter of ${b.father}.`, `${contentWord(sp.content)}${home ? ', and you are home' : ''}.`, b.brings, `${h.children.filter((c) => (c.mother ?? wives[0]?.id) === sp.id).length || 'No'} children with you.`] })} />
+            <div key={w.id} className="hh-card" data-testid={`hh-spouse${tag}`}>
+              <Portrait src={wifeArt(w)} fallback={brideArt(w.id)} key={wifeArt(w)} name={b.short} onOpen={() => setLook({ src: wifeArt(w), fallback: brideArt(w.id), name: b.name, person: personOf(w.id), lines: [`${wives.length > 1 ? `Your ${["first", "second", "third", "fourth"][wi]} wife. ` : 'Your wife. '}Married ${dateFor(w.married).short} in ${b.cityName}.`, `Daughter of ${b.father}.`, `${contentWord(w.content)}${home ? ', and you are home' : ''}.`, b.brings, `${mine || 'No'} ${mine === 1 ? 'child' : 'children'} with you.`] })} />
               <div className="hh-txt">
-                <b><NameBtn>{b.short}</NameBtn>{wives.length > 1 ? <em className="hh-nth"> · {["first", "second", "third", "fourth"][wi]} wife</em> : null}</b>
-                <small>Married {dateFor(sp.married).short} in {b.cityName}. {b.brings}</small>
-                <Bar v={sp.content} testid={`hh-content${tag}`} />
-                <small data-testid={`hh-content-word${tag}`}>{contentWord(sp.content)}{home ? ', and you are home' : g.day - sp.lastHome > 10 ? `: you have been away ${g.day - sp.lastHome} days` : ''}.{sp.workshop ? ' She keeps a small workshop.' : ''}</small>
+                <b><NameBtn>{b.name}</NameBtn>{wives.length > 1 ? <em className="hh-nth"> · {["first", "second", "third", "fourth"][wi]} wife</em> : <em className="hh-nth"> · your wife</em>}</b>
+                <small>Married {dateFor(w.married).short} in {b.cityName}.{w.regard ? ` ${REGARD_WORD[w.regard]}.` : ''}{w.cond ? ` By the contract, ${COND_WORD[w.cond]}.` : ''}</small>
+                <small className="hh-brings" data-testid={`hh-role-line${tag}`}>{roleLine(w, g)}</small>
+                <Bar v={w.content} testid={`hh-content${tag}`} />
+                <small data-testid={`hh-content-word${tag}`}>{contentWord(w.content)}{home ? ', and you are home' : g.day - w.lastHome > 10 ? `: you have been away ${g.day - w.lastHome} days` : ''}.{w.workshop ? ' She keeps a small workshop.' : ''}</small>
                 <div className="hh-roles" role="group" aria-label="What she does">
                   {(['home', 'stall', 'books', 'rugs'] as SpouseRole[]).map((r) => (
-                    <button key={r} className={`hh-chip ${sp.role === r ? 'on' : ''}`} onClick={() => act({ kind: 'role', role: r, wife: sp.id })} data-testid={`role-${r}${tag}`}>{ROLE_WORD[r]}</button>
+                    <button key={r} className={`hh-chip ${w.role === r ? 'on' : ''}`} onClick={() => act({ kind: 'role', role: r, wife: w.id })} data-testid={`role-${r}${tag}`}>{ROLE_WORD[r]}</button>
                   ))}
                 </div>
                 <div className="hh-btns">
-                  <button className="btn" disabled={!home} onClick={() => act({ kind: 'evening', wife: sp.id })} data-testid={`hh-evening${tag}`}>An evening at home</button>
-                  <button className="btn" onClick={() => act({ kind: 'present', wife: sp.id })} data-testid={`hh-present${tag}`}>A present {fmt(PRESENT.cost)}</button>
+                  <button className="btn" disabled={!home || eveningDone} onClick={() => act({ kind: 'evening', wife: w.id })} data-testid={`hh-evening${tag}`}>{!home ? 'An evening at home · only in Giza' : eveningDone ? 'At home tonight already' : 'An evening at home'}</button>
+                  <button className="btn" disabled={presentFrom !== null || g.cash < PRESENT.cost} onClick={() => act({ kind: 'present', wife: w.id })} data-testid={`hh-present${tag}`}>{presentFrom !== null ? `Next present from ${dateFor(presentFrom).short}` : `A present ${fmt(PRESENT.cost)}`}</button>
                 </div>
               </div>
             </div>
           );
         })}
 
+        {h.chosen && !wives.some((w) => w.id === h.chosen) && (() => {
+          const b = BRIDES[h.chosen];
+          const from = (h.contract ?? g.day) + FEAST_AFTER;
+          const why = at !== b.city ? `Held in ${b.cityName}` : g.day < from ? `From ${dateFor(from).short}` : '';
+          return (
+            <div className="hh-card" data-testid="hh-betrothed">
+              <Portrait src={brideArt(b.id)} name={b.short} onOpen={() => setLook({ src: brideArt(b.id), name: b.name, person: personOf(b.id), lines: [`Promised to you. Daughter of ${b.father}, of ${b.cityName}.`, b.intro, b.brings] })} />
+              <div className="hh-txt">
+                <b><NameBtn>{b.name}</NameBtn><em className="hh-nth"> · promised to you</em></b>
+                <small>The contract is written and the mahr of {fmt(h.terms?.mahr ?? b.mahr)} paid.{h.terms?.cond ? ` Written into it: ${COND_WORD[h.terms.cond]}.` : ''} The wedding feast is held at her father's house in {b.cityName}, from {dateFor(from).short}: modest, proper or lavish, from {fmt(feastOf(b, 'modest').cost)}{sp ? `, and her rooms in the house ${fmt(ROOMS_COST[wives.length] ?? 0)}` : ''}.</small>
+                <div className="hh-btns"><button className="btn primary" disabled={!!why} onClick={() => act({ kind: 'scene', scene: 'feast' })} data-testid="hold-feast">{why ? `The wedding feast · ${why}` : 'Hold the wedding feast'}</button></div>
+              </div>
+            </div>
+          );
+        })()}
+
         {h.children.map((c: Child) => {
           const age = ageOf(c);
+          const kin = kinOf(h, c);
           const names = (c.sex === 'son' ? SON_NAMES : DAUGHTER_NAMES).filter((n) => !named.some((x) => x.name === n)).slice(0, 4);
           const shops = Object.keys(((g as unknown as { shops?: Record<string, unknown> }).shops) ?? {});
+          const art = childArt(c, sp?.id);
+          const mother = BRIDES[c.mother ?? sp?.id ?? h.mother ?? '']?.short;
+          const whose = kin === 'sibling' ? `${head?.name ?? ''}'s ${c.sex === 'son' ? 'brother' : 'sister'}. ` : kin === 'elder' ? `Of the house before ${head?.name ?? ''}. ` : wives.length > 1 || c.mother ? `${mother ?? ''}'s ${c.sex}. ` : '';
+          const parent = kin === 'child' ? merchantName(g) : head?.father ?? 'Hassan';
           return (
             <div key={c.id} className="hh-card kid" data-testid={`child-${c.id}`}>
-              <Portrait src={childArt(c, sp?.id)[0]} fallback={childArt(c, sp?.id)[1]} key={childArt(c, sp?.id)[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small onOpen={() => setLook({ src: childArt(c, sp?.id)[0], fallback: childArt(c, sp?.id)[1], name: c.name ?? `Your ${c.sex}, not yet named`, lines: [`${c.sex === 'son' ? 'Son' : 'Daughter'} of ${merchantName(g)}${c.mother ?? sp?.id ? ` and ${BRIDES[c.mother ?? sp!.id]?.short ?? ''}` : ''}.`, `Born ${dateFor(c.born).short}. ${age < 1 ? 'A baby.' : `${age} year${age > 1 ? 's' : ''} old.`}`, c.path ? `${PATH_WORD[c.path][0].toUpperCase()}${PATH_WORD[c.path].slice(1)}.` : '', c.role === 'apprentice' ? 'Travels with you as your apprentice.' : c.role === 'shop' ? `Keeps the shop in ${c.shopAt}.` : ''] })} />
+              <Portrait src={art[0]} fallback={art[1]} key={art[0]} name={c.name ?? (c.sex === 'son' ? 'S' : 'D')} small onOpen={() => setLook({ src: art[0], fallback: art[1], name: c.name ?? `Your ${c.sex}, not yet named`, lines: [`${c.sex === 'son' ? 'Son' : 'Daughter'} of ${parent}${mother ? ` and ${mother}` : ''}.`, `Born ${dateFor(c.born).short}. ${age < 1 ? 'A baby.' : `${age} year${age > 1 ? 's' : ''} old.`}`, c.path ? `${PATH_WORD[c.path][0].toUpperCase()}${PATH_WORD[c.path].slice(1)}.` : '', c.role === 'apprentice' ? 'Travels with you as your apprentice.' : c.role === 'shop' ? `Keeps the shop in ${c.shopAt}.` : '', age >= GROWN && !art[0] ? 'No portrait yet.' : ''] })} />
               <div className="hh-txt">
                 <b><NameBtn>{c.name ?? `A ${c.sex}, not yet named`}</NameBtn>{c.twinOf || h.children.some((x) => x.id !== c.id && x.born === c.born && (x.mother ?? '') === (c.mother ?? '')) ? <em className="hh-nth"> · {h.children.filter((x) => x.born === c.born && (x.mother ?? '') === (c.mother ?? '')).length === 3 ? 'a triplet' : 'a twin'}</em> : null}</b>
-                <small>{wives.length > 1 || c.mother ? `${BRIDES[c.mother ?? sp?.id ?? '']?.short ?? ''}'s ${c.sex}. ` : ''}{age < 1 ? 'A baby' : `${age} year${age > 1 ? 's' : ''}`}{c.path ? `, ${PATH_WORD[c.path]}` : ''}{c.role === 'apprentice' ? ', travelling with you' : c.role === 'shop' ? `, keeping the shop (${c.shopAt})` : ''}.{age >= PATH_AGE ? ` Learning ${Math.round(c.traits.learning)} · trade ${Math.round(c.traits.trade)} · craft ${Math.round(c.traits.craft)}` : ''}</small>
-                {!c.name && <div className="hh-roles">{names.map((n) => <button key={n} className="hh-chip" onClick={() => act({ kind: 'name', child: c.id, name: n })} data-testid={`name-${c.id}-${n}`}>{n}</button>)}</div>}
+                <small>{whose}{age < 1 ? 'A baby' : `${age} year${age > 1 ? 's' : ''}`}{c.path ? `, ${PATH_WORD[c.path]}` : ''}{c.role === 'apprentice' ? ', travelling with you' : c.role === 'shop' ? `, keeping the shop (${c.shopAt})` : ''}.{age >= PATH_AGE ? ` Learning ${Math.round(c.traits.learning)} · trade ${Math.round(c.traits.trade)} · craft ${Math.round(c.traits.craft)}` : ''}</small>
+                {!c.name && <><small>Choose a name.</small><div className="hh-roles">{names.map((n) => <button key={n} className="hh-chip" onClick={() => act({ kind: 'name', child: c.id, name: n })} data-testid={`name-${c.id}-${n}`}>{n}</button>)}</div></>}
                 {c.name && age >= PATH_AGE && age < GROWN && (
                   <div className="hh-roles">{(['school', 'shop', 'weaving'] as ChildPath[]).map((p) => <button key={p} className={`hh-chip ${c.path === p ? 'on' : ''}`} onClick={() => act({ kind: 'path', child: c.id, path: p })} data-testid={`path-${c.id}-${p}`}>{p === 'school' ? 'School' : p === 'shop' ? 'The stall' : 'The loom'}</button>)}</div>
                 )}
@@ -193,6 +235,13 @@ export function HouseholdSection() {
           );
         })}
 
+        {heir && !g.ended && (
+          <div className="hh-heir" data-testid="hh-heir">
+            <small><button className="hh-name" onClick={() => (document.querySelector(`[data-testid=child-${heir.id}] .hh-pt-open`) as HTMLButtonElement | null)?.click()} data-testid="hh-heir-name">{heir.name}</button> is your heir. When you are ready, {heir.sex === 'son' ? 'he' : 'she'} takes the house on, with its shops and stock and part of your name.</small>
+            <button className="btn" onClick={() => act({ kind: 'scene', scene: 'heir' })} data-testid="hh-handover">Hand the house to {heir.name}</button>
+          </div>
+        )}
+
         {sp && (
           <div className="hh-pace" data-testid="hh-pace">
             <small>It is a long game: at the true pace a child is grown after eighteen years of trading. You may let the years at home pass faster.</small>
@@ -200,11 +249,11 @@ export function HouseholdSection() {
           </div>
         )}
 
-        {heir && !g.ended && (
-          <div className="hh-heir" data-testid="hh-heir">
-            <small><button className="hh-name" onClick={() => (document.querySelector(`[data-testid=child-${heir.id}] .hh-pt-open`) as HTMLButtonElement | null)?.click()} data-testid="hh-heir-name">{heir.name}</button> is your heir. When you are ready, {heir.sex === 'son' ? 'he' : 'she'} takes the house on, with its shops and stock and part of your name.</small>
-            {!handOver ? <button className="btn" onClick={() => setHandOver(true)} data-testid="hh-handover">Hand the house to {heir.name}</button>
-              : <div className="hh-btns"><button className="btn primary" onClick={() => { setHandOver(false); act({ kind: 'inherit' }); }} data-testid="hh-handover-yes">Yes, {merchantName(g)} steps aside</button><button className="btn" onClick={() => setHandOver(false)}>Not yet</button></div>}
+        {married && !head && (
+          <div className="hh-others">
+            <Fold id="me-household-others" title="Other families" gist={courtable.length ? `${courtable.length} would receive you` : binding ? 'Not while your contract stands' : wives.length >= MAX_WIVES ? 'Four wives' : 'None calling'} testid="hh-others">
+              {otherFamilies}
+            </Fold>
           </div>
         )}
         {msg && <p className="hh-msg" role="status" data-testid="hh-msg">{msg}</p>}

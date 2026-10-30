@@ -27,6 +27,7 @@ import { ShopBoyCard } from './ShopBoyCard';
 import { ErrandStrip } from '../Daily/ErrandStrip';
 import { UPGRADES } from '../../data/suppliers';
 import { fmt } from '../../game/economy/money';
+import { stallWifeLine } from '../../game/systems/household';
 
 /** The stall between customers: the road ahead, the next customer, and the auction calendar. */
 export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
@@ -79,6 +80,7 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
         {!shut && g.day >= INTRO.week && <>{g.day < INTRO.week + 2 && <NewNote text="Rashid now sets you a target each week, with a purse if you meet it." />}<WeekLine /></>}
         {!shut && g.day >= INTRO.season && <SeasonLine />}
         {!shut && <SkillGoal />}
+        {g.world.at === 'giza' && stallWifeLine(g) && <p className="idle-missed idle-wife" data-testid="idle-wife">{stallWifeLine(g)}</p>}
         {malekHere && hungry && !(next !== null && mins >= 60) && (
           <p className="idle-hungry" data-testid="idle-hungry">You are hungry, and a hungry seller gives discounts. <button className="btn small" onClick={() => openMalek()} data-testid="idle-malek-hungry">{meal} at Malek's</button></p>
         )}

@@ -134,7 +134,8 @@ function Houses({ q, go, town, setTown }: { q: string; go: (p: Page) => void; to
 
 const PAGE = 40;
 /** what a family calls one of its own: "Abu Nadim", not "Abu"; a mother by her own name, not Umm Karim */
-const firstName = (x: Person) => { const n = x.name.split(' '); return /^(Abu|Umm|Abd|Hajj|Haj|Sheikh|Mirza|Signora)$/.test(n[0]) && n[1] ? `${n[0]} ${n[1]}` : n[0]; };
+// a title is not a name: "Ustaz Fahmi Abd al-Latif" is Fahmi on his card, "the late Hajj Mansour" Hajj Mansour
+const firstName = (x: Person) => { const n = x.name.replace(/^the late\s+/i, '').replace(/^(Ustaz|Ustadh|Sitt|Dr\.?|Khawaga)\s+(?=\S)/, '').split(' '); return /^(Abu|Umm|Abd|Hajj|Haj|Sheikh|Mirza|Signora)$/.test(n[0]) && n[1] ? `${n[0]} ${n[1]}` : n[0]; };
 /** one person as a portrait card: the face large, the name, what they are, their family's standing */
 function PersonCard({ p, go, tag, label }: { p: Person; go: (p: Page) => void; tag?: string; label?: string }) {
   const g = useGame();
