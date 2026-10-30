@@ -18,6 +18,7 @@ import { STORY_FILM } from '../Malek/storyFilm';
 import { IntroFilm } from '../IntroFilm/IntroFilm';
 import { FILMS, FILM_ORDER, type FilmId } from '../IntroFilm/films';
 import { filedAs } from '../../data/renamedIds';
+import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
 const TIER = ['', 'Common', 'Fine', 'Exceptional', 'Legendary'];
 const ROYALS = ['fuad', 'nazli', 'abdullah', 'faisal', 'ataturk'];
@@ -103,6 +104,8 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
   // Escape and the phone's Back close the card only, not the screen under it
   const box = useRef<HTMLDivElement>(null);
   useDialogEscape(box, onClose, !!b);
+  // a swipe sideways turns to the next or the previous buyer, as the buttons do
+  const pages = useSwipePages({ prev: onPrev, next: onNext }, !!(onPrev || onNext));
   if (!b) return null;
   const need = id === 'nabil' ? NABIL_MIN_REP : CELEB_IDS.includes(id) ? celebUnlock(id) : ROYALS.includes(id) ? b.royal?.minRep ?? 30 : BUYER_UNLOCK[id] ?? 0;
   const locked = g.reputation < need;
@@ -111,7 +114,7 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
   // drawn at the top of the page, so nothing from the stall (the rug on the counter) shows through it
   return createPortal(
     <div className="overlay buyer-card-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={b.name} ref={box}>
-      <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card">
+      <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card" {...pageProps(pages)}>
         <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="buyer-card-close">⟵ Back</button></div>
         <img className="buyer-big" src={`art/portraits/${filedAs(id)}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <p className="buyer-role">{CELEB_INFO[id as keyof typeof CELEB_INFO]?.role ?? b.role}</p>

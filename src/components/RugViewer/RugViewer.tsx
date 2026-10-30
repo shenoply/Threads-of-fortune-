@@ -14,6 +14,7 @@ import { KnotCount } from '../KnotCount/KnotCount';
 import { countable, knotVerdict, densityLine } from '../../game/knots';
 import { useWornSrc } from './wear';
 import { CarpetView } from './CarpetView';
+import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
 /** the carpet unrolls as the inspector opens; not for players who asked for less motion, nor in automated runs */
 const mayRoll = () => typeof window !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!navigator.webdriver || !!(window as { __tofRoll?: boolean }).__tofRoll);
@@ -43,6 +44,10 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const box = useRef<HTMLDivElement>(null);
   const locked = tut && g.tutorial.step === 'inspect2' && !used;
   useEscapeClose(box, () => { if (!locked) onClose(); });
+  // a swipe across the notes turns to the next or the previous page, as the tabs above do
+  const ti = TABS.indexOf(tab);
+  useEffect(() => { box.current?.querySelector('[role=tab][aria-selected=true]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, [tab]);
+  const pages = useSwipePages({ prev: ti > 0 ? () => { setTab(TABS[ti - 1]); g.inspectorUsed(); } : null, next: ti < TABS.length - 1 ? () => { setTab(TABS[ti + 1]); g.inspectorUsed(); } : null });
   useEffect(() => {
     if (back && t && !backSrc) simulatedBack(t).then(setBackSrc);
   }, [back, t, backSrc]);
@@ -94,7 +99,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
             </button>
           ))}
         </div>
-        <div className="insp-body" data-testid="insp-body">
+        <div className="insp-body" data-testid="insp-body" {...pageProps(pages)}>
           {tab === 'Overview' && (
             <>
               <p style={{ margin: '0 0 6px' }}>{t.history}</p>

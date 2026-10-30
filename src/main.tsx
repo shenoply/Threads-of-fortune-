@@ -6,6 +6,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 import './feel.css';
 import './palette.css';
+import './components/Touch/touch.css';
+import { installPullClose } from './components/Touch/pullClose';
 import { installImageFade } from './game/feel';
 import { installRewards } from './game/rewards';
 import { BOOT_ART, BOOT_LATER } from './game/bootArt';
@@ -16,6 +18,7 @@ import { installLookahead, keepTitle } from './game/preload';
 installSaveGuard();
 // mark pictures as they arrive so the big ones fade in (src/feel.css)
 installImageFade();
+installPullClose();
 // the coins, seals and stars on the moments that matter (src/game/rewards.ts)
 installRewards();
 // fetch ahead what the next screens show: the rugs' small pictures, the town ahead, the world map (src/game/preload.ts)

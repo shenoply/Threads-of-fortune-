@@ -82,6 +82,7 @@ import { HeirButton } from './components/Character/Household';
 import { LevelUpToast, SkillPops } from './components/Character/Character';
 import { RankChip } from './components/Epithet/Epithet';
 import { Loom } from './components/Loom/Loom';
+import { SwipeAway } from './components/Touch/SwipeAway';
 
 /** a link with ?weaver opens the weaver's workshop straight away, once a game is going */
 function WeaverLink() {
@@ -805,13 +806,13 @@ export default function App() {
         </div>
       )}
       {saveWarn && saveFail && !otherTab && (
-        <div className="save-warn" role="alert" data-testid="save-warning">
+        <SwipeAway className="save-warn" role="alert" data-testid="save-warning" onGone={() => setSaveWarn(false)}>
           <span><b>{FULL_MSG}</b> What you do now is not being kept. Make a backup file so you do not lose this game.</span>
           <span className="save-warn-btns">
             <button className="btn primary" onClick={downloadSave} data-testid="save-warning-backup">Make a backup file</button>
             <button className="btn" onClick={() => setSaveWarn(false)} data-testid="save-warning-close">Close</button>
           </span>
-        </div>
+        </SwipeAway>
       )}
     </>
   );
@@ -1166,7 +1167,7 @@ export default function App() {
         {radioOpen && <Radio onClose={() => setRadioOpen(false)} />}
         {gramophoneOpen && <Gramophone onClose={() => setGramophoneOpen(false)} />}
       </Suspense>
-      {toastMsg && <div className="toast" role="status" onClick={() => setToast('')} data-testid="toast">{toastMsg}</div>}
+      {toastMsg && <SwipeAway key={toastMsg} className="toast" role="status" onClick={() => setToast('')} onGone={() => setToast('')} data-testid="toast">{toastMsg}</SwipeAway>}
       {phase === 'game' && <UnlockNotice />}
       {guardUi}
     </div>

@@ -11,6 +11,7 @@ import { ALL_EVENTS, isFirstOfMonth, eventsOn } from '../../game/economy/life';
 import { AUCTION_HOUSES } from '../../data/auctionHouses';
 import { saleDays } from '../../game/auction/sessions';
 import { VENUES_1925 } from '../../data/entertainment';
+import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
 // The merchant's diary: a month view of 1925–26 with where you were, what happened, and what is coming.
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -33,6 +34,11 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
   // months counted from January 1925, so 14 is March 1926
   const [month, setMonth] = useState((today.getUTCFullYear() - 1925) * 12 + today.getUTCMonth());
   const [sel, setSel] = useState(g.day);
+  // a swipe across the diary turns to the day before or after (the month follows); across the month, to
+  // the month before or after. The day squares and the arrows do the same with a tap.
+  const pickDay = (d: number) => { setSel(d); const x = dateOf(d); setMonth(Math.max(2, Math.min(17, (x.getUTCFullYear() - 1925) * 12 + x.getUTCMonth()))); };
+  const diary = useSwipePages({ prev: sel > 1 ? () => pickDay(sel - 1) : null, next: () => pickDay(sel + 1) });
+  const months = useSwipePages({ prev: month > 2 ? () => setMonth((m) => Math.max(2, m - 1)) : null, next: month < 17 ? () => setMonth((m) => Math.min(17, m + 1)) : null });
 
   const where = (day: number): string | undefined => {
     const w = g.whereabouts ?? {};
@@ -106,7 +112,7 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
           <b>{MONTHS[month % 12]} {1925 + Math.floor(month / 12)}</b>
           <button className="ghost-btn" onClick={() => setMonth((m) => Math.min(17, m + 1))} disabled={month >= 17} aria-label="Next month">›</button>
         </div>
-        <div className="cal-grid">
+        <div className="cal-grid" {...pageProps(months)}>
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <i key={i}>{d}</i>)}
           {cells.map((c, i) => {
             if (!c) return <span key={i} className="cal-empty" />;
@@ -123,7 +129,7 @@ export function Calendar({ onClose, onPaper }: { onClose: () => void; onPaper?: 
             );
           })}
         </div>
-        <div className="cal-detail">
+        <div className="cal-detail" {...pageProps(diary)} data-testid="cal-detail">
           <b>{selDate.getUTCDate()} {MONTHS[selDate.getUTCMonth()]} {selDate.getUTCFullYear()} · Day {sel}{sel === g.day ? ' · today' : sel > g.day ? ' · ahead' : ''}</b>
           {sel <= g.day && <p className="cal-where"><span>{placeName(where(sel))}</span>{' '}{onPaper && <button className="ghost-btn cal-paper" onClick={() => onPaper(sel)} data-testid="cal-read-paper">Read the Courier for this day</button>}</p>}
           {selMarks.filter((m) => /due|ready|soon|auction|friday/.test(m.cls)).map((m) => <p key={m.label} className={`cal-note ${m.cls}`}>{m.icon} {m.label}</p>)}

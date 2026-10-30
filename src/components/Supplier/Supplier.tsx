@@ -17,6 +17,7 @@ import { rugSrc } from '../RugViewer/rugArt';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { flawFor } from '../../game/systems/fakes';
 import { EARLY_OFF, dueDate, firstDue } from '../../game/firstWeek';
+import { longPress } from '../Touch/RugScroll';
 
 /** Uncle Rashid himself. Tap him and he will find something wrong with you. */
 export function RashidPortrait({ onPoke }: { onPoke?: () => void }) {
@@ -120,7 +121,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           const lo = exact ? t.valueBand[0] : snapDown(t.valueBand[0] * 0.85);
           const hi = exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
           return (
-            <div className="offer" key={o.uid} data-testid={`offer-${t.id}`}>
+            <div className="offer" key={o.uid} data-testid={`offer-${t.id}`} {...longPress(() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw: flawFor(o.uid, 'rashid', o.typeId), key: o.uid }))}>
               <div className={`img ${o.condition === 'Dirty' ? 'dirty' : o.condition === 'Damaged' ? 'damaged' : ''}`} onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw: flawFor(o.uid, 'rashid', o.typeId), key: o.uid })} role="button" aria-label={`Look closely at ${t.name}`} data-testid={`look-${t.id}`}>
                 <img src={rugSrc(t)} alt={t.name} />
                 <span className="look-hint"><Icon name="search" /> Look closer</span>

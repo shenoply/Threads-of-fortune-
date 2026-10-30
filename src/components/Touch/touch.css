@@ -1,0 +1,54 @@
+/* Touch gestures shared across the game (src/components/Touch). Classy, not bouncy: things follow the
+   finger and settle; nothing springs past its place. */
+
+/* swiped aside: the page still scrolls up and down under the finger */
+.swipe-away, [data-swipe], [data-pages] { touch-action: pan-y; }
+
+/* a head that pulls its sheet down: the browser leaves the downward drag to us */
+.sheet-head, .overlay-head, .adm-head, .rugpick__head, .big-card-head, .ency-head, .cal-head, [data-pull-head] { touch-action: pan-x; }
+
+/* on a phone, a small grip at the top of a card says it can be pulled down */
+@media (pointer: coarse) {
+  :where(.stall-sheet > .sheet-head, .admin-sheet > .adm-head, .rugpick__head, .modal-card) { position: relative; }
+  .stall-sheet > .sheet-head::before, .admin-sheet > .adm-head::before, .rugpick__head::before, .modal-card::before {
+    content: ''; position: absolute; left: 50%; top: 5px; width: 36px; height: 4px; margin-left: -18px;
+    border-radius: 2px; background: rgba(231, 206, 140, .28); pointer-events: none;
+  }
+  .modal-card.ending-card::before { display: none; }
+}
+[data-pulling] { will-change: translate; }
+
+/* a strip of rugs or badges that pages under the finger and rests on an item's edge */
+.hscroll {
+  display: flex; gap: 8px; min-width: 0;
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none; touch-action: pan-x pan-y;
+  --fade-l: 0px; --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+}
+.hscroll::-webkit-scrollbar { display: none; }
+.hscroll.more-l { --fade-l: 22px; }
+.hscroll.more-r { --fade-r: 22px; }
+.hscroll > * { scroll-snap-align: start; flex: 0 0 auto; }
+
+/* a card that a long press opens: no system menu or text selection under the held finger */
+[data-hold] { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+
+/* a quiet pair of dots under pages that turn with a swipe */
+.page-dots { display: flex; justify-content: center; gap: 6px; padding: 6px 0 2px; }
+.page-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(231, 206, 140, .25); }
+.page-dots i.on { background: rgba(231, 206, 140, .8); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hscroll { scroll-behavior: auto; }
+}
+
+/* the Courier: the day before's paper and the day after's, under the page (Newspaper.tsx) */
+.paper-days { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0 4px; font-family: var(--label); font-size: 14px; color: var(--text-dim); }
+.paper-days .btn { min-height: 44px; }
+.paper .paper-days { color: #5a4630; }
+.paper-pov-wrap > .paper-days { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin: 0; z-index: 2; color: #e7d6ae; }
+
+/* the level, title and goal notices take a finger now (a tap or a swipe puts them away) */
+.levelup[data-swipe] { pointer-events: auto; }

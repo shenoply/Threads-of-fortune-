@@ -33,6 +33,7 @@ function WeekDue({ onGo }: { onGo: (target?: string) => void }) {
 }
 import { MILESTONES, MILESTONE_ORDER, activeMilestone } from '../../data/milestones';
 import { openUpgrades } from '../Inventory/StallUpgrades';
+import { swipeProps, useSwipeAway } from '../Touch/SwipeAway';
 
 /** "+£3.00 · reputation +3": only the parts there are */
 export const rewardLine = (r: { cash: number; rep: number; trust?: number }, trust = false) =>
@@ -182,6 +183,8 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
     if (open) seenOpen.current = true;
     else if (seenOpen.current) { seenOpen.current = false; useGame.getState().clearMissionNews(); }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the news line is pushed aside with a finger, as Noted does
+  const newsSw = useSwipeAway(() => { setOpen(false); useGame.getState().clearMissionNews(); }, true, news);
   const activeId = g.activeId;
   const nm = news ? MISSIONS[news.replace('-done', '')] : undefined;
   // the last chapter gets a proper ending, not a one-line strip
@@ -190,7 +193,7 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
     const done = news!.endsWith('-done');
     return (
       <div ref={barRef} className={`objective-bar news ${open ? 'open' : ''}`} data-testid="mission-banner">
-        <div className="ob-row" data-testid="mission-card">
+        <div className="ob-row" data-testid="mission-card" {...swipeProps(newsSw)}>
           <button className="ob-text" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="mission-expand">
             <small>{done ? 'Mission done' : 'New mission'}</small>
             <b>{nm.title}</b>
@@ -328,10 +331,11 @@ export function MilestoneNotice() {
     const t = window.setTimeout(() => useGame.setState({ milestoneNews: undefined }), 6500);
     return () => window.clearTimeout(t);
   }, [id, wait]);
+  const sw = useSwipeAway(() => useGame.setState({ milestoneNews: undefined }), true, id);
   const m = id ? MILESTONES[id] : undefined;
   if (!m || wait) return null;
   return (
-    <div className="levelup milestone" role="status" data-testid="milestone-notice">
+    <div className="levelup milestone" role="status" data-testid="milestone-notice" onClick={() => useGame.setState({ milestoneNews: undefined })} {...swipeProps(sw)}>
       <small>GOAL REACHED · {MILESTONE_ORDER.indexOf(m.id) + 1}/{MILESTONE_ORDER.length}</small>
       <b>{m.title}</b>
       <span>{m.opens}</span>

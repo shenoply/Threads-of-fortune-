@@ -56,3 +56,6 @@ button.rank-badge { cursor: pointer; }
 /* the title toast, when the bazaar gives a name */
 .levelup.title.ep-toast { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; text-align: left; }
 .levelup.title.ep-toast .emblem { grid-row: span 3; }
+/* many names: one strip that pages under the finger, a soft fade where more lie (Touch/RugScroll) */
+.ep-row.ep-row--strip { flex-wrap: nowrap; max-width: 100%; min-width: 0; overflow: hidden; }
+.ep-row--strip .ep-strip { flex: 1 1 auto; min-width: 0; gap: 3px; }

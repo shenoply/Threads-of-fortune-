@@ -2,7 +2,7 @@
 // name on a page a link to another. People you have met show what you know of them (their traits,
 // how they feel, what has passed between you); the rest show what anyone in the bazaar could tell you.
 import { favourLine } from '../../game/systems/favours';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame, wantedList } from '../../game/state/store';
 import { world, person, houseOf, notablesOf, residentsOf, charactersOf, ageNow, TRAIT_WORD, type Person, type House, type Role } from '../../game/systems/population';
@@ -20,6 +20,7 @@ import { RelBar } from './FolkCard';
 import { relWord } from '../../game/systems/folkTalk';
 import './folk.css';
 import './ency.css';
+import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
 type Kind = 'person' | 'house' | 'place' | 'rug' | 'band' | 'portrait';
 type Section = 'people' | 'houses' | 'places' | 'rugs' | 'bands';
@@ -63,6 +64,17 @@ function kinWord(x: Person): string {
   return sibs.length === 1 ? `Only ${what}` : i === 0 ? `Eldest ${what}` : i === sibs.length - 1 ? `Youngest ${what}` : `${['', 'Second', 'Third', 'Fourth', 'Fifth'][i] ?? `${ord(i + 1)}`} ${what}`;
 }
 
+/** the entries beside this one, for a swipe to the next or the previous: a person among their own
+ *  family, a family among its town's houses, a town among the towns, a rug among the rugs */
+function siblingsOf(p: Page): string[] {
+  const w = world();
+  if (p.kind === 'person') { const h = w.people[p.id]?.house; return h && w.houses[h] ? w.houses[h].members.filter((m) => w.people[m]) : []; }
+  if (p.kind === 'house') { const h = w.houses[p.id]; return h ? housesOfTown(h.home).map((x) => x.id) : []; }
+  if (p.kind === 'place') return SETTLEMENTS.map((s) => s.id);
+  if (p.kind === 'rug') return RUG_IDS.filter((id) => RUGS[id]);
+  return [];
+}
+
 export function Encyclopedia({ start, onClose }: { start?: Page | null; onClose: () => void }) {
   const [stack, setStack] = useState<Page[]>(start ? [start] : []);
   const [section, setSection] = useState<Section>('people');
@@ -72,6 +84,13 @@ export function Encyclopedia({ start, onClose }: { start?: Page | null; onClose:
   const go = (p: Page) => setStack((s) => [...s, p]);
   const back = () => setStack((s) => s.slice(0, -1));
   useEffect(() => { if (start) setStack([start]); }, [start?.kind, start?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a swipe sideways turns to the entry beside this one; it takes this page's place, so Back still
+  // goes where it went before
+  const sibs = page ? siblingsOf(page) : [];
+  const si = page ? sibs.indexOf(page.id) : -1;
+  const swap = (id: string) => { setStack((s) => [...s.slice(0, -1), { kind: page!.kind, id }]); bodyRef.current?.scrollTo({ top: 0 }); };
+  const pages = useSwipePages({ prev: si > 0 ? () => swap(sibs[si - 1]) : null, next: si >= 0 && si < sibs.length - 1 ? () => swap(sibs[si + 1]) : null }, si >= 0);
+  const bodyRef = useRef<HTMLDivElement>(null);
   return (
     <div className="ency" role="dialog" aria-label="Encyclopedia" data-testid="encyclopedia">
       <header className="ency-head">
@@ -79,8 +98,8 @@ export function Encyclopedia({ start, onClose }: { start?: Page | null; onClose:
         <b>Encyclopedia</b>
         <button className="ency-back" onClick={onClose} data-testid="ency-close">×</button>
       </header>
-      <div className="ency-body">
-        {page ? <PageView p={page} go={go} back={back} /> : (
+      <div className="ency-body" ref={bodyRef}>
+        {page ? <div {...(si >= 0 ? pageProps(pages) : {})} data-testid="ency-pages" data-at={si >= 0 ? `${si + 1}/${sibs.length}` : undefined}><PageView key={`${page.kind}:${page.id}`} p={page} go={go} back={back} /></div> : (
           <>
             <div className="ency-tabs" role="tablist">{(Object.keys(SECTION_WORD) as Section[]).map((s) => <button key={s} className={section === s ? 'on' : ''} onClick={() => setSection(s)} data-testid={`ency-tab-${s}`}>{SECTION_WORD[s]}</button>)}</div>
             <input className="ency-search" placeholder="Search names, towns, trades" value={q} onChange={(e) => setQ(e.target.value)} data-testid="ency-search" />

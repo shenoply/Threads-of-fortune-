@@ -9,6 +9,7 @@ import {
 } from '../../game/systems/malek';
 import { audio } from '../../game/audio/engine';
 import { fmt } from '../../game/economy/money';
+import { buzz } from '../../game/feel';
 
 const PAGES: { title: string; ar: string; items: MalekItemId[]; foot?: string }[] = [
   { title: 'Breakfast and the pot', ar: 'الفطور والحلّة', items: ['malek_ful', 'malek_lentils', 'malek_stew'] },
@@ -51,6 +52,9 @@ export function MalekMenuBook({ hour, day, malek, onOrder, onClose }: {
     window.addEventListener('resize', sync);
     return () => { el.removeEventListener('scroll', sync); window.removeEventListener('resize', sync); };
   }, []);
+  // a small tick on the phone as a page comes to rest under the finger
+  const shownPage = useRef(0);
+  useEffect(() => { if (page !== shownPage.current) { shownPage.current = page; buzz(8); } }, [page]);
   const turn = (d: number) => {
     const el = leaves.current; if (!el) return;
     const w = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? el.clientWidth;

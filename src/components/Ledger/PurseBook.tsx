@@ -9,6 +9,7 @@ import { liabilities, owedParts } from '../../game/economy/progress';
 import { audio } from '../../game/audio/engine';
 import type { LedgerEntry } from '../../game/types';
 import './pursebook.css';
+import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
 type Kind = 'all' | 'sale' | 'stock' | 'cost';
 type Range = '14' | 'month' | 'season' | 'year' | 'all';
@@ -71,6 +72,8 @@ export function PurseBook() {
   const page = days.find((d) => d.day === pick) ?? days[days.length - 1];
   const idx = days.indexOf(page);
   const turn = (to: number) => { const d = days[to]; if (!d || d.day === pick) return; audio.sfx('page'); setPick(d.day); };
+  // the page turns under a swipe as under the arrows (Touch/SwipePages)
+  const pages = useSwipePages({ prev: idx > 0 ? () => turn(idx - 1) : null, next: idx < days.length - 1 ? () => turn(idx + 1) : null });
 
   const lines = [...page.lines].reverse().filter((l) => kind === 'all' || KIND_OF(l) === kind);
   const sales = page.lines.filter((l) => l.kind === 'sale');
@@ -88,7 +91,6 @@ export function PurseBook() {
   const area = `${path} L${X(series.length - 1)},${H - P} L${X(0)},${H - P} Z`;
   const trend = series.length > 1 ? series[series.length - 1].close - series[0].close : 0;
 
-  const swipe = useRef<number | null>(null);
   const tabs = useRef<HTMLElement>(null);
   // keep the open day's tab in view
   useEffect(() => { tabs.current?.querySelector<HTMLElement>('.on')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }, [page.day]);
@@ -142,9 +144,7 @@ export function PurseBook() {
         ))}
       </nav>
 
-      <article className="pb-page" key={page.day}
-        onTouchStart={(e) => { swipe.current = e.touches[0].clientX; }}
-        onTouchEnd={(e) => { const s = swipe.current; swipe.current = null; if (s == null) return; const dx = e.changedTouches[0].clientX - s; if (Math.abs(dx) > 50) turn(idx + (dx < 0 ? 1 : -1)); }}>
+      <article className="pb-page" key={page.day} {...pageProps(pages)}>
         <header>
           <button className="pb-turn" onClick={() => turn(idx - 1)} disabled={idx <= 0} aria-label="Day before">‹</button>
           <div>

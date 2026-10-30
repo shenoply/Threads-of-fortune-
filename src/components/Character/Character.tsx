@@ -18,6 +18,7 @@ import { EPITHET } from '../../data/epithets';
 import { Emblem } from '../Epithet/Emblem';
 import { HeroName, RankBadge, EpithetRow, EpithetsFold } from '../Epithet/Epithet';
 import './charsheet.css';
+import { swipeProps, useSwipeAway } from '../Touch/SwipeAway';
 
 /** Short lines, each with a small icon: the gist of a section at a glance. */
 function Facts({ items }: { items: [string, ReactNode][] }) {
@@ -187,17 +188,20 @@ export function LevelUpToast() {
   const wait = hold || g.busy;
   const up = wait ? undefined : g.levelUps?.[0];
   const title = !up && !wait ? g.titleNews?.[0] : undefined;
+  // pushed aside with a finger, as a tap does; it waits while the finger is on it
+  const sw = useSwipeAway(() => (up ? g.popLevelUp() : g.popTitle()), true, up ? `${up.skill}${up.level}` : title);
   useEffect(() => {
     if (!up && !title) return;
+    if (sw.dragging) return;
     const perk = up && SKILLS[up.skill].perks.some((p) => p.level === up.level);
     const t = setTimeout(() => (up ? g.popLevelUp() : g.popTitle()), perk ? 4600 : 2800);
     return () => clearTimeout(t);
-  }, [up, title, g]);
+  }, [up, title, g, sw.dragging]);
   if (up) {
     const sk = SKILLS[up.skill];
     const perk = sk.perks.find((p) => p.level === up.level);
     return (
-      <div className={`levelup ${perk ? 'has-perk' : ''}`} data-testid="levelup" onClick={() => g.popLevelUp()} key={`${up.skill}${up.level}`}>
+      <div className={`levelup ${perk ? 'has-perk' : ''}`} data-testid="levelup" onClick={() => g.popLevelUp()} key={`${up.skill}${up.level}`} {...swipeProps(sw)}>
         <small>{perk ? 'NEW PERK' : 'LEVEL UP'}</small>
         <b>{sk.name} <em className="lv-n">{up.level}</em></b>
         {perk ? <span><strong>{perk.name}</strong> {perk.effect}</span> : (() => { const nx = sk.perks.find((p) => p.level > up.level); return nx ? <span>Next perk at {nx.level}: {nx.name}</span> : null; })()}
@@ -206,7 +210,7 @@ export function LevelUpToast() {
   }
   const ep = title?.startsWith('ep:') ? EPITHET[title.slice(3)] : undefined;
   if (ep) return (
-    <div className="levelup title ep-toast" data-testid="title-toast" data-epithet={ep.id} onClick={() => g.popTitle()}>
+    <div className="levelup title ep-toast" data-testid="title-toast" data-epithet={ep.id} onClick={() => g.popTitle()} {...swipeProps(sw)}>
       <Emblem id={ep.emblem} size={48} />
       <small>THE BAZAAR CALLS YOU</small>
       <b>{HERO_NAME} {ep.name}</b>
@@ -216,7 +220,7 @@ export function LevelUpToast() {
   const t = title ? TITLES.find((x) => x.id === title) : undefined;
   if (!t) return null;
   return (
-    <div className="levelup title" data-testid="title-toast" onClick={() => g.popTitle()}>
+    <div className="levelup title" data-testid="title-toast" onClick={() => g.popTitle()} {...swipeProps(sw)}>
       <small>TITLE EARNED</small>
       <b>{t.name}</b>
       <span>{t.how}</span>

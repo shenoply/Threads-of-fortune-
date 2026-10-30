@@ -12,6 +12,7 @@ import { audio } from '../../game/audio/engine';
 import { FolkFace } from './FolkFace';
 import { BRIDES, hh, canCourt, availableBrides, ASK_AT, VISIT_HOURS, type BrideId } from '../../game/systems/household';
 import './folk.css';
+import { SwipeAway } from '../Touch/SwipeAway';
 
 /** open a page of the encyclopedia from anywhere */
 export const openEncy = (kind: 'person' | 'house' | 'place' | 'rug' | 'band', id: string) => window.dispatchEvent(new CustomEvent('tof:ency', { detail: { kind, id } }));
@@ -71,7 +72,7 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
   const toHousehold = (b: BrideId) => { onClose(); window.dispatchEvent(new CustomEvent('tof:open-household', { detail: b })); };
   return (
     <div className="overlay folk-overlay" onClick={onClose} data-testid="folk-card">
-      <div className="modal-card folk-card" onClick={(e) => e.stopPropagation()}>
+      <SwipeAway className="modal-card folk-card" onClick={(e) => e.stopPropagation()} onGone={onClose}>
         <div className="folk-head">
           <FolkFace p={p} size={76} />
           <div>
@@ -122,7 +123,7 @@ export function FolkCard({ id, onClose, extra }: { id: string; onClose: () => vo
           {extra}
           <button className="ghost-btn" onClick={onClose} data-testid="folk-bye">Go in peace</button>
         </div>
-      </div>
+      </SwipeAway>
     </div>
   );
 }

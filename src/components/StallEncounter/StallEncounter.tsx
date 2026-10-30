@@ -21,8 +21,8 @@ import { Icon } from '../Icon';
 import { ErrandStrip } from '../Daily/ErrandStrip';
 import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
-import { RugScroll, longPress } from './RugScroll';
-import { useSwipeAway } from './SwipeAway';
+import { RugScroll, longPress } from '../Touch/RugScroll';
+import { swipeProps, useSwipeAway } from '../Touch/SwipeAway';
 import { audio } from '../../game/audio/engine';
 import './stall-fixes.css';
 
@@ -607,12 +607,13 @@ function SkillsAtWork({ encId, buyerId }: { encId: string; buyerId: string }) {
     const t = window.setTimeout(() => setOn(null), 6000);
     return () => window.clearTimeout(t);
   }, [encId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sw = useSwipeAway(() => setOn(null));
   if (!on) return null;
   // one quiet line under the talk, never over the picture: tap it away, or it fades on its own
   const band = document.querySelector('.stall > .band');
   if (!band) return null;
   return createPortal(
-    <button className="skills-line" data-testid="skills-at-work" onClick={() => setOn(null)} title={on.join(' · ')}>
+    <button className="skills-line" data-testid="skills-at-work" onClick={() => setOn(null)} title={on.join(' · ')} {...swipeProps(sw)}>
       {on.map((x) => x.split(': ')[0]).join(' · ')} <em>at work</em>
     </button>,
     band,

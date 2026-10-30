@@ -23,7 +23,7 @@ import { START_WARDROBE, wornOutfit } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { stallFigure } from './stallArt';
 import { BuyerCard } from '../Merchant/Customers';
-import { useSwipeAway } from './SwipeAway';
+import { useSwipeAway } from '../Touch/SwipeAway';
 import { BoyChip } from './ShopBoyCard';
 
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';

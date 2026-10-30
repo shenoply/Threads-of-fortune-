@@ -7,6 +7,7 @@ import { useGame } from '../../game/state/store';
 import { waitsTurn, useHeld } from '../../game/cardTurn';
 import { eventsOn, eventsStarting, type GameEvent } from '../../game/economy/life';
 import { settlementById } from '../../game/systems/world';
+import { swipeProps, useSwipeAway } from '../Touch/SwipeAway';
 
 const town = (sid: string) => { try { return settlementById(sid)?.name ?? sid; } catch { return sid; } };
 const words = (t: string) => t.replace(/([A-Z])/g, ' $1').toLowerCase();
@@ -50,6 +51,8 @@ export function BigNews({ onRead }: { onRead: () => void }) {
   // a card or a fight on screen comes first; the news waits its turn (game/cardTurn.ts)
   const hold = useHeld();
   const wait = hold || g.busy;
+  // pushed aside with a finger, as the × does
+  const sw = useSwipeAway(() => done(), true, freshIds);
   useEffect(() => {
     if (!freshIds || open || g.journey || wait) return;
     const t = window.setTimeout(() => { const s = useGame.getState(); useGame.setState({ newsSeen: [...new Set([...(s.newsSeen ?? []), ...freshIds.split(',')])] }); }, 7000);
@@ -63,7 +66,7 @@ export function BigNews({ onRead }: { onRead: () => void }) {
   const done = () => { setOpen(false); useGame.setState({ newsSeen: [...seen, ...fresh.map((x) => x.e.id)] }); };
   const head = fresh[0];
   return (
-    <div className={`news-strip ${open ? 'open' : ''}`} data-testid="big-news" role="status">
+    <div className={`news-strip ${open ? 'open' : ''}`} data-testid="big-news" role="status" {...swipeProps(sw)}>
       <div className="ns-row">
         {/* read once: opening it and closing it again puts the news away (the paper keeps it) */}
         <button className="ns-text" onClick={() => (open ? done() : setOpen(true))} aria-expanded={open} data-testid="big-news-more">

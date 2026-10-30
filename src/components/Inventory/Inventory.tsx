@@ -20,6 +20,7 @@ import { settlementById } from '../../game/systems/world';
 import { malekItem } from '../../data/malekMenu';
 import { fedOf, parcelWeight, parcelsWeight, waterOf } from '../../game/systems/malek';
 import { MothPanel, RugFlags } from './RugFlags';
+import { longPress } from '../Touch/RugScroll';
 
 export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
   const g = useGame();
@@ -64,7 +65,7 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
           const t = RUGS[i.typeId];
           const opts = TREATMENTS[i.condition];
           return (
-            <div className="inv-item" key={i.uid} data-testid={`inv-${t.id}`} data-uid={i.uid}>
+            <div className="inv-item" key={i.uid} data-testid={`inv-${t.id}`} data-uid={i.uid} {...longPress(() => setView(i.uid))}>
               <button className={`img ${i.restoringUntil ? (i.condition === 'Dirty' ? 'washing' : 'mending') : i.freshFrom?.day === g.day ? 'fresh' : ''}`} onClick={() => setView(i.uid)} style={{ padding: 0, border: 0 }} aria-label={`Inspect ${t.name}`}>
                 <RugPicture src={rugThumb(t)} condition={i.restoringUntil ? undefined : i.condition} seed={i.uid} alt="" />
                 {i.restoringUntil && i.condition === 'Dirty' && <span className="suds" aria-hidden="true"><i /><i /><i /><i /><i /></span>}

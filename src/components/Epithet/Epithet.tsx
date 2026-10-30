@@ -9,6 +9,7 @@ import { audio } from '../../game/audio/engine';
 import { Fold, openFoldNext } from '../Fold/Fold';
 import { Emblem } from './Emblem';
 import './epithet.css';
+import { RugScroll } from '../Touch/RugScroll';
 
 export const RANK_EMBLEM: Record<string, EmblemId> = { stall: 'awning', bazaar: 'carpet', khan: 'arch', levant: 'compass', kings: 'crown' };
 
@@ -91,6 +92,18 @@ export function EpithetRow({ max = 6 }: { max?: number }) {
     const el = document.querySelector('[data-testid=epithets]') as HTMLDetailsElement | null;
     if (el) { el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   };
+  // more names than fit: all of them in a strip the finger pages through, the newest at the right
+  const many = have.length > max;
+  const badge = (id: string) => (
+    <span key={id} className={`ep-row-b ${id === (worn && have.includes(worn) ? worn : have[have.length - 1]) ? 'worn' : ''}`}>
+      <Emblem id={EPITHET[id].emblem} size={28} title={`${EPITHET[id].name}, ${EPITHET[id].gloss}`} />
+    </span>
+  );
+  if (many) return (
+    <button className="ep-row ep-row--strip" onClick={go} data-testid="epithet-row" aria-label={`Names the bazaar gives you: ${have.map((id) => EPITHET[id].name).join(', ')}`}>
+      <RugScroll count={have.length} className="hscroll ep-strip" testid="epithet-strip">{have.map(badge)}</RugScroll>
+    </button>
+  );
   return (
     <button className="ep-row" onClick={go} data-testid="epithet-row" aria-label={have.length ? `Names the bazaar gives you: ${have.map((id) => EPITHET[id].name).join(', ')}` : 'Names the bazaar may give you'}>
       {shown.length ? shown.map((id) => (

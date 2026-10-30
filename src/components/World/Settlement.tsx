@@ -83,6 +83,7 @@ import { lowerName } from '../../game/text';
 import { isOpen, type Sys } from '../../game/unlocks';
 import { ShopPanel, shopTileSub } from './ShopPanel';
 import { SHOP_CITIES } from '../../data/shops';
+import { longPress } from '../Touch/RugScroll';
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 
 /** The small copy of a picture shown at card size (art/x/y.jpg -> art/x/thumbs/y.webp, 320 wide; 640 wide
@@ -590,7 +591,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                   const far = bestMarket(g, { typeId: o.typeId, condition: o.condition, provenance: t.provenance }, id);
                   const farLine = far && far.bid > o.price ? ` · dealers in ${settlementById(far.sid).name} pay about ${fmt(far.bid)}` : '';
                   return (
-                    <div className="mkt-row" key={o.key} data-testid={`buy-${o.typeId}`}>
+                    <div className="mkt-row" key={o.key} data-testid={`buy-${o.typeId}`} {...longPress(() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey }))}>
                       <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
                       <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}{farLine}</small><OfferFlags typeId={o.typeId} flaw={flaw} /></span>
                       <button className="btn primary" disabled={g.cash < o.price} onClick={() => setNote(g.buyLocal(id, o.key))}>Buy {localMoney(o.price, id, g.day)}</button>

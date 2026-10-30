@@ -8,6 +8,7 @@ import { NightScene, dayScore, nightDue, scoreWhy, scoreWord } from '../Night/Ni
 import { WeekTables, SeasonEnd } from '../World/RankTable';
 import { aheadLine, withinReach } from '../../game/tomorrow';
 import { EARLY_OFF } from '../../game/firstWeek';
+import { SwipeAway } from '../Touch/SwipeAway';
 
 /** What happened overnight after "Next day": the bills, Rashid, the men, how you slept. Shown once
  *  as a small card in the morning and put away when read. Nights on the road are not shown here:
@@ -99,7 +100,7 @@ export function DaySummary() {
   const nightParts = [sum.wages ? `${fmt(sum.wages)} in wages` : '', sum.food ? `${fmt(sum.food)} for bread` : ''].filter(Boolean).join(' and ');
   return (
     <div className="overlay" onClick={dismiss} data-testid="day-summary">
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+      <SwipeAway className="modal-card" onClick={(e) => e.stopPropagation()} onGone={dismiss}>
         <h2>{dateFor(sum.day + 1).long}</h2>
         {traded && (
           <p>
@@ -124,7 +125,7 @@ export function DaySummary() {
         <WithinReach />
         <DailyTeaser />
         <button className="btn primary" onClick={dismiss} data-testid="day-summary-ok">Open the day</button>
-      </div>
+      </SwipeAway>
     </div>
   );
 }

@@ -10,10 +10,24 @@ import { fmt } from '../../game/economy/money';
 import { marketOn } from '../../game/economy/market';
 import { RIVAL_NAME, rivalOf, yourStall } from '../../game/systems/laneRival';
 import { BUYERS } from '../../data/buyers';
+import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
 /** The Giza Courier for a given day, laid out like a broadsheet folded for the pocket. */
-export function Newspaper({ day, onClose }: { day: number; onClose: () => void }) {
+export function Newspaper({ day: asked, onClose }: { day: number; onClose: () => void }) {
   const g = useGame();
+  // a swipe sideways (or the arrows at the foot) turns to the day before's paper or the day after's
+  const [day, setDay] = useState(asked);
+  useEffect(() => setDay(asked), [asked]);
+  const older = day > 1 ? () => setDay(day - 1) : null;
+  const newer = day < g.day ? () => setDay(day + 1) : null;
+  const pages = useSwipePages({ prev: older, next: newer });
+  const days = (
+    <div className="paper-days" data-testid="paper-days" onClick={(e) => e.stopPropagation()}>
+      <button className="btn small" disabled={!older} style={older ? undefined : { visibility: 'hidden' }} onClick={() => older?.()} aria-label="The day before's paper" data-testid="paper-older">‹ Day {Math.max(1, day - 1)}</button>
+      <span>Day {day}</span>
+      <button className="btn small" disabled={!newer} style={newer ? undefined : { visibility: 'hidden' }} onClick={() => newer?.()} aria-label="The day after's paper" data-testid="paper-newer">Day {Math.min(g.day, day + 1)} ›</button>
+    </div>
+  );
   const billSoon = Array.from({ length: 7 }, (_, i) => day + i + 1).some((d) => isFirstOfMonth(d));
   const p = useMemo(() => paperFor(day, { bills: billSoon, commissions: day === g.day ? g.commissions.filter((c) => !c.done) : [], ranks: seasonNews(g, day) }), [day, billSoon, g.day, g.commissions, g.ranks]);
   useEffect(() => { audio.sfx('paper'); }, [day]);
@@ -25,7 +39,7 @@ export function Newspaper({ day, onClose }: { day: number; onClose: () => void }
     const lede = p.lead.body.split(/(?<=\.)\s/)[0];
     return (
       <div className="paper-pov-wrap" role="dialog" aria-label="The Giza Courier" data-testid="newspaper" onClick={onClose}>
-        <div className="paper-pov" onClick={(e) => e.stopPropagation()}>
+        <div className="paper-pov" onClick={(e) => e.stopPropagation()} {...pageProps(pages)}>
           <img src="art/newspaper-pov.jpg" alt="Your hands holding up the Giza Courier" draggable={false} />
           <div className="pov-page left" data-testid="paper-lead">
             <div className="pov-mast">The Giza Courier</div>
@@ -43,12 +57,13 @@ export function Newspaper({ day, onClose }: { day: number; onClose: () => void }
           <button className="paper-close" onClick={onClose} aria-label="Put the paper down" data-testid="newspaper-close">×</button>
           <button className="btn primary pov-read" onClick={() => setFull(true)} data-testid="paper-read">Read the full paper</button>
         </div>
+        {g.day > 1 && days}
       </div>
     );
   }
   return (
     <div className="paper-wrap" role="dialog" aria-label="The Giza Courier" data-testid="newspaper" onClick={onClose}>
-      <article className="paper" onClick={(e) => e.stopPropagation()}>
+      <article className="paper" onClick={(e) => e.stopPropagation()} {...pageProps(pages)}>
         <button className="paper-close" onClick={onClose} aria-label="Put the paper down" data-testid="newspaper-close">×</button>
         <button className="paper-radio" onClick={() => { onClose(); window.dispatchEvent(new Event('tof:radio')); }} data-testid="radio-btn">The wireless ›</button>
         <header className="paper-mast">
@@ -125,6 +140,7 @@ export function Newspaper({ day, onClose }: { day: number; onClose: () => void }
             ))}
           </aside>
         </div>
+        {g.day > 1 && days}
         <footer className="paper-foot">Printed and published daily at the Courier press, Pyramids Road.</footer>
       </article>
     </div>
