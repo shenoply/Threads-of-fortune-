@@ -25,7 +25,7 @@ import { firstDue } from './game/firstWeek';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OPEN_UPGRADES, UpgradesSheet } from './components/Inventory/StallUpgrades';
 import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
-import { eventsStarting, laneDay } from './game/economy/life';
+import { eventsOn, eventsStarting, laneDay } from './game/economy/life';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
@@ -491,6 +491,10 @@ export default function App() {
   // the lane's crowd follows the day and your name: a quiet corner at first, a busy stall once you are known
   // ...and thins out as the light goes: after five the lane empties, after seven it is nearly still
   const dusk = g.world.hour >= 19 ? 0.45 : g.world.hour >= 17 ? 0.7 : 1;
+  // the Eid days have their own music and a cue in the lane
+  useEffect(() => { audio.setFeast(eventsOn(g.day).some((e) => /^Eid/i.test(e.name)), g.day); }, [g.day]);
+  // the Day One card: the town track begins as the opening film closes, not after the lane has loaded
+  useEffect(() => { if (phase === 'dayone' && g.settings.music) audio.startMusic('stall'); }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { audio.setLane(laneDay(g.day).level * (0.8 + Math.min(0.45, g.reputation / 120)) * (g.upgrades.includes('khan') ? 1.15 : 1) * dusk); }, [g.day, g.reputation, g.upgrades, dusk]);
   // other screens can ask for the paper or the radio
   useEffect(() => {
@@ -589,8 +593,10 @@ export default function App() {
     // (cancelled if the player goes back to the menu before they fire: music must not start on the title)
     soundTimers.current.forEach((t) => clearTimeout(t));
     soundTimers.current = [];
-    if (g.settings.ambience) soundTimers.current.push(window.setTimeout(() => { if (phaseRef.current === 'game') audio.startAmbience(); }, 5000));
-    if (g.settings.music) soundTimers.current.push(window.setTimeout(() => { if (phaseRef.current === 'game') audio.startMusic('stall'); }, 12000));
+    if (g.settings.ambience) soundTimers.current.push(window.setTimeout(() => { if (phaseRef.current === 'game') audio.startAmbience(); }, 2000));
+    // the town track starts with the lane itself (it streams: only the first seconds are fetched up
+    // front), not twelve seconds of silence after it; already going from the Day One card, it carries on
+    if (g.settings.music && !audio.musicOn) audio.startMusic('stall');
     setPhase('game');
     setTab('map');
   };

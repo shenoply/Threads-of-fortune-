@@ -93,6 +93,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     window.setTimeout(() => { const w = useGame.getState().world; useGame.setState({ world: { ...w, parties: w.parties.filter((p) => p.id !== 'cousins') } }); }, 0);
   };
   const settle = (o: Parameters<typeof g.ambushOutcome>[1]) => {
+    audio.encounterOver();
     cousinsDone(o.cashLoss ? 'paid' : 'passed');
     setResult(g.ambushOutcome(party.id, o));
     setSpoils(o.cashGain || o.animalsGained ? { cash: o.cashGain ?? 0, joiners: o.joiners ?? 0, animal: o.animalsGained ? BREEDS[o.animalsGained.id].name : undefined } : null);
@@ -107,7 +108,9 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const m = stage === 'battle' || stage === 'chase' ? 'battle' : stage === 'result' ? (grim ? 'sorrow' : null) : 'danger';
     if (m) audio.pushEnv('encounter', 'road', m); else audio.popEnv('encounter');
   }, [stage, grim]);
-  useEffect(() => () => audio.popEnv('encounter'), []);
+  // however it closes (ridden on, paid, talked through, run from, turned back) the encounter's music
+  // goes and the calm track comes back, even with the band still about on the map
+  useEffect(() => () => audio.encounterOver(), []);
   // the leader speaks his demand aloud
   const speaker = THREAT_VOICE[threat.id] ?? 'robberchief';
   useEffect(() => { voice.load().then(() => voice.preload([speaker])); return () => voice.stop(); }, [speaker]);
@@ -202,6 +205,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       }
       return;
     }
+    audio.encounterOver();
     const caught = c.runners.filter((r) => r.state === 'caught');
     const lead = caught.some((r) => r.leader);
     const n = caught.filter((r) => !r.leader).length;
@@ -214,11 +218,15 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const [recruitNote, setRecruitNote] = useState('');
   const fight = () => {
     audio.sfx('chest');
+    audio.fightStart();
     setStage('battle');
   };
   // settle it quickly: the men fight it out without you giving the orders, at the odds shown
   const quick = () => {
     audio.sfx('chest');
+    // no field to watch: the volley and the scuffle are heard, then the account
+    audio.sfx('volley');
+    window.setTimeout(() => audio.sfx('melee'), 450);
     const b = simulate(setupOf(clashInfo), true);
     const L = battleLosses(b);
     finish({ fight: { over: b.over }, lost: L.lost, kills: L.kills, auto: true, hurt: L.hurt, heroDown: L.heroDown });
@@ -245,6 +253,9 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
     const st = useGame.getState();
     const res = f.over ?? 'draw';
     setYielded(res === 'yield' && !retreat);
+    // the field battle stings at its own banner; settled quickly, the sting comes with the account
+    if (auto) window.setTimeout(() => audio.fightResult(retreat ? 'lose' : isWin(res) ? 'win' : res === 'draw' ? 'draw' : 'lose'), 700);
+    audio.encounterOver();
     const by = auto ? (combat.sergeant ? `Sergeant ${combat.sergeant.name} takes charge. ` : 'Your oldest hand takes charge. ') : '';
     const who = leader?.name ?? 'Their leader';
     const band = midName(threat.displayName);

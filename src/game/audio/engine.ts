@@ -16,7 +16,7 @@ export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.3, sfx: 1, dialogu
 export type Env = 'market' | 'port' | 'palace' | 'auction-small' | 'auction-grand' | 'road' | 'camp';
 /** Which set of music themes fits the moment. */
 export type MusicCtx = 'documentary' | 'stall' | 'evening' | 'road' | 'town' | 'istanbul' | 'palace' | 'auction-small' | 'auction-grand'
-  | 'camp' | 'port' | 'levant' | 'desert' | 'cabaret' | 'rivalry' | 'danger' | 'battle' | 'sorrow';
+  | 'camp' | 'port' | 'levant' | 'desert' | 'cabaret' | 'rivalry' | 'danger' | 'battle' | 'sorrow' | 'feast';
 
 interface FxClip { file: string; dur: number }
 /** one piece of music as it plays: its streaming player, its own fader, and a way to stop it */
@@ -68,7 +68,13 @@ const PLAYLISTS: Record<MusicCtx, string[]> = {
   battle: ['the-risky-pass'],
   // after a loss, a wound, a man buried, a theft in the night: quiet and low
   sorrow: ['solo-nay-flute', 'sahil-al-layl'],
+  // the Eid days at the stall: the bright rast pieces (rast is the feast-day maqam) and the Damascus qudud
+  feast: ['palace-rast', 'khan-rast', 'qamar-dimashq'],
 };
+/** a fight or a standoff: the farmyard and the market go quiet under it */
+const TENSE = new Set<MusicCtx>(['danger', 'battle']);
+/** passing sounds that do not belong under an armed robbery */
+const CALM_ONLY = new Set(['sheep', 'hen', 'dog', 'crow', 'rooster', 'cow', 'chirping_birds', 'laughing', 'drinking_sipping', 'pouring_water']);
 /** these come in fast: a fight does not wait four seconds for the last piece to fade */
 const URGENT = new Set<MusicCtx>(['battle', 'danger']);
 
@@ -197,6 +203,8 @@ class AudioEngine {
     voice: { music: 0.45, ambience: 0.35 },
     radio: { music: 0.18, ambience: 0.5 },
     record: { music: 0, ambience: 0 },
+    // a standoff or a fight: the market bed and the farmyard drop well back under the score
+    tension: { music: 1, ambience: 0.3 },
   };
   /** turn one reason on or off (`secs`: how quickly the level moves) */
   attenuate(reason: string, on: boolean, secs?: number, cut?: { music: number; ambience: number }) {
@@ -288,7 +296,19 @@ class AudioEngine {
    *  so the two pieces of music never overlap; restores both fully once the lid closes.
    *  `secs` lets the drop-out recede over the same span the gramophone's own track takes to rise,
    *  instead of the default quick duck — a handoff rather than a cut. */
-  muteMusic(on: boolean, secs = 0.3) { this.attenuate('record', on, secs); }
+  muteMusic(on: boolean, secs = 0.3) {
+    this.attenuate('record', on, secs);
+    if (on === this.musicHeld) return;
+    this.musicHeld = on;
+    if (on) {
+      // the score is paused (not only silenced) once it has faded under the record: one stream, not two
+      window.setTimeout(() => { if (this.musicHeld) for (const s of this.live) s.el.pause(); }, secs * 1000 + 150);
+    } else if (this.track && this.track.el.paused && this.musicOn) {
+      this.track.el.play().catch(() => { /* blocked: the next piece starts it */ });
+    }
+  }
+  /** a record is playing on the gramophone: the score's player stays paused */
+  private musicHeld = false;
 
   private loadBank() {
     if (!this.bankLoading) this.bankLoading = fetch('audio/soundbank.json').then((r) => r.json()).then((b: Bank) => (this.bank = b)).catch(() => null);
@@ -568,24 +588,40 @@ class AudioEngine {
         this.sfx('coins');
         this.till(0.18);
         break;
-      case 'volley': {
-        // a ragged volley of old rifles: sharp cracks a few hundredths apart, each with a short low boom
-        const n = 4 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < n; i++) {
-          const at = i * (0.03 + Math.random() * 0.07);
-          this.noise(0.09, d, { type: 'highpass', f: 1400, gain: 0.32, attack: 0.001, delay: at });
-          this.noise(0.35, d, { type: 'lowpass', f: 260, gain: 0.4, attack: 0.002, delay: at });
-        }
-        break;
-      }
-      case 'shot':
-        this.noise(0.08, d, { type: 'highpass', f: 1600, gain: 0.3, attack: 0.001 });
-        this.noise(0.3, d, { type: 'lowpass', f: 240, gain: 0.35, attack: 0.002 });
-        break;
       case 'melee':
         // sticks and rifle butts: dull knocks and a scuffle of feet
         for (let i = 0; i < 5; i++) this.noise(0.07, d, { type: 'bandpass', f: 500 + Math.random() * 500, q: 2.5, gain: 0.3, attack: 0.002, delay: i * (0.07 + Math.random() * 0.06) });
         this.noise(0.5, d, { type: 'lowpass', f: 600, gain: 0.15, attack: 0.05 });
+        break;
+      case 'leader-down':
+        // their leader hit: two shots close together, and the crows go up off the ridge
+        this.shot(0);
+        this.shot(0.14);
+        setTimeout(() => this.clip('crow', { gain: 0.3, far: 0.7, dest: d, dur: 2.5 }), 350);
+        break;
+      case 'hero-down':
+        this.noise(0.2, d, { type: 'lowpass', f: 380, gain: 0.5 });
+        this.noise(0.5, d, { type: 'lowpass', f: 200, gain: 0.25, attack: 0.04, delay: 0.05 });
+        break;
+      case 'fight-won':
+        // the fight is yours: four bells rising (the reward bells, without the coins)
+        [0, 0.12, 0.24, 0.4].forEach((at, i) => this.chime(at, 660 * [1, 1.25, 1.5, 2][i], i === 3 ? 0.085 : 0.07));
+        break;
+      case 'fight-lost':
+        // beaten: two low bells falling, and a crow a long way off
+        this.chime(0, 440, 0.07);
+        this.chime(0.32, 330, 0.07);
+        this.chime(0.7, 262, 0.06);
+        setTimeout(() => this.clip('crow', { gain: 0.25, far: 0.85, dest: d, dur: 2.5 }), 900);
+        break;
+      case 'fight-draw':
+        this.chime(0, 440, 0.06);
+        this.chime(0.3, 440, 0.05);
+        break;
+      case 'feast':
+        // the Eid morning in the lane: hands clapping and people laughing
+        this.clip('clapping', { gain: 0.32, dest: d, dur: 3.5 });
+        setTimeout(() => this.clip('laughing', { gain: 0.28, far: 0.4, dest: d, dur: 3 }), 900);
         break;
       case 'stamp':
         // an ink seal pressed onto paper: a soft low thud and the slap of the page
@@ -607,9 +643,16 @@ class AudioEngine {
   private get night() { return this.hour >= 20 || this.hour < 5; }
   private currentEnv(): Env { return this.envStack.length ? this.envStack[this.envStack.length - 1].env : this.baseEnv; }
   private currentMusic(): MusicCtx {
-    for (let i = this.envStack.length - 1; i >= 0; i--) if (this.envStack[i].music) return this.envStack[i].music!;
+    const calm = performance.now() < this.calmUntil;
+    for (let i = this.envStack.length - 1; i >= 0; i--) {
+      const e = this.envStack[i];
+      // just after a fight the map's 'raiders about' warning does not bring the danger score straight back
+      if (e.music && !(calm && e.key === 'map-danger')) return e.music;
+    }
     return this.baseMusic;
   }
+  private calmUntil = 0;
+  private calmTimer: number | null = null;
 
   /** Start a looping bed that never repeats plainly: overlapping slices from random points of the recording. */
   private startBed(key: string, level: number) {
@@ -655,8 +698,12 @@ class AudioEngine {
     this.bedLayers.delete(key);
     // a street recording is a minute or more of decoded sound: let it go once no bed uses it (the
     // slices still fading out keep their own hold on it until they end)
+    // (not at once: a screen that swaps the place and back within a minute, the road encounter, would
+    // otherwise fetch the same recording again while the first copy was still coming in)
     const file = this.bank?.beds[key]?.file;
-    if (file && ![...this.bedLayers.keys()].some((k) => this.bank?.beds[k]?.file === file)) this.bufs.delete(file);
+    if (file) window.setTimeout(() => {
+      if (![...this.bedLayers.keys()].some((k) => this.bank?.beds[k]?.file === file)) this.bufs.delete(file);
+    }, 60000);
   }
 
   /** Bring the beds in line with where we are and what hour it is. */
@@ -665,6 +712,8 @@ class AudioEngine {
     if (!this.bank) { this.loadBank().then(() => this.syncAmbience()); return; }
     const env = this.currentEnv();
     this.state.env = env;
+    const tense = TENSE.has(this.currentMusic());
+    if (tense !== this.cuts.has('tension')) this.attenuate('tension', tense, tense ? 0.6 : 2.5);
     const want = new Map<string, number>();
     // the camp has no bed of its own: the night (crickets) full, the open road faint beneath it
     if (env === 'camp') { want.set('night', 1); want.set('road', 0.25); }
@@ -687,6 +736,8 @@ class AudioEngine {
       const busy = env === 'market' && !this.night && !this.dayOver;
       let list = EVENTS[env].filter(([set]) => !(set === 'rooster' && this.hour > 10) && !((set === 'hen' || set === 'crow' || set === 'chirping_birds') && this.night));
       if (this.night && !INDOOR.includes(env)) list = list.filter(([set]) => ['dog', 'footsteps', 'door_wood_creaks', 'coughing', 'crackling_fire'].includes(set));
+      // no sheep, hens or dogs while men with rifles are on the road
+      if (TENSE.has(this.currentMusic())) list = list.filter(([set]) => !CALM_ONLY.has(set));
       if (list.length) {
         const total = list.reduce((s, e) => s + e[1], 0);
         let r = Math.random() * total;
@@ -718,7 +769,7 @@ class AudioEngine {
   setScene(scene: 'market' | 'road') {
     this.scene = scene;
     this.baseEnv = scene === 'road' ? 'road' : 'market';
-    this.baseMusic = scene === 'road' ? 'road' : this.dayOver || this.hour >= 18 ? 'evening' : 'stall';
+    this.baseMusic = scene === 'road' ? 'road' : this.dayOver || this.hour >= 18 ? 'evening' : this.feast ? 'feast' : 'stall';
     this.syncAmbience();
     this.syncMusic();
   }
@@ -747,6 +798,43 @@ class AudioEngine {
     const before = this.envStack.length;
     this.envStack = this.envStack.filter((e) => e.key !== key);
     if (this.envStack.length !== before) { this.syncAmbience(); this.syncMusic(); }
+  }
+
+  // ---------- fights ----------
+  /** A fight begins (the field battle, or the men settling it quickly): the battle score at once. */
+  fightStart(key = 'encounter') {
+    this.calmUntil = 0;
+    this.pushEnv(key, 'road', 'battle');
+    this.sfx('volley');
+  }
+  /** How a fight went: a short sting from the sounds already in the game. */
+  fightResult(how: 'win' | 'lose' | 'draw') { this.sfx(how === 'win' ? 'fight-won' : how === 'lose' ? 'fight-lost' : 'fight-draw'); }
+  /** The fight or the whole encounter is over, however it ended (won, lost, paid, talked through,
+   *  run from): its music is let go, and for a while the map's 'raiders about' warning does not bring
+   *  the danger score back, so the calm road or town track returns. */
+  encounterOver(key = 'encounter', calmSecs = 90) {
+    this.calmUntil = performance.now() + calmSecs * 1000;
+    if (this.calmTimer) clearTimeout(this.calmTimer);
+    this.calmTimer = window.setTimeout(() => { this.calmTimer = null; this.syncAmbience(); this.syncMusic(); }, calmSecs * 1000 + 50);
+    this.envStack = this.envStack.filter((e) => e.key !== key);
+    this.syncAmbience();
+    this.syncMusic();
+  }
+
+  // ---------- feast days ----------
+  private feast = false;
+  private feastCueDay = -1;
+  /** The Eid days: the stall's daytime score turns to the feast pieces, and the lane claps and laughs
+   *  once when the day opens. `day` keeps the cue to once a day. */
+  setFeast(on: boolean, day: number) {
+    if (on === this.feast && (!on || day === this.feastCueDay)) return;
+    const was = this.feast;
+    this.feast = on;
+    if (on && day !== this.feastCueDay && this.ctx && this.toggles.sfx) {
+      this.feastCueDay = day;
+      window.setTimeout(() => { this.sfx('feast'); }, 1200);
+    }
+    if (on !== was) this.setScene(this.scene);
   }
 
   // ---------- music ----------
@@ -885,7 +973,8 @@ class AudioEngine {
         stopTimer = window.setTimeout(release, secs * 1000);
       },
     };
-    const go = () => { startTimer = null; if (!gone) el.play().catch(() => { /* blocked: stays silent until the next piece */ }); };
+    // with a record on the gramophone the piece waits, paused, until the lid closes (muteMusic)
+    const go = () => { startTimer = null; if (!gone && !this.musicHeld) el.play().catch(() => { /* blocked: stays silent until the next piece */ }); };
     if (delay > 0) startTimer = window.setTimeout(go, delay * 1000); else go();
     this.live.add(src);
     this.track = src;

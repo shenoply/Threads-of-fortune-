@@ -200,8 +200,9 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
         const c = b.cues[seen.current.cues++];
         if (c.kind === 'volley') { audio.sfx('volley'); buzz(40); }
         else if (c.kind === 'charge') audio.sfx('melee');
-        else if (c.kind === 'hero') buzz(70);
-        else if (c.kind === 'leader' || c.kind === 'break') buzz(30);
+        else if (c.kind === 'hero') { audio.sfx('hero-down'); buzz(70); }
+        else if (c.kind === 'leader') { audio.sfx('leader-down'); buzz(30); }
+        else if (c.kind === 'break') { audio.sfx('melee'); buzz(30); }
       }
     }
     if (autoVolley.current && !b.over && !L.moment) {
@@ -385,6 +386,8 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
 
   // the fight over: the banner and the count stand a moment, then the account follows by itself
   useEffect(() => { if (!v.over) return; const id = window.setTimeout(() => end(), 2600); return () => window.clearTimeout(id); }, [v.over]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the banner goes up with its own short sting
+  useEffect(() => { if (v.over) audio.fightResult(v.over === 'run' || v.over === 'yield' || v.over === 'withdraw' ? 'win' : v.over === 'draw' ? 'draw' : 'lose'); }, [v.over]);
   const groups = (['rifles', 'foot', 'riders'] as Group[]).filter((g) => (info.mySide.some((u) => u.id !== 'you') ? bRef.current!.men.some((m) => m.side === 0 && m.group === g && !m.hero) : false));
   const canDuel = !v.over && v.leaderUp && v.them < 50 && !bRef.current!.duel && !!info.leader;
   const meName = GROUP_NAME[sel];

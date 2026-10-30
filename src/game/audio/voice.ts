@@ -15,7 +15,7 @@ import { FILED_AS } from '../../data/renamedIds';
 interface Frame { len: number; bytesPerSec: number }
 
 /** The MP3 frame header at byte i, or null if the bytes there are not one. */
-function frameAt(b: Uint8Array, i: number): Frame | null {
+export function frameAt(b: Uint8Array, i: number): Frame | null {
   if (i + 4 > b.length || b[i] !== 0xff || (b[i + 1] & 0xe0) !== 0xe0) return null;
   const version = (b[i + 1] >> 3) & 3, layer = (b[i + 1] >> 1) & 3;
   const bitrateIdx = b[i + 2] >> 4, srIdx = (b[i + 2] >> 2) & 3, padding = (b[i + 2] >> 1) & 1;
@@ -27,7 +27,7 @@ function frameAt(b: Uint8Array, i: number): Frame | null {
 }
 
 /** The first frame boundary at or after byte i: a header whose length leads to another header. */
-function syncFrom(b: Uint8Array, i: number): number {
+export function syncFrom(b: Uint8Array, i: number): number {
   for (let p = Math.max(0, i); p < b.length - 4; p++) {
     const f = frameAt(b, p);
     if (f && (p + f.len >= b.length || frameAt(b, p + f.len))) return p;
@@ -270,10 +270,27 @@ class Voice {
     return this.has(speaker, text) && this.ctx?.state === 'running';
   }
 
-  /** Play a line. Resolves when it finishes (at once if there is no recording yet). */
+  /** who is speaking now, and the promise that settles when that line is done (or stopped) */
+  private speaking: { speaker: string; done: Promise<void> } | null = null;
+  /** the one line waiting for its speaker to finish (a newer one from the same speaker replaces it) */
+  private waitTicket = 0;
+
+  /** Play a line. Resolves when it finishes (at once if there is no recording yet).
+   *  The same speaker never talks over himself: a second line of his asked for while one is still
+   *  playing waits for it to finish (only the newest such line waits; one asked for before it is
+   *  dropped). Anyone else's line, or stop(), cuts in as before. */
   say(speaker: string, text: string): Promise<void> {
-    this.stop();
     if (!this.sprites[speaker]) speaker = FILED_AS[speaker] ?? speaker;
+    const cur = this.speaking;
+    if (cur && cur.speaker === speaker && this._playing) {
+      const ticket = ++this.waitTicket;
+      return cur.done.then(() => (ticket === this.waitTicket ? this.sayNow(speaker, text) : undefined));
+    }
+    return this.sayNow(speaker, text);
+  }
+
+  private sayNow(speaker: string, text: string): Promise<void> {
+    this.stop();
     if (!this.enabled || filmLock.active) return Promise.resolve();
     const segs = this.segments(speaker, text);
     if (!segs) return Promise.resolve();
@@ -282,7 +299,7 @@ class Voice {
     this.playing = true;
     // the next segment decodes while this one plays
     if (segs[1]) this.clip(speaker, segs[1]);
-    return new Promise((resolve) => {
+    const done = new Promise<void>((resolve) => {
       let i = 0;
       const next = async () => {
         if (my !== this.token) return resolve();
@@ -314,11 +331,17 @@ class Voice {
         // if the sound device is held (the phone paused it, or it never got going) the line must not
         // hold the conversation up: it is let go a little after it would have finished
         const guard = window.setTimeout(() => { if (my === this.token) { try { src.stop(); } catch { /* */ } end(); } }, (len + 1.5) * 1000);
+        // never two pieces of a line at once: whatever was still sounding goes first
+        if (this.current && this.current !== src) { const prev = this.current; prev.onended = null; try { prev.stop(); } catch { /* ended */ } }
         this.current = src;
         src.start(0, c.lead, len);
       };
       next();
     });
+    const entry = { speaker, done };
+    this.speaking = entry;
+    void done.then(() => { if (this.speaking === entry) this.speaking = null; });
+    return done;
   }
 
   setVolume(v: number) {
@@ -328,6 +351,7 @@ class Voice {
 
   stop() {
     this.token++;
+    this.waitTicket++;
     if (this.current) {
       this.current.onended = null;
       try {
