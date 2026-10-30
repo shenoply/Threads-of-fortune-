@@ -1,5 +1,5 @@
 // The Giza Courier: one paper a day, put together from what happens in the world that morning.
-import { EVENTS, eventsOn, eventsStarting, dateOfDay, rumoursOn, type GameEvent } from './life';
+import { ALL_EVENTS, eventsOn, eventsStarting, dateOfDay, rumoursOn, newsId, foreseenKey, ownComingUp, type GameEvent } from './life';
 import { EVENT_NEWS, FILLER, ADS, WEATHER, KHAMSIN, SHIPPING, SHIPS, PORTS, type Story } from '../../data/news';
 import { upcomingGrandSales } from '../auction/sessions';
 import { wiresOn } from '../../data/daily1925';
@@ -27,7 +27,8 @@ const r = (n: number) => Math.abs(Math.sin(n * 12.9898 + 4.1414) * 43758.5453) %
 const pick = <T,>(a: T[], seed: number) => a[Math.floor(r(seed) * a.length)];
 
 /** Events the whole town knew were coming: feasts, seasons, announced visits and fairs. */
-const FORESEEN = new Set(['parliament', 'ramadan', 'eid', 'balfour', 'geocongress', 'paris', 'summer', 'adha', 'nile', 'plumer', 'cotton', 'mawlid', 'badawi', 'republic', 'season', 'tut', 'jouvenel', 'mosul']);
+// (a later year's feast counts by its name without the year: ramadan-27 is 'ramadan', copt-easter-28 is 'copt-easter')
+const FORESEEN = new Set(['parliament', 'ramadan', 'eid', 'balfour', 'geocongress', 'paris', 'summer', 'adha', 'nile', 'plumer', 'cotton', 'mawlid', 'badawi', 'republic', 'season', 'tut', 'jouvenel', 'mosul', 'copt-easter', 'sham', 'copt-xmas', 'hijri', 'nayrouz', 'xmas']);
 
 // ---------- pictures: the paper's engravings come from the game's own art ----------
 const CITY_IMG: Record<string, string> = {
@@ -47,7 +48,8 @@ const EVENT_IMG: Record<string, [string, string]> = {
   hadda: ['art/world/city-amman.jpg', 'Amman.'], jouvenel: ['art/world/city-damascus.jpg', 'The Levant under the Mandate.'], republic: ['art/world/city-istanbul.jpg', 'The Republic\'s old capital.'],
 };
 function imageFor(e: GameEvent): { img?: string; caption?: string } {
-  if (EVENT_IMG[e.id]) return { img: EVENT_IMG[e.id][0], caption: EVENT_IMG[e.id][1] };
+  const im = EVENT_IMG[newsId(e)];
+  if (im) return { img: im[0], caption: im[1] };
   const city = e.city ?? e.closed?.[0] ?? e.danger?.[0] ?? Object.keys(e.cityBid ?? {})[0] ?? Object.keys(e.cityBuy ?? {})[0] ?? e.demand?.[0]?.sid;
   if (city && CITY_IMG[city]) return { img: CITY_IMG[city], caption: `Our artist's view of ${CITY_NAME[city] ?? city.charAt(0).toUpperCase() + city.slice(1)}.` };
   return {};
@@ -55,7 +57,7 @@ function imageFor(e: GameEvent): { img?: string; caption?: string } {
 const FILLER_IMG = ['art/rugs/red-medina.jpg', 'art/world/giza-district.jpg', 'art/rugs/cairo-garden.jpg', 'art/cities/cairo-1925-map.webp', 'art/rugs/desert-star.jpg'];
 
 const article = (e: GameEvent): Article => {
-  const n = EVENT_NEWS[e.id];
+  const n = EVENT_NEWS[newsId(e)];
   const pic = imageFor(e);
   if (e.surprise) return { id: e.id, kind: 'surprise', headline: e.name, body: e.text, advice: e.advice, ...pic };
   return n ? { id: e.id, kind: 'event', ...n.article, advice: n.advice, ...pic } : { id: e.id, kind: 'event', headline: e.name, body: e.text, ...pic };
@@ -120,12 +122,12 @@ export function paperFor(day: number, extras: { bills?: boolean; commissions?: {
     if (f.headline !== lead.headline && !more.some((m) => m.headline === f.headline)) more.push({ id: `f${day}-${i}`, kind: 'filler', ...f });
   }
   // long-running stories get a line of what they mean for the trade
-  const still = ongoing.filter((e) => e.id !== lead.id).slice(0, 4).map((e) => ({ name: e.name, advice: (e.surprise ? e.advice : EVENT_NEWS[e.id]?.advice) ?? e.text }));
+  const still = ongoing.filter((e) => e.id !== lead.id).slice(0, 4).map((e) => ({ name: e.name, advice: (e.surprise ? e.advice : EVENT_NEWS[newsId(e)]?.advice) ?? e.text }));
   // the fixtures of the coming fortnight
   const comingUp: Paper['comingUp'] = [];
-  for (const e of EVENTS) {
+  for (const e of ALL_EVENTS) {
     const inDays = e.from - day;
-    if (inDays > 0 && inDays <= 14 && FORESEEN.has(e.id)) comingUp.push({ when: inDays === 1 ? 'Tomorrow' : `In ${inDays} days`, text: EVENT_NEWS[e.id]?.comingUp ?? e.name });
+    if (inDays > 0 && inDays <= 14 && !e.surprise && !e.unforeseen && FORESEEN.has(foreseenKey(e))) comingUp.push({ when: inDays === 1 ? 'Tomorrow' : `In ${inDays} days`, text: (ownComingUp(e) ? EVENT_NEWS[newsId(e)]?.comingUp : undefined) ?? e.name });
   }
   for (const { h, d } of upcomingGrandSales(day, 7)) if (d > day) comingUp.push({ when: d - day === 1 ? 'Tomorrow' : `In ${d - day} days`, text: `${h.displayName} holds a sale in ${cap(h.city)}.` });
   if (extras.bills) comingUp.push({ when: 'On the 1st', text: 'The month\'s rent, dues and household bill fall due.' });

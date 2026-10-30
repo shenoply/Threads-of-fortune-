@@ -2,7 +2,7 @@
 // Every piece has a key; the same keys are used to render the recordings, so text and audio always match.
 import { EVENT_NEWS, SURPRISES, FILLER, WEATHER, KHAMSIN } from '../../data/news';
 import { SETTLEMENTS } from '../../data/world';
-import { EVENTS, eventsOn, eventsStarting, dateOfDay, type GameEvent } from '../economy/life';
+import { ALL_EVENTS, eventsOn, eventsStarting, dateOfDay, newsId, foreseenKey, ownComingUp, type GameEvent } from '../economy/life';
 import { wiresOn } from '../../data/daily1925';
 import type * as ArabicData from '../../data/radioArabic';
 
@@ -67,7 +67,8 @@ const EN_FIXED = {
 };
 
 /** Events the town knew were coming, so the radio can mention them ahead. */
-const FORESEEN = new Set(['parliament', 'ramadan', 'eid', 'balfour', 'geocongress', 'paris', 'summer', 'adha', 'nile', 'plumer', 'cotton', 'mawlid', 'badawi', 'republic', 'season', 'tut', 'jouvenel', 'mosul']);
+// (a later year's feast counts by its name without the year; only those with a recorded story are read)
+const FORESEEN = new Set(['parliament', 'ramadan', 'eid', 'balfour', 'geocongress', 'paris', 'summer', 'adha', 'nile', 'plumer', 'cotton', 'mawlid', 'badawi', 'republic', 'season', 'tut', 'jouvenel', 'mosul', 'copt-easter', 'sham', 'copt-xmas', 'hijri', 'nayrouz', 'xmas']);
 const cityEn = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
 const r = (n: number) => Math.abs(Math.sin(n * 12.9898 + 7.7) * 43758.5453) % 1;
 
@@ -128,10 +129,11 @@ function eventPieces(e: GameEvent, lang: Lang, part: 'head' | 'adv' | 'cu'): Seg
     const text = part === 'head' ? (lang === 'ar' ? `${a.head}. ${a.body}` : `${def.article.headline}. ${def.article.body}`) : lang === 'ar' ? a.advice : def.advice;
     return split(`su-${def.id}-${part}`, 'surprises', text, e.city, lang);
   }
-  if (!EVENT_NEWS[e.id]) return [];
-  const n = EVENT_NEWS[e.id], a = AR_EVENTS[e.id];
+  const id = newsId(e);
+  if (!EVENT_NEWS[id]) return [];
+  const n = EVENT_NEWS[id], a = AR_EVENTS[id];
   const text = part === 'head' ? (lang === 'ar' ? `${a.head}. ${a.body}` : `${n.article.headline}. ${n.article.body}`) : part === 'adv' ? (lang === 'ar' ? a.advice : n.advice) : lang === 'ar' ? a.comingUp : n.comingUp;
-  return [{ key: `ev-${e.id}-${part}`, group: 'events', text }];
+  return [{ key: `ev-${id}-${part}`, group: 'events', text }];
 }
 
 /** Where the news itself starts: straight after "Here are the headlines" (the greeting and the date come first). */
@@ -140,6 +142,8 @@ export const newsStart = (segs: Segment[]) => {
   // the second greeting already says "Here is the news", so it stands in for the headlines piece:
   // the news then starts after the date that follows it
   if (i < 0 && segs[0]?.key === INTRO_WITH_NEWS) i = segs.findIndex((s) => s.key === 'y1925' || s.key === 'y1926');
+  // after 1926 no year is said: the news starts after the month
+  if (i < 0 && segs[0]?.key === INTRO_WITH_NEWS) i = segs.findIndex((s) => s.key.startsWith('mon-'));
   return i < 0 ? 0 : i + 1;
 };
 /** The greeting that ends with "Here is the news." (both languages); the bulletin then leaves out its own headlines piece. */
@@ -157,13 +161,14 @@ export function bulletin(day: number, lang: Lang): Segment[] {
   core(`wd-${d.getUTCDay()}`, F.weekday[d.getUTCDay()]);
   core(`ord-${d.getUTCDate() - 1}`, F.ordinal[d.getUTCDate() - 1]);
   core(`mon-${d.getUTCMonth()}`, F.month[d.getUTCMonth()]);
-  if (d.getUTCFullYear() === 1925) core('y1925', F.year1925); else core('y1926', F.year1926);
+  // only the first two years are recorded: later in the game the year is left unsaid rather than said wrong
+  if (d.getUTCFullYear() === 1925) core('y1925', F.year1925); else if (d.getUTCFullYear() === 1926) core('y1926', F.year1926);
   // greeting 1 already announces the news: do not say it twice
   if (`intro-${ii}` !== INTRO_WITH_NEWS) core('headlines', F.headlines);
   // the real news first: the day's lead from the wires, Egypt before the world
   const wire = wirePiece(d, lang);
   if (wire) out.push(wire);
-  const starting = eventsStarting(day).filter((e) => (e.surprise || EVENT_NEWS[e.id])).slice(0, 2);
+  const starting = eventsStarting(day).filter((e) => (e.surprise || EVENT_NEWS[newsId(e)])).slice(0, 2);
   if (starting.length) {
     for (const e of starting) {
       // a real event gets its full story; market talk only its word for the trade
@@ -175,12 +180,12 @@ export function bulletin(day: number, lang: Lang): Segment[] {
     const i = Math.floor(r(day * 2.3) * FILLER.length);
     out.push({ key: `fi-${i}`, group: 'filler', text: lang === 'ar' ? `${AR_FILLER[i].head}. ${AR_FILLER[i].body}` : `${FILLER[i].headline}. ${FILLER[i].body}` });
   }
-  const ongoing = eventsOn(day).filter((e) => e.from < day && (e.surprise || EVENT_NEWS[e.id])).sort((a, b) => b.from - a.from).slice(0, 2);
+  const ongoing = eventsOn(day).filter((e) => e.from < day && (e.surprise || EVENT_NEWS[newsId(e)])).sort((a, b) => b.from - a.from).slice(0, 2);
   if (ongoing.length) {
     core('still', F.still);
     for (const e of ongoing) out.push(...eventPieces(e, lang, 'adv'));
   }
-  const soon = EVENTS.filter((e) => FORESEEN.has(e.id) && e.from > day && e.from - day <= 10).slice(0, 2);
+  const soon = ALL_EVENTS.filter((e) => !e.surprise && !e.unforeseen && FORESEEN.has(foreseenKey(e)) && ownComingUp(e) && EVENT_NEWS[newsId(e)] && e.from > day && e.from - day <= 10).sort((a, b) => a.from - b.from).slice(0, 2);
   if (soon.length) {
     core('comingUp', F.comingUp);
     for (const e of soon) out.push(...eventPieces(e, lang, 'cu'));

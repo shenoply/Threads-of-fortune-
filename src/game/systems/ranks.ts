@@ -13,6 +13,7 @@ import { fmt, snap, snapDown } from '../economy/money';
 import { dateFor } from '../economy/economy';
 import type { GameState } from '../state/store';
 import { inLawHouses } from './household';
+import { eventsOn, budgetMod } from '../economy/life';
 
 export const SEASON_DAYS = 91;
 /** days a cut in prices lasts */
@@ -141,12 +142,25 @@ export function recordCitySale(s: { ranks?: RanksState; day: number }, cityId: s
   };
 }
 
-/** what a house sells in a day */
-function daySales(row: Row, day: number, undercutting: boolean) {
-  const h = hash(day, row.id);
+const EGYPT_TABLES = ['cairo', 'alexandria', 'portsaid'];
+/** how the day's events bear on a city's trade: shut souqs sell nothing, soldiers at the gate and a
+ *  slump thin the buyers (life.ts events: the cotton slump, the Syrian revolt, a bombardment...) */
+export function tradeMood(day: number, city: string) {
+  const evs = eventsOn(day);
+  if (evs.some((e) => e.closed?.includes(city))) return 0;
+  let m = evs.some((e) => e.danger?.includes(city)) ? 0.6 : 1;
+  if (EGYPT_TABLES.includes(city)) m *= Math.max(0.8, Math.min(1.2, budgetMod(day)));
+  return m;
+}
+/** what a house sells in a day. seed: the game's own (worldSeed), so each game's houses have their own
+ *  good and bad days and their own good and bad seasons */
+function daySales(row: Row, day: number, undercutting: boolean, seed = 0, city = '') {
+  const h = seed ? hash(day, `${seed}:${row.id}`) : hash(day, row.id);
   const t = row.rival?.temper;
   const m = t === 'aggressive' ? 0.4 + 1.2 * h : t === 'steady' ? 0.85 + 0.3 * h : t === 'cunning' ? 0.6 + 0.8 * h : t === 'old' ? (h < 0.1 ? 0 : 0.9 + 0.2 * h) : 0.5 + h;
-  return Math.round((row.target / SEASON_DAYS) * m * (undercutting ? 1.3 : 1));
+  // a house's season: some seasons it does well, some badly (the same for the whole season)
+  const form = seed ? 0.75 + 0.5 * hash(seasonOf(day), `form:${seed}:${row.id}`) : 1;
+  return Math.round((row.target / SEASON_DAYS) * m * form * (city ? tradeMood(day, city) : 1) * (undercutting ? 1.3 : 1));
 }
 
 const ANSWER: Record<Rival['temper'], (r: Rival, city: string) => string> = {
@@ -213,7 +227,7 @@ export function ranksNight(s: GameState, day: number): { patch: Partial<GameStat
   for (const c of RANK_CITIES) {
     const t = { ...(tables[c.id] ?? {}) };
     const cut = r.undercut?.[c.id];
-    for (const row of standings(r, c.id)) if (!row.you) t[row.id] = (t[row.id] ?? 0) + daySales(row, s.day, !!cut && cut.until >= s.day && cut.by === row.id);
+    for (const row of standings(r, c.id)) if (!row.you) t[row.id] = (t[row.id] ?? 0) + daySales(row, s.day, !!cut && cut.until >= s.day && cut.by === row.id, s.worldSeed ?? 0, c.id);
     tables[c.id] = t;
   }
   r = { ...r, tables };

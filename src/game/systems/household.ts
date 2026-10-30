@@ -717,7 +717,16 @@ export function householdNight(s: GameState, patch: Partial<GameState>, notes: s
     let sp: Spouse = { ...sp0 };
     const kids = h.children.filter((c) => motherOf(h, c) === sp0.id).length;
     const away = day - sp.lastHome;
-    if (home) sp = { ...sp, lastHome: day, content: sp.content + 1.5 + 0.3 * kids };
+    // at home her contentment settles towards what the house gives her: your evenings with her, your
+    // presents, the children. Sleeping under the same roof alone keeps her settled, no more.
+    if (home) {
+      const since = (d?: number) => (d === undefined ? 999 : day - d);
+      const settle = Math.min(95, 50 + Math.min(9, 3 * kids)
+        + (since(sp.lastEvening) <= 7 ? 15 : since(sp.lastEvening) <= 21 ? 7 : 0)
+        + (since(sp.lastPresent) <= 14 ? 15 : since(sp.lastPresent) <= 30 ? 7 : 0));
+      const c = sp.content;
+      sp = { ...sp, lastHome: day, content: c < settle ? c + Math.min(1, settle - c) : c - Math.min(0.5, c - settle) };
+    }
     else if (away > 10) sp = { ...sp, content: sp.content - (away > 30 ? 2 : 1) };
     sp.content = clamp(Math.round(sp.content * 10) / 10, 0, 100);
     if (sp0.content >= 25 && sp.content < 25) notes.push(`${b.short} is unhappy: you are hardly ever at home.${sp.role === 'stall' || sp.role === 'books' ? ' She has stopped helping with the trade.' : ''}`);

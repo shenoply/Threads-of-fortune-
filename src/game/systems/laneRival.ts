@@ -9,6 +9,7 @@ import { UPGRADES } from '../../data/suppliers';
 import { BUYERS } from '../../data/buyers';
 import type { GameState } from '../state/store';
 import { wivesOf } from './household';
+import { eventsOn } from '../economy/life';
 
 export const RIVAL_NAME = 'Shukri Mansour';
 export const RIVAL_FIRST = 'Shukri';
@@ -23,10 +24,19 @@ export interface LaneRival {
   /** his stall: 0 a corner, 1 a mat, 2 a canopy, 3 a shop in the Khan */
   stall: number;
   /** his last move, for the line on the stall screen */
-  last?: { day: number; text: string; kind: 'poach' | 'tried' | 'bought' | 'beaten' | 'quiet' };
+  last?: { day: number; text: string; kind: 'poach' | 'tried' | 'bought' | 'beaten' | 'quiet' | 'spent' };
   /** the last week counted (day of the Monday) */
   week?: number;
+  /** a second shop, in the Muski, kept by his cousin */
+  second?: boolean;
+  /** married, with a wedding Giza talked about */
+  wed?: boolean;
+  /** the year he last paid for the Ramadan tables in the lane */
+  charity?: number;
 }
+/** what he will keep in his purse at most: past this he spends */
+export const RIVAL_PURSE_CAP = 60000;
+const SECOND_SHOP = 35000, WEDDING = 20000;
 
 export const freshRival = (): LaneRival => ({ purse: 0, stall: 0 });
 export const rivalOf = (s: Pick<GameState, 'lane'>) => s.lane ?? freshRival();
@@ -48,8 +58,29 @@ export function rivalNight(s: GameState, day: number): { patch: Partial<GameStat
   const patch: Partial<GameState> = {};
   const you = yourStall(s.upgrades);
   // the day's takings: a steady man with good days and bad
-  r.purse += Math.round(INCOME[r.stall] * (0.6 + h(day, 'take') * 0.8));
+  r.purse += Math.round(INCOME[r.stall] * (r.second ? 1.5 : 1) * (0.6 + h(day, 'take') * 0.8));
   let moved = false;
+  // a man with his shop spends what he makes: a second shop, his wedding, the lane's Ramadan tables, stock
+  const ramadanStarts = eventsOn(day).some((e) => e.fast && e.from === day);
+  const year = new Date(Date.UTC(1925, 2, 9 + day)).getUTCFullYear();
+  if (ramadanStarts && r.stall >= 2 && r.purse > 3000 && r.charity !== year) {
+    const gift = Math.round(r.purse * 0.1);
+    r.purse -= gift; r.charity = year; moved = true;
+    r.last = { day, kind: 'spent', text: `${RIVAL_FIRST} is paying for the Ramadan tables in the lane this year: lentil soup and bread for anyone at the sunset cannon.` };
+  } else if (r.stall >= 3 && !r.second && r.purse >= SECOND_SHOP + 5000) {
+    r.purse -= SECOND_SHOP; r.second = true; moved = true;
+    r.last = { day, kind: 'spent', text: `${RIVAL_FIRST} has taken a second shop, in the Muski. His cousin keeps it for him.` };
+    notes.push(`${RIVAL_NAME} has taken a second shop, in the Muski.`);
+  } else if (r.stall >= 3 && !r.wed && r.purse >= WEDDING + 5000 && h(day, 'wed') < 0.03) {
+    r.purse -= WEDDING; r.wed = true; moved = true;
+    r.last = { day, kind: 'spent', text: `${RIVAL_FIRST} has married. Three nights of singers, and the whole lane fed. He will be paying for it for a while.` };
+    notes.push(`${RIVAL_NAME} has married, with a wedding the whole of Giza heard.`);
+  } else if (r.stall >= 3 && r.purse >= 30000 && h(day, 'stock') < 1 / 30) {
+    const spend = Math.round(r.purse * (0.3 + h(day, 'much') * 0.2));
+    r.purse -= spend; moved = true;
+    r.last = { day, kind: 'spent', text: `${RIVAL_FIRST} has bought a whole caravan's load of Persian carpets for his shop. The lane says he paid too much.` };
+  }
+  r.purse = Math.min(r.purse, RIVAL_PURSE_CAP);
   const cost = nextCost(r.stall);
   if (cost !== null && r.purse >= cost) {
     r.purse -= cost;

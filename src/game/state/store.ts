@@ -29,8 +29,10 @@ import { applyAuctionObservation, type MarketIntelRecord } from '../auction/mark
 import { shouldReofferUnsoldLot, reducedReserveForReoffer, totalAuctionCost } from '../auction/auctionSystem';
 import { houseOfFortune, liabilities, owedParts } from '../economy/progress';
 import { EARLY_OFF, EARLY_TRUST, FIRST_WORD, LATE_FEE, LATE_TRUST, SECOND_DAYS, dueDate, firstOpen, firstWeekStart, type FirstWeek } from '../firstWeek';
-import { laneDay, isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
-import { rankOf } from '../economy/progress';
+import { setWorldSeed, laneDay, isFirstOfMonth, monthlyBill, billTotal, monthName, rumourBid, budgetMod, cityClosed, cityBuyMod, dangerAt, eventsStarting } from '../economy/life';
+import { rankOf, RANKS } from '../economy/progress';
+import { bandsNight, type Scattered } from '../systems/bands';
+import { foldJournal, trimWhereabouts, lastAt } from '../systems/journalFold';
 import { TITLES, type TitleCtx } from '../../data/titles';
 import { recordCitySale, ranksNight, rankReaction, undercutBid, auctionWelcome, firstCities, freshRanks, RANK_FX, FIRST_DISCOUNT, type RanksState } from '../systems/ranks';
 import { progressScore } from '../economy/progress';
@@ -413,6 +415,8 @@ export interface GameState {
   held?: { encounter: Encounter; until: number } | null;
   dayOver: boolean;
   seed: number;
+  /** this game's own draw of the world: surprise incidents, the rival houses' days (saved; made on a new game) */
+  worldSeed?: number;
 }
 
 export type QuestState = 'active' | 'ready' | 'done';
@@ -436,6 +440,8 @@ export interface WorldState {
   walks?: Record<string, { fog: string; seen: string[] }>;
   /** the last night (keyed by the day it began) on which thieves had their chance at the camp */
   nightRoll?: number;
+  /** bands broken up, and the day a new one gathers in each place (systems/bands.ts) */
+  scattered?: Scattered[];
 }
 
 export interface DistrictState { x: number; y: number; fog: string; seen: string[] }
@@ -1043,7 +1049,17 @@ function initial(): Omit<GameState, keyof Actions> {
     audienceStash: null,
     dayOver: false,
     seed: 1,
+    worldSeed: newWorldSeed(),
   };
+}
+const newWorldSeed = () => 1 + Math.floor(Math.random() * 2147483646);
+/** a save from before the seed: one drawn from what it already holds (the first entries of its books, its
+ *  stock's marks), so the same save gets the same world each time it loads until the seed is written */
+export function derivedWorldSeed(s: Partial<GameState>): number {
+  const src = JSON.stringify([s.ledger?.slice(0, 6), s.journal?.slice(0, 6), s.inventory?.map((i) => i.uid).sort().slice(0, 8), s.heroLook ?? null]);
+  let h = 2166136261;
+  for (let i = 0; i < src.length; i++) h = Math.imul(h ^ src.charCodeAt(i), 16777619);
+  return 1 + ((h >>> 0) % 2147483646);
 }
 
 // Autosave can be turned off in Settings. When it's off, writes to the main save slot are
@@ -1533,7 +1549,15 @@ export const useGame = create<GameState & Actions>()(
             if (cash >= pay) {
               cash -= pay;
               paidWages = pay;
-              ledger.push({ day: s.day, kind: 'expense', label: 'Wages for your men', amount: -pay });
+              // one line a week in the ledger, not one a night: the week's wages so far are added to it
+              const wk = Math.floor((s.day - 1) / 7);
+              let li = -1;
+              for (let k = ledger.length - 1; k >= Math.max(0, ledger.length - 12); k--) if (ledger[k].label.startsWith('Wages for your men') && Math.floor((ledger[k].day - 1) / 7) === wk) { li = k; break; }
+              const prev = li >= 0 ? ledger[li] : undefined;
+              if (prev) {
+                const n = Number(/, (\d+) days$/.exec(prev.label)?.[1] ?? 1) + 1;
+                ledger[li] = { ...prev, day: s.day, label: `Wages for your men, ${n} days`, amount: prev.amount - pay };
+              } else ledger.push({ day: s.day, kind: 'expense', label: 'Wages for your men', amount: -pay });
               moraleV = Math.min(100, moraleV + 3);
             } else {
               const ids = troopIds();
@@ -1787,7 +1811,16 @@ export const useGame = create<GameState & Actions>()(
             }
           }
           if (cash < 0) notes.push('You ended the day owing the landlord. Sell something tomorrow.');
-          journal.push({ day: s.day, text: `Closed the stall. ${s.dayStats.sales} sale(s), gross profit ${fmt(s.dayStats.gross)}.`, kind: 'stall' });
+          // a line only for a day of trade at the stall: nothing on quiet nights or nights away from Giza
+          if (s.world.at === 'giza' && s.dayStats.sales > 0) journal.push({ day: s.day, text: `Closed the stall. ${s.dayStats.sales} sale(s), gross profit ${fmt(s.dayStats.gross)}.`, kind: 'stall' });
+          // a stall left with nobody to mind it for long: the lane slowly forgets the name, down to what your rank holds
+          // (the game opens at the stall: with no night at Giza on record, the first day counts)
+          const lastGiza = s.world.at === 'giza' ? s.day : lastAt(s.whereabouts, 'giza', s.day + 1) ?? 1;
+          const awayDays = s.day - lastGiza;
+          if (awayDays > 30 && (awayDays - 30) % 10 === 0 && !s.shopBoy?.hired) {
+            const floor = Math.max(0, RANKS[rankOf(s).idx]?.rep ?? 0);
+            if (reputation > floor) { reputation -= 1; notes.push('Your stall in Giza has stood empty a long while. The lane is forgetting your name.'); }
+          }
           // Not everyone comes every day. Someone who bought yesterday is usually busy with it.
           // better households only come to a merchant of standing: rank opens the door, reputation brings them in
           const rankIdx = rankOf(s).idx;
@@ -1952,6 +1985,20 @@ export const useGame = create<GameState & Actions>()(
             notes.push(...wk.notice);
             if (wk.notice.length) patch.jobNote = wk.notice.join(' ');
           }
+          // the bands on the roads: men made up after losses, a band scattered, a new one gathered, a feud cooled
+          const w0 = patch.world ?? s.world;
+          const bn = bandsNight(w0.parties, w0.scattered ?? [], combatOf({ ...s, ...patch } as GameState).leaders, day, s.worldSeed ?? 0);
+          if (bn) {
+            patch.world = { ...w0, parties: bn.parties, scattered: bn.scattered.length ? bn.scattered : undefined };
+            if (bn.leaders) patch.combat = { ...combatOf({ ...s, ...patch } as GameState), leaders: bn.leaders };
+            notes.push(...bn.notes);
+          }
+          // the books kept small: older journal entries folded by the month, the whereabouts trimmed
+          patch.journal = foldJournal(patch.journal ?? journal);
+          // a night at home is kept too, so the time since you last kept the stall can be told (systems/journalFold.ts)
+          const home = s.world.at === 'giza' && s.whereabouts?.[s.day] !== 'giza' ? { ...(s.whereabouts ?? {}), [s.day]: 'giza' } : s.whereabouts;
+          const where = trimWhereabouts(home, day, [lastAt(home, 'giza', day + 1) ?? 0]);
+          if (where !== s.whereabouts) patch.whereabouts = where;
           return { patch, summary };
         };
 
@@ -1999,6 +2046,15 @@ export const useGame = create<GameState & Actions>()(
       /** Back at the stall after time away: a customer waits about two hours, then goes elsewhere. */
       const gaveUp = () => {
         let s = get();
+        // back after a long time away, with nothing left at the stall: say so, rather than nothing
+        if (s.world.at === 'giza' && s.started && !s.ended) {
+          const n = s.day - (lastAt(s.whereabouts, 'giza', s.day) ?? 1);
+          if (n >= 30 && !s.inventory.some((i) => i.stored) && !s.shopBoy?.hired && !s.journal.some((j) => j.day === s.day && j.text.startsWith('Back in Giza after'))) {
+            const text = `Back in Giza after ${n > 60 ? 'more than two months' : `${n} days`} away. Your stall has stood empty all this time, with nothing on it to sell. The lane has stopped looking at it.`;
+            set({ journal: [...s.journal, { day: s.day, text, kind: 'stall' }], jobNote: s.jobNote ?? text });
+            s = get();
+          }
+        }
         const boy = s.world.at === 'giza' ? boyOnReturn(s, { arrivalAt, patience: AWAY_PATIENCE + boyWait(s), rng, busy: !!(s.held || s.encounter || s.dayOver || !s.tutorial.done || openingStep(s)) }) : null;
         if (boy) { set(boy); s = get(); }
         if (s.world.at !== 'giza' || s.held || s.encounter || s.dayOver || !s.tutorial.done || openingStep(s)) return;
@@ -2377,7 +2433,7 @@ export const useGame = create<GameState & Actions>()(
                 c.leaders[partyId] = { ...c.leaders[partyId], grudge: true, bounty: lead.bounty + 40, past: [...(lead.past ?? []), 'escaped' as const].slice(-6) };
                 lines.push(`${lead.name} gets away. He will not forget this.`);
                 // he goes home, gathers more men, and comes looking for you
-                parties = parties.map((p) => (p.id === partyId ? { ...p, vendetta: true, size: Math.min(16, (p.size ?? 4) + 2), strength: Math.min(60, (p.strength ?? 8) + 4) } : p));
+                parties = parties.map((p) => (p.id === partyId ? { ...p, vendetta: true, feudSince: s.day, size: Math.min(16, (p.size ?? 4) + 2), strength: Math.min(60, (p.strength ?? 8) + 4) } : p));
               }
               if (lead.robbed) {
                 out.revenge = true; rep += 2;
@@ -2466,7 +2522,7 @@ export const useGame = create<GameState & Actions>()(
               const r = ransomFor(l);
               cash += r;
               leaders[p.band] = { ...l, status: 'free', grudge: true, past: [...(l.past ?? []), 'ransomed' as const].slice(-6) };
-              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + 6, vendetta: true } : q));
+              parties = parties.map((q) => (q.id === p.band ? { ...q, cooldownUntil: s.day + 6, vendetta: true, feudSince: s.day } : q));
               parts.push(`A cousin of ${l.name} pays ${fmt(r)} in silver to have him back. He rides off without a word. You may meet him again.`);
             } else {
               cash += l.bounty;
@@ -3924,10 +3980,14 @@ export const useGame = create<GameState & Actions>()(
         },
 
         endDay: () => {
-          const { patch, summary } = rollover(get());
+          const s0 = get();
+          const { patch, summary } = rollover(s0);
           // an ill or hurt man opens the stall late: each point of 'hours' lost pushes the morning back
           const lost = Math.min(8, healthEffects((patch.illnesses ?? get().illnesses) as Illness[] | undefined).hours);
-          set({ ...patch, lastSummary: summary, world: { ...(patch.world ?? get().world), hour: 7 + lost } });
+          // the night passes on the roads too: the bands move while you sleep (and while days are skipped)
+          const w = patch.world ?? get().world;
+          const nightDays = Math.min(1, Math.max(0, 24 + 7 + lost - s0.world.hour) / 24);
+          set({ ...patch, lastSummary: summary, world: { ...w, hour: 7 + lost, parties: stepParties(w.parties, nightDays, rng) } });
           audio.sfx('pen');
         },
 
@@ -4533,7 +4593,7 @@ export const useGame = create<GameState & Actions>()(
           const first = !s.inventory.some((x) => x.framed) && !(s.journal ?? []).some((j) => j.text.includes('framed at the stall'));
           set({
             inventory: s.inventory.map((x) => (x.uid === uid ? { ...x, framed: true, stored: false } : x)),
-            journal: [...s.journal, { day: s.day, text: `${name}, woven to your own design, hangs framed at the stall.` }].slice(-200),
+            journal: [...s.journal, { day: s.day, text: `${name}, woven to your own design, hangs framed at the stall.` }],
             ...(first ? { reputation: s.reputation + 1 } : {}),
           });
           audio.sfx('reward');
@@ -4672,7 +4732,7 @@ export const useGame = create<GameState & Actions>()(
             ...(piece ? { dressing: [...(s.dressing ?? []), piece.id], ...(!spotsOf(s)[piece.spot] ? { stallSpots: { ...spotsOf(s), [piece.spot]: piece.id } } : {}) } : {}),
             bales: { lastDay: fromGift ? b.lastDay : s.day, freeDay: free && !fromGift ? s.day : b.freeDay, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
             ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
-            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(rec ? [`a gramophone record, ${rec.title}`] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
+            journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(rec ? [`a gramophone record, ${rec.title}`] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }],
           });
           return { msg: '', result, items };
         },
@@ -4737,7 +4797,7 @@ export const useGame = create<GameState & Actions>()(
           if (!lm || !w || !d || s.day < w.ready) return '';
           registerDesigns([d]);
           const item: RugItem = { uid: newUid('r'), typeId: id, condition: 'Excellent', restored: false, provenance: 'Documented', paid: w.paid ?? costOf(d), notes: [lm.owned ? 'Woven to your own design in your loom house at Kerdasa.' : 'Woven to your own design by the weavers of Kerdasa.'], stored: s.world.at !== 'giza' ? true : false };
-          set({ inventory: [...s.inventory, item], loom: { ...lm, weaving: lm.weaving.filter((x) => x.id !== id) }, journal: [...s.journal, { day: s.day, text: `${d.name} came off the weaver's loom.` }].slice(-200) });
+          set({ inventory: [...s.inventory, item], loom: { ...lm, weaving: lm.weaving.filter((x) => x.id !== id) }, journal: [...s.journal, { day: s.day, text: `${d.name} came off the weaver's loom.` }] });
           return `${d.name} is off the loom and in your stock.`;
         },
         buyWorkshop: () => {
@@ -4745,7 +4805,7 @@ export const useGame = create<GameState & Actions>()(
           const lm = s.loom ?? { designs: [], weaving: [], next: 1 };
           if (lm.owned) return '';
           if (s.cash < WORKSHOP_PRICE) return `You need ${fmt(WORKSHOP_PRICE)}.`;
-          set({ cash: s.cash - WORKSHOP_PRICE, loom: { ...lm, owned: true }, ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: 'A loom house at Kerdasa', amount: -WORKSHOP_PRICE }], journal: [...s.journal, { day: s.day, text: 'Bought a loom house at Kerdasa, with two looms and a weaver who knows the city knot.' }].slice(-200) });
+          set({ cash: s.cash - WORKSHOP_PRICE, loom: { ...lm, owned: true }, ledger: [...s.ledger, { day: s.day, kind: 'upgrade', label: 'A loom house at Kerdasa', amount: -WORKSHOP_PRICE }], journal: [...s.journal, { day: s.day, text: 'Bought a loom house at Kerdasa, with two looms and a weaver who knows the city knot.' }] });
           audio.sfx('coins');
           return 'The loom house is yours: two looms, the city knot and silk, and every carpet a fifth cheaper.';
         },
@@ -5238,6 +5298,9 @@ export const useGame = create<GameState & Actions>()(
       },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        // each game draws its own world; a save from before the seed gets one from what it holds
+        if (!state.worldSeed) state.worldSeed = derivedWorldSeed(state);
+        setWorldSeed(state.worldSeed);
         // carry the saved autosave choice forward, so a reload doesn't silently turn it back on
         autosaveEnabled = state.ironman ? true : (state.autosaveOn ?? true);
         // story rugs are never auction lots, even ones an older save had queued to be offered again
@@ -5259,6 +5322,10 @@ const syncSkillMods = (s: GameState) => {
 };
 syncSkillMods(useGame.getState());
 useGame.subscribe(syncSkillMods);
+// the game's seed draws its surprise incidents (economy/life.ts): a new game or a loaded save redraws them
+const syncWorldSeed = (s: GameState) => { if (s.worldSeed) setWorldSeed(s.worldSeed); };
+syncWorldSeed(useGame.getState());
+useGame.subscribe(syncWorldSeed);
 
 // (registered before the missions' own check, so a rug lost in Damascus is replaced before that
 // check can take its absence as the end of the mission)

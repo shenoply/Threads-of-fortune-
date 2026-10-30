@@ -527,6 +527,10 @@ export interface Party {
   cooldownUntil?: number; // game-day number, avoids repeat encounters
   /** its leader has a score to settle with you: it comes looking, further and harder than an ordinary band */
   vendetta?: boolean;
+  /** the day the score was last fed (set, or a fight): a feud left alone long enough cools (systems/bands.ts) */
+  feudSince?: number;
+  /** a band's usual strength in men: losses are made up towards it, slowly */
+  full?: number;
 }
 
 
@@ -559,12 +563,7 @@ export function spawnParties(rng: () => number): Party[] {
     out.push({ id: `p${i}`, kind, name, size: kind === 'caravan' ? 8 + (i % 5) : 5 + (i % 7), x: pos.x, y: pos.y, path, travelled: start, speed: kind === 'caravan' ? 22 : 16 });
   });
   // raiders patrol the Sinai tracks and the Syrian desert; Bedouin herd near their camp
-  const raidHomes = [paint(760, 740), paint(1020, 600)];
-  raidHomes.forEach((h, i) => {
-    const p = randomLand(h, 30, rng);
-    const size = bandSize(4 + Math.floor(rng() * 4), rng);
-    out.push({ id: `r${i}`, kind: 'raiders', name: 'Raiders', size, strength: bandStrength(size), x: p.x, y: p.y, path: [p, randomLand(h, 40, rng)], travelled: 0, speed: 30, home: h });
-  });
+  RAID_HOMES().forEach((_, i) => out.push(desertRaiders(i, rng)));
   // a free company of guards looking for work
   [paint(720, 620), paint(430, 700)].forEach((h, i) => {
     const p = randomLand(h, 20, rng);
@@ -598,16 +597,32 @@ export function bandSize(base: number, rng: () => number) {
   return Math.max(2, Math.round(base * (0.75 + rng() * 0.4)));
 }
 export const bandStrength = (size: number) => Math.round(size * (size >= 14 ? 2.6 : size >= 9 ? 2.3 : 2));
+function roadBand(i: number, rng: () => number): Party {
+  const [a, b, base, name] = ROAD_BANDS[i];
+  const size = bandSize(base, rng);
+  const A = settlementById(a), B = settlementById(b);
+  // they sit on the road itself, halfway along it
+  const road = findPath(A, B) ?? [A, B];
+  const mid = along(road, pathLength(road) / 2).pos;
+  const p = randomLand(mid, 6, rng);
+  return { id: `rb${i}`, kind: 'raiders' as const, name, size, strength: bandStrength(size), x: p.x, y: p.y, path: [p, randomLand(mid, 18, rng)], travelled: 0, speed: 26, home: mid };
+}
 export function spawnRoadBands(rng: () => number): Party[] {
-  return ROAD_BANDS.map(([a, b, base, name], i) => {
-    const size = bandSize(base, rng);
-    const A = settlementById(a), B = settlementById(b);
-    // they sit on the road itself, halfway along it
-    const road = findPath(A, B) ?? [A, B];
-    const mid = along(road, pathLength(road) / 2).pos;
-    const p = randomLand(mid, 6, rng);
-    return { id: `rb${i}`, kind: 'raiders' as const, name, size, strength: bandStrength(size), x: p.x, y: p.y, path: [p, randomLand(mid, 18, rng)], travelled: 0, speed: 26, home: mid };
-  });
+  return ROAD_BANDS.map((_, i) => roadBand(i, rng));
+}
+const RAID_HOMES = () => [paint(760, 740), paint(1020, 600)];
+function desertRaiders(i: number, rng: () => number): Party {
+  const h = RAID_HOMES()[i];
+  const p = randomLand(h, 30, rng);
+  const size = bandSize(4 + Math.floor(rng() * 4), rng);
+  return { id: `r${i}`, kind: 'raiders', name: 'Raiders', size, strength: bandStrength(size), x: p.x, y: p.y, path: [p, randomLand(h, 40, rng)], travelled: 0, speed: 30, home: h };
+}
+/** A new band gathered on the ground an old one held (its id, so its road and its posters carry on). */
+export function musterBand(id: string, rng: () => number): Party | undefined {
+  const rb = /^rb(\d+)$/.exec(id), r = /^r(\d+)$/.exec(id);
+  if (rb && ROAD_BANDS[+rb[1]]) return roadBand(+rb[1], rng);
+  if (r && +r[1] < RAID_HOMES().length) return desertRaiders(+r[1], rng);
+  return undefined;
 }
 
 /** The strongest band close to a route: what you are walking into. */

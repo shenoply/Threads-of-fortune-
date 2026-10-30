@@ -1,4 +1,4 @@
-// The seasons of 1925–26 as a rug merchant felt them: the khamsin, the winter visitors, cotton money,
+// The seasons of 1925–30 as a rug merchant felt them: the khamsin, the winter visitors, cotton money,
 // the feasts of both faiths, the Nile flood, quarantine at the ports and the shutters of Cairo.
 // Pure data and small pure helpers. life.ts adds these events to its calendar; nothing here imports it.
 import type { Trait } from '../types';
@@ -58,11 +58,16 @@ const KHAMSIN_TEXT = [
   'The khamsin is blowing. The sky has gone yellow, the sun is a pale disc, and everyone who can stays indoors.',
   'Sand on the wind since dawn. The dragomen have sent the camels home and the shopkeepers are covering their goods.',
 ];
-// Coptic Easter, Sham el-Nessim and Eid al-Fitr in both springs
-const FEAST_DAYS = [d(4, 19), d(4, 20), d(4, 24), d(4, 25), d(4, 26), d(4, 27), d(4, 14, 1926), d(4, 15, 1926), d(4, 16, 1926), d(5, 2, 1926), d(5, 3, 1926)];
+// Coptic Easter, Sham el-Nessim and Eid al-Fitr in every spring (the later years from LATER_YEARS below)
+const FEAST_DAYS_25_26 = [d(4, 19), d(4, 20), d(4, 24), d(4, 25), d(4, 26), d(4, 27), d(4, 14, 1926), d(4, 15, 1926), d(4, 16, 1926), d(5, 2, 1926), d(5, 3, 1926)];
+let feastCache: number[] | null = null;
+const feastDays = () => feastCache ??= [...FEAST_DAYS_25_26, ...LATER_YEARS.filter((e) => /^(copt-easter|sham|eid)-/.test(e.id)).flatMap((e) => Array.from({ length: e.to - e.from + 1 }, (_, i) => e.from + i))];
 function khamsins(): GameEvent[] {
   const out: GameEvent[] = [];
-  for (const [y, from, to] of [[1925, d(3, 14), d(5, 25)], [1926, d(3, 8, 1926), d(5, 25, 1926)]] as const) {
+  const springs: [number, number, number][] = [[1925, d(3, 14), d(5, 25)], [1926, d(3, 8, 1926), d(5, 25, 1926)]];
+  for (let y = 1927; y <= LAST_YEAR; y++) springs.push([y, d(3, 8, y), d(5, 25, y)]);
+  const FEAST_DAYS = feastDays();
+  for (const [y, from, to] of springs) {
     let at = from + Math.floor(hh(y) * 8);
     for (let i = 0; at < to; i++) {
       const len = 1 + Math.floor(hh(at * 1.7 + y) * 3);
@@ -136,6 +141,62 @@ const FIXED: GameEvent[] = [
   ...PERSIA_EVENTS,
 ];
 
+// ---------- The years after 1926: the feasts and seasons come round again ----------
+// Only what recurs: the two faiths' feasts, the seasons, the flood and the fairs. No dated news is made up.
+// Islamic dates for 1345–1349 AH by the Umm al-Qura reckoning (the tabular calendar agrees within a day;
+// Cairo went by the sighting of the moon, so each may have fallen a day either side): they match the
+// 1925–26 dates above. Coptic Easter is Orthodox (Julian) Easter, by the computus, Gregorian dates.
+export const LAST_YEAR = 1930;
+/** the last day the calendar knows: 31 December 1930 */
+export const CAL_END = d(12, 31, LAST_YEAR);
+type YMD = [number, number, number];
+const ISLAMIC: Record<number, { ramadan: YMD; eid: YMD; adha: YMD; hijri: YMD; hijriYear: number; mawlid: YMD }> = {
+  1927: { ramadan: [1927, 3, 5], eid: [1927, 4, 3], adha: [1927, 6, 10], hijri: [1927, 6, 30], hijriYear: 1346, mawlid: [1927, 9, 8] },
+  1928: { ramadan: [1928, 2, 23], eid: [1928, 3, 23], adha: [1928, 5, 30], hijri: [1928, 6, 19], hijriYear: 1347, mawlid: [1928, 8, 28] },
+  1929: { ramadan: [1929, 2, 11], eid: [1929, 3, 13], adha: [1929, 5, 19], hijri: [1929, 6, 9], hijriYear: 1348, mawlid: [1929, 8, 17] },
+  1930: { ramadan: [1930, 1, 31], eid: [1930, 3, 2], adha: [1930, 5, 9], hijri: [1930, 5, 29], hijriYear: 1349, mawlid: [1930, 8, 7] },
+};
+/** the Prophet's Birthday of 1926 (12 Rabi al-Awwal 1345), which the 1925 list above does not reach */
+const MAWLID_1926: YMD = [1926, 9, 19];
+/** Coptic (Orthodox) Easter */
+const COPT_EASTER: Record<number, YMD> = { 1927: [1927, 4, 24], 1928: [1928, 4, 15], 1929: [1929, 5, 5], 1930: [1930, 4, 20] };
+const at = ([y, m, dd]: YMD) => d(m, dd, y);
+const yy = (y: number) => String(y % 100).padStart(2, '0');
+const FEAST_LANE = (name: string) => `${name}. The lane is crowded and in good spirits.`;
+
+function laterYears(): GameEvent[] {
+  const out: GameEvent[] = [];
+  const mawlid = (y: number, day: number): GameEvent => ({ id: `mawlid-${yy(y)}`, news: 'mawlid', name: 'The Prophet\'s Birthday', from: day - 6, to: day, icon: '☾', text: 'The moulid al-Nabi. The Sufi orders pitch their tents in Cairo and every tent is floored with carpets. (Dates about.)', cityBid: { cairo: 1.15 }, budget: 1.05, patience: 0.85, laneNote: 'Drums, chanting and pickpockets: buyers are in a hurry.' });
+  out.push(mawlid(1926, at(MAWLID_1926)));
+  for (let y = 1926; y <= LAST_YEAR; y++) {
+    const t = yy(y);
+    // the autumn of every year: flood, Nayrouz, cotton, the Tanta fair, the winter visitors, Christmas
+    out.push({ id: `nile-${t}`, news: 'nile', name: 'Wafaa el-Nil', from: d(8, 14, y), to: d(8, 16, y), text: 'The Nile has risen. Cairo celebrates the flood with boats, fireworks and the cutting of the dam. (Dates about.)', budget: 1.05, icon: '≈' });
+    out.push({ id: `flood-${t}`, name: 'The Nile in flood', from: d(8, 17, y), to: d(10, 20, y), icon: '≈', text: 'The river is high. The ferry fights the current, the low roads of the Delta are under water and caravans keep to the dykes. The railway runs on its embankments as usual.', flood: true });
+    // 1 Tut falls on 12 September in the year before a Gregorian leap year, otherwise on the 11th
+    const nay = (y + 1) % 4 === 0 ? 12 : 11;
+    out.push({ id: `nayrouz-${t}`, name: 'Coptic New Year', from: d(9, nay, y), to: d(9, nay, y), eve: true, icon: '†', text: 'Nayrouz, the first of Tut. Red dates on every Coptic table, and Coptic families buying for the new year.', budget: 1.03, callers: { coptic: 1.5 } });
+    out.push({ id: `cotton-${t}`, name: 'The cotton harvest', from: d(9, 1, y), to: d(11, 15, y), icon: '✿', text: 'The cotton is picked and sold. Delta landowners have cash in hand and Tanta and Alexandria dealers are buying.', cityBid: { tanta: 1.1, alexandria: 1.05 }, callers: { cotton: 1.3 } });
+    out.push({ id: `badawi-${t}`, news: 'badawi', name: 'The Moulid of Sayyid al-Badawi', from: d(10, 8, y), to: d(10, 16, y), text: 'The great fair at Tanta, after the cotton harvest. Half a million people, fairground tents, and sellers from every village in the Delta. You buy cheaply and sell well. (Dates about.)', cityBid: { tanta: 1.3 }, cityBuy: { tanta: 0.85 } });
+    out.push({ id: `season-${t}`, news: 'season', name: 'The winter tourist season', from: d(11, 1, y), to: d(3, 31, y + 1), icon: '✈', text: 'The Nile tourist steamers bring the winter visitors. Giza is full of foreigners with money.', budget: 1.15, callers: { foreign: 1.3 }, demand: [{ sid: 'cairo', traits: SHOWY, mult: 1.15 }, { sid: 'alexandria', traits: SHOWY, mult: 1.12 }] });
+    out.push({ id: `xmas-${t}`, name: 'Christmas in the European quarters', from: d(12, 18, y), to: d(12, 25, y), icon: '✶', text: 'The shops of Kasr el-Nil and Rue Chérif Pacha are dressed for Christmas, and the Europeans of Cairo and Alexandria are buying presents.', callers: { foreign: 1.2 }, demand: [{ sid: 'cairo', traits: ['ornate', 'silk', 'fineWeave'], mult: 1.12 }, { sid: 'alexandria', traits: ['ornate', 'bold', 'silk'], mult: 1.15 }] });
+    if (y === 1926) continue;
+    // the rest of the year, from 1927
+    const I = ISLAMIC[y], E = COPT_EASTER[y];
+    out.push({ id: `copt-xmas-${t}`, name: 'Coptic Christmas', from: d(1, 7, y), to: d(1, 7, y), eve: true, icon: '†', text: 'The Copts end the Advent fast with the night mass and a feast. Coptic families are out buying.', budget: 1.05, callers: { coptic: 1.5 } });
+    out.push({ id: `ramadan-${t}`, news: 'ramadan', name: 'Ramadan', from: at(I.ramadan), to: at(I.eid) - 1, fast: true, icon: '☾', text: 'The month of fasting. Buyers come after dark and are shorter of patience by day.', budget: 1.05 });
+    out.push({ id: `eid-${t}`, news: 'eid', name: 'Eid al-Fitr', from: at(I.eid), to: at(I.eid) + 2, eve: true, icon: '☾', text: 'The feast after Ramadan. New clothes, gifts, and prayer rugs for the family.', budget: 1.2, footfall: 1, want: PRAYER, callers: { pious: 1.3 }, laneNote: FEAST_LANE('Eid al-Fitr') });
+    out.push({ id: `copt-easter-${t}`, name: 'Coptic Easter', from: at(E), to: at(E), eve: true, icon: '†', text: 'The Copts break the long Lenten fast. Houses in Shubra and Old Cairo are made ready for guests.', budget: 1.04, callers: { coptic: 1.5 } });
+    out.push({ id: `sham-${t}`, name: 'Sham el-Nessim', from: at(E) + 1, to: at(E) + 1, eve: true, icon: '☘', text: 'The spring holiday. Families spend the day in the gardens and on the river with salted fish, onions and coloured eggs.', budget: 0.92, footfall: -2, laneNote: 'Sham el-Nessim. Half of Cairo is out picnicking; the lane is nearly empty.' });
+    out.push({ id: `adha-${t}`, news: 'adha', name: 'Eid al-Adha', from: at(I.adha), to: at(I.adha) + 3, eve: true, icon: '☾', text: 'The Feast of the Sacrifice. Guest rooms are dressed with the best carpets in the house.', budget: 1.15, footfall: 1, want: { ...PRAYER, mult: 1.15 }, callers: { pious: 1.3 }, laneNote: FEAST_LANE('Eid al-Adha') });
+    out.push({ id: `summer-${t}`, news: 'summer', name: 'The summer lull', from: d(6, 15, y), to: d(9, 30, y), icon: '☀', text: 'The visitors have gone home and the rich have moved to Alexandria. Giza is quiet.', budget: 0.95, callers: { foreign: 0.7 } });
+    out.push({ id: `hijri-${t}`, name: 'Islamic New Year', from: at(I.hijri), to: at(I.hijri), eve: true, icon: '☾', text: `The first of Muharram, ${I.hijriYear}. Government offices are shut and families visit one another.`, budget: 1.04, callers: { pious: 1.2 } });
+    out.push(mawlid(y, at(I.mawlid)));
+  }
+  return out;
+}
+const LATER_YEARS: GameEvent[] = laterYears();
+
 /** What the seasons add to events life.ts already has (merged into them at load). */
 export const EVENT_EXTRAS: Record<string, Partial<GameEvent>> = {
   ramadan: { icon: '☾' },
@@ -156,7 +217,7 @@ export function withExtras(e: GameEvent): GameEvent {
   });
 }
 
-export const SEASON_EVENTS: GameEvent[] = [...khamsins(), ...FIXED].sort((a, b) => a.from - b.from);
+export const SEASON_EVENTS: GameEvent[] = [...khamsins(), ...FIXED, ...LATER_YEARS].sort((a, b) => a.from - b.from);
 
 // ---------- Helpers that need only the season list ----------
 // cached by day: floodOn is asked per frame on the road and per path point when a route is planned

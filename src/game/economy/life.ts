@@ -5,7 +5,7 @@ import type { Trait } from '../types';
 import { upcomingGrandSales } from '../auction/sessions';
 import { SURPRISES } from '../../data/news';
 import { SETTLEMENTS } from '../../data/world';
-import { SEASON_EVENTS, withExtras, seasonLane, type SeasonFx } from './calendar1925';
+import { SEASON_EVENTS, CAL_END, withExtras, seasonLane, type SeasonFx } from './calendar1925';
 
 export const dateOfDay = (day: number) => new Date(Date.UTC(1925, 2, 9 + day));
 /** "Wednesday 18 March": a sale named by its date, which still reads right when repeated later */
@@ -69,7 +69,15 @@ export interface GameEvent extends SeasonFx {
   surprise?: string;
   advice?: string;
   city?: string;
+  /** a feast or season of a later year printed and read on the radio with the first year's story (data/news.ts) */
+  news?: string;
 }
+/** the story the paper and the radio have for this event: its own, or the first year's of a recurring one */
+export const newsId = (e: GameEvent) => e.news ?? e.id;
+/** what the paper and the radio count as known in advance: a recurring feast by its name without the year */
+export const foreseenKey = (e: GameEvent) => e.news ?? e.id.replace(/-\d\d$/, '');
+/** the first year's coming-up line names its date: a later year's moving feast (by the moon) cannot borrow it */
+export const ownComingUp = (e: GameEvent) => !e.news || !['ramadan', 'eid', 'adha', 'mawlid'].includes(e.news);
 export const dayOf = (m: number, d: number, y = 1925) => Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1925, 2, 9)) / 86400000);
 
 export const EVENTS: GameEvent[] = [
@@ -111,12 +119,14 @@ export const EVENTS: GameEvent[] = [
   // 1926
   { id: 'slump', name: 'The cotton slump', from: dayOf(1, 15, 1926), to: dayOf(6, 30, 1926), text: 'The price of cotton has fallen by a third since last year. Delta landowners are cancelling orders, and fewer pashas come to Giza.', budget: 0.9, cityBid: { tanta: 0.85, alexandria: 0.92 } },
 ];
-// ---------- Surprises: small incidents drawn from the seed of the day ----------
+// ---------- Surprises: small incidents drawn from the game's seed and the day ----------
 const cityName = (id: string) => SETTLEMENTS.find((x) => x.id === id)?.name ?? id;
-const sr = (n: number) => Math.abs(Math.sin(n * 78.233 + 12.9898) * 43758.5453) % 1;
+/** each game draws its own incidents: the store sets the save's seed (worldSeed) here */
+let surpriseSeed = 0;
+const sr = (n: number) => Math.abs(Math.sin(n * 78.233 + 12.9898 + surpriseSeed * 0.6180339) * 43758.5453) % 1;
 function buildSurprises(): GameEvent[] {
   const out: GameEvent[] = [];
-  for (let day = 1; day < 480; day++) {
+  for (let day = 1; day <= CAL_END; day++) {
     if (sr(day * 3.7) > 0.3) continue; // roughly two a week
     const month = dateOfDay(day).getUTCMonth() + 1;
     const pool = SURPRISES.filter((x) => !x.months || x.months.includes(month));
@@ -147,6 +157,15 @@ function buildSurprises(): GameEvent[] {
 export const SURPRISE_EVENTS = buildSurprises().filter((e) => e.surprise !== 'khamsin');
 EVENTS.forEach(withExtras);
 export const ALL_EVENTS: GameEvent[] = [...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS];
+/** Draw this game's incidents from its seed (the arrays are refilled in place, so importers keep them). */
+export function setWorldSeed(seed: number) {
+  const k = (Math.abs(Math.floor(seed)) % 100003) / 7.31;
+  if (k === surpriseSeed) return;
+  surpriseSeed = k;
+  SURPRISE_EVENTS.splice(0, SURPRISE_EVENTS.length, ...buildSurprises().filter((e) => e.surprise !== 'khamsin'));
+  ALL_EVENTS.splice(0, ALL_EVENTS.length, ...EVENTS, ...SURPRISE_EVENTS, ...SEASON_EVENTS);
+  onCache.clear(); laneCache.clear();
+}
 
 // cached by day (the list is fixed after load): selectors, store subscribers and the travel loop ask for it often.
 // Callers only read the array; copy it before sorting.
