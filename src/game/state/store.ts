@@ -1004,9 +1004,13 @@ export function localBid(sid: string, item: RugItem, day = 1): number {
   const sold = DEALER_SAT.day === day ? DEALER_SAT.by[sid] ?? 0 : 0;
   // a dealer knows a dyed or aged copy when he sees one (systems/fakes.ts)
   const far = farGoods(sid, item.typeId);
-  const bid = snap(perceivedValue(t, item) * flawFactor(item) * (far ? FAR_SHARE : DEALER_SHARE) * m * Math.pow(far ? FAR_GLUT : DEALER_GLUT, sold) * (2 - folkPrice(sid)));
+  const bid = perceivedValue(t, item) * flawFactor(item) * (far ? FAR_SHARE : DEALER_SHARE) * m * (2 - folkPrice(sid));
+  const glut = Math.pow(far ? FAR_GLUT : DEALER_GLUT, sold);
+  // the glut comes after the buy-back cap: a town's own rug is nearly always at the cap, and a second one
+  // the same day must still fetch less
   const ask = localAskPrice(sid, day, item.typeId, item.condition, []);
-  return ask === undefined ? bid : Math.min(bid, snapDown(ask * DEALER_BUYBACK));
+  const cap = ask === undefined ? Infinity : snapDown(ask * DEALER_BUYBACK);
+  return Math.min(cap, bid < cap ? snap(bid * glut) : snapDown(cap * glut));
 }
 
 /** The known town whose dealers pay best for this rug today (not counting `except`), with their bid:

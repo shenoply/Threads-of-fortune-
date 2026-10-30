@@ -44,7 +44,8 @@ const r = await p.evaluate(async () => {
   out.capMsg = g().buyLocal('alexandria', o2.key);
   out.capHeld = g().inventory.length === n0;
   // 1. the dealers' glut: a second rug sold in one town fetches a tenth less
-  const rug = { uid: 'x1', typeId: 'cairo-garden', condition: 'Good', restored: false, provenance: 'Likely', paid: 100, notes: [], stored: false };
+  // a rug Jerusalem's own dealers stock (a weave from abroad sells by the bale, hardly any glut: FAR_GLUT)
+  const rug = { uid: 'x1', typeId: 'jerusalem-stone', condition: 'Good', restored: false, provenance: 'Likely', paid: 100, notes: [], stored: false };
   const bid0 = localBid('jerusalem', rug, g().day);
   set({ inventory: [...g().inventory, { ...rug, uid: 'x2' }] });
   g().sellLocal('x2', 'jerusalem');
