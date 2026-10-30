@@ -139,13 +139,13 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
       // what was remembered from earlier visits can never claim more than the picture can spare
       const most = Math.min(Math.max(rest, restMost(key)), el.clientHeight - minScene);
       if (most > restMost(key)) keepRestMost(key, most);
-      if (locked.key !== key || locked.enc !== enc?.id) {
+      if (locked.key !== key) {
         locked.key = key; locked.enc = enc?.id ?? '';
-        // the room kept ahead for longer lines never squeezes the picture below 200px (heads and all)
-        locked.h = Math.max(minScene, Math.min(natural, el.clientHeight - most), Math.min(natural, el.clientHeight - (most - spare), 200));
+        // One size for the picture on this screen, whatever is said or shown: on a phone held upright
+        // about five-eighths of its width (both people, the counter and the rug in view), never more
+        // than two-fifths of the height; the talk under it scrolls instead of squeezing it.
+        locked.h = el.clientWidth < 600 ? Math.round(Math.min(natural, Math.max(210, Math.min(el.clientWidth * 0.6, el.clientHeight * 0.36)))) : Math.round(Math.min(natural, Math.max(minScene, el.clientHeight - most)));
       }
-      // never at the cost of the buttons: if the talk has grown past what was kept for it, give way
-      if (el.clientHeight - locked.h < rest - 1) locked.h = Math.max(Math.min(minScene, 200), el.clientHeight - rest);
       el.style.setProperty('--scene-h', `${Math.floor(locked.h)}px`);
     };
     fit();
@@ -536,7 +536,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               );
             })()}
             {/* the buyer's doubt, in their words, stays in view while you answer it */}
-            {enc.stage === 'objection' && enc.objection && !enc.prompt && (
+            {enc.stage === 'objection' && enc.objection && !enc.prompt && !((view.speaking ?? (view.lastSpeaker === 'seller' ? 'seller' : 'buyer')) === 'buyer' && (view.buyer ?? '').includes(enc.objection.text.slice(0, 40))) && (
               <div className="act-note doubt" data-testid="objection-doubt">Their doubt: <q>{enc.objection.text}</q></div>
             )}
             {actions.map((a) => {
@@ -596,7 +596,11 @@ function SkillsAtWork({ encId, buyerId }: { encId: string; buyerId: string }) {
   const sc = document.querySelector('.stall > .scene')?.getBoundingClientRect();
   const pos = sc ? { bottom: `${Math.round(window.innerHeight - sc.bottom + 72)}px`, top: 'auto' } : undefined;
   return (
-    <div className="skills-at-work" data-testid="skills-at-work" style={pos}>
+    <div className="skills-at-work" data-testid="skills-at-work" style={pos} role="button" aria-label="Dismiss" onClick={() => setOn(null)}
+      onPointerDown={(e) => { (e.currentTarget as HTMLElement).dataset.x = String(e.clientX); }}
+      onPointerMove={(e) => { const el = e.currentTarget as HTMLElement; if (el.dataset.x === undefined) return; const dx = e.clientX - Number(el.dataset.x ?? e.clientX); el.style.translate = `${dx}px 0`; el.style.opacity = String(Math.max(0, 1 - Math.abs(dx) / 160)); if (Math.abs(dx) > 90) setOn(null); }}
+      onPointerUp={(e) => { const el = e.currentTarget as HTMLElement; delete el.dataset.x; el.style.translate = ''; el.style.opacity = ''; }}>
+      <button className="saw-x" aria-label="Close" onClick={(e) => { e.stopPropagation(); setOn(null); }} data-testid="skills-at-work-close">×</button>
       <small>Your skills at work</small>
       {on.map((x) => { const [name, what] = x.split(': '); return <span key={x}><b>{name}</b>{what ? <em>{what}</em> : null}</span>; })}
     </div>
