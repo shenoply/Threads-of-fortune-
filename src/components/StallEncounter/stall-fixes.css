@@ -105,3 +105,11 @@
 .stall .actions:has(.dial), .stall .actions:has(.offer-bar), .stall .actions:has(.result) { grid-auto-rows: auto; }
 .stall .actions .dial .price small.price-memo { display: block; line-height: 1.25; }
 .stall .actions .dial .price small.price-memo b { font-size: inherit; font-family: inherit; }
+/* A short phone held upright (390x700, 360x640): with 14px text the rug tray and the tiles left the
+   picture a strip about 100px high, the people's heads cut off. In the talk the tray drops the small print
+   under its side buttons and the tiles their second line, so the
+   picture keeps a fair share of the screen. A greyed tile keeps its reason (rule above). */
+@media (orientation: portrait) and (max-height: 740px) {
+  .stall.in-talk .rugstrip .side-btn small { display: none; }
+  .stall.in-talk .actions .act:not(:disabled) .s { display: none; }
+}

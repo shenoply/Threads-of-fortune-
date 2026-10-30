@@ -37,14 +37,15 @@ for (const [w, h] of [[412, 760], [390, 700], [360, 640], [1280, 800]]) {
       scene: vis('.stall > .scene'), speech: vis('[data-testid=speech]'), interest: vis('[data-testid=meter-interest]'), handle: vis('[data-testid=tray-handle]'), rugs: vis('[data-testid=rugstrip]'), actions: vis('[data-testid=actions]'),
       actsCut: acts.filter((r) => r.bottom > innerHeight + 1).length, acts: acts.length, hud: vis('.hud'),
       // the picture may be taller than the painting's shape on a phone (it crops the painting's sides),
-      // but both people stay whole in it: heads in shot, neither cut off at the side
+      // but both people stay whole in it: heads in shot (the top tenth of a figure's picture is air over
+      // the head, Scene.tsx, so it may run a little over the frame), neither cut off at the side
       rows: getComputedStyle(document.querySelector('.stall')).gridTemplateRows,
       chain: (() => { const out = []; for (let e = document.querySelector('.stall'); e && out.length < 6; e = e.parentElement) { const r = e.getBoundingClientRect(); out.push(`${e.className.split(' ')[0]}:${Math.round(r.height)}/${getComputedStyle(e).overflowY}`); } return out.join(' < '); })(),
       bandSpill: (() => { const b = [...document.querySelectorAll('[data-testid=band] > *')].reduce((mx, e) => Math.max(mx, e.getBoundingClientRect().bottom), 0); const h = document.querySelector('[data-testid=tray-handle]')?.getBoundingClientRect().top ?? 9999; return b > h + 1; })(),
       sceneOk: (() => {
         const r = document.querySelector('.stall > .scene').getBoundingClientRect();
         if (r.height > r.width * (r.width < 600 ? 1.45 : 470 / 780) + 2) return false;
-        return ['[data-testid=hero-at-stall]', '[data-testid=buyer-figure]'].every((sel) => { const e = document.querySelector(sel); if (!e) return true; const q = e.getBoundingClientRect(); return q.top >= r.top - 1 && q.left >= r.left - 2 && q.right <= r.right + 2; });
+        return ['[data-testid=hero-at-stall]', '[data-testid=buyer-figure]'].every((sel) => { const e = document.querySelector(sel); if (!e) return true; const q = e.getBoundingClientRect(); return q.top >= r.top - 1 - q.height * 0.08 && q.left >= r.left - 2 && q.right <= r.right + 2; });
       })(),
       overlap: (() => { const a = document.querySelector('[data-testid=enc-tier]')?.getBoundingClientRect(); const b = document.querySelector('[data-testid=meter-interest]')?.getBoundingClientRect(); return !!(a && b && a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom); })(),
     };
