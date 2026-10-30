@@ -266,3 +266,10 @@
 .fb-choice.primary b { color: #2b1b0d; } .fb-choice.primary small { color: #3d2810; }
 .fb-choice:active { transform: scale(.98); }
 @media (prefers-reduced-motion: reduce) { .fb-moment { animation: none; } }
+.duel-fuse { display: block; height: 3px; margin: 2px 8px 0; background: rgba(0,0,0,.35); border-radius: 2px; overflow: hidden; }
+.duel-fuse > span { display: block; height: 100%; background: #c9963a; transform-origin: left; }
+.duel-ex { font-size: 14px; }
+.duel-pip { display: inline-block; width: 9px; height: 9px; margin: 0 3px; border-radius: 50%; border: 1px solid #d9c29a; vertical-align: middle; }
+.duel-pip.now { background: rgba(217,194,154,.35); }
+.duel-pip.hit { background: #8fbf6a; border-color: #8fbf6a; }
+.duel-pip.miss { background: #b5523a; border-color: #b5523a; }

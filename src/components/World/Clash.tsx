@@ -461,12 +461,13 @@ const MISS_LINES = ['He turns your blow and hits you hard in the ribs.', 'You sw
 
 /** Single combat with their leader: a bar sweeps across his guard; strike when it is in the opening. */
 function Duel({ info, round, onDone }: { info: ClashInfo; round: number; onDone: (hits: number) => void }) {
-  const [view, setView] = useState({ ex: 0, hits: 0, misses: 0, wait: false, flash: null as 'hit' | 'miss' | null, line: 'He steps out in front of his men. You go to meet him. Strike when his guard opens.' });
+  const [view, setView] = useState({ ex: 0, hits: 0, misses: 0, marks: [] as boolean[], wait: false, flash: null as 'hit' | 'miss' | null, line: 'He steps out in front of his men. You go to meet him. Strike when his guard opens.' });
   const w = duelWindow(info.temper, info.arms);
   const spot = useMemo(() => { const rng = rngFrom(`${info.seed}:duel:${round}`); return [0, 1, 2].map(() => 0.18 + rng() * (0.64 - w)); }, [info.seed, round, w]);
   // the duel runs on one animation loop: the sweep, the pause after each pass, and his blow if you never strike
   const st = useRef({ ex: 0, hits: 0, misses: 0, wait: false, start: performance.now(), until: 0, done: false });
   const marker = useRef<HTMLSpanElement>(null);
+  const fuse = useRef<HTMLSpanElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const done = useRef(onDone); done.current = onDone;
   const period = (ex: number) => [1300, 1150, 1000][ex] ?? 1000;
@@ -476,7 +477,7 @@ function Duel({ info, round, onDone }: { info: ClashInfo; round: number; onDone:
     if (s.wait || s.done) return;
     s.wait = true; s.until = performance.now() + 1100;
     if (hit) s.hits++; else s.misses++;
-    setView({ ex: s.ex, hits: s.hits, misses: s.misses, wait: true, flash: hit ? 'hit' : 'miss', line: hit ? HIT_LINES[s.ex] : MISS_LINES[s.ex] });
+    setView((v) => ({ ex: s.ex, hits: s.hits, misses: s.misses, marks: [...v.marks, hit], wait: true, flash: hit ? 'hit' : 'miss', line: hit ? HIT_LINES[s.ex] : MISS_LINES[s.ex] }));
     audio.sfx(hit ? 'melee' : 'chest'); buzz(hit ? 30 : 60);
   };
   useEffect(() => {
@@ -491,6 +492,8 @@ function Duel({ info, round, onDone }: { info: ClashInfo; round: number; onDone:
       }
       const p = posAt(now);
       if (marker.current) marker.current.style.left = `${p * 100}%`;
+      // how long before he strikes first
+      if (fuse.current) fuse.current.style.transform = `scaleX(${s.wait ? 0 : Math.max(0, 1 - (now - s.start) / (period(s.ex) * 6))})`;
       if (box.current) box.current.dataset.open = !s.wait && p >= spot[s.ex] && p <= spot[s.ex] + w ? '1' : '0';
       // too slow: after three sweeps he strikes first
       if (!s.wait && now - s.start > period(s.ex) * 6) resolve(false);
@@ -513,7 +516,10 @@ function Duel({ info, round, onDone }: { info: ClashInfo; round: number; onDone:
         <i className="duel-gap" style={{ left: `${spot[view.ex] * 100}%`, width: `${w * 100}%` }} />
         <span className="duel-mark" ref={marker} />
       </div>
-      <small className="duel-ex">Pass {view.ex + 1} of 3 · win two</small>
+      <span className="duel-fuse" aria-hidden><span ref={fuse} /></span>
+      <small className="duel-ex" data-testid="duel-pass">
+        {[0, 1, 2].map((i) => <i key={i} className={`duel-pip${view.marks[i] === true ? ' hit' : view.marks[i] === false ? ' miss' : i === view.ex ? ' now' : ''}`} />)}
+        {' '}Pass {Math.min(3, view.marks.length + (view.wait ? 0 : 1))} of 3 · win two · strike before he does</small>
       <button className="btn primary big" disabled={view.wait} onPointerDown={strike} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); strike(); } }} data-testid="duel-strike">Strike</button>
     </div>
   );

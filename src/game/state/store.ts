@@ -2593,6 +2593,7 @@ export const useGame = create<GameState & Actions>()(
               parts.push(`${l.name} goes into the cells. The reward on his head is ${fmt(l.bounty)}. ${BAND_ROAD[p.band][0].toUpperCase()}${BAND_ROAD[p.band].slice(1)} will be quiet for a while.`);
             }
           }
+          if (parts.length > 1) parts.push(`In all, ${fmt(cash)}.`);
           set({ cash: s.cash + cash, reputation: s.reputation + (choice === 'bounty' ? 2 : 0), combat: { ...c, prisoners: [], leaders }, world: { ...s.world, parties }, ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: choice === 'ransom' ? 'Bounty and ransom for prisoners' : 'Bounty for prisoners', amount: cash }], journal: [...s.journal, { day: s.day, text: parts.join(' '), kind: 'road' }] });
           audio.sfx('coins');
           return parts.join(' ');

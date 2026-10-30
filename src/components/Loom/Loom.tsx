@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { rankOf } from '../../game/economy/progress';
+import { dateFor } from '../../game/economy/economy';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
 import { weaveryLine } from '../../data/weaveryLines';
@@ -169,7 +170,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
             return (
               <div key={w.id} className="lm-wip">
                 <OnLoom src={renderDesign(des, 420, 0.85)} done={ready ? 1 : Math.max(0.05, Math.min(0.97, 1 - (w.ready - g.day) / Math.max(1, daysFor(des, owned))))} onClick={() => setZoom({ src: renderDesign(des, 1640, 0.9), name: des.name })} />
-                <button className="lm-wip-name" onClick={() => rename(des.id, des.name)} data-testid={`loom-rename-${des.id}`}><b>{des.name} ✎</b><small>{ready ? 'Off the loom' : `On the loom · day ${w.ready}`}</small></button>
+                <button className="lm-wip-name" onClick={() => rename(des.id, des.name)} data-testid={`loom-rename-${des.id}`}><b>{des.name} ✎</b><small>{ready ? 'Off the loom' : `On the loom · ready ${dateFor(w.ready).short}, ${w.ready - g.day === 1 ? 'tomorrow' : `in ${w.ready - g.day} days`}`}</small></button>
                 {ready && <button className="btn primary small" onClick={() => collect(w.id)} data-testid={`loom-collect-${w.id}`}>Collect</button>}
               </div>
             );
@@ -239,7 +240,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
       <div className="lm-foot">
         {note && <p className="lm-msg" data-testid="loom-note">{note}</p>}
         <button className="btn primary" disabled={free <= 0 || g.cash < cost || locked} onClick={weave} data-testid="loom-weave">
-          {locked ? 'The city knot and silk need your own loom house' : free <= 0 ? 'Every loom is busy' : g.cash < cost ? `You need ${fmt(cost)}` : `Weave it · ${fmt(cost)}`}
+          {locked ? 'The city knot and silk need your own loom house' : free <= 0 ? `Every loom is busy${lm.weaving.length ? ` · free in ${Math.max(1, Math.min(...lm.weaving.map((x) => x.ready)) - g.day)} days` : ''}` : g.cash < cost ? `You need ${fmt(cost)}` : `Weave it · ${fmt(cost)}`}
         </button>
       </div>
       {zoom && <Zoom src={zoom.src} name={zoom.name} onClose={() => setZoom(null)} />}
