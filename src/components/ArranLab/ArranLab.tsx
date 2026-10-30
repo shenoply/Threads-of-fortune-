@@ -270,7 +270,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
         ) : locked ? (
           <button type="button" className="btn" onClick={() => goTab('notebook')} data-testid={`arran-locked-${sv}-${i.uid}`}>The book</button>
         ) : (
-          <button type="button" className="btn primary" onClick={() => { setConfirm({ uid: i.uid, service: sv }); setSpot(SERVICE_SPOT[sv]); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-test-${sv}-${i.uid}`}>{fmt(svc.price)} · {hours(svc.minutes)}</button>
+          <button type="button" className="btn primary" onClick={() => { if (scene) leaveScene(); setConfirm({ uid: i.uid, service: sv }); setSpot(SERVICE_SPOT[sv]); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-test-${sv}-${i.uid}`}>{fmt(svc.price)} · {hours(svc.minutes)}</button>
         )}
       </div>
     );
@@ -388,7 +388,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
                   const t = RUGS[i.typeId]!;
                   const n = findings.filter((f) => f.subjectId === i.uid).length;
                   return (
-                    <button key={i.uid} type="button" role="option" aria-selected={rugId === i.uid} className={`arran-rugcard ${rugId === i.uid ? 'is-on' : ''}`} onClick={() => { if (rugId !== i.uid) playArranVoice('rug-inspection'); setRugId(i.uid); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-rug-${i.uid}`}>
+                    <button key={i.uid} type="button" role="option" aria-selected={rugId === i.uid} className={`arran-rugcard ${rugId === i.uid ? 'is-on' : ''}`} onClick={() => { if (scene) leaveScene(); if (rugId !== i.uid || scene) playArranVoice('rug-inspection'); setRugId(i.uid); setMsg(''); audio.sfx('tap'); }} data-testid={`arran-rug-${i.uid}`}>
                       <img src={rugThumb(t)} alt="" draggable={false} loading="lazy" />
                       <b>{t.name}</b>
                       <small>{i.condition}{n ? ` · ${n} tested` : ''}</small>
@@ -411,7 +411,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
                             <b>Count the knots</b>
                             <small>{kc ? knotVerdict(kc, rug.typeId, rug) : 'His brass gauge on the back: knots across and down, against his watch. Free.'}</small>
                           </div>
-                          <button type="button" className={`btn${kc ? '' : ' primary'}`} onClick={() => { setKnotRug(rug.uid); setSpot('microscope'); audio.sfx('tap'); }} data-testid={`arran-knots-${rug.uid}`}>{today ? 'Your count' : kc ? 'Count again' : 'Free · 30 s'}</button>
+                          <button type="button" className={`btn${kc ? '' : ' primary'}`} onClick={() => { if (scene) leaveScene(); setKnotRug(rug.uid); setSpot('microscope'); audio.sfx('tap'); }} data-testid={`arran-knots-${rug.uid}`}>{today ? 'Your count' : kc ? 'Count again' : 'Free · 30 s'}</button>
                         </div>
                       );
                     })()}
@@ -465,7 +465,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
             <div className="arran-finding" data-testid="arran-finding">
               <h2>{LAB_SERVICES[view.service].label}</h2>
               <p className="arran-finding__head">
-                <em className={`v-${view.verdict}`} data-testid="arran-verdict">{verdictWord[view.verdict]}</em>
+                <em className={`v-${view.verdict}`} data-testid="arran-verdict">{verdictWord[view.verdict]}</em>{' '}
                 <small>with "{view.claim}" · {view.confidence}{view.cut ? ' · sample cut' : ''}</small>
               </p>
               <ul>{view.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
@@ -514,7 +514,26 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
                 </>
               )}
               <div className="section-label">RESULTS</div>
-              {!findings.length && <p className="dim">No results yet.</p>}
+              {(() => {
+                // knot counts go in the book beside the tests: one line per rug of yours that has been counted
+                const counts = g.inventory.filter((i) => g.knotCounts?.[i.uid] && RUGS[i.typeId]);
+                if (!findings.length && !counts.length) return <p className="dim">No results yet.</p>;
+                return counts.length > 0 && (
+                  <ul className="arran-list">
+                    {counts.map((i) => {
+                      const kc = g.knotCounts![i.uid];
+                      return (
+                        <li key={`knots-${i.uid}`}>
+                          <div className="arran-row" style={{ cursor: 'default' }} data-testid={`arran-note-knots-${i.uid}`}>
+                            <b>{RUGS[i.typeId]!.name}</b>
+                            <small>Knot count, day {kc.day} · {knotVerdict(kc, i.typeId, i)}</small>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              })()}
               <ul className="arran-list">
                 {[...findings].reverse().map((f) => {
                   const it = g.inventory.find((i) => i.uid === f.subjectId);
@@ -552,7 +571,7 @@ export function ArranLab({ onLeave, onFilm }: { onLeave: () => void; onFilm?: ()
       {catalogue && (
         <ArranCatalogue
           onClose={() => setCatalogue(false)}
-          onService={(sv) => { setCatalogue(false); if (sv === 'provisions' || sv === 'cargo') { goTab('road'); return; } setTab('test'); setView(null); setAsk(null); setSpot(SERVICE_SPOT[sv]); setMsg(`${LAB_SERVICES[sv].label}: choose a rug below.`); }}
+          onService={(sv) => { setCatalogue(false); if (scene) leaveScene(); if (sv === 'provisions' || sv === 'cargo') { goTab('road'); return; } setTab('test'); setView(null); setAsk(null); setSpot(SERVICE_SPOT[sv]); setMsg(`${LAB_SERVICES[sv].label}: choose a rug below.`); }}
         />
       )}
     </section>

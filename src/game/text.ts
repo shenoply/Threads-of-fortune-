@@ -1,6 +1,6 @@
 // Small helpers for putting names into the middle of a sentence: the right article, a capital kept
 // where it belongs (Giza, Cairo, Bedouin, Arnaut, Egyptian...), and a plural that agrees with its count.
-export { withArticle } from '../data/animals';
+export { withArticle, article } from '../data/animals';
 
 // first words that are names of places or peoples and keep their capital mid-sentence
 const PROPER = new Set([

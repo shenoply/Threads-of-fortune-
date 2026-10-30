@@ -49,8 +49,9 @@ export const FIELD: Motif[] = [
     layers: [{ shape: rosette(0.78, 8), role: 1, edge: true }, { shape: rosette(0.46, 8, 0.2), role: 4, edge: true }, { shape: circle(0.2), role: 2 }] },
   { id: 'herati', name: 'Herati', line: 'A flower in a small diamond with four leaves round it: the Persian town pattern.', cost: 14,
     layers: [
-      { shape: (u, v) => { const p = (u + v) / 1.41, q = (u - v) / 1.41; const leaf = (a: number, b: number) => (A(a) - 0.56) ** 2 / 0.07 + b * b / 0.018 <= 1; return leaf(p, q) || leaf(q, p); }, role: 2, edge: true },
-      { shape: ring(diamond(0.42), diamond(0.3)), role: 1 }, { shape: rosette(0.24, 4, 0.35), role: 4, edge: true }] },
+      // the leaves and the diamond drawn broad enough to read at a village knot as well as a city one
+      { shape: (u, v) => { const p = (u + v) / 1.41, q = (u - v) / 1.41; const leaf = (a: number, b: number) => (A(a) - 0.58) ** 2 / 0.08 + b * b / 0.03 <= 1; return leaf(p, q) || leaf(q, p); }, role: 2, edge: true },
+      { shape: ring(diamond(0.5), diamond(0.3)), role: 1 }, { shape: rosette(0.26, 4, 0.35), role: 4, edge: true }] },
   { id: 'cypress', name: 'Cypress', line: 'The tall cypress of the garden carpets, for long life.', cost: 8,
     layers: [{ shape: (u, v) => v > -0.88 && v < 0.6 && A(u) <= 0.6 * (v + 0.88) / 1.48 + 0.08, role: 1, edge: true },
       { shape: (u, v) => v >= 0.58 && v <= 0.9 && A(u) <= 0.09, role: 3 }, { shape: (u, v) => A(u) <= 0.05 && v > -0.6 && v < 0.5, role: 4 }] },

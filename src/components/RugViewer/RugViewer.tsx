@@ -11,7 +11,8 @@ import { useEscapeClose } from './useEscapeClose';
 import { FLAW_CLUES, eyeOf, flawFactorFor, flawNotes } from '../../game/systems/fakes';
 import { RugFlags } from '../Inventory/RugFlags';
 import { KnotCount } from '../KnotCount/KnotCount';
-import { countable, knotVerdict } from '../../game/knots';
+import { countable, knotVerdict, densityLine } from '../../game/knots';
+import { useWornSrc } from './wear';
 import { CarpetView } from './CarpetView';
 
 /** the carpet unrolls as the inspector opens; not for players who asked for less motion, nor in automated runs */
@@ -36,6 +37,8 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   const used = g.tutorial.inspected;
 
   const t = item ? RUGS[item.typeId] : null;
+  // the front, with its dirt, wear or damage drawn on (wear.ts)
+  const front = useWornSrc(t ? rugSrc(t) : '', item?.condition, item?.uid);
   // Escape and the back gesture close it, as Done does (and, like Done, not while the lesson wants a closer look)
   const box = useRef<HTMLDivElement>(null);
   const locked = tut && g.tutorial.step === 'inspect2' && !used;
@@ -49,12 +52,19 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
   // a knot count tightens the estimate to what you counted: right if the count was right, a little off if not
   const knots = g.knotCounts?.[item.uid];
   const kf = knots ? Math.sqrt(knots.counted / knots.truth) : 1;
-  const exact = !!knots || g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
+  // a carpet of your own design: you chose its knot yourself, so the count is known
+  const own = !!t.own;
+  const exact = !!knots || own || g.upgrades.includes('ledgerbook') || hasPerk(g.skills?.appraisal, 'appraisal', 5);
   const lo = knots ? snapDown(t.valueBand[0] * kf) : exact ? t.valueBand[0] : snapDown(t.valueBand[0] * 0.85);
   const hi = knots ? snap(t.valueBand[1] * kf) : exact ? t.valueBand[1] : snap(t.valueBand[1] * 1.15);
   const canCount = !!preview?.key && countable(t.id);
   const pv = snap(perceivedValue(t, item) * (g.knotCounts?.[item.uid] ? Math.sqrt(g.knotCounts[item.uid].counted / g.knotCounts[item.uid].truth) : 1));
   const flaws = flawNotes(item, eyeOf(g));
+  const proven = flaws.filter((f) => f.know === 'proven');
+  const doubted = flaws.filter((f) => f.know === 'hint');
+  // what it is really worth once a fault is proven: the honest price of new work, or of aniline colours
+  const honest = proven.reduce((m, f) => m * flawFactorFor(item, f.kind), 1);
+  const provWord = proven.length ? 'Disproved' : doubted.length ? 'Doubtful' : item.provenance;
 
   return (
     <div ref={box} className="overlay" role="dialog" aria-modal="true" aria-label={`Inspecting ${t.name}`} data-testid="inspector">
@@ -71,8 +81,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
         </button>
       </div>
       <div className="inspector-stage cv-host">
-        <CarpetView key={back ? 'back' : 'front'} src={back ? backSrc || rugSrc(t) : rugSrc(t)} unroll={mayRoll() && !back}
-          filter={item.condition === 'Dirty' && !back ? 'sepia(0.45) brightness(0.8)' : undefined}
+        <CarpetView key={back ? 'back' : 'front'} src={back ? backSrc || rugSrc(t) : front} unroll={mayRoll() && !back}
           onUse={mark} hint={hint}
           label={back ? <div className="sim-label">Simulated reverse · illustration, not a photograph</div> : undefined}
           tools={<button onClick={() => { setBack((b) => !b); mark(); }} aria-label={back ? 'Show front' : 'Show reverse'} data-testid="flip"><Icon name="flip" /></button>} />
@@ -106,7 +115,7 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           {tab === 'Weave' && (
             <dl className="kv">
               <dt>Knot</dt><dd>{t.weave.knot}</dd>
-              <dt>Density</dt><dd>{t.weave.kpsi}</dd>
+              <dt>Density</dt><dd>{densityLine(t)}{own ? ' (your choice at the loom)' : ''}</dd>
               <dt>Foundation</dt><dd>{t.weave.foundation}</dd>
               <dt>Seller's view</dt><dd>{t.craftLine}</dd>
               {knots && <><dt>Your count</dt><dd data-testid="knot-line">{knotVerdict(knots, t.id, item)}</dd></>}
@@ -117,22 +126,46 @@ export function RugViewer({ uid, preview, onClose }: { uid?: string; preview?: R
           {tab === 'Provenance' && (
             <>
               <p style={{ margin: '0 0 6px' }}>
-                <span className={`prov ${item.provenance}`}>{item.provenance}</span>
+                <span className={`prov ${proven.length ? 'Disputed' : doubted.length ? 'Uncertain' : item.provenance}`} data-testid="prov-word">{provWord}</span>
               </p>
-              <p style={{ margin: 0 }}>
-                {item.provenance === 'Documented' && 'Papers or a workshop record exist. Say so freely.'}
-                {item.provenance === 'Likely' && 'Style, materials and route all agree. No papers, but no reason to doubt it.'}
-                {item.provenance === 'Uncertain' && 'No papers and more than one possible origin. Claiming more than you know is a risk with sharp buyers.'}
-                {item.provenance === 'Disputed' && 'Experts disagree. Expect hard questions.'}
-              </p>
+              {proven.length > 0 ? (
+                <p style={{ margin: 0 }} data-testid="prov-proven">
+                  {proven.some((f) => f.kind === 'age') && `Proven new work, aged by hand to pass as ${t.age}. The route and the weave may be what the dealer said; the age is not. `}
+                  {proven.some((f) => f.kind === 'dye') && 'Proven aniline colours, though sold as natural dyes. '}
+                  Sell it as what it is, and say so: a buyer who finds out brings it back.
+                </p>
+              ) : doubted.length > 0 ? (
+                <p style={{ margin: 0 }} data-testid="prov-doubt">
+                  {doubted.some((f) => f.kind === 'age') && `${knots?.ok && item.fakeAge ? 'Your knot count says new work' : 'Your eye says the wear is too even'}, whatever age it is sold as. `}
+                  {doubted.some((f) => f.kind === 'dye') && 'The colours look like aniline, not madder. '}
+                  Not yet proven: Arran's colour rub, sample wash or microscope would settle it.
+                </p>
+              ) : (
+                <p style={{ margin: 0 }}>
+                  {item.provenance === 'Documented' && 'Papers or a workshop record exist. Say so freely.'}
+                  {item.provenance === 'Likely' && 'Style, materials and route all agree. No papers, and nothing found against it yet.'}
+                  {item.provenance === 'Uncertain' && 'No papers and more than one possible origin. Claiming more than you know is a risk with sharp buyers.'}
+                  {item.provenance === 'Disputed' && 'Experts disagree. Expect hard questions.'}
+                </p>
+              )}
             </>
           )}
           {tab === 'Estimate' && (
             <dl className="kv">
-              <dt>Market value</dt><dd data-testid="estimate-value">{fmt(lo)}–{fmt(hi)} {knots ? '(by your knot count)' : exact ? '' : '(rough: a ledger book or a knot count would tighten this)'}</dd>
-              <dt>In this condition</dt><dd>about {fmt(pv)}</dd>
-              {knots?.ok && flaws.some((f) => f.kind === 'age' && f.know === 'hint') && <><dt>As new work</dt><dd data-testid="knot-new-value">about {fmt(snap(pv * flawFactorFor(item, 'age')))}, if the knots tell the truth</dd></>}
-              {flaws.some((f) => f.know === 'proven') && <><dt>Sold as what it is</dt><dd data-testid="honest-value">about {fmt(snap(pv * flaws.filter((f) => f.know === 'proven').reduce((m, f) => m * flawFactorFor(item, f.kind), 1)))}</dd></>}
+              {proven.length > 0 ? (
+                <>
+                  <dt>As what it is</dt><dd data-testid="estimate-value">{fmt(snapDown(lo * honest))}–{fmt(snap(hi * honest))} ({proven.some((f) => f.kind === 'age') ? 'new work' : 'aniline colours'}, proven)</dd>
+                  <dt>Sold as what it is</dt><dd data-testid="honest-value">about {fmt(snap(pv * honest))} in this condition</dd>
+                  <dt>Sold as it was sold to you</dt><dd>about {fmt(pv)}, but a buyer who finds out brings it back for his money, and the lane hears of it</dd>
+                </>
+              ) : (
+                <>
+                  <dt>Market value</dt><dd data-testid="estimate-value">{fmt(lo)}–{fmt(hi)} {knots ? '(by your knot count)' : own ? '(you set the knot count at the loom)' : exact ? '' : '(rough: a ledger book or a knot count would tighten this)'}</dd>
+                  <dt>In this condition</dt><dd>about {fmt(pv)}</dd>
+                  {knots?.ok && doubted.some((f) => f.kind === 'age') && <><dt>As new work</dt><dd data-testid="knot-new-value">about {fmt(snap(pv * flawFactorFor(item, 'age')))}, if the knots tell the truth</dd></>}
+                  {doubted.some((f) => f.kind === 'dye') && <><dt>If aniline</dt><dd>about {fmt(snap(pv * flawFactorFor(item, 'dye')))}</dd></>}
+                </>
+              )}
               <dt>{preview ? 'Asking' : 'You paid'}</dt><dd>{fmt(item.paid)}</dd>
               <dt>Usual asking</dt><dd>{fmt(t.asking)}</dd>
             </dl>

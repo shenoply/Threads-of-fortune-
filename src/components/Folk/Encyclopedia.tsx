@@ -2,7 +2,7 @@
 // name on a page a link to another. People you have met show what you know of them (their traits,
 // how they feel, what has passed between you); the rest show what anyone in the bazaar could tell you.
 import { favourLine } from '../../game/systems/favours';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame, wantedList } from '../../game/state/store';
 import { world, person, houseOf, notablesOf, residentsOf, charactersOf, ageNow, TRAIT_WORD, type Person, type House, type Role } from '../../game/systems/population';
@@ -12,6 +12,7 @@ import { BAND_ROAD } from '../../game/systems/combat';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { rugThumb } from '../RugViewer/rugArt';
+import { howToTell, fakesOf } from '../../data/rugLore';
 import { FolkFace } from './FolkFace';
 import { RelBar } from './FolkCard';
 import { relWord } from '../../game/systems/folkTalk';
@@ -193,7 +194,7 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
   }
   if (section === 'rugs') {
     const ids = [...RUG_IDS, ...PERSIAN_RUG_IDS].filter((id) => !RUGS[id].own && (!q || `${RUGS[id].name} ${RUGS[id].origin}`.toLowerCase().includes(q)));
-    return <div className="ency-list">{ids.map((id) => <button key={id} className="ency-row" onClick={() => go({ kind: 'rug', id })}><img className="ency-rug" src={rugThumb(RUGS[id])} alt="" /><span><b>{RUGS[id].name}</b><small>{RUGS[id].origin}</small></span><em>{(g.register ?? []).includes(id) ? 'Sold' : ''}</em></button>)}</div>;
+    return <div className="ency-list">{ids.map((id) => <button key={id} className="ency-row" onClick={() => go({ kind: 'rug', id })}><img className="ency-rug" src={rugThumb(RUGS[id])} alt="" /><span><b>{RUGS[id].name}</b><small>{RUGS[id].origin}</small></span><em>{g.inventory.some((i) => i.typeId === id) ? 'In stock' : (g.register ?? []).includes(id) ? 'Handled' : ''}</em></button>)}</div>;
   }
   const bands = wantedList(g);
   return <div className="ency-list">{bands.map((b) => <button key={b.id} className="ency-row plain" onClick={() => go({ kind: 'band', id: b.id })}><span><b>{b.leader.name}</b><small>Leads the band on {b.road}</small></span><em>{b.leader.status === 'jailed' ? 'In the cells' : b.leader.status === 'held' ? 'Your prisoner' : `${fmt(b.leader.bounty)} on his head`}</em></button>)}</div>;
@@ -293,6 +294,9 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
         <h2>{t.name}</h2><small className="ency-dim">{t.origin} · {t.material} · {t.age} · {t.size}</small>
         <p>{t.history}</p>
         <p className="ency-dim">Worth {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])} in good order.</p>
+        <div className="ency-label">HOW TO TELL IT</div>
+        <dl className="ency-tell" data-testid="ency-tell">{howToTell(t).map((r) => <Fragment key={r.label}><dt>{r.label}</dt><dd>{r.text}</dd></Fragment>)}</dl>
+        {fakesOf(t).length > 0 && <><div className="ency-label">COMMON FAKES OR CONFUSIONS</div><ul className="ency-fakes" data-testid="ency-fakes">{fakesOf(t).map((f) => <li key={f}>{f}</li>)}</ul></>}
         {where.length > 0 && <><div className="ency-label">SOLD IN</div><div className="ency-chips">{where.map((s) => <button key={s.id} className="ency-link" onClick={() => go({ kind: 'place', id: s.id })}>{s.name}</button>)}</div></>}
       </article>
     );

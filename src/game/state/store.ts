@@ -15,7 +15,7 @@ import type { Goal, LedgerEntry, Relationship, RugItem, SupplierOffer } from '..
 import { BUYERS, BUYER_ORDER, BUYER_UNLOCK, BUYER_TIERS, CELEB_IDS, celebUnlock } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { NARRATOR, RASHID } from '../../data/dialogue';
-import { EXPENSES, RASHID_PROFILE, RESTORATION, UPGRADES, rashidCredit, rentFor, restoreCost } from '../../data/suppliers';
+import { EXPENSES, RASHID_PROFILE, UPGRADES, rashidCredit, rentFor, restoreCost, treatmentFor } from '../../data/suppliers';
 import { snap, snapDown, fmt } from '../economy/money';
 import { MISSIONS, MAIN_ORDER } from '../../data/missions';
 import { person, souqMaster, cultureOf, caravanMaster, registerFolkBrides, daughtersToMarry } from '../systems/population';
@@ -631,7 +631,8 @@ interface Actions {
   libraryAcquire: (id: BookId, how: 'copy' | 'duplicate') => string;
   arranReturnBook: (id: BookId) => { ok: boolean; message: string };
   arranExamine: (uid: string, service: LabService, cut?: boolean) => { ok: true; finding: LabFinding } | { ok: false; message: string; needsCut?: boolean };
-  restore: (uid: string) => void;
+  /** send a rug to the washers or the restorer: `treatment` picks one of TREATMENTS (data/suppliers.ts), else the usual job */
+  restore: (uid: string, treatment?: string) => void;
   /** hang one of your own carpets framed at the stall, or take it down */
   frameCarpet: (uid: string) => string;
   /** air and beat the rugs you have with you against moth: an hour (systems/moths.ts) */
@@ -934,6 +935,8 @@ export const keptNote = (item?: RugItem) => (item?.framed ? FRAMED_NOTE : KEPT_B
 export function restoreCharge(s: Pick<GameState, 'skills'>, item: RugItem) {
   return Math.round(restorePrice(item) * (1 - Math.min(0.4, levelOf(s.skills?.craft ?? 0) * 0.02)) * (item.condition === 'Dirty' && hasPerk(s.skills?.craft, 'craft', 5) ? 0.7 : 1));
 }
+/** what one treatment (data/suppliers.ts TREATMENTS) costs: the usual charge scaled, never under one piastre */
+export const treatmentCharge = (s: Pick<GameState, 'skills'>, item: RugItem, mult: number) => Math.max(1, Math.round(restoreCharge(s, item) * mult));
 
 /** What the local dealer pays for one of your rugs here. A dealer who sells this kind himself buys
  *  it back for no more than four fifths of his own asking price today (in the condition you hold it),
@@ -1660,6 +1663,13 @@ export const useGame = create<GameState & Actions>()(
             }
             return i;
           });
+          // a carpet off the weaver's loom waits at Kerdasa: said every morning until it is collected
+          for (const w of s.loom?.weaving ?? []) {
+            if (w.ready > day) continue;
+            const nm = RUGS[w.id]?.name ?? 'Your carpet';
+            const waited = day - w.ready;
+            notes.push(waited === 0 ? `${nm} is off the loom at Kerdasa. Collect it from Stock: The weaver.` : `${nm} has waited off the loom at Kerdasa for ${waited === 1 ? 'a day' : `${waited} days`}. Collect it from Stock: The weaver.`);
+          }
           // Supplier rotation
           const sup = { ...s.supplier, haggleLocked: [] as string[] };
           const leaving = s.supplier.offers.find((o) => o.leavesAfterDay && o.leavesAfterDay < day);
@@ -4529,12 +4539,12 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('reward');
           return first ? `${name} hangs framed at the stall. The lane comes to look: your own work, on your own wall. Reputation +1.` : `${name} hangs framed at the stall.`;
         },
-        restore: (uid) => {
+        restore: (uid, treatment) => {
           const s = get();
           const i = s.inventory.find((x) => x.uid === uid);
           if (!i) return;
-          const r = RESTORATION[i.condition];
-          const cost = restoreCharge(s, i);
+          const r = treatmentFor(i.condition, treatment);
+          const cost = r ? treatmentCharge(s, i, r.mult) : 0;
           if (!r || s.cash < cost || i.restoringUntil) return;
           set({
             cash: s.cash - cost,

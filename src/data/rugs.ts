@@ -83,7 +83,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'The dealers call these Red Medina. It is a market name, not a town. The red is what people come back for.',
     craftLine: 'The medallion is an old Anatolian shape, drawn clean. Good red, good blue, and no chemical orange.',
     durabilityLine: 'Dark red forgives everything: coffee, feet, the street. It will look better in ten years.',
-    weave: knots.village, fringe: 'Original fringe, sound', backNote: 'Dense, regular knots.',
+    weave: knots.village, fringe: 'Original fringe, sound', backNote: 'Even, regular knots, coarse enough to count by eye.',
   }),
   rug('date-palm-runner', {
     name: 'Date Palm Runner', tier: 1, origin: 'Levant / Egypt trade', material: 'Wool', age: 'c.1900–1920', size: '300 × 80 cm',
@@ -116,7 +116,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'From the moulid at Tanta. The women there buy light rugs for their receiving rooms and fight over the good ones.',
     craftLine: 'A pale field is hard to weave. One dirty hand and it shows. This one is clean.',
     durabilityLine: 'For a receiving room, not a kitchen. Shoes off, and it will stay beautiful.',
-    weave: knots.town, fringe: 'Short but complete', backNote: 'Fine, even back.',
+    weave: knots.town, fringe: 'Short but complete', backNote: 'Clean, even back.',
   }),
 
   // ---------- FINE · £6 – £18 ----------
@@ -129,7 +129,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'Cairo work. The old Mamluk weavers used stars like these five hundred years ago, and a few workshops near the Khan still do.',
     craftLine: 'Fine wool and a restrained palette, only a few colours. The stars are laid out by count, row by row.',
     durabilityLine: 'Fine wool is stronger than it looks. In a sitting room it will outlast the house.',
-    weave: knots.town, fringe: 'Original fringe, short but sound', backNote: 'Dense, even knotting; no repairs visible.',
+    weave: knots.town, fringe: 'Original fringe, short but sound', backNote: 'Firm, even knotting; no repairs visible.',
   }),
   rug('jaffa-citrus', {
     name: 'Jaffa Citrus', tier: 2, origin: 'Jaffa trade market', material: 'Wool on cotton', age: 'c.1905–1920', size: '210 × 140 cm',
@@ -357,7 +357,7 @@ export const RUGS: Record<string, RugType> = Object.fromEntries([
     storyLine: 'A garden you can walk on. The villages under the Bakhtiari khans weave every panel with its own tree.',
     craftLine: 'Heavy, stiff and dense. The panels are drawn square and true, and no two are alike.',
     durabilityLine: 'One of the toughest rugs in Persia. Put it in the hall.',
-    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 90 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Cotton fringe, complete', backNote: 'Coarse, firm back.',
+    weave: { knot: 'Symmetrical (Turkish)', kpsi: 'about 90 knots per sq. inch', foundation: 'Cotton warp and weft' }, fringe: 'Cotton fringe, complete', backNote: 'Firm, rather heavy back.',
   }),
   persian('persian-heriz', 66, 'medallion', ['#a8442c', '#1e2a48', '#e4d2aa', '#4e7a8a', '#3a2216'], {
     name: 'Heriz Carpet', tier: 2, origin: 'Persia / Heriz villages, near Tabriz', material: 'Thick wool on cotton', age: 'c.1900–1920', size: '300 × 220 cm',

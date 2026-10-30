@@ -114,10 +114,13 @@ export function KnotCount({ typeId, keyId, where, fakeAge, onClose }: KnotCountP
   useEffect(() => {
     const c = cvs.current;
     if (!c || !patch || phase === 'done') return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    c.width = Math.round(size * dpr); c.height = Math.round(size * dpr);
+    // the canvas is stretched by CSS to fill the glass: size its pixels to what is shown, so the frame stays sharp
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const shown = c.getBoundingClientRect().width || size;
+    const px = Math.round(Math.max(size, shown) * dpr);
+    c.width = px; c.height = px;
     const g = c.getContext('2d')!;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.setTransform(px / size, 0, 0, px / size, 0, 0);
     const M = 0.55; // the dimmed margin, in knots
     const cw = size / (patch.across + 2 * M), ch = size / (patch.down + 2 * M);
     const ox = M * cw, oy = M * ch;
@@ -137,7 +140,7 @@ export function KnotCount({ typeId, keyId, where, fakeAge, onClose }: KnotCountP
       // packed close to its neighbours like the back of a real rug
       const base = col.startsWith('#') ? col : '#888888';
       const kw = cw * (0.86 + j(2) * 0.05), kh = ch * (0.8 + j(3) * 0.06);
-      const kx = x + (cw - kw) / 2 + j(4) * cw * 0.04, ky = y + (ch - kh) / 2 + j(5) * ch * 0.04;
+      const kx = x + (cw - kw) / 2 + j(4) * cw * 0.03, ky = y + (ch - kh) / 2 + j(5) * ch * 0.03;
       const grd = g.createLinearGradient(kx, ky, kx, ky + kh);
       grd.addColorStop(0, shade(base, 1.12));
       grd.addColorStop(1, shade(base, 0.82));
@@ -152,7 +155,15 @@ export function KnotCount({ typeId, keyId, where, fakeAge, onClose }: KnotCountP
     // the dim round the window, and the brass gauge
     g.fillStyle = 'rgba(20,12,6,.62)';
     g.fillRect(0, 0, size, oy); g.fillRect(0, size - oy, size, oy); g.fillRect(0, oy, ox, size - 2 * oy); g.fillRect(size - ox, oy, ox, size - 2 * oy);
-    g.strokeStyle = '#c9a24a'; g.lineWidth = 3; g.strokeRect(ox - 1.5, oy - 1.5, size - 2 * ox + 3, size - 2 * oy + 3);
+    // the brass frame lies wholly outside the inch, its inner edge on the line between knots, with a dark
+    // hairline inside it: every knot inside the line counts, a knot cut by the frame is outside it
+    const fw = 4;
+    g.strokeStyle = '#c9a24a'; g.lineWidth = fw; g.strokeRect(ox - fw / 2, oy - fw / 2, size - 2 * ox + fw, size - 2 * oy + fw);
+    g.strokeStyle = '#1b120b'; g.lineWidth = 1; g.strokeRect(ox + 0.5, oy + 0.5, size - 2 * ox - 1, size - 2 * oy - 1);
+    // the gauge's ruling: a notch on the brass at every knot, like the engraved window of a real gauge
+    g.strokeStyle = '#5a3c14'; g.lineWidth = 1;
+    for (let k = 1; k < patch.across; k++) { const x = Math.round(ox + k * cw) + 0.5; g.beginPath(); g.moveTo(x, oy - fw); g.lineTo(x, oy); g.moveTo(x, size - oy); g.lineTo(x, size - oy + fw); g.stroke(); }
+    for (let r = 1; r < patch.down; r++) { const y = Math.round(oy + r * ch) + 0.5; g.beginPath(); g.moveTo(ox - fw, y); g.lineTo(ox, y); g.moveTo(size - ox, y); g.lineTo(size - ox + fw, y); g.stroke(); }
     // the row and the column to count
     g.lineWidth = 2.5;
     g.strokeStyle = '#ffd25a'; g.fillStyle = 'rgba(255,210,90,.13)';
@@ -215,7 +226,7 @@ export function KnotCount({ typeId, keyId, where, fakeAge, onClose }: KnotCountP
         <span className="kc-rug">{t.name}{where === 'lab' ? ' · at Arran\'s bench' : ''}</span>
         <button className="btn small kc-x" onClick={onClose} aria-label="Leave the count" data-testid="kc-close">✕</button>
       </div>
-      <p className="kc-rules"><b>Count the knots in one inch of the back.</b> Tap each knot in the gold row and the blue column, or use − and +. Close enough, and you know what the rug is.</p>
+      <p className="kc-rules"><b>Count the knots in one inch of the back.</b> Tap each knot in the gold row and the blue column, or use − and +. Count every knot inside the brass frame, the ones against its edge too; the dimmed half-knots outside it do not count. Close enough, and you know what the rug is.</p>
       {phase !== 'done' && (
         <>
           <div className="kc-clock" aria-label={`${Math.ceil(left)} seconds left`} data-testid="kc-clock"><i style={{ width: `${(left / SECONDS) * 100}%` }} className={left < 6 ? 'low' : ''} /><span>{phase === 'count' ? `${Math.ceil(left)} s` : `${SECONDS} seconds`}</span></div>

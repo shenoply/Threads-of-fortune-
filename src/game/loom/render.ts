@@ -121,7 +121,14 @@ export function knotMap(d: Design): Map {
   bandAround(m, p.guard, 1, 1, w - 1, h - 1, gw, { 0: 'ground2', 1: 'accent', 2: 'accent', 3: 'outline', 4: 'light' });
   const b0 = 1 + gw;
   fill(b0, b0, w - b0, h - b0, 'border');
-  bandAround(m, p.band, b0, b0, w - b0, h - b0, bw, { 0: 'border', 1: 'main', 2: 'accent', 3: 'outline', 4: 'light' }, CORNER);
+  // the border's pattern in inks that stand out from the border colour: a palette whose figures and
+  // border share one dye (Tabriz: indigo on indigo) would otherwise weave a plain stripe
+  const col = colours(d);
+  const lumOf = (s: Slot) => { const n = parseInt(col[s].hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+  const stands = (s: Slot) => col[s].hex !== col.border.hex && Math.abs(lumOf(s) - lumOf('border')) >= 0.14;
+  const inks = (['main', 'light', 'accent', 'ground', 'outline'] as Slot[]).filter(stands);
+  const ink1: Slot = inks[0] ?? 'light', ink2: Slot = inks.find((x) => x !== ink1) ?? ink1;
+  bandAround(m, p.band, b0, b0, w - b0, h - b0, bw, { 0: 'border', 1: ink1, 2: ink2, 3: 'outline', 4: stands('light') ? 'light' : ink1 }, CORNER);
   const g0 = b0 + bw;
   // a dark line either side of the border, then the inner guard
   fill(g0, g0, w - g0, h - g0, 'ground2');
@@ -143,14 +150,14 @@ export function knotMap(d: Design): Map {
     const med = p.layout.id === 'medallion' ? p.medallion : MEDALLION[0];
     const hasMed = med.id !== 'none';
     // the medallion, its pendants reaching along the length, and the four corner pieces
-    const mh = Math.round(FH * 0.8), mw = Math.round(Math.min(FW * 0.56, mh * 1.45));
+    const mh = Math.round(FH * 0.7), mw = Math.round(Math.min(FW * 0.48, mh * 1.45));
     const mx = fx0 + Math.round((FW - mw) / 2), my = fy0 + Math.round((FH - mh) / 2);
     const medMask = (x: number, y: number) => {
       if (!hasMed) return false;
       const u = ((x - mx + 0.5) / mw) * 2 - 1, v = ((y - my + 0.5) / mh) * 2 - 1;
       return med.layers[0].shape(u * 0.96, v * 0.96) || (Math.abs(u) <= 1.1 && Math.abs(v) <= 0.3 && med.layers[0].shape(u * 0.9, v));
     };
-    const sw = Math.round(FW * 0.26), sh = Math.round(FH * 0.42);
+    const sw = Math.round(FW * 0.22), sh = Math.round(FH * 0.36);
     const spandrel = (x: number, y: number) => {
       if (!hasMed) return false;
       const dx = Math.min(x - fx0, fx1 - 1 - x) / sw, dy = Math.min(y - fy0, fy1 - 1 - y) / sh;
@@ -163,7 +170,7 @@ export function knotMap(d: Design): Map {
       for (let y = fy0; y < fy1; y++) for (let x = fx0; x < fx1; x++) if (spandrel(x, y) && (!spandrel(x + 1, y) || !spandrel(x - 1, y) || !spandrel(x, y + 1) || !spandrel(x, y - 1)) && inField(x + 1, y) && inField(x - 1, y) && inField(x, y + 1) && inField(x, y - 1)) m.k[y * w + x] = SLOTS.indexOf('outline');
     }
     // the small figures: rows across the field, every other row half a step along
-    const cs = Math.max(hasMed ? 10 : 7, Math.floor(FH / (hasMed ? nRows + 2 : nRows)));
+    const cs = Math.max(hasMed ? 14 : 7, Math.floor(FH / (hasMed ? nRows + 0.6 : nRows)));
     const nc = Math.max(1, Math.round(FW / cs));
     const cw = FW / nc, rh = FH / Math.round(FH / cs);
     const nr = Math.round(FH / cs);
@@ -174,12 +181,11 @@ export function knotMap(d: Design): Map {
         if (x + cw * 0.5 < fx0 || x + cw * 0.5 > fx1) continue;
         const box = hasMed ? 0.94 : 0.88;
         const bx = x + cw * (1 - box) / 2, by = y + rh * (1 - box) / 2;
-        // keep figures whole: none cut by the medallion or the corner pieces
-        let clash = false;
-        if (hasMed) for (let yy = Math.round(by) - 1; yy < by + rh * box + 1 && !clash; yy++) for (let xx = Math.round(bx) - 1; xx < bx + cw * box + 1; xx++) if (medMask(xx, yy) || spandrel(xx, yy)) { clash = true; break; }
-        if (clash) continue;
         if (bx < fx0 - 0.5 || bx + cw * box > fx1 + 0.5) continue;
-        stamp(m, p.field, bx, by, Math.min(cw, rh) * box, rh * box, (r + c) % 2 ? figB : figA, inField, up);
+        // the field pattern runs on under the medallion and the corner pieces, as on a woven carpet:
+        // a figure is cut off a knot short of them, never left out (so the chosen figure fills the field)
+        const clear = (x: number, y: number) => inField(x, y) && (!hasMed || (!medMask(x, y) && !medMask(x - 1, y) && !medMask(x + 1, y) && !medMask(x, y - 1) && !medMask(x, y + 1) && !spandrel(x, y)));
+        stamp(m, p.field, bx, by, Math.min(cw, rh) * box, rh * box, (r + c) % 2 ? figB : figA, clear, up);
       }
     }
     if (hasMed) {

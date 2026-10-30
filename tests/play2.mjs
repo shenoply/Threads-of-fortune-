@@ -118,7 +118,7 @@ for (let day = 1; day <= 6; day++) {
   }
   if (await has('[data-testid=step-away]')) await p.click('[data-testid=step-away]'); // the nav bar hides during a sale on phones
   await p.click('[data-testid=nav-inventory]');
-  for (let k = 0; k < 4; k++) { const r = p.locator('[data-testid=restore]:not([disabled])').first(); if (await r.count()) await r.click(); else break; }
+  for (let k = 0; k < 4; k++) { const r = p.locator('[data-testid=restore]:not([disabled])').first(); if (await r.count()) { await r.click(); await p.locator('[data-testid=treat-options] [data-testid^=treat-]:not([data-testid=treat-none]):not([disabled])').first().click(); } else break; }
   for (const u of ['mat','tea','bazaar']) { const b2 = p.locator(`[data-testid=upgrade-${u}]:not([disabled])`); if (await b2.count()) { await b2.click(); console.log('bought upgrade', u); } }
   await p.click('[data-testid=close-stall]'); await p.waitForTimeout(600);
   st = await S(); console.log(`  next day: ${st.day}`);

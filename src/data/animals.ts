@@ -19,7 +19,9 @@ export interface Breed {
 // Breed names lead with a nationality/regional adjective ("Egyptian donkey", "Cypriot mule") that stays capitalized
 // mid-sentence in English, so callers should use the name as-is rather than lowercasing it; this just picks the
 // article ("a"/"an") to put in front of it.
-export const withArticle = (name: string) => `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+/** "an" before a vowel sound: an indigo, an hour, an honest; "a" before a sounded u, eu or one: a usual, a European, a one-horse */
+export const article = (word: string) => (/^(hour|honest|honou?r|heir)/i.test(word) ? 'an' : /^(u[bcfjkrst][aeiou]|uniq|unif|unio|unit|univ|eu|ewe|one\b|once)/i.test(word) ? 'a' : /^[aeiou]/i.test(word) ? 'an' : 'a');
+export const withArticle = (name: string) => `${article(name)} ${name}`;
 
 export const BREEDS: Record<string, Breed> = {
   falahi: {

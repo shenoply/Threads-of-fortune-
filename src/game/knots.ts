@@ -21,6 +21,34 @@ export function kindKpsi(t: RugType | undefined): number | null {
 }
 export const countable = (typeId: string) => kindKpsi(RUGS[typeId]) != null;
 
+/** Knot density in bands, on the same scale as the Kerdasa loom (village knot about 60 to the inch,
+ *  town knot about 120, city knot about 250). Every description of a back and every count uses these
+ *  words, so "dense" or "fine" never sits beside a village count. */
+export type DensityBand = 'very coarse' | 'village' | 'town' | 'city' | 'court';
+export function densityBand(kpsi: number): DensityBand {
+  return kpsi < 45 ? 'very coarse' : kpsi <= 80 ? 'village' : kpsi <= 140 ? 'town' : kpsi <= 300 ? 'city' : 'court';
+}
+export const BAND_WORDS: Record<DensityBand, string> = {
+  'very coarse': 'very coarse: long pile, knots you can count across the room',
+  village: 'village knotting: coarse, the knots easy to count by eye',
+  town: 'town knotting: medium, firm and even',
+  city: 'city knotting: fine, the knots small and close',
+  court: 'court knotting: very fine, the knots hard to see without a glass',
+};
+/** words a back may not use in each band (checked by tests/rug-craft.ts) */
+export const BAND_FORBIDS: Record<DensityBand, RegExp | null> = {
+  'very coarse': /\b(dense|fine|tight)/i,
+  village: /\b(dense|fine|tight)/i,
+  town: /\b(very dense|very fine|extremely)/i,
+  city: /\b(coarse|loose)/i,
+  court: /\b(coarse|loose)/i,
+};
+/** "about 60 knots per sq. inch · village knotting: ..." for a rug's Weave tab, or the plain line for a flatweave */
+export function densityLine(t: RugType): string {
+  const k = kindKpsi(t);
+  return k == null ? t.weave.kpsi : `${t.weave.kpsi} · ${BAND_WORDS[densityBand(k)]}`;
+}
+
 export interface Patch {
   /** knots across one inch (a row), and rows down one inch (a column) */
   across: number;
@@ -55,8 +83,9 @@ export function knotVerdict(r: KnotResult, typeId: string, item?: Pick<RugItem, 
   const base = kindKpsi(t) ?? r.counted;
   const ratio = r.counted / base;
   const kind = ratio < 0.94 ? 'coarser than most of its kind' : ratio > 1.06 ? 'finer than most of its kind' : 'as its kind should be';
+  const band = densityBand(r.counted);
   const age = r.ok && item?.fakeAge ? ' The knots are crisp and square and the wool at the roots is unworn: new work, whatever age it is sold as.' : '';
-  return `About ${r.counted} knots to the square inch: ${kind}.${age}`;
+  return `About ${r.counted} knots to the square inch, ${band === 'very coarse' ? 'very coarse' : `${band} knotting`}: ${kind}.${age}`;
 }
 
 /** colours for the back of the rug, from its colour family (the back shows the pile colours flat) */

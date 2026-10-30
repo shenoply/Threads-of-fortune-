@@ -104,7 +104,7 @@ export function pickArranScene(s: SceneState): ScenePick {
   const result = !today ? null
     : today.service === 'fastness' && today.verdict === 'inconsistent' ? S(2, 'specific_test_result_ready')
       : today.service === 'fibre' ? S(1, 'specific_test_result_ready')
-        : today.service === 'dye' || today.service === 'wash' ? S(3, 'specific_test_result_ready') : null;
+        : today.service === 'dye' || today.service === 'wash' || today.service === 'fastness' ? S(3, 'specific_test_result_ready') : null;
   const story = fresh(book) ?? fresh(trip) ?? fresh(crate) ?? fresh(result);
   if (story) return story;
   // 6/7. an ordinary visit: late at night he is mostly reading; otherwise his own cases and the bench

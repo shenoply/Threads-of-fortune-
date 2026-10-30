@@ -4,7 +4,7 @@ import { fmt } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { RUGS } from '../../data/rugs';
 import { LAB_SERVICES, type LabService } from '../../game/systems/arranLab';
-import { bookPhase } from '../../game/systems/arranBooks';
+import { bookPhase, serviceBook } from '../../game/systems/arranBooks';
 import { SECTIONS, SHOP, type ShopItem } from '../../game/systems/arranShop';
 import './ArranCatalogue.css';
 
@@ -42,7 +42,8 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
   const status = (it: ShopItem): string => {
     if (it.kind === 'service' && it.service) {
       if (it.service === 'metal') return 'Not taken at present';
-      if (it.service !== 'fastness' && !unlocked.includes(it.service)) return 'Needs his book';
+      // the same rule as the Test tab and the store: only a test with a book behind it waits for the book
+      if (serviceBook(it.service) && !unlocked.includes(it.service)) return 'Needs his book';
     }
     if (it.kind === 'tool' && tools.includes(it.id)) return 'Owned';
     if (it.kind === 'cabinet' && it.cabinet) {
@@ -142,7 +143,7 @@ export function ArranCatalogue({ onClose, onService }: { onClose: () => void; on
           <span className="cat__purse">Your purse · <b>{fmt(g.cash)}</b></span>
           {item.kind === 'service' && item.service && (() => {
             const sv = item.service;
-            const locked = sv === 'metal' || (sv !== 'fastness' && !unlocked.includes(sv));
+            const locked = sv === 'metal' || (!!serviceBook(sv) && !unlocked.includes(sv));
             return <button type="button" className="cat__buy" disabled={locked} onClick={() => onService(sv)} data-testid="cat-use">{locked ? status(item) : sv === 'provisions' || sv === 'cargo' ? `Open Supplies · ${fmt(LAB_SERVICES[sv].price)}` : `Choose a rug · ${fmt(LAB_SERVICES[sv].price)}`}</button>;
           })()}
           {item.kind === 'tool' && (

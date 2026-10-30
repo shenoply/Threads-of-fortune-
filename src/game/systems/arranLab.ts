@@ -125,6 +125,8 @@ export function resolveFinding(item: RugItem, service: LabService, day: number, 
 
 /** Natural, mixed or synthetic dyes for a kind of rug, or null if Arran has no card for it. */
 export const dyeKind = (typeId: string): Dyes | null => PROFILES[typeId]?.dyes ?? null;
+/** Arran's card for a kind of rug: what its dyes are, in words, or null if he has no card for it. */
+export const dyeNoteOf = (typeId: string): string | null => PROFILES[typeId]?.dyeNote ?? null;
 
 /** What the rub, the wash, the dye test and the microscope say about a dyed or aged copy. Each of them
  *  catches one or both: the rub and the wash take colour or stain off; the dye test reads the colours;

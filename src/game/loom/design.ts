@@ -1,6 +1,7 @@
 // A carpet of your own design: the choices, what the weaver charges and how long it takes, and the
 // carpet it becomes in the game (a rug type of its own, sold like any other).
 import type { RugType, Trait } from '../types';
+import { withArticle } from '../text';
 import { BASE_COST, BORDER, DEAR_DYE, FIELD, GUARD, KNOTS, LAYOUT, MEDALLION, PALETTES, SIZES, WOOL } from './patterns';
 
 export interface Design {
@@ -107,11 +108,11 @@ export function rugTypeOf(d: Design): RugType {
     id: d.id, name, own: true,
     origin: 'Your own design, woven at Kerdasa by Giza', material: p.wool.id === 'allsilk' ? 'Silk' : p.wool.id === 'silk' ? 'Wool with silk highlights' : p.wool.id === 'kork' ? 'Kork wool' : 'Wool',
     age: 'New work', size: p.size.cm, colourFamily: fam,
-    colourWords: `${c.ground.name} ground, ${c.main.name} and ${c.accent.name} figures, a ${c.border.name} border`,
+    colourWords: `${c.ground.name} ground, ${c.main.name} and ${c.accent.name} figures, ${withArticle(c.border.name)} border`,
     rarity: 'Uncommon', tier: tierOf(cost), provenance: 'Documented',
     dealerCost: cost, valueBand: band, asking: Math.round(band[1] * 0.95 / 5) * 5,
     traits: traitsOf(d),
-    history: `Your own design: ${p.layout.name.toLowerCase()} layout${p.medallion.id !== 'none' ? ` with a ${p.medallion.name.toLowerCase()}` : ''}, ${p.field.name.toLowerCase()} figures and a ${p.band.name.toLowerCase()} border, in the ${p.palette.name} colours.`,
+    history: `Your own design: ${p.layout.name.toLowerCase()} layout${p.medallion.id !== 'none' ? ` with ${withArticle(p.medallion.name.toLowerCase())}` : ''}, ${p.field.name.toLowerCase()} figures and ${withArticle(p.band.name.toLowerCase())} border, in the ${p.palette.name} colours.`,
     storyLine: `I drew this one myself and had it woven at Kerdasa, up the road. There is not another like it anywhere.`,
     craftLine: `${p.knots.name}, ${p.wool.name.toLowerCase()}. ${p.field.line}`,
     durabilityLine: p.wool.id === 'allsilk' ? 'Silk: for a wall or a quiet room, not for boots.' : 'New wool, tightly knotted. It will see out the house.',

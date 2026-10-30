@@ -250,6 +250,7 @@ await p.waitForTimeout(500);
 await p.click('[data-testid=nav-inventory]');
 const dirtyCard = p.locator('[data-uid=test-dirty]');
 await dirtyCard.locator('[data-testid=restore]').click();
+await dirtyCard.locator('[data-testid=treat-wash]').click();
 await p.waitForTimeout(200);
 const restoring = await p.locator('[data-uid=test-dirty] [data-testid=restoring]').count();
 await shot('13-restoring');

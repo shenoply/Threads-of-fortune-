@@ -11,6 +11,7 @@ import type { RugItem } from '../../game/types';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { rugSrc, rugThumb } from '../RugViewer/rugArt';
+import { RugPicture } from '../RugViewer/RugPicture';
 import type { PlaybackView } from '../BuyerDialogue/usePlayback';
 import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
@@ -116,7 +117,7 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
         <div className="scene-fade" />
         {rugT && presented && (
           <div className="audience-rug" key={unfoldKey} data-testid="table-rug">
-            <img src={rugSrc(rugT)} alt={`${rugT.name}, unrolled before ${buyer.name}`} />
+            <RugPicture src={rugSrc(rugT)} condition={presented.condition} seed={presented.uid} alt={`${rugT.name}, unrolled before ${buyer.name}`} />
           </div>
         )}
         <Atmosphere indoor />
@@ -212,7 +213,7 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
         <StallGramophone sc={sc} inFront={inFront} />
         {rugT && presented && (
           <div className="split-rug" key={unfoldKey} data-testid="table-rug">
-            <img src={rugSrc(rugT)} alt={`${rugT.name} laid out on the table`} style={presented.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.7)' } : undefined} />
+            <RugPicture src={rugSrc(rugT)} condition={presented.condition} seed={presented.uid} alt={`${rugT.name} laid out on the table`} />
           </div>
         )}
         {(() => {

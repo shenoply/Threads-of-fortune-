@@ -49,6 +49,28 @@ export const RESTORATION: Record<Condition, { label: string; cost: number; days:
   Damaged: { label: 'Reweave the damaged section', cost: 15, days: 2, to: 'Good' },
 };
 
+/** What can be done for a rug in each condition: the first is the usual job (RESTORATION above, same price);
+ *  the others cost more or less and leave it better or worse. `mult` scales the restorer's charge. */
+export interface Treatment { id: string; short: string; label: string; mult: number; days: number; to: Condition }
+export const TREATMENTS: Record<Condition, Treatment[]> = {
+  Excellent: [],
+  Good: [],
+  Dirty: [
+    { id: 'wash', short: 'Wash', label: 'Wash in the courtyard and dry in the sun', mult: 1, days: 1, to: 'Good' },
+    { id: 'wash-stretch', short: 'Wash and stretch', label: 'The Cairo washers: washed, rinsed clear and stretched square on a frame', mult: 3, days: 3, to: 'Excellent' },
+  ],
+  Worn: [
+    { id: 'refringe', short: 'Re-fringe', label: 'Re-fringe and re-pile the worn edge', mult: 1, days: 1, to: 'Good' },
+    { id: 'repile', short: 'Re-pile', label: 'Re-pile the thin places knot by knot, and re-fringe', mult: 3, days: 4, to: 'Excellent' },
+  ],
+  Damaged: [
+    { id: 'darn', short: 'Darn', label: 'Darn the holes and bind the torn edge', mult: 0.4, days: 1, to: 'Worn' },
+    { id: 'reweave', short: 'Reweave', label: 'Reweave the damaged section', mult: 1, days: 2, to: 'Good' },
+  ],
+};
+/** a treatment for this condition by id, or the usual one */
+export const treatmentFor = (c: Condition, id?: string): Treatment | null => TREATMENTS[c].find((x) => x.id === id) ?? TREATMENTS[c].find((x) => x.mult === 1) ?? null;
+
 /** Restorers charge by the value of the piece: cost above is a percentage of the rug's market value. */
 export function restoreCost(value: number, c: Condition) {
   const r = RESTORATION[c];

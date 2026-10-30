@@ -6,12 +6,13 @@ import { useState } from 'react';
 import { BillCard } from '../Rumours/Rumours';
 import { rugNames, typicalSale } from '../StallEncounter/RugPicker';
 import { fmt } from '../../game/economy/money';
-import { RESERVE_DAYS, heldFor, restoreCharge, stallName, useGame } from '../../game/state/store';
+import { RESERVE_DAYS, heldFor, stallName, treatmentCharge, useGame } from '../../game/state/store';
 import { BUYERS } from '../../data/buyers';
 import { dateFor } from '../../game/economy/economy';
 import { RUGS } from '../../data/rugs';
-import { RESTORATION, UPGRADES } from '../../data/suppliers';
+import { TREATMENTS, UPGRADES } from '../../data/suppliers';
 import { rugThumb } from '../RugViewer/rugArt';
+import { RugPicture } from '../RugViewer/RugPicture';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { CaravanRoster } from '../World/CaravanPanels';
 import { StallUpgrades, affordableUpgrades, openUpgrades } from './StallUpgrades';
@@ -25,6 +26,8 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
   const names = rugNames(g.inventory);
   const [view, setView] = useState<string | null>(null);
   const [frameNote, setFrameNote] = useState('');
+  // the rug whose cleaning or repair choices are open
+  const [treat, setTreat] = useState<string | null>(null);
   return (
     <div className="screen" data-testid="inventory">
       {frameNote && <p className="frame-note" data-testid="frame-note" onClick={() => setFrameNote('')}>{frameNote}</p>}
@@ -59,11 +62,11 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
       <div className="inv-list">
         {g.inventory.map((i) => {
           const t = RUGS[i.typeId];
-          const r = RESTORATION[i.condition];
+          const opts = TREATMENTS[i.condition];
           return (
             <div className="inv-item" key={i.uid} data-testid={`inv-${t.id}`} data-uid={i.uid}>
               <button className={`img ${i.restoringUntil ? (i.condition === 'Dirty' ? 'washing' : 'mending') : i.freshFrom?.day === g.day ? 'fresh' : ''}`} onClick={() => setView(i.uid)} style={{ padding: 0, border: 0 }} aria-label={`Inspect ${t.name}`}>
-                <img src={rugThumb(t)} alt="" style={i.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                <RugPicture src={rugThumb(t)} condition={i.restoringUntil ? undefined : i.condition} seed={i.uid} alt="" />
                 {i.restoringUntil && i.condition === 'Dirty' && <span className="suds" aria-hidden="true"><i /><i /><i /><i /><i /></span>}
               </button>
               <div>
@@ -88,18 +91,29 @@ export function Inventory({ onRashid }: { onRashid?: () => void } = {}) {
                     <span className="cond">{i.stored ? 'At your stall in Giza · return there to pack it for the road' : 'With the caravan'}</span>
                   )}
                   <ReserveControl uid={i.uid} />
-                  {r && !i.restoringUntil && (
-                    (() => {
-                      const cost = restoreCharge(g, i);
-                      const short = g.cash < cost;
-                      return (
-                        <button className="btn" disabled={short} onClick={() => g.restore(i.uid)} data-testid="restore" title={short ? `Needs ${fmt(cost)}; you have ${fmt(g.cash)}` : r.label}>
-                          {i.condition === 'Dirty' ? 'Wash' : i.condition === 'Worn' ? 'Re-fringe' : 'Reweave'} · {fmt(cost)} · {r.days}d{short ? ` · you have ${fmt(g.cash)}` : ''}
-                        </button>
-                      );
-                    })()
+                  {opts.length > 0 && !i.restoringUntil && (
+                    <button className={`btn${treat === i.uid ? ' primary' : ''}`} onClick={() => setTreat(treat === i.uid ? null : i.uid)} aria-expanded={treat === i.uid} data-testid="restore">
+                      {i.condition === 'Dirty' ? 'Clean it' : 'Repair it'} · from {fmt(Math.min(...opts.map((o) => treatmentCharge(g, i, o.mult))))}
+                    </button>
                   )}
                 </div>
+                {treat === i.uid && opts.length > 0 && !i.restoringUntil && (
+                  <div className="inv-treat" data-testid="treat-options">
+                    <small>{i.condition === 'Dirty' ? 'Who washes it, and how well:' : 'What the restorer can do:'} worth about {fmt(typicalSale(i))} as it is.</small>
+                    {opts.map((o) => {
+                      const cost = treatmentCharge(g, i, o.mult);
+                      const after = typicalSale({ ...i, condition: o.to, restored: i.restored || i.condition !== 'Dirty' });
+                      const short = g.cash < cost;
+                      return (
+                        <div className="inv-treat-row" key={o.id}>
+                          <span><b>{o.label}</b><small>{fmt(cost)} · {o.days === 1 ? 'one day' : `${o.days} days`} · {i.condition} to {o.to} · worth {fmt(typicalSale(i))} → {fmt(after)}</small></span>
+                          <button className="btn" disabled={short} onClick={() => { g.restore(i.uid, o.id); setTreat(null); }} data-testid={`treat-${o.id}`}>{short ? `You have ${fmt(g.cash)}` : `${o.short} · ${fmt(cost)}`}</button>
+                        </div>
+                      );
+                    })}
+                    <button className="btn" onClick={() => setTreat(null)} data-testid="treat-none">Leave it as it is</button>
+                  </div>
+                )}
               </div>
             </div>
           );
