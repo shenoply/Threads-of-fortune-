@@ -15,7 +15,7 @@ export interface TipDef {
 const T = (id: string, text: string, o: Omit<TipDef, 'id' | 'text'> = {}): TipDef => ({ id, text, ...o });
 
 export const TIPS: Record<string, TipDef> = {
-  district: T('district', 'This is your district. Tap a place to walk there. Your stall is the S.', { guide: 'map', point: '[data-testid="poi-stall"]' }),
+  district: T('district', 'This is your district. Tap a place to walk there. Your stall is the S.', { guide: 'map' }),
   today: T('today', '"My runner leaves you a purse now and then, and there are small errands for coin. Look under Today."', { who: 'Rashid', guide: 'today', point: '[data-testid="gift-btn"]' }),
   rashid: T('rashid', '"Buy below the estimate and sell dearer at your stall. Your father\'s debt is paid at the foot of the page."', { who: 'Rashid', guide: 'rashid' }),
   stock: T('stock', '"Every rug you own is here. A worn or dirty one sells better once it is repaired."', { who: 'Your father', guide: 'stock' }),

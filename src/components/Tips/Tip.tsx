@@ -27,7 +27,9 @@ export function Tip({ id, when = true, card = false }: { id: string; when?: bool
   // the first sale is its own lesson: no hints until it is done
   const eligible = useGame((g) => !!t && when && g.started && g.tutorial.done && !lessonsOff(g) && !(g.tipsSeen ?? []).includes(id));
   // a buyer at the stall has the screen and the buttons at its foot: hints wait
-  const busy = useGame((g) => waitsTurn(g) || !!g.encounter);
+  const busy = useGame((g) => waitsTurn(g) || (!!g.encounter && !g.encounter.outcome)
+    // a title, a level or a goal being announced at the foot of the screen: the hint waits its turn
+    || (g.titleNews ?? []).length > 0 || (g.levelUps ?? []).length > 0 || !!g.milestoneNews);
   const hold = useHeld();
   const wait = !card && (busy || hold);
   const showing = useSyncExternalStore(subscribe, () => current);

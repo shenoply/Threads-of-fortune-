@@ -44,16 +44,16 @@ export const DAY_ONE = 5;
 export const ERRAND_PURSE = 350;
 export const OPENING: OpeningStep[] = [
   { id: 'stall', text: () => 'Sell your first rug.', btn: 'Go to your stall', go: 'stall', done: (s) => s.tutorial.done },
-  { id: 'rashid', text: () => 'Buy a rug from Uncle Rashid to sell on.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
+  { id: 'rashid', text: () => 'Buy a rug from Uncle Rashid.', btn: 'Go to Rashid', go: 'supplier', done: (s) => s.ledger.some((l) => l.label.includes('from Rashid')) },
   { id: 'sell2', text: () => 'Sell another rug at your stall.', btn: 'Go to your stall', go: 'stall', done: (s) => sales(s) >= 2 || s.day >= 2 },
   {
     id: 'pay',
-    text: (s) => { const o = owing(s); return o && s.cash < o ? `Sell more. Rashid wants ${fmtP(o)}, and you have ${fmtP(s.cash)}.` : `Pay Rashid his ${fmtP(o || 1000)} at the warehouse.`; },
+    text: (s) => { const o = owing(s); return o && s.cash < o ? `Sell more: you have ${fmtP(s.cash)} of his ${fmtP(o)}.` : `Pay Rashid his ${fmtP(o || 1000)}.`; },
     btn: 'Go to Rashid', go: 'supplier',
     done: (s) => !owing(s) || s.day >= 3,
   },
-  { id: 'night', text: () => 'Sell what you can until the stall shuts for the night.', btn: 'Go to your stall', go: 'stall', done: (s) => s.day >= 2 },
-  { id: 'guards', text: (s) => (s.cash < ERRAND_PURSE ? `Sell rugs first. The errand needs about ${fmtP(ERRAND_PURSE)}, and you have ${fmtP(s.cash)}.` : 'Hire a guard at the guard yard for the road.'), btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
+  { id: 'night', text: () => 'Sell until the stall shuts tonight.', btn: 'Go to your stall', go: 'stall', done: (s) => s.day >= 2 },
+  { id: 'guards', text: (s) => (s.cash < ERRAND_PURSE ? `Sell first: the errand needs about ${fmtP(ERRAND_PURSE)}.` : 'Hire a guard for the road.'), btn: 'To the guard yard', go: 'guards', done: (s) => troops(s) > 0 },
   { id: 'cairo', text: () => 'Take the ferry to Cairo.', btn: 'To the ferry', go: 'cairo', done: (s) => been(s, 'cairo') },
   { id: 'bandits', text: () => 'Take the train to Alexandria: 3½ hours.', btn: 'Plan the trip', go: 'alexandria', done: (s) => !!s.onboard?.bandits || been(s, 'alexandria') },
   // any rug bought in Alexandria, whether or not Rashid has given his errand yet (it counts for that too)

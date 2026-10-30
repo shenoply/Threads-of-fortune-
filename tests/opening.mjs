@@ -38,7 +38,7 @@ await edit(`s.family.first.paid = s.family.first.sum; s.family.first.done = s.da
 check((await bar()).includes('5 of 5') && /stall shuts/i.test(await bar()), `paid: the rest of the day at the stall: "${(await bar()).slice(0, 90)}"`);
 check((await p.locator('[data-testid=nav-caravan]').getAttribute('class') || '').includes('nav-later'), 'no caravan on day one');
 await edit(`s.day = 2; s.cash = 100;`);
-check(/rashid's errand · 1 of 4/.test(await bar()) && /sell rugs first/i.test(await bar()), `day two, short of the errand's money: sell first: "${(await bar()).slice(0, 90)}"`);
+check(/rashid's errand · 1 of 4/.test(await bar()) && /sell first/i.test(await bar()), `day two, short of the errand's money: sell first: "${(await bar()).slice(0, 90)}"`);
 await edit(`s.cash = 1500;`);
 check(/rashid's errand · 1 of 4/.test(await bar()) && /guard/i.test(await bar()), `day two with the money: the guard yard: "${(await bar()).slice(0, 90)}"`);
 
