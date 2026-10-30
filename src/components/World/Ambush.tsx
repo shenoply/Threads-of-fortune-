@@ -30,6 +30,11 @@ interface Unit { id: string; name: string; img: string; str: number; n: number; 
 /** a name mid-sentence: lower case, but places and peoples keep their capital ("2 Giza watchmen", "the Syrian rebel band") */
 const midName = (s: string) => s.toLowerCase().replace(/\b(syrian|giza|cairo|bedouin|arnaut|egyptian|alexandria|zagros|persian)\b/g, (w) => w[0].toUpperCase() + w.slice(1));
 
+const NUM_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+/** The band's opening line with its head count as on the card ("Three men ..." for a band of eight reads "Eight men ..."). */
+const withBandSize = (text: string, n: number) =>
+  text.replace(/^(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve) (men|riders)\b/, (_m, _w, who: string) => `${NUM_WORDS[n] ?? n} ${n === 1 ? (who === 'men' ? 'man' : 'rider') : who}`);
+
 /** What a beaten band is likely to have been riding, by who they are - a village robber on a donkey
  *  is not mounted the same as a Sinai raider. Falls back to the common Egyptian donkey. */
 const BAND_MOUNT: Record<string, string> = {
@@ -81,7 +86,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const takenLine = (loss: number) => (loss > 0 ? ` ${fmt(loss)} of your ${fmt(g.cash)} is gone.` : ' There was nothing in your purse to take.');
 
   const [stage, setStage] = useState<Stage>('standoff');
-  const [text, setText] = useState(party.id === 'cousins' ? 'Six riders across the road. In front, a man with Selim\'s jaw and Selim\'s gold tooth: his cousin Mahmoud. "Our cousin had to leave Cairo because of you. Someone has to pay for his ticket."' : lines.open);
+  const [text, setText] = useState(() => withBandSize(party.id === 'cousins' ? 'Six riders across the road. In front, a man with Selim\'s jaw and Selim\'s gold tooth: his cousin Mahmoud. "Our cousin had to leave Cairo because of you. Someone has to pay for his ticket."' : lines.open, size));
   const [result, setResult] = useState('');
   const [robArt, setRobArt] = useState<string | null>(null);
   // their leader threw down his arms: the picture of it over the account

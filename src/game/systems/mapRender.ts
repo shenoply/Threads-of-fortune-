@@ -89,6 +89,12 @@ export function paintedMap(): CanvasImageSource | null {
   askSmall();
   return artReady ? artImg : smallReady ? artSmall : null;
 }
+/** How many pixels wide the sharp painting is once it has loaded (0 before): the map's closest zoom
+ *  is set from it, so the picture is never blown up past where it stays crisp. */
+export function paintedMapWidth(): number {
+  const a = artReady ? (artImg as unknown as { width?: number } | null) : null;
+  return a?.width ?? 0;
+}
 /** Fetch and decode the painting ahead of the map being opened (src/game/preload.ts): the small copy,
  *  and with `sharp` the sharp one after it. Decoded off the main thread, so the map opens on it at once. */
 export function warmPaintedMap(sharp: boolean) {

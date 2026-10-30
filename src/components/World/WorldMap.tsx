@@ -27,7 +27,7 @@ import { routeDanger, tripEstimate, durationLabel, type FareLine,
   MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
-import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap } from '../../game/systems/mapRender';
+import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidth } from '../../game/systems/mapRender';
 import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf, fatiguePace, healthMods } from '../../game/systems/caravan';
 import { MenTalk } from './Troops';
 import { Icon } from '../Icon';
@@ -356,12 +356,25 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useEffect(() => { if (openTown.at && openTown.at !== w.at) openTown.at = null; }, [w.at]);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
   const pts = useRef(new Map<number, Pt>());
-  const pinch = useRef<{ d: number; z: number } | null>(null);
+  // a pinch in progress: only a CSS transform on the map layer and the canvas until the fingers lift,
+  // then zoom and camera are committed once (m0/m: the point between the fingers, wrap-local)
+  type Gest = { m0: Pt; m: Pt; d0: number; pan0: Pt; z0: number; k: number; raw: number; off: Pt; M: number };
+  const gest = useRef<Gest | null>(null);
+  // a fast drag carries on after the finger lifts and slows to a stop (a touch stops it)
+  const fling = useRef(0);
+  const samples = useRef<{ x: number; y: number; t: number }[]>([]);
+  // a single tap on open map waits a moment, in case it is the first of a double tap (which zooms in there)
+  const tapTimer = useRef(0);
+  const tapRef = useRef<(mp: Pt) => void>(() => {});
+  useEffect(() => () => { window.clearTimeout(tapTimer.current); cancelAnimationFrame(fling.current); }, []);
+  // a drag or pinch on the road lets go of the caravan for a few seconds, then the camera follows again
+  const followAt = useRef(0);
+  const FOLLOW_PAUSE_MS = 4000;
   // a mouse hovering open water or mountains, away from any settlement, shows "you can't walk there"
   // before the tap — not just the card that explains it afterwards
   const [hoverBlocked, setHoverBlocked] = useState(false);
   const follow = useRef(true);
-  const lastTap = useRef(0);
+  const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const scaleRef = useRef(1);
   scaleRef.current = timeScale;
   const lastScale = useRef(1);
@@ -373,6 +386,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const base = Math.max(size.w / PAINT_W, size.h / MAP_H);
   // zoomed right out the map still fills the screen (on a tall phone it fills the height and pans sideways), never a thin strip
   const minZ = Math.min(1, Math.max(size.w / MAP_W, size.h / MAP_H) / base);
+  // the closest zoom: where the painting is still crisp on this screen (its pixels blown up no more than
+  // about 1.6 times), never closer than 2.6 nor further than the old 4.5
+  const artW = paintedMapWidth();
+  const dprNow = typeof window !== 'undefined' ? Math.min(3, window.devicePixelRatio || 1) : 1;
+  const maxZ = artW ? Math.max(minZ, 2.6, Math.min(4.5, ((artW / PAINT_W) * 1.6) / (base * dprNow))) : 4.5;
+  /** the close-in views (the stall bubble over Giza, names on the bands) come at 3, or at the closest zoom if that is nearer */
+  const closeZ = Math.min(3, maxZ) - 0.01;
   const s = base * z;
   const sRef = useRef(s);
   sRef.current = s;
@@ -387,7 +407,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       .forEach(([id, n]) => { for (let i = 0; i < n; i++) toks.push({ src: `art/troops/${id}.jpg`, kind: 'man' }); });
     Object.entries(w.party.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id])
       .forEach(([id, n]) => { for (let i = 0; i < n; i++) toks.push({ src: `art/animals/${id}.jpg`, kind: 'beast' }); });
-    const MAX = 12;
+    // a short row on the map (the rest as "+n"), so it does not run over the town names
+    const MAX = 6;
     return { shown: toks.slice(0, MAX), more: Math.max(0, toks.length - MAX) };
   }, [w.party.troops, w.party.animals]);
   const jobs = openJobs(g.jobsDone, g.reputation);
@@ -420,7 +441,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useEffect(() => () => window.clearTimeout(sharpTimer.current), []);
   paintRef.current = (travel = false) => {
     const c = canvasRef.current;
-    if (!c) return;
+    // mid-pinch the canvas is only scaled by CSS; it is drawn again once the fingers lift
+    if (!c || gest.current) return;
     const sz = sizeRef.current;
     const W = Math.max(1, sz.w), H = Math.max(1, sz.h);
     const p = panRef.current, sc = sRef.current, now = performance.now();
@@ -432,10 +454,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       lastTravelPan.current = { x: p.x, y: p.y };
       travelAt.current = now;
       window.clearTimeout(sharpTimer.current);
-      sharpTimer.current = window.setTimeout(() => { lastTravelPan.current = { x: NaN, y: NaN }; travelAt.current = 0; paintRef.current(false); }, 300);
+      sharpTimer.current = window.setTimeout(() => { if (gest.current) return; lastTravelPan.current = { x: NaN, y: NaN }; travelAt.current = 0; paintRef.current(false); }, 300);
       const ox = p.x - d.x, oy = p.y - d.y;
-      // newly seen country may wait a little over a second for the next redraw
-      const fresh = (d.fog === fogImg || now - d.at < 1200) && d.art === artTickRef.current;
+      // newly seen country may wait a few seconds for the next redraw (a whole redraw is the costly part of a frame)
+      const fresh = (d.fog === fogImg || now - d.at < 4000) && d.art === artTickRef.current;
       if (d.m > 0 && fresh && d.s === sc && d.w === W && d.h === H && Math.abs(ox) <= d.m - 4 && Math.abs(oy) <= d.m - 4) {
         c.style.transform = `translate(${ox}px, ${oy}px)`;
         return;
@@ -485,19 +507,32 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size.w, size.h]);
 
-  const zoomTo = (nz: number) => {
-    // zooming past the closest view over Giza, while you are there, takes you down into the district
-    if (nz > 4.5 && onZoomGiza && w.at === 'giza' && !moving) {
-      const gz = settlementById('giza');
-      const gx = gz.x * s + pan.x, gy = gz.y * s + pan.y;
-      if (Math.abs(gx - size.w / 2) < size.w * 0.4 && Math.abs(gy - size.h / 2) < size.h * 0.4) { onZoomGiza(); return; }
-    }
-    nz = Math.max(minZ, Math.min(4.5, nz));
-    const cx = size.w / 2, cy = size.h / 2;
+  const stopFling = () => {
+    if (!fling.current) return;
+    cancelAnimationFrame(fling.current);
+    fling.current = 0;
+    setPan(panRef.current);
+  };
+  /** Giza near the middle of the screen at camera p and scale sc: zooming in past the closest view there opens the district */
+  const gizaInView = (p: Pt, sc: number) => {
+    const gz = settlementById('giza');
+    const gx = gz.x * sc + p.x, gy = gz.y * sc + p.y;
+    return Math.abs(gx - size.w / 2) < size.w * 0.4 && Math.abs(gy - size.h / 2) < size.h * 0.4;
+  };
+  /** Zoom keeping the map point under screen point pt (wrap-local) where it is. */
+  const zoomAt = (pt: Pt, nz: number) => {
+    stopFling();
+    nz = Math.max(minZ, Math.min(maxZ, nz));
     const ns = base * nz;
     const cur = panRef.current;
-    setPan(clampPan({ x: cx - ((cx - cur.x) / s) * ns, y: cy - ((cy - cur.y) / s) * ns }, ns));
+    setPan(clampPan({ x: pt.x - ((pt.x - cur.x) / s) * ns, y: pt.y - ((pt.y - cur.y) / s) * ns }, ns));
     setZ(nz);
+  };
+  /** The buttons and the wheel: zoom about the middle of the screen. */
+  const zoomTo = (nz: number) => {
+    // zooming past the closest view over Giza, while you are there, takes you down into the district
+    if (nz > z && z >= maxZ - 0.01 && onZoomGiza && w.at === 'giza' && !moving && gizaInView(panRef.current, s)) { onZoomGiza(); return; }
+    zoomAt({ x: size.w / 2, y: size.h / 2 }, nz);
   };
 
   const here = w.at ? settlementById(w.at) : undefined;
@@ -785,7 +820,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     let inSand = false;
     let inSnow = false;
     // the frame-by-frame view goes straight to the DOM; React hears about it only a few times a second
-    const syncView = () => { setLive(livePos); setPan(panRef.current); };
+    // (a pinch or a fling owns the camera while it lasts: its transform is not overwritten)
+    const syncView = () => { lastView = performance.now(); setLive(livePos); if (!gest.current && !fling.current && !drag.current?.moved) setPan(panRef.current); };
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
@@ -846,9 +882,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           return;
         }
       }
-      // smooth every frame: the caravan glides and the camera eases after it
+      // smooth every frame: the caravan glides and the camera eases after it. A drag or pinch lets go of
+      // the caravan for a few seconds after the finger lifts (or until "You" is tapped), then it follows again
       const sc = sRef.current;
-      if (follow.current) {
+      if (!follow.current && followAt.current && now > followAt.current && !pts.current.size && !fling.current && !gest.current) { follow.current = true; followAt.current = 0; }
+      if (follow.current && !gest.current) {
         const sz = sizeRef.current, cur = panRef.current;
         const target = { x: sz.w / 2 - pos.x * sc, y: sz.h / 2 - pos.y * sc };
         const k = Math.min(1, dt * 4);
@@ -861,15 +899,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         const dx = pos.x - parseFloat(meRef.current.dataset.px ?? String(pos.x));
         if (Math.abs(dx) > 0.02) meRef.current.dataset.facing = dx < 0 ? 'left' : 'right';
         meRef.current.dataset.px = String(pos.x);
-        meRef.current.style.left = `${pos.x * sc}px`; meRef.current.style.top = `${pos.y * sc}px`;
+        // moved by a transform (no layout), the same one React writes on each sync
+        meRef.current.style.transform = `translate(${pos.x * sc}px, ${pos.y * sc}px)`;
       }
-      if (now - lastView > 140) { lastView = now; syncView(); }
+      if (now - lastView > 400) syncView();
       stepAudio += dt * scaleRef.current;
       if (stepAudio > 0.6 && !moving.train && scaleRef.current > 0) {
         stepAudio = 0;
         audio.sfx('step');
       }
-      if ((now - lastCommit > 140 && acc > 0) || arrived) {
+      // the game state (and with it the whole map's React tree) is brought up to date four times a second
+      if ((now - lastCommit > 250 && acc > 0) || arrived) {
         lastCommit = now;
         syncView();
         const notes = useGame.getState().travelStep(pos, acc, moving.train);
@@ -979,22 +1019,124 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moving?.path, encounter, frozen]);
 
-  const onPointerUp = (e: React.PointerEvent) => {
-    pts.current.delete(e.pointerId);
-    if (pts.current.size < 2) pinch.current = null;
-    const d = drag.current;
+  /** a point on screen, relative to the map's box */
+  const local = (cx: number, cy: number): Pt => { const r = wrap.current!.getBoundingClientRect(); return { x: cx - r.left, y: cy - r.top }; };
+  /** Write the pinch as it stands: the map layer and the canvas scaled about the point between the fingers. */
+  const applyGest = () => {
+    const G = gest.current;
+    if (!G) return;
+    const k = G.k, inner = innerRef.current, c = canvasRef.current;
+    if (inner) {
+      inner.style.transformOrigin = '0 0';
+      inner.style.transform = `translate(${G.m.x + (G.pan0.x - G.m0.x) * k}px, ${G.m.y + (G.pan0.y - G.m0.y) * k}px) scale(${k})`;
+      // town names, pins and your medallion keep their size while the map under them grows or shrinks
+      inner.style.setProperty('--inv-k', String(1 / k));
+      inner.classList.add('pinching');
+    }
+    if (c) {
+      c.style.transformOrigin = '0 0';
+      c.style.transform = `translate(${G.m.x + (G.off.x - G.M - G.m0.x) * k + G.M}px, ${G.m.y + (G.off.y - G.M - G.m0.y) * k + G.M}px) scale(${k})`;
+    }
+  };
+  const startPinch = () => {
+    const [a, b] = [...pts.current.values()];
+    stopFling();
+    window.clearTimeout(tapTimer.current); tapTimer.current = 0;
     drag.current = null;
-    if (d?.moved) { setPan(panRef.current); return; }
-    if (!d) return;
-    setSelParty(null);
-    const now = performance.now();
-    void now; void lastTap;
-    // tap anywhere to go there; mid-journey, goTo asks before the caravan turns
-    const r = wrap.current!.getBoundingClientRect();
-    const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
+    const d = drawn.current;
+    const m0 = local((a.x + b.x) / 2, (a.y + b.y) / 2);
+    gest.current = { m0, m: m0, d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, pan0: { ...panRef.current }, z0: z, k: 1, raw: 1, off: d.m > 0 ? { x: panRef.current.x - d.x, y: panRef.current.y - d.y } : { x: 0, y: 0 }, M: d.m };
+    follow.current = false; followAt.current = 0;
+  };
+  const movePinch = () => {
+    const G = gest.current;
+    if (!G || pts.current.size < 2) return;
+    const [a, b] = [...pts.current.values()];
+    G.raw = Math.hypot(a.x - b.x, a.y - b.y) / G.d0;
+    G.k = Math.max(minZ / G.z0, Math.min(maxZ / G.z0, G.raw));
+    G.m = local((a.x + b.x) / 2, (a.y + b.y) / 2);
+    applyGest();
+  };
+  /** The fingers lift: zoom and camera are committed once (the layout effect below takes the CSS scale off). */
+  const endPinch = () => {
+    const G = gest.current;
+    gest.current = null;
+    if (!G) return;
+    if (moving) followAt.current = performance.now() + FOLLOW_PAUSE_MS;
+    const nz = Math.max(minZ, Math.min(maxZ, G.z0 * G.k)), ns = base * nz, k = nz / G.z0;
+    const np = clampPan({ x: G.m.x + (G.pan0.x - G.m0.x) * k, y: G.m.y + (G.pan0.y - G.m0.y) * k }, ns);
+    // spread past the closest view over Giza, while you are there: down into the district
+    if (G.z0 * G.raw > maxZ * 1.12 && onZoomGiza && w.at === 'giza' && !moving && gizaInView(np, ns)) { onZoomGiza(); return; }
+    setPan(np);
+    setZ(nz);
+  };
+  /** After a fast drag the map carries on, slowing to a stop. */
+  const startFling = (vx: number, vy: number) => {
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(48, now - last);
+      last = now;
+      const decay = Math.exp(-dt / 325);
+      vx *= decay; vy *= decay;
+      const cur = panRef.current, want = { x: cur.x + vx * dt, y: cur.y + vy * dt };
+      const np = clampRef.current(want);
+      // the edge of the map stops it that way
+      if (Math.abs(np.x - want.x) > 0.5) vx = 0;
+      if (Math.abs(np.y - want.y) > 0.5) vy = 0;
+      panRef.current = np;
+      if (innerRef.current) innerRef.current.style.transform = `translate(${np.x}px, ${np.y}px)`;
+      paintRef.current(true);
+      if (Math.hypot(vx, vy) < 0.02) { fling.current = 0; setPan(np); return; }
+      fling.current = requestAnimationFrame(step);
+    };
+    fling.current = requestAnimationFrame(step);
+  };
+  // a single tap on open map: plan the way there (or open the town you are in); mid-journey, goTo asks before the caravan turns
+  tapRef.current = (mp: Pt) => {
     const st = SETTLEMENTS.filter((x) => w.known.includes(x.id) && placeShown(x)).map((x) => ({ x, d: dist(x, mp) })).filter((o) => o.d * s < 22).sort((a, b) => a.d - b.d)[0]?.x;
     if (st && st.id === w.at && !moving) { setPanel(st.id); return; }
     goTo(mp, st);
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    pts.current.delete(e.pointerId);
+    if (gest.current) { if (pts.current.size < 2) endPinch(); return; }
+    const d = drag.current;
+    drag.current = null;
+    if (d?.moved) {
+      if (moving) followAt.current = performance.now() + FOLLOW_PAUSE_MS;
+      // how fast the finger was going over its last tenth of a second; held still at the end, no fling
+      const sm = samples.current.filter((q) => e.timeStamp - q.t < 100);
+      const a = sm[0], b = sm[sm.length - 1];
+      const dt = a && b ? b.t - a.t : 0;
+      if (a && b && dt > 8 && e.timeStamp - b.t < 60) {
+        let vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
+        const sp = Math.hypot(vx, vy);
+        if (sp > 0.3) {
+          if (sp > 4) { vx *= 4 / sp; vy *= 4 / sp; }
+          startFling(vx, vy);
+          return;
+        }
+      }
+      setPan(panRef.current);
+      return;
+    }
+    if (!d) return;
+    setSelParty(null);
+    const pt = local(e.clientX, e.clientY);
+    const now = performance.now(), lt = lastTap.current;
+    // a second tap close by: zoom in there, and the first tap plans nothing
+    if (tapTimer.current && now - lt.t < 320 && Math.hypot(pt.x - lt.x, pt.y - lt.y) < 40) {
+      window.clearTimeout(tapTimer.current); tapTimer.current = 0;
+      lastTap.current = { t: 0, x: 0, y: 0 };
+      if (z >= maxZ - 0.01) { zoomTo(z + 0.6); return; }
+      zoomAt(pt, z * 1.6);
+      audio.sfx('tap');
+      return;
+    }
+    lastTap.current = { t: now, x: pt.x, y: pt.y };
+    const mp = { x: (pt.x - panRef.current.x) / s, y: (pt.y - panRef.current.y) / s };
+    window.clearTimeout(tapTimer.current);
+    tapTimer.current = window.setTimeout(() => { tapTimer.current = 0; tapRef.current(mp); }, 280);
   };
 
   // anyone within a day's sight of the caravan is seen, fog or not; raiders further off once the land is known
@@ -1022,7 +1164,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const meScreen = { x: mePt.x * s + pan.x, y: mePt.y * s + pan.y };
   const meOff = size.w > 0 && (meScreen.x < 24 || meScreen.x > size.w - 24 || meScreen.y < 24 || meScreen.y > size.h - 24);
   const meAngle = Math.atan2(meScreen.y - size.h / 2, meScreen.x - size.w / 2) * 180 / Math.PI;
-  const showOverhead = z >= 3 && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
+  const showOverhead = z >= closeZ && gizaScreen.x > -60 && gizaScreen.x < size.w + 60 && gizaScreen.y > -60 && gizaScreen.y < size.h + 60 && !moving;
 
   // What the map names at this zoom. Far out (tier 0) only the cities, ports and your home, plus the
   // places that matter now: where you are, where you are bound, the mission and the objective's town.
@@ -1037,33 +1179,97 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // Keep the town names readable: after each render, your medallion and the party medallions step aside
   // (a few fixed nudges, the first that fits) from any town name, town mark or each other; a trader or
   // pilgrim band that finds no room is hidden, raiders always stay. Only positions are written here.
+  const layoutKey = useRef('');
+  const layoutPlaces = useRef<unknown>(null);
   useLayoutEffect(() => {
-    const inner = innerRef.current;
-    if (!inner) return;
-    // a town name or the stall's bubble at the edge of the screen slides back inside it, never cut off
-    const wr = wrap.current?.getBoundingClientRect();
-    if (wr) {
-      const keepIn = (el: HTMLElement) => {
-        el.style.translate = '';
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 || r.bottom < wr.top || r.top > wr.bottom) return;
-        const dx = r.left < wr.left + 4 ? wr.left + 4 - r.left : r.right > wr.right - 4 ? wr.right - 4 - r.right : 0;
-        if (dx && Math.abs(dx) < r.width) el.style.translate = `${Math.round(dx)}px 0`;
-      };
-      inner.querySelectorAll<HTMLElement>('.place:not(.pl-off) .plbl').forEach(keepIn);
-      wrap.current?.querySelectorAll<HTMLElement>('.overhead-pin').forEach(keepIn);
+    const inner = innerRef.current, wrapEl = wrap.current;
+    if (!inner || !wrapEl) return;
+    // a pinch owns the map layer's transform until the fingers lift (a re-render must not undo it);
+    // once they have, the CSS scale comes off and the committed camera is written back
+    if (gest.current) { applyGest(); return; }
+    if (inner.classList.contains('pinching')) {
+      inner.classList.remove('pinching');
+      inner.style.transformOrigin = '';
+      inner.style.removeProperty('--inv-k');
+      inner.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px)`;
+      layoutKey.current = '';
     }
+    // laid out again only when something that moves a name or a pin has changed, not on every update on the road
+    const key = [s.toFixed(4), tier, Math.round(pan.x / 16), Math.round(pan.y / 16), size.w, size.h, selParty ?? '', Math.round((mePt.x * s) / 4), Math.round((mePt.y * s) / 4), moving ? 1 : 0, train.shown.length, showOverhead ? 1 : 0, meOff ? 1 : 0,
+      visibleParties.map((p) => `${p.id}:${Math.round((p.x * s) / 4)}:${Math.round((p.y * s) / 4)}`).join(',')].join('|');
+    if (key === layoutKey.current && layoutPlaces.current === placesLayer) return;
+    layoutKey.current = key;
+    layoutPlaces.current = placesLayer;
+    const wr = wrapEl.getBoundingClientRect();
+    // undo the last pass, then measure once
+    const lblEls = [...inner.querySelectorAll<HTMLElement>('.place:not(.pl-off) .plbl')];
+    for (const el of lblEls) { el.style.translate = ''; el.style.visibility = ''; }
+    const pinEl = wrapEl.querySelector<HTMLElement>('.overhead-pin');
+    if (pinEl) pinEl.style.translate = '';
     const ir = inner.getBoundingClientRect();
     const rel = (el: Element, pad = 0): Box => { const r = el.getBoundingClientRect(); return { l: r.left - ir.left - pad, t: r.top - ir.top - pad, r: r.right - ir.left + pad, b: r.bottom - ir.top + pad }; };
-    const names = [...inner.querySelectorAll('.place:not(.pl-off) .plbl')].map((el) => rel(el, 1));
-    const marks = [...inner.querySelectorAll('.place:not(.pl-off) .pdot')].map((el) => rel(el));
+    // the stall's bubble at the edge of the screen slides back inside it
+    if (pinEl) {
+      const r = pinEl.getBoundingClientRect();
+      const dx = r.left < wr.left + 4 ? wr.left + 4 - r.left : r.right > wr.right - 4 ? wr.right - 4 - r.right : 0;
+      const dy = r.top < wr.top + 4 ? wr.top + 4 - r.top : r.bottom > wr.bottom - 4 ? wr.bottom - 4 - r.bottom : 0;
+      if (dx || dy) pinEl.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`;
+    }
+    // the screen, and the controls fixed over the map, in the map layer's own coordinates
+    const view: Box = { l: wr.left - ir.left + 4, t: wr.top - ir.top + 4, r: wr.right - ir.left - 4, b: wr.bottom - ir.top - 4 };
+    const controls = [...wrapEl.querySelectorAll('.map-tools > button, .scalebar, .find-me-pill, .world-hud, .bl-bar, .overhead-pin')].map((el) => rel(el, 3)).filter((b) => b.r > b.l);
+    const dotOf = new Map<Element, Box>();
+    inner.querySelectorAll('.place:not(.pl-off)').forEach((pl) => { const d = pl.querySelector('.pdot'); if (d) dotOf.set(pl, rel(d)); });
+    const marks = [...dotOf.values()];
+    // Town names, the most important first (where you are and are bound, then cities, ports and home, then
+    // towns): each sits under its mark, or else above it, to its right or to its left, the first place that
+    // is clear of the names already placed, the buttons over the map and the other marks. A name with no
+    // room anywhere is left out (never one of the places that matter now).
+    const items = lblEls.map((el) => { const pl = el.closest('.place'); return { el, pri: Number((pl as HTMLElement | null)?.dataset.pri ?? 3), box: rel(el, 1), dot: pl ? dotOf.get(pl) : undefined }; }).sort((a, b) => a.pri - b.pri);
+    const names: Box[] = [];
+    for (const it of items) {
+      const b = it.box, d = it.dot, bw = b.r - b.l;
+      if (b.r < view.l - 60 || b.l > view.r + 60 || b.b < view.t - 60 || b.t > view.b + 60) { names.push(b); continue; }
+      const cands: [number, number][] = [[0, 0]];
+      if (d) {
+        const midY = (d.t + d.b) / 2 - (b.t + b.b) / 2;
+        cands.push([0, d.t - 2 - b.b], [d.r + 3 - b.l, midY], [d.l - 3 - b.r, midY]);
+      }
+      const shift = ([dx, dy]: [number, number]): { x: number; y: number; box: Box } => {
+        let x = dx;
+        const l = b.l + dx, r = b.r + dx;
+        // a name at the edge of the screen slides back inside it, never cut off
+        if (l < view.l && view.l - l < bw) x += view.l - l; else if (r > view.r && r - view.r < bw) x -= r - view.r;
+        return { x, y: dy, box: { l: b.l + x, r: b.r + x, t: b.t + dy, b: b.b + dy } };
+      };
+      const tries = cands.map(shift);
+      const free = (bx: Box) => !names.some((n) => hits(bx, n)) && !controls.some((c) => hits(bx, c));
+      const at = tries.find((t) => free(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => free(t.box)) ?? (it.pri === 0 ? tries[0] : null);
+      if (!at) { it.el.style.visibility = 'hidden'; continue; }
+      if (at.x || at.y) it.el.style.translate = `${Math.round(at.x)}px ${Math.round(at.y)}px`;
+      names.push(at.box);
+    }
+    // Your medallion and the party medallions step aside (a few fixed nudges, the first that fits) from any
+    // town name, town mark or each other; a trader or pilgrim band that finds no room is hidden, raiders
+    // always stay. Your men and animals stand in a short row beside you: to the left, or to the right where
+    // the left is taken.
     const meX = mePt.x * s, meY = mePt.y * s;
-    // you: the disc sits above the spot you stand on (the mode badge at its lower right)
+    const trainEl = meRef.current?.querySelector<HTMLElement>('.me-train') ?? null;
+    const nTok = trainEl ? train.shown.length + (train.more > 0 ? 1 : 0) : 0;
     const meBox = (dx: number, dy: number): Box => ({ l: meX + dx - 22, r: meX + dx + (moving ? 32 : 22), t: meY + dy - 48, b: meY + dy - 2 });
+    const trainBox = (dx: number, dy: number, right: boolean): Box[] => !nTok ? [] : [right
+      ? { l: meX + dx + 20, r: meX + dx + 28 + nTok * 8, t: meY + dy - 27, b: meY + dy - 1 }
+      : { l: meX + dx - 28 - nTok * 8, r: meX + dx - 20, t: meY + dy - 27, b: meY + dy - 1 }];
     const ME_TRY: [number, number][] = [[0, 0], [0, -14], [-36, -4], [36, -4], [0, -30], [-48, 14], [48, 14], [0, 34]];
-    const meAt = ME_TRY.find(([dx, dy]) => !names.some((n) => hits(meBox(dx, dy), n))) ?? [0, 0];
+    let meAt: [number, number, boolean] = [0, 0, false];
+    search: for (const [dx, dy] of ME_TRY) {
+      for (const right of [false, true]) {
+        if ([meBox(dx, dy), ...trainBox(dx, dy, right)].every((bx) => !names.some((n) => hits(bx, n)))) { meAt = [dx, dy, right]; break search; }
+      }
+    }
     if (meRef.current) meRef.current.style.translate = meAt[0] || meAt[1] ? `${meAt[0]}px ${meAt[1]}px` : '';
-    const taken: Box[] = [...names, ...marks, meBox(meAt[0], meAt[1])];
+    trainEl?.classList.toggle('flip', meAt[2]);
+    const taken: Box[] = [...names, ...marks, meBox(meAt[0], meAt[1]), ...trainBox(meAt[0], meAt[1], meAt[2])];
     const rank = (p: Party) => (p.kind === 'raiders' ? (dist(p, mePt) < 22 ? 0 : 1) : p.kind === 'mercenaries' ? 2 : 3);
     const TRY: [number, number][] = [[0, 0], [0, -30], [30, 0], [-30, 0], [0, 30], [26, -26], [-26, -26], [26, 26], [-26, 26]];
     for (const p of [...visibleParties].sort((a, b) => rank(a) - rank(b))) {
@@ -1088,74 +1294,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
   });
 
-  return (
-    <div className="world" data-testid="world">
-      <div
-        className={`world-map ${z <= minZ * 1.2 ? 'overview' : ''}`}
-        ref={wrap}
-        data-testid="world-map"
-        onScroll={(e) => { e.currentTarget.scrollLeft = 0; e.currentTarget.scrollTop = 0; }}
-        onWheel={(e) => zoomTo(z * (e.deltaY < 0 ? 1.15 : 0.87))}
-        onPointerDown={(e) => {
-          pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          if (pts.current.size === 2) {
-            const [a, b] = [...pts.current.values()];
-            pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z };
-            drag.current = null;
-          } else drag.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y, moved: false };
-        }}
-        onPointerMove={(e) => {
-          // a bare hover (mouse, no button down, not dragging the map): check what's under the cursor
-          // so open water or mountains shows "can't walk there" before the tap, not just after it
-          if (e.pointerType === 'mouse' && !pts.current.has(e.pointerId)) {
-            const r = wrap.current!.getBoundingClientRect();
-            const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
-            const nearSettlement = SETTLEMENTS.some((x) => w.known.includes(x.id) && dist(x, mp) * s < 22);
-            setHoverBlocked(!nearSettlement && isBlockedPx(mp));
-            return;
-          }
-          if (!pts.current.has(e.pointerId)) return;
-          pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          if (pinch.current && pts.current.size === 2) {
-            const [a, b] = [...pts.current.values()];
-            zoomTo(pinch.current.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.d));
-          } else if (drag.current) {
-            const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
-            if (Math.abs(dx) + Math.abs(dy) > 6) {
-              drag.current.moved = true;
-              follow.current = false;
-            }
-            // a drag moves the map straight in the DOM (a GPU slide, no React render per finger move);
-            // the camera is committed once, when the finger lifts
-            if (drag.current.moved) {
-              const np = clampPan({ x: drag.current.px + dx, y: drag.current.py + dy });
-              panRef.current = np;
-              if (innerRef.current) innerRef.current.style.transform = `translate(${np.x}px, ${np.y}px)`;
-              paintRef.current(true);
-            }
-          }
-        }}
-        onPointerUp={onPointerUp}
-        onPointerLeave={() => { if (drag.current?.moved) setPan(panRef.current); drag.current = null; setHoverBlocked(false); }}
-        style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
-      >
-        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
-        <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)} data-tier={tier}>
-          <div className="daynight" style={{ background: tint(w.hour) }} />
-          {sandZones.map((c, i) => (
-            <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
-          ))}
-          {/* where a river or the canal can be crossed: a bridge, or a slow ford or ferry */}
-          {z >= NEAR_Z - 0.2 && CROSSINGS.map((c) => (
-            <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
-          ))}
-          <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
-            {split && split.behind.length > 1 && <polyline points={split.behind.map((p) => `${p.x},${p.y}`).join(' ')} className="route-trail" data-testid="route-trail" />}
-            {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}
-            {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
-            {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
-          </svg>
-          {SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => {
+  // The towns on the map: built again only when something they show changes (the zoom, what is known,
+  // where you are bound, jobs and shops), not on each of the travel loop's updates
+  const placeClick = useRef<(st: Settlement) => void>(() => {});
+  placeClick.current = (st: Settlement) => { if (w.at === st.id && !moving) setPanel(st.id); else goTo(st, st); };
+  const lockedKey = SETTLEMENTS.filter((x) => w.known.includes(x.id) && cityLocked(g, x.id)).map((x) => x.id).join(',');
+  const placesLayer = useMemo(() => SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => {
             const shown = placeShown(st), key = keyPlace(st.id);
             const visit = missionTarget !== st.id ? visits.find((v) => v.city === st.id) : undefined;
             const job = missionTarget !== st.id && !visit ? jobs.find((j) => j.target === st.id) : undefined;
@@ -1172,7 +1316,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               style={{ left: st.x * s, top: st.y * s }}
               onPointerDown={(e) => e.stopPropagation()}
               onPointerUp={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); if (w.at === st.id && !moving) setPanel(st.id); else goTo(st, st); }}
+              onClick={(e) => { e.stopPropagation(); placeClick.current(st); }}
+              data-pri={key ? 0 : venueFor(st.id) || MAJOR.includes(st.kind) ? 1 : st.kind === 'town' ? 2 : 3}
               data-testid={`place-${st.id}`}
             >
               <span className="pdot"><Icon name={kindIcon[st.kind] ?? 'pin'} /></span>
@@ -1194,7 +1339,89 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
                 : g.shops?.[st.id] && shown && <i className="pshop alone" title="Your shop" data-testid={`shop-mark-${st.id}`}><Icon name="store" /></i>}
             </button>
             );
-          })}
+          }), [s, tier, w.known, w.at, plan?.settlement?.id, moving?.dest, missionTarget, guideCity, g.jobsDone, g.reputation, g.visits, g.day, g.ranks, g.shops, lockedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the scale bar: a round number of miles that fits in the corner, clear of the zoom buttons
+  const scaleBar = (() => {
+    const per100 = milesPx(s), maxW = Math.min(120, size.w * 0.32);
+    const mi = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1].find((m) => (per100 * m) / 100 <= maxW) ?? 1;
+    return { mi, w: (per100 * mi) / 100 };
+  })();
+
+  return (
+    <div className="world" data-testid="world">
+      <div
+        className={`world-map ${z <= minZ * 1.2 ? 'overview' : ''}`}
+        ref={wrap}
+        data-testid="world-map"
+        onScroll={(e) => { e.currentTarget.scrollLeft = 0; e.currentTarget.scrollTop = 0; }}
+        onWheel={(e) => zoomTo(z * (e.deltaY < 0 ? 1.15 : 0.87))}
+        onPointerDown={(e) => {
+          pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          // a touch stops a fling where it is
+          stopFling();
+          if (pts.current.size === 2) startPinch();
+          else if (pts.current.size === 1) {
+            drag.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y, moved: false };
+            samples.current = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }];
+          }
+        }}
+        onPointerMove={(e) => {
+          // a bare hover (mouse, no button down, not dragging the map): check what's under the cursor
+          // so open water or mountains shows "can't walk there" before the tap, not just after it
+          if (e.pointerType === 'mouse' && !pts.current.has(e.pointerId)) {
+            const r = wrap.current!.getBoundingClientRect();
+            const mp = { x: (e.clientX - r.left - panRef.current.x) / s, y: (e.clientY - r.top - panRef.current.y) / s };
+            const nearSettlement = SETTLEMENTS.some((x) => w.known.includes(x.id) && dist(x, mp) * s < 22);
+            setHoverBlocked(!nearSettlement && isBlockedPx(mp));
+            return;
+          }
+          if (!pts.current.has(e.pointerId)) return;
+          pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (gest.current) movePinch();
+          else if (drag.current) {
+            const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
+            samples.current.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
+            if (samples.current.length > 12) samples.current.splice(0, samples.current.length - 12);
+            if (!drag.current.moved && Math.abs(dx) + Math.abs(dy) > 6) {
+              drag.current.moved = true;
+              // the camera lets go of the caravan while you look about (it follows again a few seconds after)
+              follow.current = false; followAt.current = 0;
+              // from where the map is now (the camera may have eased on since the finger went down), so it does not jump
+              drag.current.px = panRef.current.x - dx; drag.current.py = panRef.current.y - dy;
+              window.clearTimeout(tapTimer.current); tapTimer.current = 0;
+            }
+            // a drag moves the map straight in the DOM (a GPU slide, no React render per finger move);
+            // the camera is committed once, when the finger lifts
+            if (drag.current.moved) {
+              const np = clampPan({ x: drag.current.px + dx, y: drag.current.py + dy });
+              panRef.current = np;
+              if (innerRef.current) innerRef.current.style.transform = `translate(${np.x}px, ${np.y}px)`;
+              paintRef.current(true);
+            }
+          }
+        }}
+        onPointerUp={onPointerUp}
+        onPointerCancel={(e) => { pts.current.delete(e.pointerId); if (gest.current) { if (pts.current.size < 2) endPinch(); return; } if (drag.current?.moved) setPan(panRef.current); drag.current = null; }}
+        onPointerLeave={(e) => { if (e.pointerType !== 'mouse') return; pts.current.delete(e.pointerId); if (drag.current?.moved) setPan(panRef.current); drag.current = null; setHoverBlocked(false); }}
+        style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
+      >
+        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
+        <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)} data-tier={tier}>
+          <div className="daynight" style={{ background: tint(w.hour) }} />
+          {sandZones.map((c, i) => (
+            <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
+          ))}
+          {/* where a river or the canal can be crossed: a bridge, or a slow ford or ferry */}
+          {z >= NEAR_Z - 0.2 && CROSSINGS.map((c) => (
+            <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
+          ))}
+          <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
+            {split && split.behind.length > 1 && <polyline points={split.behind.map((p) => `${p.x},${p.y}`).join(' ')} className="route-trail" data-testid="route-trail" />}
+            {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}
+            {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
+            {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
+          </svg>
+          {placesLayer}
           {visibleParties.map((p) => {
             const mine = strength(w.party);
             const raid = p.kind === 'raiders' && !!p.strength;
@@ -1204,7 +1431,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             const threat = raid ? ((p.strength ?? 0) > mine ? 'strong' : 'weak') : '';
             const gd = partyGoods(p);
             // a small medallion on the map; its name and strength only once tapped, or close in
-            const open = selParty === p.id || z >= 3.2;
+            const open = selParty === p.id || z >= Math.min(3.2, maxZ) - 0.01;
             const name = raid ? bandName(p, g.day) : p.name;
             return (
               <span key={p.id} ref={(el) => { if (el) partyRefs.current.set(p.id, el); else partyRefs.current.delete(p.id); }} className={`party medal party-${p.kind} ${threat ? `threat-${threat}` : ''} ${hunting ? 'hunting' : ''} ${open ? 'open' : ''}`} style={{ left: p.x * s, top: p.y * s }} data-testid={`party-${p.kind}`} data-party={p.id} role="button" aria-label={raid ? `${name}, ${p.strength} strong against your ${mine}` : name} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => {
@@ -1232,7 +1459,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               </span>
             );
           })}
-          <span ref={meRef} className={`me medal ${moving && timeScale ? 'moving' : ''}`} style={{ left: (moving && live ? live.x : w.x) * s, top: (moving && live ? live.y : w.y) * s }} data-testid="me" data-x={Math.round(w.x)} data-y={Math.round(w.y)} data-mode={moving ? mode : undefined}>
+          <span ref={meRef} className={`me medal ${moving && timeScale ? 'moving' : ''}`} style={{ left: 0, top: 0, transform: `translate(${(moving && live ? live.x : w.x) * s}px, ${(moving && live ? live.y : w.y) * s}px)` }} data-testid="me" data-x={Math.round(w.x)} data-y={Math.round(w.y)} data-mode={moving ? mode : undefined}>
             {/* standing still, your men and animals wait beside you, one small token each */}
             {!moving && train.shown.length > 0 && (
               <span className="me-train" aria-hidden="true" data-testid="me-train">
@@ -1243,13 +1470,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <canvas ref={medalRef} className="me-medal" width={56} height={56} aria-hidden="true" data-testid="me-medal" />
             {/* on the move, a small engraved badge says how: train, steamer, felucca, motor car, camels, donkeys or on foot */}
             {moving && <img className="me-mode" src={modeIconUrl(mode)} alt={MODE_LABEL[mode]} title={MODE_LABEL[mode]} draggable={false} data-testid="me-mode" data-mode={mode} />}
-            {z >= 3 && <span className="pname me-name">You · {partySize(w.party)}</span>}
+            {z >= closeZ && <span className="pname me-name">You · {partySize(w.party)}</span>}
           </span>
         </div>
 
         {menStop && <MenTalk stopped onClose={() => { setMenStop(false); if (moving && !nightfall && !sleeping && !camp) setTimeScale(lastScale.current || 1); }} />}
         {showOverhead && (
-          <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 100, Math.max(100, gizaScreen.x)), top: Math.max(100, gizaScreen.y - 110) }} data-testid="overhead-pin">
+          <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 100, Math.max(100, gizaScreen.x)), top: Math.min(size.h - 100, Math.max(100, gizaScreen.y - 110)) }} data-testid="overhead-pin">
             <StallOverhead compact onOpen={() => (w.at === 'giza' ? onStall() : planTo(giza, giza))} />
             <span className="overhead-cap">{w.at === 'giza' ? 'Your stall. Tap to open it.' : 'Your stall in Giza'}</span>
           </div>
@@ -1267,7 +1494,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           <div className="bl-time" role="group" aria-label="Date and travel speed" data-testid="map-speed">
             <span className="bl-date" data-testid="bl-date"><small>{seasonOf(g.day)}</small>{dateFor(g.day).short}</span>
             {/* the dial is also the way home: a tap brings the map back to your caravan */}
-            <button type="button" className={`bl-dial ${w.hour >= 6 && w.hour < 19 ? 'day' : 'night'}`} style={{ ['--turn' as string]: `${(w.hour / 24) * 360 - 180}deg` }} onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); audio.sfx('tap'); }} aria-label={`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}. Tap to find your caravan on the map`} data-testid="find-me">
+            <button type="button" className={`bl-dial ${w.hour >= 6 && w.hour < 19 ? 'day' : 'night'}`} style={{ ['--turn' as string]: `${(w.hour / 24) * 360 - 180}deg` }} onClick={() => { follow.current = true; followAt.current = 0; stopFling(); centreOn(moving && live ? live : { x: w.x, y: w.y }); audio.sfx('tap'); }} aria-label={`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}. Tap to find your caravan on the map`} data-testid="find-me">
               <i aria-hidden="true"><Icon name={w.hour >= 6 && w.hour < 19 ? 'sun' : 'moon'} /></i>
               <b>{String(hh).padStart(2, '0')}:{String(mm).padStart(2, '0')}</b>
             </button>
@@ -1310,15 +1537,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
           </button>}
         </div>
         {meOff && (
-          <button type="button" className="find-me-pill" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={() => { follow.current = true; centreOn(mePt); audio.sfx('tap'); }} data-testid="find-me-pill">
+          <button type="button" className="find-me-pill" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={() => { follow.current = true; followAt.current = 0; stopFling(); centreOn(mePt); audio.sfx('tap'); }} data-testid="find-me-pill">
             <i style={{ transform: `rotate(${meAngle}deg)` }} aria-hidden="true">➜</i> Back to your caravan
           </button>
         )}
-        <div className="scalebar" aria-hidden="true"><i style={{ width: milesPx(s) }} /><span>100 miles</span></div>
+        <div className="scalebar" aria-hidden="true" data-testid="scalebar"><i style={{ width: scaleBar.w }} /><span>{scaleBar.mi} miles</span></div>
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
           <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
-          <button onClick={() => { follow.current = true; centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /><small className="tool-cap">You</small></button>
+          <button onClick={() => { follow.current = true; followAt.current = 0; stopFling(); centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /><small className="tool-cap">You</small></button>
           <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives" title="Objectives" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
         </div>
       </div>

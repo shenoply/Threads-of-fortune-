@@ -19,7 +19,7 @@ import { relWord } from '../../game/systems/folkTalk';
 import './folk.css';
 import './ency.css';
 
-type Kind = 'person' | 'house' | 'place' | 'rug' | 'band';
+type Kind = 'person' | 'house' | 'place' | 'rug' | 'band' | 'portrait';
 type Section = 'people' | 'houses' | 'places' | 'rugs' | 'bands';
 interface Page { kind: Kind; id: string }
 const SECTION_WORD: Record<Section, string> = { people: 'People', houses: 'Families', places: 'Towns', rugs: 'Rugs', bands: 'Bands' };
@@ -73,7 +73,7 @@ export function Encyclopedia({ start, onClose }: { start?: Page | null; onClose:
         <button className="ency-back" onClick={onClose} data-testid="ency-close">×</button>
       </header>
       <div className="ency-body">
-        {page ? <PageView p={page} go={go} /> : (
+        {page ? <PageView p={page} go={go} back={back} /> : (
           <>
             <div className="ency-tabs" role="tablist">{(Object.keys(SECTION_WORD) as Section[]).map((s) => <button key={s} className={section === s ? 'on' : ''} onClick={() => setSection(s)} data-testid={`ency-tab-${s}`}>{SECTION_WORD[s]}</button>)}</div>
             <input className="ency-search" placeholder="Search names, towns, trades" value={q} onChange={(e) => setQ(e.target.value)} data-testid="ency-search" />
@@ -219,9 +219,20 @@ function PLink({ id, go }: { id: string; go: (p: Page) => void }) {
   return <button className="ency-link" onClick={() => go({ kind: 'person', id })}>{p.name}</button>;
 }
 
-function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
+function PageView({ p, go, back }: { p: Page; go: (p: Page) => void; back: () => void }) {
   const g = useGame();
   const f = g.folk;
+  // a face at full size: the painted portrait itself, not the small list copy; a tap or Back closes it
+  if (p.kind === 'portrait') {
+    const x = person(p.id);
+    if (!x) return null;
+    return (
+      <button type="button" className="ency-portrait-big" onClick={back} aria-label={`${x.name}: tap to close`} data-testid="ency-portrait-big">
+        <FolkFace p={x} size={560} card />
+        <small>{x.name} · tap to close</small>
+      </button>
+    );
+  }
   if (p.kind === 'person') {
     const x = person(p.id);
     if (!x) return <p>Nobody by that name.</p>;
@@ -231,7 +242,7 @@ function PageView({ p, go }: { p: Page; go: (p: Page) => void }) {
     const kin: [string, string | undefined][] = [['Father', x.father], ['Mother', x.mother], [x.sex === 'f' ? 'Husband' : 'Wife', x.spouse]];
     return (
       <article className="ency-page" data-testid="ency-person">
-        <div className="ency-top person-top"><FolkFace p={x} size={140} card /><div><h2>{x.name}</h2><small>{x.title}</small><small>{ROLE_WORD[x.role]} · {ageNow(x, g.day)} years · of <button className="ency-link" onClick={() => go({ kind: 'place', id: x.home })}>{placeName(x.home)}</button></small><RelBar p={x} /></div></div>
+        <div className="ency-top person-top"><button type="button" className="ency-face-btn" onClick={() => go({ kind: 'portrait', id: x.id })} aria-label={`${x.name}: see the portrait full size`} data-testid="ency-portrait"><FolkFace p={x} size={140} card /></button><div><h2>{x.name}</h2><small>{x.title}</small><small>{ROLE_WORD[x.role]} · {ageNow(x, g.day)} years · of <button className="ency-link" onClick={() => go({ kind: 'place', id: x.home })}>{placeName(x.home)}</button></small><RelBar p={x} /></div></div>
         {(x.foreign || x.mixed) && <p className="ency-said"><b>{x.mixed ? 'Mixed family:' : 'Foreigner:'}</b> {x.mixed ?? `${x.foreign}, living in ${placeName(x.home).split(',')[0]}`}</p>}
         {x.bio && <p>{x.bio}</p>}
         {x.role === 'character' && x.talk && <p className="ency-said"><b>You will hear:</b> {typeof x.talk === 'string' ? x.talk : x.talk[0]}</p>}

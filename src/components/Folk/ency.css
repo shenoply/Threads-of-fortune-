@@ -121,3 +121,10 @@
 .ency-fakes { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.4; }
 .ency-fakes li + li { margin-top: 4px; }
 @media (max-width: 380px) { .ency-tell { grid-template-columns: 1fr; } .ency-tell dd { margin-bottom: 4px; } }
+
+/* the portrait on a person's page opens full size in the page itself (no pop-up); a tap or Back closes it */
+.ency-face-btn { padding: 0; border: 0; background: none; cursor: zoom-in; display: block; }
+.ency-portrait-big { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-out; }
+.ency-portrait-big .folk-face, .ency-portrait-big .cameo-wrap { width: min(100%, 560px) !important; height: auto !important; max-height: calc(100dvh - 190px); object-fit: contain; }
+.ency-portrait-big .cameo-wrap { aspect-ratio: 1; }
+.ency-portrait-big small { font-family: var(--body); font-size: 13.5px; color: var(--text-dim); }

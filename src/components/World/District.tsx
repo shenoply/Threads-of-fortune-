@@ -1,3 +1,4 @@
+import { Icon } from '../Icon';
 import { Loom } from '../Loom/Loom';
 import { Catalogue } from '../Wardrobe/Catalogue';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
@@ -973,7 +974,8 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
           <div className="district-title"><b>Giza</b><span>your district · tap to walk</span></div>
           <div className="map-tools district-tools">
             <button onClick={() => zoom(1.25)} aria-label="Zoom in" data-testid="district-zoom-in">+</button>
-            <button onClick={() => zoom(0.8)} aria-label="Zoom out">−</button>
+            <button onClick={() => zoom(0.8)} aria-label="Zoom out" data-testid="district-zoom-out">−</button>
+            <button className="dt-me" onClick={() => { const s0 = st.current; setCam(clampCam({ ...camRef.current, cx: s0.x, cy: s0.y })); }} aria-label="Back to you" title="Back to you" data-testid="district-recenter"><Icon name="locate" /><small className="tool-cap">You</small></button>
             <button className="dt-world" onClick={() => { save(); if (onZoomOut) onZoomOut(); else onWorld(); }} aria-label="Zoom out to the world" title="The world map" data-testid="district-world">⤢</button>
           </div>
         </div>

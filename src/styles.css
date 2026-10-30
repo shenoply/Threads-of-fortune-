@@ -3831,3 +3831,7 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .inv-treat-row .btn { flex: 0 0 auto; }
 .inv-treat > .btn { align-self: flex-start; }
 @media (max-width: 420px) { .inv-treat-row { flex-direction: column; align-items: stretch; } }
+
+/* the district plan's "You" button: the same caption as on the world map */
+.district-tools .dt-me { position: relative; display: grid; place-items: center; }
+.district-tools .dt-me svg { width: 18px; height: 18px; }

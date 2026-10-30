@@ -1,7 +1,8 @@
 // A carpet in your hands, all in one: it rolls and unrolls, spins round on the floor, tips towards
 // you, zooms and moves, all at once and at any moment, drawn on one canvas from the carpet's own
-// picture. One finger: across spins it, up or down tips it. Two fingers: pinch to zoom, move to
-// slide it. The roll bar under it rolls it up or lays it out as far as you like, whatever angle or
+// picture. One finger: across spins it, up or down tips it; zoomed in, it slides the carpet instead,
+// so you can go to a corner or the fringe. Two fingers: pinch to zoom about the point between them,
+// move to slide it, twist to turn it (or the turn button). The roll bar under it rolls it up or lays it out as far as you like, whatever angle or
 // zoom it is at; the roll button does it in one go. A double tap lays it straight again.
 // Used by the inspector and by the weaver's screen for carpets of your own.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -201,8 +202,9 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
 
   // ---- the hands ----
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const drag = useRef<{ x: number; y: number; yaw: number; pitch: number; axis?: 'x' | 'y'; lt: number; on: boolean } | null>(null);
-  const pinch = useRef<{ d: number; z: number; mx: number; my: number; px: number; py: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; yaw: number; pitch: number; px: number; py: number; axis?: 'x' | 'y' | 'pan'; lt: number; on: boolean } | null>(null);
+  // a pinch: zoom about the point between the fingers (cx, cy: the stage's centre on screen), and a twist turns it
+  const pinch = useRef<{ d: number; z: number; mx: number; my: number; px: number; py: number; cx: number; cy: number; a: number; yaw: number; twist: boolean } | null>(null);
   const lastTap = useRef(0);
   const straighten = () => { const v = V.current; v.vy = 0; v.ease = { yaw: v.rest + Math.round((v.yaw - v.rest) / (2 * Math.PI)) * 2 * Math.PI, pitch: 0, zoom: 1, px: 0, py: 0 }; };
   const release = () => {
@@ -224,12 +226,14 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
     if (pointers.current.size === 2) {
       drag.current = null;
       const [a, b] = [...pointers.current.values()];
-      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: v.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, px: v.px, py: v.py };
+      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      v.vy = 0;
+      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: v.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, px: v.px, py: v.py, cx: r.left + r.width / 2, cy: r.top + r.height / 2, a: Math.atan2(b.y - a.y, b.x - a.x), yaw: v.yaw, twist: false };
       return;
     }
     if (pointers.current.size > 2 || pinch.current) return;
     v.vy = 0;
-    drag.current = { x: e.clientX, y: e.clientY, yaw: v.yaw, pitch: v.pitch, lt: e.timeStamp, on: false };
+    drag.current = { x: e.clientX, y: e.clientY, yaw: v.yaw, pitch: v.pitch, px: v.px, py: v.py, lt: e.timeStamp, on: false };
   };
   const onMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
@@ -239,7 +243,14 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
     if (pc && pointers.current.size >= 2) {
       const [a, b] = [...pointers.current.values()];
       v.zoom = Math.max(ZMIN, Math.min(ZMAX, pc.z * (Math.hypot(a.x - b.x, a.y - b.y) / pc.d)));
-      v.px = pc.px + ((a.x + b.x) / 2 - pc.mx); v.py = pc.py + ((a.y + b.y) / 2 - pc.my);
+      // the spot under the fingers stays under them as it grows or shrinks
+      const k = v.zoom / pc.z, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      v.px = mx - pc.cx - (pc.mx - pc.cx - pc.px) * k; v.py = my - pc.cy - (pc.my - pc.cy - pc.py) * k;
+      // a twist of the two fingers turns it, once it is clearly meant (a pinch alone never turns it)
+      let da = Math.atan2(b.y - a.y, b.x - a.x) - pc.a;
+      da = Math.atan2(Math.sin(da), Math.cos(da));
+      if (!pc.twist && Math.abs(da) > 0.26) pc.twist = true;
+      if (pc.twist) v.yaw = pc.yaw + da;
       v.dirty = true; used();
       return;
     }
@@ -247,9 +258,13 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
     if (!d) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (!d.on && Math.hypot(dx, dy) < 8) return;
-    if (!d.on) { d.on = true; d.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y'; used(); }
+    // zoomed in, one finger slides the carpet under the glass; the turn button or a two-finger twist turns it
+    if (!d.on) { d.on = true; d.axis = v.zoom > 1.05 ? 'pan' : Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y'; used(); }
     const dt = Math.max(1, e.timeStamp - d.lt) / 1000;
-    if (d.axis === 'x') { const ny = d.yaw + dx * 0.009; v.vy = 0.6 * v.vy + 0.4 * ((ny - v.yaw) / dt); v.yaw = ny; }
+    if (d.axis === 'pan') {
+      const c = cv.current, lim = c ? Math.max(c.clientWidth, c.clientHeight) * v.zoom * 0.6 : Infinity;
+      v.px = Math.max(-lim, Math.min(lim, d.px + dx)); v.py = Math.max(-lim, Math.min(lim, d.py + dy));
+    } else if (d.axis === 'x') { const ny = d.yaw + dx * 0.009; v.vy = 0.6 * v.vy + 0.4 * ((ny - v.yaw) / dt); v.yaw = ny; }
     else v.pitch = Math.max(-0.9, Math.min(0.9, d.pitch + dy * 0.007));
     d.lt = e.timeStamp;
     v.dirty = true;
@@ -281,7 +296,7 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
         {hint && (
           <div className="cv-hint" aria-hidden="true">
             <span className="ih-track"><i className="ih-finger" /></span>
-            <small>Drag to spin or tip · pinch to zoom · roll it with the bar</small>
+            <small>Drag to spin or tip · pinch to zoom, then drag to move · twist to turn · roll it with the bar</small>
           </div>
         )}
         <div className="insp-tools">
