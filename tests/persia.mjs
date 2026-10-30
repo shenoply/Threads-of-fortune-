@@ -128,6 +128,12 @@ const cash0 = (await state()).cash;
 await p.click('[data-testid=border-full]').catch(() => p.click('[data-testid=border-none]'));
 await p.waitForTimeout(400);
 await p.click('[data-testid=border-continue]').catch(() => {}); await p.waitForTimeout(600);
+// the post stands on the road: the caravan goes on from it to Kermanshah (a band in the passes may stop it)
+for (let i = 0; i < 160 && (await state()).world.at !== 'kermanshah'; i++) {
+  for (const id of ['amb-quick', 'amb-fight', 'clash-continue', 'leader-bounty', 'encounter-continue', 'road-flash-act', 'night-march', 'road-ev-ok', 'day-summary-ok']) if (await has(id)) await p.click(`[data-testid=${id}]`, { timeout: 2000 }).catch(() => {});
+  if (await has('speed-4')) await p.click('[data-testid=speed-4]', { timeout: 2000 }).catch(() => {});
+  await p.waitForTimeout(500);
+}
 const s3 = await state();
 ok(s3.world.at === 'kermanshah', `in Kermanshah (${s3.world.at}, ${s3.inventory.filter((i) => !i.stored).length} rugs carried)`);
 ok(s3.journal.some((j) => /Crossed into Persia at Persian post at Qasr-i Shirin|Crossed into Persia/.test(j.text)), 'journal: crossed into Persia');
@@ -152,7 +158,7 @@ ok(/Krans and tomans/.test(money[0]) && /tomans/.test(money[1]), 'money in krans
 
 // an older save (23) migrates: the road on the map, the fog grown, no visa
 await edit(`s.world.known = s.world.known.filter((id) => !['khanaqin','kermanshah','hamadan','tehran','tabriz','kashan','isfahan','kerman'].includes(id));
-  s.world.fog = '1'.repeat(177 * 118); s.world.at = 'baghdad'; s.world.x = 823.9; s.world.y = 266.2; s.world.parties = []; delete s.persianVisa; delete s.shops; delete s.border; s.lastTown = 'baghdad';`);
+  s.world.fog = '1'.repeat(177 * 118); s.world.at = 'baghdad'; s.world.x = 823.9; s.world.y = 266.2; s.world.parties = []; delete s.persianVisa; delete s.shops; delete s.border; delete s.journey; s.lastTown = 'baghdad';`);
 await p.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k)); d.version = 23; localStorage.setItem(k, JSON.stringify(d)); }, KEY);
 await p.reload(); await p.waitForTimeout(500);
 if (await has('continue')) await p.click('[data-testid=continue]');
