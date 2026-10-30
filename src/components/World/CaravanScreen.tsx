@@ -7,6 +7,7 @@ import { speedInfo, strength, foodDaysLeft, animalCount, troopCount, wages, dail
 import { BREEDS } from '../../data/animals';
 import { milesPx } from '../../game/systems/mapRender';
 import { CaravanRoster, TownSupplies } from './CaravanPanels';
+import { CaravanHave, type HaveKind } from './CaravanHave';
 import { OwnCarRow } from '../Cars/MotorGarage';
 import { settlementById } from '../../game/systems/world';
 import type { Target } from './Campaign';
@@ -18,6 +19,7 @@ export const milesPerDay = (pxPerDay: number) => Math.round((pxPerDay * 100) / m
 export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
   const g = useGame();
   const [note, setNote] = useState('');
+  const [have, setHave] = useState<HaveKind | null>(null);
   const p = g.world.party;
   const sp = speedInfo(p, g.inventory);
   const food = foodDaysLeft(p);
@@ -45,13 +47,14 @@ export function CaravanScreen({ onGo }: { onGo: (t: Target) => void }) {
       </div></div>
       <div className="cv-tiles">
         {tiles.map((t) => (
-          <button key={t.label} className={`cv-tile ${t.warn ? 'warn' : ''}`} onClick={() => jump(t.to)} data-testid={`cv-tile-${t.label.toLowerCase()}`}>
+          <button key={t.label} className={`cv-tile ${t.warn ? 'warn' : ''}${have === t.label ? ' on' : ''}`} onClick={() => setHave((h) => (h === t.label ? null : t.label as HaveKind))} aria-expanded={have === t.label} data-testid={`cv-tile-${t.label.toLowerCase()}`}>
             <Icon name={t.icon} />
             <small>{t.label}</small>
             <b>{t.value}{t.max !== undefined && <small className="cv-max"> / {t.max}</small>}</b>
           </button>
         ))}
       </div>
+      {have && <CaravanHave kind={have} onMore={() => jump(tiles.find((t) => t.label === have)?.to ?? 'cv-men')} />}
       {/* your men first: who walks with you matters more than the shop below */}
       <CaravanRoster />
       <OwnCarRow />
