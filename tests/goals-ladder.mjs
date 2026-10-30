@@ -121,7 +121,7 @@ check(r.allDone === 7, 'all seven goals done');
 // the notice: no modal, gone by itself
 const modals = () => p.locator('.overlay, [aria-modal=true]').count();
 const m0 = await modals();
-await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts'))); m.useGame.setState({ milestoneNews: 'ms-corner' }); });
+await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts'))); /* the teleports to Jerusalem and back above left a frontier card pending, and notices wait for cards */ m.useGame.setState({ milestoneNews: 'ms-corner', border: undefined, lastTown: 'giza' }); });
 await p.waitForTimeout(400);
 check((await p.locator('[data-testid=milestone-notice]').count()) === 1, 'the notice shows');
 check((await modals()) === m0 && (await p.locator('.overlay [data-testid=milestone-notice]').count()) === 0, 'no modal with it');
