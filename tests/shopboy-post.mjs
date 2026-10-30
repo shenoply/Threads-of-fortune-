@@ -133,7 +133,7 @@ try {
   // a letter: Cohen writes before he calls
   let letter = null;
   for (let i = 0; i < 8 && !letter; i++) {
-    letter = await run(`const g = () => m.useGame.getState(); if (g().world.at !== 'giza') g().ferry('giza'); m.useGame.setState({ totalSales: 6, cohen: undefined }); g().endDay(); return (g().post?.letters ?? []).find((l) => l.from.startsWith('Cohen') && l.day <= g().day) ?? null;`);
+    letter = await run(`const i = a; const g = () => m.useGame.getState(); if (g().world.at !== 'giza') g().ferry('giza'); m.useGame.setState({ totalSales: 6, cohen: undefined, ...(i === 0 && g().post ? { post: { ...g().post, cohenCall: undefined } } : {}) }); g().endDay(); return (g().post?.letters ?? []).find((l) => l.from.startsWith('Cohen') && l.day <= g().day) ?? null;`, i);
   }
   ok(!!letter, 'Cohen\'s letter arrived', letter?.body);
   await p.waitForTimeout(500);
