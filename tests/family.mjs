@@ -171,11 +171,11 @@ try {
   await p.waitForTimeout(400);
   await p.locator('[data-testid=household]').scrollIntoViewIfNeeded().catch(() => {});
   const ui = await p.evaluate(() => ({
-    spouse: !!document.querySelector('[data-testid=hh-spouse]'), initial: document.querySelector('[data-testid=hh-spouse] .hh-pt b')?.textContent,
+    spouse: !!document.querySelector('[data-testid=hh-spouse]'), sil: !!document.querySelector('[data-testid=hh-spouse] .hh-pt .hh-sil'),
     kids: document.querySelectorAll('[data-testid^=child-]').length, nameBtns: document.querySelectorAll('[data-testid^=name-cx-]').length,
     w: document.documentElement.scrollWidth,
   }));
-  ok(ui.spouse && ui.initial === 'N' && ui.kids === 2 && ui.nameBtns === 4, 'the fold shows her framed initial, both children, and names to choose for the baby', JSON.stringify(ui));
+  ok(ui.spouse && ui.sil && ui.kids === 2 && ui.nameBtns === 4, 'the fold shows her framed portrait (silhouette under it), both children, and names to choose for the baby', JSON.stringify(ui));
   ok(ui.w <= 412, 'no sideways scroll on the phone', ui.w);
   await p.locator('[data-testid=name-cx-Zeinab]').click();
   await p.waitForTimeout(300);
