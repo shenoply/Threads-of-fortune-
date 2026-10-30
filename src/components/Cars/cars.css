@@ -1,7 +1,7 @@
 /* Motor cars: the turntable, the garage list and your own car's row. */
 .car-turn { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin: 4px 0 8px; }
 .car-turn-stage {
-  position: relative; aspect-ratio: 16 / 9; width: 100%; border: 1px solid var(--quiet-line, rgba(234, 219, 189, .2));
+  position: relative; aspect-ratio: 1 / 1; max-height: 70vh; width: 100%; border: 1px solid var(--quiet-line, rgba(234, 219, 189, .2));
   border-radius: 4px; background: radial-gradient(ellipse at 50% 80%, #2a1e13 0%, #120c07 75%); overflow: hidden;
   touch-action: pan-y; cursor: grab; user-select: none; outline: none;
 }
