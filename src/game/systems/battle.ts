@@ -425,6 +425,21 @@ export function forecast(o: Parameters<typeof startBattle>[0], runs = 24): { pct
   return { pct, deaths, word, cost };
 }
 
+/** What the forecast rests on, in a line the player can check against it: the men who will actually take
+ *  the field on each side, how many carry rifles, how many ride, and how hard they hit hand to hand. */
+export function forecastWhy(o: Parameters<typeof startBattle>[0]): string {
+  const b = startBattle(o);
+  const side = (n: 0 | 1) => {
+    const ms = b.men.filter((m) => m.side === n);
+    const melee = ms.reduce((a, m) => a + m.melee * m.hp, 0);
+    return { n: ms.length, rifles: ms.filter((m) => m.rifle).length, riders: ms.filter((m) => m.mounted).length, melee };
+  };
+  const a = side(0), e = side(1);
+  const part = (x: typeof a) => `${x.n} ${x.n === 1 ? 'man' : 'men'}${x.rifles ? `, ${x.rifles} with rifles` : ', no rifles'}${x.riders ? `, ${x.riders} mounted` : ''}`;
+  const close = a.melee > e.melee * 1.3 ? 'You are stronger hand to hand.' : e.melee > a.melee * 1.3 ? 'They are stronger hand to hand.' : 'Even hand to hand.';
+  return `You: ${part(a)}. Them: ${part(e)}. ${close}`;
+}
+
 /** Who fell on your side, by troop: the dead are lost; the wounded mend if you hold the field. */
 export function losses(b: Battle) {
   const won = b.over === 'run' || b.over === 'yield' || b.over === 'withdraw';

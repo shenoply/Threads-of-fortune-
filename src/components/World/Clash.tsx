@@ -405,12 +405,12 @@ function Fight({ info, setup, onEnd }: { info: ClashInfo; setup: Parameters<type
         <div className="clash-bar cb-them" title="Their nerve"><span>Their nerve · {v.downN} down</span><i><u style={{ width: `${Math.min(100, v.them)}%` }} /></i><em data-testid="morale-them">{v.them}</em></div>
       </div>
       <div className="clash-field fb-field">
-        <div className={`fb-shake ${shout ? 'go' : ''}`} key={shout?.k ?? 0}><FieldCanvas battle={bRef} bandId={info.bandId} field={info.field} camels={info.camels} wall={setup.ground === 'camels'} selected="none" onTap={() => {}} frame={frame} /></div>
+        <div className={`fb-shake ${shout ? 'go' : ''}`} key={`shake-${shout?.k ?? 0}`}><FieldCanvas battle={bRef} bandId={info.bandId} field={info.field} camels={info.camels} wall={setup.ground === 'camels'} selected="none" onTap={() => {}} frame={frame} /></div>
         <ol className="fb-feed" data-testid="clash-feed">
           {v.feed.map((f, i) => <li key={`${f.t}-${i}`} className={`${f.side === 0 ? 'mine' : 'theirs'}${f.big ? ' big' : ''}`} style={{ opacity: Math.max(0.25, 1 - (v.t - f.t) / 9) }}>{f.text}</li>)}
         </ol>
         {!v.over && !duel && !moment && <p className={`fb-coach ${v.perfect && v.loaded && !v.charging ? 'now' : ''}`} data-testid="clash-coach">{coach(v, canDuel)}</p>}
-        {shout && <div key={shout.k} className={`fb-shout ${shout.perfect ? 'perfect' : ''}`}>{shout.text}</div>}
+        {shout && <div key={`shout-${shout.k}`} className={`fb-shout ${shout.perfect ? 'perfect' : ''}`}>{shout.text}</div>}
         {paused && !v.over && <div className="fb-paused">Paused</div>}
         {moment && !v.over && (() => { const c = choicesFor(moment); return (
           <div className="fb-moment" data-testid="fight-moment" data-moment={moment}>

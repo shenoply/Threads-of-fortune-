@@ -71,7 +71,7 @@ export function startChase(s: ChaseSetup): ChaseState {
   if (s.mode === 'pursue' && s.leader) runners.unshift({ name: s.leader, pace: 1.12, gap: 34, state: 'running', leader: true });
   return {
     mode: s.mode, t: 0, limit: s.mode === 'pursue' ? 14 : 16, wind: 100, mine: s.mine, theirs: s.theirs, runners,
-    lead: s.mode === 'flee' ? 34 : 0, hands: Math.max(1, (s.riders ?? 0) + 1), dropped: 0, overloaded: !!s.overloaded,
+    lead: s.mode === 'flee' ? 22 : 0, hands: Math.max(1, (s.riders ?? 0) + 1), dropped: 0, overloaded: !!s.overloaded,
     log: [{ t: 0, kind: 'note', text: s.mode === 'pursue' ? 'They scatter for the broken ground. Hold to ride them down.' : `${n} ${n === 1 ? 'rider comes' : 'riders come'} after you. Hold to drive the animals on.` }],
     seed: s.seed, tick: 0,
   };

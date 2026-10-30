@@ -62,7 +62,7 @@ export function syncMen(men: NamedMan[], troops: Record<string, number>, day: nu
   for (const [kind, list] of byKind) {
     const want = troops[kind] ?? 0;
     if (list.length > want) {
-      const drop = new Set([...list].sort((a, b) => b.joined - a.joined || a.fights - b.fights).slice(0, list.length - want).map((m) => m.id));
+      const drop = new Set([...list].sort((a, b) => (a.by ? 1 : 0) - (b.by ? 1 : 0) || b.joined - a.joined || a.fights - b.fights).slice(0, list.length - want).map((m) => m.id));
       out = out.filter((m) => !drop.has(m.id)); changed = true;
     }
   }
@@ -77,6 +77,9 @@ export function syncMen(men: NamedMan[], troops: Record<string, number>, day: nu
   }
   return changed ? out : men;
 }
+
+/** the man who goes home first if one of this kind is let go: the newest, never one the men have named */
+export const nextToGo = (men: NamedMan[], kind: string) => [...men.filter((m) => m.kind === kind)].sort((a, b) => (a.by ? 1 : 0) - (b.by ? 1 : 0) || b.joined - a.joined || a.fights - b.fights)[0];
 
 /** the men killed in a fight, chosen from those of each kind (the green and the unlucky first) */
 export function killMen(men: NamedMan[], lost: Record<string, number>, seed: string): { men: NamedMan[]; fallen: NamedMan[] } {

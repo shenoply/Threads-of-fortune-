@@ -2260,7 +2260,7 @@ export const useGame = create<GameState & Actions>()(
             // what they leave behind
             // their purse: what they have taken off others, richer the further out and the better armed the band
             const bandMult = /smuggler/.test(threat?.id ?? '') ? 2.5 : /zagros/.test(threat?.id ?? '') ? 2 : /raiders/.test(threat?.id ?? '') ? 1.8 : /thieves/.test(threat?.id ?? '') ? 1.2 : 1;
-            out.cash = Math.round((40 + size * 22) * bandMult * (full ? 1.5 : thin ? 0.5 : 1));
+            out.cash = Math.round((100 + size * 70) * bandMult * (full ? 1.5 : thin ? 0.5 : 1));
             const mount = threat?.id === 'sinai-transjordan-desert-raiders' ? 'bishari' : threat?.id === 'iraq-border-smuggler-brigands' ? 'maghrabi' : 'baladi_d';
             const mountedBand = /raiders|smuggler/.test(threat?.id ?? '');
             const room = Math.max(0, animalCap({ ...s.world.party, troops }) - animalCount(s.world.party));
@@ -5283,7 +5283,14 @@ const syncRoster = (s: GameState) => {
   if (!s.world?.party?.troops) return;
   const c = combatOf(s);
   const men = syncMen(c.men ?? [], s.world.party.troops, s.day);
-  if (men !== c.men) useGame.setState({ combat: { ...c, men } });
+  if (men === c.men) return;
+  // a man let go leaves the roster by name; if he was your sergeant, the post is empty until another earns it
+  const gone = (c.men ?? []).filter((m) => !men.some((x) => x.id === m.id));
+  const sgtGone = !!c.sergeant?.manId && gone.some((m) => m.id === c.sergeant!.manId);
+  useGame.setState({
+    combat: { ...c, men, ...(sgtGone ? { sergeant: undefined } : {}) },
+    ...(gone.length ? { journal: [...s.journal, { day: s.day, text: `${gone.map((m) => m.name).join(', ')} ${gone.length === 1 ? 'takes his' : 'take their'} pay and ${gone.length === 1 ? 'goes' : 'go'} home.${sgtGone ? ' You have no sergeant now.' : ''}`, kind: 'road' as const }] } : {}),
+  });
 };
 syncRoster(useGame.getState());
 useGame.subscribe((s, prev) => { if (s.world?.party?.troops !== prev?.world?.party?.troops || !s.combat?.men) syncRoster(s); });

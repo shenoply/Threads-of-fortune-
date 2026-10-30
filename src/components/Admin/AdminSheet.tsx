@@ -147,14 +147,14 @@ function roadFight(ratio: number, size: number, wanted = false): { band: string;
   const parties = s.world.parties.map((p) => (p.id === band.id ? { ...p, x: me.x + 3, y: me.y + 2, cooldownUntil: 0, size, strength: Math.max(2, Math.round(mine * ratio)) } : p));
   set({ journey: undefined, encounter: null, dayOver: false, condition: { ...(s.condition ?? { fatigue: 0, dependence: 0 }), fatigue: 0, fed: 100, water: 100 } as S['condition'],
     world: { ...s.world, at: null, ...me, hour: 9, parties, party: { ...s.world.party, troops, food: Math.max(s.world.party.food ?? 0, 40) } } } as Partial<S>);
-  let text = `${band.id}: ${size} men, strength ${Math.max(2, Math.round(mine * ratio))} against your ${mine}`;
+  let text = `${band.name}: ${size} men, strength ${Math.max(2, Math.round(mine * ratio))} against your ${mine}`;
   if (wanted) {
     const lead = leaderOf(S(), band.id);
     if (lead) {
       const c0 = combatOf(S());
       const w = { ...lead, status: 'free' as const, seen: true, robbed: S().day - 1, bounty: lead.bounty + 50 };
       set({ combat: { ...c0, leaders: { ...c0.leaders, [band.id]: w } } });
-      text = `${w.name} (wanted, robbed you yesterday, bounty ${fmt(w.bounty)}) with ${size} men`;
+      text = `${w.name} (wanted, bounty ${fmt(w.bounty)}) with ${size} men`;
     }
   }
   return { band: band.id, text };

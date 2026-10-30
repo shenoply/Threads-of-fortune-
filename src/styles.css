@@ -1639,6 +1639,7 @@ table.ledger .neg { color: var(--bad); }
 .amb-text{font-size:17px;line-height:1.45;color:#f3e2c4;margin:4px 0}
 .amb-opts{display:grid;gap:8px}
 .amb-opts.row{grid-template-columns:repeat(3,1fr)}
+.amb-why{font-size:14px;line-height:1.35;margin:0 0 8px;opacity:.85}
 .amb-opts .btn{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;font-size:16px}
 .amb-opts .btn small{font-size:12px;font-weight:400;opacity:.85}
 .amb-log{min-height:96px;padding:10px 12px;border-radius:10px;background:#0d0804cc;border:1px solid #5a3b20}

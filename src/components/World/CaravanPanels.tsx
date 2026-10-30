@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { nextToGo } from '../../game/systems/men';
 import { fmt } from '../../game/economy/money';
 import { localMoney } from '../../game/economy/currency';
 import { useGame, combatOf } from '../../game/state/store';
@@ -202,7 +203,7 @@ export function CaravanRoster() {
             <div className="mkt-row" key={id}>
               <img className="troop-pic small tappable" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
               <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name : TROOPS[id].plural}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each{PROMOTE[id] ? ` · road experience ${Math.floor(combatOf(g).xp[id] ?? 0)} of ${PROMOTE[id].xp}: then one becomes a ${TROOPS[PROMOTE[id].to].name.replace(/^Bedouin c/, 'Bedouin c').toLowerCase().replace('bedouin', 'Bedouin')}` : ''}{id === 'veteran' && combatOf(g).sergeant ? ` · Sergeant ${combatOf(g).sergeant!.name} leads them` : ''}</small></span>
-              <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>Send one home</button>
+              <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>{(() => { const m = nextToGo(g.combat?.men ?? [], id); return m ? `Send ${m.name.split(' ')[0]} home` : 'Send one home'; })()}</button>
             </div>
           ))}
         </div>

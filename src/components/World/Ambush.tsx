@@ -13,7 +13,7 @@ import { audio } from '../../game/audio/engine';
 import { buzz } from '../../game/feel';
 import { BATTLE_ART, fieldFor } from './BattleField';
 import { Clash, setupOf, type ClashEnd, type ClashInfo } from './Clash';
-import { forecast, simulate, losses as battleLosses } from '../../game/systems/battle';
+import { forecast, forecastWhy, simulate, losses as battleLosses } from '../../game/systems/battle';
 import { PRISONER_BOUNTY, ransomFor } from '../../game/systems/combat';
 import { lookFor } from '../../game/heroLook';
 import { groundsAt, isWin, type GroundId } from '../../game/systems/combat';
@@ -51,7 +51,9 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const theirs = party.strength ?? 8;
   const size = party.size ?? 4;
   const guide = Object.entries(g.world.party.troops).some(([id, n]) => (n ?? 0) > 0 && (id === 'desertcaptain' || id === 'bedouin')) ? 1 : 0;
-  const talkChance = Math.min(0.9, 0.35 + guide * 0.3 + Math.min(0.2, (g.skills?.speech ?? 0) / 500) + (rebels ? 0.2 : 0) + (g.cash < 20 && !g.inventory.some((i) => !i.stored) ? 0.25 : 0)); // a man with nothing to take is easier to wave through
+  // a band listens to a strong caravan and laughs at a weak one
+  const force = mine >= theirs * 1.5 ? 0.2 : mine >= theirs ? 0.1 : mine * 2 < theirs ? -0.2 : -0.08;
+  const talkChance = Math.max(0.08, Math.min(0.9, 0.35 + force + guide * 0.3 + Math.min(0.2, (g.skills?.speech ?? 0) / 500) + (rebels ? 0.2 : 0) + (g.cash < 20 && !g.inventory.some((i) => !i.stored) ? 0.25 : 0))); // a man with nothing to take is easier to wave through
   const ratio = theirs / Math.max(1, mine);
   // your name in their book (robbed once with nothing to pay): the price is doubled until you pay in full
   const marked = (g.banditMark ?? 0) > 0;
@@ -156,12 +158,13 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       mySide: mySide.map((u) => ({ id: u.id, n: u.n, start: u.start })), troops: { ...g.world.party.troops }, party: g.world.party,
       rifles, mounted,
       // a big band takes more when it wins: loads by its size, and a share of the purse
-      stakes: { loads: Math.max(1, Math.min(carried.length || 1, size >= 12 ? 3 : size >= 7 ? 2 : 1)), cash: Math.round(g.cash * (size >= 12 ? 0.35 : 0.22)) },
+      stakes: { loads: Math.max(1, Math.min(carried.length || 1, size >= 12 ? 3 : size >= 7 ? 2 : 1)), cash: Math.round(g.cash * (size >= 12 ? 0.25 : 0.15)) },
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // one honest forecast, from the same battle the field runs: never certain, and what it usually costs
   const fc = useMemo(() => (rebels ? null : forecast(setupOf(clashInfo))), [clashInfo, rebels]);
   const winPct = fc?.pct ?? null;
+  const fcWhy = useMemo(() => (rebels ? '' : forecastWhy(setupOf(clashInfo))), [clashInfo, rebels]);
   const [clashSpoils, setClashSpoils] = useState<ClashSpoils | null>(null);
   // ---- the chase (Chase.tsx, systems/chase.ts): running from them, or riding after a beaten band ----
   const [chase, setChase] = useState<ChaseSetup | null>(null);
@@ -336,6 +339,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         {stage === 'standoff' && (
           <>
             <p className="amb-text">{text}</p>
+            {fcWhy && <p className="amb-why" data-testid="amb-why">{fcWhy}</p>}
             <div className="amb-opts">
               <button className="btn" onClick={() => { if (Math.random() < talkChance) settle({ rep: 1, theyLeave: true, text: lines.talkOk }); else { setText(lines.talkBad); setStage('demand'); } }} data-testid="amb-talk"><Icon name="talk" /> Talk your way through <small>{Math.round(talkChance * 100)}%{guide ? ', your guide helps' : ''}</small></button>
               {token && <button className="btn primary" onClick={() => settle({ theyLeave: true, text: 'You hold up the chief\'s knotted cord. They look at it, look at each other, and ride off without a word.' })} data-testid="amb-token"><Icon name="shield" /> Show the chief's cord <small>they will let you pass</small></button>}
@@ -353,6 +357,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
         {stage === 'demand' && (
           <>
             <p className="amb-text">{text} {lines.demand}</p>
+            {fcWhy && <p className="amb-why" data-testid="amb-why">{fcWhy}</p>}
             <div className="amb-opts">
               {short
                 ? <button className="btn" onClick={payInKind} data-testid="amb-pay"><Icon name="coin" /> Let them take what you have <small>{payLabel}; something else will have to do</small></button>
