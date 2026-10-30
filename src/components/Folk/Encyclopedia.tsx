@@ -41,7 +41,12 @@ const houseCmp = (a: House, b: House) => {
   return RANKS.indexOf(a.rank) - RANKS.indexOf(b.rank) || HEAD_ORDER.indexOf(w.people[a.head]?.role ?? 'kin') - HEAD_ORDER.indexOf(w.people[b.head]?.role ?? 'kin') || b.members.length - a.members.length || a.name.localeCompare(b.name);
 };
 /** the houses of a town, highest standing first */
-const housesOfTown = (city: string) => Object.values(world().houses).filter((h) => h.home === city).sort(houseCmp);
+const townCache = new Map<string, House[]>();
+const housesOfTown = (city: string) => {
+  let l = townCache.get(city);
+  if (!l) { l = Object.values(world().houses).filter((h) => h.home === city).sort(houseCmp); townCache.set(city, l); queueMicrotask(() => townCache.delete(city)); }
+  return l;
+};
 /** "2nd of 5 houses in Cairo" */
 const placeInTown = (h: House) => { const all = housesOfTown(h.home); return { n: all.findIndex((x) => x.id === h.id) + 1, of: all.length }; };
 /** where a person stands in the family: Head of the house, Wife, Eldest son... */
@@ -140,7 +145,7 @@ const PAGE = 40;
 const firstName = (x: Person) => { const n = x.name.replace(/^the late\s+/i, '').replace(/^(Ustaz|Ustadh|Sitt|Dr\.?|Khawaga)\s+(?=\S)/, '').split(' '); return /^(Abu|Umm|Abd|Hajj|Haj|Sheikh|Mirza|Signora)$/.test(n[0]) && n[1] ? `${n[0]} ${n[1]}` : n[0]; };
 /** one person as a portrait card: the face large, the name, what they are, their family's standing */
 function PersonCard({ p, go, tag, label }: { p: Person; go: (p: Page) => void; tag?: string; label?: string }) {
-  const g = useGame();
+  const g = { day: useGame((s) => s.day) };
   const h = p.house ? world().houses[p.house] : undefined;
   return (
     <button className={`ency-card${h ? ` rk-edge-${h.rank}` : ''}`} onClick={() => go({ kind: 'person', id: p.id })} data-testid={`ency-row-${p.id}`}>
@@ -205,7 +210,7 @@ function List({ section, q, go, town, setTown }: { section: Section; q: string; 
 
 /** a relation as a small portrait with its name under it */
 function KinChip({ p, label, go }: { p: Person; label: string; go: (p: Page) => void }) {
-  const g = useGame();
+  const g = { day: useGame((s) => s.day) };
   return (
     <button className="ency-kin-chip" onClick={() => go({ kind: 'person', id: p.id })}>
       <FolkFace p={p} size={72} card />
@@ -327,7 +332,7 @@ function PageView({ p, go, back }: { p: Page; go: (p: Page) => void; back: () =>
 
 /** a family tree, from the head down: the head, the wife, then the children eldest first */
 function Tree({ head, house, go }: { head: Person; house: House; go: (p: Page) => void }) {
-  const g = useGame();
+  const g = { day: useGame((s) => s.day) };
   const row = (x: Person, label: string, big = false) => (
     <button key={x.id} className={`ency-node${big ? ' big' : ''}`} onClick={() => go({ kind: 'person', id: x.id })} data-testid={`ency-tree-${x.id}`}>
       <FolkFace p={x} size={big ? 120 : 92} card />
