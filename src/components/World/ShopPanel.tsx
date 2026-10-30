@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useGame, keptBack } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { RUGS } from '../../data/rugs';
-import { SHOP_CITIES, AGENTS, RASHIDS_MAN, honestyWord, skillWord, wageWord } from '../../data/shops';
-import { onWall, shopPrice } from '../../game/systems/shops';
+import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_DAYS, honestyWord, skillWord, wageWord } from '../../data/shops';
+import { onWall, shopPrice, railFee, weekAccount } from '../../game/systems/shops';
 import { settlementById } from '../../game/systems/world';
 import { UPGRADES } from '../../data/suppliers';
 import { dateFor } from '../../game/economy/economy';
@@ -32,6 +32,12 @@ export function ShopPanel({ sid, onClose }: { sid: string; onClose: () => void }
   const candidates = [...(sid === 'alexandria' && !sh?.noNahhas ? [RASHIDS_MAN] : []), ...(AGENTS[sid] ?? [])].filter((a) => a.id !== sh?.agent?.id);
   const wall = onWall(sh, g.day);
   const coming = (sh?.stock ?? []).filter((r) => (r.arrives ?? 0) > g.day);
+  // rugs kept at the Giza stall, to send here by rail as freight (one wire for the lot)
+  const atStall = g.inventory.filter((i) => i.stored && !i.restoringUntil && !keptBack(g, i));
+  const here = g.world.at ?? 'giza';
+  const [pick, setPick] = useState<string[]>([]);
+  const chosen = pick.filter((u) => atStall.some((r) => r.uid === u));
+  const egypt = st.region === 'Egypt';
   return (
     <div className="overlay" onClick={onClose}>
       <div className="modal-card big-card shop-card" onClick={(e) => e.stopPropagation()} data-testid="shop-panel">
@@ -63,8 +69,9 @@ export function ShopPanel({ sid, onClose }: { sid: string; onClose: () => void }
                   <span><b>{sh.agent.name}</b><small>{skillWord(sh.agent.skill)} · {wageWord(sh.agent)}{sh.last ? ` · last week: ${sh.last.sold} sold, ${fmt(sh.last.sent)} sent` : ''}</small></span>
                   <button className="btn small" onClick={() => say(g.checkBooks(sid))} data-testid="shop-books">Look over his book</button>
                 </div>
+                {sh.last && <p className="dim small" data-testid="shop-week">Week to {dateFor(sh.last.day).short}: {weekAccount(sh.last)}</p>}
                 <div className="mkt-row">
-                  <span><small>Sent you so far: {fmt(sh.takings ?? 0)}</small></span>
+                  <span><small>Sent you so far: {fmt(sh.takings ?? 0)}{sh.wages ? `, less ${fmt(sh.wages)} in retainers` : ''}</small></span>
                   <button className="btn small" onClick={() => say(g.dismissAgent(sid))} data-testid="shop-dismiss">Let him go</button>
                 </div>
               </div>
@@ -99,13 +106,34 @@ export function ShopPanel({ sid, onClose }: { sid: string; onClose: () => void }
 
             <div className="section-label">LEAVE RUGS YOU CARRY</div>
             <div className="mkt">
-              {!carried.length && <p className="dim small">You carry no rugs. Rugs kept at Giza can be sent by rail from any telegraph office.</p>}
+              {!carried.length && <p className="dim small">You carry no rugs. Rugs kept at your Giza stall can be sent here by rail: see below.</p>}
               {carried.map((r) => (
                 <div className="mkt-row" key={r.uid}>
                   <span><b>{RUGS[r.typeId].name}</b><small>{r.condition} · paid {fmt(r.paid)}</small></span>
                   <button className="btn small primary" onClick={() => say(g.leaveStock(sid, r.uid))} data-testid={`shop-leave-${r.uid}`}>Leave here</button>
                 </div>
               ))}
+            </div>
+
+            <div className="section-label">SEND FROM YOUR STALL BY RAIL</div>
+            <p className="dim small">The boy at Giza puts rugs kept at the stall on the train as freight: {fmt(railFee(sid, 'giza', 1))} a rug{here === 'giza' ? '' : ', and one wire for the lot'}. They reach {st.name} in {egypt ? RAIL_DAYS.egypt : RAIL_DAYS.abroad} days. A wall of six or more sells best.</p>
+            <div className="mkt" data-testid="shop-rail">
+              {!atStall.length && <p className="dim small">No rugs are kept at the stall.</p>}
+              {atStall.map((r) => {
+                const on = chosen.includes(r.uid);
+                return (
+                  <div className="mkt-row" key={r.uid}>
+                    <span><b>{RUGS[r.typeId].name}</b><small>{r.condition} · paid {fmt(r.paid)}{sh.agent ? ` · he would hope for about ${fmt(shopPrice(sid, r, sh.agent.skill))}` : ''}</small></span>
+                    <button className={`btn small ${on ? 'primary' : ''}`} onClick={() => setPick(on ? chosen.filter((u) => u !== r.uid) : [...chosen, r.uid])} data-testid={`shop-pick-${r.uid}`}>{on ? 'Chosen' : 'Choose'}</button>
+                  </div>
+                );
+              })}
+              {atStall.length > 0 && (
+                <div className="mkt-row">
+                  <span><small>{chosen.length ? `${chosen.length} rug${chosen.length > 1 ? 's' : ''} chosen` : 'Choose the rugs to send'}</small></span>
+                  <button className="btn small primary" disabled={!chosen.length || g.cash < railFee(sid, here, chosen.length)} onClick={() => { say(g.railStock(sid, chosen)); setPick([]); }} data-testid="shop-rail-send">Send · {fmt(railFee(sid, here, Math.max(1, chosen.length)))}</button>
+                </div>
+              )}
             </div>
           </>
         )}

@@ -5,7 +5,7 @@ import { dateFor } from '../../game/economy/economy';
 import { useEffect, useState } from 'react';
 import { audio } from '../../game/audio/engine';
 import { NightScene, dayScore, nightDue, scoreWhy, scoreWord } from '../Night/NightScene';
-import { WeekTables } from '../World/RankTable';
+import { WeekTables, SeasonEnd } from '../World/RankTable';
 import { aheadLine, withinReach } from '../../game/tomorrow';
 import { EARLY_OFF } from '../../game/firstWeek';
 
@@ -84,12 +84,14 @@ export function DaySummary() {
   if (sum.revenue > 0 && nightDue(sum.day) && nightSeen !== sum.day + 1) return <NightScene day={sum.day} takings={sum.revenue} score={dayScore(useGame.getState().ledger, sum.day, sum)} onDone={() => setNightSeen(sum.day + 1)} />;
   const st = useGame.getState();
   const paidScene = !!st.family?.first && st.family.first.done === sum.day && !!PAID_SCENE[st.family.first.how ?? ''];
+  // the season's end has its own section below: its long line is not repeated in the list
+  const seasonOver = st.ranks?.last?.day === sum.day + 1;
   // the scene tells the payment: the plain note of it is not needed as well
-  const notes = sum.notes.filter((n) => n.trim() && !(paidScene && /^You sent Uncle Rashid his /.test(n)));
+  const notes = sum.notes.filter((n) => n.trim() && !(paidScene && /^You sent Uncle Rashid his /.test(n)) && !(seasonOver && /^The end of the .* season/.test(n)));
   const traded = sum.sales > 0 || sum.revenue > 0;
   // a quiet night with nothing to report needs no card
   const monday = dateFor(sum.day + 1).weekday === 'Monday' && Object.keys(st.ranks?.week?.now ?? {}).length > 0;
-  if (!notes.length && !traded && !monday && !paidScene && !aheadLine(st, FAMILY_INSTALMENT)) return null;
+  if (!notes.length && !traded && !monday && !paidScene && !seasonOver && !aheadLine(st, FAMILY_INSTALMENT)) return null;
   const net = sum.gross - sum.expenses;
   // the evening strip closed the books before the night's wages and bread: say so, so the two agree
   const night = (sum.wages ?? 0) + (sum.food ?? 0);
@@ -116,7 +118,8 @@ export function DaySummary() {
             {notes.map((n, i) => <li key={i} style={{ marginBottom: 6 }}>{n}</li>)}
           </ul>
         )}
-        {monday && <WeekTables />}
+        {seasonOver && <SeasonEnd day={sum.day + 1} />}
+        {monday && !seasonOver && <WeekTables />}
         <Ahead />
         <WithinReach />
         <DailyTeaser />

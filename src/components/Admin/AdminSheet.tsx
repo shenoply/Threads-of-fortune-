@@ -75,8 +75,13 @@ async function taps(steps: string[]): Promise<boolean> {
 }
 /** open a Fold (by its id) and bring it into view */
 async function openFold(id: string) {
-  const f = (await waitFor(`fold-${id}`, 5000)) as HTMLDetailsElement | undefined;
-  const d = f ?? (await waitFor(id, 1000)) as HTMLDetailsElement | undefined;
+  // a Fold is found by its id (testid "fold-<id>") or by the testid it was given; whichever shows first
+  let d: HTMLDetailsElement | undefined;
+  for (let t = 0; t < 6000 && !d; t += 120) {
+    const e = shown(`fold-${id}`) ?? shown(id);
+    if (e) d = (e.tagName === 'DETAILS' ? e : e.closest('details') ?? e) as HTMLDetailsElement;
+    else await wait(120);
+  }
   if (!d) return false;
   if (d.tagName === 'DETAILS' && !d.open) d.querySelector('summary')?.click();
   await wait(200);
@@ -273,7 +278,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
       { label: 'Show the current goal', testid: 'adm-goal-show', run: async () => {
         const id = activeMilestone(S().missions);
         await leave(() => nav.merchant('collection'));
-        void openFold('ladder');
+        void openFold('pr-ladder');
         return id ? `Goal ${MILESTONE_ORDER.indexOf(id) + 1} of 7: ${MILESTONES[id].title}. ${MILESTONES[id].hint(S() as never)}` : S().day < 7 ? 'No goal yet: the goals start on day 7.' : 'No goal open now (the next opens in the morning).';
       } },
       { label: 'Complete it', testid: 'adm-goal-done', run: async () => {
@@ -293,7 +298,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
           journal: [...s.journal, { day: s.day, text: `Goal reached: ${m.title}. ${m.opens}. ${m.speaker}: ${m.reward.text}`, kind: 'mission' }],
           ledger: m.reward.cash ? [...s.ledger, { day: s.day, kind: 'bonus', label: `Goal: ${m.title}`, amount: m.reward.cash }] : s.ledger });
         await leave(() => nav.merchant('collection'));
-        void openFold('ladder');
+        void openFold('pr-ladder');
         return `Goal reached: ${m.title}. The next one opens tomorrow morning.`;
       } },
     ] },

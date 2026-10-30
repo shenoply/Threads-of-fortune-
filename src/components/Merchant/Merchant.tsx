@@ -4,7 +4,7 @@ import { useGame } from '../../game/state/store';
 import { Fortune, Ledger, Standing } from '../Ledger/Ledger';
 import { Customers } from './Customers';
 import { PostList } from '../Objectives/PostList';
-import { unread } from '../../game/systems/post';
+import { unread, badgeText } from '../../game/systems/post';
 import { BUYERS } from '../../data/buyers';
 import { RUG_IDS, PERSIAN_RUG_IDS } from '../../data/rugs';
 const EVERY_RUG = [...RUG_IDS, ...PERSIAN_RUG_IDS];
@@ -49,7 +49,7 @@ export function Merchant({ sub, setSub, onBack }: { sub: MerchantSub; setSub: (s
             <button key={k} role="tab" aria-selected={sub === k} className={`${sub === k ? 'on' : ''} ${t?.fresh && sub !== k ? 'fresh' : ''}`} onClick={() => setSub(k)} data-testid={`msub-${k}`}>
               <span className="msub-label">{label}</span>
               {t?.line && <small className="msub-tease">{t.line}</small>}
-              {k === 'post' && unread(g.post, g.day) > 0 && <b className="msub-badge">{unread(g.post, g.day)}</b>}
+              {k === 'post' && unread(g.post, g.day) > 0 && <b className="msub-badge">{badgeText(unread(g.post, g.day))}</b>}
             </button>
           );
         })}

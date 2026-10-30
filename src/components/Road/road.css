@@ -72,3 +72,8 @@
 .road-peek:empty { display: none; }
 .road-peek img { width: 64px; height: 44px; object-fit: cover; border-radius: 5px; border: 1px solid rgba(201,151,74,.45); }
 .road-peek img.dim { filter: saturate(.6) brightness(.75); }
+
+/* a rank's figures, shown on every rank of the road; and the matter of the story it waits on */
+.road-targets { display: block; font-size: 13px; color: #d9b877; font-variant-numeric: tabular-nums; }
+.road-held { display: block; margin-top: 2px; font-size: 13px; line-height: 1.3; color: var(--text); }
+.road-held b { color: #ffe1a0; font-weight: 600; }

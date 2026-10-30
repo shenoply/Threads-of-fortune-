@@ -36,6 +36,8 @@
 .wk-city li.you { color: #ffe1a0; font-weight: 600; }
 .wk-city li span:last-child { font-variant-numeric: tabular-nums; }
 .wk-tables .ghost-btn { margin-top: 6px; }
+.season-end-line { margin: 8px 0 0; font-family: var(--body); font-size: 14.5px; line-height: 1.4; color: var(--text); }
+.season-end-line b { color: #ffe1a0; }
 .tables-link { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 10px; background: rgba(0,0,0,.25); color: var(--text); font: inherit; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(214,164,84,.18); }
 .tables-link span { flex: 1; text-align: left; font-family: var(--body); font-size: 15px; color: var(--text-dim); }
 .tables-link b { font-family: var(--display); font-size: 16px; color: #ffe1a0; }

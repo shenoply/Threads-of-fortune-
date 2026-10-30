@@ -60,21 +60,32 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
             <b>{fmt(totalOwed)} in total</b>{owed > 0 ? ` · ${fmt(owed)} of that is overdue now` : ' · none of it is overdue yet'}.
           </p>
         )}
-        {(g.family?.left ?? 0) > 0 && <p className={`fin-line ${g.family!.due > 0 ? 'warn' : ''}`} data-testid="fin-family">Your father's debt to Uncle Rashid: {fmt(g.family!.left)} left{g.family!.due > 0 ? `, ${fmt(g.family!.due)} of it due now` : ''}. An instalment falls due on the first of each month.</p>}
+        {(g.family?.left ?? 0) > 0 && (
+          <div className={`fin-line loan ${g.family!.due > 0 ? 'warn' : ''}`} data-testid="fin-family">
+            <span>Your father's debt to Uncle Rashid: {fmt(g.family!.left)} left{g.family!.due > 0 ? `, ${fmt(g.family!.due)} of it due now` : ''}. {(g.family!.restUntil ?? 0) > g.day ? `After the court, Rashid has stretched it: no instalment before ${dateFor(g.family!.restUntil!).short}.` : 'An instalment falls due on the first of each month.'}</span>
+            {g.family!.due > 0 && <button className="btn primary" disabled={g.cash < g.family!.due} title={g.cash < g.family!.due ? `You have ${fmt(g.cash)}.` : undefined} onClick={() => { const d = g.family!.due; g.payFamily(d); setNote(`Rashid takes the ${fmt(d)} and writes it in your father's book.`); }} data-testid="pay-family">Pay {fmt(g.family!.due)}</button>}
+          </div>
+        )}
         {g.supplier.debt > 0 && (
-          <p className={`fin-line ${stockLate ? 'warn' : ''}`} data-testid="fin-credit">
-            Rashid's credit for stock: {fmt(g.supplier.debt)}, {stockLate ? `overdue since ${dateFor(g.supplier.debtDue).short}` : `due ${dateFor(g.supplier.debtDue).short}`}. It does not go to a lawyer, but he stops trusting you with more until it's settled.
-          </p>
+          <div className={`fin-line loan ${stockLate ? 'warn' : ''}`} data-testid="fin-credit">
+            <span>Rashid's credit for stock: {fmt(g.supplier.debt)}, {stockLate ? `overdue since ${dateFor(g.supplier.debtDue).short}` : `due ${dateFor(g.supplier.debtDue).short}`}. It does not go to a lawyer, but he stops trusting you with more until it's settled.</span>
+            <button className={`btn ${stockLate ? 'primary' : ''}`} disabled={g.cash <= 0} onClick={() => { const d = Math.min(g.cash, g.supplier.debt); g.payDebt(); setNote(`You send Rashid ${fmt(d)}.`); }} data-testid="pay-credit">Pay {fmt(Math.min(Math.max(0, g.cash), g.supplier.debt) || g.supplier.debt)}</button>
+          </div>
         )}
         {g.cash < 0 && <p className="fin-line warn">Your purse is empty: you owe the landlord {fmt(-g.cash)}.</p>}
-        {bills.due > 0 && <p className={`fin-line ${g.day - bills.since >= 5 ? 'warn' : ''}`}>The month's bill: {fmt(bills.due)}{g.day - bills.since > 0 ? `, ${count(g.day - bills.since, 'day')} late` : ''}. It is paid from your cash when you have it.</p>}
+        {bills.due > 0 && (
+          <div className={`fin-line loan ${g.day - bills.since >= 5 ? 'warn' : ''}`} data-testid="fin-bill">
+            <span>The month's bill: {fmt(bills.due)}{g.day - bills.since > 0 ? `, ${count(g.day - bills.since, 'day')} late` : ''}. It is paid from your cash at night when you have it.</span>
+            <button className="btn primary" disabled={g.cash < bills.due} title={g.cash < bills.due ? `You have ${fmt(g.cash)}.` : undefined} onClick={() => setNote(g.payBills())} data-testid="pay-bill">Pay {fmt(bills.due)}</button>
+          </div>
+        )}
         {loans.map((l) => (
           <div className={`fin-line loan ${g.day > l.due ? 'warn' : ''}`} key={l.id} data-testid={`loan-${l.lender}`}>
             <span><b>{LENDERS[l.lender].name}</b> · {fmt(l.owed)} by {dateFor(l.due).short}{g.day > l.due ? ` · ${count(g.day - l.due, 'day')} late` : l.due === g.day ? ' · due today' : ` · ${count(l.due - g.day, 'day')} left`}</span>
-            {at && LENDERS[l.lender].towns.includes(at) && <button className="btn primary" onClick={() => setNote(g.repay(l.id))} data-testid={`repay-${l.lender}`}>Repay {fmt(l.owed)}</button>}
+            <button className={`btn ${g.day > l.due || (at && LENDERS[l.lender].towns.includes(at)) ? 'primary' : ''}`} disabled={g.cash < l.owed} title={g.cash < l.owed ? `You have ${fmt(g.cash)}.` : undefined} onClick={() => setNote(g.repay(l.id))} data-testid={`repay-${l.lender}`}>{at && LENDERS[l.lender].towns.includes(at) ? 'Repay' : 'Send'} {fmt(l.owed)}</button>
           </div>
         ))}
-        {loans.length > 0 && !(at && loans.some((l) => LENDERS[l.lender].towns.includes(at))) && <p className="dim">Loans are repaid in Cairo or Alexandria, where the lenders keep their offices.</p>}
+        {loans.length > 0 && !(at && loans.some((l) => LENDERS[l.lender].towns.includes(at))) && <p className="dim">The lenders keep their offices in Cairo and Alexandria. From elsewhere the money goes by postal order.</p>}
         {(g.bankruptcies ?? 0) > 0 && <p className="dim">You have been declared bankrupt once. A second time ends your father's business for good.</p>}
 
         {lendersHere.length > 0 && <div className="section-label">LENDERS IN {settlementById(at!).name.toUpperCase()}</div>}
@@ -84,13 +95,14 @@ export function FinancePanel({ onClose }: { onClose: () => void }) {
           // the same checks the lender makes, shown before you ask rather than after
           const stock = g.inventory.reduce((a, i) => a + rugValue(i), 0);
           const shut = g.reputation < L.minRep ? `They lend from reputation ${L.minRep}. Yours is ${g.reputation}.`
-            : (g.bankruptcies ?? 0) > 0 && L.id === 'misr' ? 'The bank has your name on its list of bankrupts.' : '';
+            : (g.bankruptcies ?? 0) > 0 && L.id === 'misr' ? 'The bank has your name on its list of bankrupts and will not lend to you.' : '';
           return (
             <div className="fin-lender" key={L.id} data-testid={`lender-${L.id}`}>
               <b>{L.name}</b><small>{L.who}</small>
               <p>{L.blurb}</p>
               <p className="dim">Up to {fmt(max)} · repay {L.owedPer100 - 100}% more within {L.days} days{L.minRep ? ` · needs reputation ${L.minRep}` : ''}.</p>
               {!has && shut && <p className="fin-line warn" data-testid={`borrow-${L.id}-why`}>{shut}</p>}
+              {has && <p className="dim" data-testid={`borrow-${L.id}-owed`}>You owe {L.name.split(' ')[0] === 'Stavros' ? 'Stavros' : 'the bank'} already. Repay that before you borrow again.</p>}
               {!has && (
                 <div className="save-row">
                   {[500, 1000, max].filter((v, i, a) => v <= max && a.indexOf(v) === i).map((v) => {

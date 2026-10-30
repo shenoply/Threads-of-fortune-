@@ -95,7 +95,7 @@ import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, AGENT_PAY, CAIRO_DEALE
 import { countryOf } from '../economy/currency';
 import { SHOP_CITIES, AGENTS, RASHIDS_MAN, RAIL_FEE, RAIL_DAYS, DRESSING_BY_ID } from '../../data/shops';
 import { placedPieces, spotsOf, ownsPiece, spotsFromOwned, SPOT_BY_ID } from '../stallDressing';
-import { shopsWeek, lookOverBook, type Shops, type ShopState } from '../systems/shops';
+import { shopsWeek, lookOverBook, railFee, type Shops, type ShopState } from '../systems/shops';
 import { RECORD_BY_ID, recordsOwned } from '../../data/records';
 import { LIVESTOCK_BY_ID, flockCount, flockOf, livestockAt, livestockPrice } from '../../data/livestock';
 import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } from '../systems/bales';
@@ -108,7 +108,7 @@ export interface DominoRecord { won: number; lost: number; drawn: number; friend
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
 /** The rank a buyer waits for before visiting your stall: Fine households want a Bazaar merchant, collectors a Khan dealer. */
 export const rankNeeded = (id: string) => { const t = BUYER_TIERS[id]?.[0] ?? 1; return t >= 3 ? 2 : t === 2 ? 1 : 0; };
-export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek } = { left: 10000, due: 0, since: 0, paid: 0 };
+export const FAMILY_START: { left: number; due: number; since: number; paid: number; first?: FirstWeek; /** after a bankruptcy: no instalment before this day */ restUntil?: number } = { left: 10000, due: 0, since: 0, paid: 0 };
 export const FAMILY_INSTALMENT = 2500;
 
 export type TutorialStep = 'room' | 'rug' | 'inspect' | 'inspect2' | 'argue' | 'price' | 'counter' | 'done';
@@ -356,7 +356,7 @@ export interface GameState {
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
   /** Your father's hundred pounds owed to Rashid: paid in monthly instalments on the first. */
-  family?: { left: number; due: number; since: number; paid: number; first?: FirstWeek };
+  family?: { left: number; due: number; since: number; paid: number; first?: FirstWeek; /** after a bankruptcy: no instalment before this day */ restUntil?: number };
   missionNews?: string;
   /** a mission whose condition is met, waiting on its scene's choice (data/missions.ts scene) */
   missionScene?: string;
@@ -581,6 +581,8 @@ interface Actions {
   haggle: (uid: string) => string;
   payDebt: () => void;
   payFamily: (amount: number) => void;
+  /** pay the month's bill now, from the purse, rather than waiting for the night */
+  payBills: () => string;
   /** borrow from a lender in this town; returns a line for the player */
   borrow: (lender: 'khan' | 'misr', amount: number) => string;
   repay: (loanId: string) => string;
@@ -675,8 +677,9 @@ interface Actions {
   takeStock: (sid: string, uid: string) => string;
   /** look over the agent's book, in person: what he kept back comes out */
   checkBooks: (sid: string) => string;
-  /** from a telegraph office: the boy sends a rug kept at the Giza stall to one of your shops by rail */
-  railStock: (sid: string, uid: string) => string;
+  /** from a telegraph office, the stall or the shop itself: the boy sends rugs kept at the Giza stall to
+   *  one of your shops by rail, one wire for the lot */
+  railStock: (sid: string, uid: string | string[]) => string;
   setSetting: (c: Channel, on: boolean) => void;
   /** turn this browser's autosave on or off; the change itself is always written to disk,
    *  whichever way it goes */
@@ -891,6 +894,8 @@ export function restorePrice(item: RugItem) {
 /** Your father's rug, while Farid has still to see it: it is not for sale. */
 /** days Rashid waits for an instalment of your father's debt before it counts as overdue */
 export const FAMILY_GRACE = 5;
+/** after a bankruptcy Rashid stretches your father's debt: no instalment falls due for this many days */
+export const FAMILY_REST = 60;
 /** hours a customer waits at an empty stall before going elsewhere */
 export const AWAY_PATIENCE = 2;
 /** the Nile ferry: a piastre a head, and the same again for each animal (freight, as on the railway) */
@@ -1580,7 +1585,7 @@ export const useGame = create<GameState & Actions>()(
           // Father's debt to Rashid: an instalment falls due on the first of every month
           let family = { ...(s.family ?? FAMILY_START) };
           let familyLate = false;
-          if (isFirstOfMonth(day) && family.left > 0) {
+          if (isFirstOfMonth(day) && family.left > 0 && day >= (family.restUntil ?? 0)) {
             const inst = Math.min(FAMILY_INSTALMENT, family.left - family.due);
             if (inst > 0) {
               family = { ...family, due: family.due + inst, since: family.due > 0 ? family.since : day };
@@ -1724,24 +1729,49 @@ export const useGame = create<GameState & Actions>()(
               }
             } else if (ruin.stage === 2 && late >= RUIN_STEPS.court) {
               bankruptcies += 1;
-              // the court's receiver takes the stock in your shops in other cities too, and their leases
+              // what the court cancels: the debts of trade (Rashid's credit for stock, the lenders, the bills)
+              const cancelled: string[] = [];
+              if (sup.debt > 0) cancelled.push(`Rashid's credit for stock (${fmt(sup.debt)})`);
+              const lent = loans.reduce((a, l) => a + l.owed, 0);
+              if (lent > 0) cancelled.push(`${loans.length > 1 ? 'the loans' : `the loan from ${LENDERS[loans[0].lender].name}`} (${fmt(lent)})`);
+              if (bills.due > 0) cancelled.push(`the unpaid bill (${fmt(bills.due)})`);
+              if (cash < 0) cancelled.push(`what the landlord was owed (${fmt(-cash)})`);
+              // the court's receiver takes the stock in your shops in other cities too; the leases stand
+              const walls = Object.entries(s.shops ?? {}).filter(([, sh]) => !sh.khan && sh.stock.length > 0).map(([k]) => settlementById(k).name);
               if (s.shops && Object.keys(s.shops).length) seizedShops = Object.fromEntries(Object.entries(s.shops).map(([k, sh]) => [k, { ...sh, stock: [] }])) as Shops;
+              const had = inventory.length;
               inventory = [...inventory].sort((a, b) => rugValue(a) - rugValue(b)).slice(0, 3);
-              // your father's debt is not the court's to cancel, but Rashid stretches it: nothing due now
-              family = { ...family, due: 0, since: 0 };
-              // and so a man can begin again at all: if nothing is left to sell, Rashid sends two plain rugs on credit
-              if (!inventory.length && bankruptcies < 2) { const plain = rescueRugs(); inventory = plain.items; sup.debt += plain.cost; }
+              const keptN = inventory.length;
+              // your father's debt is not the court's to cancel, but Rashid stretches it: nothing due for two months
+              const restUntil = day + FAMILY_REST;
+              let nextDue = restUntil;
+              while (!isFirstOfMonth(nextDue)) nextDue++;
+              family = { ...family, due: 0, since: 0, restUntil };
               upgrades = [];
               cash = 0;
               bills = { due: 0, since: 0, warned: 0, last: bills.last };
               loans = [];
               sup.debt = 0;
               sup.trust = Math.max(0, sup.trust - 30);
+              // and so a man can begin again at all: if nothing is left to sell, Rashid sends two plain rugs on credit
+              let rescued = 0;
+              if (!inventory.length && bankruptcies < 2) { const plain = rescueRugs(); inventory = plain.items; sup.debt += plain.cost; rescued = plain.items.length; }
               reputation = Math.floor(reputation / 2);
               ruin = { stage: 0, since: 0, graceUntil: day + RUIN_GRACE };
+              const NUMW = ['no', 'one', 'two', 'three'];
+              const leftLine = keptN === 0 ? (had ? 'Your stock is sold to the last rug' : 'You had no stock left to sell')
+                : keptN === had ? `The receiver leaves a merchant three rugs to trade with, so you keep the ${keptN > 1 ? `${NUMW[keptN]} you had` : 'one you had'}`
+                : `Your stock is sold except the ${keptN > 1 ? `${NUMW[keptN]} poorest rugs` : 'poorest rug'}`;
               const text = bankruptcies >= 2
                 ? 'The Mixed Court declares you bankrupt for the second time. No merchant in Cairo will trust your word again. Your father\'s stall passes to strangers.'
-                : 'The Mixed Court declares you bankrupt. Your stock is sold except three poor rugs, your pitch is let to another, your debts are cancelled and your name is mud. Rashid shakes his head and gives you no more credit. You begin again.';
+                : [
+                  `The Mixed Court declares you bankrupt.${cancelled.length ? ` It cancels the debts of your trade: ${cancelled.length > 1 ? `${cancelled.slice(0, -1).join(', ')} and ${cancelled[cancelled.length - 1]}` : cancelled[0]}.` : ''}`,
+                  `${leftLine}${walls.length ? `, and the rugs on the walls of your shop${walls.length > 1 ? 's' : ''} in ${walls.length > 1 ? `${walls.slice(0, -1).join(', ')} and ${walls[walls.length - 1]}` : walls[0]} go with it` : ''}.`,
+                  `Your pitch is let to another and your name is mud.`,
+                  family.left > 0 ? `Your father's debt to Rashid is not the court's to cancel: ${fmt(family.left)} is still owed, but Rashid stretches it, and nothing is due before ${dateFor(nextDue).short}.` : '',
+                  rescued ? `Rashid will not see you with nothing to sell: he sends ${NUMW[rescued]} plain rugs on credit, and no more after that.` : 'Rashid shakes his head and gives you no more credit.',
+                  'You begin again.',
+                ].filter(Boolean).join(' ');
               notes.push(text); journal.push({ day, text, kind: 'due' });
               if (bankruptcies >= 2) ended = { day, text };
             }
@@ -3947,6 +3977,21 @@ export const useGame = create<GameState & Actions>()(
           return line;
         },
 
+        payBills: () => {
+          const s = get();
+          const due = s.bills?.due ?? 0;
+          if (due <= 0) return '';
+          if (s.cash < due) return `The bill is ${fmt(due)}. You have ${fmt(s.cash)}.`;
+          set({
+            cash: s.cash - due,
+            bills: { ...s.bills!, due: 0, since: 0, warned: 0 },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: 'Monthly bill: rent, dues and household', amount: -due }],
+            journal: [...s.journal, { day: s.day, text: `Paid the month's bill (${fmt(due)}).`, kind: 'due' }],
+          });
+          audio.sfx('coins');
+          return `The landlord's man writes you a receipt for ${fmt(due)}.`;
+        },
+
         payDebt: () => {
           const s = get();
           const amt = Math.min(s.cash, s.supplier.debt);
@@ -4460,7 +4505,7 @@ export const useGame = create<GameState & Actions>()(
           }
           set({
             cash: s.cash - amt,
-            family: { left, due, since: due > 0 ? f.since : 0, paid: f.paid + amt, ...(first ? { first } : {}) },
+            family: { left, due, since: due > 0 ? f.since : 0, paid: f.paid + amt, ...(first ? { first } : {}), ...(f.restUntil ? { restUntil: f.restUntil } : {}) },
             supplier: { ...s.supplier, trust: Math.min(100, s.supplier.trust + trust), lastLine },
             ledger: [...s.ledger, { day: s.day, kind: 'debt', label: "Paid towards father's debt to Rashid", amount: -amt }],
             journal,
@@ -4821,30 +4866,34 @@ export const useGame = create<GameState & Actions>()(
           return r.text;
         },
 
-        railStock: (sid, uid) => {
+        railStock: (sid, uids) => {
           const s = get();
           const sh = s.shops?.[sid];
           if (!sh || sh.khan) return '';
           const at = s.world.at;
-          if (!at || !TELEGRAPH_TOWNS.includes(at)) return 'You need a telegraph office to send word to the boy at the stall.';
-          const item = s.inventory.find((i) => i.uid === uid);
-          if (!item || !item.stored || item.restoringUntil) return 'Only a rug kept at your Giza stall can be sent.';
-          if (keptBack(s, item)) return keptNote(item);
-          const egypt = settlementById(sid).region === 'Egypt';
-          const fee = (egypt ? RAIL_FEE.egypt : RAIL_FEE.abroad) + telegramFee(at, 'giza');
+          // from the stall itself, from a telegraph office, or from the shop (your agent wires the boy)
+          if (!at || !(at === 'giza' || at === sid || TELEGRAPH_TOWNS.includes(at))) return 'You need a telegraph office, your stall or the shop itself to send word to the boy at the stall.';
+          const want = Array.isArray(uids) ? uids : [uids];
+          const items = s.inventory.filter((i) => want.includes(i.uid) && i.stored && !i.restoringUntil);
+          if (!items.length) return 'Only a rug kept at your Giza stall can be sent.';
+          const kept = items.find((i) => keptBack(s, i));
+          if (kept) return keptNote(kept);
+          const fee = railFee(sid, at, items.length);
           if (s.cash < fee) return `The wire and the freight come to ${fmt(fee)}.`;
           const name = settlementById(sid).name;
+          const egypt = settlementById(sid).region === 'Egypt';
           const arrives = s.day + (egypt ? RAIL_DAYS.egypt : RAIL_DAYS.abroad);
+          const names = items.length === 1 ? `the ${RUGS[items[0].typeId].name}` : `${items.length} rugs`;
+          const ids = new Set(items.map((i) => i.uid));
           set({
             cash: s.cash - fee,
-            inventory: s.inventory.filter((i) => i.uid !== uid),
-            shops: { ...s.shops, [sid]: { ...sh, stock: [...sh.stock, { ...item, stored: false, arrives }] } },
-            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Rail freight: a rug to your shop in ${name}`, amount: -fee }],
-            journal: [...s.journal, { day: s.day, text: `Wired the stall to send the ${RUGS[item.typeId].name} to your shop in ${name} by rail. It arrives ${dateFor(arrives).short}.`, kind: 'shop' }],
+            inventory: s.inventory.filter((i) => !ids.has(i.uid)),
+            shops: { ...s.shops, [sid]: { ...sh, stock: [...sh.stock, ...items.map((item) => ({ ...item, stored: false, arrives }))] } },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Rail freight: ${items.length === 1 ? 'a rug' : `${items.length} rugs`} to your shop in ${name}`, amount: -fee }],
+            journal: [...s.journal, { day: s.day, text: `${at === 'giza' ? 'Had the boy send' : 'Wired the stall to send'} ${names} to your shop in ${name} by rail. ${items.length === 1 ? 'It arrives' : 'They arrive'} ${dateFor(arrives).short}.`, kind: 'shop' }],
           });
-          return `The boy will put the ${RUGS[item.typeId].name} on the train. It reaches ${name} ${dateFor(arrives).short}. ${fmt(fee)} with the wire.`;
+          return `The boy will put ${names} on the train. ${items.length === 1 ? 'It reaches' : 'They reach'} ${name} ${dateFor(arrives).short}. ${fmt(fee)}${at === 'giza' ? ' freight' : ' with the wire'}.`;
         },
-
         setVolume: (c, v) => {
           const volumes = { ...DEFAULT_VOLUMES, ...(get().volumes ?? {}), [c]: Math.max(0, Math.min(1, v)) };
           audio.setVolumes(volumes);

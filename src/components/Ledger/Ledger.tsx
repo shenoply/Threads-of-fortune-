@@ -16,7 +16,9 @@ import { LicenceCard } from './LicenceCard';
 import { PurseBook } from './PurseBook';
 import { MILESTONES, MILESTONE_ORDER, MILESTONE_FROM_DAY, activeMilestone } from '../../data/milestones';
 import { Fold } from '../Fold/Fold';
-import { onWall } from '../../game/systems/shops';
+import { onWall, weekAccount } from '../../game/systems/shops';
+import { SHOP_CITIES } from '../../data/shops';
+import { dateFor } from '../../game/economy/economy';
 import { settlementById } from '../../game/systems/world';
 
 import { RanksFold } from '../World/RankTable';
@@ -164,7 +166,8 @@ export function Ledger() {
 
       <Fold id="pr-book-journal" title="Journal" gist={g.journal.length ? g.journal[g.journal.length - 1].text : 'Nothing yet'}>
       <div className="journal">
-        {[...g.journal].reverse().slice(0, 30).map((j, i) => (
+        {/* newest day first; entries of one day keep the order they were written in */}
+        {g.journal.map((j, i) => ({ j, i })).sort((a, b) => b.j.day - a.j.day || b.i - a.i).slice(0, 30).map(({ j }, i) => (
           <p key={i}><span>Day {j.day}</span>{j.text}</p>
         ))}
       </div>
@@ -225,25 +228,34 @@ export function CurrentGoal() {
   return null;
 }
 
-/** Your shops in other cities, in one folded row: who keeps each, what is on its wall, what it has sent. */
+/** Your shops in other cities, in one folded row: who keeps each, what is on its wall, and the week's
+ *  account (sales, his pay, what came to you), with what each has made against its lease. */
 export function ShopsFold() {
   const g = useGame();
   const ids = Object.keys(g.shops ?? {});
   if (!ids.length) return null;
-  const sent = ids.reduce((t, id) => t + (g.shops![id].takings ?? 0), 0);
+  const made = ids.reduce((t, id) => t + (g.shops![id].takings ?? 0) - (g.shops![id].wages ?? 0), 0);
+  const lastNet = ids.reduce((t, id) => t + (g.shops![id].last?.net ?? g.shops![id].last?.sent ?? 0), 0);
   return (
-    <Fold id="pr-shops" testid="shops-fold" className="shop-fold" title="Your shops" gist={`${ids.length} · ${ids.map((id) => settlementById(id).name).join(', ')}`}>
+    <Fold id="pr-shops" testid="shops-fold" className="shop-fold" title="Your shops" gist={`${ids.length} · ${ids.some((id) => g.shops![id].last) ? `last week ${lastNet >= 0 ? '' : '−'}${fmt(Math.abs(lastNet))}` : ids.map((id) => settlementById(id).name).join(', ')}`}>
       {ids.map((id) => {
         const sh = g.shops![id];
         const wall = onWall(sh, g.day).length;
+        const net = (sh.takings ?? 0) - (sh.wages ?? 0);
+        const lease = sh.paid || SHOP_CITIES[id]?.cost || 0;
         return (
           <div className="shop-row" key={id} data-testid={`shop-row-${id}`}>
-            <span><b>{settlementById(id).name}</b><small>{sh.khan ? 'The Khan el-Khalili: you keep it yourself' : sh.agent ? `${sh.agent.name} · ${wall ? `${wall} rug${wall > 1 ? 's' : ''} on the wall` : 'nothing to sell'}` : 'Nobody keeps it'}</small></span>
-            <span>{sh.khan ? '' : <small>sent {fmt(sh.takings ?? 0)}{sh.last ? ` · last ${fmt(sh.last.sent)}` : ''}</small>}</span>
+            <span>
+              <b>{settlementById(id).name}</b>
+              <small>{sh.khan ? 'The Khan el-Khalili: you keep it yourself' : sh.agent || sh.childAgent ? `${sh.agent?.name ?? sh.childAgent!.name} · ${wall ? `${wall} rug${wall > 1 ? 's' : ''} on the wall` : 'nothing to sell'}` : 'Nobody keeps it'}</small>
+              {!sh.khan && sh.last && <small data-testid={`shop-week-${id}`}>Week to {dateFor(sh.last.day).short}: {weekAccount(sh.last)}</small>}
+              {!sh.khan && !sh.last && (sh.agent || sh.childAgent) && <small>His first account comes on Monday.</small>}
+            </span>
+            <span>{sh.khan ? '' : <small data-testid={`shop-made-${id}`}>{net >= 0 ? '' : '−'}{fmt(Math.abs(net))} made{!sh.gift && lease > 0 ? ` of the ${fmt(lease)} lease` : ''}</small>}</span>
           </div>
         );
       })}
-      {sent > 0 && <small className="dim">Sent to you so far: {fmt(sent)}. Takings come on Mondays.</small>}
+      <small className="dim">Takings less retainers, since each shop was yours. Accounts come on Mondays.{made > 0 ? ` In all: ${fmt(made)}.` : ''}</small>
     </Fold>
   );
 }

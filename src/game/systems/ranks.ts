@@ -40,11 +40,23 @@ export interface RanksState {
   /** your place in each table at the last two Mondays, for the week's movement */
   week?: { now: Record<string, number>; prev: Record<string, number> };
   /** how the last season ended */
-  last?: { season: number; day: number; places: Record<string, number>; tops: Record<string, { label: string; value: number }[]> };
+  last?: { season: number; day: number; places: Record<string, number>; tops: Record<string, { label: string; value: number }[]>; /** what the trade of each city gave you for a place in its top three */ prizes?: Record<string, { cash: number; rep: number }> };
 }
 
 export interface Row { id: string; label: string; role?: string; rival?: Rival; value: number; target: number; you?: boolean }
 
+/** what the trade of a city gives the first three houses of a season: a modest purse and a little name */
+export const SEASON_PRIZE: Record<number, { cash: number; rep: number }> = { 1: { cash: 1000, rep: 3 }, 2: { cash: 500, rep: 2 }, 3: { cash: 250, rep: 1 } };
+/** what the season coming brings to the trade, in a line (spring opens on 10 March 1925) */
+export function seasonAhead(season: number): string {
+  const part = ['spring', 'summer', 'autumn', 'winter'][season % 4];
+  return {
+    spring: 'The spring season: the last of the winter visitors sail home in April, and the khamsin blows from the desert. Sell to them before they go.',
+    summer: 'The summer season: Cairo is hot and slow, the visitors are gone, and the well-to-do take the sea air in Alexandria. The coast buys; the bazaar waits.',
+    autumn: 'The autumn season: the Nile is in flood, Cairo fills again as the heat breaks, and the first winter visitors land at Port Said in November.',
+    winter: 'The winter season: the visitors\' months. The hotels of Cairo are full, and buyers from Europe and America walk the bazaars.',
+  }[part]!;
+}
 export const seasonOf = (day: number) => Math.floor((Math.max(1, day) - 1) / SEASON_DAYS);
 export const seasonEnd = (season: number) => (season + 1) * SEASON_DAYS;
 export function seasonName(season: number) {
@@ -211,6 +223,7 @@ export function ranksNight(s: GameState, day: number): { patch: Partial<GameStat
     const tops: Record<string, { label: string; value: number }[]> = {};
     const firsts = [...r.firsts];
     const lines: string[] = [];
+    const prizes: Record<string, { cash: number; rep: number }> = {};
     for (const c of RANK_CITIES) {
       const rows = standings(r, c.id);
       tops[c.id] = rows.slice(0, 3).map((x) => ({ label: x.label, value: x.value }));
@@ -222,13 +235,25 @@ export function ranksNight(s: GameState, day: number): { patch: Partial<GameStat
         if (!firsts.includes(c.id)) firsts.push(c.id);
         lines.push(`${c.name}: first of ${rows.length}, with ${fmt(mine)}. You are First Merchant of ${c.name}.`);
       } else lines.push(`${c.name}: ${ordinal(p)} of ${rows.length}, with ${fmt(mine)}. ${rows[0].label} was first.`);
+      if (SEASON_PRIZE[p]) prizes[c.id] = SEASON_PRIZE[p];
+    }
+    // the top three of a city: the dealers of the city send a purse, and the trade speaks of you
+    const purse = Object.values(prizes).reduce((a, x) => a + x.cash, 0);
+    const name = Object.values(prizes).reduce((a, x) => a + x.rep, 0);
+    if (purse > 0) {
+      const where = Object.keys(prizes).map((c) => cityName(c));
+      const list = where.length > 1 ? `${where.slice(0, -1).join(', ')} and ${where[where.length - 1]}` : where[0];
+      patch.cash = (s.cash ?? 0) + purse;
+      patch.reputation = (s.reputation ?? 0) + name;
+      patch.ledger = [...(s.ledger ?? []), { day, kind: 'bonus', label: `The season's purse from the dealers of ${list}`, amount: purse }];
+      lines.push(`For a place among the first three, the dealers of ${list} send a purse of ${fmt(purse)}, and your name stands higher (reputation +${name}).`);
     }
     const head = `The end of ${seasonName(r.season)}.`;
     if (lines.length) {
       notes.push(`${head} ${lines.join(' ')}`);
       patch.journal = [...(s.journal ?? []), { day, text: `${head} The rug trade's tables: ${lines.join(' ')}`, kind: 'stall' } as GameState['journal'][number]];
     }
-    r = { ...r, season: seasonOf(day), tables: {}, firsts, reacted: [], last: { season: r.season, day, places, tops } };
+    r = { ...r, season: seasonOf(day), tables: {}, firsts, reacted: [], last: { season: r.season, day, places, tops, prizes } };
   }
   // Monday: a hotel or consulate in a city where you stand in the top three sends an order
   if (dateFor(day).weekday === 'Monday') {
@@ -238,8 +263,8 @@ export function ranksNight(s: GameState, day: number): { patch: Partial<GameStat
       const who = list[Math.floor(hash(day, `${c}:who`) * list.length)];
       const fee = snap(Math.max(300, Math.min(5000, (r.tables[c]?.you ?? 0) * 0.05)));
       const text = `An order from ${who}, who came to you as one of the first rug dealers of ${cityName(c)}. Your commission: ${fmt(fee)}.`;
-      patch.cash = (s.cash ?? 0) + fee;
-      patch.ledger = [...(s.ledger ?? []), { day, kind: 'bonus', label: `Order from ${who}`, amount: fee }];
+      patch.cash = (patch.cash ?? s.cash ?? 0) + fee;
+      patch.ledger = [...(patch.ledger ?? s.ledger ?? []), { day, kind: 'bonus', label: `Order from ${who}`, amount: fee }];
       patch.journal = [...(patch.journal ?? s.journal ?? []), { day, text, kind: 'stall' } as GameState['journal'][number]];
       notes.push(text);
       break;

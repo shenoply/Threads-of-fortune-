@@ -53,7 +53,7 @@ const r = await p.evaluate(async () => {
     out.monday = E.dateFor(today).weekday;
   }
   out.takings = takings; out.letter = letter?.body ?? null; out.notice = notice;
-  out.wage = g().ledger.some((l) => /^Wage: Elias Haddad/.test(l.label));
+  out.wage = g().ledger.some((l) => /^Wage: Elias Shalhoub/.test(l.label));
   out.journal = g().journal.some((j) => j.kind === 'shop' && /sold/.test(j.text));
   // an empty shop sends nothing, and the agent says so
   const empty = SH.shopsWeek({ amman: { since: 1, paid: 30000, stock: [], agent: { id: 'twal', name: 'Odeh Twal', honesty: 0.9, skill: 0.4, wage: 70, since: 1 } } }, 30, 1000, () => 0.5);
@@ -79,11 +79,11 @@ const r = await p.evaluate(async () => {
   return out;
 });
 console.log(JSON.stringify(r, null, 1));
-check(r.cost === 35000 && r.keys.includes('jaffa'), `the Jaffa shop costs £350 and is kept under shops (${r.cost})`);
+check(r.cost === 17000 && r.keys.includes('jaffa'), `the Jaffa shop costs £170 and is kept under shops (${r.cost})`);
 check(r.wall === 3 && r.invLeft === 0, 'three rugs left on the wall, gone from what you carry');
 check(r.monday === 'Monday' && r.takings && r.takings.amount > 0, `takings arrive on a Monday (${JSON.stringify(r.takings)})`);
 check(r.notice && /^Takings from Jaffa: £/.test(r.notice), `the short notice says so (${r.notice})`);
-check(r.letter && /Elias Haddad/.test(r.letter) && /sold/.test(r.letter), 'his weekly letter comes by post');
+check(r.letter && /Elias Shalhoub/.test(r.letter) && /sold/.test(r.letter), 'his weekly letter comes by post');
 check(r.wage && r.journal, 'his wage is in the ledger and the week in the journal');
 check(r.empty.in === 0 && r.empty.notice === 0 && /nothing of yours/.test(r.empty.letter ?? ''), 'an empty shop sends nothing, and he says so');
 check(r.skimmed > 0 && r.book.refund === Math.round(r.skimmed / 2) && r.book.after === 0 && /missing/.test(r.book.text), 'a sharp agent skims; his book shows it');
@@ -105,7 +105,7 @@ await p.waitForTimeout(800);
 await fromTownMenu(p, 'myshop');
 await p.waitForTimeout(400);
 check((await p.locator('[data-testid=shop-panel]').count()) === 1, 'the town menu opens the shop');
-check((await p.locator('[data-testid=shop-panel]').innerText().catch(() => '')).includes('Elias Haddad'), 'the shop panel names his agent');
+check((await p.locator('[data-testid=shop-panel]').innerText().catch(() => '')).includes('Elias Shalhoub'), 'the shop panel names his agent');
 await p.click('[data-testid=shop-close]').catch(() => {});
 
 // an older save (version 23) with the Alexandria agent and the Khan shop: both become shops

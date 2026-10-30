@@ -9,6 +9,7 @@ import { OPEN_UPGRADES } from '../Inventory/StallUpgrades';
 import { PLAN_EVENT } from '../../game/nav';
 import { Icon } from '../Icon';
 import { audio } from '../../game/audio/engine';
+import { MAIN_ORDER, MISSIONS, missionsDone } from '../../data/missions';
 import './road.css';
 
 const amount = (n: Need, v: number) => (n.money ? fmt(Math.max(0, v)) : String(Math.max(0, Math.round(v))));
@@ -37,6 +38,26 @@ function Pic({ src, locked }: { src: string; locked: boolean }) {
       {src && ok ? <img src={src} alt="" loading="lazy" onError={() => setOk(false)} /> : <Icon name="star" />}
       {locked && <span className="road-lock"><Icon name="lock" /></span>}
     </span>
+  );
+}
+
+/** A rank on the road, or the House of Fortune: what it asks, in figures, and, when the money and the
+ *  name are there but the rank has not come, the matter of the story it is waiting on. */
+function RankNote({ st }: { st: Step }) {
+  const g = useGame();
+  const i = RANKS.findIndex((r) => `rank-${r.id}` === st.id);
+  if (i < 0 && st.id !== 'house') return null;
+  if (i >= 0 && rankOf(g).idx >= i) return null;
+  if (i < 0 && st.done) return null;
+  const want = st.needs.map((n) => `${n.label.toLowerCase()} ${amount(n, n.want)}`).join(' · ');
+  const met = st.needs.every((n) => n.have >= n.want);
+  const done = missionsDone(g.missions);
+  const waiting = i >= 0 && met && done < i ? MISSIONS[MAIN_ORDER[done]] : undefined;
+  return (
+    <>
+      <span className="road-targets" data-testid={`road-targets-${st.id}`}>Needs {want.charAt(0).toLowerCase() + want.slice(1)}</span>
+      {waiting && <span className="road-held" data-testid={`road-held-${st.id}`}>Worth and reputation are met. The rank waits on the story: <b>{waiting.title}</b>{i - done > 1 ? `, and ${i - done - 1} more matter${i - done - 1 > 1 ? 's' : ''} after it` : ''}.</span>}
+    </>
   );
 }
 
@@ -99,7 +120,7 @@ export function Road() {
                   <li key={st.id} className={`road-step ${st.done ? 'done' : ''} ${st.rank ? 'rank' : ''}`} data-testid={`road-${st.id}`}>
                     <span className="road-dot" aria-hidden="true">{st.done ? <Icon name="check" /> : st.rank ? <Icon name="crown" /> : null}</span>
                     {!st.rank && st.pic && <Pic src={st.pic} locked={!st.done} />}
-                    <div className="road-step-body"><b>{st.title}</b>{st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : <span className="road-line">{st.line}</span>}</div>
+                    <div className="road-step-body"><b>{st.title}</b>{st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : <span className="road-line">{st.line}</span>}<RankNote st={st} /></div>
                   </li>
                 ))}
               </ol>
@@ -116,6 +137,7 @@ export function Road() {
                   <div className="road-step-body">
                     <b>{st.title}</b>
                     {st.done ? <span className="road-done">{st.rank ? 'Reached' : 'Done'}</span> : next?.id === st.id ? <span className="road-done">Next, shown above</span> : <><span className="road-line">{st.line}</span><Bars needs={st.needs} /></>}
+                    <RankNote st={st} />
                     {!st.done && next?.id !== st.id && nearness(st) >= 1 && st.go && <button className="btn primary small" onClick={() => goTo(st)}>{goWord(st)}</button>}
                   </div>
                 </li>

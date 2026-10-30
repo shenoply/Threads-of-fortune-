@@ -384,6 +384,17 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {tab === 'town' && (<>
         <p className="set-blurb">{st.blurb}</p>
         <TownMoney id={id} />
+        {g.shops?.[id] && !g.shops[id].khan && (
+          <div id="sec-myshop" data-testid="town-myshop">
+            <div className="section-label">YOUR SHOP</div>
+            <div className="mkt">
+              <div className="mkt-row">
+                <span><b>Your shop {SHOP_CITIES[id]?.place}</b><small>{shopTileSub(g, id)}</small></span>
+                <button className="btn small primary" onClick={() => setMyShop(true)} data-testid="town-myshop-open">Your shop</button>
+              </div>
+            </div>
+          </div>
+        )}
         {houses.length > 0 && on('auction') && (
           <div className="houses" id="sec-houses" data-testid="auction-houses">
             <div className="section-label">AUCTION HOUSES</div>

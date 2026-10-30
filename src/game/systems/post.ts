@@ -41,6 +41,8 @@ export const TELEGRAM = { inland: 3, abroad: 5 } as const;
 export const telegramFee = (from: string, to: string) => (EGYPT.includes(from) && EGYPT.includes(to) ? TELEGRAM.inland : TELEGRAM.abroad);
 
 export const unread = (p: PostState | undefined, day: number) => (p?.letters ?? []).filter((l) => l.day <= day && !l.read).length;
+/** a badge's figure: never more than "9+" */
+export const badgeText = (n: number) => (n > 9 ? '9+' : String(n));
 export const arrived = (p: PostState | undefined, day: number) => (p?.letters ?? []).filter((l) => l.day <= day).slice().reverse();
 
 let n = 0;

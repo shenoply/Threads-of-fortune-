@@ -24,6 +24,11 @@
 .post-item b { display: block; font-size: 15px; margin: 1px 0 2px; }
 .post-item p { margin: 0; font-size: 14px; line-height: 1.35; }
 .post-item.new { box-shadow: 0 0 0 2px var(--brass-hi); }
+.post-older { display: flex; flex-direction: column; gap: 6px; }
+.post-older > summary { cursor: pointer; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-family: var(--label); font-size: 13px; letter-spacing: .08em; color: var(--text-dim); list-style: none; }
+.post-older > summary::-webkit-details-marker { display: none; }
+.post-older[open] > summary { margin-bottom: 6px; }
+.post-older > .post-item + .post-item { margin-top: 6px; }
 
 .wire-card { max-height: 86vh; overflow-y: auto; }
 .wire-card .mkt-row { gap: 8px; }

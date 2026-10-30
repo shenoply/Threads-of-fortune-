@@ -7,7 +7,7 @@ import { openJobs } from '../../data/jobs';
 import { QUESTS, NPCS } from '../../data/world';
 import { settlementById } from '../../game/systems/world';
 import { PostList } from './PostList';
-import { unread } from '../../game/systems/post';
+import { unread, badgeText } from '../../game/systems/post';
 
 type ObjTab = 'story' | 'jobs' | 'visitors' | 'post';
 
@@ -49,7 +49,7 @@ export function Objectives({ onClose, onFocus, initial = 'story' }: { onClose: (
         <div className="obj-tabs" role="tablist">
           {tabs.map(([id, label, n]) => (
             <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} data-testid={`obj-tab-${id}`}>
-              {label}{id !== 'story' && n > 0 && <b>{n}</b>}
+              {label}{id !== 'story' && n > 0 && <b>{badgeText(n)}</b>}
             </button>
           ))}
         </div>

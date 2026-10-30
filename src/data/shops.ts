@@ -19,17 +19,17 @@ export interface ShopCity {
 
 export const SHOP_CITIES: Record<string, ShopCity> = {
   cairo: { id: 'cairo', cost: 60000, rep: 60, place: 'in the Khan el-Khalili', trade: 1.25 },
-  alexandria: { id: 'alexandria', cost: 80000, rep: 45, place: 'off the Souq el-Attarin', trade: 1.15 },
-  portsaid: { id: 'portsaid', cost: 40000, rep: 30, place: 'on the Rue du Commerce, where the liners put in', trade: 0.95 },
-  jaffa: { id: 'jaffa', cost: 35000, rep: 25, place: 'by the clock tower', trade: 0.9 },
-  jerusalem: { id: 'jerusalem', cost: 60000, rep: 40, place: 'inside the Jaffa Gate', trade: 1.05 },
-  beirut: { id: 'beirut', cost: 60000, rep: 40, place: 'in the Souq Tawileh', trade: 1.05 },
-  damascus: { id: 'damascus', cost: 70000, rep: 45, place: 'in the Souq al-Hamidiyya', trade: 1.1 },
-  aleppo: { id: 'aleppo', cost: 60000, rep: 40, place: 'in the covered souq', trade: 1.05 },
-  amman: { id: 'amman', cost: 30000, rep: 25, place: 'below the citadel', trade: 0.8 },
-  baghdad: { id: 'baghdad', cost: 90000, rep: 50, place: 'in the Souq al-Saray', trade: 1.15 },
-  istanbul: { id: 'istanbul', cost: 150000, rep: 70, place: 'in the Grand Bazaar', trade: 1.3 },
-  ankara: { id: 'ankara', cost: 50000, rep: 35, place: 'near the new Assembly', trade: 0.9 },
+  alexandria: { id: 'alexandria', cost: 35000, rep: 45, place: 'off the Souq el-Attarin', trade: 1.15 },
+  portsaid: { id: 'portsaid', cost: 20000, rep: 30, place: 'on the Rue du Commerce, where the liners put in', trade: 0.95 },
+  jaffa: { id: 'jaffa', cost: 17000, rep: 25, place: 'by the clock tower', trade: 0.9 },
+  jerusalem: { id: 'jerusalem', cost: 28000, rep: 40, place: 'inside the Jaffa Gate', trade: 1.05 },
+  beirut: { id: 'beirut', cost: 28000, rep: 40, place: 'in the Souq Tawileh', trade: 1.05 },
+  damascus: { id: 'damascus', cost: 32000, rep: 45, place: 'in the Souq al-Hamidiyya', trade: 1.1 },
+  aleppo: { id: 'aleppo', cost: 28000, rep: 40, place: 'in the covered souq', trade: 1.05 },
+  amman: { id: 'amman', cost: 12000, rep: 25, place: 'below the citadel', trade: 0.8 },
+  baghdad: { id: 'baghdad', cost: 38000, rep: 50, place: 'in the Souq al-Saray', trade: 1.15 },
+  istanbul: { id: 'istanbul', cost: 60000, rep: 70, place: 'in the Grand Bazaar', trade: 1.3 },
+  ankara: { id: 'ankara', cost: 20000, rep: 35, place: 'near the new Assembly', trade: 0.9 },
 };
 export const SHOP_IDS = Object.keys(SHOP_CITIES);
 
@@ -40,66 +40,69 @@ export interface AgentOffer {
   honesty: number;
   /** 0..1: how well he sells */
   skill: number;
-  /** a week's wage, in piastres */
+  /** a small weekly retainer, in piastres: paid only in a week when he has rugs of yours to sell */
   wage: number;
-  /** a share of what he sells, kept by him instead of a wage (Rashid's man in Alexandria) */
+  /** his commission: the part of every sale he keeps (Rashid's man takes this and no retainer) */
   share?: number;
 }
 
-/** The men who would keep a shop for you, two or three in each city. */
+/** The men who would keep a shop for you, two or three in each city. Their pay is mostly commission:
+ *  a tenth to three-twentieths of what they sell, with a small retainer in weeks when the wall has rugs.
+ *  A stocked shop in a good city (six rugs of the middle grade, kept up) takes about £25 to £35 a
+ *  week after his pay, and clears its lease within a season (13 weeks). */
 export const AGENTS: Record<string, AgentOffer[]> = {
   alexandria: [
-    { id: 'shawqi', name: 'Mahmoud Shawqi', honesty: 0.9, skill: 0.5, wage: 120 },
-    { id: 'lambrinos', name: 'Costa Lambrinos', honesty: 0.5, skill: 0.8, wage: 200 },
-    { id: 'salama', name: 'Yacoub Salama', honesty: 0.95, skill: 0.35, wage: 80 },
+    { id: 'shawqi', name: 'Mahmoud Shawqi', honesty: 0.9, skill: 0.5, wage: 30, share: 0.12 },
+    { id: 'lambrinos', name: 'Costa Lambrinos', honesty: 0.5, skill: 0.8, wage: 50, share: 0.15 },
+    { id: 'salama', name: 'Yacoub Salama', honesty: 0.95, skill: 0.35, wage: 20, share: 0.1 },
   ],
   portsaid: [
-    { id: 'fahmy', name: 'Ali Fahmy', honesty: 0.85, skill: 0.5, wage: 100 },
-    { id: 'kalogeras', name: 'Spiro Kalogeras', honesty: 0.45, skill: 0.75, wage: 160 },
-    { id: 'ghali', name: 'Abdu Bishay', honesty: 0.95, skill: 0.35, wage: 70 },
+    { id: 'fahmy', name: 'Ali Fahmy', honesty: 0.85, skill: 0.5, wage: 25, share: 0.12 },
+    { id: 'kalogeras', name: 'Spiro Kalogeras', honesty: 0.45, skill: 0.75, wage: 40, share: 0.15 },
+    { id: 'ghali', name: 'Abdu Bishay', honesty: 0.95, skill: 0.35, wage: 20, share: 0.1 },
   ],
   jaffa: [
-    { id: 'haddad', name: 'Elias Shalhoub', honesty: 0.8, skill: 0.6, wage: 110 },
-    { id: 'abulaban', name: 'Musa Abu Laban', honesty: 0.95, skill: 0.45, wage: 80 },
-    { id: 'levy', name: 'Nissim Levy', honesty: 0.5, skill: 0.8, wage: 170 },
+    { id: 'haddad', name: 'Elias Shalhoub', honesty: 0.8, skill: 0.6, wage: 30, share: 0.12 },
+    { id: 'abulaban', name: 'Musa Abu Laban', honesty: 0.95, skill: 0.45, wage: 20, share: 0.12 },
+    { id: 'levy', name: 'Nissim Levy', honesty: 0.5, skill: 0.8, wage: 40, share: 0.15 },
   ],
   jerusalem: [
-    { id: 'kalaydjian', name: 'Garabed Kalaydjian', honesty: 0.85, skill: 0.8, wage: 220 },
-    { id: 'halabi', name: 'Yusuf Halabi', honesty: 0.9, skill: 0.5, wage: 120 },
-    { id: 'sabbagh', name: 'Antoun Sabbagh', honesty: 0.55, skill: 0.7, wage: 150 },
+    { id: 'kalaydjian', name: 'Garabed Kalaydjian', honesty: 0.85, skill: 0.8, wage: 55, share: 0.15 },
+    { id: 'halabi', name: 'Yusuf Halabi', honesty: 0.9, skill: 0.5, wage: 30, share: 0.12 },
+    { id: 'sabbagh', name: 'Antoun Sabbagh', honesty: 0.55, skill: 0.7, wage: 40, share: 0.15 },
   ],
   beirut: [
-    { id: 'khoury', name: 'Habib Khoury', honesty: 0.8, skill: 0.7, wage: 170 },
-    { id: 'saad', name: 'Fouad Saad', honesty: 0.6, skill: 0.55, wage: 120 },
-    { id: 'arslanian', name: 'Boghos Arslanian', honesty: 0.5, skill: 0.85, wage: 220 },
+    { id: 'khoury', name: 'Habib Khoury', honesty: 0.8, skill: 0.7, wage: 40, share: 0.15 },
+    { id: 'saad', name: 'Fouad Saad', honesty: 0.6, skill: 0.55, wage: 30, share: 0.12 },
+    { id: 'arslanian', name: 'Boghos Arslanian', honesty: 0.5, skill: 0.85, wage: 55, share: 0.15 },
   ],
   damascus: [
-    { id: 'qabbani', name: 'Abu Shaker Qabbani', honesty: 0.85, skill: 0.75, wage: 170 },
-    { id: 'hamwi', name: 'Rida Hamwi', honesty: 0.95, skill: 0.5, wage: 100 },
-    { id: 'shami', name: 'Salim Shami', honesty: 0.45, skill: 0.85, wage: 200 },
+    { id: 'qabbani', name: 'Abu Shaker Qabbani', honesty: 0.85, skill: 0.75, wage: 40, share: 0.15 },
+    { id: 'hamwi', name: 'Rida Hamwi', honesty: 0.95, skill: 0.5, wage: 25, share: 0.12 },
+    { id: 'shami', name: 'Salim Shami', honesty: 0.45, skill: 0.85, wage: 50, share: 0.15 },
   ],
   aleppo: [
-    { id: 'kouyoumdjian', name: 'Hagop Kouyoumdjian', honesty: 0.85, skill: 0.8, wage: 180 },
-    { id: 'jabiri', name: 'Omar Jabiri', honesty: 0.6, skill: 0.5, wage: 110 },
-    { id: 'antaki', name: 'Nasrallah Antaki', honesty: 0.9, skill: 0.6, wage: 130 },
+    { id: 'kouyoumdjian', name: 'Hagop Kouyoumdjian', honesty: 0.85, skill: 0.8, wage: 45, share: 0.15 },
+    { id: 'jabiri', name: 'Omar Jabiri', honesty: 0.6, skill: 0.5, wage: 30, share: 0.12 },
+    { id: 'antaki', name: 'Nasrallah Antaki', honesty: 0.9, skill: 0.6, wage: 30, share: 0.12 },
   ],
   amman: [
-    { id: 'twal', name: 'Odeh Twal', honesty: 0.9, skill: 0.4, wage: 70 },
-    { id: 'mufti', name: 'Said Mufti', honesty: 0.6, skill: 0.6, wage: 100 },
+    { id: 'twal', name: 'Odeh Twal', honesty: 0.9, skill: 0.4, wage: 20, share: 0.1 },
+    { id: 'mufti', name: 'Said Mufti', honesty: 0.6, skill: 0.6, wage: 25, share: 0.12 },
   ],
   baghdad: [
-    { id: 'shamash', name: 'Ezra Shamash', honesty: 0.85, skill: 0.85, wage: 220 },
-    { id: 'haidari', name: 'Jasim Haidari', honesty: 0.9, skill: 0.55, wage: 130 },
-    { id: 'kubba', name: 'Karim Kubba', honesty: 0.5, skill: 0.7, wage: 170 },
+    { id: 'shamash', name: 'Ezra Shamash', honesty: 0.85, skill: 0.85, wage: 55, share: 0.15 },
+    { id: 'haidari', name: 'Jasim Haidari', honesty: 0.9, skill: 0.55, wage: 30, share: 0.12 },
+    { id: 'kubba', name: 'Karim Kubba', honesty: 0.5, skill: 0.7, wage: 40, share: 0.15 },
   ],
   istanbul: [
-    { id: 'balian', name: 'Hrant Balian', honesty: 0.85, skill: 0.9, wage: 300 },
-    { id: 'necip', name: 'Necip Bey', honesty: 0.6, skill: 0.65, wage: 200 },
-    { id: 'ralli', name: 'Dimitri Ralli', honesty: 0.45, skill: 0.75, wage: 240 },
+    { id: 'balian', name: 'Hrant Balian', honesty: 0.85, skill: 0.9, wage: 75, share: 0.15 },
+    { id: 'necip', name: 'Necip Bey', honesty: 0.6, skill: 0.65, wage: 50, share: 0.12 },
+    { id: 'ralli', name: 'Dimitri Ralli', honesty: 0.45, skill: 0.75, wage: 60, share: 0.15 },
   ],
   ankara: [
-    { id: 'ahmetusta', name: 'Ahmet Usta', honesty: 0.9, skill: 0.5, wage: 100 },
-    { id: 'riza', name: 'Rıza Efendi', honesty: 0.6, skill: 0.7, wage: 140 },
+    { id: 'ahmetusta', name: 'Ahmet Usta', honesty: 0.9, skill: 0.5, wage: 25, share: 0.12 },
+    { id: 'riza', name: 'Rıza Efendi', honesty: 0.6, skill: 0.7, wage: 35, share: 0.15 },
   ],
 };
 
@@ -110,10 +113,11 @@ export const RASHIDS_MAN: AgentOffer = { id: 'nahhas', name: 'Ibrahim Nahhas', h
 /** what the souq says about a man (honesty is never shown as a number) */
 export const honestyWord = (h: number) => (h >= 0.8 ? 'well spoken of in the souq' : h >= 0.6 ? 'nobody says much about him either way' : 'a sharp one, they say');
 export const skillWord = (k: number) => (k >= 0.75 ? 'knows rugs well' : k >= 0.5 ? 'knows rugs fairly' : 'new to rugs');
-export const wageWord = (a: AgentOffer) => (a.share ? `keeps ${Math.round(a.share * 100)} per cent of what he sells` : `${fmt(a.wage)} a week`);
+export const wageWord = (a: AgentOffer) => (a.share && a.wage ? `${Math.round(a.share * 100)} per cent of sales and ${fmt(a.wage)} a week` : a.share ? `keeps ${Math.round(a.share * 100)} per cent of what he sells` : `${fmt(a.wage)} a week`);
 
-/** Sending a rug kept at the Giza stall to one of your shops by rail and steamer, from a telegraph office. */
-export const RAIL_FEE = { egypt: 50, abroad: 150 } as const;
+/** Sending rugs kept at the Giza stall to one of your shops by rail and steamer, as freight: so much a
+ *  rug, and one wire for the lot (none when you are at the stall yourself). */
+export const RAIL_FEE = { egypt: 30, abroad: 80 } as const;
 export const RAIL_DAYS = { egypt: 2, abroad: 5 } as const;
 
 // ---- Dress your stall --------------------------------------------------------------------------
