@@ -101,3 +101,7 @@
 .stall .actions .act-note.doubt q { font-style: italic; color: var(--text); }
 .stall .trend-legend { padding: 0 2px; }
 .stall .rugstrip .side-btn small { display: block; font-size: 10.5px; opacity: .8; }
+/* the money bar and the price dial take only the height they need: equal rows are for the action cards */
+.stall .actions:has(.dial), .stall .actions:has(.offer-bar), .stall .actions:has(.result) { grid-auto-rows: auto; }
+.stall .actions .dial .price small.price-memo { display: block; line-height: 1.25; }
+.stall .actions .dial .price small.price-memo b { font-size: inherit; font-family: inherit; }

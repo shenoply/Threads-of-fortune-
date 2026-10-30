@@ -477,10 +477,11 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             </div>
             <div className="price">
               <b data-testid="dial-value" data-pt={dial}>{fmt(dial)}</b>
-              <small>{presented.paid ? <><span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
+              <small>{presented.paid ? <><span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
-              {enc && <AskRead enc={enc} />}
-              {enc?.refused ? <small className="price-memo" data-testid="price-now">They turned down <b>{fmt(enc.refused)}</b> just now</small> : null}
+              {/* the reaction at the price you named shows in the money bar above once there is one */}
+              {enc && !(enc.buyerOffer || enc.askPrice) && <AskRead enc={enc} />}
+              {enc?.refused && !enc.askPrice ? <small className="price-memo" data-testid="price-now">They turned down <b>{fmt(enc.refused)}</b> just now</small> : null}
               {(() => { const m = g.relationships[enc?.buyerId ?? '']?.memo; if (enc?.refused || !m || (!m.refused && !m.paid)) return null; return <small className="price-memo" data-testid="price-memo">Last visit: {m.refused ? <>turned down <b>{fmt(m.refused)}</b></> : null}{m.refused && m.paid ? ' · ' : ''}{m.paid ? <>paid <b>{fmt(m.paid)}</b></> : null}</small>; })()}
             </div>
             <div className="dial-btns">
