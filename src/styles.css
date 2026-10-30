@@ -1791,6 +1791,9 @@ body.travelling .mission-strip{display:none}
 .app { display: flex !important; flex-direction: column; }
 .app > header, .app > nav, .app > .objective-bar, .app > .evening-strip { flex: 0 0 auto; }
 .app > main { flex: 1 1 auto; min-height: 0; }
+/* the tabs stay on top of the page: a screen whose content runs long (the stall at the day's end with a warning
+   and the objective above it) must never cover them and swallow a tap */
+.app > nav.nav { position: relative; z-index: 2; }
 .objective-bar { margin: 5px 8px 0; border: 1px solid #b8893a; border-radius: 6px; background: linear-gradient(90deg, #3a2410, #24170c); }
 .objective-bar.news { box-shadow: 0 0 0 2px rgba(240,200,106,.35); }
 .ob-row { display: flex; align-items: center; gap: 6px; padding: 4px 5px 4px 0; }
