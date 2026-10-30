@@ -3,7 +3,7 @@
 // tap passes it. Shown once a night, and only after a day with money in it.
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { fmt } from '../../game/economy/money';
+import { fmt, snap } from '../../game/economy/money';
 import { audio } from '../../game/audio/engine';
 import { lookUps, sceneIdFor, sceneImg } from '../../game/stallScenes';
 import './night.css';
@@ -13,18 +13,35 @@ const SHOWN = new Set<number>();
 const skipAll = (() => { try { return localStorage.getItem('tof-skip-chapters') === '1' && localStorage.getItem('tof-night') !== '1'; } catch { return false; } })();
 export const nightDue = (day: number) => !skipAll && !SHOWN.has(day);
 
-/** The day out of a hundred: the profit against your own recent days, how many you sold, and the
- *  markup you held. A loss costs you points; a day like your best is near a hundred. */
-export function dayScore(ledger: { day: number; kind: string; amount: number; cost?: number }[], day: number, sum: { sales: number; revenue: number; gross: number }) {
+type LedgerRow = { day: number; kind: string; amount: number; cost?: number };
+type DaySum = { sales: number; revenue: number; gross: number };
+
+/** What a fair day's profit is by now: a little more each week of trade, and never less than your
+ *  own recent days. A single big day (the opening, with your father's good rugs) does not make it. */
+function dayTarget(ledger: LedgerRow[], day: number) {
   const prior = ledger.filter((l) => l.kind === 'sale' && l.day < day && l.day >= day - 7);
-  const days = new Set(prior.map((l) => l.day)).size || 1;
+  const days = Math.max(3, new Set(prior.map((l) => l.day)).size);
   const avg = prior.reduce((a, l) => a + (l.amount - (l.cost ?? 0)), 0) / days;
-  const target = Math.max(600, avg * 1.25);
-  const profit = sum.gross <= 0 ? 0 : 60 * Math.min(1, sum.gross / target);
-  const count = Math.min(25, sum.sales * 6.5);
+  return Math.max(900 + Math.min(day - 1, 60) * 40, avg);
+}
+
+/** The day out of a hundred: the profit against a fair day's (on a curve, so a thin day still counts
+ *  for something and an easy day is not perfect), how many you sold (four or more for full marks), and
+ *  the markup you held. A loss costs points. "Masterful" needs a day well beyond the usual. */
+export function dayScore(ledger: LedgerRow[], day: number, sum: DaySum) {
+  const target = dayTarget(ledger, day);
+  const profit = sum.gross <= 0 ? 0 : 55 * Math.sqrt(Math.min(1.4, sum.gross / target) / 1.4);
+  const count = Math.min(20, sum.sales * 5);
   const cost = sum.revenue - sum.gross;
   const markup = cost > 0 ? 15 * Math.min(1, Math.max(0, sum.gross / cost) / 0.75) : sum.gross > 0 ? 15 : 0;
-  return Math.max(0, Math.min(100, Math.round(profit + count + markup - (sum.gross < 0 ? 15 : 0))));
+  return Math.max(0, Math.min(100, Math.round(5 + profit + count + markup - (sum.gross < 0 ? 15 : 0))));
+}
+/** The score in one plain line: what it was weighed against. */
+export function scoreWhy(ledger: LedgerRow[], day: number, sum: DaySum) {
+  const target = dayTarget(ledger, day);
+  const cost = sum.revenue - sum.gross;
+  const mk = cost > 0 ? `, ${Math.round((sum.gross / cost) * 100)}% over cost` : '';
+  return `Profit ${fmt(Math.max(0, sum.gross))} against a fair day's ${fmt(snap(target))}, ${sum.sales} ${sum.sales === 1 ? 'sale' : 'sales'}${mk}.`;
 }
 export const scoreWord = (n: number) => (n >= 92 ? 'Masterful' : n >= 80 ? 'Excellent' : n >= 60 ? 'A good day' : n >= 40 ? 'Fair' : 'A poor day');
 

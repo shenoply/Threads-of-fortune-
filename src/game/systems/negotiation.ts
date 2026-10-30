@@ -1,4 +1,5 @@
 import { WEAVERY_LINES } from '../../data/weaveryLines';
+import { UNVOICED_SET } from '../../data/buyerLinesUnvoiced';
 import { demandFor } from '../economy/market';
 import { VOICE_COLOUR, HELLO, colourOf } from '../../data/voiceColour';
 import { labArgBonus } from './arranShop';
@@ -31,7 +32,7 @@ export type ActionId =
   | 'name_price' | 'hold' | 'halfway' | 'sweetener' | 'accept_offer' | 'quick_sale'
   | 'm_charm' | 'm_kind' | 'm_firm'
   | 'lie_menu' | 'praise_menu' | 'patter_back' | `lie_${LieKind}` | `praise_${PraiseKind}`
-  | 'nabil_package' | 'disclose' | 'final_push' | 'read_limit'
+  | 'nabil_package' | 'disclose' | 'final_push' | 'read_limit' | 'show_rug'
   | 'c_measure' | 'c_deadline' | 'c_accept' | 'c_decline' | 'c_more' | 'c_rub' | 'c_keep' | 'c_deliver' | 'c_leave';
 
 export interface ActionView {
@@ -132,6 +133,14 @@ export interface Encounter {
   /** skill moves used this visit: one final push (Haggling 10), their limit read (Appraisal 5) */
   pushed?: boolean;
   limitRead?: number;
+  /** what the Appraisal read gives: a band their limit lies in, never the exact edge */
+  limitRange?: [number, number];
+  /** how their face took the last price you named (shown only after you name it) */
+  lastRead?: { price: number; cls: string; word: string };
+  /** you held firm above what they would pay, and they left */
+  heldOut?: boolean;
+  /** what they added on top of a spot-on price, for your eye */
+  spotTip?: number;
   /** a named price that landed right at what they would pay: the run of these it makes (Spot on ×N) */
   spotOn?: number;
   /** the one carpet this buyer came for today (a rare visit; pays SEEK_PAYS times) */
@@ -222,10 +231,93 @@ const eyeCtx = (ctx: Ctx): Eye => ({ skills: ctx.skills, labUnlocked: ctx.labUnl
 
 export function pick<T>(arr: T[], rng: () => number, avoid: string[] = []): T {
   if (!arr.length) return '' as unknown as T;
-  const fresh = arr.filter((a) => !avoid.includes(String(a)));
-  const pool = fresh.length ? fresh : arr;
+  // a line said with a little sound in front of it ("Hmm. ...") still counts as said
+  const said = (a: string) => avoid.some((x) => x === a || x.endsWith(' ' + a));
+  const fresh = arr.filter((a) => !said(String(a)));
+  // a recorded line before an unrecorded one, while there is a recorded one not just said
+  const voiced = fresh.filter((a) => !UNVOICED_SET.has(String(a)));
+  const pool = voiced.length ? voiced : fresh.length ? fresh : arr;
   return pool[Math.floor(rng() * pool.length)];
 }
+
+/** Lines to steer clear of: what this buyer said a moment ago, and what they said to you last visit
+ *  (kept on the relationship; an old save without it has nothing to avoid). */
+function av(enc: Encounter, ctx: Ctx): string[] {
+  return [...recentBuyerTexts(enc), ...(ctx.rel?.lastLines ?? [])];
+}
+
+const NUM: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+  thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+  twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+/** The largest sum of money a buyer names in a line ("three pounds fifty", "twenty-five pounds,
+ *  perhaps fifty", "four and a half"), in piastres; undefined when the line names no pounds. */
+export function moneyIn(text: string): number | undefined {
+  const all = sumsIn(text);
+  return all.length ? Math.max(...all) : undefined;
+}
+/** Every sum of money named in a line, in piastres (none when it names no pounds). */
+export function sumsIn(text: string): number[] {
+  const s = text.toLowerCase();
+  if (!/pound|£/.test(s)) return [];
+  const out: number[] = [];
+  for (const m of s.matchAll(/£\s?(\d+(?:\.\d{1,2})?)/g)) out.push(Math.round(parseFloat(m[1]) * 100));
+  // a stop or a comma ends a figure: "two pounds. Three" is two sums, not two pounds three
+  const w = s.replace(/-/g, ' ').replace(/[.,;:!?]/g, ' | ').replace(/[^a-z| ]/g, ' ').split(/\s+/).filter(Boolean);
+  let i = 0;
+  const phrase = (): number | undefined => {
+    let v = 0, cur = 0, any = false;
+    while (i < w.length) {
+      const t = w[i];
+      if (t in NUM) { cur += NUM[t]; any = true; i++; continue; }
+      if (t === 'a' && w[i + 1] === 'hundred') { cur += 1; any = true; i++; continue; }
+      if (t === 'hundred' && any) { cur = (cur || 1) * 100; i++; continue; }
+      if (t === 'and' && cur >= 100 && (w[i + 1] in NUM)) { i++; continue; }
+      break;
+    }
+    v += cur;
+    if (!any) return undefined;
+    if (w[i] === 'and' && w[i + 1] === 'a' && w[i + 2] === 'half') { i += 3; return v + 0.5; }
+    return v;
+  };
+  while (i < w.length) {
+    const start = i;
+    const n = phrase();
+    if (n === undefined) { i = start + 1; continue; }
+    let pt = Math.round(n * 100);
+    // "the right one", "one that outlives me": a lone "one" is not a sum
+    if (w[start] === 'one' && i === start + 1 && w[i] !== 'pound' && w[i] !== 'pounds') continue;
+    if (w[i] === 'pounds' || w[i] === 'pound') {
+      i++;
+      // "three pounds fifty": the piastres follow the pounds
+      const save = i;
+      const p = phrase();
+      if (p !== undefined && p < 100 && w[i] !== 'pounds') pt += p; else i = save;
+    }
+    if (pt > 0) out.push(pt);
+  }
+  return out;
+}
+
+/** What this buyer says they can spend on what they need today, if they name a sum. Their own line
+ *  is used when it agrees with the need; when it plainly belongs to another need, the figure is the
+ *  need's own (and that figure is what they say). Read whether or not you asked, so asking never
+ *  costs you: it only lets you hear it. */
+export function spokenBudget(enc: Pick<Encounter, 'buyerId' | 'needIdx' | 'tier'>): { fig: number; own: boolean } | undefined {
+  const b = BUYERS[enc.buyerId];
+  if (!b || b.royal || ['nabil', 'cohen'].includes(enc.buyerId)) return undefined;
+  const cap = prefsFor(enc).budget[1] * (1 + enc.tier * 0.06);
+  // of the sums their own lines name, the one nearest what they need today ("twenty-five for a gift,
+  // ninety for the residence")
+  const sums = (b.lines.budgetLate ?? []).flatMap(sumsIn);
+  if (!sums.length) return undefined;
+  const named = sums.reduce((a, x) => (Math.abs(x - cap) < Math.abs(a - cap) ? x : a));
+  if (named >= cap * 0.75 && named <= cap * 1.4) return { fig: named, own: true };
+  return { fig: snap(cap * 0.9), own: false };
+}
+/** how far past the sum they named a buyer will stretch for the right rug */
+export const STRETCH = 1.1;
 
 export function tierOf(rel: Relationship): { idx: number; name: 'New' | 'Familiar' | 'Regular' | 'Patron' } {
   if (rel.purchases >= 4 && rel.affinity >= 40) return { idx: 3, name: 'Patron' };
@@ -283,7 +375,11 @@ export function courtFloor(buyerId: string, item: RugItem): number {
 export function wtp(enc: Encounter, item: RugItem): number {
   const b = BUYERS[enc.buyerId];
   const t = RUGS[item.typeId];
-  const cap = Math.max(prefsFor(enc).budget[1] * (1 + enc.tier * 0.06) * (enc.bazaar ? 1.08 : 1) * (enc.edge?.budget ?? 1) * (enc.edge?.pay ?? 1), courtFloor(enc.buyerId, item));
+  // the sum they name is the sum they mean: a little over it for the right rug, never a pound more
+  // (a better stall, an event or a good purse can still move the figure itself)
+  const said = spokenBudget(enc);
+  const top = Math.min(prefsFor(enc).budget[1] * (1 + enc.tier * 0.06), said ? said.fig * STRETCH : Infinity);
+  const cap = Math.max(top * (enc.bazaar ? 1.08 : 1) * (enc.edge?.budget ?? 1) * (enc.edge?.pay ?? 1), courtFloor(enc.buyerId, item));
   if (enc.buyerId === 'nabil') {
     // his figure follows the rug's value, rarity, condition and evidence; never above his ceiling
     const a = nabilAssessment(t, item, { repairDisclosed: !!enc.nabilDisclosed, repeatedPitchCount: enc.nabilPitches ?? 0, labReport: !!item.labReports?.length });
@@ -400,7 +496,7 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     if (enc.purse === 'keen') enc.interest = clamp(enc.interest + 8, 0, 100);
     if (enc.purse === 'hurried') enc.patience -= 18;
   }
-  enc.log.push({ speaker: 'system', text: pick(L.arrival, ctx.rng) });
+  enc.log.push({ speaker: 'system', text: pick(L.arrival, ctx.rng, av(enc, ctx)) });
   // now and then a buyer comes for one carpet only, with the money for it: a fortune if it is on your shelf
   const seek = !tutorial && !b.royal && !['cohen', 'nabil', 'malek'].includes(buyerId) ? seekFor(buyerId, ctx) : undefined;
   if (seek) {
@@ -412,27 +508,27 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
   }
   if (rel.visits > 0) {
     if (rel.embellishedSale && !rel.embellishMentioned && L.embellishLater.length) {
-      enc.log.push({ speaker: 'buyer', text: pick(L.embellishLater, ctx.rng), mood: 'skeptical' });
+      enc.log.push({ speaker: 'buyer', text: pick(L.embellishLater, ctx.rng, av(enc, ctx)), mood: 'skeptical' });
       enc.trust = clamp(enc.trust - 20, 0, 100);
       enc.mood = 'skeptical';
     } else if (rel.lastRug && rel.purchases > 0 && !rel.fairSaid && rel.lastFair !== undefined && (rel.lastFair > 1.35 || rel.lastFair < 0.85) && ((L as unknown as Record<string, string[] | undefined>)[rel.lastFair > 1.35 ? 'overcharged' : 'bargain']?.length)) {
       // they remember what the last one cost them
       const cheated = rel.lastFair > 1.35;
       const lines = (L as unknown as Record<string, string[]>)[cheated ? 'overcharged' : 'bargain'];
-      enc.log.push({ speaker: 'buyer', text: pick(lines, ctx.rng), mood: cheated ? 'skeptical' : 'warm' });
+      enc.log.push({ speaker: 'buyer', text: pick(lines, ctx.rng, av(enc, ctx)), mood: cheated ? 'skeptical' : 'warm' });
       enc.trust = clamp(enc.trust + (cheated ? -6 : 5), 0, 100);
       if (!cheated) enc.interest = clamp(enc.interest + 5, 0, 100);
       enc.mood = cheated ? 'skeptical' : 'warm';
       enc.fairSpoken = true;
     } else if (rel.lastRug && rel.purchases > 0) {
-      enc.log.push({ speaker: 'buyer', text: pick(L.previousRug, ctx.rng).replace('{rug}', RUGS[rel.lastRug]?.name ?? 'rug'), mood: 'warm' });
+      enc.log.push({ speaker: 'buyer', text: pick(L.previousRug, ctx.rng, av(enc, ctx)).replace('{rug}', RUGS[rel.lastRug]?.name ?? 'rug'), mood: 'warm' });
       enc.mood = 'warm';
     } else {
-      enc.log.push({ speaker: 'buyer', text: pick(forHour(L.repeat, ctx.hour), ctx.rng) });
+      enc.log.push({ speaker: 'buyer', text: pick(forHour(L.repeat, ctx.hour), ctx.rng, av(enc, ctx)) });
     }
   } else {
     const early = b.greetingFromDay != null && (ctx.day ?? 0) < b.greetingFromDay && L.earlyPresent.length;
-    enc.log.push({ speaker: 'buyer', text: early ? pick(L.earlyPresent, ctx.rng) : pick(forHour(L.greeting, ctx.hour), ctx.rng) });
+    enc.log.push({ speaker: 'buyer', text: early ? pick(L.earlyPresent, ctx.rng, av(enc, ctx)) : pick(forHour(L.greeting, ctx.hour), ctx.rng, av(enc, ctx)) });
   }
   // their own first word, in their own voice, before the greeting: every buyer sounds like themselves at once
   const hello = HELLO[buyerId];
@@ -599,6 +695,28 @@ export function presentedItem(enc: Encounter, ctx: Ctx) {
   return ctx.inventory.find((i) => i.uid === enc.presented);
 }
 
+/** The angles a pitch makes, best first: the two this buyer cares for most, and only those that do
+ *  carry weight with them (speaking to the room only once you have asked about it). */
+export function pitchKinds(enc: Pick<Encounter, 'buyerId' | 'asked' | 'argsUsed'>): ArgKind[] {
+  const b = BUYERS[enc.buyerId];
+  const kinds: ArgKind[] = ['story', 'craft', 'durability'];
+  if (enc.asked.includes('room')) kinds.push('fit');
+  return kinds.filter((k) => !enc.argsUsed.includes(k) && (b.args[k] ?? 0) >= 0.6).sort((x, y) => b.args[y] - b.args[x]).slice(0, 2);
+}
+
+/** A soft mark on the angle that answers what the buyer told you, in their terms: after they spoke of
+ *  what draws them, on story or craft; after they described the room, on the room or durability. */
+export function heardHint(enc: Encounter, kind: ArgKind): string | undefined {
+  const b = BUYERS[enc.buyerId];
+  if (!b || enc.tutorial) return undefined;
+  const top = (Object.entries(b.args) as [ArgKind, number][]).sort((x, y) => y[1] - x[1])[0];
+  if (!top || top[0] !== kind || top[1] < 1.4) return undefined;
+  const fromRoom = kind === 'fit' || kind === 'durability';
+  if (!enc.asked.includes(fromRoom ? 'room' : 'drawn')) return undefined;
+  const heard = (fromRoom ? prefsFor(enc).roomPriorities : b.priorities.drawn).find((p) => enc.revealed.includes(p.id));
+  return heard ? `They mentioned: ${heard.label.toLowerCase()}` : undefined;
+}
+
 export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   if (enc.outcome) return [];
   const b = BUYERS[enc.buyerId];
@@ -634,15 +752,18 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   switch (enc.stage) {
     case 'discovery':
     case 'qualification': {
-      // the tutorial keeps its own wording; elsewhere each question says whether this buyer wants it
-      const keen = enc.tutorial ? null : keenQuestions(enc.buyerId);
-      const hint = (q: 'room' | 'drawn' | 'budget' | 'decider', plain: string) => (!keen ? plain : keen.includes(q) ? 'They\'d like to talk about this' : 'They\'d rather get on with it');
+      // a new buyer gives nothing away: you learn which questions they welcome by asking. A buyer you
+      // have met before, you remember.
+      const keen = enc.tutorial || (ctx.rel?.visits ?? 0) < 1 ? null : keenQuestions(enc.buyerId);
+      const hint = (q: 'room' | 'drawn' | 'budget' | 'decider', plain: string) => (!keen ? plain : keen.includes(q) ? 'Last time they were glad to talk of this' : 'Last time they would rather get on');
       if (!has('room')) out.push({ id: 'ask_room', label: `Ask about the ${b.roomWord ?? (enc.buyerId === 'yusuf' ? 'hotel' : 'room')}`, sub: hint('room', 'Learn what matters to them'), icon: 'room' });
       if (!has('drawn')) out.push({ id: 'ask_drawn', label: 'Ask what draws them', sub: hint('drawn', 'What they look for'), icon: 'eye' });
       if (!has('budget')) out.push({ id: 'ask_budget', label: 'Ask for the budget', sub: hint('budget', enc.stage === 'discovery' ? 'Be direct' : 'Now that you know them'), icon: 'purse' });
       if (ctx.upgrades.includes('tea') && !enc.teaUsed && !enc.venue) out.push({ id: 'tea', label: 'Offer tea', sub: '+ patience', icon: 'tea' });
       if (!has('decider') && enc.stage === 'qualification') out.push({ id: 'ask_decider', label: 'Who else decides?', sub: hint('decider', 'Understand the household'), icon: 'people' });
       if (!has('small')) out.push({ id: 'small_talk', label: 'Choose your manner', sub: 'Charm, kindness or plain business', icon: 'chat' });
+      // everything asked and no rug on the table: say what is left to do, rather than show nothing
+      if (!out.length && !enc.presented) out.push({ id: 'show_rug', label: 'Show them a rug', sub: 'Tap one of your rugs below', icon: 'swap', disabled: true });
       break;
     }
     case 'presentation': {
@@ -653,26 +774,21 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
         fit: { label: 'Speak to their room', sub: used('fit') ? 'Already said' : 'Tie it to what they told you', icon: 'room' },
         durability: { label: 'Point out durability', sub: used('durability') ? 'Already said' : 'How long it lasts', icon: 'shield' },
       };
-      // Every buyer weighs an angle differently (b.args). Read on them, don't print the number:
-      // their strongest angle leads the menu, and a flat one is flagged before you waste a turn on it.
-      const hint = (kind: ArgKind) => {
-        const w = b.args[kind];
-        if (w >= 1.4) return 'They light up for this';
-        if (w <= 0) return 'Leaves them cold';
-        if (w < 0.6) return 'Not what they came for';
-        return undefined;
-      };
+      // Every buyer weighs an angle differently (b.args), and the menu does not say which: the buttons
+      // keep one order and plain descriptions. Only once the buyer has said what matters to them (asked
+      // about their room, or what draws them) is the angle that answers it marked with their own words.
       const makeArg = (kind: ArgKind): ActionView => {
         const d = base[kind];
-        const h = !used(kind) ? hint(kind) : undefined;
+        const h = !used(kind) ? heardHint(enc, kind) : undefined;
         return { id: kind, label: d.label, sub: h ?? d.sub, icon: d.icon };
       };
       const available: ArgKind[] = ['story', 'craft', has('room') ? 'fit' : 'durability'];
-      available.sort((x, y) => b.args[y] - b.args[x]);
       const args: ActionView[] = available.map(makeArg);
-      // a buyer you know (two visits, or you asked what they want): your two best angles in one go
-      if (enc.argsUsed.length === 0 && (ctx.rel.visits >= 2 || has('room') || has('drawn'))) {
-        args.unshift({ id: 'pitch', label: 'Make your pitch', sub: `You know them: ${available.slice(0, 2).map((k) => base[k].label.toLowerCase()).join(', then ')}`, icon: 'scroll' });
+      // a buyer you know (two visits, or you asked what they want): your best angles in one go, only
+      // those that suit them, so the pitch never leads with something they do not care for
+      const pk = pitchKinds(enc);
+      if (enc.argsUsed.length === 0 && pk.length && (ctx.rel.visits >= 2 || has('room') || has('drawn'))) {
+        args.unshift({ id: 'pitch', label: 'Make your pitch', sub: `You know them: ${pk.map((k) => base[k].label.toLowerCase()).join(', then ')}`, icon: 'scroll' });
       }
       if (enc.argsUsed.length === 0) {
         args.push(has('room') ? makeArg('durability') : { id: 'ask_room', label: 'Ask about the room', sub: 'You skipped this', icon: 'room' });
@@ -704,7 +820,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       }
       if (enc.askPrice && enc.buyerOffer && enc.askPrice - enc.buyerOffer >= 10 && !last)
         out.push({ id: 'halfway', label: `Meet at ${fmt(round5((enc.askPrice + enc.buyerOffer) / 2))}`, sub: 'Split the difference: they may take it at once', icon: 'scale' });
-      if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm: they may still take it', icon: 'shield' });
+      if (enc.askPrice) out.push({ id: 'hold', label: `Hold at ${fmt(enc.askPrice)}`, sub: last ? 'They will leave' : 'Be firm: they may take it, or go', icon: 'shield' });
       out.push({ id: 'name_price', label: 'Name a new price', sub: last ? 'They leave unless it is theirs' : 'Change your ask: a low one may close the sale', icon: 'coin' });
       const pkg = nabilPackage(enc, ctx);
       if (pkg) out.splice(1, 0, { id: 'nabil_package', label: `Sell both · ${fmt(pkg.price)}`, sub: `This and the ${RUGS[pkg.other.typeId]?.name}, cash today`, icon: 'swap' });
@@ -715,7 +831,8 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
       break;
   }
   void b;
-  const core = out.slice(0, 4);
+  // (the pitch is a fifth button, never one that pushes an angle off the menu)
+  const core = out.slice(0, enc.stage === 'presentation' && out[0]?.id === 'pitch' ? 5 : 4);
   if (enc.tutorial || enc.buyerId === 'nabil' || enc.buyerId === 'cohen') return core;
   const told = enc.liesTold?.length ?? 0, praised = enc.praiseUsed?.length ?? 0;
   if (enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') && told < MAX_LIES && !enc.embellishCaught)
@@ -727,7 +844,7 @@ export function getActions(enc: Encounter, ctx: Ctx): ActionView[] {
   if (enc.presented && (enc.stage === 'presentation' || enc.stage === 'bargaining') && enc.limitRead === undefined) {
     const m = SKILL_MOVES.read_limit, have = lvl(ctx, m.skill);
     // a locked move shows only when it is nearly yours: a goal in sight, not a row of grey buttons
-    if (have >= m.level - 2) core.push({ id: 'read_limit', label: m.name, sub: have >= m.level ? 'Appraisal: what they would really go to' : `Needs Appraisal ${m.level} · you have ${have}`, icon: 'eye', disabled: have < m.level });
+    if (have >= m.level - 2) core.push({ id: 'read_limit', label: m.name, sub: have >= m.level ? 'Appraisal: roughly how far they would go' : `Needs Appraisal ${m.level} · you have ${have}`, icon: 'eye', disabled: have < m.level });
   }
   if (enc.stage === 'bargaining' && enc.buyerOffer && !enc.pushed && !enc.finalOffered) {
     const m = SKILL_MOVES.final_push, have = lvl(ctx, m.skill);
@@ -799,15 +916,15 @@ function checkWalk(enc: Encounter, ctx: Ctx, justPresented = false) {
     enc.buyerOffer = Math.max(last, prev);
     enc.stage = 'bargaining';
     enc.patience = 12;
-    buyerSay(enc, pick(b.lines.finalOffer ?? FINAL_OFFER, ctx.rng).replace('{price}', fmt(enc.buyerOffer)), 'skeptical');
+    buyerSay(enc, pick(b.lines.finalOffer ?? FINAL_OFFER, ctx.rng, av(enc, ctx)).replace('{price}', fmt(enc.buyerOffer)), 'skeptical');
     return;
   }
   if (enc.patience <= 0 || bored || enc.trust <= 5) {
     enc.outcome = 'walked';
     enc.stage = 'close';
-    buyerSay(enc, pick(b.lines.walkAway, ctx.rng), 'leaving');
+    buyerSay(enc, pick(b.lines.walkAway, ctx.rng, av(enc, ctx)), 'leaving');
   } else if (enc.patience <= 18 && enc.patience > 0 && ctx.rng() < 0.6) {
-    buyerSay(enc, pick(b.lines.impatience, ctx.rng, recentBuyerTexts(enc)), 'skeptical');
+    buyerSay(enc, pick(b.lines.impatience, ctx.rng, av(enc, ctx)), 'skeptical');
   }
 }
 
@@ -854,19 +971,19 @@ export function presentRug(enc: Encounter, ctx: Ctx, uid: string): Effects {
   if (ctx.upgrades.includes('display')) enc.interest = clamp(enc.interest + 8, 0, 100);
   if (early && !enc.tutorial) {
     adjust(enc, { interest: -8, trust: -4 });
-    buyerSay(enc, pick(b.lines.earlyPresent, ctx.rng), 'skeptical');
+    buyerSay(enc, pick(b.lines.earlyPresent, ctx.rng, av(enc, ctx)), 'skeptical');
   }
   adjust(enc, { patience: first ? -Q.present : -Q.present - 4 });
   enc.lastDelta = enc.interest - before;
   const L = b.lines;
-  const reaction = fit >= 65 ? pick(L.rugGood, ctx.rng) : fit >= 40 ? pick(L.rugNeutral, ctx.rng) : pick(L.rugBad, ctx.rng);
+  const reaction = fit >= 65 ? pick(L.rugGood, ctx.rng, av(enc, ctx)) : fit >= 40 ? pick(L.rugNeutral, ctx.rng, av(enc, ctx)) : pick(L.rugBad, ctx.rng, av(enc, ctx));
   const colour = L.colour[t.colourFamily];
   const cond = item.condition === 'Dirty' ? L.condition.dirty : item.condition === 'Worn' ? L.condition.worn : item.condition === 'Damaged' ? L.condition.damaged : '';
   const mood = fit >= 65 ? 'pleased' : fit >= 40 ? 'neutral' : 'skeptical';
   buyerSay(enc, reaction, mood);
   buyerSay(enc, colour, mood);
   if (cond) buyerSay(enc, cond, mood);
-  if ((t.rarity === 'Rare' || t.rarity === 'Treasure') && L.rare.length && ctx.rng() < 0.5) say(enc, 'buyer', pick(L.rare, ctx.rng));
+  if ((t.rarity === 'Rare' || t.rarity === 'Treasure') && L.rare.length && ctx.rng() < 0.5) say(enc, 'buyer', pick(L.rare, ctx.rng, av(enc, ctx)));
   if (enc.buyerId === 'nabil' && ctx.nabil?.seenRugIds.includes(rugKey(item))) {
     buyerSay(enc, 'I have seen this piece before, in the same state. Has anything changed, or only the day?', 'skeptical');
     adjust(enc, { interest: -6 });
@@ -904,7 +1021,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
   const b = BUYERS[enc.buyerId];
   const L = b.lines;
   const fx: Effects = { sfx: [] };
-  if (enc.outcome) return fx;
+  if (enc.outcome || id === 'show_rug') return fx;
   enc.turn++;
   const item = presentedItem(enc, ctx);
   const t = item ? RUGS[item.typeId] : undefined;
@@ -912,7 +1029,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
   if (id === 'pitch') {
     // the two angles that work best on this buyer, one after the other
     enc.turn--;
-    const kinds = (['story', 'craft', enc.asked.includes('room') ? 'fit' : 'durability'] as ArgKind[]).filter((k) => !enc.argsUsed.includes(k)).sort((x, y) => b.args[y] - b.args[x]).slice(0, 2);
+    const kinds = pitchKinds(enc);
     const all: Effects = { sfx: [] };
     for (const k of kinds) {
       if (enc.outcome || enc.stage !== 'presentation') break;
@@ -977,7 +1094,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'seller', pick(SELLER.askRoom, ctx.rng));
       enc.asked.push('room');
       reveal(enc, prefsFor(enc).roomPriorities);
-      buyerSay(enc, pick(prefsFor(enc).room, ctx.rng, avoid), 'neutral');
+      buyerSay(enc, pick(prefsFor(enc).room, ctx.rng, av(enc, ctx)), 'neutral');
       adjust(enc, { patience: -Q.cost + 2, trust: 4, interest: 4 });
       if (enc.stage === 'discovery') enc.stage = 'qualification';
       if (enc.tutorial) fx.tutorialAdvance = 'asked_room';
@@ -986,7 +1103,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'seller', pick(SELLER.askDrawn, ctx.rng));
       enc.asked.push('drawn');
       reveal(enc, b.priorities.drawn);
-      buyerSay(enc, pick(L.drawnTo, ctx.rng, avoid));
+      buyerSay(enc, pick(L.drawnTo, ctx.rng, av(enc, ctx)));
       adjust(enc, { patience: -Q.cost, trust: 3, interest: 2 });
       if (enc.stage === 'discovery') enc.stage = 'qualification';
       break;
@@ -994,24 +1111,33 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       const early = !enc.asked.includes('room') && !enc.asked.includes('drawn') && !enc.presented;
       say(enc, 'seller', pick(early ? SELLER.askBudgetEarly : SELLER.askBudgetLate, ctx.rng));
       enc.asked.push('budget');
+      // the sum they name has to be the sum for what they need today: a line that names another
+      // need's figure gives way to a plain one with the right figure
+      const said = spokenBudget(enc);
+      // (asked too soon, a buyer may name less than they mean, never more)
+      const fits = (l: string) => { const m = sumsIn(l); return !m.length || !said || m.some((x) => x >= said.fig * (early ? 0.6 : 0.85) && x <= said.fig * 1.15); };
+      const own = (early ? L.budgetEarly : L.budgetLate).filter(fits);
+      const line = own.length || !said ? pick(own.length ? own : (early ? L.budgetEarly : L.budgetLate), ctx.rng, av(enc, ctx))
+        : early ? `Not a great deal. About ${fmt(said.fig)}, if it is the right rug.` : `For what I need today, about ${fmt(said.fig)}. A little over, if it is right.`;
       if (early) {
-        buyerSay(enc, pick(L.budgetEarly, ctx.rng), b.directBudgetTrust < 0 ? 'skeptical' : 'neutral');
+        buyerSay(enc, line, b.directBudgetTrust < 0 ? 'skeptical' : 'neutral');
         adjust(enc, { trust: b.directBudgetTrust, patience: -Q.cost });
       } else {
-        buyerSay(enc, pick(L.budgetLate, ctx.rng));
+        buyerSay(enc, line);
         adjust(enc, { patience: -Q.cost + 1 });
       }
       const pb = prefsFor(enc).budget;
       const shown = presentedItem(enc, ctx);
-      const cap = Math.round(Math.max(pb[1] * (1 + enc.tier * 0.06), shown ? courtFloor(enc.buyerId, shown) : 0));
-      enc.budgetKnown = [round5(pb[0]), round5(cap * (early && b.directBudgetTrust < 0 ? 1.05 : 1))];
+      const top = Math.min(pb[1] * (1 + enc.tier * 0.06), said ? said.fig * STRETCH : Infinity);
+      const cap = Math.round(Math.max(top, shown ? courtFloor(enc.buyerId, shown) : 0));
+      enc.budgetKnown = [round5(Math.min(pb[0], cap * 0.7)), round5(cap)];
       if (enc.stage === 'discovery') enc.stage = 'qualification';
       break;
     }
     case 'ask_decider':
       say(enc, 'seller', pick(SELLER.askDecider, ctx.rng));
       enc.asked.push('decider');
-      buyerSay(enc, pick(L.decider, ctx.rng));
+      buyerSay(enc, pick(L.decider, ctx.rng, av(enc, ctx)));
       adjust(enc, { patience: -Q.cost + 2, trust: 2 });
       break;
     case 'small_talk':
@@ -1029,7 +1155,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       const like = r?.like ?? 0;
       const skill = lvl(ctx, 'speech');
       if (r) buyerSay(enc, like >= 0 ? r.good : r.bad, like > 0 ? 'warm' : like < 0 ? 'skeptical' : 'neutral');
-      else buyerSay(enc, pick(L.smallTalk, ctx.rng));
+      else buyerSay(enc, pick(L.smallTalk, ctx.rng, av(enc, ctx)));
       if (like > 0) adjust(enc, { trust: 8 + Math.round(skill / 3), interest: 4, patience: kind === 'kind' ? 8 : 0 });
       else if (like === 0) adjust(enc, { trust: 2 + Math.round(skill / 5), patience: -3 });
       else adjust(enc, { trust: -6 + Math.round(skill / 5), patience: -6 });
@@ -1040,7 +1166,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
     case 'tea':
       say(enc, 'seller', SELLER.tea[0]);
       enc.teaUsed = true;
-      buyerSay(enc, pick(L.tea, ctx.rng), 'warm');
+      buyerSay(enc, pick(L.tea, ctx.rng, av(enc, ctx)), 'warm');
       adjust(enc, { patience: 15, trust: 3 });
       fx.sfx!.push('tea');
       break;
@@ -1107,7 +1233,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'seller', SELLER.saffronStay[0]);
       enc.saffronOn = '__stay__' + uid;
       enc.prompt = undefined;
-      buyerSay(enc, pick(L.saffron, ctx.rng), b.catAffinity > 0 ? 'warm' : 'skeptical');
+      buyerSay(enc, pick(L.saffron, ctx.rng, av(enc, ctx)), b.catAffinity > 0 ? 'warm' : 'skeptical');
       adjust(enc, { interest: b.catAffinity * 5, trust: b.catAffinity * 3 });
       gain(fx, 'catkeeping', 3);
       if (uid) {
@@ -1151,7 +1277,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       enc.concession = true;
       adjust(enc, { interest: 6, trust: 2, patience: -4 });
       lean(fx, { firmness: -2, kindness: 1 });
-      buyerSay(enc, pick(L.concession, ctx.rng), 'neutral');
+      buyerSay(enc, pick(L.concession, ctx.rng, av(enc, ctx)), 'neutral');
       resolveObjection(enc);
       break;
     case 'obj_another':
@@ -1196,8 +1322,15 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
     }
     case 'read_limit': {
       if (!item || lvl(ctx, 'appraisal') < SKILL_MOVES.read_limit.level) break;
-      enc.limitRead = snapDown(wtp(enc, item));
-      say(enc, 'system', `You watch their hands on the pile and the way they look at it. They would go to about ${fmt(enc.limitRead)}.`);
+      // a read, not a ledger: a band their limit lies somewhere in, narrower as the eye sharpens
+      const w = wtp(enc, item);
+      const ap = lvl(ctx, 'appraisal');
+      const width = Math.max(0.08, 0.2 - (ap - SKILL_MOVES.read_limit.level) * 0.01);
+      const below = width * (0.35 + ctx.rng() * 0.4);
+      const lo = Math.max(5, snapDown(w * (1 - below))), hi = Math.max(lo + 5, snap(w * (1 - below + width)));
+      enc.limitRange = [lo, hi];
+      enc.limitRead = snap((lo + hi) / 2);
+      say(enc, 'system', `You watch their hands on the pile and the way they look at it. Their limit is somewhere between ${fmt(lo)} and ${fmt(hi)}.`);
       gain(fx, 'appraisal', 3);
       break;
     }
@@ -1207,7 +1340,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       say(enc, 'seller', 'Come. A little more, and you will thank me every time you walk across it.');
       const w = wtp(enc, item);
       const up = Math.min(snapDown(w), snap(enc.buyerOffer * 1.07));
-      if (up > enc.buyerOffer) { enc.buyerOffer = up; say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(up))); adjust(enc, { patience: -6 }); }
+      if (up > enc.buyerOffer) { enc.buyerOffer = up; say(enc, 'buyer', pick(L.counter, ctx.rng, av(enc, ctx)).replace('{price}', fmt(up))); adjust(enc, { patience: -6 }); }
       else { buyerSay(enc, 'No. That is all it is worth to me.', 'skeptical'); adjust(enc, { patience: -10 }); }
       gain(fx, 'haggling', 4);
       break;
@@ -1215,7 +1348,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
     case 'sweetener':
       say(enc, 'seller', SELLER.sweetener[0]);
       enc.sweetened = true;
-      buyerSay(enc, pick(L.sweetener, ctx.rng), 'pleased');
+      buyerSay(enc, pick(L.sweetener, ctx.rng, av(enc, ctx)), 'pleased');
       adjust(enc, { interest: 6, patience: 4 });
       lean(fx, { kindness: 2 });
       fx.ledger = { label: 'Delivery and fringe wash', amount: -5, kind: 'expense' };
@@ -1223,7 +1356,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       if (item && enc.buyerOffer) {
         const w = wtp(enc, item);
         enc.buyerOffer = Math.min(snapDown(w * 0.95), snap(enc.buyerOffer * 1.08));
-        say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(enc.buyerOffer)));
+        say(enc, 'buyer', pick(L.counter, ctx.rng, av(enc, ctx)).replace('{price}', fmt(enc.buyerOffer)));
       }
       break;
     case 'quick_sale': {
@@ -1258,7 +1391,7 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
     kind === 'story' ? t.storyLine : kind === 'craft' ? t.craftLine : kind === 'durability' ? t.durabilityLine : (SELLER.fit[enc.buyerId] ?? '').replace('{rug}', t.name);
   say(enc, 'seller', line);
   if (enc.argsUsed.includes(kind)) {
-    buyerSay(enc, pick(L.repeatArg, ctx.rng), 'skeptical');
+    buyerSay(enc, pick(L.repeatArg, ctx.rng, av(enc, ctx)), 'skeptical');
     adjust(enc, { patience: -10, interest: -2 });
     if (enc.buyerId === 'nabil') nabilBluff(enc, ctx);
     return;
@@ -1294,7 +1427,7 @@ function argue(enc: Encounter, ctx: Ctx, kind: ArgKind, item: RugItem, t: RugTyp
   gain(fx, 'speech', 2);
   const good = delta >= 6;
   const pool = L[kind];
-  buyerSay(enc, pick(good ? pool.good : pool.flat, ctx.rng, recentBuyerTexts(enc)), good ? 'pleased' : delta < 0 ? 'skeptical' : 'neutral');
+  buyerSay(enc, pick(good ? pool.good : pool.flat, ctx.rng, av(enc, ctx)), good ? 'pleased' : delta < 0 ? 'skeptical' : 'neutral');
   adjust(enc, { interest: delta, patience: weight < 0 ? -Q.arg - 6 : -Q.arg, trust: (good ? 2 : 0) + (labBonus && good ? 1 : 0) });
   if (enc.tutorial) {
     fx.tutorialAdvance = kind === 'story' || kind === 'fit' ? 'arg_right' : 'arg_wrong';
@@ -1335,7 +1468,7 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   }
 
   if (enc.buyerOffer && price <= enc.buyerOffer) {
-    buyerSay(enc, pick(L.priceLow, ctx.rng), 'pleased');
+    buyerSay(enc, pick(L.priceLow, ctx.rng, av(enc, ctx)), 'pleased');
     closeSale(enc, ctx, price);
     return;
   }
@@ -1343,8 +1476,8 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   // a court does not pay a merchant's first figure: the chamberlain answers it with one of his own
   const court = !!b.royal && enc.rounds <= 1;
   if (price <= w * (court ? 0.8 : 0.93) || (!court && mode !== 'name' && price <= w && ctx.rng() < 0.55 + enc.trust / 200) || (enc.rounds >= 3 && price <= w)) {
-    buyerSay(enc, pick(acceptLine, ctx.rng), 'pleased');
-    if (mode === 'hold' && enc.buyerOffer) say(enc, 'buyer', pick(L.holdGive, ctx.rng).replace('{price}', fmt(price)));
+    buyerSay(enc, pick(acceptLine, ctx.rng, av(enc, ctx)), 'pleased');
+    if (mode === 'hold' && enc.buyerOffer) say(enc, 'buyer', pick(L.holdGive, ctx.rng, av(enc, ctx)).replace('{price}', fmt(price)));
     // spot on: you named a price right at the edge of what they would pay, and they took it at once.
     // A buyer respects an eye like that, and a run of them pays more each time.
     if (mode === 'name' && !court && enc.rounds <= 2 && price >= w * 0.88) {
@@ -1356,10 +1489,24 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
       if (tip > 0) {
         say(enc, 'buyer', pick(SPOT_LINES, ctx.rng).replace('{price}', fmt(tip)));
         price += tip;
+        enc.spotTip = tip;
       }
       gain(fx, 'appraisal', 2 + run);
     }
     closeSale(enc, ctx, price);
+    return;
+  }
+  // their face answers the figure now that it is said
+  enc.lastRead = { price, ...readOf(price, w) };
+  // a firm price above what they will pay, to a buyer short of patience or trust, or one who never
+  // liked the rug, can end it: they turn and go
+  if (ctx.rng() < walkOdds(enc, price, w, mode)) {
+    enc.refused = Math.max(enc.refused ?? 0, price);
+    buyerSay(enc, pick(mode === 'hold' ? L.holdRefuse : L.priceHigh, ctx.rng, av(enc, ctx)), 'skeptical');
+    buyerSay(enc, pick(L.walkAway, ctx.rng, av(enc, ctx)), 'leaving');
+    enc.heldOut = true;
+    enc.outcome = 'walked';
+    enc.stage = 'close';
     return;
   }
   // Counter-offer logic
@@ -1372,20 +1519,20 @@ function bargainPrice(enc: Encounter, ctx: Ctx, item: RugItem, price: number, mo
   if (price <= w) {
     next = settle(snapDown(Math.min(w, (prev + price) / 2)));
     adjust(enc, { patience: -6 });
-    if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng, recentBuyerTexts(enc)).replace('{price}', fmt(next)), 'neutral');
+    if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng, av(enc, ctx)).replace('{price}', fmt(next)), 'neutral');
   } else if (price <= w * 1.25) {
     enc.refused = Math.max(enc.refused ?? 0, price);
     next = settle(snapDown(Math.min(w * 0.97, prev + (w - prev) * 0.4)));
     adjust(enc, { patience: mode === 'hold' ? -16 : -12, interest: -2 });
-    buyerSay(enc, pick(mode === 'hold' ? L.holdRefuse : L.priceHigh, ctx.rng), 'skeptical');
-    if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng).replace('{price}', fmt(next)), 'skeptical');
+    buyerSay(enc, pick(mode === 'hold' ? L.holdRefuse : L.priceHigh, ctx.rng, av(enc, ctx)), 'skeptical');
+    if (!finalOfferDue(enc)) buyerSay(enc, pick(L.counter, ctx.rng, av(enc, ctx)).replace('{price}', fmt(next)), 'skeptical');
   } else {
     enc.refused = Math.max(enc.refused ?? 0, price);
     next = settle(prev);
     enc.insulted = true;
     adjust(enc, { patience: -24, trust: -8, interest: -4 });
-    buyerSay(enc, pick(L.priceInsult, ctx.rng), 'skeptical');
-    if (enc.buyerOffer && !finalOfferDue(enc)) say(enc, 'buyer', pick(L.counter, ctx.rng).replace('{price}', fmt(next)));
+    buyerSay(enc, pick(L.priceInsult, ctx.rng, av(enc, ctx)), 'skeptical');
+    if (enc.buyerOffer && !finalOfferDue(enc)) say(enc, 'buyer', pick(L.counter, ctx.rng, av(enc, ctx)).replace('{price}', fmt(next)));
   }
   enc.buyerOffer = next;
   if (enc.buyerId === 'nabil') {
@@ -1414,6 +1561,35 @@ const SPOT_LINES = [
   'That is the right figure, and you knew it. {price} on top, for not wasting my time.',
   'Ha! You read me like a ledger. Have {price} more.',
 ];
+
+const OVER_SAID = [
+  'It is more than I said. For this one, I will find it.',
+  'More than I meant to spend. It is the right rug, so be it.',
+  'Past what I told you. Well, it is worth it.',
+];
+
+/** How the buyer's face answers a price once it is named (never before). */
+export function readOf(price: number, w: number): { cls: string; word: string } {
+  const r = price / Math.max(1, w);
+  return r <= 0.8 ? { cls: 'joy', word: 'Their eyes light up' }
+    : r <= 0.93 ? { cls: 'glad', word: 'A quick nod' }
+    : r <= 1.0 ? { cls: 'hm', word: 'They hesitate' }
+    : r <= 1.25 ? { cls: 'frown', word: 'A frown' }
+    : { cls: 'cold', word: 'Offended' };
+}
+
+/** The chance a buyer turns and goes rather than answer your price. Holding firm above what they will
+ *  pay can lose the sale, more so the further above, the thinner their patience and trust, and the
+ *  less they liked the rug in the first place. Never at or below their limit while patience lasts. */
+export function walkOdds(enc: Encounter, price: number, w: number, mode: 'name' | 'hold' | 'halfway'): number {
+  if (enc.tutorial || mode === 'halfway' || ['nabil', 'cohen'].includes(enc.buyerId)) return 0;
+  const over = price / Math.max(1, w) - 1;
+  const rejected = enc.presentedFit < 40;
+  if (over <= 0) return mode === 'hold' && enc.patience <= 10 ? 0.1 : 0;
+  if (mode === 'name' && !rejected) return 0;
+  const p = over * 1.6 + (enc.patience < 25 ? 0.15 : 0) + (enc.trust < 35 ? 0.12 : 0) + (rejected ? 0.2 : 0);
+  return clamp(mode === 'name' ? p * 0.6 : p, 0, 0.75);
+}
 
 /** what a buyer pays for the carpet they came for */
 export const SEEK_PAYS = 2.2;
@@ -1450,7 +1626,10 @@ function closeSale(enc: Encounter, ctx: Ctx, price: number) {
   enc.salePrice = price;
   enc.stage = 'close';
   const bad = enc.presentedFit < 40;
-  buyerSay(enc, pick(bad ? b.lines.badSale : b.lines.success, ctx.rng), bad ? 'neutral' : 'pleased');
+  // a buyer who named a sum and paid past it says so, plainly
+  const said = enc.asked.includes('budget') ? spokenBudget(enc) : undefined;
+  if (said && price > said.fig && !enc.packageUid) say(enc, 'buyer', OVER_SAID[(enc.turn + enc.log.length) % OVER_SAID.length]);
+  buyerSay(enc, pick(bad ? b.lines.badSale : b.lines.success, ctx.rng, av(enc, ctx)), bad ? 'neutral' : 'pleased');
 }
 
 // Short enough that all six fit in one row on a phone without CSS ellipsis chopping them into
@@ -1470,11 +1649,11 @@ export function petCat(enc: Encounter, ctx: Ctx): Effects {
   enc.catPetted = true;
   if (b.catAffinity > 0) {
     say(enc, 'saffron', 'Saffron rolls over and shows her belly to the customer.');
-    buyerSay(enc, pick(b.lines.catPet, ctx.rng), 'warm');
+    buyerSay(enc, pick(b.lines.catPet, ctx.rng, av(enc, ctx)), 'warm');
     adjust(enc, { trust: 3 * b.catAffinity, patience: 2 });
   } else {
     say(enc, 'saffron', 'Saffron jumps onto the counter and sniffs the customer\'s sleeve.');
-    buyerSay(enc, pick(b.lines.catPet, ctx.rng), 'skeptical');
+    buyerSay(enc, pick(b.lines.catPet, ctx.rng, av(enc, ctx)), 'skeptical');
     adjust(enc, { patience: -4 });
   }
   return { sfx: ['meow'] };

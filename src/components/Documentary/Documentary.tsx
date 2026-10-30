@@ -171,7 +171,7 @@ export function DayOneCard({ onBegin }: { onBegin: () => void }) {
         <div className="d">10 MARCH 1925 · GIZA</div>
         <h1>DAY ONE</h1>
         <h2>OPEN THE STALL</h2>
-        <p>Three rugs. One hundred and twenty piastres. One cat.</p>
+        <p>Three rugs, one of them your father's and not for sale. £1.20 in the purse (120 piastres). One cat.</p>
         <p className="dayone-debt" data-testid="dayone-debt">{FIRST_WORD}</p>
         <button className="big-btn" onClick={onBegin} data-testid="begin-day-one">
           Begin Day One

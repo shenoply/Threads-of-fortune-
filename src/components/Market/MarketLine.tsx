@@ -16,6 +16,20 @@ export function MarketLine({ where }: { where: 'stall' | 'rashid' }) {
   );
 }
 
+/** What the arrows on the rugs mean, said in words under them (a hover title is never seen on a
+ *  phone): only the arrows that are showing. */
+export function TrendLegend({ typeIds, where }: { typeIds: string[]; where: 'stall' | 'rashid' }) {
+  const day = useGame((s) => s.day);
+  const ts = new Set(typeIds.map((id) => trendOf(id, day)).filter(Boolean));
+  if (!ts.size) return null;
+  return (
+    <p className="trend-legend" data-testid="trend-legend">
+      {ts.has('up') && <span><i className="trend-mark up">▲</i> wanted today: sells above usual</span>}
+      {ts.has('down') && <span><i className="trend-mark down">▼</i> {where === 'rashid' ? 'plentiful today: cheaper to buy' : 'plentiful today: sells below usual'}</span>}
+    </p>
+  );
+}
+
 /** a small arrow on a rug: wanted today, or too many about */
 export function TrendMark({ typeId }: { typeId: string }) {
   const day = useGame((s) => s.day);

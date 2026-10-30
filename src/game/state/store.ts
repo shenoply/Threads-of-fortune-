@@ -973,7 +973,7 @@ function initial(): Omit<GameState, keyof Actions> {
     dayStats: { sales: 0, revenue: 0, gross: 0, expenses: 0 },
     goals: goalsFor(1, { debt: 0 }),
     commissions: [],
-    journal: [{ day: 1, text: 'Opened the borrowed corner in Giza with three rugs, 120 piastres and Saffron.' }, { day: 1, text: FIRST_WORD, kind: 'due' }],
+    journal: [{ day: 1, text: 'Opened the borrowed corner in Giza with three rugs (one of them your father\'s, not for sale), £1.20 (120 piastres) and Saffron.' }, { day: 1, text: FIRST_WORD, kind: 'due' }],
     totalSales: 0,
     settings: { dialogue: true, music: true, sfx: true, ambience: true },
     autosaveOn: true,
@@ -1265,7 +1265,8 @@ export const useGame = create<GameState & Actions>()(
           rep -= 2;
           rel.affinity -= 20;
         }
-        rel.lastLines = enc.log.filter((l) => l.speaker === 'buyer').map((l) => l.text).slice(-6);
+        // everything they said this visit, so next time they pick other words where they have them
+        rel.lastLines = [...new Set(enc.log.filter((l) => l.speaker === 'buyer').map((l) => l.text))].slice(-30);
         if (enc.buyerId === 'cohen') {
           const c = s.cohen ?? COHEN_START;
           let order = c.order;

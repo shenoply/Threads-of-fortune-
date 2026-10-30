@@ -1,4 +1,4 @@
-import { TrendMark } from '../Market/MarketLine';
+import { TrendMark, TrendLegend } from '../Market/MarketLine';
 import { useAudioEnv } from '../../game/audio/useAudioEnv';
 import { placedPieces } from '../../game/stallDressing';
 import { createPortal } from 'react-dom';
@@ -11,8 +11,8 @@ import { hasPerk, levelOf, type SkillId } from '../../data/character';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { stallFigure } from './stallArt';
 import { fmt, ladderDown, ladderUp, snap, snapDown } from '../../game/economy/money';
-import { availableRugs, tutorialAllows, useGame } from '../../game/state/store';
-import { fitScore, getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, wtp, type ActionId, type Encounter } from '../../game/systems/negotiation';
+import { availableRugs, keptBack, tutorialAllows, useGame } from '../../game/state/store';
+import { fitScore, getActions, prefsFor, suggestedAsk, tierOf, canQuickSell, quickPrice, type ActionId, type Encounter } from '../../game/systems/negotiation';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { Scene, InfoBand } from './Scene';
@@ -58,6 +58,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   useAudioEnv(atCourt ? 'palace' : rivalActive ? 'market' : null, atCourt ? 'palace' : rivalActive ? 'rivalry' : undefined);
   // at court you can only show the rugs your caravan carried there
   const avail = atCourt ? availableRugs(g, enc?.buyerId).filter((i) => !i.stored) : availableRugs(g, enc?.buyerId);
+  const keptCount = atCourt ? 0 : g.inventory.filter((i) => keptBack(g, i)).length;
   // a rug picked from the full list comes to the front of the counter
   const [front, setFront] = useState<string | null>(null);
   const [picker, setPicker] = useState(false);
@@ -77,6 +78,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   // choice holds from one buyer to the next
   const [tray, setTray] = useState(() => { try { return localStorage.getItem('tof-rug-tray') !== 'shut'; } catch { return true; } });
   useEffect(() => { try { localStorage.setItem('tof-rug-tray', tray ? 'open' : 'shut'); } catch { /* no storage */ } }, [tray]);
+  // a buyer waiting for another rug (after "Show another rug") sees the rugs, never a shut tray
+  const waitingForRug = !!enc && !enc.outcome && !enc.presented && enc.objectionDone && enc.stage === 'qualification';
+  useEffect(() => { if (waitingForRug) setTray(true); }, [waitingForRug]);
   const [swipe, setSwipe] = useState<number | null>(null);
   const talking = !!enc && !enc.outcome;
   // During the talk the picture gets exactly the height the rest leaves free, and never more than its
@@ -371,10 +375,13 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <button className="side-btn" onClick={() => setPicker(true)} disabled={avail.length <= 3 || tut} aria-label={`See all ${avail.length} rugs`} data-testid="change-rugs">
             <Icon name="swap" />
             All {avail.length}
+            {/* a rug you own but cannot show (your father's, or one framed on the wall) is counted, so the tally agrees with what you hold */}
+            {keptCount > 0 && <small data-testid="kept-count">+{keptCount} kept back</small>}
           </button>
           {picker && <RugPicker rugs={avail} names={names} taste={taste} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); setOffset(0); if (enc?.presented !== uid) onRug(uid); }} />}
         </div>
       </div>
+      {tray && <TrendLegend typeIds={shown.map((i) => i.typeId)} where="stall" />}
 
       <div className="actions" data-testid="actions">
         {/* the money on the table, where the buttons are: what you asked, what they offer */}
@@ -382,7 +389,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           <div className={`offer-bar ${enc.finalOffered ? 'final' : ''}`} data-testid="offer-bar">
             {enc.askPrice ? <span>You ask <b>{fmt(enc.askPrice)}</b></span> : <span />}
             {enc.buyerOffer ? <span className="theirs" data-testid={enc.finalOffered ? 'final-offer' : undefined}>{enc.finalOffered ? 'Final offer' : `${buyer?.name.split(' ')[0] ?? 'They'} offers`} <b data-testid="offer-amount">{fmt(enc.buyerOffer)}</b></span> : <span className="theirs dim">No offer yet</span>}
-            {enc.limitRead ? <span className="limit" data-testid="limit-read">limit ≈ {fmt(enc.limitRead)}</span> : null}
+            {enc.limitRange ? <span className="limit" data-testid="limit-read">limit {fmt(enc.limitRange[0])}–{fmt(enc.limitRange[1])}</span> : enc.limitRead ? <span className="limit" data-testid="limit-read">limit ≈ {fmt(enc.limitRead)}</span> : null}
+            {enc.lastRead && enc.askPrice === enc.lastRead.price ? <span className={`face-read ${enc.lastRead.cls}`} data-testid="ask-read-bar"><i />{enc.lastRead.word}</span> : null}
             {/* what their offer means for you: the profit on what the rug cost, and the stars it would earn */}
             {presented && enc.buyerOffer ? (() => {
               const cost = presented.paid, gain = enc.buyerOffer - cost, pct = cost > 0 ? Math.round((gain / cost) * 100) : 100;
@@ -404,6 +412,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                       ? <> · <span className="r-loss" data-testid="sale-loss">a loss of <span className="nw">{fmt(-net)}</span></span></>
                       : <> · net profit <span className="nw">{fmt(net)}</span></>)}
                   </b>
+                  {enc.spotTip && enc.askPrice ? <span data-testid="spot-tip">You asked {fmt(enc.askPrice)}; they added {fmt(enc.spotTip)} for naming the right figure.</span> : null}
                   <span>
                     {buyer?.royal ? (g.court?.warrants?.includes(enc.buyerId) ? `${buyer.royal.warrant} · ` : 'No warrant this time: it needs a court-grade rug at a fair price · ') : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
                   </span>
@@ -425,6 +434,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                       ? 'He heard the same pitch, or a bluff, one time too many. Answer his question plainly next time; he will be back in a week or so.'
                       : enc.embellishCaught
                       ? 'They caught the story. Claim only what you know.'
+                      : enc.heldOut
+                      ? `You asked ${fmt(enc.askPrice ?? 0)}, more than they would pay, and they went. A firm price can lose the sale.`
                       : enc.insulted
                         ? (enc.budgetKnown ? 'The price offended them. Watch the budget they gave you.' : 'The price was too high for them.')
                         : enc.patience <= 0
@@ -468,7 +479,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               <b data-testid="dial-value" data-pt={dial}>{fmt(dial)}</b>
               <small>{presented.paid ? <><span className={dial - presented.paid >= 0 ? 'pos' : 'nw'}>{dial - presented.paid >= 0 ? '+' : '−'}{fmt(Math.abs(dial - presented.paid))}</span> · </> : null}{est(presented.uid)}{enc?.buyerOffer ? <> · <span className="nw">{enc.finalOffered ? 'Final offer' : 'Offer'} {fmt(enc.buyerOffer)}</span></> : null}</small>
               {enc?.budgetKnown && dial > enc.budgetKnown[1] && <small className="warn" data-testid="dial-warn">Above the budget {buyer?.name} gave you</small>}
-              {enc && <FaceRead enc={enc} item={presented} dial={dial} />}
+              {enc && <AskRead enc={enc} />}
               {enc?.refused ? <small className="price-memo" data-testid="price-now">They turned down <b>{fmt(enc.refused)}</b> just now</small> : null}
               {(() => { const m = g.relationships[enc?.buyerId ?? '']?.memo; if (enc?.refused || !m || (!m.refused && !m.paid)) return null; return <small className="price-memo" data-testid="price-memo">Last visit: {m.refused ? <>turned down <b>{fmt(m.refused)}</b></> : null}{m.refused && m.paid ? ' · ' : ''}{m.paid ? <>paid <b>{fmt(m.paid)}</b></> : null}</small>; })()}
             </div>
@@ -523,15 +534,21 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                 </button>
               );
             })()}
+            {/* the buyer's doubt, in their words, stays in view while you answer it */}
+            {enc.stage === 'objection' && enc.objection && !enc.prompt && (
+              <div className="act-note doubt" data-testid="objection-doubt">Their doubt: <q>{enc.objection.text}</q></div>
+            )}
             {actions.map((a) => {
               const allowed = tutorialAllows(g, a.id);
               const glow = tut && allowed;
+              // a greyed button always says why
+              const sub = !allowed ? (LESSON_WHY[step] ?? 'Not yet') : a.sub;
               return (
                 <button key={a.id} className={`act ${glow ? 'glow' : ''}`} disabled={!allowed || a.disabled} onClick={() => onAction(a.id)} data-testid={`act-${a.id}`}>
                   <Icon name={a.icon} />
                   <span>
                     <span className="t">{a.label}</span>
-                    <span className="s">{a.sub}</span>
+                    <span className="s">{sub}</span>
                   </span>
                 </button>
               );
@@ -610,21 +627,25 @@ function ReserveAfter() {
   );
 }
 
-/** Their face as you turn the dial: a merchant reads a buyer before he speaks. A sharper eye
- *  (Appraisal) reads closer; a beginner only sees the plain signs, and sometimes reads them wrong. */
-function FaceRead({ enc, item, dial }: { enc: Encounter; item: Parameters<typeof wtp>[1]; dial: number }) {
-  const ap = levelOf(useGame((s) => s.skills?.appraisal ?? 0));
-  const w = wtp(enc, item);
-  // a steady misreading for this buyer and rug, smaller as the eye sharpens
-  const seed = [...(enc.buyerId + item.uid)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  const err = (((seed % 1000) / 1000) * 2 - 1) * Math.max(0.01, 0.09 - ap * 0.006);
-  const r = dial / (w * (1 + err));
-  const sharp = ap >= 3;
-  const [cls, word] = r <= 0.8 ? ['joy', 'Eyes light up (too cheap)']
-    : r <= 0.88 ? ['glad', 'A quick nod']
-    : r <= 0.93 ? (sharp ? ['spot', 'They lean in: spot on'] : ['glad', 'A quick nod'])
-    : r <= 1.0 ? ['hm', 'They hesitate']
-    : r <= 1.25 ? ['frown', 'A frown']
-    : ['cold', 'Offended'];
-  return <small className={`face-read ${cls}`} data-testid="face-read"><i />{word}</small>;
+/** What you know before you ask: nothing from their face (a price has to be said before it is
+ *  answered), only how they took the last one you named, and, with the Appraisal read, the band their
+ *  limit lies in. */
+function AskRead({ enc }: { enc: Encounter }) {
+  return (
+    <>
+      {enc.lastRead ? <small className={`face-read ${enc.lastRead.cls}`} data-testid="ask-read"><i />At {fmt(enc.lastRead.price)}: {enc.lastRead.word.toLowerCase()}</small> : null}
+      {enc.limitRange ? <small className="price-memo" data-testid="limit-range">Your read: their limit lies between <b>{fmt(enc.limitRange[0])}</b> and <b>{fmt(enc.limitRange[1])}</b></small> : null}
+    </>
+  );
 }
+
+/** Why a button is greyed during the lesson, in one short line. */
+const LESSON_WHY: Partial<Record<string, string>> = {
+  room: 'First ask about the room',
+  rug: 'Show them a rug first',
+  inspect: 'Look closer at the rug first',
+  inspect2: 'Look closer at the rug first',
+  argue: 'In the lesson, one point at a time',
+  price: 'Name your price first',
+  counter: 'Answer their offer first',
+};

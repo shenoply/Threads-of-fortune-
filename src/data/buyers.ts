@@ -1,4 +1,5 @@
 import { MORE_LINES } from './buyerLinesMore';
+import { UNVOICED_LINES } from './buyerLinesUnvoiced';
 import type { BuyerDef } from '../game/types';
 import { ROYALS } from './royals';
 import { MORE_BUYERS, BUYER_UNLOCK } from './buyers2';
@@ -533,7 +534,8 @@ export const BUYERS: Record<string, BuyerDef> = {
 
 Object.assign(BUYERS, { nabil: NABIL, cohen: COHEN, malek: MALEK_BUYER }, ROYALS, MORE_BUYERS, BUYERS_3A, BUYERS_3B, BUYERS_3C, BUYERS_3D, CELEBS_1, CELEBS_2, CELEBS_3, CELEBS_4);
 // more to say for the regulars (data/buyerLinesMore.ts): added to their lines, never replacing one
-for (const [id, more] of Object.entries(MORE_LINES)) {
+// (and a few unrecorded second versions, data/buyerLinesUnvoiced.ts, where a regular had only one)
+for (const [id, more] of [...Object.entries(MORE_LINES), ...Object.entries(UNVOICED_LINES)]) {
   const L = BUYERS[id]?.lines as unknown as Record<string, unknown> | undefined;
   if (!L) continue;
   for (const [k, add] of Object.entries(more)) { const cur = L[k]; if (!add) continue; if (Array.isArray(cur)) L[k] = [...cur, ...add.filter((t) => !cur.includes(t))]; else if (cur === undefined) L[k] = [...add]; }

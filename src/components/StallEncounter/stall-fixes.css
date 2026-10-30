@@ -88,3 +88,16 @@
 .scene.stall .hero-at-stall, .scene.stall .buyer-figure { will-change: transform; }
 /* nothing on the counter stands in front of the people while they talk */
 .stall .scene.stall .kept-out { visibility: hidden; pointer-events: none; }
+
+/* the money row wraps rather than run off a narrow screen once their face and your read join it */
+.stall .offer-bar { flex-wrap: wrap; }
+.stall .offer-bar .face-read { font-size: 13px; margin: 0; }
+.stall .face-read.joy { color: #a2c05f; } .stall .face-read.glad { color: #c8c46a; } .stall .face-read.hm { color: #d9b07a; }
+.stall .face-read.frown { color: #dc8558; } .stall .face-read.cold { color: #d8604a; }
+/* a greyed button keeps its one line of reason, even on a short screen */
+@media all and (max-height: 680px) { .stall.in-talk .actions .act:disabled .s { display: -webkit-box; } }
+/* the buyer's doubt over the answers to it */
+.stall .actions .act-note.doubt { grid-column: 1 / -1; text-align: left; font-style: normal; }
+.stall .actions .act-note.doubt q { font-style: italic; color: var(--text); }
+.stall .trend-legend { padding: 0 2px; }
+.stall .rugstrip .side-btn small { display: block; font-size: 10.5px; opacity: .8; }

@@ -4,7 +4,7 @@ import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
 import { useEffect, useState } from 'react';
 import { audio } from '../../game/audio/engine';
-import { NightScene, dayScore, nightDue, scoreWord } from '../Night/NightScene';
+import { NightScene, dayScore, nightDue, scoreWhy, scoreWord } from '../Night/NightScene';
 import { WeekTables } from '../World/RankTable';
 import { aheadLine, withinReach } from '../../game/tomorrow';
 import { EARLY_OFF } from '../../game/firstWeek';
@@ -102,6 +102,7 @@ export function DaySummary() {
         {traded && (
           <p>
             <b className="ds-score" data-testid="summary-score">{dayScore(useGame.getState().ledger, sum.day, sum)}/100 · {scoreWord(dayScore(useGame.getState().ledger, sum.day, sum))}.</b>{' '}
+            <small className="ds-why" data-testid="summary-why" style={{ display: 'block', margin: '2px 0 4px', color: 'var(--text-dim)' }}>{scoreWhy(useGame.getState().ledger, sum.day, sum)}</small>{' '}
             Yesterday: {sum.sales} {sum.sales === 1 ? 'sale' : 'sales'}, {fmt(sum.revenue)} taken
             {night > 0
               ? <>, {atClose >= 0 ? `${fmt(atClose)} to the good` : `${fmt(-atClose)} down`} at the close. The night cost {nightParts}: {net >= 0 ? `${fmt(net)} to the good` : `${fmt(-net)} down`} in all.</>

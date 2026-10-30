@@ -1,4 +1,4 @@
-import { MarketLine, TrendMark } from '../Market/MarketLine';
+import { MarketLine, TrendMark, TrendLegend } from '../Market/MarketLine';
 import { BaleCard } from '../Bales/Bale';
 import { openingStep } from '../../game/opening';
 import { createPortal } from 'react-dom';
@@ -78,7 +78,8 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
       <BaleCard toast={toast} />
       <div className="screen-head">
         <div>
-          <div className="eyebrow">WIKALAT EL-GHURI · CAIRO</div>
+          {/* his house is the Wikalat el-Ghuri across the river; you buy from what his runner brings to Giza */}
+          <div className="eyebrow" data-testid="rashid-where">WIKALAT EL-GHURI, CAIRO · BY HIS RUNNER IN GIZA</div>
           <h2>Uncle Rashid</h2>
           <p>{opening ? 'Buy here cheap; sell dearer at your stall. What you pay him is what every sale must beat.' : RASHID_PROFILE.bio}</p>
           {filmReady('rashid') && !film && <button className="btn small" onClick={() => setFilm(true)} data-testid="rashid-film-again">▶ Watch the film again</button>}
@@ -110,6 +111,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
       {look && <RugViewer preview={look} onClose={() => setLook(null)} />}
       <MarketLine where="rashid" />
       <div className="section-label">TODAY'S STOCK · CHANGES EVERY DAY</div>
+      <TrendLegend typeIds={sup.offers.map((o) => o.typeId)} where="rashid" />
       {/* (where bought rugs go is said once, in the opening) */}
       {sup.offers.length === 0 && <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>You have bought everything he had. Come back tomorrow.</p>}
       <div className="offer-list">
