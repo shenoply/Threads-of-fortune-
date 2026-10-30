@@ -6,8 +6,11 @@ const b = await chromium.launch(); const p = await b.newPage({ viewport: { width
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const out = []; let ok = true; const check = (c, m) => { out.push(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) ok = false; };
 await p.goto(`http://localhost:${PORT}/`);
+await p.waitForTimeout(1500);
 const r = await p.evaluate(async () => {
-  const v = await import('/src/game/audio/voice.ts'); const e = await import('/src/game/audio/engine.ts'); const m = await import('/src/game/audio/malekArabic.ts'); const a = await import('/src/game/audio/arranVoice.ts');
+  // the modules the page itself loaded (after an edit Vite serves them as ...ts?t=...; a bare path would be a second copy)
+  const url = (n) => performance.getEntriesByType('resource').map((x) => x.name).find((x) => x.includes(n + '?') || x.endsWith(n)) ?? n;
+  const v = await import(url('/src/game/audio/voice.ts')); const e = await import(url('/src/game/audio/engine.ts')); const m = await import(url('/src/game/audio/malekArabic.ts')); const a = await import(url('/src/game/audio/arranVoice.ts'));
   const res = {};
   v.filmLock.on();
   e.audio.playVoice('audio/none.mp3'); res.engineDuring = e.audio.state.voicePlaying;
