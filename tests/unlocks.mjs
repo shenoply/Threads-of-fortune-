@@ -59,7 +59,7 @@ const LATER = ['menu-guards', 'menu-animals', 'menu-houses', 'menu-finance', 'me
 // 1. a fresh game, day one
 await fresh();
 check((await p.locator('[data-testid=nav-caravan]').getAttribute('data-later')) === '1', 'day one: the Caravan tab stands dimmed');
-check((await has('[data-testid=nav-caravan]')) === 1 && (await p.locator('nav.nav button').count()) === 6, 'all six bottom tabs are still there');
+check((await has('[data-testid=nav-caravan]')) === 1 && (await p.locator('nav.nav button').count()) === 5, 'all five bottom tabs are still there');
 const s1 = await st();
 check(!(s1.tipsSeen ?? []).some((t) => t.startsWith('open-')), `nothing marked open on day one (${(s1.tipsSeen ?? []).join(',')})`);
 
