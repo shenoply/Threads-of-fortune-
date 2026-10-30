@@ -17,6 +17,8 @@ export interface TitleCtx {
   /** cities where a season ended with you first among the dealers (systems/ranks.ts) */
   ranks?: { firsts?: string[] };
   dreams?: { seen: number; best: number };
+  /** Rashid's first instalment (game/firstWeek.ts): how it was settled */
+  family?: { first?: { how?: string } };
 }
 
 export interface TitleDef { id: string; name: string; how: string; secret?: boolean; /** listed only once earned */ quiet?: boolean; test: (s: TitleCtx) => boolean }
@@ -25,6 +27,7 @@ const visited = (s: TitleCtx) => new Set(Object.values(s.whereabouts ?? {}).filt
 
 export const TITLES: TitleDef[] = [
   { id: 'first', name: 'First Piastre', how: 'Make your first sale.', test: (s) => s.totalSales >= 1 },
+  { id: 'firstpaid', name: 'Paid on the Nail', how: 'Pay Uncle Rashid the first instalment of your father\'s debt.', test: (s) => ['early', 'onTime', 'late'].includes(s.family?.first?.how ?? '') },
   { id: 'hundred', name: 'Fifty Carpets', how: 'Sell fifty rugs.', test: (s) => s.totalSales >= 50 },
   { id: 'honest', name: 'A Man of His Word', how: 'Be known as honest (Honesty 50).', test: (s) => s.manner.honesty >= 50 },
   { id: 'fox', name: 'The Fox of Giza', how: 'Get away with ten embellished stories.', test: (s) => (s.stats?.liesOk ?? 0) >= 10 },

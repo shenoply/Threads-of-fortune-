@@ -20,6 +20,7 @@ export interface RevealItem {
   /** a rug now in your stock: a button opens it in the inspector to turn over and look at */ uid?: string;
   /** the rug's tier: its name in the tier's colour */ tier?: 1 | 2 | 3 | 4;
   /** the sun behind it: something new to your collection */ sun?: boolean;
+  /** more to come after this one (a bale opened thing by thing): the tap goes on to the next */ more?: boolean;
 }
 
 let push: ((it: RevealItem) => void) | null = null;
@@ -118,7 +119,7 @@ export function RevealHost() {
           {cur.uid && stage === 'done' && (
             <button className="btn rv-look" onClick={(e) => { e.stopPropagation(); audio.sfx('tap'); setLook(cur.uid!); setQueue((q) => q.slice(1)); }} data-testid="reveal-look">Look at it</button>
           )}
-          <em>{stage === 'done' ? 'Tap to close' : 'Tap to skip'}</em>
+          <em>{stage === 'done' ? (cur.more ? 'Tap for the next' : 'Tap to close') : 'Tap to skip'}</em>
         </div>
       </div>
     </div>,

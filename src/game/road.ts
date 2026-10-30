@@ -2,7 +2,8 @@
 // start (the next stall, the shops in other cities, better buyers, the sale rooms, the ranks), each with
 // its picture and how far he has got. Nothing here is saved: it is all read from the game as it stands.
 import type { GameState } from './state/store';
-import { RANKS, netWorth, HOUSE_TARGET } from './economy/progress';
+import { RANKS, netWorth, HOUSE_TARGET, rankOf } from './economy/progress';
+import { missionsDone } from '../data/missions';
 import { UPGRADES } from '../data/suppliers';
 import { SHOP_CITIES } from '../data/shops';
 import { CELEB_INFO, celebUnlock } from '../data/buyers';
@@ -45,7 +46,11 @@ export function roadOf(s: S): Step[] {
     const r = RANKS[i];
     const needs: Need[] = [{ label: 'Net worth', have: worth, want: r.worth, money: true }, { label: 'Reputation', have: rep, want: r.rep }];
     if (r.warrants) needs.push({ label: 'Royal warrants', have: s.court.warrants.length, want: r.warrants });
-    steps.push({ id: `rank-${r.id}`, chapter: i - 1, title: r.name, line: 'Your next rank', pic: '', needs, done: needs.every((n) => n.have >= n.want), rank: true });
+    // each rank also waits on the story (progress.ts rankOf): the header's rank and this step must agree,
+    // so a rank is Reached only when rankOf says so, and the story is shown as a need of its own
+    const mDone = missionsDone(s.missions);
+    needs.push({ label: 'Main story missions', have: Math.min(mDone, i), want: i });
+    steps.push({ id: `rank-${r.id}`, chapter: i - 1, title: r.name, line: 'Your next rank', pic: '', needs, done: rankOf(s).idx >= i, rank: true });
   };
   const shopStep = (sid: string, chapter: number) => {
     const c = SHOP_CITIES[sid];

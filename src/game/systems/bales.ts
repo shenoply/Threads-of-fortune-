@@ -1,5 +1,5 @@
 // Sealed bales from the customs sheds at Port Said: goods nobody came to claim, sold off still
-// corded and under the customs' lead seal. Uncle Rashid's man brings one to the warehouse each day.
+// corded and under the customs' lead seal. Uncle Rashid's man brings one to the warehouse every other dawn.
 // You pay before you see inside. Most hold a rug or two of everyday stock, a little dusty from the
 // shed; some hold a good trade rug, a few a city carpet, and once in a long while a treasure. Over
 // many bales they come out at a little under what they cost (and there is the time to clean and sell what is in
@@ -10,11 +10,13 @@ import { RECORDS } from '../../data/records';
 import type { Condition, RugType } from '../types';
 
 export const BALE_PRICE = 1200;
-/** Rashid's free bale comes round every twelve hours of real time: a bale is worth about £8.70 of stock
- *  on average, so two a day is a fair reason to look in morning and evening without swamping the trade */
-export const BALE_FREE_EVERY = 12 * 60 * 60 * 1000;
-export const baleFreeIn = (b: BaleState | undefined, now = Date.now()) => (!b?.freeAt || b.freeAt > now ? 0 : Math.max(0, BALE_FREE_EVERY - (now - b.freeAt)));
-export interface BaleState { /** when the last free bale was cut (ms) */ freeAt?: number; lastDay?: number; opened: number; /** bales since the last treasure */ dry: number; treasures: number }
+/** Rashid's free bale comes up from the customs sheds every other morning of the game: a bale is worth
+ *  about £8.70 of stock on average, so one each second day helps the trade without swamping it */
+export const BALE_FREE_DAYS = 2;
+/** game days until the next free bale (0: one is waiting now). Older saves kept a time on the wall
+ *  (`freeAt`); they get their bale at once and go over to game days from then on. */
+export const baleFreeIn = (b: BaleState | undefined, day: number) => (b?.freeDay === undefined || b.freeDay > day ? 0 : Math.max(0, BALE_FREE_DAYS - (day - b.freeDay)));
+export interface BaleState { /** the game day the last free bale was cut */ freeDay?: number; /** older saves: when the last free bale was cut (ms). No longer read */ freeAt?: number; lastDay?: number; opened: number; /** bales since the last treasure */ dry: number; treasures: number }
 export type BaleLot = { typeId: string; condition: Condition };
 /** not every bale is all carpet: a curio for the stall, or a purse of old coins, packed in with it */
 export type BaleExtra = { kind: 'piece'; id: string } | { kind: 'coins'; amount: number } | { kind: 'record'; id: string };

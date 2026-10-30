@@ -18,6 +18,7 @@ import { RUGS } from '../../data/rugs';
 import { Scene, InfoBand } from './Scene';
 import { usePlayback } from '../BuyerDialogue/usePlayback';
 import { Icon } from '../Icon';
+import { ErrandStrip } from '../Daily/ErrandStrip';
 import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { audio } from '../../game/audio/engine';
@@ -247,6 +248,15 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     g.present(uid);
   };
 
+  // the Inspect button always opens the rug on the table: it does not go through onRug, which in the
+  // middle of a question (a prompt) or in the lesson would put the rug down again instead
+  const inspectNow = (uid: string) => {
+    setDial(null);
+    setInspect(uid);
+    if (enc && !enc.outcome) g.inspectorOpened();
+    audio.sfx('brush');
+  };
+
   const rugGlow = (uid: string) => {
     if (!tut) return false;
     const it = g.inventory.find((i) => i.uid === uid);
@@ -354,7 +364,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           );
         })}
         <div style={{ display: 'grid', gap: 6, gridTemplateRows: '1fr 1fr' }}>
-          <button className="side-btn" onClick={() => presented && onRug(presented.uid)} disabled={!presented || (tut && step !== 'inspect' && step !== 'inspect2')} aria-label="Inspect rug" data-testid="inspect-btn">
+          <button className={`side-btn${tut && step === 'inspect' ? ' glow' : ''}`} onClick={() => presented && inspectNow(presented.uid)} disabled={!presented || (tut && step !== 'inspect' && step !== 'inspect2')} aria-label="Inspect rug" data-testid="inspect-btn">
             <Icon name="search" />
             Inspect
           </button>
@@ -397,6 +407,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
                   <span>
                     {buyer?.royal ? (g.court?.warrants?.includes(enc.buyerId) ? `${buyer.royal.warrant} · ` : 'No warrant this time: it needs a court-grade rug at a fair price · ') : `${buyer?.name} is now ${tierOf(g.relationships[enc.buyerId]).name} · `}Reputation {g.reputation}
                   </span>
+                  {!enc.venue && <ErrandStrip compact />}
                 </>
               ) : (
                 <>

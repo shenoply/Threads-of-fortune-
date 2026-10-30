@@ -651,9 +651,9 @@ interface Actions {
   renameCarpet: (id: string, name: string) => void;
   /** buy from the gunsmith in the Muski; the piece in the same place is traded in at half its price */
   buyArm: (id: string) => string;
-  /** open today's gift (once a real day): what was in it, or null */
+  /** open today's gift (once a game day): what was in it, or null */
   openGift: () => Gift | null;
-  /** Rashid's runner's purse, every four hours of real time: what was in it, or null */
+  /** Rashid's runner's purse, once each game day at dawn: what was in it, or null */
   openPouch: () => Pouch | null;
   /** buy (or, from the week's gift, be given) a sealed bale and cut it open: what was inside */
   /** a sheep, goat or crate of hens from the town you are in, to drive along for food */
@@ -1567,7 +1567,7 @@ export const useGame = create<GameState & Actions>()(
               cash -= owed;
               ledger.push({ day: s.day, kind: 'debt', label: "First instalment on father's debt to Rashid", amount: -owed });
               family = { ...family, left: Math.max(0, family.left - owed), paid: family.paid + owed, first: { ...w, paid: w.sum, done: s.day, how: w.second ? 'late' : 'onTime' } };
-              firstTrust = 2;
+              firstTrust = w.second ? 2 : 4;
               notes.push(`You sent Uncle Rashid his ${fmt(owed)} on the day. ${w.second ? 'He says nothing about last week. That is his way of forgiving.' : 'He writes it in his book without a word, which is praise.'}`);
               journal.push({ day: s.day, text: `Paid Uncle Rashid the ${fmt(owed)} he asked for, on the day.`, kind: 'due' });
             } else if (!w.second) {
@@ -4498,10 +4498,10 @@ export const useGame = create<GameState & Actions>()(
 
         openPouch: () => {
           const s = get();
-          if (!pouchReady(s.daily)) return null;
+          if (!pouchReady(s.daily, s.day)) return null;
           const cheap = Object.values(RUGS).filter((r) => r.valueBand[1] <= 260).map((r) => r.id);
-          const p = pouchFor(rankOf(s).idx, Math.random, cheap);
-          const patch: Partial<GameState> = { daily: { ...(s.daily ?? { streak: 0, best: 0 }), pouch: Date.now() } };
+          const p = pouchFor(rankOf(s).idx, Math.random, cheap, s.day);
+          const patch: Partial<GameState> = { daily: { ...(s.daily ?? { streak: 0, best: 0 }), pouchDay: s.day } };
           if (p.kind === 'cash') { patch.cash = s.cash + p.amount; patch.ledger = [...s.ledger, { day: s.day, kind: 'bonus', label: p.text, amount: p.amount }]; }
           if (p.kind === 'rep') patch.reputation = s.reputation + p.amount;
           if (p.kind === 'rug') { const t2 = RUGS[p.typeId]; patch.inventory = [...s.inventory, { uid: newUid('r'), typeId: p.typeId, condition: 'Good', restored: false, provenance: t2?.provenance ?? 'Likely', paid: 0, notes: ["Brought by Uncle Rashid's runner."], stored: true }]; }
@@ -4511,10 +4511,10 @@ export const useGame = create<GameState & Actions>()(
         },
         openGift: () => {
           const s = get();
-          const t = giftToday(s.daily);
+          const t = giftToday(s.daily, s.day);
           if (!t.open) return null;
-          const gift = giftFor(t.run, rankOf(s).idx, s.dressing ?? []);
-          const patch: Partial<GameState> = { daily: { ...(s.daily ?? { streak: 0, best: 0 }), last: t.today, streak: t.run, best: Math.max(s.daily?.best ?? 0, t.run) } };
+          const gift = giftFor(t.run, rankOf(s).idx, s.dressing ?? [], s.day);
+          const patch: Partial<GameState> = { daily: { ...(s.daily ?? { streak: 0, best: 0 }), giftDay: s.day, streak: t.run, best: Math.max(s.daily?.best ?? 0, t.run) } };
           if (gift.kind === 'cash') { patch.cash = s.cash + gift.amount; patch.ledger = [...s.ledger, { day: s.day, kind: 'bonus', label: `Gift: ${gift.text}`, amount: gift.amount }]; }
           if (gift.kind === 'rep') patch.reputation = s.reputation + gift.amount;
           if (gift.kind === 'rug') {
@@ -4555,7 +4555,7 @@ export const useGame = create<GameState & Actions>()(
           const b = s.bales ?? { opened: 0, dry: 0, treasures: 0 };
           // the first bale each day is Rashid's to you, free; after that as many as you like, at his price
           const fromGift = free;
-          if (!fromGift && baleFreeIn(b) === 0) free = true;
+          if (!fromGift && baleFreeIn(b, s.day) === 0) free = true;
           else if (!fromGift && s.cash < BALE_PRICE) return { msg: `Another bale is ${fmt(BALE_PRICE)}.` };
           const result = openBale(b, Math.random, s.dressing ?? [], recordsOwned(s));
           const ex = result.extra;
@@ -4569,7 +4569,7 @@ export const useGame = create<GameState & Actions>()(
             inventory: [...s.inventory, ...items],
             ...(rec ? { records: [...recordsOwned(s), rec.id] } : {}),
             ...(piece ? { dressing: [...(s.dressing ?? []), piece.id], ...(!spotsOf(s)[piece.spot] ? { stallSpots: { ...spotsOf(s), [piece.spot]: piece.id } } : {}) } : {}),
-            bales: { lastDay: fromGift ? b.lastDay : s.day, freeAt: free && !fromGift ? Date.now() : b.freeAt, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
+            bales: { lastDay: fromGift ? b.lastDay : s.day, freeDay: free && !fromGift ? s.day : b.freeDay, opened: b.opened + 1, dry: treasure ? 0 : b.dry + 1, treasures: b.treasures + (treasure ? 1 : 0) },
             ledger: free ? s.ledger : [...s.ledger, { day: s.day, kind: 'purchase', label: 'A sealed bale from the customs sheds', amount: -BALE_PRICE }],
             journal: [...s.journal, { day: s.day, text: treasure ? `Cut open a sealed bale and found ${RUGS[items[0].typeId].name}. A treasure.` : `Cut open a sealed bale: ${[...items.map((i) => RUGS[i.typeId].name), ...(piece ? [lowerName(piece.name)] : []), ...(rec ? [`a gramophone record, ${rec.title}`] : []), ...(coins ? [`a purse of old coins worth ${fmt(coins)}`] : [])].join(' and ')}.` }].slice(-200),
           });
@@ -4583,7 +4583,7 @@ export const useGame = create<GameState & Actions>()(
           const paid = (s.daily?.paid ?? []).filter((k) => k.startsWith(`${s.day}:`));
           const key = `${s.day}:${id}`;
           if (paid.includes(key)) return false;
-          const amount = id === 'all' ? (errs.every((e) => e.done) ? ALL_THREE(rk) : 0) : (errs.find((e) => e.id === id && e.done)?.reward ?? 0);
+          const amount = id === 'all' ? (errs.every((e) => e.done) ? ALL_THREE(rk, s.day) : 0) : (errs.find((e) => e.id === id && e.done)?.reward ?? 0);
           if (!amount) return false;
           set({ cash: s.cash + amount, daily: { ...(s.daily ?? { streak: 0, best: 0 }), paid: [...paid, key] }, ledger: [...s.ledger, { day: s.day, kind: 'bonus', label: id === 'all' ? "All three of the day's errands" : `Errand: ${errs.find((e) => e.id === id)?.text ?? id}`, amount }] });
           return true;

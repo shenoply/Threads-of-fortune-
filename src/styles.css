@@ -323,6 +323,7 @@ canvas.dust { position: absolute; left: 0; top: 0; width: 1312px; height: 380px;
 .act.glow::after, .rugcard.glow::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 2px var(--brass-hi), 0 0 22px rgba(231,189,110,0.65); opacity: 0.4; animation: glowRing 1.4s ease-in-out infinite; }
 @keyframes glowRing { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 .rugcard.glow { border-color: var(--brass-hi); }
+.side-btn.glow { border-color: var(--brass-hi); color: var(--brass-hi); box-shadow: 0 0 0 1px var(--brass-hi), 0 0 14px rgba(231,189,110,0.4); }
 .act-note { grid-column: 1 / -1; display: grid; place-items: center; text-align: center; color: var(--text-dim); font-style: italic; font-size: 15px; padding: 8px; border: 1px dashed var(--line); border-radius: 4px; }
 
 .dial { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
@@ -3682,8 +3683,7 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .world-map.overview .party:not(.party-raiders) { opacity: 0; pointer-events: none; }
 .world-map.overview .party-raiders:not(.hunting) .pname { display: none !important; }
 
-/* ==========================================================================
-   One-thumb rules (phone HUD round 2). Two tokens carry them: every control in the
+/* ===================================================================   One-thumb rules (phone HUD round 2). Two tokens carry them: every control in the
    top bar, the bottom bar, the encyclopedia and the caravan rows is at least --tap
    tall, and no label or body text on the main screens is under --fs-min. They come
    last so they settle the older layered rules above; nothing below is a one-off size.
@@ -3793,3 +3793,29 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 .daily-link b { font-family: var(--display); font-weight: 500; font-size: 17px; color: var(--parchment); }
 .daily-link span { font-size: var(--fs-min); color: var(--text-dim); }
 .daily-sheet h3 small { font-size: var(--fs-min); }
+/* the morning card: Rashid's answer to the first instalment, the day ahead, and what is within reach */
+.ds-rashid { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--line-strong, #6b4a26); border-radius: 8px; background: linear-gradient(180deg, rgba(58,36,16,.55), rgba(27,18,10,.55)); }
+.ds-rashid img { flex: 0 0 64px; width: 64px; height: 78px; object-fit: cover; object-position: 50% 25%; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+.ds-rashid small { display: block; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass, #c9a160); }
+.ds-rashid b { display: block; font-family: var(--display); font-weight: 500; font-size: 17px; color: var(--parchment); margin: 2px 0 4px; }
+.ds-rashid p { margin: 0 0 6px; font-size: 15px; line-height: 1.4; color: var(--text); }
+.ds-rashid span { font-size: 13.5px; color: var(--text-dim); }
+.ds-ahead { margin: 0 0 10px; font-size: 15px; line-height: 1.4; color: var(--text); }
+.ds-ahead b { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass, #c9a160); margin-right: 6px; }
+.ds-reach { margin: 0 0 12px; padding: 8px 10px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.ds-reach > small { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass, #c9a160); }
+.ds-reach ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.ds-reach li b { font-weight: 600; color: var(--parchment); }
+.ds-reach li em { font-style: normal; font-size: 13.5px; color: var(--brass-hi, #e7bd6e); }
+.ds-reach li span { display: block; font-size: 13.5px; color: var(--text-dim); line-height: 1.35; }
+/* today's errands on the stall: one line each, a tick when done */
+.errand-strip { list-style: none; margin: 6px 0 2px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(15,10,6,.6); display: grid; gap: 3px; }
+.errand-strip > small { font-family: var(--label); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass, #c9a160); }
+.errand-strip li { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1.3; color: var(--text); min-height: 26px; }
+.errand-strip li i { flex: 0 0 16px; width: 16px; height: 16px; border: 1px solid var(--line-strong, #6b4a26); border-radius: 3px; display: grid; place-items: center; }
+.errand-strip li i svg { width: 12px; height: 12px; color: var(--brass-hi, #e7bd6e); }
+.errand-strip li span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.errand-strip li em { font-style: normal; font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+.errand-strip li.done span { color: var(--text-dim); }
+.errand-strip li.paid span { text-decoration: line-through; text-decoration-color: rgba(231,189,110,.5); }
+.errand-strip li button { font-size: 12.5px; padding: 2px 9px; min-height: 26px; }

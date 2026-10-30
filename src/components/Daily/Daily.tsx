@@ -1,17 +1,16 @@
-// "Today" in the top bar, and the page it opens: today's gift (a week of days in a row, a little more
-// each day), the day's three errands with their pay, Uncle Rashid's warehouse and the day's paper.
-// It never opens by itself.
+// "Today" in the top bar, and the page it opens: Rashid's runner at dawn, today's gift (a week of days
+// in a row, a little more each day), the day's three errands with their pay, Uncle Rashid's warehouse
+// and the day's paper. All of it comes round with the game's days, not the clock on the wall.
 import { DRESSING_BY_ID } from '../../data/shops';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame } from '../../game/state/store';
 import { rankOf } from '../../game/economy/progress';
 import { fmt } from '../../game/economy/money';
-import { ALL_THREE, errandsFor, giftFor, giftToday, pouchIn, pouchReady, type Gift } from '../../game/systems/daily';
+import { ALL_THREE, errandsFor, giftFor, giftToday, pouchReady, type Gift } from '../../game/systems/daily';
 import { Icon } from '../Icon';
 import { reveal } from '../Reveal/Reveal';
 import { showBale } from '../Bales/Bale';
-import { Countdown, nextMidnight } from '../Countdown/Countdown';
 import { RUGS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
 import { audio } from '../../game/audio/engine';
@@ -22,31 +21,31 @@ const giftShort = (g: Gift) => (g.kind === 'cash' ? fmt(g.amount) : g.kind === '
 /** whether anything waits: today's gift unopened, or a finished errand not yet paid */
 export function useDailyWaiting() {
   const g = useGame();
-  const gift = giftToday(g.daily);
+  const gift = giftToday(g.daily, g.day);
   const rk = rankOf(g).idx;
   const paid = g.daily?.paid ?? [];
   const errs = errandsFor(g.day, g.ledger, rk);
   const unpaid = errs.filter((e) => e.done && !paid.includes(`${g.day}:${e.id}`)).length + (errs.every((e) => e.done) && !paid.includes(`${g.day}:all`) ? 1 : 0);
-  // the runner's purse comes round every four hours: the chest wakes again when it is in
-  const [, tick] = useState(0);
-  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 60000); return () => clearInterval(id); }, []);
-  return { gift: gift.open || pouchReady(g.daily), unpaid, run: gift.open ? gift.run - 1 : gift.run };
+  // the runner comes at dawn: the chest wakes each morning
+  return { gift: gift.open || pouchReady(g.daily, g.day), unpaid, run: gift.open ? gift.run - 1 : gift.run };
 }
 
 // the chest glows only until it has been looked into today; after that a small dot stays while
 // something is still there to take, and nothing at all once it is all taken
-const lookedKey = () => `tof-gift-looked-${new Date().toDateString()}`;
-const lookedToday = () => { try { return localStorage.getItem(lookedKey()) === '1'; } catch { return false; } };
+const lookedKey = (day: number) => `tof-gift-looked-d${day}`;
+const lookedToday = (day: number) => { try { return localStorage.getItem(lookedKey(day)) === '1'; } catch { return false; } };
 
 export function GiftButton({ guide = false }: { guide?: boolean } = {}) {
   const [open, setOpen] = useState(false);
-  const [looked, setLooked] = useState(lookedToday);
+  const day = useGame((s) => s.day);
+  const [lookedDay, setLookedDay] = useState(() => (lookedToday(day) ? day : -1));
+  const looked = lookedDay === day;
   const w = useDailyWaiting();
   const waiting = w.gift || w.unpaid > 0;
   const calling = waiting && !looked;
   return (
     <>
-      <button className={`hud-chip today-btn gift-btn ${calling ? 'calling' : ''} ${guide ? 'tour-target' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); try { localStorage.setItem(lookedKey(), '1'); } catch { /* private mode */ } setLooked(true); }} aria-label={waiting ? 'Today: something is waiting' : 'Today'} data-testid="gift-btn" data-waiting={waiting ? '1' : undefined}>
+      <button className={`hud-chip today-btn gift-btn ${calling ? 'calling' : ''} ${guide ? 'tour-target' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); try { localStorage.setItem(lookedKey(day), '1'); } catch { /* private mode */ } setLookedDay(day); }} aria-label={waiting ? 'Today: something is waiting' : 'Today'} data-testid="gift-btn" data-waiting={waiting ? '1' : undefined}>
         <span>Today</span>
         {waiting && <span className="gift-dot" aria-hidden="true" />}
       </button>
@@ -58,8 +57,10 @@ export function GiftButton({ guide = false }: { guide?: boolean } = {}) {
 export function DailySheet({ onClose }: { onClose: () => void }) {
   const g = useGame();
   const rk = rankOf(g).idx;
-  const gift = giftToday(g.daily);
+  const gift = giftToday(g.daily, g.day);
   const owned = g.dressing ?? [];
+  // the gift for day n of the run, scaled for the game day it falls on (smaller in the first week)
+  const giftOn = (n: number) => giftFor(n, rk, owned, g.day + (n - gift.run));
   const [got, setGot] = useState<Gift | null>(null);
   const paid = g.daily?.paid ?? [];
   const errs = errandsFor(g.day, g.ledger, rk);
@@ -84,12 +85,12 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
     reveal({ uid, ...(piece ? { pic: piece.art, picKind: 'prop' as const } : {}), kicker: `Today's gift · day ${gift.run} in a row`, title: r.kind === 'cash' ? fmt(r.amount) : r.kind === 'rep' ? `+${r.amount} reputation` : t ? t.name : r.text.replace(/^For the stall: /, ''), amount: r.kind === 'cash' ? r.amount : undefined, line: r.kind === 'cash' ? 'In your purse.' : r.kind === 'rep' ? r.text : r.kind === 'rug' ? 'From Uncle Rashid. It waits at the stall.' : 'Put it out from Dress your stall.', ...(t ? { pic: rugSrc(t), picKind: 'rug' as const } : {}) });
   };
   const collect = (id: string) => {
-    const amt = id === 'all' ? ALL_THREE(rk) : errs.find((e) => e.id === id)?.reward ?? 0;
+    const amt = id === 'all' ? ALL_THREE(rk, g.day) : errs.find((e) => e.id === id)?.reward ?? 0;
     if (!g.payErrand(id)) return;
     if (id === 'all') reveal({ kicker: 'All three errands done', title: fmt(amt), amount: amt, line: 'Paid in full. New errands tomorrow.' });
     else audio.sfx('coins');
   };
-  const next = giftFor(gift.open ? gift.run : gift.run + 1, rk, owned);
+  const next = giftOn(gift.open ? gift.run : gift.run + 1);
   return createPortal(
     <div className="overlay daily-sheet" data-testid="daily-sheet" onClick={(e) => e.stopPropagation()}>
       <div className="overlay-head">
@@ -112,7 +113,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
           {gift.lost && <p className="dim small" data-testid="gift-lost">Welcome back. A new week of gifts starts today.</p>}
           <ol className="gift-week" data-testid="gift-week">
             {week.map((n) => {
-              const gf = giftFor(n, rk, owned);
+              const gf = giftOn(n);
               const state = n < gift.run || (n === gift.run && !gift.open) ? 'had' : n === gift.run ? 'now' : 'later';
               return (
                 <li key={n} className={state}>
@@ -126,10 +127,10 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
             <button className={`gift-chest ${gift.open ? 'ready' : 'opened'}`} onClick={open} disabled={!gift.open} data-testid="gift-open" aria-label={gift.open ? 'Open today\'s gift' : 'Opened'}>
               <Icon name="gift" />
             </button>
-            <div className="gift-says" aria-live="polite">
-              {gift.open ? <><b>{giftFor(gift.run, rk, owned).text}</b><span>Tap the chest.</span></>
+            <div className={`gift-says ${gift.open ? 'tap' : ''}`} aria-live="polite" onClick={gift.open ? open : undefined}>
+              {gift.open ? <><b>{giftOn(gift.run).text}</b><span>Tap the chest.</span></>
                 : got ? <><b className="gift-got" data-testid="gift-got">{got.text}</b><span>{got.kind === 'cash' ? `${fmt(got.amount)} in your purse.` : got.kind === 'rep' ? `+${got.amount} reputation.` : got.kind === 'rug' ? 'It waits at the stall.' : got.kind === 'bale' ? 'Cut open: what was inside is in your stock.' : 'Put it out from Dress your stall.'}</span></>
-                : <><b>Opened today.</b><Countdown until={nextMidnight()} span={86400000} label="Next gift" testid="gift-clock" /><span>Day {gift.run + 1}: {next.text.toLowerCase()}.</span></>}
+                : <><b>Opened today.</b><span data-testid="gift-clock">The next one tomorrow morning. Day {gift.run + 1}: {next.text.toLowerCase()}.</span></>}
             </div>
           </div>
           {(got || !gift.open) && <p className="gift-next" data-testid="gift-next">Tomorrow, day {gift.run + 1}: <b>{giftShort(next)}</b>. One missed day is forgiven.</p>}
@@ -150,7 +151,7 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
           <div className={`errand all ${allDone ? 'done' : ''}`} data-testid="errand-all">
             <span className="errand-tick" aria-hidden="true"><Icon name="star" /></span>
             <span className="errand-text"><b>All three</b><small>{errs.filter((e) => e.done).length}/3</small></span>
-            {allDone && !paid.includes(`${g.day}:all`) ? <button className="btn primary small" onClick={() => collect('all')} data-testid="errand-pay-all">Collect {fmt(ALL_THREE(rk))}</button> : <em>{paid.includes(`${g.day}:all`) ? 'Paid' : fmt(ALL_THREE(rk))}</em>}
+            {allDone && !paid.includes(`${g.day}:all`) ? <button className="btn primary small" onClick={() => collect('all')} data-testid="errand-pay-all">Collect {fmt(ALL_THREE(rk, g.day))}</button> : <em>{paid.includes(`${g.day}:all`) ? 'Paid' : fmt(ALL_THREE(rk, g.day))}</em>}
           </div>
         </section>
       </div>
@@ -159,14 +160,10 @@ export function DailySheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Rashid's runner: a small purse every four hours, with a countdown to the next */
+/** Rashid's runner: he comes at dawn with a small purse, once each day */
 function Pouch() {
   const g = useGame();
-  const ready = pouchReady(g.daily);
-  const [, tick] = useState(0);
-  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, []);
-  const left = pouchIn(g.daily);
-  const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000), sec = Math.floor((left % 60000) / 1000);
+  const ready = pouchReady(g.daily, g.day);
   const take = () => {
     const p = g.openPouch();
     if (!p) return;
@@ -176,13 +173,12 @@ function Pouch() {
   };
   return (
     <section className={`daily-pouch ${ready ? 'ready' : ''}`} data-testid="pouch">
-      <button className={`pouch-btn ${ready ? 'ready' : ''}`} onClick={take} disabled={!ready} data-testid="pouch-open" aria-label={ready ? "Take the runner's purse" : 'The runner is on his way'}><Icon name="coin" /></button>
-      <div className="pouch-says">
+      <button className={`pouch-btn ${ready ? 'ready' : ''}`} onClick={take} disabled={!ready} data-testid="pouch-open" aria-label={ready ? "Take the runner's purse" : 'The runner comes again at dawn'}><Icon name="coin" /></button>
+      {/* the words are part of the same thing: a tap on them takes the purse too */}
+      <div className={`pouch-says ${ready ? 'tap' : ''}`} onClick={ready ? take : undefined} data-testid="pouch-says">
         <b>{ready ? "Rashid's runner is here" : "Rashid's runner"}</b>
-        <span>{ready ? 'A purse, every four hours. Tap to take it.' : `Next purse in ${h ? `${h}h ` : ''}${m}m${h ? '' : ` ${String(sec).padStart(2, '0')}s`}`}</span>
+        <span>{ready ? 'He came at dawn with a purse. Tap to take it.' : 'He comes again tomorrow at dawn.'}</span>
       </div>
     </section>
   );
 }
-
-/** time to the next real day's gift (local midnight), ticking */

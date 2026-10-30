@@ -66,3 +66,4 @@
 .pouch-says { display: flex; flex-direction: column; gap: 2px; }
 .pouch-says b { color: #f3e3c2; }
 .pouch-says span { font-size: 13.5px; color: var(--text-dim, #bba882); font-variant-numeric: tabular-nums; }
+.gift-says.tap, .pouch-says.tap { cursor: pointer; }

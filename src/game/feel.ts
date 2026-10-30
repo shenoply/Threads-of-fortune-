@@ -54,7 +54,10 @@ export function useTween(value: number, ms = 400) {
     let raf = 0;
     const t0 = performance.now();
     const step = (t: number) => {
-      const k = Math.min(1, (t - t0) / ms);
+      // the frame's own time can be a little before t0 (it is when the frame began, and a sale's work
+      // may have held the frame up): unclamped, k went below zero and the cubic flung the shown purse
+      // far past its start, a purse of −£240 and reputation −55 for one frame at the first sale
+      const k = Math.max(0, Math.min(1, (t - t0) / ms));
       const e = 1 - Math.pow(1 - k, 3);
       const v = k >= 1 ? value : Math.round(start + (value - start) * e);
       cur.current = v; setShown(v);
@@ -271,7 +274,7 @@ export function floatSale(amount: number, kind: 'sale' | 'won' = 'sale') {
   if (kind === 'won' || reducedMotion() || typeof requestAnimationFrame !== 'function') return;
   const t0 = performance.now(), dur = big ? 700 : 520;
   const step = (t: number) => {
-    const k = Math.min(1, (t - t0) / dur);
+    const k = Math.max(0, Math.min(1, (t - t0) / dur));
     // whole piastres on the way, the true sum at the end
     el.textContent = text(k >= 1 ? amount : Math.round(amount * (1 - Math.pow(1 - k, 3))));
     if (k < 1 && el.isConnected) requestAnimationFrame(step);
