@@ -128,12 +128,16 @@ try {
     const msg = g.householdAct({ kind: 'present' });
     const c3 = g.household.spouse.content;
     const ev = g.householdAct({ kind: 'evening' });
-    return { c0, c1, c2, c3, c4: g.household.spouse.content, letters: letters.map((l) => l.title + ': ' + l.body), msg, ev };
+    const c4 = g.household.spouse.content;
+    for (let i = 0; i < 3; i++) g.endDay();
+    return { c0, c1, c2, c3, c4, c5: g.household.spouse.content, letters: letters.map((l) => l.title + ': ' + l.body), msg, ev };
   `);
   console.log('   ', JSON.stringify(away));
   ok(away.c1 < away.c0 - 5, 'three weeks away: she is less content', `${away.c0} -> ${away.c1}`);
   ok(away.letters.length >= 1, 'she writes while you are away', away.letters[0]);
-  ok(away.c2 > away.c1 && away.c3 > away.c2 && away.c4 > away.c3, 'home again, a present and an evening at home: content rises', `${away.c1} -> ${away.c2} -> ${away.c3} -> ${away.c4}`);
+  // under the same roof alone she settles (a slow drift to what the house gives her, never a slide); a present
+  // and an evening lift her at once, and the nights after keep rising towards the higher level they set
+  ok(Math.abs(away.c2 - away.c1) <= 2 && away.c3 > away.c2 && away.c4 > away.c3 && away.c5 > away.c4, 'home again she settles; a present and an evening at home: content rises, and goes on rising', `${away.c1} -> ${away.c2} -> ${away.c3} -> ${away.c4} -> ${away.c5}`);
 
   // a birth, a name, a child growing up
   const kid = await G(`
