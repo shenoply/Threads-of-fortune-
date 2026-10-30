@@ -23,6 +23,7 @@ import { START_WARDROBE, wornOutfit } from '../../data/wardrobe';
 import { HeroFigure } from '../Wardrobe/HeroFigure';
 import { stallFigure } from './stallArt';
 import { BuyerCard } from '../Merchant/Customers';
+import { useSwipeAway } from './SwipeAway';
 
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';
 import { dressingArt, DRESSING_BY_ID } from '../../data/shops';
@@ -36,6 +37,8 @@ interface SceneProps {
   onSkip: () => void;
   onCat: () => void;
   upgrades?: string[];
+  /** a tap on the buyer brings their card back when it has been put aside */
+  onBuyer?: () => void;
 }
 
 function useSize(ref: React.RefObject<HTMLElement>) {
@@ -81,7 +84,7 @@ export function Dust() {
   return <canvas className="dust" ref={ref} />;
 }
 
-export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
+export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: SceneProps) {
   useAtStall();
   // the buyer's card: an arrow over them while they are at the counter, the card when tapped
   const [know, setKnow] = useState(false);
@@ -204,7 +207,7 @@ export function Scene({ enc, presented, view, onSkip, onCat }: SceneProps) {
             HeroFigure), rather than reverting the whole figure to a fixed picture. */}
         <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfitId={outfit} /></div>
         {buyer && (
-          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}${enc?.seek && !enc.outcome ? ' seeker' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id}>
+          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}${enc?.seek && !enc.outcome ? ' seeker' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id} onClick={onBuyer ? (e) => { e.stopPropagation(); onBuyer(); } : undefined} style={onBuyer ? { pointerEvents: 'auto', cursor: 'pointer' } : undefined}>
             <ScenePerson id={buyer.id} />
           </div>
         )}
@@ -260,10 +263,23 @@ interface BandProps {
   priorities: { id: string; label: string }[];
   /** a tap on the words under the picture hurries them, the same as a tap on the picture */
   onSkip?: () => void;
+  /** the buyer's card put aside (a swipe or the ×): a slim tab stands in for it */
+  plateOff?: boolean;
+  onPlate?: (off: boolean) => void;
 }
 
 /** Status band under the scene: narrator, stage, buyer meters, what you have learned. */
-export function InfoBand({ enc, presented, view, tierName, priorities, onSkip }: BandProps) {
+export function InfoBand({ enc, presented, view, tierName, priorities, onSkip, plateOff, onPlate }: BandProps) {
+  const swipe = useSwipeAway(() => onPlate?.(true));
+  // a stage direction or an aside ("Saffron is curled up on the rug...") is a single quiet line that
+  // goes after a few seconds; only what was last said stays
+  const [asideGone, setAsideGone] = useState('');
+  useEffect(() => {
+    if (!view.caption) return;
+    const t = window.setTimeout(() => setAsideGone(view.caption), 4200);
+    return () => window.clearTimeout(t);
+  }, [view.caption]);
+  const aside = view.caption && asideGone !== view.caption ? view.caption : '';
   const buyer = enc ? BUYERS[enc.buyerId] : null;
   // tap the buyer's name or portrait to see their card (bio, what they buy, how things stand) without
   // stepping away from the table
@@ -289,7 +305,7 @@ export function InfoBand({ enc, presented, view, tierName, priorities, onSkip }:
           {view.narrator}
         </div>
       )}
-      {view.caption && !view.narrator && <div className="caption">{view.caption}</div>}
+      {aside && !view.narrator && <div className="caption aside" key={aside} data-testid="aside" title={aside}>{aside}</div>}
       {(() => {
         // Echo the other side of the exchange so nothing is missed while one speech slot is in use.
         const showSeller = view.lastSpeaker === 'buyer' || view.speaking === 'buyer';
@@ -301,8 +317,21 @@ export function InfoBand({ enc, presented, view, tierName, priorities, onSkip }:
           </div>
         );
       })()}
-      {enc && buyer && (
-        <div className="plate-buyer" data-testid="buyer-plate">
+      {enc && buyer && plateOff && (
+        <button className="plate-tab" onClick={() => onPlate?.(false)} data-testid="buyer-plate-tab" aria-label={`Show ${buyer.name}'s card`}>
+          <BuyerFace id={buyer.id} size={24} />
+          <span className="name">{buyer.name}</span>
+          <span className="mini" aria-hidden="true">
+            {([[enc.interest, 100, '#d9a441'], [enc.patience, Math.max(100, enc.patience), '#8fae5b'], [enc.trust, 100, '#8ea6dc']] as const).map(([v, mx, c], k) => (
+              <i key={k}><span style={{ width: `${Math.max(0, Math.min(100, (v / mx) * 100))}%`, background: c }} /></i>
+            ))}
+          </span>
+          <span className="open" aria-hidden="true">›</span>
+        </button>
+      )}
+      {enc && buyer && !plateOff && (
+        <div className="plate-buyer" data-testid="buyer-plate" style={swipe.style} {...swipe.handlers}>
+          {onPlate && <button className="plate-x" data-noswipe onClick={() => onPlate(true)} aria-label={`Put ${buyer.name}'s card aside`} data-testid="buyer-plate-x">×</button>}
           <button className="plate-row plate-row-btn" onClick={() => setProfileOpen(true)} data-testid="buyer-plate-open" aria-label={`${buyer.name}'s profile`}>
             <BuyerFace id={buyer.id} />
             <span className="name">{buyer.name}</span>

@@ -22,6 +22,7 @@ import { ErrandStrip } from '../Daily/ErrandStrip';
 import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { RugScroll, longPress } from './RugScroll';
+import { useSwipeAway } from './SwipeAway';
 import { audio } from '../../game/audio/engine';
 import './stall-fixes.css';
 
@@ -46,6 +47,12 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
   const g = useGame();
   const enc = g.encounter;
   const [inspect, setInspect] = useState<string | null>(null);
+  // the buyer's card can be pushed aside for more of the talk; a new buyer brings it back
+  const [plateOffFor, setPlateOffFor] = useState('');
+  const [doubtOpen, setDoubtOpen] = useState(false);
+  const plateOff = !!enc && plateOffFor === enc.id;
+  const arrivalSwipe = useSwipeAway(() => { if (enc) setArrived(enc.id); });
+  const onPlate = (off: boolean) => { audio.sfx('tap'); setPlateOffFor(off && enc ? enc.id : ''); };
   const [dial, setDial] = useState<number | null>(null);
   // a buyer whose stature the counter would hide is first seen whole, once
   const [arrived, setArrived] = useState<string | null>(null);
@@ -146,8 +153,9 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
         locked.key = key; locked.enc = enc?.id ?? '';
         // One size for the picture on this screen, whatever is said or shown: on a phone held upright
         // about five-eighths of its width (both people, the counter and the rug in view), never more
-        // than two-fifths of the height; the talk under it scrolls instead of squeezing it.
-        locked.h = el.clientWidth < 600 ? Math.round(Math.min(natural, Math.max(210, Math.min(el.clientWidth * 0.6, el.clientHeight * 0.36)))) : Math.round(Math.min(natural, Math.max(minScene, el.clientHeight - most)));
+        // than two-fifths of the height (on a short phone a little over a quarter, so the buyer's card
+        // and the last line still fit over the rugs); the talk under it scrolls instead of squeezing it.
+        locked.h = el.clientWidth < 600 ? Math.round(Math.min(natural, el.clientHeight < 660 ? Math.max(160, Math.min(el.clientWidth * 0.6, el.clientHeight * 0.28)) : Math.max(210, Math.min(el.clientWidth * 0.6, el.clientHeight * 0.36)))) : Math.round(Math.min(natural, Math.max(minScene, el.clientHeight - most)));
       }
       el.style.setProperty('--scene-h', `${Math.floor(locked.h)}px`);
     };
@@ -305,11 +313,12 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           )}
         </div>
       )}
-      <Scene enc={enc} presented={presented} view={bandView} onSkip={skip} onCat={g.pet} upgrades={g.upgrades} />
+      <Scene enc={enc} presented={presented} view={bandView} onSkip={skip} onCat={g.pet} upgrades={g.upgrades} onBuyer={plateOff ? () => onPlate(false) : undefined} />
       {enc && enc.buyerId === 'nabil' && !enc.outcome && !enc.presented && (rel?.visits ?? 0) === 0 && arrived !== enc.id && (
         <div className="arrival-card" role="dialog" aria-label={`${buyer?.name} arrives`} data-testid="arrival-card">
           <img src={stallFigure('nabil').src} alt="Nabil al-Khatib, a short, bald, bearded merchant in a grey three-piece suit, a leather portfolio under his arm" draggable={false} />
-          <div>
+          <div className="arrival-brief" style={arrivalSwipe.style} {...arrivalSwipe.handlers}>
+            <button className="plate-x" data-noswipe onClick={() => { setArrived(enc.id); audio.sfx('tap'); }} aria-label="Put the note aside" data-testid="arrival-x">×</button>
             <small>A new buyer</small>
             <h2>{buyer?.name}</h2>
             <p>{buyer?.role}. {buyer?.bio}</p>
@@ -317,7 +326,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           </div>
         </div>
       )}
-      <InfoBand enc={enc} presented={presented} view={bandView} tierName={tier.name} priorities={priorities} onSkip={skip} />
+      <InfoBand enc={enc} presented={presented} view={bandView} tierName={tier.name} priorities={priorities} onSkip={skip} plateOff={plateOff} onPlate={talking ? onPlate : undefined} />
 
       {enc?.buyerId === 'cohen' && !enc.outcome && <button className="help-link" onClick={() => openGuide('cohen')} data-testid="help-cohen">How Cohen's orders work?</button>}
       {talking && (
@@ -387,7 +396,8 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
           {picker && <RugPicker rugs={avail} names={names} taste={taste} presented={enc?.presented} onClose={() => setPicker(false)} onPick={(uid) => { setPicker(false); setFront(uid); scroller.current?.scrollTo({ left: 0, behavior: 'smooth' }); if (enc?.presented !== uid) onRug(uid); }} />}
         </div>
       </div>
-      {tray && <TrendLegend typeIds={ordered.map((i) => i.typeId)} where="stall" />}
+      {/* in the talk the arrows on the cards speak for themselves (the inspector says it in words) */}
+      {tray && !talking && <TrendLegend typeIds={ordered.map((i) => i.typeId)} where="stall" />}
 
       <div className="actions" data-testid="actions">
         {/* the money on the table, where the buttons are: what you asked, what they offer */}
@@ -543,7 +553,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             })()}
             {/* the buyer's doubt, in their words, stays in view while you answer it */}
             {enc.stage === 'objection' && enc.objection && !enc.prompt && !((view.speaking ?? (view.lastSpeaker === 'seller' ? 'seller' : 'buyer')) === 'buyer' && (view.buyer ?? '').includes(enc.objection.text.slice(0, 40))) && (
-              <div className="act-note doubt" data-testid="objection-doubt">Their doubt: <q>{enc.objection.text}</q></div>
+              <button className={`act-note doubt${doubtOpen ? ' open' : ''}`} onClick={() => setDoubtOpen((o) => !o)} aria-expanded={doubtOpen} data-testid="objection-doubt">Their doubt: <q>{enc.objection.text}</q></button>
             )}
             {actions.map((a) => {
               const allowed = tutorialAllows(g, a.id);
