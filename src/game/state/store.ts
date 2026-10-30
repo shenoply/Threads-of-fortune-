@@ -363,6 +363,8 @@ export interface GameState {
   passport?: { day: number };
   /** a Persian visa from the Persian consulate in Baghdad (the Persian road, save 24) */
   persianVisa?: { day: number };
+  /** animals left at a town's stable (a khan's yard), by town: how many of each breed, and the day each lot went in */
+  stabled?: Record<string, { animals: Record<string, number>; since: number }>;
   changer?: { town: string; day: number; fee: number };
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
@@ -522,6 +524,9 @@ interface Actions {
   buyProvision: (id: string, n: number) => string;
   butcherAnimal: (breed: string) => string;
   trade: (breed: string, delta: number) => string;
+  /** leave one animal at this town's stable, or take back everything stabled here (paying the days) */
+  stableAnimal: (breed: string) => string;
+  fetchStabled: () => string;
   recruit: (troop: string, key: string, n: number) => string;
   dismiss: (troop: string, n: number) => void;
   toggleStored: (uid: string) => void;
@@ -1258,6 +1263,12 @@ let robArt: string | null = null;
 export const takeRobArt = () => { const a = robArt; robArt = null; return a; };
 
 registerFromSave('threads-of-fortune-save');
+/** a day at the stable, fed and watered: a camel eats more than a donkey */
+export const STABLE_FEE: Record<string, number> = { camel: 3, horse: 3, mule: 2, donkey: 2 };
+/** what a lot at the stable owes today: each animal, each day since it went in (the first day free) */
+export const stableOwed = (lot: { animals: Record<string, number>; since: number }, day: number) =>
+  Math.max(0, day - lot.since) * Object.entries(lot.animals).reduce((a, [id, n]) => a + n * (STABLE_FEE[BREEDS[id]?.kind ?? ''] ?? 2), 0);
+
 export const useGame = create<GameState & Actions>()(
   persist(
     (set, get) => {
@@ -3280,6 +3291,43 @@ export const useGame = create<GameState & Actions>()(
           animals[breed] -= 1;
           set({ cash: s.cash + back, world: { ...s.world, party: { ...s.world.party, animals } }, ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${withArticle(b.name)}`, amount: back }] });
           return `You sell the ${b.name} for ${fmt(back)}.`;
+        },
+
+        stableAnimal: (breed) => {
+          const s = get();
+          const sid = s.world.at;
+          const b = BREEDS[breed];
+          if (!sid || !b || (s.world.party.animals[breed] ?? 0) <= 0) return '';
+          const st = s.stabled ?? {};
+          const lot = st[sid];
+          // a lot already there is settled up to today, so the fee runs from one day for everything
+          const owed = lot ? stableOwed(lot, s.day) : 0;
+          if (owed > s.cash) return `The stable keeper wants the ${fmt(owed)} already owed before he takes another.`;
+          const animals = { ...s.world.party.animals, [breed]: s.world.party.animals[breed] - 1 };
+          const kept = { ...(lot?.animals ?? {}), [breed]: (lot?.animals[breed] ?? 0) + 1 };
+          set({ cash: s.cash - owed, world: { ...s.world, party: { ...s.world.party, animals } }, stabled: { ...st, [sid]: { animals: kept, since: s.day } },
+            ledger: owed ? [...s.ledger, { day: s.day, kind: 'expense', label: `Stable in ${settlementById(sid)?.name ?? sid}`, amount: -owed }] : s.ledger });
+          audio.sfx('step');
+          return `You leave ${withArticle(b.name)} at the stable, fed and watered for ${fmt(STABLE_FEE[b.kind] ?? 2)} a day. Pay when you take ${Object.values(kept).reduce((a, n) => a + n, 0) > 1 ? 'them' : 'it'} back.`;
+        },
+        fetchStabled: () => {
+          const s = get();
+          const sid = s.world.at;
+          const lot = sid ? s.stabled?.[sid] : undefined;
+          if (!sid || !lot) return '';
+          const owed = stableOwed(lot, s.day);
+          if (owed > s.cash) return `The keeper wants ${fmt(owed)} for the days. You have ${fmt(s.cash)}.`;
+          const n = Object.values(lot.animals).reduce((a, k) => a + k, 0);
+          const room = animalCap(s.world.party) - animalCount(s.world.party);
+          if (n > room) return `You can lead ${animalCap(s.world.party)} animals at most, two for each person: there is room for ${room} more. Hire men first, or leave some here.`;
+          const animals = { ...s.world.party.animals };
+          for (const [id, k] of Object.entries(lot.animals)) animals[id] = (animals[id] ?? 0) + k;
+          const { [sid]: _gone, ...rest } = s.stabled ?? {};
+          void _gone;
+          set({ cash: s.cash - owed, world: { ...s.world, party: { ...s.world.party, animals } }, stabled: rest,
+            ledger: owed ? [...s.ledger, { day: s.day, kind: 'expense', label: `Stable in ${settlementById(sid)?.name ?? sid}`, amount: -owed }] : s.ledger });
+          audio.sfx('step');
+          return `You take back ${n} animal${n === 1 ? '' : 's'} from the stable${owed ? ` and pay ${fmt(owed)} for the days` : ''}.`;
         },
 
         recruit: (troop, key, n) => {

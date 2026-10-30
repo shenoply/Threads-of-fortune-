@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { nextToGo } from '../../game/systems/men';
 import { fmt } from '../../game/economy/money';
 import { localMoney } from '../../game/economy/currency';
-import { useGame, combatOf } from '../../game/state/store';
+import { useGame, combatOf, stableOwed, STABLE_FEE } from '../../game/state/store';
+import { settlementById } from '../../game/systems/world';
 import { PROMOTE, RIFLE_PRICE, RIFLE_SELL } from '../../game/systems/combat';
 import { TROOPS, MARKETS, YARD_ART } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, type Breed } from '../../data/animals';
@@ -113,7 +114,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
         </div>
       </>)}
       </>)}
-      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} of {animalCap(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /></Part>}
+      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} of {animalCap(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /><Stable sid={sid} onNote={setNote} /></Part>}
       {show.includes('recruits') && <Part fold={fold} id="guards" title={<><b>Guards</b> · {troopCount(p)} of {troopCap(g.reputation)} with you{pool.length ? ` · ${pool.reduce((n, r) => n + r.available, 0)} for hire here` : ''}</>}>
       {pool.length === 0 && (
         <>
@@ -289,6 +290,42 @@ function BreedMarket({ sid, onNote }: { sid: string; onNote: (s: string) => void
         ))}
       </div>
     </>
+  );
+}
+
+/** The town's stable: leave animals you do not need on this road, fed and watered for a small fee a
+ *  day, and take them back the next time you pass. One lot per town. */
+const STABLE_KINDS = new Set(['home', 'city', 'town', 'port']);
+function Stable({ sid, onNote }: { sid: string; onNote: (s: string) => void }) {
+  const g = useGame();
+  const st = settlementById(sid);
+  if (!st || !STABLE_KINDS.has(st.kind)) return null;
+  const p = g.world.party;
+  const own = Object.entries(p.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id]);
+  const lot = g.stabled?.[sid];
+  const kept = lot ? Object.entries(lot.animals).filter(([, n]) => n > 0) : [];
+  const elsewhere = Object.entries(g.stabled ?? {}).filter(([t]) => t !== sid);
+  if (!own.length && !kept.length && !elsewhere.length) return null;
+  const owed = lot ? stableOwed(lot, g.day) : 0;
+  const n = kept.reduce((a, [, k]) => a + k, 0);
+  return (
+    <div data-testid="stable">
+      <div className="section-label">THE STABLE</div>
+      <p className="set-demand">Leave an animal here and the keeper feeds and waters it: {fmt(STABLE_FEE.camel)} a day for a camel or horse, {fmt(STABLE_FEE.donkey)} for a donkey or mule. You pay when you take it back.</p>
+      {kept.length > 0 && (
+        <div className="mkt-row stable-row" data-testid="stable-kept">
+          <span><b>Here: {kept.map(([id, k]) => `${k} ${BREEDS[id].name}${k > 1 ? 's' : ''}`).join(', ')}</b><small>{g.day - lot!.since === 0 ? 'Left today' : `In for ${g.day - lot!.since} day${g.day - lot!.since === 1 ? '' : 's'}`}{owed ? `, ${fmt(owed)} owed` : ''}.</small></span>
+          <button className="btn primary" disabled={g.cash < owed} onClick={() => onNote(g.fetchStabled())} data-testid="stable-fetch">Take {n > 1 ? 'them' : 'it'} back{owed ? ` · ${fmt(owed)}` : ''}</button>
+        </div>
+      )}
+      {own.map(([id, k]) => (
+        <div className="mkt-row stable-row" key={id} data-testid={`stable-own-${id}`}>
+          <span><b>{k}× {BREEDS[id].name} with you</b><small>{fmt(STABLE_FEE[BREEDS[id].kind] ?? 2)} a day here.</small></span>
+          <button className="btn" onClick={() => onNote(g.stableAnimal(id))} data-testid={`stable-leave-${id}`}>Leave one here</button>
+        </div>
+      ))}
+      {elsewhere.length > 0 && <p className="set-demand" data-testid="stable-elsewhere">At other stables: {elsewhere.map(([t, l]) => `${Object.values(l.animals).reduce((a, k) => a + k, 0)} in ${settlementById(t)?.name ?? t} (${fmt(stableOwed(l, g.day))} owed)`).join('; ')}.</p>}
+    </div>
   );
 }
 
