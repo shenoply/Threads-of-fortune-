@@ -62,7 +62,7 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
           <HeroName name={head?.name ?? HERO_NAME} plain={!!head} />
           {head && <p className="hh-called" data-testid="hero-lineage">{head.sex === 'daughter' ? 'Daughter' : 'Son'} of {head.father}, head of the house since it passed on</p>}
           <RankBadge onTap={onProgress} />
-          <p className="hh-called">The bazaar calls you <b>{mannerTitle(g.manner ?? START_MANNER)}</b>.</p>
+          {!g.epithetWorn && <p className="hh-called">The bazaar calls you <b>{mannerTitle(g.manner ?? START_MANNER)}</b>.</p>}
           {!head && <EpithetRow />}
           <dl>
             <div><dt>Reputation</dt><dd data-testid="hud-rep" data-v={g.reputation}>{g.reputation}</dd></div>

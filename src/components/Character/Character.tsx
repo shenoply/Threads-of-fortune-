@@ -61,7 +61,7 @@ export function MeSection({ hideDress = false }: { hideDress?: boolean } = {}) {
     <div className="charsheet inline" data-testid="character">
       {!hideDress && (
       <div className="cs-head">
-          <div><small>THE MERCHANT OF GIZA</small><HeroName name={HERO_NAME} testid="cs-hero-name" /><RankBadge /><span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span><EpithetRow /></div>
+          <div><small>THE MERCHANT OF GIZA</small><HeroName name={HERO_NAME} testid="cs-hero-name" /><RankBadge />{!useGame.getState().epithetWorn && <span>The bazaar calls you <b>{mannerTitle(m)}</b>.</span>}<EpithetRow /></div>
         </div>
       )}
 {hideDress ? null : (
