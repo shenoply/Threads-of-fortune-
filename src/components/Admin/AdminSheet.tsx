@@ -261,7 +261,7 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         if (!e) return 'No more talk ahead.';
         jumpTo(hintDay(e)); await leave(() => home(nav)); return `${longDate(S().day)}: the coffee houses talk of ${e.name}, ${e.from - S().day} days off.`;
       } },
-      ...ERA_EVENTS.map((e) => ({ label: `${e.icon ?? ''} ${e.name}`.trim(), testid: `adm-era-${e.id}`, run: async () => {
+      ...ERA_EVENTS.map((e) => ({ label: e.name, testid: `adm-era-${e.id}`, run: async () => {
         pastOpening(); jumpTo(e.from); await leave(() => home(nav)); return `${longDate(e.from)}: ${e.name}. ${e.times}`;
       } })),
     ] },

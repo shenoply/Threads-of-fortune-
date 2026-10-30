@@ -2,6 +2,7 @@
 // changed and why it matters to a rug merchant, and the coffee-house talk of what is coming, so a player
 // can buy ahead or move stock. On the Today sheet and in the Courier.
 import { timesOn, type Times } from '../../game/economy/era';
+import { Icon } from '../Icon';
 import './era.css';
 
 const ago = (since: number, day: number) => (since === day ? 'today' : day - since === 1 ? 'since yesterday' : day - since < 14 ? `${day - since} days` : day - since < 60 ? `${Math.round((day - since) / 7)} weeks` : `${Math.round((day - since) / 30)} months`);
@@ -27,13 +28,13 @@ export function TheTimes({ day, kind, times }: { day: number; kind: 'today' | 'p
         {/* what is coming first: it is what a merchant can still act on */}
         {t.talk.slice(0, 2).map((x) => (
           <li key={x.id} className="era-talk" data-testid={`talk-${x.id}`}>
-            <span className="era-ic" aria-hidden>☕</span>
+            <span className="era-ic" aria-hidden><Icon name="tea" /></span>
             <div><b>Coming {soon(x.inDays)}</b><p>{x.text}</p></div>
           </li>
         ))}
         {t.now.slice(0, 4).map((x) => (
           <li key={x.id} data-testid={`times-${x.id}`}>
-            <span className="era-ic" aria-hidden>{x.icon ?? '•'}</span>
+            <span className="era-ic" aria-hidden><Icon name={x.icon ?? 'news'} /></span>
             <div><b>{x.name}</b> <small>{ago(x.since, day)}</small><p>{x.text}</p></div>
           </li>
         ))}

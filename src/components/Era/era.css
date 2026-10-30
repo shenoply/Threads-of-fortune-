@@ -7,3 +7,4 @@
 .era-today small { font-size: 13.5px; color: var(--text-dim); margin-left: 4px; }
 .era-today p { margin: 3px 0 0; font-size: 14.5px; line-height: 1.4; color: var(--text-dim, #d8c8a8); }
 .era-paper .era-talk { font-size: 14.5px; }
+.era-today .era-ic svg { width: 18px; height: 18px; display: block; margin: 2px auto 0; }
