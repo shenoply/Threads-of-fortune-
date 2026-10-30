@@ -608,18 +608,14 @@ function SkillsAtWork({ encId, buyerId }: { encId: string; buyerId: string }) {
     return () => window.clearTimeout(t);
   }, [encId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!on) return null;
-  // over the cloth on the counter, between the two people, not over either face
-  const sc = document.querySelector('.stall > .scene')?.getBoundingClientRect();
-  const pos = sc ? { bottom: `${Math.round(window.innerHeight - sc.bottom + 72)}px`, top: 'auto' } : undefined;
-  return (
-    <div className="skills-at-work" data-testid="skills-at-work" style={pos} role="button" aria-label="Dismiss" onClick={() => setOn(null)}
-      onPointerDown={(e) => { (e.currentTarget as HTMLElement).dataset.x = String(e.clientX); }}
-      onPointerMove={(e) => { const el = e.currentTarget as HTMLElement; if (el.dataset.x === undefined) return; const dx = e.clientX - Number(el.dataset.x ?? e.clientX); el.style.translate = `${dx}px 0`; el.style.opacity = String(Math.max(0, 1 - Math.abs(dx) / 160)); if (Math.abs(dx) > 90) setOn(null); }}
-      onPointerUp={(e) => { const el = e.currentTarget as HTMLElement; delete el.dataset.x; el.style.translate = ''; el.style.opacity = ''; }}>
-      <button className="saw-x" aria-label="Close" onClick={(e) => { e.stopPropagation(); setOn(null); }} data-testid="skills-at-work-close">×</button>
-      <small>Your skills at work</small>
-      {on.map((x) => { const [name, what] = x.split(': '); return <span key={x}><b>{name}</b>{what ? <em>{what}</em> : null}</span>; })}
-    </div>
+  // one quiet line under the talk, never over the picture: tap it away, or it fades on its own
+  const band = document.querySelector('.stall > .band');
+  if (!band) return null;
+  return createPortal(
+    <button className="skills-line" data-testid="skills-at-work" onClick={() => setOn(null)} title={on.join(' · ')}>
+      {on.map((x) => x.split(': ')[0]).join(' · ')} <em>at work</em>
+    </button>,
+    band,
   );
 }
 
