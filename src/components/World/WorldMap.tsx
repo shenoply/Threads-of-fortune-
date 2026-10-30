@@ -404,16 +404,15 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   sizeRef.current = size;
   const sp = speedInfo(w.party, g.inventory);
   // the map figure leads a camel only once you own one
-  // who walks behind you on the map: the strongest guards first, then the animals, one token each
+  // who walks behind you on the map, in brief: one token for your men (the strongest face) and one for
+  // the animals (the most numerous), each with its count, so a big caravan does not run over the town names
   const train = useMemo(() => {
-    const toks: { src: string; kind: 'man' | 'beast' }[] = [];
-    Object.entries(w.party.troops ?? {}).filter(([, n]) => n > 0).sort((a, b) => (TROOPS[b[0]]?.strength ?? 0) - (TROOPS[a[0]]?.strength ?? 0))
-      .forEach(([id, n]) => { for (let i = 0; i < n; i++) toks.push({ src: `art/troops/${id}.jpg`, kind: 'man' }); });
-    Object.entries(w.party.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id])
-      .forEach(([id, n]) => { for (let i = 0; i < n; i++) toks.push({ src: `art/animals/${id}.jpg`, kind: 'beast' }); });
-    // a short row on the map (the rest as "+n"), so it does not run over the town names
-    const MAX = 6;
-    return { shown: toks.slice(0, MAX), more: Math.max(0, toks.length - MAX) };
+    const men = Object.entries(w.party.troops ?? {}).filter(([, n]) => n > 0).sort((a, b) => (TROOPS[b[0]]?.strength ?? 0) - (TROOPS[a[0]]?.strength ?? 0));
+    const beasts = Object.entries(w.party.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id]).sort((a, b) => b[1] - a[1]);
+    const shown: { src: string; kind: 'man' | 'beast'; n: number }[] = [];
+    if (men.length) shown.push({ src: `art/troops/${men[0][0]}.jpg`, kind: 'man', n: men.reduce((a, [, n]) => a + n, 0) });
+    if (beasts.length) shown.push({ src: `art/animals/${beasts[0][0]}.jpg`, kind: 'beast', n: beasts.reduce((a, [, n]) => a + n, 0) });
+    return { shown };
   }, [w.party.troops, w.party.animals]);
   const jobs = openJobs(g.jobsDone, g.reputation);
   const visits = (g.visits ?? []).filter((v) => v.until >= g.day && (v.heard ?? 0) <= g.day);
@@ -1294,7 +1293,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // the left is taken.
     const meX = mePt.x * s, meY = mePt.y * s;
     const trainEl = meRef.current?.querySelector<HTMLElement>('.me-train') ?? null;
-    const nTok = trainEl ? train.shown.length + (train.more > 0 ? 1 : 0) : 0;
+    const nTok = trainEl ? train.shown.length * 2.75 : 0; // two grouped tokens of 22px each, counted in 8px steps
     const meBox = (dx: number, dy: number): Box => ({ l: meX + dx - 22, r: meX + dx + (moving ? 32 : 22), t: meY + dy - 48, b: meY + dy - 2 });
     const trainBox = (dx: number, dy: number, right: boolean): Box[] => !nTok ? [] : [right
       ? { l: meX + dx + 20, r: meX + dx + 28 + nTok * 8, t: meY + dy - 27, b: meY + dy - 1 }
@@ -1502,8 +1501,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             {/* standing still, your men and animals wait beside you, one small token each */}
             {!moving && train.shown.length > 0 && (
               <span className="me-train" aria-hidden="true" data-testid="me-train">
-                {train.shown.map((t, k) => <img key={k} className={`me-tok ${t.kind}`} src={t.src} alt="" draggable={false} style={{ ['--k' as string]: k }} />)}
-                {train.more > 0 && <i className="me-more" style={{ ['--k' as string]: train.shown.length }}>+{train.more}</i>}
+                {train.shown.map((t, k) => <span key={k} className={`me-grp ${t.kind}`} style={{ ['--k' as string]: k }} data-testid={`me-grp-${t.kind}`}><img className={`me-tok ${t.kind}`} src={t.src} alt="" draggable={false} />{t.n > 1 && <i className="me-n">{t.n}</i>}</span>)}
               </span>
             )}
             <canvas ref={medalRef} className="me-medal" width={56} height={56} aria-hidden="true" data-testid="me-medal" />

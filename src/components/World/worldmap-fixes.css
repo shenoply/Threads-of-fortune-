@@ -65,3 +65,8 @@
 
 /* the stall's round bubble on the map: its name set inside the circle, never cut by its edge */
 .overhead.compact .overhead-label { left: 50%; top: auto; bottom: 16%; transform: translateX(-50%); max-width: 72%; width: max-content; text-align: center; white-space: normal; font-size: 12px; line-height: 1.2; padding: 2px 7px; }
+/* the caravan in brief beside you: men and animals, one token each with its count */
+.world .me.medal .me-train .me-grp { position: absolute; bottom: 2px; right: calc(var(--k) * 22px); width: 18px; height: 18px; }
+.world .me.medal .me-train.flip .me-grp { right: auto; left: calc(var(--k) * 22px); }
+.world .me.medal .me-train .me-grp .me-tok { position: static; display: block; width: 18px; height: 18px; }
+.world .me.medal .me-train .me-n { position: absolute; right: -5px; top: -6px; min-width: 12px; height: 12px; padding: 0 2px; border-radius: 6px; background: #2a180c; border: 1px solid #c9a24a; color: #f3e3c2; font: 700 8px/10px var(--label, sans-serif); font-style: normal; text-align: center; }
