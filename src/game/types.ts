@@ -215,7 +215,7 @@ export interface Relationship {
   commissionDone?: boolean;
   referred?: boolean;
   lastLines: string[];
-  /** what they remember of you (systems/memory.ts; save 31) */
+  /** what they remember of you (systems/memory.ts; save 32) */
   mem?: import('./systems/memory').Mem[];
   /** the day of their last visit */
   seen?: number;

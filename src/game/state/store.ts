@@ -424,7 +424,7 @@ export interface GameState {
   lane?: LaneRival;
   /** the rival houses: purses, stock, moves against you and your answers (systems/houses.ts; save 30) */
   houses?: HousesState;
-  /** the stories: tales over weeks, their beats and your choices (systems/stories.ts; save 31) */
+  /** the stories: tales over weeks, their beats and your choices (systems/stories.ts; save 32) */
   stories?: StoriesState;
   /** a warned danger (systems/omens.ts) */
   omen?: Omen;
