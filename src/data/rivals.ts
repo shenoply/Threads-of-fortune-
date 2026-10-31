@@ -1,6 +1,6 @@
 // The rug trade's other houses, city by city: the named dealers who keep the season's tables
 // (systems/ranks.ts), and the smaller shops that fill out each table under them.
-// Portraits will be art/portraits/<id>.jpg; until one is drawn the table shows an initial.
+// Portraits will be art/portraits/<id>.webp; until one is drawn the table shows an initial.
 
 export type Temper = 'aggressive' | 'steady' | 'cunning' | 'old';
 

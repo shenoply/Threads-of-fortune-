@@ -572,9 +572,9 @@ export const CELEBS_1_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_1_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'fawzi-badri': { category: 'politician', city: 'Cairo', role: 'Civic leader with a house in Munira', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/saad-zaghloul.jpg' },
-  'nawal-badri': { category: 'public_figure', city: 'Cairo', role: 'Hostess of the al-Badri house', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/safiya-zaghloul.jpg' },
-  'amina-hilmi': { category: 'public_figure', city: 'Cairo', role: 'Secretary of a Cairo ladies\' society', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/huda-shaarawi.jpg' },
-  'yahya-mansur': { category: 'intellectual', city: 'Cairo', role: 'University lecturer and scholar', prestige: 'FINE', portrait: 'art/historical-buyers/taha-hussein.jpg' },
-  'jamil-rawi': { category: 'intellectual', city: 'Cairo', role: 'Poet who keeps a salon at Giza', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ahmed-shawqi.jpg' },
+  'fawzi-badri': { category: 'politician', city: 'Cairo', role: 'Civic leader with a house in Munira', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/saad-zaghloul.webp' },
+  'nawal-badri': { category: 'public_figure', city: 'Cairo', role: 'Hostess of the al-Badri house', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/safiya-zaghloul.webp' },
+  'amina-hilmi': { category: 'public_figure', city: 'Cairo', role: 'Secretary of a Cairo ladies\' society', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/huda-shaarawi.webp' },
+  'yahya-mansur': { category: 'intellectual', city: 'Cairo', role: 'University lecturer and scholar', prestige: 'FINE', portrait: 'art/historical-buyers/taha-hussein.webp' },
+  'jamil-rawi': { category: 'intellectual', city: 'Cairo', role: 'Poet who keeps a salon at Giza', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ahmed-shawqi.webp' },
 };

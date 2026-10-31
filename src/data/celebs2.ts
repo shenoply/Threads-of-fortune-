@@ -572,9 +572,9 @@ export const CELEBS_2_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_2_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'maha-qadri': { category: 'musician', city: 'Cairo', role: 'Singer, actress and head of her own theatre troupe', prestige: 'LEGENDARY', portrait: 'art/historical-buyers/munira-al-mahdiyya.jpg' },
-  'salwa-nassar': { category: 'musician', city: 'Cairo', role: 'Young singer from Upper Egypt, making her name in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/umm-kulthum.jpg' },
-  'adel-farouk': { category: 'musician', city: 'Cairo', role: 'Young singer and composer in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/mohamed-abdel-wahab.jpg' },
-  'bassem-khoury': { category: 'musician', city: 'Cairo / Damascus', role: 'Aleppine violin virtuoso with a music room in Cairo', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sami-al-shawwa.jpg' },
-  'halim-saba': { category: 'musician', city: 'Cairo', role: 'Cairo composer who teaches younger singers', prestige: 'FINE', portrait: 'art/historical-buyers/daoud-hosni.jpg' },
+  'maha-qadri': { category: 'musician', city: 'Cairo', role: 'Singer, actress and head of her own theatre troupe', prestige: 'LEGENDARY', portrait: 'art/historical-buyers/munira-al-mahdiyya.webp' },
+  'salwa-nassar': { category: 'musician', city: 'Cairo', role: 'Young singer from Upper Egypt, making her name in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/umm-kulthum.webp' },
+  'adel-farouk': { category: 'musician', city: 'Cairo', role: 'Young singer and composer in Cairo', prestige: 'FINE', portrait: 'art/historical-buyers/mohamed-abdel-wahab.webp' },
+  'bassem-khoury': { category: 'musician', city: 'Cairo / Damascus', role: 'Aleppine violin virtuoso with a music room in Cairo', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sami-al-shawwa.webp' },
+  'halim-saba': { category: 'musician', city: 'Cairo', role: 'Cairo composer who teaches younger singers', prestige: 'FINE', portrait: 'art/historical-buyers/daoud-hosni.webp' },
 };

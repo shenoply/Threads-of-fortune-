@@ -1,4 +1,4 @@
-// Persia, east of the painted travel map. The painting (art/world/travel-map.jpg) stops just past Baghdad,
+// Persia, east of the painted travel map. The painting (art/world/travel-map.webp) stops just past Baghdad,
 // at x = 885 in map units, so the map is carried on eastward in code: the same parchment and ink, drawn
 // by game/systems/persiaArt.ts, with its ground (mountains, desert, the seas and the roads) set out here
 // for the pathfinder in game/systems/world.ts. Nothing here depends on other game modules.

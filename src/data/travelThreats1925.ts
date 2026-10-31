@@ -56,8 +56,8 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "lose_small_cargo"
     ],
     "historicalNote": "Inspired by documented Egyptian rural banditry and robbery of travelling merchants; frequency is game-balanced, not a statistical reconstruction.",
-    "leaderImage": "art/travel-threats/egypt-rural-highway-robbers-leader.jpg",
-    "groupImage": "art/travel-threats/egypt-rural-highway-robbers-group.jpg"
+    "leaderImage": "art/travel-threats/egypt-rural-highway-robbers-leader.webp",
+    "groupImage": "art/travel-threats/egypt-rural-highway-robbers-group.webp"
   },
   {
     "id": "sinai-transjordan-desert-raiders",
@@ -83,8 +83,8 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "delay"
     ],
     "historicalNote": "Use as a generic game category for raiding or predatory armed parties, not as a label for Bedouin communities generally.",
-    "leaderImage": "art/travel-threats/sinai-transjordan-desert-raiders-leader.jpg",
-    "groupImage": "art/travel-threats/sinai-transjordan-desert-raiders-group.jpg"
+    "leaderImage": "art/travel-threats/sinai-transjordan-desert-raiders-leader.webp",
+    "groupImage": "art/travel-threats/sinai-transjordan-desert-raiders-group.webp"
   },
   {
     "id": "palestine-road-thieves",
@@ -109,8 +109,8 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "report_to_police"
     ],
     "historicalNote": "Generic criminal encounter. Do not portray Palestinian villagers or political organizations collectively as bandits.",
-    "leaderImage": "art/travel-threats/palestine-road-thieves-leader.jpg",
-    "groupImage": "art/travel-threats/palestine-road-thieves-group.jpg"
+    "leaderImage": "art/travel-threats/palestine-road-thieves-leader.webp",
+    "groupImage": "art/travel-threats/palestine-road-thieves-group.webp"
   },
   {
     "id": "syria-1925-rebels",
@@ -136,8 +136,8 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "road_closed"
     ],
     "historicalNote": "Date-sensitive Great Syrian Revolt encounter. Rebels are not automatically criminals or hostile to Hassan. Treat this primarily as conflict-zone disruption, checkpoints, recruitment pressure, requisition risk, or blocked roads.",
-    "leaderImage": "art/travel-threats/syria-1925-rebels-leader.jpg",
-    "groupImage": "art/travel-threats/syria-1925-rebels-group.jpg"
+    "leaderImage": "art/travel-threats/syria-1925-rebels-leader.webp",
+    "groupImage": "art/travel-threats/syria-1925-rebels-group.webp"
   },
   {
     "id": "iraq-border-smuggler-brigands",
@@ -162,8 +162,8 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "information_trade"
     ],
     "historicalNote": "Composite game encounter inspired by the illicit cross-border economy, smugglers and armed bands documented in the post-Ottoman frontier world.",
-    "leaderImage": "art/travel-threats/iraq-border-smuggler-brigands-leader.jpg",
-    "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.jpg"
+    "leaderImage": "art/travel-threats/iraq-border-smuggler-brigands-leader.webp",
+    "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.webp"
   },
   {
     "id": "zagros-tribal-raiders",
@@ -188,8 +188,8 @@ export const TRAVEL_THREATS_1925: TravelThreat[] = [
       "delay"
     ],
     "historicalNote": "Tribal bands in the Lur and Kurdish country of western Persia raided the caravan roads in the early 1920s, while Reza Khan's new army was disarming the tribes. A game category for such bands, not a label for Lurs or Kurds generally.",
-    "leaderImage": "art/travel-threats/zagros-raiders-leader.jpg",
-    "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.jpg"
+    "leaderImage": "art/travel-threats/zagros-raiders-leader.webp",
+    "groupImage": "art/travel-threats/iraq-border-smuggler-brigands-group.webp"
   }
 ] as TravelThreat[];
 

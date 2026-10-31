@@ -612,13 +612,13 @@ export function PersonCameo({ spec, size = 60, className }: { spec: PersonSpec; 
   );
 }
 
-/** A painted portrait from art/portraits/<id>.jpg when one has been added, otherwise the cameo. */
+/** A painted portrait from art/portraits/<id>.webp when one has been added, otherwise the cameo. */
 export function PortraitOrCameo({ id, spec, size }: { id: string; spec: PersonSpec; size: number }) {
   const [ok, setOk] = useState<boolean | null>(null);
   return (
     <span className="cameo-wrap" style={{ width: size, height: size }}>
       {ok === false && <PersonCameo spec={spec} size={size} />}
-      <img src={size <= 72 ? `art/portraits/small/${filedAs(id)}.webp` : `art/portraits/${filedAs(id)}.jpg`} alt="" style={{ display: ok ? 'block' : 'none', width: size, height: size, objectFit: 'cover', objectPosition: '50% 22%', borderRadius: '50%' }} onLoad={() => setOk(true)} onError={() => setOk(false)} />
+      <img src={size <= 72 ? `art/portraits/small/${filedAs(id)}.webp` : `art/portraits/${filedAs(id)}.webp`} alt="" style={{ display: ok ? 'block' : 'none', width: size, height: size, objectFit: 'cover', objectPosition: '50% 22%', borderRadius: '50%' }} onLoad={() => setOk(true)} onError={() => setOk(false)} />
     </span>
   );
 }

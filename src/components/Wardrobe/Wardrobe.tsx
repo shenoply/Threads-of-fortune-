@@ -10,7 +10,7 @@ import './Wardrobe.css';
 
 import { lowerName } from '../../game/text';
 const placeName = (id: string) => SETTLEMENTS.find((s) => s.id === id)?.name ?? id;
-const ROOM = 'art/hero/wardrobe-room.jpg';
+const ROOM = 'art/hero/wardrobe-room.webp';
 
 /** The hero's wardrobe: twenty ready outfits. Look at one full length, buy it where it is sold, put it on.
  *  Whatever he wears here is what he wears at the stall. */

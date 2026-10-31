@@ -106,7 +106,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
             const have = p.flock?.[l.id] ?? 0;
             return (
               <div className="mkt-row prov-row" key={l.id} data-testid={`stock-${l.id}`}>
-                <img className="prov-pic" src={`art/animals/${l.id}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <img className="prov-pic" src={`art/animals/${l.id}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 <span><b>{l.name}{have ? ` · ${have} with you` : ''}</b><small>{l.line} {l.meat} rations of meat{l.daily ? `, ${l.daily >= 1 ? 'a ration' : 'half a ration'} a day of ${l.id.startsWith('hens') ? 'eggs' : 'milk'}` : ''}{l.pace < 0.99 ? '; slows the caravan' : ''}.</small></span>
                 <button className="btn" onClick={() => setNote(g.buyLivestock(l.id))} disabled={g.cash < price} data-testid={`buy-${l.id}`}>{localMoney(price, sid, g.day)}</button>
                 {have > 0 && <button className="btn" onClick={() => setNote(g.slaughterLivestock(l.id))} data-testid={`pot-${l.id}`}>To the pot</button>}
@@ -133,7 +133,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
               const t = TROOPS[r.troop];
               return (
                 <div className="mkt-row troop-row" key={r.key} data-testid={`recruit-${r.troop}`}>
-                  <img className="troop-pic tappable" src={`art/troops/${r.troop}.jpg`} alt={t.name} onClick={() => setPage(r.troop)} data-testid={`troop-info-${r.troop}`} />
+                  <img className="troop-pic tappable" src={`art/troops/${r.troop}.webp`} alt={t.name} onClick={() => setPage(r.troop)} data-testid={`troop-info-${r.troop}`} />
                   <span className="troop-name-btn" onClick={() => setPage(r.troop)}><b>{r.available} {r.available === 1 ? t.name : t.plural}</b><small>{t.blurb} Strength {t.strength}, wage {fmt(t.wage)} a day{t.scout ? ', scouts ahead' : ''}.</small></span>
                   <button className="btn primary" disabled={!r.available || g.cash < t.cost || full} onClick={() => setNote(g.recruit(r.troop, r.key, 1))} data-testid={`hire-${r.troop}`}>Hire {t.cost ? fmt(t.cost) : "free"}</button>
                 </div>
@@ -142,7 +142,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
             {pool.every((r) => !r.available) && <p className="set-demand">Nobody else wants work today. Come back tomorrow.</p>}
           </div>
           {YARD_ART[sid] && <RifleRack onNote={setNote} />}
-          {YARD_ART[sid] && !fold && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.jpg`} alt="" />}
+          {YARD_ART[sid] && !fold && <img className="yard-hero" src={`art/troops/${YARD_ART[sid]}.webp`} alt="" />}
         </>
       )}
       </Part>}
@@ -203,7 +203,7 @@ export function CaravanRoster() {
           {troops.map(([id, n]) => (
             <div className="menkind" key={id}>
             <div className="mkt-row">
-              <img className="troop-pic small tappable" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
+              <img className="troop-pic small tappable" src={`art/troops/${id}.webp`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
               <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name : TROOPS[id].plural}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each{PROMOTE[id] ? ` · road experience ${Math.floor(combatOf(g).xp[id] ?? 0)} of ${PROMOTE[id].xp}: then one becomes a ${((n: string) => (/^(Cairo|Giza|Bedouin|Arnaut|Alexandria)\b/.test(n) ? n : n[0].toLowerCase() + n.slice(1)))(TROOPS[PROMOTE[id].to].name)}` : ''}{id === 'veteran' && combatOf(g).sergeant ? ` · Sergeant ${combatOf(g).sergeant!.name} leads them` : ''}</small></span>
               <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>{(() => { const m = nextToGo(g.combat?.men ?? [], id); return m ? `Send ${m.name.split(' ')[0]} home` : 'Send one home'; })()}</button>
             </div>
@@ -233,12 +233,12 @@ function Stat({ label, v, max }: { label: string; v: number; max: number }) {
   );
 }
 
-/** The painted breed portrait from art/animals/<id>.jpg; the drawn plate stands in if it fails to load. */
+/** The painted breed portrait from art/animals/<id>.webp; the drawn plate stands in if it fails to load. */
 function BreedImage({ breed, size, tall = 1.2 }: { breed: Breed; size: number; tall?: number }) {
   const [photo, setPhoto] = useState(true);
   return photo ? (
     <span className="bphoto" style={{ width: size, height: size * tall }}>
-      <img src={`art/animals/${breed.id}.jpg`} alt={`${breed.name}, painted`} onError={() => setPhoto(false)} data-testid={`breed-photo-${breed.id}`} />
+      <img src={`art/animals/${breed.id}.webp`} alt={`${breed.name}, painted`} onError={() => setPhoto(false)} data-testid={`breed-photo-${breed.id}`} />
       <i className="bphoto-ar">{breed.arabic}</i>
     </span>
   ) : (

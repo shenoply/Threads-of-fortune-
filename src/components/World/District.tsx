@@ -30,7 +30,7 @@ const ArranLab = lazy(() => import('../ArranLab/ArranLab').then((m) => ({ defaul
 
 // Giza, seen from above: the lane with your stall, the coffee house, the souk, the animal market,
 // the guard yard, the station, the ferry, the pyramids and the desert road. Walk to discover it.
-const DW = 1536, DH = 1024; // matches art/world/giza-district.jpg
+const DW = 1536, DH = 1024; // matches art/world/giza-district.webp
 const FG = 8; // fog cell size
 const FW = Math.ceil(DW / FG), FH = Math.ceil(DH / FG);
 const REVEAL = 180;
@@ -685,7 +685,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         fallBack();
         if (++bgTries < 8) bgTimer = window.setTimeout(loadBg, 1500 * bgTries);
       };
-      im.src = bgTries ? `art/world/giza-district.jpg?r=${bgTries}` : 'art/world/giza-district.jpg';
+      im.src = bgTries ? `art/world/giza-district.webp?r=${bgTries}` : 'art/world/giza-district.webp';
     };
     if (!bgImg && !small) {
       // the small copy first, then the full painting, so the two do not share a slow line
@@ -723,7 +723,7 @@ export function District({ onStall, onWorld, initialPanel = null, onPanelClosed,
         : { x: 570 + r() * 520, y: 752 + r() * 16, vx: v, vy: 0, robe: robes[(i + 4) % 6], head: heads[(i + 3) % 5], t: r() * 10, lane };
     });
     const faces: Record<string, HTMLImageElement> = {};
-    const face = (id: string) => { if (!faces[id]) { const im = new Image(); im.src = `art/portraits/${filedAs(id)}.jpg`; faces[id] = im; } return faces[id]; };
+    const face = (id: string) => { if (!faces[id]) { const im = new Image(); im.src = `art/portraits/${filedAs(id)}.webp`; faces[id] = im; } return faces[id]; };
     const stallPoi = POIS[0];
     // the same painted walking figure used for "you" on the world map between towns, so the
     // merchant stays himself once you walk into one instead of shrinking to an abstract token.

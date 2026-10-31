@@ -273,14 +273,14 @@ export interface DocShot {
 
 // The opening film, about a minute and three quarters. Every shot is the game's own art.
 export const DOCUMENTARY: DocShot[] = [
-  { text: 'Giza, 1925.', dur: 5000, kind: 'image', img: 'art/world/giza-district.jpg', focus: '45% 45%', zoom: [1.25, 1.05] },
-  { text: 'Your father\'s back has given out. He hands you his business: a borrowed corner of the bazaar, three rugs, a cat, and a debt of a hundred pounds to Uncle Rashid.', dur: 8400, kind: 'image', img: 'art/stall-seller.jpg', focus: '25% 40%', zoom: [1, 1.06] },
+  { text: 'Giza, 1925.', dur: 5000, kind: 'image', img: 'art/world/giza-district.webp', focus: '45% 45%', zoom: [1.25, 1.05] },
+  { text: 'Your father\'s back has given out. He hands you his business: a borrowed corner of the bazaar, three rugs, a cat, and a debt of a hundred pounds to Uncle Rashid.', dur: 8400, kind: 'image', img: 'art/stall-seller.webp', focus: '25% 40%', zoom: [1, 1.06] },
   { text: 'Every rug has a history.', dur: 4800, kind: 'rugs' },
   { text: 'Twenty-four of them, from village mats worth a few piastres to Legendary carpets worth hundreds of pounds.', dur: 8200, kind: 'tierspan' },
-  { text: 'Every customer wants something different.', dur: 5200, kind: 'montage', imgs: ['art/portraits/samira.jpg', 'art/portraits/yusuf.jpg', 'art/portraits/mariam.jpg'] },
-  { text: 'Ask what they need. Show the right rug. Name your price, and know when to hold it.', dur: 7200, kind: 'image', img: 'art/stall-samira-v2.jpg', focus: '70% 40%', zoom: [1.04, 1] },
-  { text: 'Your first task lies beyond the stall. Uncle Rashid wants you in Alexandria.', dur: 6400, kind: 'image', img: 'art/world/city-alexandria.jpg', focus: '50% 40%', zoom: [1.12, 1] },
-  { text: 'And when your name is good enough, palace doors open.', dur: 5800, kind: 'image', img: 'art/royal/abdeen-exterior.jpg', focus: '50% 50%', zoom: [1.12, 1] },
-  { text: 'The goal: a shop of your own in Khan el-Khalili, five royal warrants, every rug in the Register, and a fortune of five thousand pounds.', dur: 9200, kind: 'image', img: 'art/world/city-istanbul.jpg', focus: '50% 50%', zoom: [1.1, 1] },
-  { text: 'Threads of Fortune.', dur: 4600, kind: 'title', img: 'art/stall-seller.jpg' },
+  { text: 'Every customer wants something different.', dur: 5200, kind: 'montage', imgs: ['art/portraits/samira.webp', 'art/portraits/yusuf.webp', 'art/portraits/mariam.webp'] },
+  { text: 'Ask what they need. Show the right rug. Name your price, and know when to hold it.', dur: 7200, kind: 'image', img: 'art/stall-samira-v2.webp', focus: '70% 40%', zoom: [1.04, 1] },
+  { text: 'Your first task lies beyond the stall. Uncle Rashid wants you in Alexandria.', dur: 6400, kind: 'image', img: 'art/world/city-alexandria.webp', focus: '50% 40%', zoom: [1.12, 1] },
+  { text: 'And when your name is good enough, palace doors open.', dur: 5800, kind: 'image', img: 'art/royal/abdeen-exterior.webp', focus: '50% 50%', zoom: [1.12, 1] },
+  { text: 'The goal: a shop of your own in Khan el-Khalili, five royal warrants, every rug in the Register, and a fortune of five thousand pounds.', dur: 9200, kind: 'image', img: 'art/world/city-istanbul.webp', focus: '50% 50%', zoom: [1.1, 1] },
+  { text: 'Threads of Fortune.', dur: 4600, kind: 'title', img: 'art/stall-seller.webp' },
 ];

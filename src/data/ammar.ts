@@ -14,7 +14,7 @@
 // climb back much harder, with fewer people willing to stand behind you.
 //
 // Art direction (locked): muscular build, visible gold tooth, 1925-appropriate clothing, in the
-// game's existing painted portrait style. Final portrait goes to public/art/portraits/ammar.jpg
+// game's existing painted portrait style. Final portrait goes to public/art/portraits/ammar.webp
 // (every other buyer/NPC portrait follows this id-based convention already — no code change
 // needed once the file lands). A -stall.webp/-stall2.webp pair, like Antonios and Benakis have,
 // is worth adding too if Ammar gets stall-visit scenes.

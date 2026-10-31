@@ -43,7 +43,7 @@ export function Newspaper({ day: asked, onClose }: { day: number; onClose: () =>
     return (
       <div className="paper-pov-wrap" role="dialog" aria-label="The Giza Courier" data-testid="newspaper" onClick={onClose}>
         <div className="paper-pov" onClick={(e) => e.stopPropagation()} {...pageProps(pages)}>
-          <img src="art/newspaper-pov.jpg" alt="Your hands holding up the Giza Courier" draggable={false} />
+          <img src="art/newspaper-pov.webp" alt="Your hands holding up the Giza Courier" draggable={false} />
           <div className="pov-page left" data-testid="paper-lead">
             <div className="pov-mast">The Giza Courier</div>
             <div className="pov-date">{p.date}</div>

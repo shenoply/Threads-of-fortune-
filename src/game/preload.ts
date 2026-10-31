@@ -91,8 +91,8 @@ export function preload(srcs: string[], soon = false) {
 
 /** A buyer's pictures, at the exact addresses the stall scene asks for: the figure at the counter
  *  (stallFigure picks one of -stall2 / -stall / the framed portrait) and the round face, which the
- *  stall and the district both draw from the .jpg. */
-export const buyerArt = (id: string) => [...new Set([stallFigure(id).src, `art/portraits/small/${filedAs(id)}.webp`, `art/portraits/${filedAs(id)}.jpg`])];
+ *  stall and the district both draw from the .webp. */
+export const buyerArt = (id: string) => [...new Set([stallFigure(id).src, `art/portraits/small/${filedAs(id)}.webp`, `art/portraits/${filedAs(id)}.webp`])];
 // (the small round face beside the buyer's name under the stall picture is the small/ copy: BuyerFace)
 
 const prop = (p: string) => `art/stall2/props/${p}.webp`;
@@ -112,8 +112,8 @@ export const STALL_ART = [BOOT_ART[0], ...BOOT_LATER, ...BOOT_ART.slice(1), 'art
 // The rest, once the line is clear: the shelf dressing (a different pick each day). The paper held
 // up to read and the stall seen from above wait for the first sale to be over.
 const STALL_LATER = [...STALL_PROPS, 'art/radio-stall.webp']; // (the big wireless is for its own sheet, Radio.tsx)
-const STALL_AFTER_SALE = ['art/newspaper-pov.jpg', 'art/opt/stall-top-1024.webp'];
-export const CITY_ART = ['alexandria', 'jerusalem', 'damascus', 'amman', 'baghdad', 'istanbul'].map((c) => `art/world/city-${c}.jpg`);
+const STALL_AFTER_SALE = ['art/newspaper-pov.webp', 'art/opt/stall-top-1024.webp'];
+export const CITY_ART = ['alexandria', 'jerusalem', 'damascus', 'amman', 'baghdad', 'istanbul'].map((c) => `art/world/city-${c}.webp`);
 
 // ---------- what the stall, the map and the towns show next ----------
 // Started once from main.tsx. Each is a guess at the next screen, fetched in a quiet moment so it is
@@ -121,10 +121,10 @@ export const CITY_ART = ['alexandria', 'jerusalem', 'damascus', 'amman', 'baghda
 
 /** The painting at the top of a town's menu (the same choice Settlement.tsx makes). */
 export function townArt(id: string): string | null {
-  if (id === 'giza') return 'art/world/giza-district.jpg';
+  if (id === 'giza') return 'art/world/giza-district.webp';
   const walk = CITY_WALKS[id]?.map;
   if (walk) return walk;
-  return CITY_ART.find((s) => s.endsWith(`/city-${id}.jpg`)) ?? null;
+  return CITY_ART.find((s) => s.endsWith(`/city-${id}.webp`)) ?? null;
 }
 const swControlled = () => typeof navigator !== 'undefined' && !!navigator.serviceWorker?.controller;
 

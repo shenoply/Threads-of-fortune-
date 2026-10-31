@@ -132,7 +132,7 @@ export const MISSIONS: Record<string, Mission> = {
     locks: 'Your rank cannot rise past Khan dealer until you know what your father bought.',
     reward: { cash: 0, rep: 4, trust: 5, text: 'The story travels back to Giza before you do. Merchants in the Khan say your father\'s name with respect now, and yours with curiosity.' },
     scene: {
-      art: 'art/portraits/farid.jpg', who: 'Farid al-Ajami, Damascus', title: 'Farid\'s verdict',
+      art: 'art/portraits/farid.webp', who: 'Farid al-Ajami, Damascus', title: 'Farid\'s verdict',
       text: () => 'Farid turns the rug over and runs his thumb along the back, then laughs. "The camel in the corner: the Abu Salem looms of the Fayoum, and old Umm Salah\'s own hand. Your father did not overpay. He paid what it is worth, which nobody in Cairo knew." He names a price: £25.',
       choices: [
         { id: 'sell', label: 'Sell it to Farid', note: '£25 now', apply: (s) => ({ patch: { ...pay(s, 2500, 'Your father\'s rug, to Farid al-Ajami'), inventory: s.inventory.filter((i) => !(i.typeId === 'fayoum-hearth' && (i.uid === 'start-fh' || !i.paid || i.notes?.some((n) => /father/i.test(n))))) }, text: 'Farid counts out the money in gold. "Your father would have done the same, and then regretted it."' }) },
@@ -158,7 +158,7 @@ export const MISSIONS: Record<string, Mission> = {
     reward: { cash: 0, rep: 5, trust: 10, text: 'Next morning Selim\'s stall is bare. He owed half of Cairo and left on the night train to Port Said. The lane is yours, and everyone saw how you held it.' },
     goals: (s) => [{ label: 'Sales at your stall', have: Math.min(RIVAL_SALES, s.stats?.rivalSales ?? 0), need: RIVAL_SALES }],
     scene: {
-      art: 'art/portraits/kassab.jpg', who: 'Selim Kassab, across the lane', title: 'Selim\'s last throw',
+      art: 'art/portraits/kassab.webp', who: 'Selim Kassab, across the lane', title: 'Selim\'s last throw',
       text: () => 'An English colonel stops between your two stalls, and Selim is out from behind his counter at once. "Effendi! The boy\'s father sold fakes. Mine are guaranteed." The whole lane goes quiet to listen. The colonel looks at you.',
       choices: [
         { id: 'truth', label: 'Show him your best rug and tell the truth', note: 'honesty, and the lane hears it: reputation +4', apply: (s) => ({ patch: { reputation: s.reputation + 4, ...bump(s, 'honesty', 6) }, text: 'You turn your best rug over and show him the knots, and say what it is and what it is not. The colonel buys it at your price, and tells Selim he talks too much.' }) },
@@ -227,7 +227,7 @@ export const MISSIONS: Record<string, Mission> = {
     goals: (s) => [{ label: 'A Fine rug packed', have: fineRug(s as unknown as GameState) ? 1 : 0, need: 1 }, { label: 'In Cairo', have: s.world.at === 'cairo' ? 1 : 0, need: 1 }],
     check: (s) => s.world.at === 'cairo' && !!fineRug(s as unknown as GameState),
     scene: {
-      art: 'art/portraits/mrs-hartley.jpg', who: 'Mrs Eleanor Hartley of Philadelphia', title: 'The lady in the best suite',
+      art: 'art/portraits/mrs-hartley.webp', who: 'Mrs Eleanor Hartley of Philadelphia', title: 'The lady in the best suite',
       text: (s) => { const i = fineRug(s); return `She walks round your ${i ? RUGS[i.typeId].name : 'rug'} twice, kneels in her silk to look at the back, and asks what it is worth. Its worth in the trade is about ${i ? `£${(worth(i) / 100).toFixed(2)}` : 'what you say'}.`; },
       choices: [
         { id: 'fair', label: 'Name a fair price', note: 'its worth and a little more; she will come back', apply: (s) => { const i = fineRug(s); if (!i) return { patch: {}, text: '' }; const p = Math.round(worth(i) * 1.15); return { patch: { ...pay(s, p, `${RUGS[i.typeId].name} to Mrs Hartley at Shepheard's`), inventory: s.inventory.filter((x) => x.uid !== i.uid), reputation: s.reputation + 2, ...bump(s, 'honesty', 3) }, text: `She pays £${(p / 100).toFixed(2)} without a word of argument, and asks for your card.` }; } },
@@ -283,7 +283,7 @@ export const MISSIONS: Record<string, Mission> = {
     goals: (s) => [{ label: 'In the Fayoum', have: s.world.at === 'fayoum' ? 1 : 0, need: 1 }],
     check: (s) => s.world.at === 'fayoum',
     scene: {
-      art: 'art/portraits/ummsalah.jpg', who: 'Umm Salah, at the Abu Salem looms', title: 'Umm Salah',
+      art: 'art/portraits/ummsalah.webp', who: 'Umm Salah, at the Abu Salem looms', title: 'Umm Salah',
       text: (s) => `She knows you before you speak. "You have his nose. Your father sat where you are sitting, and argued for an hour, and paid me double." ${(s as unknown as { weaverLead?: boolean }).weaverLead ? 'Farid sent word that you would come. ' : ''}She has one old piece left from those years, rolled under the loom.`,
       choices: [
         { id: 'buy', label: 'Buy her old piece', note: 'a Golden Palm in excellent order, documented: £20', when: (s) => s.cash >= 2000, apply: (s) => ({ patch: { ...pay(s, -2000, 'Umm Salah\'s old piece'), inventory: [...s.inventory, { uid: `ws${s.day}`, typeId: 'golden-palm', condition: 'Excellent', restored: false, provenance: 'Documented', paid: 2000, stored: false, notes: ['From Umm Salah\'s own loom, kept under it for twenty years.'] } as RugItem] }, text: 'She will not haggle with you, and charges you less than she should. The rug is worth half as much again in Cairo, and you both know it.' }) },

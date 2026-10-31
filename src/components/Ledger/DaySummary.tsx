@@ -34,7 +34,7 @@ function RashidPaid({ day }: { day: number }) {
   const sc = PAID_SCENE[f.how];
   return (
     <div className="ds-rashid" data-testid="rashid-paid">
-      <img src="art/portraits/rashid.jpg" alt="" />
+      <img src="art/portraits/rashid.webp" alt="" />
       <div>
         <small>Uncle Rashid's book</small>
         <b>{sc.title}</b>

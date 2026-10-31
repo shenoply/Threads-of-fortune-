@@ -4,7 +4,7 @@
 import type { StreetMap } from '../game/systems/streets';
 
 export const STREETS: Record<string, StreetMap> = {
-  // Giza (art/world/giza-district.jpg, 1536 x 1024)
+  // Giza (art/world/giza-district.webp, 1536 x 1024)
   giza: {
     streets: [
       [[395, 468], [553, 468], [690, 468], [760, 468], [842, 468], [980, 468], [1060, 468], [1145, 468]], // the bazaar street
@@ -52,7 +52,7 @@ export const STREETS: Record<string, StreetMap> = {
     ],
     free: [{ x: 740, y: 200, w: 170, h: 170 }, { x: 0, y: 420, w: 230, h: 666 }],
   },
-  // Alexandria (art/world/city-alexandria.jpg)
+  // Alexandria (art/world/city-alexandria.webp)
   'city-alexandria': {
     streets: [
       [[1040, 933], [1040, 855]], // the station
@@ -66,7 +66,7 @@ export const STREETS: Record<string, StreetMap> = {
       [[1266, 424], [1330, 300], [1340, 220], [1280, 140], [1245, 85]], // out along the breakwater
     ],
   },
-  // Jerusalem (art/world/city-jerusalem.jpg)
+  // Jerusalem (art/world/city-jerusalem.webp)
   'city-jerusalem': {
     streets: [
       [[90, 60], [140, 250], [230, 440], [330, 560], [440, 627]], // Jaffa Road
@@ -81,7 +81,7 @@ export const STREETS: Record<string, StreetMap> = {
       [[1093, 649], [1200, 560], [1260, 450], [1340, 300], [1300, 200], [1280, 140]], // the road up Mount Scopus
     ],
   },
-  // Damascus (art/world/city-damascus.jpg)
+  // Damascus (art/world/city-damascus.webp)
   'city-damascus': {
     streets: [
       [[827, 933], [827, 840], [820, 780]], // in at the gate, over the river
@@ -95,7 +95,7 @@ export const STREETS: Record<string, StreetMap> = {
       [[931, 341], [1050, 300], [1150, 250], [1238, 200]], // the old houses
     ],
   },
-  // Istanbul (art/world/city-istanbul.jpg)
+  // Istanbul (art/world/city-istanbul.webp)
   'city-istanbul': {
     streets: [
       [[107, 200], [150, 220], [200, 253]], // Sirkeci station
@@ -110,7 +110,7 @@ export const STREETS: Record<string, StreetMap> = {
       [[907, 746], [1000, 700], [1100, 660], [1173, 627]], // Topkapi
     ],
   },
-  // Amman (art/world/city-amman.jpg): the stream is crossed only at its bridges
+  // Amman (art/world/city-amman.webp): the stream is crossed only at its bridges
   'city-amman': {
     streets: [
       [[853, 920], [853, 960]], // the stone bridge
@@ -125,7 +125,7 @@ export const STREETS: Record<string, StreetMap> = {
     ],
     free: [{ x: 0, y: 600, w: 480, h: 420 }],
   },
-  // Baghdad (art/world/city-baghdad.jpg): the Tigris is crossed only at its bridges
+  // Baghdad (art/world/city-baghdad.webp): the Tigris is crossed only at its bridges
   'city-baghdad': {
     streets: [
       [[240, 747], [200, 700], [187, 681]], // the gate

@@ -17,7 +17,7 @@ const quickStart = (): Plugin => ({
     // the pictures start the moment the code and stylesheet are in (before the code has run): on a
     // slow line they then neither hold the code back nor wait for it to start
     const code = (html.match(/\.\/assets\/[^"]+\.(?:js|css)/g) ?? []).map((u) => u.slice(2));
-    const boot = `<script>(function(){var go=false,pics=[];try{var k=null;try{k=JSON.parse(localStorage.getItem('tof-titles-kept')||'null');}catch(e){}var sw=navigator.serviceWorker&&navigator.serviceWorker.controller,t=!sw?${JSON.stringify(COLD_TITLES)}:(k&&k.length?k:null);if(t){window.__tofTitle=t[Math.floor(Math.random()*t.length)];pics.unshift(window.__tofTitle);}}catch(e){}
+    const boot = `<script>(function(){var go=false,pics=[];try{var k=null;try{k=JSON.parse(localStorage.getItem('tof-titles-kept')||'null');if(k)k=k.map(function(s){return String(s).replace(/\\.jpg$/,'.webp');});}catch(e){}var sw=navigator.serviceWorker&&navigator.serviceWorker.controller,t=!sw?${JSON.stringify(COLD_TITLES)}:(k&&k.length?k:null);if(t){window.__tofTitle=t[Math.floor(Math.random()*t.length)];pics.unshift(window.__tofTitle);}}catch(e){}
 function start(){if(go)return;go=true;pics.forEach(function(s,i){var l=document.createElement('link');l.rel='preload';l.as='image';l.href=s;if(!i)l.setAttribute('fetchpriority','high');document.head.appendChild(l);});}
 var code=${JSON.stringify(code)},got={};
 function check(es){es.forEach(function(e){code.forEach(function(c){if(e.name.indexOf(c)>=0)got[c]=1;});});if(code.every(function(c){return got[c];}))start();}

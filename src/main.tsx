@@ -1,3 +1,5 @@
+// first, before the save is read: old JPG picture names in what the page keeps become the WebP ones
+import './game/state/artPaths';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { installSaveGuard } from './game/state/saveGuard';

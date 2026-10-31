@@ -26,7 +26,7 @@ const PLACE_KINDS = ['city', 'town', 'port', 'home'];
 const placePic = (id: string) => {
   if (id === 'giza') return 'art/world/thumbs/giza-district-640.webp';
   if (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id)) return `art/world/thumbs/city-${id}-640.webp`;
-  if (isPersian(id)) return `art/world/city-${id}.jpg`;
+  if (isPersian(id)) return `art/world/city-${id}.webp`;
   return CITY_WALKS[id]?.map ?? '';
 };
 

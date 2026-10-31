@@ -572,9 +572,9 @@ export const CELEBS_3_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_3_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'rafiq-najjar': { category: 'theatre', city: 'Cairo', role: 'Actor-manager of an Emad el-Din theatre company', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/youssef-wahbi.jpg' },
-  'muna-sayegh': { category: 'theatre_cinema', city: 'Cairo', role: 'Stage actress on Emad el-Din', prestige: 'FINE', portrait: 'art/historical-buyers/aziza-amir.jpg' },
-  'dalia-barakat': { category: 'theatre_press', city: 'Cairo', role: 'Stage actress with a company of her own', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/rose-al-youssef.jpg' },
-  'lamia-shafiq': { category: 'theatre', city: 'Cairo / Alexandria', role: 'Young Alexandrian actress on the Cairo stage', prestige: 'FINE', portrait: 'art/historical-buyers/fatma-rushdi.jpg' },
-  'georges-haddad': { category: 'intellectual_business', city: 'Beirut', role: 'Beirut writer and businessman', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/charles-corm.jpg' },
+  'rafiq-najjar': { category: 'theatre', city: 'Cairo', role: 'Actor-manager of an Emad el-Din theatre company', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/youssef-wahbi.webp' },
+  'muna-sayegh': { category: 'theatre_cinema', city: 'Cairo', role: 'Stage actress on Emad el-Din', prestige: 'FINE', portrait: 'art/historical-buyers/aziza-amir.webp' },
+  'dalia-barakat': { category: 'theatre_press', city: 'Cairo', role: 'Stage actress with a company of her own', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/rose-al-youssef.webp' },
+  'lamia-shafiq': { category: 'theatre', city: 'Cairo / Alexandria', role: 'Young Alexandrian actress on the Cairo stage', prestige: 'FINE', portrait: 'art/historical-buyers/fatma-rushdi.webp' },
+  'georges-haddad': { category: 'intellectual_business', city: 'Beirut', role: 'Beirut writer and businessman', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/charles-corm.webp' },
 };

@@ -116,7 +116,7 @@ export function BuyerCard({ id, onClose, onPrev, onNext }: { id: string; onClose
     <div className="overlay buyer-card-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={b.name} ref={box}>
       <div className="modal-card big-card buyer-card" onClick={(e) => e.stopPropagation()} data-testid="buyer-card" {...pageProps(pages)}>
         <div className="big-card-head"><h2>{b.name}</h2><button className="btn door-btn leave slim" onClick={onClose} data-testid="buyer-card-close">⟵ Back</button></div>
-        <img className="buyer-big" src={`art/portraits/${filedAs(id)}.jpg`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <img className="buyer-big" src={`art/portraits/${filedAs(id)}.webp`} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <p className="buyer-role">{CELEB_INFO[id as keyof typeof CELEB_INFO]?.role ?? b.role}</p>
         <div className="buyer-facts">
           <span><small>Buys</small><b>{TIER[t[0]]}{t[1] > t[0] ? ` – ${TIER[t[1]]}` : ''}</b></span>

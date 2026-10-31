@@ -50,11 +50,11 @@ export function CaravanHave({ kind, onMore }: { kind: HaveKind; onMore: () => vo
       <div className="cvh-grid">
         {kind === 'Pace' && animals.map(([id, n]) => {
           const b = BREEDS[id];
-          return <Card key={id} img={`art/animals/${id}.jpg`} name={b?.name ?? id} n={n} line={b ? `${b.load ? `carries ${b.load}` : 'ridden'} · eats ${b.food}/day` : ''} />;
+          return <Card key={id} img={`art/animals/${id}.webp`} name={b?.name ?? id} n={n} line={b ? `${b.load ? `carries ${b.load}` : 'ridden'} · eats ${b.food}/day` : ''} />;
         })}
         {showMen && troops.map(([id, n]) => {
           const t = TROOPS[id];
-          return <Card key={id} img={`art/troops/${id}.jpg`} name={(n ?? 0) > 1 ? t?.plural ?? id : t?.name ?? id} n={n} line={t ? `strength ${t.strength} each · ${t.wage} pt a day` : ''} />;
+          return <Card key={id} img={`art/troops/${id}.webp`} name={(n ?? 0) > 1 ? t?.plural ?? id : t?.name ?? id} n={n} line={t ? `strength ${t.strength} each · ${t.wage} pt a day` : ''} />;
         })}
         {kind === 'Food' && (
           <>

@@ -497,9 +497,9 @@ export const CELEBS_4_GROOMING: Record<string, Grooming> = {
 };
 
 export const CELEBS_4_INFO: Record<string, { category: string; city: string; role: string; prestige: 'FINE' | 'EXCEPTIONAL' | 'LEGENDARY'; portrait: string }> = {
-  'edmund-fairburn': { category: 'official', city: 'Jerusalem', role: 'British official in Jerusalem', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ronald-storrs.jpg' },
-  'salim-amin': { category: 'politician', city: 'Jerusalem', role: 'Jerusalem municipal councillor', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/raghib-nashashibi.jpg' },
-  'isaac-benatar': { category: 'politician', city: 'Baghdad', role: 'Baghdad banker', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sassoon-eskell.jpg' },
-  'tawfiq-nassar': { category: 'intellectual', city: 'Jerusalem', role: 'Jerusalem schoolmaster and writer', prestige: 'FINE', portrait: 'art/historical-buyers/khalil-sakakini.jpg' },
-  'margaret-hensley': { category: 'archaeology_public', city: 'Baghdad', role: 'Collector of tribal weaving in Baghdad', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/gertrude-bell.jpg' },
+  'edmund-fairburn': { category: 'official', city: 'Jerusalem', role: 'British official in Jerusalem', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/ronald-storrs.webp' },
+  'salim-amin': { category: 'politician', city: 'Jerusalem', role: 'Jerusalem municipal councillor', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/raghib-nashashibi.webp' },
+  'isaac-benatar': { category: 'politician', city: 'Baghdad', role: 'Baghdad banker', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/sassoon-eskell.webp' },
+  'tawfiq-nassar': { category: 'intellectual', city: 'Jerusalem', role: 'Jerusalem schoolmaster and writer', prestige: 'FINE', portrait: 'art/historical-buyers/khalil-sakakini.webp' },
+  'margaret-hensley': { category: 'archaeology_public', city: 'Baghdad', role: 'Collector of tribal weaving in Baghdad', prestige: 'EXCEPTIONAL', portrait: 'art/historical-buyers/gertrude-bell.webp' },
 };

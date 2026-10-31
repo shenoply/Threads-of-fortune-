@@ -11,7 +11,7 @@ export function stallFigure(buyer: string): { src: string; framed: boolean } {
   const id = filedAs(buyer);
   if (STALL2.has(id)) return { src: `art/portraits/${id}-stall2.webp`, framed: false };
   if (STALL.has(id)) return { src: `art/portraits/${id}-stall.webp`, framed: false };
-  return { src: `art/portraits/${id}.jpg`, framed: true };
+  return { src: `art/portraits/${id}.webp`, framed: true };
 }
 
 // everything else the stall scene can show: the shelf props (a different pick each day), the cats,

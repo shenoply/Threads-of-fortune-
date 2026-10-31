@@ -120,7 +120,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: ScenePro
     const text = who === 'seller' ? view.seller : view.buyer;
     return (
       <div className={`scene audience ${view.speaking ? 'speaking-' + view.speaking : ''}`} ref={box} onClick={onSkip} data-testid="scene" data-audience={buyer.id}>
-        <img className="audience-art" src={`art/royal/${buyer.id}-audience.jpg`} alt={`An audience with ${buyer.name}`} style={{ objectPosition: `50% ${buyer.royal.focusY}%` }} draggable={false} />
+        <img className="audience-art" src={`art/royal/${buyer.id}-audience.webp`} alt={`An audience with ${buyer.name}`} style={{ objectPosition: `50% ${buyer.royal.focusY}%` }} draggable={false} />
         <div className="scene-fade" />
         {rugT && presented && (
           <div className="audience-rug" key={unfoldKey} data-testid="table-rug">

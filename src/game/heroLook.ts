@@ -6,7 +6,7 @@ import { silhouetteFor } from './silhouette';
 
 export type HeroLook = { kind: 'hassan' } | { kind: 'custom'; name: string; head: string; portrait: string };
 
-export const REFERENCE_SHEET = 'art/hero/play-as-yourself-reference.jpg';
+export const REFERENCE_SHEET = 'art/hero/play-as-yourself-reference.webp';
 
 export const PROMPT = `Make a painted game-character portrait of the person in my attached photo: HEAD AND NECK ONLY, facing the camera, cut off at the base of the neck (no shoulders, no clothes). Paint it in exactly the style of the attached reference image: a warm, polished digital painting like a premium 1920s adventure game, soft light from the front-left, rich colours, clean edges, no visible brush strokes, no canvas texture, real skin detail. Keep my face, hair, beard, skin tone and age accurate and recognisable. Do not copy the reference man's face, only the style. No hat. Plain flat light-grey background (#ECECEC), no shadow, no text. Square image.`;
 export const CHATGPT_LINK = `https://chatgpt.com/?q=${encodeURIComponent(PROMPT)}`;

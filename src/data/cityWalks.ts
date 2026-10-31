@@ -35,7 +35,7 @@ export const CITY_WALKS: Record<string, Venue> = {
   alexandria: {
     id: 'city-alexandria', settlement: 'alexandria', name: 'Alexandria', where: 'The harbour city',
     history: 'Egypt\'s window on the Mediterranean: cotton, shipping and half the languages of Europe.',
-    map: 'art/world/city-alexandria.jpg', start: P(780, 700),
+    map: 'art/world/city-alexandria.webp', start: P(780, 700),
     pois: [
       { id: 'station', name: 'Misr Station', sub: 'Back to the town square', ...P(780, 641), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'Souq el-Attarin', sub: 'Local rug market', ...P(548, 447), glyph: '◆', kind: 'goto', action: 'market' },
@@ -51,7 +51,7 @@ export const CITY_WALKS: Record<string, Venue> = {
   jerusalem: {
     id: 'city-jerusalem', settlement: 'jerusalem', name: 'Jerusalem', where: 'The Old City and the new',
     history: 'Under the British Mandate since 1920. Pilgrims of three faiths, and a buyer for every kind of old thing.',
-    map: 'art/world/city-jerusalem.jpg', start: P(330, 470),
+    map: 'art/world/city-jerusalem.webp', start: P(330, 470),
     pois: [
       { id: 'gate', name: 'Jaffa Gate', sub: 'Back to the town square', ...P(400, 430), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'Souq Khan ez-Zeit', sub: 'Local rug market', ...P(570, 445), glyph: '◆', kind: 'goto', action: 'market' },
@@ -68,7 +68,7 @@ export const CITY_WALKS: Record<string, Venue> = {
   damascus: {
     id: 'city-damascus', settlement: 'damascus', name: 'Damascus', where: 'The walled city',
     history: 'Capital of the French Mandate state of Damascus. The Hamidiyya souq runs straight to the Umayyad Mosque.',
-    map: 'art/world/city-damascus.jpg', start: P(620, 700),
+    map: 'art/world/city-damascus.webp', start: P(620, 700),
     pois: [
       { id: 'gate', name: 'Bab al-Jabiya', sub: 'Back to the town square', ...P(620, 630), glyph: '⇣', kind: 'exit' },
       { id: 'hamidiyya', name: 'Souq al-Hamidiyya', sub: 'Local rug market', ...P(497, 313), glyph: '◆', kind: 'goto', action: 'market' },
@@ -85,7 +85,7 @@ export const CITY_WALKS: Record<string, Venue> = {
   istanbul: {
     id: 'city-istanbul', settlement: 'istanbul', name: 'Constantinople', where: 'The Golden Horn',
     history: 'No longer the capital since Angora took the title in 1923, but still the greatest carpet market between Paris and Teheran.',
-    map: 'art/world/city-istanbul.jpg', start: P(150, 190),
+    map: 'art/world/city-istanbul.webp', start: P(150, 190),
     pois: [
       { id: 'station', name: 'Sirkeci Station', sub: 'Back to the town square', ...P(80, 150), glyph: '⇣', kind: 'exit' },
       { id: 'bazaar', name: 'The Grand Bazaar', sub: 'Local rug market', ...P(300, 500), glyph: '◆', kind: 'goto', action: 'market' },
@@ -103,7 +103,7 @@ export const CITY_WALKS: Record<string, Venue> = {
   amman: {
     id: 'city-amman', settlement: 'amman', name: 'Amman', where: 'A capital in the making',
     history: 'A small town of Circassian settlers until Emir Abdullah made it his seat in 1921. Everything here is new except the ruins.',
-    map: 'art/world/city-amman.jpg', start: P(640, 690),
+    map: 'art/world/city-amman.webp', start: P(640, 690),
     pois: [
       { id: 'bridge', name: 'The Seil bridge', sub: 'Back to the town square', ...P(640, 720), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'The souq', sub: 'Local market', ...P(580, 470), glyph: '◆', kind: 'goto', action: 'market' },
@@ -120,7 +120,7 @@ export const CITY_WALKS: Record<string, Venue> = {
   baghdad: {
     id: 'city-baghdad', settlement: 'baghdad', name: 'Baghdad', where: 'On the Tigris',
     history: 'Capital of the Kingdom of Iraq since 1921. Persian carpets come down the river road from Kermanshah by the thousand.',
-    map: 'art/world/city-baghdad.jpg', start: P(180, 560),
+    map: 'art/world/city-baghdad.webp', start: P(180, 560),
     pois: [
       { id: 'gate', name: 'Western gate', sub: 'Back to the town square', ...P(140, 510), glyph: '⇣', kind: 'exit' },
       { id: 'souq', name: 'Carpet souq', sub: 'Local rug market', ...P(180, 180), glyph: '◆', kind: 'goto', action: 'market' },

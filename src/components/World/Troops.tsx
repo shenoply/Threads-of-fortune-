@@ -18,7 +18,7 @@ export function TroopPage({ id, onClose, onHire, hireLabel, hireDisabled }: { id
     <div className="overlay troop-page" data-testid={`troop-page-${id}`}>
       <div className="overlay-head"><h2>{t.name}</h2><span className="sub">{t.plural}</span><button className="btn small close" onClick={onClose} data-testid="troop-page-close">✕</button></div>
       <div className="troop-page__body">
-        <img className="troop-page__pic" src={`art/troops/${id}.jpg`} alt={t.name} />
+        <img className="troop-page__pic" src={`art/troops/${id}.webp`} alt={t.name} />
         {lore && <p className="troop-page__says">{lore.says}</p>}
         <div className="troop-page__stats">
           <span><small>Strength</small><b>{t.strength}</b></span>
@@ -64,7 +64,7 @@ export function MenTalk({ onClose, stopped }: { onClose: () => void; stopped?: b
     <div className="overlay men-talk" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()} data-testid="men-talk">
         <div className="men-talk__who">
-          {head && <img src={`art/troops/${head}.jpg`} alt="" />}
+          {head && <img src={`art/troops/${head}.webp`} alt="" />}
           <div><h2>{stopped ? 'Your men stop you' : 'Your men'}</h2><small>{men} {men === 1 ? 'man' : 'men'} · patience {moraleOf(p)}/100 · food for {foodDaysLeft(p)} {foodDaysLeft(p) === 1 ? "day" : "days"} · wages {fmt(wages(p))}/day</small></div>
         </div>
         <p className={`men-talk__line ${mood.tone}`} data-testid="men-line">{mood.line}</p>

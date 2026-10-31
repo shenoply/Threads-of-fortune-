@@ -73,7 +73,7 @@ export function Clash({ info, onEnd, onBack, direct = false }: { info: ClashInfo
       <div className="clash-body">
         <div className="clash-head"><small>BEFORE THE FIGHT · {info.place}</small><b>{info.bandName}</b></div>
         <div className="clash-band" data-testid="clash-band">
-          <img src={info.leaderImg} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.jpg'; }} />
+          <img src={info.leaderImg} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.webp'; }} />
           <div>
             <b>{L ? L.name : 'Their leader'}{info.known && <> <TraitMarks marks={[CHIEF_MARK[info.temper]]} size={22} testid="clash-chief-mark" /></>}</b>
             <span>{info.armsLine}</span>
@@ -513,7 +513,7 @@ function Duel({ info, round, onDone }: { info: ClashInfo; round: number; onDone:
       <div className="duel-faces">
         <img className={view.flash === 'miss' ? 'shake' : ''} src={info.heroImg} alt="" />
         <span className="duel-score" data-testid="duel-score">{view.hits} – {view.misses}</span>
-        <img className={view.flash === 'hit' ? 'shake' : ''} src={info.leaderImg} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.jpg'; }} />
+        <img className={view.flash === 'hit' ? 'shake' : ''} src={info.leaderImg} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.webp'; }} />
       </div>
       <p className="duel-line" data-testid="duel-line">{view.line}</p>
       <div className="duel-track" aria-hidden>

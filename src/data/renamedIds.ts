@@ -25,7 +25,7 @@ export const RENAMED_BUYERS: Record<string, string> = {
 
 /** new id -> the id its recordings and portraits are still filed under */
 export const FILED_AS: Record<string, string> = Object.fromEntries(Object.entries(RENAMED_BUYERS).map(([o, n]) => [n, o]));
-/** the id a buyer's files (art/portraits/<id>.jpg, voices/<id>.mp3) carry */
+/** the id a buyer's files (art/portraits/<id>.webp, voices/<id>.mp3) carry */
 export const filedAs = (id: string) => FILED_AS[id] ?? id;
 
 /** An old save, with every old buyer id (as a value, a key, or the head or tail of a "a:b" key) put to its new one. */

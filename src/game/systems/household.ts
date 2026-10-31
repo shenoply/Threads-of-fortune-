@@ -244,7 +244,7 @@ export function availableBrides(h: HouseholdState): BrideId[] {
 }
 
 export const BRIDE_ORDER: BrideId[] = ['nadia', 'amira', 'layla'];
-export const brideArt = (id: BrideId) => BRIDES[id]?.art ?? `art/family/bride-${id}.jpg`;
+export const brideArt = (id: BrideId) => BRIDES[id]?.art ?? `art/family/bride-${id}.webp`;
 /** a child takes after the mother's family: Egypt, the Levant and Constantinople, or the desert and Baghdad */
 const LOOK: Record<string, 'egypt' | 'levant' | 'desert'> = { layla: 'levant', farida: 'levant', nour: 'levant', hayat: 'levant', emine: 'levant', suad: 'desert', nura: 'desert' };
 export const childLook = (mother?: BrideId) => (mother && (LOOK[mother] ?? BRIDES[mother]?.look)) || 'egypt';
@@ -252,14 +252,14 @@ export const childLook = (mother?: BrideId) => (mother && (LOOK[mother] ?? BRIDE
 export const childArt = (c: Child, firstWife?: BrideId): [string, string] => {
   // grown: a face of their own (systems/familyFaces), or the sitter's initial when none is free
   if (ageOf(c) >= 18) { const f = faceArt(c.face); return [f, f]; }
-  if (ageOf(c) < 1) return [`art/family/child-baby-${c.sex}.jpg`, `art/family/child-baby-${c.sex}.jpg`];
+  if (ageOf(c) < 1) return [`art/family/child-baby-${c.sex}.webp`, `art/family/child-baby-${c.sex}.webp`];
   const base = `art/family/child-${childLook(c.mother ?? firstWife)}-${c.sex}-${ageOf(c) >= 18 ? 18 : ageOf(c) >= 12 ? 12 : 5}`;
   const v = c.look ?? 0;
-  return [v ? `${base}-${v + 1}.jpg` : `${base}.jpg`, `${base}.jpg`];
+  return [v ? `${base}-${v + 1}.webp` : `${base}.webp`, `${base}.webp`];
 };
 
 /** a face given to someone of the household: a family picture ("fam:" and its name) or one from the portrait pool */
-export const faceArt = (face?: string) => (!face ? '' : face.startsWith('fam:') ? `art/family/${face.slice(4)}.jpg` : `art/people/${face}.jpg`);
+export const faceArt = (face?: string) => (!face ? '' : face.startsWith('fam:') ? `art/family/${face.slice(4)}.webp` : `art/people/${face}.webp`);
 /** a wife's picture: her own as a bride, an older face once the years show (systems/familyFaces) */
 export const wifeArt = (sp: Pick<Spouse, 'id' | 'face'>) => (sp.face ? faceArt(sp.face) : brideArt(sp.id));
 

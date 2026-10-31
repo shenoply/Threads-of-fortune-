@@ -32,7 +32,7 @@ export function reveal(it: RevealItem) {
   if (push) push(it); else waiting.push(it);
 }
 
-const WRAP = 'art/rugs/baghdad-night.jpg';
+const WRAP = 'art/rugs/baghdad-night.webp';
 const ROLL_MS = 380, OPEN_MS = 1100, COUNT_MS = 900;
 
 /** money counting up from nothing, a coin's tick as it goes */

@@ -2064,7 +2064,7 @@ export const useGame = create<GameState & Actions>()(
           let visits = (s.visits ?? []).filter((v) => v.until >= day);
           if (visits.length < 2 && (visits.length === 0 || day % 2 === 0)) {
             const tierOf = { FINE: 2, EXCEPTIONAL: 3, LEGENDARY: 4 } as const;
-            const celebs = CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !visits.some((v) => v.buyerId === id)).map((id) => ({ id, name: BUYERS[id].name, city: CELEB_INFO[id as keyof typeof CELEB_INFO].city, tier: tierOf[CELEB_INFO[id as keyof typeof CELEB_INFO].prestige], portrait: `art/portraits/${filedAs(id)}.jpg` }));
+            const celebs = CELEB_IDS.filter((id) => celebUnlock(id) <= s.reputation + 6 && !visits.some((v) => v.buyerId === id)).map((id) => ({ id, name: BUYERS[id].name, city: CELEB_INFO[id as keyof typeof CELEB_INFO].city, tier: tierOf[CELEB_INFO[id as keyof typeof CELEB_INFO].prestige], portrait: `art/portraits/${filedAs(id)}.webp` }));
             const v = newVisit(day, rankIdx, rng, celebs);
             visits = [...visits, v];
             notes.push(`${v.who} is in ${settlementById(v.city).name} until ${dateFor(v.until).short}.`);

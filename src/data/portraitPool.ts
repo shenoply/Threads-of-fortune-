@@ -1,4 +1,4 @@
-// The portrait pool: faces for generated characters, by region, sex, age and class (art/people/<id>.jpg).
+// The portrait pool: faces for generated characters, by region, sex, age and class (art/people/<id>.webp).
 // Generated characters take the closest free face; until a picture arrives the drawn medallion stands in.
 export type PoolRegion = 'egypt' | 'levant' | 'anatolia' | 'iraq' | 'persia' | 'bedouin' | 'armenian' | 'greek' | 'european';
 export interface PoolFace { id: string; region: PoolRegion; sex: 'm' | 'f'; age: 'y' | 'm' | 'o'; cls: 'humble' | 'trade' | 'notable'; /** the foreigners' faces: which people (british, french...) */ nat?: string }

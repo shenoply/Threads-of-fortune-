@@ -144,7 +144,7 @@ export function Ambush({ party, onDone, onTurnBack, onTrain = false }: { party: 
   const heroStr = strength({ ...g.world.party, troops: {} });
   const mySide: Unit[] = useMemo(() => [
     { id: 'you', name: 'You', img: heroFace(g), str: heroStr, n: 1, start: 1 },
-    ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.jpg`, str: TROOPS[id].strength, n: n ?? 0, start: n ?? 0 })),
+    ...Object.entries(g.world.party.troops).filter(([, n]) => (n ?? 0) > 0).map(([id, n]) => ({ id, name: n > 1 ? TROOPS[id].plural : TROOPS[id].name, img: `art/troops/${id}.webp`, str: TROOPS[id].strength, n: n ?? 0, start: n ?? 0 })),
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
   const enemy = { n: size, str: theirs / size };
   // the man who leads them: a name on a poster for the bands that watch the roads
@@ -335,13 +335,13 @@ export function Ambush({ party, onDone, onTurnBack, onTrain = false }: { party: 
     <div className="ambush" data-testid="road-encounter">
       <Tip id="fights" card />
       {stage === 'battle' && <Clash info={clashInfo} onEnd={finish} onBack={() => setStage('standoff')} direct />}
-      <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.jpg)" }} />
+      <div className="amb-bg" style={{ backgroundImage: "url(art/troops/escort-road.webp)" }} />
       <div className="amb-body">
         <div className="amb-head"><small>{rebels ? 'CHECKPOINT' : 'AMBUSH'} · {place}</small><b>{threat.displayName}</b></div>
         {(stage === 'standoff' || stage === 'demand') && !rebels && <img className="amb-rob-art amb-scene" src="art/battle/moments/ambush.webp" alt="" data-testid="amb-scene" />}
         {stage !== 'battle' && stage !== 'chase' && <div className="amb-sides">
           <div className="amb-side amb-me">
-            <img className="amb-face" src="art/troops/escort-road.jpg" alt="" />
+            <img className="amb-face" src="art/troops/escort-road.webp" alt="" />
             <b>Your caravan</b>
             <span>Strength {myPow}</span>
             <div className="amb-units">
@@ -354,7 +354,7 @@ export function Ambush({ party, onDone, onTurnBack, onTrain = false }: { party: 
           </div>
           <div className="amb-vs">VS</div>
           <div className="amb-side amb-them">
-            <img className="amb-face" src={threat.leaderImage} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.jpg'; }} />
+            <img className="amb-face" src={threat.leaderImage} alt="" onError={(e) => { e.currentTarget.src = 'art/troops/reformed.webp'; }} />
             <b>{threat.displayName}</b>
             <span>{enemy.n} men · strength {enPow}</span>
             {leader && <span className="amb-leader" data-testid="amb-leader">Led by {leader.name}{leader.robbed ? ', who robbed you' : ''}{leader.meets ? ` · ${leader.meets === 1 ? 'you have met once before' : `you have met ${leader.meets} times`}` : ''}</span>}

@@ -15,7 +15,7 @@ import './household.css';
 function fatherArt(id: BrideId): string | undefined {
   const b = BRIDES[id];
   if (!b) return undefined;
-  if (b.house) return `art/portraits/${b.house}.jpg`;
+  if (b.house) return `art/portraits/${b.house}.webp`;
   const d = person(b.folk ?? `bride-${id}`);
   const fa = (d?.father ? person(d.father) : undefined) ?? person(`father-${id}`);
   return fa ? faceSrc(fa) : undefined;

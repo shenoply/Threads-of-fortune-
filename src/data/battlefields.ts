@@ -1,5 +1,5 @@
 // Which battlefield a fight is played on, from where on the world map it happens.
-// Pictures: public/art/battle/<id>.jpg (prompts in BATTLE_ART_PROMPTS.md).
+// Pictures: public/art/battle/<id>.webp (prompts in BATTLE_ART_PROMPTS.md).
 
 export type BattlefieldId = 'road' | 'dunes' | 'oasis' | 'pass' | 'nile' | 'ford' | 'hills' | 'basalt' | 'ruins' | 'mountain';
 

@@ -23,7 +23,7 @@ import { longPress } from '../Touch/RugScroll';
 export function RashidPortrait({ onPoke }: { onPoke?: () => void }) {
   return (
     <button className="rashid-face" onClick={onPoke} aria-label="Talk to Uncle Rashid" data-testid="rashid-poke">
-      <img src="art/portraits/rashid.jpg" alt="Uncle Rashid" />
+      <img src="art/portraits/rashid.webp" alt="Uncle Rashid" />
     </button>
   );
 }

@@ -7,7 +7,7 @@ import { POOL, type PoolRegion } from '../../data/portraitPool';
 import { worldFaces, poolRegionOf, faceBand, person, ageNow, type Culture } from './population';
 import { BRIDES, ageOf, childLook, wivesOf, setWife, GROWN, type HouseholdState, type Child, type Spouse, type BrideId } from './household';
 
-/** the family pictures of grown children that exist (art/family/child-<look>-<sex>-18.jpg) */
+/** the family pictures of grown children that exist (art/family/child-<look>-<sex>-18.webp) */
 const FAMILY_GROWN = new Set(['child-egypt-son-18', 'child-egypt-daughter-18']);
 const LOOK_REGION: Record<'egypt' | 'levant' | 'desert', PoolRegion> = { egypt: 'egypt', levant: 'levant', desert: 'iraq' };
 

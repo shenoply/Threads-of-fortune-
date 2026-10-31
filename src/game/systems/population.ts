@@ -39,7 +39,7 @@ export interface Person {
   spouse?: string;
   children: string[];
   traits: Trait[];
-  /** a face from the portrait pool (art/people/<face>.jpg) */
+  /** a face from the portrait pool (art/people/<face>.webp) */
   face?: string;
   /** a picture of his own instead (hand-made characters) */
   art?: string;
@@ -278,12 +278,12 @@ export function world(): World {
     const r = rngOf(rv.id);
     const c = rv.id === 'rival-boghos' || rv.id === 'rival-kouyoumdjian' || rv.id === 'rival-arslanian' ? 'armenian' : rv.id === 'rival-yanni' || rv.id === 'rival-costa' ? 'greek' : rv.id === 'rival-lucia' ? 'greek' : cultureOf(city);
     const short = rv.name.replace(/^(Haj|Hajj|Abu Nadim|Signora|Hüsnü Bey)\s+/, '').split(' ').slice(-1)[0];
-    const head = add({ id: rv.id, name: rv.name, short: rv.she ? 'Signora Valenti' : short, sex: rv.she ? 'f' : 'm', age: rv.temper === 'old' ? 62 + Math.floor(r() * 10) : 40 + Math.floor(r() * 14), culture: c, home: city, role: 'dealer', title: rv.role, rival: rv.id, art: `art/portraits/${rv.id}.jpg`, children: [], traits: rv.temper === 'aggressive' ? ['proud', 'greedy'] : rv.temper === 'cunning' ? ['cunning', 'curious'] : rv.temper === 'old' ? ['stern', 'pious'] : ['honest', 'cheerful'], bio: `${rv.role}. His house sells about £${Math.round(rv.season / 100).toLocaleString('en-GB')} of rugs in a season.` }, 'notable');
+    const head = add({ id: rv.id, name: rv.name, short: rv.she ? 'Signora Valenti' : short, sex: rv.she ? 'f' : 'm', age: rv.temper === 'old' ? 62 + Math.floor(r() * 10) : 40 + Math.floor(r() * 14), culture: c, home: city, role: 'dealer', title: rv.role, rival: rv.id, art: `art/portraits/${rv.id}.webp`, children: [], traits: rv.temper === 'aggressive' ? ['proud', 'greedy'] : rv.temper === 'cunning' ? ['cunning', 'curious'] : rv.temper === 'old' ? ['stern', 'pious'] : ['honest', 'cheerful'], bio: `${rv.role}. His house sells about £${Math.round(rv.season / 100).toLocaleString('en-GB')} of rugs in a season.` }, 'notable');
     if (rv.she) head.bio = `${rv.role}. She has kept the firm's place on the Alexandria table since his death.`;
     const h: House = { id: `house-${rv.id}`, name: houseName(`The house of ${head.name.replace(/^Signora /, '')}`, city), home: city, head: head.id, members: [head.id], rank: rv.season >= 180000 ? 'grand' : 'notable', trade: 'carpets', rival: rv.id };
     head.house = h.id; houses[h.id] = h;
     const brideId = Object.values(BRIDES).find((b) => b.house === rv.id && !b.folk)?.id;
-    const daughter = brideId ? add({ id: `bride-${brideId}`, name: BRIDES[brideId].name, short: BRIDES[brideId].short, sex: 'f', age: 21, culture: c, home: BRIDES[brideId].city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${brideId}.jpg`, bride: brideId, bio: BRIDES[brideId].intro }) : undefined;
+    const daughter = brideId ? add({ id: `bride-${brideId}`, name: BRIDES[brideId].name, short: BRIDES[brideId].short, sex: 'f', age: 21, culture: c, home: BRIDES[brideId].city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${brideId}.webp`, bride: brideId, bio: BRIDES[brideId].intro }) : undefined;
     family(head, h, r, { daughter, wife: !rv.she });
   }
   // 2. the other brides' families: a buyer, a weaver, a coffee-house keeper, a sheikh
@@ -296,11 +296,11 @@ export function world(): World {
     if (/the late/i.test(b.father)) { head.title = `Father of Shukri and Aziza (died 1922)`; head.bio = 'The late Hajj Mansour kept a stall in the Giza lane for thirty years.'; }
     const h: House = { id: `house-${b.id}`, name: houseName(`The family of ${b.short}`, b.city), home: b.city, head: head.id, members: [head.id], rank: b.rank ?? 'trade', trade: b.brings };
     head.house = h.id; houses[h.id] = h;
-    const daughter = add({ id: `bride-${b.id}`, name: b.name, short: b.short, sex: 'f', age: 20 + Math.floor(r() * 5), culture: c, home: b.city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${b.id}.jpg`, bride: b.id, bio: b.intro });
+    const daughter = add({ id: `bride-${b.id}`, name: b.name, short: b.short, sex: 'f', age: 20 + Math.floor(r() * 5), culture: c, home: b.city, role: 'kin', title: `Daughter of ${head.short}`, children: [], traits: traitsOf(r), art: `art/family/bride-${b.id}.webp`, bride: b.id, bio: b.intro });
     family(head, h, r, { daughter });
     // Aziza's brother: Shukri, who keeps the stall across the lane from yours
     if (b.id === 'aziza') {
-      const sh = add({ id: 'shukri', name: 'Shukri Mansour', short: 'Shukri', sex: 'm', age: 27, culture: 'egypt', home: 'giza', role: 'dealer', title: 'Keeps the stall across the lane from yours', house: h.id, father: head.id, children: [], traits: ['proud', 'cunning'], art: 'art/portraits/shukri.jpg', bio: 'He took his late father\'s stall in the Giza lane and means to have the whole lane before he is thirty. He watches every buyer who stops at yours.' });
+      const sh = add({ id: 'shukri', name: 'Shukri Mansour', short: 'Shukri', sex: 'm', age: 27, culture: 'egypt', home: 'giza', role: 'dealer', title: 'Keeps the stall across the lane from yours', house: h.id, father: head.id, children: [], traits: ['proud', 'cunning'], art: 'art/portraits/shukri.webp', bio: 'He took his late father\'s stall in the Giza lane and means to have the whole lane before he is thirty. He watches every buyer who stops at yours.' });
       head.children.unshift(sh.id); h.members.push(sh.id);
     }
   }
@@ -333,7 +333,7 @@ export function world(): World {
     const n = NPCS[id];
     if (!n || people[`npc-${id}`]) continue;
     const r = rngOf(`npc:${id}`);
-    add({ id: `npc-${id}`, name: n.name, short: n.name.split(' ')[0], sex: /Umm|Hanım|Nadia|Sister|Madame|Mrs/.test(n.name) ? 'f' : 'm', age: 35 + Math.floor(r() * 25), culture: cultureOf(st.id), home: st.id, role: 'notable', title: n.role, npc: id, art: `art/portraits/${id}.jpg`, children: [], traits: traitsOf(r), bio: n.role });
+    add({ id: `npc-${id}`, name: n.name, short: n.name.split(' ')[0], sex: /Umm|Hanım|Nadia|Sister|Madame|Mrs/.test(n.name) ? 'f' : 'm', age: 35 + Math.floor(r() * 25), culture: cultureOf(st.id), home: st.id, role: 'notable', title: n.role, npc: id, art: `art/portraits/${id}.webp`, children: [], traits: traitsOf(r), bio: n.role });
   }
   // 4. the road's caravan masters, one to each caravan on the map
   const caravans: Record<string, string> = {};
@@ -399,7 +399,7 @@ export function world(): World {
   for (const tc of TOWN_CHARACTERS) {
     const r = rngOf(`char:${tc.id}`);
     usedNames.add(tc.name);
-    add({ id: `char-${tc.id}`, name: tc.name, short: tc.short, sex: tc.sex, age: tc.age, culture: tc.c as Culture, home: tc.city, role: 'character', title: tc.title, children: [], traits: traitsOf(r), bio: tc.bio, talk: tc.talk, look: tc.look, art: `art/people/char-${tc.id}.jpg`, foreign: NATIVE.has(tc.c as Culture) ? undefined : wordOf(tc.c as Culture) });
+    add({ id: `char-${tc.id}`, name: tc.name, short: tc.short, sex: tc.sex, age: tc.age, culture: tc.c as Culture, home: tc.city, role: 'character', title: tc.title, children: [], traits: traitsOf(r), bio: tc.bio, talk: tc.talk, look: tc.look, art: `art/people/char-${tc.id}.webp`, foreign: NATIVE.has(tc.c as Culture) ? undefined : wordOf(tc.c as Culture) });
   }
   // faces, in order of who you will look at most: daughters of an age to marry (their faces are the bride
   // cards), then the heads of houses and the people of the towns, then wives, then the rest of the families
@@ -421,7 +421,7 @@ function bioFor(p: Person, where: string): string {
 }
 
 /** a person's face: their own picture, a face from the pool, or nothing (the drawn medallion stands in) */
-export const faceSrc = (p: Person) => p.art ?? (p.face ? `art/people/${p.face}.jpg` : undefined);
+export const faceSrc = (p: Person) => p.art ?? (p.face ? `art/people/${p.face}.webp` : undefined);
 export const person = (id: string): Person | undefined => world().people[id];
 export const houseOf = (id: string): House | undefined => world().houses[id];
 /** the notables a city keeps: its souq master first */

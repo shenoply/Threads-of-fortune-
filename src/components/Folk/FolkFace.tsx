@@ -18,6 +18,6 @@ export const FolkFace = memo(function FolkFace({ p, size = 56, card }: { p: Pers
   if (!src || bad) return <span className={`cameo-wrap${card ? ' card' : ''}`} style={{ width: size, height: size }}><PersonCameo spec={personFor(p.id, look, accent)} size={size} /></span>;
   // a portrait painted for the game has a small copy for lists (art/portraits/small/<id>.webp)
   // and so does each face of the portrait pool (art/people/small/<id>.webp)
-  const small = size <= 180 && /^art\/(portraits|people)\/[^/]+\.jpg$/.test(src) && !tried ? src.replace(/^art\/(portraits|people)\/(.+)\.jpg$/, 'art/$1/small/$2.webp') : src;
+  const small = size <= 180 && /^art\/(portraits|people)\/[^/]+\.webp$/.test(src) && !tried ? src.replace(/^art\/(portraits|people)\/(.+)\.webp$/, 'art/$1/small/$2.webp') : src;
   return <img className={`folk-face${card ? ' card' : ''}`} src={small} alt="" width={size} height={size} style={{ width: size, height: size }} onError={() => (small !== src ? setTried(true) : setBad(true))} loading="lazy" decoding="async" />;
 });

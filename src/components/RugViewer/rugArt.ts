@@ -264,7 +264,7 @@ export function rugSrc(t: RugType): string {
 }
 
 /** A 400-px copy of the rug photo, for rugs shown small (cards, lists, strips): a fifth of the bytes.
- *  Photos live at art/rugs/<id>.jpg, their thumbnails at art/rugs/thumbs/<id>.webp. Use rugSrc for
+ *  Photos live at art/rugs/<id>.webp, their thumbnails at art/rugs/thumbs/<id>.webp. Use rugSrc for
  *  the inspector and any view that zooms in. */
 export function rugThumb(t: RugType): string {
   if (t.art.kind === 'design') return renderDesign(t.art.design, 400, 0.85);

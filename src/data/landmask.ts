@@ -1,4 +1,4 @@
-// 1 = water. 177 x 118 cells, 5 px each, over the painted travel map (art/world/travel-map.jpg, 1536 x 1024,
+// 1 = water. 177 x 118 cells, 5 px each, over the painted travel map (art/world/travel-map.webp, 1536 x 1024,
 // shown at 885 x 590). Built from the painting: sea is blue. The Nile is traced in too, south of Cairo,
 // with one crossing near Cairo's bridges (tools/add-nile.py) - the Delta above that, and rivers
 // drawn elsewhere on the map, are still open land/fordable.

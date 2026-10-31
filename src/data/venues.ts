@@ -1,5 +1,5 @@
 // Royal venues: explorable palace grounds, each unlocked from its city on the world map.
-// Coordinates are pixels on the venue's painted map (art/royal/<id>-map.jpg, 1448 x 1086).
+// Coordinates are pixels on the venue's painted map (art/royal/<id>-map.webp, 1448 x 1086).
 
 export interface VenuePoi {
   id: string;
@@ -33,7 +33,7 @@ export const VENUES: Record<string, Venue> = {
   abdeen: {
     id: 'abdeen', settlement: 'cairo', royal: 'fuad', name: 'Abdeen Palace', where: 'Cairo',
     history: 'Built for Khedive Ismail between 1863 and 1874 and the seat of government ever since. The household\'s carpet buyer receives merchants here.',
-    map: 'art/royal/abdeen-map.jpg', exterior: 'art/royal/abdeen-exterior.jpg',
+    map: 'art/royal/abdeen-map.webp', exterior: 'art/royal/abdeen-exterior.webp',
     start: { x: 727, y: 1010 },
     pois: [
       { id: 'gate', name: 'Palace gates', sub: 'Back to Cairo', x: 727, y: 1050, glyph: '⇣', kind: 'exit' },
@@ -50,7 +50,7 @@ export const VENUES: Record<string, Venue> = {
   rasettin: {
     id: 'rasettin', settlement: 'alexandria', royal: 'nazli', name: 'Ras el-Tin Palace', where: 'Alexandria',
     history: 'Muhammad Ali\'s palace on the western harbour, rebuilt for King Fuad in the 1920s. The court moves here for the summer.',
-    map: 'art/royal/rasettin-map.jpg',
+    map: 'art/royal/rasettin-map.webp',
     start: { x: 330, y: 805 },
     pois: [
       { id: 'pier', name: 'Harbour pier', sub: 'Back to Alexandria', x: 300, y: 815, glyph: '⇣', kind: 'exit' },
@@ -67,7 +67,7 @@ export const VENUES: Record<string, Venue> = {
   raghadan: {
     id: 'raghadan', settlement: 'amman', royal: 'abdullah', name: 'Raghadan Palace', where: 'Amman',
     history: 'The Emir\'s new palace on the hill of Raghadan, still being finished in 1925. Until it is done, much of the court still happens in tents.',
-    map: 'art/royal/raghadan-map.jpg', exterior: 'art/royal/raghadan-exterior.jpg',
+    map: 'art/royal/raghadan-map.webp', exterior: 'art/royal/raghadan-exterior.webp',
     start: { x: 720, y: 880 },
     pois: [
       { id: 'gate', name: 'Palace gate', sub: 'Back to Amman', x: 720, y: 905, glyph: '⇣', kind: 'exit' },
@@ -83,7 +83,7 @@ export const VENUES: Record<string, Venue> = {
   baghdad: {
     id: 'baghdad', settlement: 'baghdad', royal: 'faisal', name: 'The Royal Court', where: 'Baghdad',
     history: 'The court of King Faisal I, crowned in 1921. Sheikhs, deputies of the new parliament and British advisers all pass through its audience hall.',
-    map: 'art/royal/baghdad-map.jpg', exterior: 'art/royal/baghdad-exterior.jpg',
+    map: 'art/royal/baghdad-map.webp', exterior: 'art/royal/baghdad-exterior.webp',
     start: { x: 700, y: 880 },
     pois: [
       { id: 'gate', name: 'Palace gate', sub: 'Back to Baghdad', x: 700, y: 905, glyph: '⇣', kind: 'exit' },

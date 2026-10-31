@@ -48,11 +48,11 @@ export function HeroHub({ onProgress, progressNew = false }: { onProgress?: () =
       <HealthStrip always />
       <section className="hh-top">
         {head ? (
-          <div className="hh-room hh-room-head" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} data-testid="hh-figure">
+          <div className="hh-room hh-room-head" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.webp)' }} data-testid="hh-figure">
             <span className="hh-head-face" aria-hidden="true"><img src={headArt} alt="" data-testid="hh-head-img" onError={(e) => { e.currentTarget.src = silhouetteFor(head.sex); }} /></span>
           </div>
         ) : (
-          <button className="hh-room" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.jpg)' }} onClick={() => setOpen(true)} aria-label="Open the wardrobe" data-testid="hh-figure">
+          <button className="hh-room" style={{ backgroundImage: 'linear-gradient(180deg, rgba(18,12,7,0.05), rgba(18,12,7,0.45)), url(art/hero/wardrobe-room.webp)' }} onClick={() => setOpen(true)} aria-label="Open the wardrobe" data-testid="hh-figure">
             <div className="hh-figure"><HeroFigure pose="wardrobe" outfitId={wornOutfit(w).id} /></div>
             <span className="hh-tap">Tap to dress</span>
           </button>

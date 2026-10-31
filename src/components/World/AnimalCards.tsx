@@ -15,7 +15,7 @@ function Card({ a, day, on, onTap, flip }: { a: NamedAnimal; day: number; on: bo
   return (
     <button className={`anc${on ? ' on' : ''}`} onClick={onTap} aria-expanded={on} data-testid={`animal-card-${a.id}`}>
       <span className="anc-pic">
-        <img src={`art/animals/${a.breed}.jpg`} alt="" loading="lazy" className={flip ? 'flip' : ''} />
+        <img src={`art/animals/${a.breed}.webp`} alt="" loading="lazy" className={flip ? 'flip' : ''} />
         {friend && <i className="anc-mark" data-testid="old-friend">Old friend</i>}
         {!friend && young && <i className="anc-mark young">Young</i>}
         {a.prize && <i className="anc-mark prize">Prize</i>}
@@ -45,7 +45,7 @@ function Page({ a, onClose }: { a: NamedAnimal; onClose: () => void }) {
   const her = a.sex === 'f' ? 'her' : 'him', She = a.sex === 'f' ? 'She' : 'He';
   return (
     <div className="anp" data-testid="animal-page" ref={(el) => { if (el && !el.dataset.seen) { el.dataset.seen = '1'; el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }}>
-      <div className="anp-pic"><img src={`art/animals/${a.breed}.jpg`} alt={b.name} /><i className="anp-ar">{b.arabic}</i></div>
+      <div className="anp-pic"><img src={`art/animals/${a.breed}.webp`} alt={b.name} /><i className="anp-ar">{b.arabic}</i></div>
       <div className="anp-head">
         {naming ? (
           <form className="anp-name" onSubmit={(e) => { e.preventDefault(); g.renameAnimal(a.id, name); setNaming(false); }}>
@@ -113,7 +113,7 @@ export function PrizeOfferCard({ sid, onNote }: { sid: string; onNote: (s: strin
       <div className="section-label">A PRIZE {b.kind === 'camel' ? 'CAMEL' : 'HORSE'}</div>
       {gone ? <p className="set-demand">Nothing of that quality is for sale here until next season.</p> : (
         <div className="prize-card">
-          <img src={`art/animals/${o.breed}.jpg`} alt={b.name} />
+          <img src={`art/animals/${o.breed}.webp`} alt={b.name} />
           <span>
             <b>{b.name}, from {o.from}</b>
             <small>{o.line}</small>
@@ -141,7 +141,7 @@ export function CamelRace({ sid }: { sid: string }) {
       <p className="set-demand">{race.line} Stake {fmt(RACE_STAKE)}; the winner takes five times it, second twice, third gets it back.</p>
       {res && (
         <div className="race-res" data-testid="race-result">
-          <img src={`art/animals/${res.breed}.jpg`} alt="" />
+          <img src={`art/animals/${res.breed}.webp`} alt="" />
           <span>
             <b>{res.text}</b>
             <ol>{res.field.map((f) => <li key={f.name} className={f.mine ? 'mine' : ''}>{f.name}</li>)}</ol>

@@ -421,8 +421,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const men = Object.entries(w.party.troops ?? {}).filter(([, n]) => n > 0).sort((a, b) => (TROOPS[b[0]]?.strength ?? 0) - (TROOPS[a[0]]?.strength ?? 0));
     const beasts = Object.entries(w.party.animals ?? {}).filter(([id, n]) => n > 0 && BREEDS[id]).sort((a, b) => b[1] - a[1]);
     const shown: { src: string; kind: 'man' | 'beast'; n: number }[] = [];
-    if (men.length) shown.push({ src: `art/troops/${men[0][0]}.jpg`, kind: 'man', n: men.reduce((a, [, n]) => a + n, 0) });
-    if (beasts.length) shown.push({ src: `art/animals/${beasts[0][0]}.jpg`, kind: 'beast', n: beasts.reduce((a, [, n]) => a + n, 0) });
+    if (men.length) shown.push({ src: `art/troops/${men[0][0]}.webp`, kind: 'man', n: men.reduce((a, [, n]) => a + n, 0) });
+    if (beasts.length) shown.push({ src: `art/animals/${beasts[0][0]}.webp`, kind: 'beast', n: beasts.reduce((a, [, n]) => a + n, 0) });
     return { shown };
   }, [w.party.troops, w.party.animals]);
   const jobs = openJobs(g.jobsDone, g.reputation);

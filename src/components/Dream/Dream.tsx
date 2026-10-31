@@ -114,7 +114,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const pts = routePts(leg);
   const rug = [...g.inventory].sort((a, b) => (RUGS[b.typeId]?.valueBand[1] ?? 0) - (RUGS[a.typeId]?.valueBand[1] ?? 0))[0];
-  const rugPic = rug && RUGS[rug.typeId] ? rugSrc(RUGS[rug.typeId]) : 'art/rugs/desert-star.jpg';
+  const rugPic = rug && RUGS[rug.typeId] ? rugSrc(RUGS[rug.typeId]) : 'art/rugs/desert-star.webp';
   const outfit = wornOutfit(g.wardrobe ?? START_WARDROBE).id;
   const best = d?.best ?? 0;
 

@@ -35,20 +35,20 @@ const FORESEEN = new Set(['parliament', 'ramadan', 'eid', 'balfour', 'geocongres
 
 // ---------- pictures: the paper's engravings come from the game's own art ----------
 const CITY_IMG: Record<string, string> = {
-  alexandria: 'art/world/city-alexandria.jpg', amman: 'art/world/city-amman.jpg', baghdad: 'art/world/city-baghdad.jpg', damascus: 'art/world/city-damascus.jpg',
-  istanbul: 'art/world/city-istanbul.jpg', jerusalem: 'art/world/city-jerusalem.jpg', giza: 'art/world/giza-district.jpg', cairo: 'art/cities/cairo-1925-map.webp',
-  beirut: 'art/world/city-damascus.jpg', jaffa: 'art/world/city-jerusalem.jpg', konya: 'art/world/city-istanbul.jpg', ankara: 'art/world/city-istanbul.jpg', aleppo: 'art/world/city-damascus.jpg',
-  tanta: 'art/world/giza-district.jpg', portsaid: 'art/world/city-alexandria.jpg', suez: 'art/world/travel-map.jpg', sinai: 'art/world/travel-map.jpg', bedouin: 'art/world/travel-map.jpg',
+  alexandria: 'art/world/city-alexandria.webp', amman: 'art/world/city-amman.webp', baghdad: 'art/world/city-baghdad.webp', damascus: 'art/world/city-damascus.webp',
+  istanbul: 'art/world/city-istanbul.webp', jerusalem: 'art/world/city-jerusalem.webp', giza: 'art/world/giza-district.webp', cairo: 'art/cities/cairo-1925-map.webp',
+  beirut: 'art/world/city-damascus.webp', jaffa: 'art/world/city-jerusalem.webp', konya: 'art/world/city-istanbul.webp', ankara: 'art/world/city-istanbul.webp', aleppo: 'art/world/city-damascus.webp',
+  tanta: 'art/world/giza-district.webp', portsaid: 'art/world/city-alexandria.webp', suez: 'art/world/travel-map.webp', sinai: 'art/world/travel-map.webp', bedouin: 'art/world/travel-map.webp',
 };
 const CITY_NAME: Record<string, string> = { portsaid: 'Port Said', bedouin: 'the Tarabin camp', sinai: 'Sinai' };
 const EVENT_IMG: Record<string, [string, string]> = {
-  parliament: ['art/royal/abdeen-exterior.jpg', 'The Chamber meets near Abdeen.'], dissolved: ['art/royal/abdeen-exterior.jpg', 'Abdeen, where the decree was signed.'],
-  geocongress: ['art/world/giza-district.jpg', 'Delegates at the Pyramids.'], ramadan: ['art/world/giza-district.jpg', 'Lanterns along the Pyramids Road.'], eid: ['art/world/giza-district.jpg', 'Giza keeps the feast.'],
-  adha: ['art/world/giza-district.jpg', 'The feast at Giza.'], mawlid: ['art/cities/cairo-1925-map.webp', 'Cairo on the Prophet\'s Birthday.'], badawi: ['art/world/giza-district.jpg', 'The road to the Tanta fair.'],
-  nile: ['art/cities/cairo-1925-map.webp', 'The river at Cairo.'], cotton: ['art/world/city-alexandria.jpg', 'The cotton port at Alexandria.'], slump: ['art/world/city-alexandria.jpg', 'Quiet days at the cotton exchange.'],
-  season: ['art/world/giza-district.jpg', 'Winter visitors at Giza.'], tut: ['art/world/giza-district.jpg', 'Egyptomania reaches Giza.'], summer: ['art/world/city-alexandria.jpg', 'The court\'s summer city.'],
-  paris: ['art/rugs/village-kilim-canal.jpg', 'The kind of kilim Paris wants.'], jeddah: ['art/world/travel-map.jpg', 'The road to the Hejaz.'], hajj: ['art/world/travel-map.jpg', 'The pilgrim road.'], hejaz: ['art/world/travel-map.jpg', 'Shipping lanes to Jeddah.'],
-  hadda: ['art/world/city-amman.jpg', 'Amman.'], jouvenel: ['art/world/city-damascus.jpg', 'The Levant under the Mandate.'], republic: ['art/world/city-istanbul.jpg', 'The Republic\'s old capital.'],
+  parliament: ['art/royal/abdeen-exterior.webp', 'The Chamber meets near Abdeen.'], dissolved: ['art/royal/abdeen-exterior.webp', 'Abdeen, where the decree was signed.'],
+  geocongress: ['art/world/giza-district.webp', 'Delegates at the Pyramids.'], ramadan: ['art/world/giza-district.webp', 'Lanterns along the Pyramids Road.'], eid: ['art/world/giza-district.webp', 'Giza keeps the feast.'],
+  adha: ['art/world/giza-district.webp', 'The feast at Giza.'], mawlid: ['art/cities/cairo-1925-map.webp', 'Cairo on the Prophet\'s Birthday.'], badawi: ['art/world/giza-district.webp', 'The road to the Tanta fair.'],
+  nile: ['art/cities/cairo-1925-map.webp', 'The river at Cairo.'], cotton: ['art/world/city-alexandria.webp', 'The cotton port at Alexandria.'], slump: ['art/world/city-alexandria.webp', 'Quiet days at the cotton exchange.'],
+  season: ['art/world/giza-district.webp', 'Winter visitors at Giza.'], tut: ['art/world/giza-district.webp', 'Egyptomania reaches Giza.'], summer: ['art/world/city-alexandria.webp', 'The court\'s summer city.'],
+  paris: ['art/rugs/village-kilim-canal.webp', 'The kind of kilim Paris wants.'], jeddah: ['art/world/travel-map.webp', 'The road to the Hejaz.'], hajj: ['art/world/travel-map.webp', 'The pilgrim road.'], hejaz: ['art/world/travel-map.webp', 'Shipping lanes to Jeddah.'],
+  hadda: ['art/world/city-amman.webp', 'Amman.'], jouvenel: ['art/world/city-damascus.webp', 'The Levant under the Mandate.'], republic: ['art/world/city-istanbul.webp', 'The Republic\'s old capital.'],
 };
 function imageFor(e: GameEvent): { img?: string; caption?: string } {
   const im = EVENT_IMG[newsId(e)];
@@ -57,7 +57,7 @@ function imageFor(e: GameEvent): { img?: string; caption?: string } {
   if (city && CITY_IMG[city]) return { img: CITY_IMG[city], caption: `Our artist's view of ${CITY_NAME[city] ?? city.charAt(0).toUpperCase() + city.slice(1)}.` };
   return {};
 }
-const FILLER_IMG = ['art/rugs/red-medina.jpg', 'art/world/giza-district.jpg', 'art/rugs/cairo-garden.jpg', 'art/cities/cairo-1925-map.webp', 'art/rugs/desert-star.jpg'];
+const FILLER_IMG = ['art/rugs/red-medina.webp', 'art/world/giza-district.webp', 'art/rugs/cairo-garden.webp', 'art/cities/cairo-1925-map.webp', 'art/rugs/desert-star.webp'];
 
 const article = (e: GameEvent): Article => {
   const n = EVENT_NEWS[newsId(e)];

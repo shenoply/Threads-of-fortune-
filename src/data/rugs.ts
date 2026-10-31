@@ -9,8 +9,8 @@ type Tier = 1 | 2 | 3 | 4;
 const RARITY: Record<Tier, RugType['rarity']> = { 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Treasure' };
 
 interface Def extends Omit<RugType, 'id' | 'rarity' | 'art' | 'tier'> { tier: Tier }
-const rug = (id: string, d: Def): [string, RugType] => [id, { id, ...d, rarity: RARITY[d.tier], art: { kind: 'photo', src: `art/rugs/${id}.jpg` } }];
-/** Persian rugs with a photograph at art/rugs/<id>.jpg (and art/rugs/thumbs/<id>.webp). Until an id is
+const rug = (id: string, d: Def): [string, RugType] => [id, { id, ...d, rarity: RARITY[d.tier], art: { kind: 'photo', src: `art/rugs/${id}.webp` } }];
+/** Persian rugs with a photograph at art/rugs/<id>.webp (and art/rugs/thumbs/<id>.webp). Until an id is
  *  added here, its rug is drawn by the woven renderer (components/RugViewer/rugArt.ts). */
 export const PERSIAN_PHOTOS: string[] = [
   'persian-afshar', 'persian-bakhtiari', 'persian-baluch', 'persian-hamadan', 'persian-heriz', 'persian-isfahan', 'persian-joshaghan', 'persian-kashan', 'persian-kerman', 'persian-mashhad', 'persian-qashqai', 'persian-sarouk', 'persian-senneh', 'persian-tabriz',

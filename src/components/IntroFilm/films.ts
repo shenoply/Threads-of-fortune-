@@ -34,7 +34,7 @@ export const FILMS: Record<FilmId, Film> = {
     stills: [
       // Malek at his grill (about 33% across, 44% down the painting): the camera closes in on him
       { src: 'art/malek/scene-grilling.webp', fit: 'cover', from: [1.05, 34, 45], to: [2.1, 34, 43] },
-      { src: 'art/portraits/malek.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 35] },
+      { src: 'art/portraits/malek.webp', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 35] },
     ],
   },
   arran: {
@@ -85,11 +85,11 @@ export const FILMS: Record<FilmId, Film> = {
     video: { mp4: 'video/rashid-intro.mp4', poster: 'video/rashid-intro-poster.webp', last: 'video/rashid-intro-last.webp' },
     after: [
       { src: 'video/rashid-intro-last.webp', fit: 'cover', from: [1, 50, 40], to: [1.35, 50, 30] },
-      { src: 'art/portraits/rashid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
+      { src: 'art/portraits/rashid.webp', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
     ],
     stills: [
       { src: 'art/cities/cairo-1925-map.webp', fit: 'cover', from: [1, 50, 50], to: [1.6, 55, 45] },
-      { src: 'art/portraits/rashid.jpg', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
+      { src: 'art/portraits/rashid.webp', fit: 'contain', from: [1, 50, 45], to: [1.15, 50, 35] },
     ],
   },
   nabil: {
@@ -97,15 +97,15 @@ export const FILMS: Record<FilmId, Film> = {
     stills: [
       { src: 'art/cities/cairo-1925-map.webp', fit: 'cover', from: [1.4, 45, 50], to: [1, 50, 50] },
       { src: 'art/portraits/nabil-stall2.webp', fit: 'contain', from: [1, 50, 40], to: [1.1, 50, 30] },
-      { src: 'art/portraits/nabil.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 40] },
+      { src: 'art/portraits/nabil.webp', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 40] },
     ],
   },
   cohen: {
     title: 'Cohen · Alexandria and Cairo', name: 'Cohen',
     stills: [
-      { src: 'art/world/city-alexandria.jpg', fit: 'cover', from: [1, 50, 50], to: [1.4, 40, 55] },
+      { src: 'art/world/city-alexandria.webp', fit: 'cover', from: [1, 50, 50], to: [1.4, 40, 55] },
       { src: 'art/portraits/cohen-stall2.webp', fit: 'contain', from: [1, 50, 40], to: [1.1, 50, 30] },
-      { src: 'art/portraits/cohen.jpg', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 40] },
+      { src: 'art/portraits/cohen.webp', fit: 'contain', from: [1, 50, 45], to: [1.12, 50, 40] },
     ],
   },
 };

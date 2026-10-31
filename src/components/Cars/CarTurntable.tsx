@@ -3,7 +3,7 @@ import { CAR_BY_ID } from '../../data/cars';
 import './cars.css';
 
 export const CAR_FRAMES = 8;
-export const carFrame = (id: string, n: number) => `art/cars/${id}-${String(n + 1).padStart(2, '0')}.jpg`;
+export const carFrame = (id: string, n: number) => `art/cars/${id}-${String(n + 1).padStart(2, '0')}.webp`;
 /** pixels of drag for one frame of turn */
 const STEP_PX = 36;
 

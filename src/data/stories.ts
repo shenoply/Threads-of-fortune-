@@ -66,7 +66,7 @@ export interface Arc {
   late?: (c: Ctx) => string | undefined;
 }
 
-const P = (id: string) => `art/portraits/${filedAs(id)}.jpg`;
+const P = (id: string) => `art/portraits/${filedAs(id)}.webp`;
 const trading = (s: GameState, id: string) => housesOf(s).list[id]?.status === 'trading';
 const hasRug = (c: Ctx, key: string) => c.s.inventory.some((r) => r.story === key);
 const end = (text: string, fx: Fx[] = [], endLine?: string): Outcome => ({ text, fx, end: endLine ?? text });

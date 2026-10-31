@@ -58,7 +58,7 @@ export function PlayAsYourself({ onStart, onHassan, onClose }: { onStart: (look:
             <b>1 · Get the style picture</b>
             <div className="sbx-row">
               <img className="sbx-ref" src={REFERENCE_SHEET} alt="Style reference" />
-              <a className="btn" href={REFERENCE_SHEET} download="threads-of-fortune-style.jpg" data-testid="download-reference">⬇ Download</a>
+              <a className="btn" href={REFERENCE_SHEET} download="threads-of-fortune-style.webp" data-testid="download-reference">⬇ Download</a>
             </div>
           </div>
           <div className="sbx-step">

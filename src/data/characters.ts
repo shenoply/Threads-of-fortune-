@@ -3,7 +3,7 @@
 // the room first) and a gimmick in what they say. The comedy is in who they are and what they do, never
 // in mocking a body: the very short ferry captain is the most respected man on the river, the giant is
 // the gentlest man in Cairo.
-// population.ts gives each a place in their town; their portraits are art/people/char-<id>.jpg.
+// population.ts gives each a place in their town; their portraits are art/people/char-<id>.webp.
 import type { Foreign } from './foreigners';
 
 export interface TownCharacter {

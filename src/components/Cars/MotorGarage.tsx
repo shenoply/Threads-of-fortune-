@@ -7,7 +7,7 @@ import { fmt } from '../../game/economy/money';
 import { CarTurntable } from './CarTurntable';
 import './cars.css';
 
-const garageArt = (city: string) => `art/garages/garage-${city}.jpg`;
+const garageArt = (city: string) => `art/garages/garage-${city}.webp`;
 const specLine = (m: CarModel) => `${m.seats} seats, you included · ${m.luggage} rug${m.luggage === 1 ? '' : 's'} · about ${fmt(m.perHour)} an hour in petrol`;
 
 /** The garage's header picture, if it has been drawn; nothing at all if not. */

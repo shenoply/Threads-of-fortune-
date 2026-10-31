@@ -87,7 +87,7 @@ export function TradeMap() {
         data-testid="mapwrap"
       >
         <div className="mapinner" style={{ transform: `translate(${p.x}px, ${p.y}px)` }} data-testid="mapinner" data-zoom={z.toFixed(2)}>
-          <img src="art/map-levant.jpg" alt="Illustrated map of Egypt and the Levant" style={{ width: MW * s, height: MH * s }} draggable={false} />
+          <img src="art/map-levant.webp" alt="Illustrated map of Egypt and the Levant" style={{ width: MW * s, height: MH * s }} draggable={false} />
           {CITIES.map((c) => {
             const here = c.id === 'giza';
             return (

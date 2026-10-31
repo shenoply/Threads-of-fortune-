@@ -1,4 +1,4 @@
-// Map positions are percentages on the illustrated Levant map (art/map-levant.jpg).
+// Map positions are percentages on the illustrated Levant map (art/map-levant.webp).
 export interface CityDef {
   id: string;
   name: string;

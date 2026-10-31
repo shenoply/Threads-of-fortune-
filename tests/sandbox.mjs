@@ -6,7 +6,7 @@ await p.goto(`http://localhost:${__PORT}`); await p.evaluate(() => localStorage.
 await p.click('[data-testid=open-sandbox]');
 await p.click('[data-testid=play-as-yourself]');
 await p.fill('[data-testid=sbx-name]', 'Sami');
-await p.setInputFiles('[data-testid=upload-head]', process.env.HEAD ?? new URL('../public/art/portraits/abuhamid.jpg', import.meta.url).pathname /* at least 200 px a side */);
+await p.setInputFiles('[data-testid=upload-head]', process.env.HEAD ?? new URL('../public/art/portraits/abuhamid.webp', import.meta.url).pathname /* at least 200 px a side */);
 await p.waitForSelector('[data-testid=sbx-preview]');
 await p.screenshot({ path: `${__SHOTS}/sbx-modal.png` });
 await p.click('[data-testid=sbx-start]');

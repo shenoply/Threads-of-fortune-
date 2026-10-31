@@ -89,7 +89,7 @@ import { SHOP_CITIES } from '../../data/shops';
 import { longPress } from '../Touch/RugScroll';
 export type SetTab = 'town' | 'market' | 'animals' | 'guards';
 
-/** The small copy of a picture shown at card size (art/x/y.jpg -> art/x/thumbs/y.webp, 320 wide; 640 wide
+/** The small copy of a picture shown at card size (art/x/y.webp -> art/x/thumbs/y.webp, 320 wide; 640 wide
  *  for the full-width ones). The full maps are 1448px and only the walk itself needs them. */
 export const thumb = (src: string, w: 320 | 640 = 320) => src.replace(/^\/?(.*\/)([^/]+)\.(jpe?g|webp|png)$/, `$1thumbs/$2${w === 640 ? '-640' : ''}.webp`);
 const LAZY = { loading: 'lazy', decoding: 'async' } as const;
@@ -231,9 +231,9 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
     inVenue ? 'palace' : hwTier ? (hwTier === 'grand' ? 'auction-grand' : 'auction-small') : cabaret ? (id === 'istanbul' ? 'istanbul' : 'cabaret') : townMusic(id),
   );
   const walk = CITY_WALKS[id];
-  // the Persian towns' pictures (art/world/city-<id>.jpg) are still to be drawn: the town menu shows the
+  // the Persian towns' pictures (art/world/city-<id>.webp) are still to be drawn: the town menu shows the
   // map until one has loaded
-  const persiaPic = isPersian(id) ? `art/world/city-${id}.jpg` : null;
+  const persiaPic = isPersian(id) ? `art/world/city-${id}.webp` : null;
   const [persiaPicOk, setPersiaPicOk] = useState(false);
   useEffect(() => {
     setPersiaPicOk(false);
@@ -355,7 +355,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       {wardrobe && <Wardrobe onClose={() => setWardrobe(false)} />}
       {shop && <Catalogue shopId={shop} onClose={() => setShop(null)} />}
       <div className="set-head">
-        {id === 'giza' ? <img className="thumb" src={thumb('art/world/giza-district.jpg', 640)} alt="" {...lazy} style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={thumb(walk.map, 640)} alt="" {...lazy} style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
+        {id === 'giza' ? <img className="thumb" src={thumb('art/world/giza-district.webp', 640)} alt="" {...lazy} style={{ objectFit: 'cover', objectPosition: '55% 45%', width: '100%' }} /> : walk?.map ? <img className="thumb" src={thumb(walk.map, 640)} alt="" {...lazy} style={{ objectFit: 'cover', objectPosition: '50% 45%', width: '100%' }} /> : <MapThumb x={st.x} y={st.y} zoom={zoom} />}
         <div className="set-head-shade" />
         <div className="set-title">
           <small>{yard ? 'GIZA' : `${st.region.toUpperCase()} · ${st.kind === 'home' ? 'YOUR STALL' : st.kind.toUpperCase()}`}</small>
@@ -689,7 +689,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
       )}
       {menu && !inCity && !inVenue && !inAuction && !houseWalk && !cabaret && !talkTo && !wardrobe && !shop && (() => {
         const items = menuItems;
-        const pic = id === 'giza' ? 'art/world/giza-district.jpg' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.jpg` : persiaPicOk ? persiaPic : null);
+        const pic = id === 'giza' ? 'art/world/giza-district.webp' : walk?.map ?? (['alexandria', 'amman', 'baghdad', 'damascus', 'istanbul', 'jerusalem'].includes(id) ? `art/world/city-${id}.webp` : persiaPicOk ? persiaPic : null);
         const hh = Math.floor(g.world.hour), mm = Math.floor((g.world.hour % 1) * 60);
         // the main places of this town, most useful first: the walk has its own banner across the
         // foot of the picture; three or four more stand under it; the rest wait behind "More in …"

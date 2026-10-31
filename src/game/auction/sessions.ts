@@ -121,18 +121,18 @@ const from = (l: Lot, re: RegExp) => l.typeIds.some((id) => re.test(RUGS[id].ori
 interface Seat { id: string; name: string; who: string; img?: string; budget: [number, number]; aggression: number; wants: (l: Lot) => boolean; houses: 'small' | 'grand' | 'any'; cities?: string[] }
 const SEATS: Seat[] = [
   // the regulars of the grand sales
-  { id: 'greek', name: 'Mr Karamanlis', who: 'a dealer from Smyrna', img: 'art/portraits/bidder-greek.jpg', budget: [2000, 9000], aggression: 0.66, wants: (l) => l.bundle || tierOfLot(l) === 2, houses: 'any', cities: ['alexandria', 'istanbul', 'cairo', 'jerusalem'] },
-  { id: 'lady', name: 'Emine Hanım', who: 'collecting for her Constantinople house', img: 'art/portraits/bidder-lady.jpg', budget: [5000, 22000], aggression: 0.74, wants: (l) => tierOfLot(l) >= 3 || from(l, /Istanbul|Anatolia|Konya|Turk/i), houses: 'grand', cities: ['istanbul', 'cairo', 'alexandria', 'damascus'] },
-  { id: 'american', name: 'Mr Burke', who: 'buying for a museum in Boston', img: 'art/portraits/bidder-american.jpg', budget: [4000, 30000], aggression: 0.82, wants: (l) => l.provenance[0] === 'Documented' || has(l, 'antique') || has(l, 'rare'), houses: 'grand' },
+  { id: 'greek', name: 'Mr Karamanlis', who: 'a dealer from Smyrna', img: 'art/portraits/bidder-greek.webp', budget: [2000, 9000], aggression: 0.66, wants: (l) => l.bundle || tierOfLot(l) === 2, houses: 'any', cities: ['alexandria', 'istanbul', 'cairo', 'jerusalem'] },
+  { id: 'lady', name: 'Emine Hanım', who: 'collecting for her Constantinople house', img: 'art/portraits/bidder-lady.webp', budget: [5000, 22000], aggression: 0.74, wants: (l) => tierOfLot(l) >= 3 || from(l, /Istanbul|Anatolia|Konya|Turk/i), houses: 'grand', cities: ['istanbul', 'cairo', 'alexandria', 'damascus'] },
+  { id: 'american', name: 'Mr Burke', who: 'buying for a museum in Boston', img: 'art/portraits/bidder-american.webp', budget: [4000, 30000], aggression: 0.82, wants: (l) => l.provenance[0] === 'Documented' || has(l, 'antique') || has(l, 'rare'), houses: 'grand' },
   // your own customers, bidding at home
-  { id: 'benakis', name: 'Mr Benakis', who: 'the cotton broker', img: 'art/portraits/benakis.jpg', budget: [1000, 7000], aggression: 0.7, wants: (l) => has(l, 'ornate') || has(l, 'silk'), houses: 'grand', cities: ['alexandria'] },
-  { id: 'levy', name: 'Madame Lévy', who: 'buying for her store', img: 'art/portraits/levy.jpg', budget: [700, 2500], aggression: 0.55, wants: (l) => tierOfLot(l) === 2, houses: 'small', cities: ['alexandria'] },
-  { id: 'hollister', name: 'Mr Hollister', who: 'the American collector', img: 'art/portraits/hollister.jpg', budget: [3000, 25000], aggression: 0.8, wants: (l) => has(l, 'antique') || has(l, 'rare'), houses: 'grand', cities: ['jerusalem'] },
-  { id: 'martel', name: 'the Comte de Martel', who: 'of the French High Commission', img: 'art/portraits/martel.jpg', budget: [2500, 9000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented', houses: 'grand', cities: ['damascus'] },
-  { id: 'rustam', name: 'Rustam Isfahani', who: 'the Persian merchant', img: 'art/portraits/rustam.jpg', budget: [2500, 12000], aggression: 0.72, wants: (l) => has(l, 'fineWeave') || from(l, /Persia|Baghdad|Isfahan/i), houses: 'any', cities: ['baghdad', 'istanbul'] },
-  { id: 'shivakiar', name: 'Nadia Selim', who: 'bidding for the Abdeen household', img: 'art/portraits/shivakiar.jpg', budget: [12000, 45000], aggression: 0.7, wants: (l) => tierOfLot(l) >= 4 || has(l, 'silk'), houses: 'grand', cities: ['cairo'] },
-  { id: 'wasif', name: 'Wasif Bey Mikhail', who: 'the lawyer', img: 'art/portraits/wasif.jpg', budget: [2200, 8000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented' && has(l, 'antique'), houses: 'grand', cities: ['cairo'] },
-  { id: 'salem', name: 'Sheikh Salem', who: 'the Tarabin notable', img: 'art/portraits/salem.jpg', budget: [300, 1800], aggression: 0.5, wants: (l) => has(l, 'hardwearing') || has(l, 'flatweave'), houses: 'small', cities: ['amman', 'cairo'] },
+  { id: 'benakis', name: 'Mr Benakis', who: 'the cotton broker', img: 'art/portraits/benakis.webp', budget: [1000, 7000], aggression: 0.7, wants: (l) => has(l, 'ornate') || has(l, 'silk'), houses: 'grand', cities: ['alexandria'] },
+  { id: 'levy', name: 'Madame Lévy', who: 'buying for her store', img: 'art/portraits/levy.webp', budget: [700, 2500], aggression: 0.55, wants: (l) => tierOfLot(l) === 2, houses: 'small', cities: ['alexandria'] },
+  { id: 'hollister', name: 'Mr Hollister', who: 'the American collector', img: 'art/portraits/hollister.webp', budget: [3000, 25000], aggression: 0.8, wants: (l) => has(l, 'antique') || has(l, 'rare'), houses: 'grand', cities: ['jerusalem'] },
+  { id: 'martel', name: 'the Comte de Martel', who: 'of the French High Commission', img: 'art/portraits/martel.webp', budget: [2500, 9000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented', houses: 'grand', cities: ['damascus'] },
+  { id: 'rustam', name: 'Rustam Isfahani', who: 'the Persian merchant', img: 'art/portraits/rustam.webp', budget: [2500, 12000], aggression: 0.72, wants: (l) => has(l, 'fineWeave') || from(l, /Persia|Baghdad|Isfahan/i), houses: 'any', cities: ['baghdad', 'istanbul'] },
+  { id: 'shivakiar', name: 'Nadia Selim', who: 'bidding for the Abdeen household', img: 'art/portraits/shivakiar.webp', budget: [12000, 45000], aggression: 0.7, wants: (l) => tierOfLot(l) >= 4 || has(l, 'silk'), houses: 'grand', cities: ['cairo'] },
+  { id: 'wasif', name: 'Wasif Bey Mikhail', who: 'the lawyer', img: 'art/portraits/wasif.webp', budget: [2200, 8000], aggression: 0.6, wants: (l) => l.provenance[0] === 'Documented' && has(l, 'antique'), houses: 'grand', cities: ['cairo'] },
+  { id: 'salem', name: 'Sheikh Salem', who: 'the Tarabin notable', img: 'art/portraits/salem.webp', budget: [300, 1800], aggression: 0.5, wants: (l) => has(l, 'hardwearing') || has(l, 'flatweave'), houses: 'small', cities: ['amman', 'cairo'] },
   // the small-room crowd
   { id: 'khan', name: 'A Khan dealer', who: 'buying stock to resell', budget: [400, 2600], aggression: 0.6, wants: (l) => l.bundle || l.conditions[0] === 'Dirty' || l.conditions[0] === 'Worn', houses: 'small' },
   { id: 'hotel', name: 'A hotel manager', who: 'refurnishing forty rooms', budget: [600, 3500], aggression: 0.5, wants: (l) => has(l, 'hardwearing'), houses: 'small' },
@@ -152,7 +152,7 @@ export function roomFor(houseId: string, day: number, you: { cash: number; rep: 
   const rest = fits.filter((s) => !home.includes(s)).sort((a, b) => rnd(seed + a.id.length * 3.3 + b.id.charCodeAt(0)) - 0.5);
   const chosen = [...home.slice(0, 2), ...rest].slice(0, h.tier === 'grand' ? 4 : 3);
   const out: RoomBidder[] = chosen.map((s, i) => ({ id: s.id, name: s.name, who: s.who, img: s.img, budget: Math.round(s.budget[0] + (s.budget[1] - s.budget[0]) * rnd(seed + i * 4.1)), aggression: s.aggression, wants: s.wants }));
-  if (you.rival) out.push({ id: 'selim', name: 'Selim Kassab', who: 'your rival from the next stall', img: 'art/portraits/kassab.jpg', budget: selimBudget(you.cash, you.rep), aggression: 0.7, wants: () => true });
+  if (you.rival) out.push({ id: 'selim', name: 'Selim Kassab', who: 'your rival from the next stall', img: 'art/portraits/kassab.webp', budget: selimBudget(you.cash, you.rep), aggression: 0.7, wants: () => true });
   return out;
 }
 

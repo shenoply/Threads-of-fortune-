@@ -106,7 +106,7 @@ export function ShopBoyCard() {
 export function BoyFace({ who, size }: { who?: string; size?: number }) {
   const full = boyFace(who ? { who } : undefined);
   // a face of the portrait pool has a small copy for lists; a face not painted yet falls to the silhouette
-  const small = full && /^art\/people\/[^/]+\.jpg$/.test(full) ? full.replace(/^art\/people\/(.+)\.jpg$/, 'art/people/small/$1.webp') : full;
+  const small = full && /^art\/people\/[^/]+\.webp$/.test(full) ? full.replace(/^art\/people\/(.+)\.webp$/, 'art/people/small/$1.webp') : full;
   const [step, setStep] = useState(0);
   const src = step === 0 ? small : step === 1 && small !== full ? full : undefined;
   return (
