@@ -38,6 +38,8 @@ import { Rescue } from './components/World/Rescue';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
+import { PcSettings } from './platform/PcSettings';
+import { isDesktopApp } from './platform/platform';
 import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
 import { useShallow } from 'zustand/react/shallow';
 import { useGame, dateFor, clock, forceSave, FULL_SIM, SAVE_VERSION, FAMILY_GRACE, type SimSettings } from './game/state/store';
@@ -1064,6 +1066,8 @@ export default function App() {
           <button key={id} aria-current={on ? 'page' : undefined} onClick={() => { if (id === 'caravan' && !caravanOpen) { toast(`Caravan: ${UNLOCKS.caravan.later.toLowerCase()}`); audio.sfx('tap'); return; } if (id === 'stall') { if (g.encounter) setTab('stall'); else if (g.at === 'giza') mapGo({ view: 'district', stall: true }); else setTab('stall'); } else setTab(id); audio.sfx('tap'); }} disabled={tutorialActive && id === 'caravan'} data-testid={`nav-${id}`} data-later={id === 'caravan' && !caravanOpen ? '1' : undefined} title={id === 'caravan' && !caravanOpen ? UNLOCKS.caravan.later : undefined} className={`${id === 'caravan' && !caravanOpen ? 'nav-later ' : ''}${id === 'map' ? 'nav-world ' : ''}`}>
             {icon === 'face' ? <span className="nav-face-wrap"><img className="nav-face" src={g.face ?? HERO_FACE} alt="" /></span> : <Icon name={icon} />}
             {label}
+            {/* the keyboard shortcut, shown only in the PC layout (src/platform/pc.css) */}
+            <kbd className="pc-key" aria-hidden="true">{({ map: 'M', stall: 'S', caravan: 'C', inventory: 'I', hero: 'H' } as Record<string, string>)[id]}</kbd>
           </button>
           );
         })}
@@ -1129,15 +1133,16 @@ export default function App() {
                 </div>
                 <details className="save-where" data-testid="save-where">
                   <summary>Move your game to another phone or computer</summary>
-                  <p className="dim">Saves stay in this browser only. To carry a game elsewhere, make a backup file, send it to the other device, and open it there.</p>
+                  <p className="dim">{isDesktopApp ? 'Saves are kept in the game\'s folder on this computer.' : 'Saves stay in this browser only.'} To carry a game elsewhere, make a backup file, send it to the other device, and open it there.</p>
                   <div className="save-row">
                     <button className="btn" onClick={downloadSave} data-testid="save-download">Make a backup file</button>
                     <label className="btn" data-testid="save-load">Open a backup file<input type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSave(f); e.target.value = ''; }} /></label>
                   </div>
-                  <p className="dim">Clearing this site's data in the browser deletes every save here, so keep a backup file of a game you care about.</p>
+                  {!isDesktopApp && <p className="dim">Clearing this site's data in the browser deletes every save here, so keep a backup file of a game you care about.</p>}
                 </details>
               </>
             )}
+            <PcSettings />
             {soundOptions}
             <SimOptions value={g.sim ?? FULL_SIM} onChange={g.setSim} locked={!!g.ironman} />
             <h3 className="set-h">Lessons</h3>

@@ -62,7 +62,13 @@ if (canApi && !installed()) {
   document.addEventListener('fullscreenchange', onChange); document.addEventListener('webkitfullscreenchange', onChange);
 }
 
+// the desktop app (desktop/main.cjs) makes its window full screen itself
+type Desk = { toggleFullscreen: () => void; isFullscreen: () => Promise<boolean>; onFullscreen: (cb: (on: boolean) => void) => () => void };
+const desk = (): Desk | undefined => (window as unknown as { tofDesktop?: Desk }).tofDesktop;
+
 export function toggleFullScreen() {
+  const d = desk();
+  if (d) { d.toggleFullscreen(); return; }
   if (isFull()) { setPref('off'); (doc.exitFullscreen ?? doc.webkitExitFullscreen)?.call(doc); return; }
   setPref('on');
   enter();
@@ -70,8 +76,9 @@ export function toggleFullScreen() {
 
 export function FullScreenButton({ className = 'btn' }: { className?: string }) {
   const [on, setOn] = useState(isFull());
+  useEffect(() => { const d = desk(); if (!d) return; void d.isFullscreen().then(setOn); return d.onFullscreen(setOn); }, []);
   useEffect(() => { const f = () => setOn(isFull()); document.addEventListener('fullscreenchange', f); document.addEventListener('webkitfullscreenchange', f); return () => { document.removeEventListener('fullscreenchange', f); document.removeEventListener('webkitfullscreenchange', f); }; }, []);
-  if (!canApi) return null;
+  if (!canApi && !desk()) return null;
   return (
     <>
       <button className={className} onClick={toggleFullScreen} data-testid="fullscreen-btn">{on ? 'Exit full screen' : '⛶ Full screen'}</button>

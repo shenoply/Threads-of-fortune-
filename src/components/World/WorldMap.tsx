@@ -35,6 +35,7 @@ import { routeDanger, tripEstimate, durationLabel, type FareLine,
   MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, walkPace, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
+import { isPc } from '../../platform/pc';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidth } from '../../game/systems/mapRender';
 import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf, fatiguePace, healthMods } from '../../game/systems/caravan';
 import { MenTalk } from './Troops';
@@ -180,7 +181,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const w = g.world;
   const wrap = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 390, h: 500 });
-  const [z, setZ] = useState(startZoom ?? 1.8);
+  // a PC screen opens further out: the same view would show a small corner of the map blown up
+  const [z, setZ] = useState(startZoom ?? (isPc() ? 1.3 : 1.8));
   const [pan, setPanState] = useState<Pt>({ x: 0, y: 0 });
   const [live, setLive] = useState<Pt | null>(null);
   // panRef is the live camera: the travel loop moves it every frame and writes the transform straight to the DOM;

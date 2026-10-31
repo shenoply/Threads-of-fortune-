@@ -55,7 +55,9 @@ function loadSharp() {
   // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   // a phone that cannot hold the big picture decoded keeps the small one
-  loadPicture(phone ? 'art/world/travel-map-3k.webp' : 'art/world/travel-map.webp')
+  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4608-wide painting, crisp at 1920x1080
+  const pc = typeof document !== 'undefined' && document.documentElement.classList.contains('pc');
+  loadPicture(phone ? 'art/world/travel-map-3k.webp' : pc ? 'art/world/travel-map.jpg' : 'art/world/travel-map.webp')
     .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
     .catch(() => { artFailed = true; artListeners.forEach((f) => f()); });
 }

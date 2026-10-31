@@ -39,7 +39,12 @@ export function longPress(onHold?: () => void) {
     onPointerUp: clear,
     onPointerCancel: clear,
     onPointerLeave: clear,
-    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    // the right mouse button is the PC's press and hold (src/platform/pc.ts): it looks closer at once
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+      const pt = (e.nativeEvent as PointerEvent).pointerType;
+      if (pt === 'mouse' || (!pt && e.button === 2)) { clear(); onHold(); }
+    },
     'data-hold': '',
   };
 }

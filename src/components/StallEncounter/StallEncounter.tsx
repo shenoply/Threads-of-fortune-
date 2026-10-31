@@ -361,6 +361,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
               data-testid={`rug-${t.id}`}
               data-uid={it.uid}
               aria-label={`${names[it.uid] ?? t.name}${isP ? ', on the table. Tap to inspect' : ''}`}
+              data-tip={`${names[it.uid] ?? t.name}: ${t.origin.replace('Said to be ', '')}, ${t.material.toLowerCase()}, ${t.age}. Right-click to inspect.`}
             >
               <div className="thumb">
                 <img src={rugThumb(t)} alt="" draggable={false} style={it.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />

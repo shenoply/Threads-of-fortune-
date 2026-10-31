@@ -7,6 +7,9 @@ import './styles.css';
 import './feel.css';
 import './palette.css';
 import './components/Touch/touch.css';
+// the PC layer last, so its wide layouts win over the phone's (src/platform/pc.ts)
+import './platform/pc.css';
+import { installPc } from './platform/pc';
 import { installPullClose } from './components/Touch/pullClose';
 import { installImageFade } from './game/feel';
 import { installRewards } from './game/rewards';
@@ -17,6 +20,7 @@ import { installLookahead, keepTitle } from './game/preload';
 // watch the save for failed writes and for another tab writing it (src/game/state/saveGuard.ts)
 installSaveGuard();
 // mark pictures as they arrive so the big ones fade in (src/feel.css)
+installPc();
 installImageFade();
 installPullClose();
 // the coins, seals and stars on the moments that matter (src/game/rewards.ts)
@@ -25,7 +29,8 @@ installRewards();
 installLookahead();
 
 // keep the pictures and sounds on the phone after the first visit (public/sw.js)
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// (not in the desktop app: everything is already on the disk there)
+if (import.meta.env.PROD && import.meta.env.MODE !== 'pc' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(keepFirstVisit).catch(() => {}); });
 }
 // On a first visit the code and the opening pictures arrive before the service worker is running, so it

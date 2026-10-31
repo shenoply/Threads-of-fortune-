@@ -29,6 +29,7 @@ import { BoyChip } from './ShopBoyCard';
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';
 import { dressingArt, DRESSING_BY_ID } from '../../data/shops';
 import { StallSky } from '../Atmosphere/StallSky';
+import { usePc } from '../../platform/pc';
 import { buyerMarks } from '../../data/epithets';
 import { TraitMarks } from '../Epithet/Epithet';
 import { STALL_SCENES, catAt, lookUps, sceneIdFor, placeStyle, placedRect, sceneFg, sceneImg, stallSceneFor, type Anchor, type StallScene } from '../../game/stallScenes';
@@ -212,7 +213,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: ScenePro
             HeroFigure), rather than reverting the whole figure to a fixed picture. */}
         <div className="hero-at-stall" data-testid="hero-at-stall" style={heroStyle}><HeroFigure pose="stall" outfitId={outfit} /></div>
         {buyer && (
-          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}${enc?.seek && !enc.outcome ? ' seeker' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id} onClick={onBuyer ? (e) => { e.stopPropagation(); onBuyer(); } : undefined} style={onBuyer ? { pointerEvents: 'auto', cursor: 'pointer' } : undefined}>
+          <div className={`buyer-figure${stallFigure(buyer.id).framed ? '' : ' has-photo'}${enc?.outcome && !enc.mocked ? ' leaving' : ''}${enc?.seek && !enc.outcome ? ' seeker' : ''}`} data-testid="buyer-figure" data-buyer={buyer.id} data-inspect="[data-testid=know-buyer]" data-tip={`${buyer.name}. Right-click for their temper and what they like`} onClick={onBuyer ? (e) => { e.stopPropagation(); onBuyer(); } : undefined} style={onBuyer ? { pointerEvents: 'auto', cursor: 'pointer' } : undefined}>
             <ScenePerson id={buyer.id} />
           </div>
         )}
@@ -305,8 +306,24 @@ export function InfoBand({ enc, presented, view, tierName, priorities, onSkip, p
     const over = n.getBoundingClientRect().bottom - band.getBoundingClientRect().bottom;
     if (over > 0) band.scrollTop += over + 4;
   }, [view.narrator, shown]);
+  // On a PC screen the band has room for the talk so far: the lines already said, above the one being said
+  const pc = usePc();
+  const [talkLog, setTalkLog] = useState<{ who: 'seller' | 'buyer'; text: string }[]>([]);
+  const logFor = useRef<string | undefined>(undefined);
+  useEffect(() => { if (enc?.id !== logFor.current) { logFor.current = enc?.id; setTalkLog([]); } }, [enc?.id]);
+  useEffect(() => {
+    if (!pc) return;
+    const add = (who: 'seller' | 'buyer', text?: string | null) => { if (text) setTalkLog((l) => (l.some((x) => x.who === who && x.text === text) ? l : [...l, { who, text }].slice(-10))); };
+    add('seller', view.seller); add('buyer', view.buyer);
+  }, [pc, view.seller, view.buyer]);
+  const earlier = pc ? talkLog.filter((x) => x.text !== said) : [];
   return (
     <div ref={bandRef} className={`band ${view.narrator ? 'has-narr' : ''}`} data-testid="band">
+      {earlier.length > 0 && (
+        <div className="talk-log" data-testid="talk-log">
+          {earlier.map((x, k) => <p key={k} className={x.who}><b>{x.who === 'seller' ? 'You' : buyer?.name ?? ''}</b>{x.text}</p>)}
+        </div>
+      )}
       {said && (
         <div className={`speech ${mood}`} data-testid="speech" onClick={view.busy ? onSkip : undefined} style={view.busy ? { cursor: 'pointer' } : undefined}>
           <b>{who === 'seller' ? 'You' : buyer?.name ?? 'Samira'}</b>
