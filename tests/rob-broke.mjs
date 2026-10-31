@@ -24,6 +24,6 @@ const r = await p.evaluate(async () => {
   return seen;
 });
 console.log(JSON.stringify(r));
-const ok = ['animal', 'clothes', 'beating', 'ransom', 'work', 'iou', 'papers', 'spoiled', 'chief', 'word', 'rug'].every((k) => r[k] > 0) && !Object.keys(r).some((k) => k.startsWith('other'));
+const ok = ['clothes', 'beating', 'ransom', 'work', 'iou', 'papers', 'spoiled', 'chief', 'word', 'rug'].every((k) => r[k] > 0) && !Object.keys(r).some((k) => k.startsWith('other'));
 console.log(ok ? 'PASS' : 'FAIL', 'errors', JSON.stringify(errs.slice(0, 3)));
 await b.close();

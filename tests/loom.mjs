@@ -65,8 +65,9 @@ check(!(await p.isDisabled('[data-testid=loom-weave]')), 'and then the city knot
 await p.click('[data-testid=loom-orient-up]');
 check(await p.locator('[data-testid=loom-orient-up][aria-checked=true]').count() === 1, 'a carpet can be set upright');
 await p.click('[data-testid=loom-close]'); await p.waitForTimeout(300);
-p.once('dialog', (dl) => dl.accept('Renamed Garden'));
 await p.locator('[data-testid^=rename-]').first().click();
+await p.locator('.inline-name input').fill('Renamed Garden');
+await p.locator('.inline-name .btn.primary').click();
 await p.waitForTimeout(400);
 check(await p.locator('text=Renamed Garden').count() > 0, 'a carpet of yours can be renamed from the stockroom');
 check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
