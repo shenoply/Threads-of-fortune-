@@ -1,0 +1,23 @@
+name: PC build (Windows)
+
+# Run by hand from the Actions tab: "PC build (Windows)" -> Run workflow.
+# The zip appears at the bottom of the run page under Artifacts.
+on:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm --prefix desktop ci
+      - run: npm run package:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ThreadsOfFortune-win32-x64
+          path: release/ThreadsOfFortune-win32-x64/
+          retention-days: 14
