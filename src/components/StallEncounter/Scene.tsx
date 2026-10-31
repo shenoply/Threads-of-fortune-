@@ -317,6 +317,8 @@ export function InfoBand({ enc, presented, view, tierName, priorities, onSkip, p
     add('seller', view.seller); add('buyer', view.buyer);
   }, [pc, view.seller, view.buyer]);
   const earlier = pc ? talkLog.filter((x) => x.text !== said) : [];
+  // the newest line stays in sight as the talk grows (the buyer's card stays pinned at the top: pc.css)
+  useLayoutEffect(() => { const b = bandRef.current; if (pc && b && !view.narrator) b.scrollTop = b.scrollHeight; }, [pc, earlier.length, said, view.narrator]);
   return (
     <div ref={bandRef} className={`band ${view.narrator ? 'has-narr' : ''}`} data-testid="band">
       {earlier.length > 0 && (

@@ -10,7 +10,7 @@ import { toggleFullScreen } from '../components/Settings/FullScreen';
 
 export type LayoutPref = 'auto' | 'pc' | 'phone';
 const PREF = 'tof-layout';
-const WIDE = '(min-width: 1300px) and (min-height: 640px) and (hover: hover) and (pointer: fine)';
+const WIDE = '(min-width: 1200px) and (min-height: 640px) and (hover: hover) and (pointer: fine)';
 
 const readPref = (): LayoutPref => { try { const v = localStorage.getItem(PREF); return v === 'pc' || v === 'phone' ? v : 'auto'; } catch { return 'auto'; } };
 let pref: LayoutPref = readPref();

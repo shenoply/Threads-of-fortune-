@@ -166,7 +166,13 @@ html.pc .prov-pic { width: 56px; height: 56px; }
 .pc-layout { display: flex; gap: 6px; flex-wrap: wrap; }
 .pc-keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; margin: 4px 0 12px; }
 .pc-keys > div { display: flex; align-items: baseline; gap: 10px; }
-.pc-keys dt { flex: 0 0 104px; text-align: right; }
+.pc-keys dt { flex: 0 0 118px; text-align: right; }
 .pc-keys dd { margin: 0; color: var(--parchment-2); font-size: 15px; }
 .pc-keys kbd { display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line-strong); border-bottom-width: 2px; background: #1d140b; font: 600 13px/1.4 var(--label); color: var(--parchment); text-align: center; }
-html.pc .settings-card { max-width: 820px; }
+html.pc .overlay .settings-card { max-width: 880px !important; width: min(880px, 92vw) !important; }
+
+/* with the stall docked at the right, the district gives it the room instead of sitting under it */
+html.pc .campaign:has(> .stall-sheet) > .campaign-layer { width: calc(100% - min(var(--dock), 42%)); }
+html.pc .stall-sheet .sheet-body { overflow-y: auto; }
+/* the buyer's card stays at the top of the talk as it scrolls */
+html.pc .stall > .band > .plate-buyer { position: sticky; top: -14px; z-index: 2; margin: -14px -18px 0 !important; padding: 14px 18px 8px; background: linear-gradient(180deg, #1a110a 85%, rgba(26,17,10,0)); }
