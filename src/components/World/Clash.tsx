@@ -24,6 +24,8 @@ export interface ClashInfo {
   mySide: FieldUnit[]; troops: Record<string, number>; party: PartyState;
   /** the band's rifles and whether they ride */
   rifles: number; mounted: boolean;
+  /** how hard they hit hand to hand, against a band's usual (battle.ts BandSpec) */
+  meleeMult?: number;
   /** what a lost fight costs: loads taken and coin */
   stakes: { loads: number; cash: number };
 }
@@ -41,7 +43,7 @@ export function setupOf(info: ClashInfo, ground: GroundId = bestGround(info)) {
   const formation: Formation = info.mountedMen ? 'wings' : 'line';
   return {
     me: { troops: info.troops, rifles: info.party.arms ?? 0, heroArmed: (info.party.arms ?? 0) > 0, sergeant: !!info.sergeant },
-    band: { size: info.size, rifles: info.rifles, mounted: info.mounted, man: band.man, leader: band.leader, leaderName: info.leader?.name, strength: info.enPow, bandWord: info.bandName },
+    band: { size: info.size, rifles: info.rifles, mounted: info.mounted, man: band.man, leader: band.leader, leaderName: info.leader?.name, strength: info.enPow, bandWord: info.bandName, meleeMult: info.meleeMult },
     ground, formation, temper: info.temper, seed: info.seed,
   };
 }

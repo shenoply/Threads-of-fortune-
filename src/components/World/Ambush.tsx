@@ -47,7 +47,7 @@ const BAND_MOUNT: Record<string, string> = {
 };
 
 /** Bandits on the road, Bannerlord-style: the map stops, both sides are weighed, and you talk, pay, run or fight. */
-export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (msg: string) => void; onTurnBack: (msg: string) => void }) {
+export function Ambush({ party, onDone, onTurnBack, onTrain = false }: { party: Party; onDone: (msg: string) => void; onTurnBack: (msg: string) => void; /** stopped on the railway: nobody runs from a train */ onTrain?: boolean }) {
   const g = useGame();
   const threat = useMemo(() => threatForParty(party, g.day), [party, g.day]);
   const lines = THREAT_LINES[threat.id] ?? THREAT_LINES['egypt-rural-highway-robbers'];
@@ -153,11 +153,14 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
   const scouted = guide > 0 || Object.entries(g.world.party.troops).some(([id, n]) => (n ?? 0) > 0 && (TROOPS[id].scout ?? 0) > 0);
   const clashInfo: ClashInfo = useMemo(() => {
     const temper = leader?.temper ?? (['reckless', 'cunning', 'cautious'] as const)[(party.id.charCodeAt(party.id.length - 1) + g.day) % 3];
-    const rifles = threat.id === 'egypt-rural-highway-robbers' ? Math.max(1, Math.round(size / 4)) : threat.id === 'palestine-road-thieves' ? Math.max(1, Math.round(size / 3)) : Math.max(1, size - 1);
+    // the opening's robbers (Rashid's errand): village men with cudgels, and only their leader has a rifle,
+    // a first fight that the merchant and the guard the errand sent him to hire should usually win
+    const opening = party.id === 'opening-bandits';
+    const rifles = opening ? 0 : threat.id === 'egypt-rural-highway-robbers' ? Math.max(1, Math.round(size / 4)) : threat.id === 'palestine-road-thieves' ? Math.max(1, Math.round(size / 3)) : Math.max(1, size - 1);
     const mounted = /raiders|smuggler/.test(threat.id);
     // a guide or scout sees exactly what they carry and knows the man; a strong party gets a good look at them
     const close = scouted || mine >= theirs * 1.5;
-    const armsLine = `${size} men · ${close ? `${rifles} ${rifles === 1 ? 'rifle' : 'rifles'}` : rifles > size / 2 ? 'most with rifles' : 'a rifle or two'}${mounted ? ' · mounted' : ' · on foot'}${leader?.grudge ? ' · out for revenge' : ''}`;
+    const armsLine = opening ? `${size} men · cudgels, and one old rifle · on foot` : `${size} men · ${close ? `${rifles} ${rifles === 1 ? 'rifle' : 'rifles'}` : rifles > size / 2 ? 'most with rifles' : 'a rifle or two'}${mounted ? ' · mounted' : ' · on foot'}${leader?.grudge ? ' · out for revenge' : ''}`;
     const camels = Object.entries(g.world.party.animals ?? {}).reduce((a, [id, n]) => a + (BREEDS[id]?.kind === 'camel' ? n : 0), 0);
     const here = { x: g.world.x, y: g.world.y };
     const nearWell = [...ROAD_WELLS, ...SETTLEMENTS.filter((x) => x.kind === 'oasis' || x.kind === 'camp')].some((w) => dist(w, here) < 30);
@@ -171,7 +174,7 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
       mountedMen: Object.entries(g.world.party.troops).some(([id, n]) => (n ?? 0) > 0 && TROOPS[id].mounted),
       sergeant: combat.sergeant?.name, arms: g.world.party.arms ?? 0, armsLine, seed: `${party.id}:${g.day}:${combat.wins + combat.losses}`,
       mySide: mySide.map((u) => ({ id: u.id, n: u.n, start: u.start })), troops: { ...g.world.party.troops }, party: g.world.party,
-      rifles, mounted,
+      rifles, mounted, meleeMult: opening ? 1.6 : undefined,
       // a big band takes more when it wins: loads by its size, and a share of the purse
       stakes: { loads: Math.max(1, Math.min(carried.length || 1, size >= 12 ? 3 : size >= 7 ? 2 : 1)), cash: robbed(size >= 12 ? 1.8 : 1.5, size >= 12 ? 0.45 : 0.35) },
     };
@@ -373,7 +376,10 @@ export function Ambush({ party, onDone, onTurnBack }: { party: Party; onDone: (m
                 : <button className="btn" onClick={() => payFull(rebels ? 'You make your contribution to the cause. The commander writes you a receipt.' : `You pay ${fmt(tax)} for the road.`)} data-testid="amb-pay"><Icon name="coin" /> {rebels ? 'Make a contribution' : 'Pay for the road'} <small>{fmt(tax)}</small></button>}
               {!rebels && <button className={`btn ${winPct != null && winPct >= 50 ? 'primary' : ''}`} onClick={() => { fight(); }} data-testid="amb-fight"><Icon name="sword" /> Lead the fight <small>{fightNote}</small></button>}
               {!rebels && <button className="btn" onClick={quick} data-testid="amb-quick"><Icon name="people" /> Settle it quickly <small>{combat.sergeant ? `Sergeant ${combat.sergeant.name}` : 'your oldest hand'} fights it out at the same odds</small></button>}
-              <button className="btn" onClick={() => { if (!rebels) { run(); return; } if (Math.random() < 0.9) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> {rebels ? 'Turn back' : 'Run for it'} <small>{rebels ? 'usually allowed' : theirPace > speedInfo(g.world.party, g.inventory).pxPerDay * 1.1 ? 'they are faster: they will chase you' : 'you can outpace them'}</small></button>
+              {onTrain && !rebels && (carried.length
+                ? <button className="btn" onClick={() => { if (Math.random() < 0.6) settle({ theyLeave: true, text: 'You push the rolled rug under the seat and sit on your coat. They walk the carriage, look you over, and get down again empty-handed.' }); else { setText('They pull the rug out from under the seat and look at you.'); setStage('demand'); } }} data-testid="amb-hide"><Icon name="hand" /> Hide the rug <small>under the seat: they may not look</small></button>
+                : <p className="amb-why" data-testid="amb-norun">You cannot run from a stopped train.</p>)}
+              {!(onTrain && !rebels) && <button className="btn" onClick={() => { if (!rebels) { run(); return; } if (Math.random() < 0.9) { const msg = rebels ? 'You turn your animals around and go back the way you came. The commander watches you go.' : 'You turn your animals around and go back the way you came. The riders watch from the ridge and let you go.'; g.ambushOutcome(party.id, { text: msg }); onTurnBack(msg); } else { setText('You turn back, but they are faster. They surround you and name their price.'); setStage('demand'); } }} data-testid="amb-turn"><Icon name="camel" /> {rebels ? 'Turn back' : 'Run for it'} <small>{rebels ? 'usually allowed' : theirPace > speedInfo(g.world.party, g.inventory).pxPerDay * 1.1 ? 'they are faster: they will chase you' : 'you can outpace them'}</small></button>}
             </div>
           </>
         )}

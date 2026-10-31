@@ -314,6 +314,21 @@ export function pathDays(p: Pt[], pxPerDay: number) {
   return d / pxPerDay;
 }
 
+/** Towns the map draws further apart than they are, so that they can be told apart at a glance: the walk
+ * between them counts at its true length. Giza to Cairo is some thirteen kilometres over the English Bridge,
+ * about four hours on foot with a laden donkey; on the map it is drawn nearer a hundred. The value is the
+ * hours the walk takes at plain pace (BASE_SPEED, 24 px a day); a slower caravan takes longer in proportion. */
+export const SHORT_WALKS: Record<string, number> = { 'cairo|giza': 4 };
+const BASE_PX_PER_DAY = 24;
+/** How many times faster than the map distance suggests a walk between these two towns goes (1 = as drawn). */
+export function walkPace(fromId: string | null | undefined, toId: string | null | undefined, path: Pt[] | null): number {
+  if (!fromId || !toId || !path) return 1;
+  const hrs = SHORT_WALKS[[fromId, toId].sort().join('|')];
+  if (!hrs) return 1;
+  const asDrawn = pathDays(path, BASE_PX_PER_DAY) * 24;
+  return asDrawn > hrs ? asDrawn / hrs : 1;
+}
+
 export const pathLength = (p: Pt[]) => p.slice(1).reduce((s, q, i) => s + dist(p[i], q), 0);
 
 /** Position after travelling `d` pixels along a path. */
