@@ -82,9 +82,10 @@ import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity, load as caravanLoad } from '../systems/caravan';
 import { roadToll, BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
+import { syncHerds, walkHerd, breedHerds, animalWorth, isFriend, type NamedAnimal } from '../systems/herd';
 import { type NamedMan, syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList, fallenOf, familySum, nextToGo } from '../systems/men';
 import { threatForParty } from '../../data/travelThreats1925';
-import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, partySize, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
+import { HERD_DAY, startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, partySize, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
 import { VENUES_1925, billOn, venueOpen, QAMAR_SHARE } from '../../data/entertainment';
 import { CELEB_INFO } from '../../data/buyers';
@@ -112,7 +113,7 @@ import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } fro
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
-export const SAVE_VERSION = 30;
+export const SAVE_VERSION = 31;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -369,6 +370,8 @@ export interface GameState {
   persianVisa?: { day: number };
   /** animals left at a town's stable (a khan's yard), by town: how many of each breed, and the day each lot went in */
   stabled?: Record<string, { animals: Record<string, number>; since: number }>;
+  /** save 31: the animals at each stable by name (systems/herd.ts); those with you are party.herd */
+  stableHerd?: Record<string, NamedAnimal[]>;
   changer?: { town: string; day: number; fee: number };
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
@@ -534,6 +537,12 @@ interface Actions {
   /** leave one animal at this town's stable, or take back everything stabled here (paying the days) */
   stableAnimal: (breed: string) => string;
   fetchStabled: () => string;
+  /** give one of your animals a name of your own */
+  renameAnimal: (id: string, name: string) => void;
+  /** sell this animal (with you, in a town that buys animals) */
+  sellAnimal: (id: string) => string;
+  /** leave this animal at the town's stable */
+  stableNamed: (id: string) => string;
   recruit: (troop: string, key: string, n: number) => string;
   dismiss: (troop: string, n: number) => void;
   /** send one named man home: his kind's count drops by one and he leaves the roster */
@@ -2271,7 +2280,15 @@ export const useGame = create<GameState & Actions>()(
           // a raw float lets tiny fractions of a day pile up into something like 68.5780000000002 by
           // the time it reaches the screen
           const attire = { ...(s.attire ?? { owned: ['galabiya'], worn: 'galabiya', clean: 100 }), clean: Math.max(0, Math.round((s.attire?.clean ?? 100) - days * 12)) };
-          set({ ...patch, ...g1, attire, journal, whereabouts: where, encounter: null, dayOver: false, world: { ...s.world, x: pos.x, y: pos.y, at: null, hour, fog, known, parties } });
+          // the animals with you walk every mile of it; one that has walked far enough becomes an old friend
+          const walked = walkHerd(s.world.party.herd ?? [], Math.hypot(pos.x - s.world.x, pos.y - s.world.y));
+          if (walked.friends.length) {
+            const f = walked.friends, one = f.length === 1;
+            const names = one ? f[0].name : `${f.slice(0, -1).map((a) => a.name).join(', ')} and ${f[f.length - 1].name}`;
+            const t = one ? `${names} has walked ${Math.round(f[0].miles)} miles with you now. The men call ${f[0].sex === 'f' ? 'her' : 'him'} an old friend of the caravan, and ${f[0].sex === 'f' ? 'she' : 'he'} carries a little more for it.` : `${names} have walked ${Math.round(f[0].miles)} miles with you now. The men call them old friends of the caravan, and they carry a little more for it.`;
+            journal.push({ day: s.day, text: t, kind: 'road' }); notes.push(t);
+          }
+          set({ ...patch, ...g1, attire, journal, whereabouts: where, encounter: null, dayOver: false, world: { ...s.world, party: { ...s.world.party, herd: walked.herd }, x: pos.x, y: pos.y, at: null, hour, fog, known, parties } });
           return notes;
         },
 
@@ -3322,6 +3339,42 @@ export const useGame = create<GameState & Actions>()(
             ledger: owed ? [...s.ledger, { day: s.day, kind: 'expense', label: `Stable in ${settlementById(sid)?.name ?? sid}`, amount: -owed }] : s.ledger });
           audio.sfx('step');
           return `You leave ${withArticle(b.name)} at the stable, fed and watered for ${fmt(STABLE_FEE[b.kind] ?? 2)} a day. Pay when you take ${Object.values(kept).reduce((a, n) => a + n, 0) > 1 ? 'them' : 'it'} back.`;
+        },
+        renameAnimal: (id, name) => {
+          const s = get();
+          const n = name.replace(/\s+/g, ' ').trim().slice(0, 24);
+          if (!n) return;
+          const re = (l: NamedAnimal[]) => l.map((a) => (a.id === id ? { ...a, name: n, renamed: true } : a));
+          set({ world: { ...s.world, party: { ...s.world.party, herd: re(s.world.party.herd ?? []) } }, stableHerd: Object.fromEntries(Object.entries(s.stableHerd ?? {}).map(([k, l]) => [k, re(l)])) });
+        },
+        sellAnimal: (id) => {
+          const s = get();
+          const a = (s.world.party.herd ?? []).find((x) => x.id === id);
+          const b = a ? BREEDS[a.breed] : undefined;
+          if (!a || !b || !s.world.at || (s.world.party.animals[a.breed] ?? 0) <= 0) return '';
+          const back = animalWorth(a, s.day, Math.round((animalPrice(s.world.at, a.breed) ?? b.price) * 0.6));
+          const animals = { ...s.world.party.animals, [a.breed]: s.world.party.animals[a.breed] - 1 };
+          const herd = (s.world.party.herd ?? []).filter((x) => x.id !== id);
+          const friend = isFriend(a);
+          set({ cash: s.cash + back, world: { ...s.world, party: { ...s.world.party, animals, herd } }, ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${a.name}, ${withArticle(b.name)}`, amount: back }],
+            ...(friend ? { journal: [...s.journal, { day: s.day, text: `You sell ${a.name}, who walked ${Math.round(a.miles)} miles with you. The new owner leads ${a.sex === 'f' ? 'her' : 'him'} off without looking back; you watch until the street turns.`, kind: 'road' as const }] } : {}) });
+          audio.sfx('coins');
+          return `You sell ${a.name} for ${fmt(back)}.`;
+        },
+        stableNamed: (id) => {
+          const s0 = get();
+          const a = (s0.world.party.herd ?? []).find((x) => x.id === id);
+          const sid = s0.world.at;
+          if (!a || !sid) return '';
+          const msg = get().stableAnimal(a.breed);
+          const s = get();
+          const stab = s.stableHerd?.[sid] ?? [];
+          // the stable took one of this breed: make it this one
+          if (!stab.some((x) => x.id === id) && (s.world.party.herd ?? []).some((x) => x.id === id)) {
+            const moved = [...stab].reverse().find((x) => x.breed === a.breed);
+            if (moved) set({ world: { ...s.world, party: { ...s.world.party, herd: (s.world.party.herd ?? []).map((x) => (x.id === id ? moved : x)) } }, stableHerd: { ...(s.stableHerd ?? {}), [sid]: stab.map((x) => (x.id === moved.id ? a : x)) } });
+          }
+          return msg.replace(withArticle(BREEDS[a.breed].name), a.name);
         },
         fetchStabled: () => {
           const s = get();
@@ -5395,6 +5448,8 @@ export const useGame = create<GameState & Actions>()(
         if (version < 14) p.arranFindings = p.arranFindings ?? [];
         // save 29: epithets; an older game earns those it already deserves on the next change, quietly
         if (version < 29) { p.epithets = p.epithets ?? []; p.epithetQuiet = true; }
+        // save 31: animals by name (party.herd, stableHerd) and the Fallen's families; built from the counts on load
+        if (version < 31 && p.world?.party) p.world.party.herd = undefined;
         // save 30: the rival houses (systems/houses.ts) start trading the night after an older save loads
         if (version < 30 && p.started && !p.houses) p.houses = freshHouses(p.day ?? 1);
         // dominoes with the coffee-house regulars and knot counting arrived with save 24: an empty record of each
@@ -5784,6 +5839,37 @@ const syncRoster = (s: GameState) => {
 };
 syncRoster(useGame.getState());
 useGame.subscribe((s, prev) => { if (s.world?.party?.troops !== prev?.world?.party?.troops || !s.combat?.men) syncRoster(s); });
+// every animal behind the counts has a name, with you or at a stable; one stabled or taken back keeps it
+const herdCounts = (s: GameState) => ({ party: s.world.party.animals ?? {}, stables: Object.fromEntries(Object.entries(s.stabled ?? {}).map(([k, l]) => [k, l.animals])) });
+const syncHerd = (s: GameState) => {
+  if (!s.world?.party?.animals) return;
+  const r = syncHerds({ party: s.world.party.herd ?? [], stables: s.stableHerd ?? {} }, herdCounts(s), s.day);
+  if (!r.changed && s.world.party.herd) return;
+  useGame.setState({ world: { ...s.world, party: { ...s.world.party, herd: r.herds.party } }, stableHerd: r.herds.stables });
+};
+syncHerd(useGame.getState());
+useGame.subscribe((s, prev) => {
+  if (s.day !== HERD_DAY.day) HERD_DAY.day = s.day;
+  if (s.world?.party?.animals !== prev?.world?.party?.animals || s.stabled !== prev?.stabled || !s.world?.party?.herd) syncHerd(s);
+});
+// a new day at the stables: mates kept together, and the young born when their time comes
+useGame.subscribe((s, prev) => {
+  if (!prev || s.day <= prev.day || !s.started) return;
+  const herds = { party: s.world.party.herd ?? [], stables: s.stableHerd ?? {} };
+  if (!herds.party.length && !Object.keys(herds.stables).length) return;
+  const r = breedHerds(herds, s.day, (sid) => settlementById(sid)?.name ?? sid);
+  const changed = r.lines.length || JSON.stringify(r.herds) !== JSON.stringify(herds);
+  if (!changed) return;
+  // a birth adds to the count where it happens, with the young one's name already on it
+  const party = { ...s.world.party, animals: { ...s.world.party.animals }, herd: r.herds.party };
+  const stabled = { ...(s.stabled ?? {}) };
+  const stableHerd = { ...r.herds.stables };
+  for (const b of r.born) {
+    if (b.at === 'party') { party.animals[b.young.breed] = (party.animals[b.young.breed] ?? 0) + 1; party.herd = [...party.herd, b.young]; }
+    else { const lot = stabled[b.at] ?? { animals: {}, since: s.day }; stabled[b.at] = { ...lot, animals: { ...lot.animals, [b.young.breed]: (lot.animals[b.young.breed] ?? 0) + 1 } }; stableHerd[b.at] = [...(stableHerd[b.at] ?? []), b.young]; }
+  }
+  useGame.setState({ world: { ...s.world, party }, stabled, stableHerd, ...(r.lines.length ? { journal: [...s.journal, ...r.lines.map((text) => ({ day: s.day, text, kind: 'road' as const }))] } : {}) });
+});
 /** the band on the road near a town, and the man leading it */
 function bandNear(s: GameState, home: string): { leader: string; road: string } | undefined {
   const c = cultureOf(home);

@@ -3890,3 +3890,33 @@ body:has(.settlement) .app > .objective-bar.news { z-index: 55; box-shadow: 0 0 
 .fallen li .btn { align-self: flex-start; margin-top: 4px; min-height: 44px; }
 .fallen__paid { color: #a9c08a !important; }
 .fallen__owed { color: #d9a37a !important; }
+
+/* your animals by name: a card each, and a small page when tapped */
+.anc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.anc { display: grid; gap: 4px; padding: 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; min-height: 44px; }
+.anc-pic { position: relative; display: block; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: #0d0805; border: 1px solid var(--line); }
+.anc.on .anc-pic { border-color: var(--brass-hi); box-shadow: 0 0 0 1px var(--brass-hi); }
+.anc-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.anc-pic img.flip { transform: scaleX(-1); }
+.anc-mark { position: absolute; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 3px; background: rgba(20,12,6,.88); border: 1px solid rgba(231,189,110,.7); color: #f3d79a; font: 500 13px/1.3 var(--label); letter-spacing: .06em; text-transform: uppercase; font-style: normal; }
+.anc-mark.young { border-color: rgba(169,192,138,.7); color: #cfe0b4; }
+.anc-mark.prize { left: auto; right: 6px; border-color: #d9b45a; color: #ffe1a0; }
+.anc-txt { display: flex; flex-direction: column; line-height: 1.2; }
+.anc-txt b { font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--parchment); }
+.anc-txt small { font-size: 14px; color: var(--text-dim); }
+.anp { margin-top: 10px; padding: 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: #120c07; display: grid; gap: 8px; }
+.anp-pic { position: relative; border-radius: 6px; overflow: hidden; aspect-ratio: 16 / 9; max-height: 26vh; }
+.anp-pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
+.anp-ar { position: absolute; right: 8px; bottom: 6px; font-style: normal; font-size: 16px; color: #f6e2b5; text-shadow: 0 1px 3px #000; }
+.anp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.anp-title { display: flex; flex-direction: column; align-items: flex-start; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; min-height: 44px; justify-content: center; }
+.anp-title b { font-family: var(--display); font-weight: 500; font-size: 22px; color: var(--brass-hi); }
+.anp-title small { font-size: 13.5px; color: var(--text-dim); }
+.anp-name { display: flex; gap: 6px; flex: 1; }
+.anp-name input { flex: 1; min-width: 0; min-height: 44px; padding: 6px 10px; font: 18px var(--display); color: var(--parchment); background: #0d0805; border: 1px solid var(--line-strong); border-radius: 4px; }
+.anp-head > .btn, .anp-name .btn { min-height: 44px; }
+.anp-sort { margin: 0; font-size: 15px; color: var(--text); }
+.anp-facts { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14.5px; color: var(--text-dim); }
+.anp-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.anp-acts .btn { min-height: 44px; }
+.anc-away { margin: 8px 0 0; font-size: 14px; }

@@ -1,6 +1,7 @@
 // What a caravan tile stands for, in pictures: tap Animals and see your animals, Guards your men,
 // Food your sacks, Load what the string carries. Under the tiles, in the page; tap again to fold it.
 import { useGame } from '../../game/state/store';
+import { AnimalCards } from './AnimalCards';
 import { BREEDS } from '../../data/animals';
 import { TROOPS, FOOD_PER_LOAD } from '../../data/caravan';
 import { RUGS } from '../../data/rugs';
@@ -45,8 +46,9 @@ export function CaravanHave({ kind, onMore }: { kind: HaveKind; onMore: () => vo
         </small>
       </header>
       {empty && <p className="dim">{showAnimals ? 'No animals yet. Any town sells camels, mules and donkeys.' : showMen ? 'No guards yet. Hire them in any town.' : 'Nothing carried.'}</p>}
+      {kind === 'Animals' && animals.length > 0 && <AnimalCards />}
       <div className="cvh-grid">
-        {showAnimals && animals.map(([id, n]) => {
+        {kind === 'Pace' && animals.map(([id, n]) => {
           const b = BREEDS[id];
           return <Card key={id} img={`art/animals/${id}.jpg`} name={b?.name ?? id} n={n} line={b ? `${b.load ? `carries ${b.load}` : 'ridden'} · eats ${b.food}/day` : ''} />;
         })}

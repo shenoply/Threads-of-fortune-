@@ -346,7 +346,7 @@ export function Herd() {
       {own.map(([id, n]) => (
         <div className="herd-item" key={id}>
           <BreedImage breed={BREEDS[id]} size={58} tall={1.15} />
-          <span><b>{n}× {BREEDS[id].name}</b><small>load {BREEDS[id].load} · pace {BREEDS[id].ride.toFixed(2)}×</small></span>
+          <span><b>{n}× {BREEDS[id].name}</b><small>{(p.herd ?? []).filter((a) => a.breed === id).map((a) => a.name).join(', ') || `load ${BREEDS[id].load} · pace ${BREEDS[id].ride.toFixed(2)}×`}</small></span>
         </div>
       ))}
       <p className="set-demand">The caravan moves at the pace of its slowest member: {Object.values(BREEDS).find((b) => b.name.toLowerCase() === sp.slowest)?.name ?? sp.slowest}.</p>

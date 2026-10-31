@@ -2,6 +2,7 @@ import { LIVESTOCK_BY_ID, flockOf } from '../../data/livestock';
 import { TROOPS, FOOD_PER_LOAD, WALKER_LOAD, BASE_SPEED, MARKETS } from '../../data/caravan';
 import { BREEDS } from '../../data/animals';
 import type { RugItem } from '../types';
+import { herdCarry, type NamedAnimal } from './herd';
 
 export interface PartyState {
   animals: Record<string, number>; // breed id -> count
@@ -20,7 +21,11 @@ export interface PartyState {
   lastCollapse?: number;
   /** after going down on the road the caravan goes at half pace until the end of this day */
   weakUntil?: number;
+  /** save 31: the animals with you by name (systems/herd.ts); the counts above stay the rule */
+  herd?: NamedAnimal[];
 }
+/** the game day, for the herd's ages (young stock carries less): set by the store */
+export const HERD_DAY = { day: 0 };
 
 export const MORALE_START = 70;
 /** How many men you can lead: a caravan master's name brings more men who will follow him */
@@ -71,7 +76,8 @@ export const fatiguePace = () => (conditionMods.fatigue >= 75 ? Math.max(0.65, 1
 
 export const capacity = (p: PartyState) => {
   const { list } = assign(p);
-  return Math.round((WALKER_LOAD + troopCount(p) + list.reduce((s, a) => s + BREEDS[a.id].load * (a.ridden ? 0.4 : 1), 0)) * (1 + healthMods.carry / 100) * 10) / 10;
+  const base = WALKER_LOAD + troopCount(p) + list.reduce((s, a) => s + BREEDS[a.id].load * (a.ridden ? 0.4 : 1), 0);
+  return Math.round(Math.max(WALKER_LOAD, base + herdCarry(p.herd, HERD_DAY.day)) * (1 + healthMods.carry / 100) * 10) / 10;
 };
 export const carried = (inv: RugItem[]) => inv.filter((i) => !i.stored);
 export const load = (p: PartyState, inv: RugItem[]) => carried(inv).length + p.food / FOOD_PER_LOAD + flockOf(p).reduce((a, [id, n]) => a + (LIVESTOCK_BY_ID[id]?.load ?? 0) * n, 0);
