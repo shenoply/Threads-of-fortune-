@@ -10,9 +10,11 @@
     "dev:demo": "vite --mode demo",
     "preview": "vite preview",
     "build:pc": "tsc --noEmit && vite build --mode pc --outDir dist-pc",
+    "build:pc-demo": "tsc --noEmit && vite build --mode pcdemo --outDir dist-pc",
     "pc": "npm run build:pc && npm --prefix desktop run start",
     "package:linux": "npm run build:pc && node desktop/package.mjs linux",
     "package:win": "npm run build:pc && node desktop/package.mjs win32",
+    "package:win-demo": "npm run build:pc-demo && node desktop/package.mjs win32",
     "package:pc": "npm run build:pc && node desktop/package.mjs linux win32"
   },
   "dependencies": {

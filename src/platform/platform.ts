@@ -25,7 +25,7 @@ declare global { interface Window { tofDesktop?: DesktopBridge } }
 
 export const desktop: DesktopBridge | null = typeof window !== 'undefined' ? window.tofDesktop ?? null : null;
 /** the desktop app (or a `vite build --mode pc` page opened as one) */
-export const isDesktopApp = !!desktop || import.meta.env.MODE === 'pc';
+export const isDesktopApp = !!desktop || import.meta.env.MODE.startsWith('pc');
 
 /** Achievements: a no-op on the web and until Steamworks is in. The ids are the game's own, and the same
  *  ids are entered as API names on the Steamworks achievements page. */

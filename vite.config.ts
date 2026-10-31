@@ -33,7 +33,7 @@ const pcBuild = (): Plugin => ({
   name: 'pc-build', apply: 'build',
   configResolved(c) { buildMode = c.mode; },
   transformIndexHtml(html) {
-    if (buildMode !== 'pc') return html;
+    if (!buildMode.startsWith('pc')) return html;
     return html
       .replace(/\s*<link rel="preconnect"[^>]*>/g, '')
       .replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="./fonts/fonts.css" />')

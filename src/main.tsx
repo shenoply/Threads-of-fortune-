@@ -29,8 +29,8 @@ installRewards();
 installLookahead();
 
 // keep the pictures and sounds on the phone after the first visit (public/sw.js)
-// (not in the desktop app: everything is already on the disk there)
-if (import.meta.env.PROD && import.meta.env.MODE !== 'pc' && 'serviceWorker' in navigator) {
+// (not in the desktop app, modes pc and pcdemo: everything is already on the disk there)
+if (import.meta.env.PROD && !import.meta.env.MODE.startsWith('pc') && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(keepFirstVisit).catch(() => {}); });
 }
 // On a first visit the code and the opening pictures arrive before the service worker is running, so it
