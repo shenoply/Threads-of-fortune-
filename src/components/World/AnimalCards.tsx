@@ -2,10 +2,10 @@
 // tend: the name is yours to change if you like, the rest looks after itself.
 import { useState } from 'react';
 import { useGame, animalPrice } from '../../game/state/store';
-import { BREEDS, ANIMAL_MARKETS } from '../../data/animals';
+import { BREEDS, ANIMAL_MARKETS, PRIZE_ANIMALS, PRIZE_EVERY, RACE_TOWNS, RACE_STAKE } from '../../data/animals';
 import { settlementById } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
-import { ageWords, animalWorth, dueWords, isFriend, isYoung, sortWord, TEMPER_LINE, FRIEND_MILES, kindOf, type NamedAnimal } from '../../game/systems/herd';
+import { raceMerit, ageWords, animalWorth, dueWords, isFriend, isYoung, sortWord, TEMPER_LINE, FRIEND_MILES, kindOf, type NamedAnimal } from '../../game/systems/herd';
 
 const STABLE_KINDS = new Set(['home', 'city', 'town', 'port']);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -38,7 +38,7 @@ function Page({ a, onClose }: { a: NamedAnimal; onClose: () => void }) {
   const sid = g.world.at;
   const day = g.day;
   const friend = isFriend(a), young = isYoung(a, day);
-  const canSell = !!sid && !!ANIMAL_MARKETS[sid];
+  const canSell = !!sid && (!!ANIMAL_MARKETS[sid] || !!a.prize);
   const worth = animalWorth(a, day, Math.round((sid ? animalPrice(sid, a.breed) ?? b.price : b.price) * 0.6));
   const town = sid ? settlementById(sid) : undefined;
   const canStable = !!town && STABLE_KINDS.has(town.kind);
@@ -96,5 +96,66 @@ export function AnimalCards() {
       {page && <Page key={page.id} a={page} onClose={() => setOpen(null)} />}
       {away.length > 0 && <p className="dim anc-away" data-testid="animals-away">At the stables: {away.map(([sid, l]) => `${l.map((a) => `${a.name}${a.due !== undefined ? ` (${kindOf(a) === 'camel' ? 'in calf' : 'in foal'})` : ''}`).join(', ')} in ${settlementById(sid)?.name ?? sid}`).join('; ')}.</p>}
     </>
+  );
+}
+
+/** the town's prize animal, if it has one this season */
+export function PrizeOfferCard({ sid, onNote }: { sid: string; onNote: (s: string) => void }) {
+  const g = useGame();
+  const o = PRIZE_ANIMALS[sid];
+  const b = o ? BREEDS[o.breed] : undefined;
+  if (!o || !b) return null;
+  const last = g.prizeDay?.[sid];
+  const gone = last !== undefined && g.day - last < PRIZE_EVERY;
+  const price = Math.round(b.price * o.mult);
+  return (
+    <div className="prize" data-testid="prize-offer">
+      <div className="section-label">A PRIZE {b.kind === 'camel' ? 'CAMEL' : 'HORSE'}</div>
+      {gone ? <p className="set-demand">Nothing of that quality is for sale here until next season.</p> : (
+        <div className="prize-card">
+          <img src={`art/animals/${o.breed}.jpg`} alt={b.name} />
+          <span>
+            <b>{b.name}, from {o.from}</b>
+            <small>{o.line}</small>
+            <small>A notable's groom will buy {o.sex === 'f' ? 'her' : 'him'} back at a good price in any town. Owning one is talked about.</small>
+            <button className="btn primary" disabled={g.cash < price} onClick={() => onNote(g.buyPrize())} data-testid="buy-prize">Buy {o.sex === 'f' ? 'her' : 'him'} · {fmt(price)}</button>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** the camel race at the Bedouin camp and the Giza fair: enter one of yours, for the stake */
+export function CamelRace({ sid }: { sid: string }) {
+  const g = useGame();
+  const [res, setRes] = useState<{ text: string; place: number; field: { name: string; mine: boolean }[]; breed: string } | null>(null);
+  const race = RACE_TOWNS[sid];
+  if (!race) return null;
+  const camels = (g.world.party.herd ?? []).filter((a) => BREEDS[a.breed]?.kind === 'camel').sort((x, y) => raceMerit(y, g.day) - raceMerit(x, g.day));
+  const raced = g.raceWeek?.[sid] === Math.floor(g.day / 7);
+  const word = (m: number) => (m >= 19.5 ? 'a real chance' : m >= 17.5 ? 'a fair chance' : m >= 15 ? 'an outside chance' : 'no hope, but a good day out');
+  return (
+    <div className="race" data-testid="camel-race">
+      <div className="section-label">{race.name.toUpperCase()}</div>
+      <p className="set-demand">{race.line} Stake {fmt(RACE_STAKE)}; the winner takes five times it, second twice, third gets it back.</p>
+      {res && (
+        <div className="race-res" data-testid="race-result">
+          <img src={`art/animals/${res.breed}.jpg`} alt="" />
+          <span>
+            <b>{res.text}</b>
+            <ol>{res.field.map((f) => <li key={f.name} className={f.mine ? 'mine' : ''}>{f.name}</li>)}</ol>
+          </span>
+        </div>
+      )}
+      {!res && (raced ? <p className="set-demand">You have raced here this week. The next race is next week.</p>
+        : !camels.length ? <p className="set-demand">You have no camel with you to enter.</p>
+        : <div className="mkt">{camels.map((a) => (
+            <div className="mkt-row" key={a.id}>
+              <span><b>{a.name}</b><small>{BREEDS[a.breed].name} · {word(raceMerit(a, g.day))}</small></span>
+              <button className="btn" disabled={g.cash < RACE_STAKE} onClick={() => { const r = g.enterRace(a.id); if (r) setRes({ ...r, breed: a.breed }); }} data-testid={`race-enter-${a.id}`}>Enter {a.sex === 'f' ? 'her' : 'him'}</button>
+            </div>
+          ))}</div>)}
+    </div>
   );
 }

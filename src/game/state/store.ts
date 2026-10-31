@@ -84,7 +84,8 @@ import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity, load as caravanLoad } from '../systems/caravan';
 import { roadToll, BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
-import { syncHerds, walkHerd, breedHerds, animalWorth, isFriend, type NamedAnimal } from '../systems/herd';
+import { syncHerds, walkHerd, breedHerds, animalWorth, isFriend, freshAnimal, runRace, RACE_PURSE, type NamedAnimal } from '../systems/herd';
+import { PRIZE_ANIMALS, PRIZE_EVERY, RACE_TOWNS, RACE_STAKE } from '../../data/animals';
 import { type NamedMan, syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList, fallenOf, familySum, nextToGo } from '../systems/men';
 import { threatForParty } from '../../data/travelThreats1925';
 import { HERD_DAY, startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, partySize, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
@@ -374,6 +375,10 @@ export interface GameState {
   stabled?: Record<string, { animals: Record<string, number>; since: number }>;
   /** save 31: the animals at each stable by name (systems/herd.ts); those with you are party.herd */
   stableHerd?: Record<string, NamedAnimal[]>;
+  /** the day a prize animal was last bought at each town (another comes a season later) */
+  prizeDay?: Record<string, number>;
+  /** the week (day / 7) you last raced at each race town */
+  raceWeek?: Record<string, number>;
   changer?: { town: string; day: number; fee: number };
   /** the day of Arran's last paid provisions assessment */
   provisionsDay?: number;
@@ -549,6 +554,10 @@ interface Actions {
   sellAnimal: (id: string) => string;
   /** leave this animal at the town's stable */
   stableNamed: (id: string) => string;
+  /** buy the town's prize animal */
+  buyPrize: () => string;
+  /** enter one of your camels in this town's race, for the stake */
+  enterRace: (id: string) => { text: string; place: number; field: { name: string; mine: boolean }[] } | null;
   recruit: (troop: string, key: string, n: number) => string;
   dismiss: (troop: string, n: number) => void;
   /** send one named man home: his kind's count drops by one and he leaves the roster */
@@ -3378,14 +3387,15 @@ export const useGame = create<GameState & Actions>()(
           const a = (s.world.party.herd ?? []).find((x) => x.id === id);
           const b = a ? BREEDS[a.breed] : undefined;
           if (!a || !b || !s.world.at || (s.world.party.animals[a.breed] ?? 0) <= 0) return '';
-          const back = animalWorth(a, s.day, Math.round((animalPrice(s.world.at, a.breed) ?? b.price) * 0.6));
+          // a prize animal goes to a notable's groom at its mark; any other to the dealers
+          const back = a.prize ? animalWorth(a, s.day, Math.round(b.price * 2.2 * 0.88)) : animalWorth(a, s.day, Math.round((animalPrice(s.world.at, a.breed) ?? b.price) * 0.6));
           const animals = { ...s.world.party.animals, [a.breed]: s.world.party.animals[a.breed] - 1 };
           const herd = (s.world.party.herd ?? []).filter((x) => x.id !== id);
           const friend = isFriend(a);
           set({ cash: s.cash + back, world: { ...s.world, party: { ...s.world.party, animals, herd } }, ledger: [...s.ledger, { day: s.day, kind: 'sale', label: `Sold ${a.name}, ${withArticle(b.name)}`, amount: back }],
             ...(friend ? { journal: [...s.journal, { day: s.day, text: `You sell ${a.name}, who walked ${Math.round(a.miles)} miles with you. The new owner leads ${a.sex === 'f' ? 'her' : 'him'} off without looking back; you watch until the street turns.`, kind: 'road' as const }] } : {}) });
           audio.sfx('coins');
-          return `You sell ${a.name} for ${fmt(back)}.`;
+          return a.prize ? `A notable's groom looks ${a.name} over for an hour and pays ${fmt(back)}.` : `You sell ${a.name} for ${fmt(back)}.`;
         },
         stableNamed: (id) => {
           const s0 = get();
@@ -3401,6 +3411,45 @@ export const useGame = create<GameState & Actions>()(
             if (moved) set({ world: { ...s.world, party: { ...s.world.party, herd: (s.world.party.herd ?? []).map((x) => (x.id === id ? moved : x)) } }, stableHerd: { ...(s.stableHerd ?? {}), [sid]: stab.map((x) => (x.id === moved.id ? a : x)) } });
           }
           return msg.replace(withArticle(BREEDS[a.breed].name), a.name);
+        },
+        buyPrize: () => {
+          const s = get();
+          const sid = s.world.at;
+          const o = sid ? PRIZE_ANIMALS[sid] : undefined;
+          const b = o ? BREEDS[o.breed] : undefined;
+          if (!sid || !o || !b) return '';
+          if (s.prizeDay?.[sid] !== undefined && s.day - s.prizeDay[sid] < PRIZE_EVERY) return 'Nothing of that quality is for sale here this season.';
+          const price = Math.round(b.price * o.mult);
+          if (s.cash < price) return 'Not enough cash.';
+          if (animalCount(s.world.party) >= animalCap(s.world.party)) return `You can lead ${animalCap(s.world.party)} animals at most. Hire more men to lead more.`;
+          const herd = s.world.party.herd ?? [];
+          const a = freshAnimal(o.breed, s.day, new Set(herd.map((x) => x.name)), `prize:${sid}:${s.day}`, { sex: o.sex, prize: o.from, born: s.day - 365 * (b.kind === 'camel' ? 6 : 5) });
+          const first = !Object.keys(s.prizeDay ?? {}).length;
+          const text = `You buy ${a.name}, from ${o.from}, for ${fmt(price)}. Word goes round that you keep a fine ${b.kind === 'camel' ? 'camel' : 'horse'}.`;
+          set({ cash: s.cash - price, reputation: s.reputation + (first ? 2 : 1), prizeDay: { ...(s.prizeDay ?? {}), [sid]: s.day },
+            world: { ...s.world, party: { ...s.world.party, animals: { ...s.world.party.animals, [o.breed]: (s.world.party.animals[o.breed] ?? 0) + 1 }, herd: [...herd, a] } },
+            ledger: [...s.ledger, { day: s.day, kind: 'purchase', label: `Bought ${a.name}, a prize ${b.name}`, amount: -price }], journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] });
+          audio.sfx('coins');
+          return text;
+        },
+        enterRace: (id) => {
+          const s = get();
+          const sid = s.world.at;
+          const a = (s.world.party.herd ?? []).find((x) => x.id === id);
+          if (!sid || !RACE_TOWNS[sid] || !a || BREEDS[a.breed]?.kind !== 'camel') return null;
+          const week = Math.floor(s.day / 7);
+          if (s.raceWeek?.[sid] === week || s.cash < RACE_STAKE) return null;
+          const r = runRace(a, s.day, `${sid}:${week}:${a.id}`);
+          const won = RACE_PURSE[r.place - 1] ? RACE_STAKE * RACE_PURSE[r.place - 1] : 0;
+          const ord = ['first', 'second', 'third', 'fourth', 'fifth', 'last'][r.place - 1];
+          const text = r.place === 1 ? `${a.name} comes in first, clear of ${r.field[1].name}. The purse is ${fmt(won)}, and the camp will talk of ${a.sex === 'f' ? 'her' : 'him'} for a week.`
+            : r.place <= 3 ? `${a.name} runs ${ord}, behind ${r.field[0].name}. ${r.place === 2 ? `The purse for second is ${fmt(won)}.` : 'Third place gets your stake back.'}`
+            : `${a.name} runs ${ord}. ${r.field[0].name.charAt(0).toUpperCase()}${r.field[0].name.slice(1)} takes the purse. The stake is gone, and ${a.name} is none the worse for it.`;
+          set({ cash: s.cash - RACE_STAKE + won, reputation: s.reputation + (r.place === 1 ? 1 : 0), raceWeek: { ...(s.raceWeek ?? {}), [sid]: week },
+            ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `Stake in the camel race`, amount: -RACE_STAKE }, ...(won ? [{ day: s.day, kind: 'bonus' as const, label: `${a.name}'s purse in the camel race`, amount: won }] : [])],
+            journal: [...s.journal, { day: s.day, text: `${RACE_TOWNS[sid].name}: ${text}`, kind: 'road' as const }] });
+          audio.sfx(won > RACE_STAKE ? 'coins' : 'tap');
+          return { text, place: r.place, field: r.field };
         },
         fetchStabled: () => {
           const s = get();

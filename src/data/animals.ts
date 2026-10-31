@@ -135,3 +135,23 @@ export const ANIMAL_MARKETS: Record<string, [string, number][]> = {
   tehran: [['arabian', 1.05]],
   isfahan: [['arabian', 1.05]],
 };
+
+/** A prize animal at a few towns: a beast from a famous herd or stud, dear, which a notable's groom will
+ *  buy back at its mark. One at a time; another comes in a season after you buy. */
+export interface PrizeOffer { breed: string; from: string; mult: number; sex: 'f' | 'm'; line: string }
+export const PRIZE_ANIMALS: Record<string, PrizeOffer> = {
+  cairo: { breed: 'arabian', from: 'a Cairo pasha\'s stud', mult: 2.4, sex: 'f', line: 'A grey mare of the old Abbas Pasha blood, sold only because the stud is crowded.' },
+  bedouin: { breed: 'bishari', from: 'a Bisharin sheikh\'s herd', mult: 2.2, sex: 'f', line: 'A white riding she-camel the sheikh\'s sons have raced since she was three.' },
+  giza: { breed: 'anafi', from: 'a Sudanese dealer at Imbaba', mult: 2.0, sex: 'm', line: 'A pale racing camel walked north from Kordofan, light as a gazelle.' },
+  damascus: { breed: 'arabian', from: 'an Anazeh sheikh\'s tents', mult: 2.3, sex: 'f', line: 'A Kuhaylan mare with her line recited by the seller back seven dams.' },
+  aleppo: { breed: 'arabian', from: 'the Shammar, of the Saqlawi strain', mult: 2.3, sex: 'm', line: 'A Saqlawi stallion, small and fine-headed, brought in from the desert for the spring market.' },
+  baghdad: { breed: 'arabian', from: 'a Shammar sheikh\'s mares', mult: 2.2, sex: 'f', line: 'A bay mare the sheikh\'s family rode to the Euphrates and back.' },
+};
+/** a season between prize animals at one town */
+export const PRIZE_EVERY = 90;
+/** where camels are raced: the Bedouin camp, and the fair at Giza */
+export const RACE_TOWNS: Record<string, { name: string; line: string }> = {
+  bedouin: { name: 'The race at the wells', line: 'On the flat ground below the camp the young men race their camels for a purse and a name. Anyone may enter who pays the stake.' },
+  giza: { name: 'The Giza fair race', line: 'Out on the sand towards the Pyramids, the Friday fair races camels for the dealers and the tourists. A stake to enter, a purse to the first three.' },
+};
+export const RACE_STAKE = 100;

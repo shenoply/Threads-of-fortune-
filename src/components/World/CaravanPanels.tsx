@@ -13,6 +13,7 @@ import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDays
 import { AnimalPlate } from './AnimalPlate';
 import { TroopPage, MenTalk, capLine } from './Troops';
 import { MenOf, FallenList } from './MenRoll';
+import { PrizeOfferCard, CamelRace } from './AnimalCards';
 import { troopCount, troopCap, animalCap, strengthCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 import { provisionsAt, stapleAt, provisionPrice } from '../../data/provisions';
@@ -115,7 +116,7 @@ export function TownSupplies({ show = ['food', 'animals', 'recruits'], fold = fa
         </div>
       </>)}
       </>)}
-      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} of {animalCap(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /><Stable sid={sid} onNote={setNote} /></Part>}
+      {show.includes('animals') && <Part fold={fold} id="animals" title={<><b>Animals</b> · {animalCount(p)} of {animalCap(p)} in your string</>}><BreedMarket sid={sid} onNote={setNote} /><PrizeOfferCard sid={sid} onNote={setNote} /><CamelRace sid={sid} /><Stable sid={sid} onNote={setNote} /></Part>}
       {show.includes('recruits') && <Part fold={fold} id="guards" title={<><b>Guards</b> · {troopCount(p)} of {troopCap(g.reputation)} with you{pool.length ? ` · ${pool.reduce((n, r) => n + r.available, 0)} for hire here` : ''}</>}>
       {pool.length === 0 && (
         <>

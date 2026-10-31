@@ -243,3 +243,32 @@ const withA = (w: string) => `${/^[aeiou]/.test(w) ? 'an' : 'a'} ${w}`;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 /** day 0 is 9 March 1925 */
 export const dueWords = (day: number) => { const d = new Date(Date.UTC(1925, 2, 9 + day)); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+
+// ---- the camel race: your camel against five others; breed, age, temper and miles together, and luck ----
+const RIVALS = ['Sheikh Salem\'s', 'the Tarabin boys\'', 'Abu Sitta\'s', 'a Sudanese dealer\'s', 'the omda\'s son\'s', 'Hajj Mutlaq\'s', 'a Cairo bey\'s', 'old Eid\'s'];
+export interface RaceResult { place: number; field: { name: string; mine: boolean }[] }
+/** how fast this camel runs today, before luck */
+export function raceMerit(a: NamedAnimal, day: number) {
+  const b = BREEDS[a.breed];
+  if (!b) return 0;
+  const y = ageYears(a, day);
+  const age = y < GROWN.camel ? -3 : y <= 12 ? 1 : y <= 16 ? 0 : -2;
+  const temper = a.temper === 'spirited' ? 1 : a.temper === 'proud' ? 0.5 : a.temper === 'stubborn' ? -1 : a.temper === 'greedy' ? -0.5 : 0;
+  return b.ride * 10 + age + temper + (isFriend(a) ? 1.5 : 0) + (a.prize ? 1 : 0);
+}
+export function runRace(a: NamedAnimal, day: number, seed: string): RaceResult {
+  const luck = (k: string) => (h(`${seed}:${k}`) % 1000) / 1000;
+  const mine = raceMerit(a, day) + luck('me') * 6;
+  const used = new Set<string>([a.name]);
+  const rivals = [0, 1, 2, 3, 4].map((i) => {
+    const r = h(`${seed}:r${i}`);
+    const pool = NAMES.camel[r % 2 ? 'f' : 'm'];
+    let nm = pool[r % pool.length]; for (let k = 1; used.has(nm) && k < pool.length; k++) nm = pool[(r + k) % pool.length];
+    used.add(nm);
+    // the others: racing camels of the camps, Bishari and Anafi blood, some good, some not
+    return { name: `${RIVALS[(r >>> 5) % RIVALS.length]} ${nm}`, mine: false, score: 15 + ((r >>> 9) % 50) / 10 + luck(`r${i}`) * 6 };
+  });
+  const field = [...rivals, { name: a.name, mine: true, score: mine }].sort((x, y) => y.score - x.score);
+  return { place: field.findIndex((f) => f.mine) + 1, field: field.map(({ name, mine: m }) => ({ name, mine: m })) };
+}
+export const RACE_PURSE = [5, 2, 1];

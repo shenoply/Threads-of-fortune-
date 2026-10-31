@@ -3925,3 +3925,12 @@ body:has(.settlement) .app > .objective-bar.news { z-index: 55; box-shadow: 0 0 
 /* a rug grade said in plain words the first time a town note names it (Settlement.tsx Glossed) */
 .grade-gloss { color: var(--text-dim); }
 .link-btn { display: inline-block; background: none; border: 0; padding: 12px 2px; margin: -12px 0; font: inherit; color: var(--k-gold); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.prize-card, .race-res { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: start; padding: 8px; border: 1px solid rgba(217,180,90,.55); border-radius: 4px; background: #150e08; }
+.prize-card img, .race-res img { width: 112px; height: 112px; object-fit: cover; border-radius: 4px; }
+.prize-card span, .race-res span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.prize-card b, .race-res b { font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--parchment); }
+.prize-card small { font-size: 14px; color: var(--text-dim); }
+.prize-card .btn { align-self: flex-start; min-height: 44px; margin-top: 4px; }
+.race-res ol { margin: 4px 0 0; padding-left: 20px; font-size: 14px; color: var(--text-dim); }
+.race-res li.mine { color: var(--brass-hi); font-weight: 600; }
+.race-res b { font-family: var(--body); font-size: 15px; font-weight: 500; text-transform: none; letter-spacing: 0; font-variant: normal; line-height: 1.35; }

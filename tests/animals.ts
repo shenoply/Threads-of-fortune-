@@ -83,5 +83,30 @@ if (foal) {
   ok(isYoung(foal, st().day) && animalWorth(foal, st().day, base) < animalWorth(foal, st().day + 3 * 365, base), `a young one is worth more as it grows: ${animalWorth(foal, st().day, base)} → ${animalWorth(foal, st().day + 3 * 365, base)}`);
 }
 
+// ---- a prize animal: dear, talked about, bought back by a notable's groom ----
+const { PRIZE_ANIMALS, RACE_STAKE } = await import('../src/data/animals');
+const { runRace, raceMerit } = await import('../src/game/systems/herd');
+at('bedouin');
+const rep0 = st().reputation, c1 = st().cash;
+const pmsg = st().buyPrize();
+const prize = herd().find((a) => a.prize);
+ok(!!prize && prize.breed === PRIZE_ANIMALS.bedouin.breed && st().reputation > rep0 && matches(), `a prize she-camel at the Bedouin camp: ${prize?.name}, ${c1 - st().cash} pt. "${pmsg}"`);
+ok(st().buyPrize().startsWith('Nothing of that quality'), 'one a season');
+
+// ---- the camel race: enter if you like; a loss costs the stake, never the camel ----
+const before = animalCount(st().world.party), c2 = st().cash;
+const r = st().enterRace(prize!.id);
+ok(!!r && r.field.length === 6 && animalCount(st().world.party) === before, `${prize!.name} runs ${r?.place} of 6 (merit ${raceMerit(prize!, st().day).toFixed(1)}): "${r?.text}"`);
+ok(st().cash - c2 >= -RACE_STAKE, 'the most a race costs is the stake');
+ok(st().enterRace(prize!.id) === null, 'one race a week');
+// over many races a fine camel wins more often than a baggage camel
+const wins = (a: typeof prize) => { let w = 0; for (let i = 0; i < 300; i++) if (runRace(a!, st().day, `t${i}`).place === 1) w++; return w; };
+const bag = { ...prize!, breed: 'maghrabi', prize: undefined, miles: 0 };
+ok(wins(prize) > wins(bag) + 30, `a prize Bishari wins ${wins(prize)} of 300, a Maghrabi baggage camel ${wins(bag)}`);
+at('cairo');
+const c3 = st().cash;
+st().sellAnimal(prize!.id);
+ok(st().cash - c3 > BREEDS.bishari.price, `a notable's groom pays ${st().cash - c3} pt for her in Cairo`);
+
 console.log(fails ? `${fails} FAILED` : 'ALL OK');
 process.exit(fails ? 1 : 0);
