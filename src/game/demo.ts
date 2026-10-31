@@ -14,7 +14,8 @@ import type { GameState } from './state/store';
 /** the store page, until the app ID is known */
 export const STEAM_URL = 'https://store.steampowered.com/app/0000000/Threads_of_Fortune/';
 
-const fromBuild = (() => { try { return (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_DEMO === '1'; } catch { return false; } })();
+// written out in full so Vite replaces it at build time; under tsx import.meta.env is missing and this throws
+const fromBuild = (() => { try { return import.meta.env.VITE_DEMO === '1'; } catch { return false; } })();
 const fromUrl = (() => {
   try {
     if (typeof window === 'undefined') return false;

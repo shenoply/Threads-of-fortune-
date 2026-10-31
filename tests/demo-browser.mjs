@@ -12,8 +12,10 @@ const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) fails
 const has = (id) => p.locator(`[data-testid=${id}]`).count();
 const save = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of-fortune-save')).state);
 try {
-  await p.goto(`http://localhost:${PORT}/?demo=1`);
-  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('tof-demo', '1'); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-films-once', '1'); });
+  // BUILD=1: the server is itself the demo (vite --mode demo or the demo build): do not switch it on by address
+  const BUILD = process.env.BUILD === '1';
+  await p.goto(`http://localhost:${PORT}/${BUILD ? '' : '?demo=1'}`);
+  await p.evaluate((build) => { localStorage.clear(); if (!build) localStorage.setItem('tof-demo', '1'); localStorage.setItem('tof-intro-seen-v2', '1'); localStorage.setItem('tof-films-once', '1'); }, BUILD);
   await p.reload(); await p.waitForSelector('[data-testid=title]');
   ok(await has('demo-badge'), 'the title says Demo');
   ok(!(await has('open-sandbox')) && (await has('open-sandbox-later')), 'Sandbox: in the full game');
