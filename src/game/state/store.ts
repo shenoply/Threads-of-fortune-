@@ -116,6 +116,7 @@ import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } fro
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
+import { DEMO, DEMO_MISSIONS } from '../demo';
 export const SAVE_VERSION = 32;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
@@ -156,6 +157,8 @@ export interface GameState {
   version: number;
   openingSeen: boolean;
   started: boolean;
+  /** begun in the Steam demo (game/demo.ts); the full game ignores it and plays the save on */
+  demo?: boolean;
   day: number;
   cash: number;
   reputation: number;
@@ -2033,7 +2036,8 @@ export const useGame = create<GameState & Actions>()(
           const missionStart = { ...(s.missionStart ?? {}) };
           let stats = s.stats ?? {};
           const nextId = MAIN_ORDER.find((id) => missions[id] !== 'done');
-          if (s.tutorial.done && nextId && !missions[nextId] && !MAIN_ORDER.some((id) => missions[id] === 'active')) {
+          // the Steam demo gives Rashid's errand only; the next missions wait for the full game
+          if (s.tutorial.done && nextId && !missions[nextId] && !MAIN_ORDER.some((id) => missions[id] === 'active') && (!DEMO || DEMO_MISSIONS.includes(nextId))) {
             missions[nextId] = 'active';
             missionNews = nextId;
             missionStart[nextId] = day;
@@ -3540,7 +3544,7 @@ export const useGame = create<GameState & Actions>()(
           audio.stopMusic();
           audio.stopVoice();
           // the first morning opens on the lane: Samira is already on her way up to the stall
-          set({ started: true, openingSeen: true, world: { ...get().world, at: 'giza', hour: 7.4 } });
+          set({ started: true, openingSeen: true, ...(DEMO ? { demo: true } : {}), world: { ...get().world, at: 'giza', hour: 7.4 } });
         },
 
         markGuide: () => set({ guideSeen: true }),

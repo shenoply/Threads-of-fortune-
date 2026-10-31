@@ -1620,7 +1620,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <div className="lock-card" data-testid="lock-card">
               <div className="lock-head"><span className="lock-ico"><Icon name="lock" /></span><b>{L.title}</b><button className="lock-x" onClick={() => setLock(null)} aria-label="Close" data-testid="lock-close"><Icon name="x" /></button></div>
               <p>{L.line}</p>
-              <ul>{L.items.map((it) => <li key={it.text} className={it.done ? 'done' : ''}><span aria-hidden="true">{it.done ? <Icon name="check" /> : null}</span>{it.text}</li>)}</ul>
+              {L.items.length > 0 && <ul>{L.items.map((it) => <li key={it.text} className={it.done ? 'done' : ''}><span aria-hidden="true">{it.done ? <Icon name="check" /> : null}</span>{it.text}</li>)}</ul>}
               {L.opening && <p className="dim small">Or skip the opening from the bar at the top, and every city opens now.</p>}
             </div>
           );

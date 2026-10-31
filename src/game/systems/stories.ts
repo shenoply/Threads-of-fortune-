@@ -14,6 +14,7 @@ import { dateFor } from '../economy/economy';
 import { post } from './post';
 import { SETTLEMENTS } from '../../data/world';
 import { HOUSE, housesOf, freshHouses, COURT_DAYS, TRUCE_DAYS } from './houses';
+import { DEMO, DEMO_STORY, DEMO_STORY_DAY } from '../demo';
 import { remember, forget, type Mem } from './memory';
 import { ARCS, type Arc, type Beat, type Ctx } from '../../data/stories';
 
@@ -296,8 +297,10 @@ export function storiesNight(s: GameState, day: number): { patch: Partial<GameSt
   }
   // a new tale
   const on = ARCS.filter((a) => st.runs[a.id]?.status === 'on').length;
-  if (on < MAX_ON && day - st.lastStart >= START_GAP) {
-    const next = ARCS.find((a) => !st.runs[a.id] && a.unlock(cur(), day));
+  // the Steam demo tells one tale, the Mamluk carpet in the Muski, from its fifth day (game/demo.ts)
+  const due = DEMO ? !st.runs[DEMO_STORY] && day >= DEMO_STORY_DAY : on < MAX_ON && day - st.lastStart >= START_GAP;
+  if (due) {
+    const next = DEMO ? arcOf(DEMO_STORY) : ARCS.find((a) => !st.runs[a.id] && a.unlock(cur(), day));
     if (next) {
       st = startRun(st, next.id, day);
       const d = deliver(cur(), st, next, st.runs[next.id], day, notes);

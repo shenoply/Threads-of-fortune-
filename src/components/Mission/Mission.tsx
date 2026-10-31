@@ -17,6 +17,7 @@ import { HouseEnding } from './HouseEnding';
 import './mission-scene.css';
 import { countdown, firstDue, dueDate } from '../../game/firstWeek';
 import { fmt } from '../../game/economy/money';
+import { DEMO, DEMO_DAYS } from '../../game/demo';
 
 /** Rashid's first-week instalment, as a short countdown at the end of the objective line; a tap opens his
  *  page at your father's debt. Nothing once it is paid. */
@@ -278,6 +279,16 @@ export function ObjectiveBar({ onGo, firstHour, onMenu }: { onGo: (target?: stri
         <div className="ob-row">
           <span className="ob-text"><span className="ob-eye"><small>Objective</small><WeekDue onGo={onGo} /></span><b>{short ? `Sell rugs: Rashid wants ${fmt(g.dueOwed)} by ${dueDate(g.dueBy)}.` : `Pay Rashid ${fmt(g.dueOwed)} at his warehouse.`}</b></span>
           {!(short && sheetUp) && <button className="btn ob-btn" onClick={() => onGo(short ? 'stall' : 'supplier')} data-testid="week-go">{short ? 'Your stall' : 'Go to Rashid'}</button>}
+        </div>
+      </div>
+    );
+  }
+  // the Steam demo, once the errand is done and nothing else is in hand: how long it runs, in one line
+  if (DEMO) {
+    return (
+      <div className="objective-bar" data-testid="demo-bar">
+        <div className="ob-row">
+          <span className="ob-text"><span className="ob-eye"><small>Demo</small></span><b>{`Trade in Giza, Cairo and Alexandria until ${dateFor(DEMO_DAYS).short}.`}</b></span>
         </div>
       </div>
     );

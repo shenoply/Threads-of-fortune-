@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-preview/
+dist-demo/
 test-results/
 tools/.*.mjs
 tests/sim/.sim.mjs

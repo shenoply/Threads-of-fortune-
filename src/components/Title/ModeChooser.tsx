@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { slotLabel, type SlotInfo } from '../../game/state/slots';
 import '../Sandbox/sandbox.css';
+import { DEMO } from '../../game/demo';
 import './ModeChooser.css';
 import '../SaveGuard.css';
 
@@ -64,9 +65,10 @@ export function ModeChooser({ current, slots, first, onStart: start, onBackup, o
                     <summary>What changes?</summary>
                     <ul>{x.points.map((p) => <li key={p}>{p}</li>)}</ul>
                   </details>
+                  {DEMO && x.id === 'sandbox' ? <button className="btn" disabled data-testid="start-sandbox-later">In the full game</button> : (
                   <button className={`btn ${x.id === primary ? 'primary' : ''}`} onClick={() => (current ? choose(x.id) : onStart(x.id, null, sim))} data-testid={`start-${x.id}`}>
                     {label(x.id)}
-                  </button>
+                  </button>)}
                 </div>
               ))}
               <details className="mc-sim">

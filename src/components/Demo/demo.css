@@ -1,0 +1,21 @@
+/* The Steam demo's closing card (DemoEnd.tsx): a full-screen page over the game, like the night's summary. */
+.demo-end { position: fixed; inset: 0; z-index: 60; overflow-y: auto; background: #0b0704; animation: fade 0.5s ease; }
+.demo-end .de-bg { position: fixed; inset: 0; background-size: cover; background-position: 50% 40%; opacity: 0.32; filter: sepia(0.35) brightness(0.8); }
+.demo-end .de-card { position: relative; max-width: 640px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) 16px calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--parchment); }
+.demo-end .de-eye { font-family: var(--label); font-size: 14px; letter-spacing: 0.14em; color: var(--text-dim); }
+.demo-end h1 { font-family: var(--display); font-weight: 500; font-size: clamp(26px, 7vw, 38px); line-height: 1.1; color: var(--brass-hi); margin: 6px 0 12px; }
+.demo-end h2 { font-family: var(--display); font-weight: 500; font-size: 19px; color: var(--brass-hi); margin: 22px 0 8px; padding-top: 14px; border-top: 1px solid var(--quiet-line); }
+.demo-end .de-lead { font-style: italic; font-size: 17px; line-height: 1.45; margin: 0 0 12px; }
+.demo-end ul { margin: 0; padding: 0; list-style: none; }
+.demo-end li { position: relative; padding: 5px 0 5px 22px; font-size: 16px; line-height: 1.4; }
+.demo-end .de-done li::before { content: ''; position: absolute; left: 4px; top: 0.95em; width: 8px; height: 8px; transform: rotate(45deg); background: var(--k-gold); }
+.demo-end .de-ahead li::before { content: ''; position: absolute; left: 4px; top: 0.95em; width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid var(--k-terra); }
+.demo-end .de-carry { margin: 18px 0 0; font-size: 15px; color: var(--text-dim); }
+.demo-end .de-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.demo-end .de-btns .btn { min-height: 48px; font-size: 16px; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.demo-end .de-wish { font-size: 17px; }
+@media (min-width: 900px) {
+  .demo-end .de-card { padding-top: 56px; }
+  .demo-end .de-btns { flex-direction: row; flex-wrap: wrap; }
+  .demo-end .de-btns .btn { flex: 1 1 180px; }
+}

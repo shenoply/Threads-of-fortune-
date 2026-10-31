@@ -5,6 +5,7 @@ import type { GameState } from './state/store';
 import { isPersian } from '../data/persiaMap';
 import { persiaOpen, persiaWhy, shopTowns } from './unlocks';
 import { fmt as fmtP } from './economy/money';
+import { DEMO, demoTown } from './demo';
 
 export const OPENING_TIP = 'first-hour'; // the old first-hour hint's id: dismissing either skips both
 /** Settings' "Skip the lessons" and "Show the lessons again", kept in tipsSeen */
@@ -94,13 +95,18 @@ export const openingDone = (s: S) => openingStep(s) === null;
 export function cityLocked(s: S, id: string): boolean {
   // Persia, whatever the opening: shops in three cities and a Persian visa (unlocks.ts)
   if (isPersian(id) && !persiaOpen(s)) return true;
+  // the Steam demo keeps to Giza, Cairo and Alexandria (game/demo.ts)
+  if (DEMO && !demoTown(id)) return true;
   const cur = openingStep(s);
   if (!cur) return false;
   if (id === 'giza' || id === 'cairo') return false;
   if (id === 'alexandria') return cur.n < OPENING.findIndex((x) => x.id === 'bandits');
   return true;
 }
+/** the demo's line on a town it keeps closed */
+const DEMO_LINE = 'This demo keeps to Giza, Cairo and Alexandria. In the full game the road runs on to Palestine, Syria, Iraq and Persia, from 1925 to 1930.';
 export function lockedWhy(s: S, id: string): string {
+  if (DEMO && !demoTown(id)) return `In the full game. ${DEMO_LINE}`;
   if (isPersian(id) && !persiaOpen(s)) return persiaWhy(s);
   if (id === 'alexandria') return 'Alexandria opens once you have a guard and have reached Cairo.';
   return 'Opens once the opening is done (Rashid\'s errand in Alexandria). You can skip the opening in the objective bar.';
@@ -110,6 +116,7 @@ export function lockedWhy(s: S, id: string): string {
  *  tapped on the map. `opening` says the opening can be skipped to open it now. */
 export interface LockNeeds { title: string; line: string; items: { text: string; done: boolean }[]; opening?: boolean }
 export function lockNeeds(s: S, id: string | null, name: string): LockNeeds {
+  if (DEMO && (!id || !demoTown(id))) return { title: `${id ? name : 'Persia'}: in the full game`, line: DEMO_LINE, items: [] };
   if (!id || isPersian(id)) {
     const shops = shopTowns(s);
     const others = shops.filter((t) => t !== 'baghdad').length;

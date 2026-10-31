@@ -11,6 +11,7 @@ import { venuesIn } from '../data/entertainment';
 import { eyeOf, flawNotes } from './systems/fakes';
 import { BOY_OFFERED } from './systems/stallNight';
 import { settlementById } from './systems/world';
+import { DEMO, FULL_GAME } from './demo';
 
 type S = GameState;
 export type Sys = 'caravan' | 'abroad' | 'auction' | 'bank' | 'cabaret' | 'lab' | 'clinic' | 'boy' | 'looms' | 'garage';
@@ -104,12 +105,18 @@ export const UNLOCKS: Record<Sys, Rule> = {
   },
 };
 export const SYSTEMS = Object.keys(UNLOCKS) as Sys[];
+/** closed in the Steam demo (game/demo.ts): ships and frontiers, the Kerdasa looms, the motor garages */
+export const DEMO_SHUT: Sys[] = ['abroad', 'looms', 'garage'];
+const demoShut = (k: Sys) => DEMO && DEMO_SHUT.includes(k);
+/** the line where a dimmed thing stands in for it */
+export const laterOf = (k: Sys) => (demoShut(k) ? FULL_GAME : UNLOCKS[k].later);
 
 /** everything is open: the opening was skipped (or the test switch, or Sandbox), or an older save under way */
 export const allOpen = (s: S) => openingSkipped(s) || (s.tipsSeen ?? []).includes(ALL_OPEN);
 
 /** is this part of the game shown yet? */
 export function isOpen(s: S, k: Sys): boolean {
+  if (demoShut(k)) return false;
   return allOpen(s) || (s.tipsSeen ?? []).includes(mark(k)) || UNLOCKS[k].when(s);
 }
 
@@ -117,7 +124,7 @@ export function isOpen(s: S, k: Sys): boolean {
 export function newlyOpen(s: S): { k: Sys; mark: string; line: string }[] {
   if (!s.started || allOpen(s)) return [];
   const seen = s.tipsSeen ?? [];
-  return SYSTEMS.filter((k) => !seen.includes(mark(k)) && UNLOCKS[k].when(s)).map((k) => ({ k, mark: mark(k), line: UNLOCKS[k].line(s) }));
+  return SYSTEMS.filter((k) => !demoShut(k) && !seen.includes(mark(k)) && UNLOCKS[k].when(s)).map((k) => ({ k, mark: mark(k), line: UNLOCKS[k].line(s) }));
 }
 
 /** For the save migration: an older save under way sees everything, as it did; one on its first days

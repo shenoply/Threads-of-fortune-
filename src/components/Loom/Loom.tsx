@@ -19,7 +19,7 @@ import { BORDER, FIELD, GUARD, KNOTS, LAYOUT, MEDALLION, PALETTES, SIZES, WOOL }
 import { reveal } from '../Reveal/Reveal';
 import { Icon } from '../Icon';
 import { RUGS } from '../../data/rugs';
-import { isOpen, UNLOCKS } from '../../game/unlocks';
+import { isOpen, laterOf } from '../../game/unlocks';
 import './loom.css';
 
 type Step = 'size' | 'layout' | 'colours' | 'field' | 'centre' | 'border' | 'wool';
@@ -258,7 +258,7 @@ export function LoomButton() {
   const g = useGame();
   const ready = (g.loom?.weaving ?? []).some((w) => g.day >= w.ready);
   // the weavers of Kerdasa come into the game at their moment (game/unlocks.ts): until then, say when
-  if (!isOpen(g, 'looms')) return <p className="stock-later" data-testid="stock-loom-later"><b>Design a carpet</b> {UNLOCKS.looms.later}</p>;
+  if (!isOpen(g, 'looms')) return <p className="stock-later" data-testid="stock-loom-later"><b>Design a carpet</b> {laterOf('looms')}</p>;
   return (
     <>
       <button className={`btn ${ready ? 'primary' : ''}`} onClick={() => { audio.sfx('tap'); setOpen(true); }} data-testid="stock-loom">{ready ? 'The weaver · ready' : 'Design a carpet'}</button>

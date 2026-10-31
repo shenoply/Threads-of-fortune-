@@ -1,6 +1,8 @@
 import { openFoldNext } from './components/Fold/Fold';
 import { TesterEntry } from './components/Settings/TesterEntry';
 import { installTesterHook } from './game/testerHook';
+import { DEMO } from './game/demo';
+import { DemoEnd } from './components/Demo/DemoEnd';
 installTesterHook();
 import { EncyclopediaHost } from './components/Folk/Encyclopedia';
 import { recordPlayer } from './game/audio/recordPlayer';
@@ -843,7 +845,8 @@ export default function App() {
           <div className="eyebrow">GIZA · 1925</div>
           <h1>Threads of Fortune</h1>
           <div className="tag">A small stall. A wider world.</div>
-          {g.started && (
+          {DEMO && <div className="iron-badge demo-badge" data-testid="demo-badge">Demo · the first ten days</div>}
+          {g.started && !DEMO && (
             <div className="whatsnew" data-testid="whatsnew">
               <b>New · Royal courts</b>
               <span>Sell to the buyers of the royal households at Abdeen (Cairo), Ras el-Tin (Alexandria), Raghadan (Amman), the court in Baghdad and Çankaya (Angora). Look for the crown on the World map, then open the town's Royal Court card.</span>
@@ -868,7 +871,8 @@ export default function App() {
                   Play Campaign
                 </button>
                 <button className="ghost-btn iron-open" onClick={() => setChooser('ironman')} data-testid="open-ironman">☠ One life</button>
-                <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · free play</button>
+                {DEMO ? <button className="ghost-btn sbx-open" disabled title="In the full game." data-testid="open-sandbox-later">Sandbox · in the full game</button>
+                  : <button className="ghost-btn sbx-open" onClick={() => setSbx('choose')} data-testid="open-sandbox">Sandbox · free play</button>}
                 <button className="ghost-btn sbx-open" onClick={() => window.dispatchEvent(new CustomEvent('tof:dream', { detail: 'play' }))} data-testid="open-carpet">The flying carpet</button>
               </>
             )}
@@ -1180,6 +1184,7 @@ export default function App() {
       </Suspense>
       {toastMsg && <SwipeAway key={toastMsg} className="toast" role="status" onClick={() => setToast('')} onGone={() => setToast('')} data-testid="toast">{toastMsg}</SwipeAway>}
       {phase === 'game' && <UnlockNotice />}
+      {phase === 'game' && DEMO && <DemoEnd onSave={downloadSave} />}
       {guardUi}
     </div>
   );
