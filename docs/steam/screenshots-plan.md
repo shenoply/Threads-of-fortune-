@@ -6,8 +6,9 @@ beside the trailer at the top of the page and in the hover preview, so they carr
 ten, in this order. They must be real gameplay (no mock-ups, no text laid over them), and nothing
 shown may be missing from the build that ships.
 
-Captured now with `tools/steam-shots.mjs` (stages each state with the tester's sheet and the tester hook,
-writes JPEGs under 1 MB): `docs/steam/shots/`. Re-run it once the PC layout lands:
+Captured with `tools/steam-shots.mjs` (stages each state with the tester's sheet and the tester hook,
+writes JPEGs under 1 MB) into `docs/steam/shots/`, with the PC layout in (commit 5e02f9d). Re-run it after
+any change to these screens:
 
 ```
 npx vite --port 5196
@@ -17,17 +18,17 @@ PORT=5196 node --import ./tests/_nohmr.mjs tools/steam-shots.mjs 03 07      # on
 
 ## The ten
 
-| Order | Shot | Screen and state | File now | Needs the wide layout? |
+| Order | Shot | Screen and state | File now | State with the PC layout |
 |---|---|---|---|---|
-| 1 | **The stall, a buyer at the counter** | Day one, Samira at the counter, her line about her receiving room, the rugs in the strip | `02-stall-buyer.jpg` | **Yes.** The scene and the panel sit in a centred phone column with dark side bars. |
-| 2 | **Haggling** | The price dial with an asking price set, a rug on the counter | `03-haggle.jpg` | **Yes**, as 1. |
-| 3 | **The road fight** | "Even odds" from the tester's sheet: the robbers' card, both sides' strength, the choices | `07-road-fight.jpg` | Mostly fine: full-width background, centred column of choices. Better with the battle field itself (press "Lead the fight" and capture mid-fight). |
-| 4 | **The world map, a journey planned** | Giza, Alexandria selected, train and walking options | `05-world-map.jpg` | **Yes.** The map is framed in a column; the wide layout should give it the full screen. Hide the objective bar for the shot. |
+| 1 | **The stall, a buyer at the counter** | Day one, Samira at the counter, her line about her receiving room, the rugs in the strip | `02-stall-buyer.jpg` | Good: the scene beside the talk so far. Drop the "Skip the lesson" chip (play past the lesson first). |
+| 2 | **Haggling** | The price dial with an asking price set, a rug on the counter | `03-haggle.jpg` | Good: the price strip under the talk. Same chip to lose. |
+| 3 | **The road fight** | "Even odds" from the tester's sheet: the robbers' card, both sides' strength, the choices | `07-road-fight.jpg` | Fine, but the choices stay a centred column. Better: press "Lead the fight" and capture the battle field mid-fight. |
+| 4 | **The world map, a journey planned** | Giza, Alexandria selected, train and walking options | `05-world-map.jpg` | Good: full-width map, trip panel at the right. Hide the objective bar for the shot. |
 | 5 | **Cairo from above** | Arriving in Cairo: the town painting and its menu | `06-town-cairo.jpg` | Fine as it is (full-width painting). |
-| 6 | **Uncle Rashid** | Rashid's first-meeting film, with its caption | `08-rashid.jpg` | Fine. It is a film still: for a gameplay shot, capture his warehouse page after the film instead (stock, his credit, your father's debt). |
-| 7 | **Giza district** | The district map with its places marked (stall, coffee house, Rashid, guard yard) | `04-giza-district.jpg` | **Yes**, as 4. |
-| 8 | **Bilgin's coffee house** | The café room from above, the tables, Bilgin | `11-coffee-house.jpg` | Partly: the room is a portrait painting with blurred side fill. Fine on Steam; better if the wide layout puts the talk panel beside it. |
-| 9 | **A story** | The Mamluk carpet story's first letter, with its three choices (tester's sheet: Stories, Begin) | `09-story.jpg` | **Yes.** Narrow column of text on a wide screen; reads small. |
+| 6 | **Uncle Rashid** | His warehouse page: today's stock, your father's debt, the sealed bale | `08-rashid.jpg` | Usable; text-heavy. His first-meeting film (one frame with its caption) is the prettier alternative. |
+| 7 | **Giza district** | The district map with its places marked (stall, coffee house, Rashid, guard yard) | `04-giza-district.jpg` | Good: full-width district painting. |
+| 8 | **Bilgin's coffee house** | The café room from above, the tables, Bilgin | `11-coffee-house.jpg` | The room is a portrait painting with blurred side fill: acceptable; better with Bilgin's talk open beside it. |
+| 9 | **A story** | The Mamluk carpet story's first letter, with its three choices (tester's sheet: Stories, Begin) | `09-story.jpg` | Weak: the Stories list is text on a wide dark page and reads small. Replace with the story's letter opened full size if a reader view exists, or drop it for a spare. |
 | 10 | **Persia** | Kermanshah, the first town over the Zagros (tester's sheet: Persia) | `12-persia.jpg` | Fine (full-width painting). |
 
 Spares, captured too:

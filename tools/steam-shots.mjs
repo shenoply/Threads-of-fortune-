@@ -19,7 +19,7 @@ const has = async (id) => (await p.locator(`[data-testid="${id}"]`).count()) > 0
 const waitId = (id, ms = 8000) => p.waitForSelector(`[data-testid="${id}"]`, { timeout: ms }).then(() => true).catch(() => false);
 const idle = async () => { for (let i = 0; i < 60; i++) { if (!(await p.locator('.skip-hint').count())) return; await p.waitForTimeout(250); } };
 const clearCards = async () => { for (const id of ['day-summary-ok', 'mission-ok', 'big-news-ok']) { const x = p.locator(`[data-testid=${id}]`); if (await x.count()) await x.first().click({ timeout: 1500 }).catch(() => {}); } };
-const fresh = async () => { await p.reload(); if (await waitId('continue', 15000)) await p.click('[data-testid=continue]'); await waitId('nav-map', 15000); await p.waitForTimeout(800); await clearCards(); };
+const fresh = async () => { await p.reload({ timeout: 60000 }); if (await waitId('continue', 15000)) await p.click('[data-testid=continue]'); await waitId('nav-map', 15000); await p.waitForTimeout(800); await clearCards(); };
 const openSheet = async () => { await clearCards(); await p.click('[data-testid=settings-btn]'); await p.locator('[data-testid=admin-open]').scrollIntoViewIfNeeded(); await p.click('[data-testid=admin-open]'); return waitId('admin-sheet', 5000); };
 const press = async (sec, btn, settle = 2000) => {
   if (!(await has('admin-sheet'))) await openSheet();
