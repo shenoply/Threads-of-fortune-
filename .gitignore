@@ -16,3 +16,5 @@ tests/sim/.sim.mjs
 voice-src/
 __pycache__/
 .claude/
+dist-pc/
+release/

@@ -25,6 +25,21 @@ try{new PerformanceObserver(function(l){check(l.getEntries());}).observe({type:'
     return html.replace('</head>', `  ${boot}\n</head>`);
   } },
 });
+// The desktop app's build (`npm run build:pc`, desktop/, docs/PC-BUILD.md): `vite build --mode pc` must work
+// with no network, so the Google Fonts link becomes the copy kept in public/fonts/, and the web app's
+// manifest and connection warm-ups go.
+let buildMode = '';
+const pcBuild = (): Plugin => ({
+  name: 'pc-build', apply: 'build',
+  configResolved(c) { buildMode = c.mode; },
+  transformIndexHtml(html) {
+    if (buildMode !== 'pc') return html;
+    return html
+      .replace(/\s*<link rel="preconnect"[^>]*>/g, '')
+      .replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="./fonts/fonts.css" />')
+      .replace(/\s*<link rel="manifest"[^>]*>/, '');
+  },
+});
 // the modules loaded with the entry: reachable from it through static imports only (worked out once per build)
 type Meta = { getModuleIds: () => IterableIterator<string>; getModuleInfo: (id: string) => { isEntry: boolean; importedIds: readonly string[] } | null };
 let startup: Set<string> | null = null;
@@ -43,7 +58,7 @@ function atStartup(id: string, meta: Meta): boolean {
 }
 export default defineConfig({
   base: './',
-  plugins: [react(), quickStart(), { name: 'startup-set', buildStart() { startup = null; } }],
+  plugins: [react(), quickStart(), pcBuild(), { name: 'startup-set', buildStart() { startup = null; } }],
   build: {
     outDir: 'dist', assetsInlineLimit: 0,
     // fetch the code, data and library files side by side, not one after the other
