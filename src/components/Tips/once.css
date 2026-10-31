@@ -20,4 +20,6 @@
 /* the control a hint is about */
 .hint-point { outline: 2px solid #ffc85a !important; outline-offset: 2px; }
 /* in a full-screen card or fight (no bottom bar there): at the top, over the heading, clear of the choices */
-.hint[role=note].in-card { z-index: 95; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 8px); }
+.hint[role=note].in-card { z-index: 95; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 112px; margin: 0; }
+/* inside a card the hint keeps clear of the card's own Done or Close at the top right */
+.hint[role=note].in-card p { font-size: 14px; }
