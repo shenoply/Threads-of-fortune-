@@ -20,6 +20,8 @@ export interface EpithetCtx {
   whereabouts?: Record<number, string>;
   knotTally?: { close?: number };
   missions?: Record<string, string>;
+  /** what the bazaar remembers of your stories (systems/stories.ts) */
+  stories?: { marks?: string[] };
 }
 
 export interface EpithetDef {
@@ -47,6 +49,7 @@ const towns = (s: EpithetCtx) => new Set(Object.values(s.whereabouts ?? {}).filt
 /** bandit chiefs you have taken alive: each jailed man is replaced by the next of his band (gen) */
 export const chiefsTaken = (s: EpithetCtx) => Object.values(s.combat?.leaders ?? {}).reduce((a, l) => a + (l.gen ?? 0) + (l.status === 'free' ? 0 : 1), 0);
 const reached = (p: [number, number]) => p[0] >= p[1];
+const mk = (s: EpithetCtx, m: string) => !!s.stories?.marks?.includes(m);
 
 export const EPITHETS: EpithetDef[] = [
   { id: 'sadiq', name: 'al-Sadiq', gloss: 'the Truthful', emblem: 'scales', against: 'fahlawi', how: 'Deal straight until you are known as honest (Honesty 40).',
@@ -75,6 +78,15 @@ export const EPITHETS: EpithetDef[] = [
     progress: (s) => [towns(s), 10], test: (s) => towns(s) >= 10 },
   { id: 'khabir', name: 'al-Khabir', gloss: 'the Knowing Eye', emblem: 'eye', how: 'Reach Appraisal 8, or count twelve rugs\' knots close.',
     progress: (s) => [Math.max(Math.min(lv(s, 'appraisal'), 8) * 1.5, s.knotTally?.close ?? 0), 12], test: (s) => lv(s, 'appraisal') >= 8 || (s.knotTally?.close ?? 0) >= 12 },
+  // won in the stories (data/stories.ts)
+  { id: 'amin', name: 'al-Amin', gloss: 'the Trustworthy', emblem: 'anchor', against: 'muharrib', how: 'Expose a forgery, or give a smuggler to the Coastguard.',
+    progress: (s) => [mk(s, 'exposed') || mk(s, 'informed') ? 1 : 0, 1], test: (s) => mk(s, 'exposed') || mk(s, 'informed') },
+  { id: 'muharrib', name: 'al-Muharrib', gloss: 'the Smuggler', emblem: 'lock', against: 'amin', how: 'Carry two sealed bales past the Coastguard.',
+    progress: (s) => [mk(s, 'smuggled') ? 1 : 0, 1], test: (s) => mk(s, 'smuggled') },
+  { id: 'allama', name: "al-'Allama", gloss: 'the Learned', emblem: 'arch', how: 'Find a museum a carpet that is truly what it seems.',
+    progress: (s) => [mk(s, 'museum') ? 1 : 0, 1], test: (s) => mk(s, 'museum') },
+  { id: 'shaykh', name: 'Shaykh al-Tujjar', gloss: 'Elder of the Merchants', emblem: 'gate', how: 'Take on an old house of the trade, and keep its name.',
+    progress: (s) => [mk(s, 'antaki') ? 1 : 0, 1], test: (s) => mk(s, 'antaki') },
   { id: 'usul', name: 'Ibn Usul', gloss: 'Son of Good Stock', emblem: 'palm', how: "Pay off your father's debt to Rashid.",
     progress: (s) => [s.missions?.['ms-debt'] === 'done' ? 1 : 0, 1], test: (s) => s.missions?.['ms-debt'] === 'done' },
 ];

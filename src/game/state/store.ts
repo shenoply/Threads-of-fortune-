@@ -1,6 +1,8 @@
 import { weekGoalNight, type WeekGoal } from '../systems/weekGoal';
 import { omensNight, WATCH_COST, type Omen } from '../systems/omens';
 import { rivalNight, type LaneRival } from '../systems/laneRival';
+import { storiesNight, storyChoose, freshStories, type StoriesState } from '../systems/stories';
+import { afterVisit, friendFor, isShe, remember } from '../systems/memory';
 import { housesNight, houseCounter, syncHouseFx, freshHouses, type HousesState, type CounterKind } from '../systems/houses';
 import { houseAsk, houseThin, houseBid } from '../systems/houseFx';
 import { PERSIA_IDS, isPersian } from '../../data/persiaMap';
@@ -113,7 +115,7 @@ import { baleFreeIn, BALE_PRICE, openBale, type BaleResult, type BaleState } fro
 import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSHOP_PRICE, type Design } from '../loom/design';
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
-export const SAVE_VERSION = 31;
+export const SAVE_VERSION = 32;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -422,6 +424,8 @@ export interface GameState {
   lane?: LaneRival;
   /** the rival houses: purses, stock, moves against you and your answers (systems/houses.ts; save 30) */
   houses?: HousesState;
+  /** the stories: tales over weeks, their beats and your choices (systems/stories.ts; save 31) */
+  stories?: StoriesState;
   /** a warned danger (systems/omens.ts) */
   omen?: Omen;
   /** this week's target from Rashid (systems/weekGoal.ts) */
@@ -522,6 +526,8 @@ interface Actions {
   sellLocal: (uid: string, sid: string) => number;
   /** answer a rival house (systems/houses.ts): returns what happened, in a line */
   houseAct: (kind: CounterKind, id: string, arg?: string) => string;
+  /** answer a beat of a story (systems/stories.ts): returns what happened, in a line */
+  storyAct: (arc: string, choice: string) => string;
   buyLocal: (sid: string, key: string) => string;
   partyChoice: (partyId: string, choice: string) => string;
   /** bandits stop you and you cannot pay: one of ten things happens instead; returns what did */
@@ -1438,6 +1444,20 @@ export const useGame = create<GameState & Actions>()(
         }
         // everything they said this visit, so next time they pick other words where they have them
         rel.lastLines = [...new Set(enc.log.filter((l) => l.speaker === 'buyer').map((l) => l.text))].slice(-30);
+        // what they will remember of this visit (systems/memory.ts), and a friend sent by a pleased regular
+        let relM = afterVisit(rel, { sold: enc.outcome === 'sold' && !!enc.salePrice, rug: enc.presented ? s.inventory.find((i) => i.uid === enc.presented)?.typeId : undefined, fair: enc.outcome === 'sold' ? rel.lastFair : undefined,
+          honest: (enc.disclosed?.length ?? 0) > 0, kind: !!enc.kindShown || (enc.concession && enc.outcome === 'sold'), liedCaught: !!enc.embellishCaught, insulted: !!enc.insulted, newsTold: enc.lifeTold }, s.day);
+        const friendRels = { ...s.relationships, [enc.buyerId]: relM };
+        const friend = !enc.venue && !enc.tutorial && enc.outcome === 'sold' && !b.royal ? friendFor(enc.buyerId, friendRels, rep, s.day, rng()) : undefined;
+        let friendRel: Record<string, Relationship> = {};
+        if (friend) {
+          relM = { ...relM, sentDay: s.day };
+          friendRel = { [friend]: { ...(s.relationships[friend] ?? emptyRel()), friendOf: enc.buyerId } };
+          patch.appointments = [...(patch.appointments ?? s.appointments ?? []), { buyerId: friend, day: s.day + 1 + Math.floor(rng() * 3), venue: 'friend' }];
+          journal.push({ day: s.day, text: `${b.name} is sending a friend to your stall: ${BUYERS[friend].name}. Expect them in a day or two.` });
+          enc.log.push({ speaker: 'buyer', text: `I shall send ${BUYERS[friend].name} to you. Treat ${isShe(friend) ? 'her' : 'him'} as you treated me.`, mood: 'pleased' });
+        }
+        Object.assign(rel, relM);
         if (enc.buyerId === 'cohen') {
           const c = s.cohen ?? COHEN_START;
           let order = c.order;
@@ -1519,7 +1539,7 @@ export const useGame = create<GameState & Actions>()(
           dayStats: stats,
           commissions,
           goals,
-          relationships: { ...s.relationships, [enc.buyerId]: rel },
+          relationships: { ...s.relationships, ...friendRel, [enc.buyerId]: rel },
         };
       };
 
@@ -1956,8 +1976,8 @@ export const useGame = create<GameState & Actions>()(
           // they come to the stall in Giza, so they wait for the first morning you are there to open it
           const atStall = s.world.at === 'giza';
           const due = (s.appointments ?? []).filter((a) => a.day <= day);
-          if (atStall) for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(a.venue === 'back' ? `${BUYERS[a.buyerId]?.name ?? 'A buyer'} is coming back to the stall today for another look.` : `${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
-          else for (const a of due) if (a.day === day && a.venue !== 'back') notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'the other night'} will call at your stall the first morning you are back in Giza.`);
+          if (atStall) for (const a of due) { queue = [a.buyerId, ...queue.filter((id) => id !== a.buyerId)]; notes.push(a.venue === 'back' ? `${BUYERS[a.buyerId]?.name ?? 'A buyer'} is coming back to the stall today for another look.` : a.venue === 'friend' ? `${BUYERS[a.buyerId]?.name ?? 'A new buyer'}, sent by ${BUYERS[s.relationships[a.buyerId]?.friendOf ?? '']?.name ?? 'a friend'}, is coming to the stall today.` : a.venue === 'story' ? `${BUYERS[a.buyerId]?.name ?? 'A new buyer'} is coming to the stall today.` : `${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'last night'} is coming to the stall today.`); }
+          else for (const a of due) if (a.day === day && !['back', 'friend', 'story'].includes(a.venue)) notes.push(`${BUYERS[a.buyerId]?.name ?? 'Your acquaintance'} from ${VENUES_1925[a.venue]?.name ?? 'the other night'} will call at your stall the first morning you are back in Giza.`);
           const appointments = (s.appointments ?? []).filter((a) => a.day > day || !atStall);
           // a small corner draws three or four buyers a day; a bigger stall draws more
           // Fridays are quiet, Thursdays and feast days busy
@@ -2086,7 +2106,7 @@ export const useGame = create<GameState & Actions>()(
           }
           nightAfter(s, patch, notes, pre.extra, rng, !!openingStep(s));
           // a buyer who found out about a dyed or aged rug comes back; summer moth in the bales
-          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, housesNight, omensNight, weekGoalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
+          for (const step of [resolveReturns, mothNight, ranksNight, rivalNight, housesNight, storiesNight, omensNight, weekGoalNight]) { const night = step({ ...s, ...patch } as GameState, day); Object.assign(patch, night.patch); notes.unshift(...night.notes); }
           // shops in other cities: on Mondays each agent sells for the week, takes his wage and writes
           if (dateFor(day).weekday === 'Monday' && Object.values(s.shops ?? {}).some((sh) => (sh.agent || sh.childAgent) && !sh.khan)) {
             const wk = shopsWeek(patch.shops ?? s.shops, day, patch.cash ?? cash, rng);
@@ -2927,6 +2947,12 @@ export const useGame = create<GameState & Actions>()(
           });
           const bill = onBill.charAt(0).toUpperCase() + onBill.slice(1);
           return `You take a table. ${bill} tonight.${meet ? ` At the next table sits ${BUYERS[meet].name}, who takes your card and promises to call at your stall in Giza the first morning you are there.` : ''}`;
+        },
+
+        storyAct: (arc, choice) => {
+          const r = storyChoose(get(), arc, choice);
+          if (Object.keys(r.patch).length) { set(r.patch); audio.sfx('coins'); }
+          return r.msg;
         },
 
         houseAct: (kind, id, arg) => {
@@ -3993,8 +4019,11 @@ export const useGame = create<GameState & Actions>()(
           const it = s.inventory.find((i) => i.uid === uid);
           if (!it) return 'That rug is not in your stock.';
           if (!buyerId) {
-            set({ inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, reservedFor: undefined, reservedUntil: undefined } : i)) });
-            return `The ${RUGS[it.typeId].name} is back on the stall for anyone.`;
+            // taking back a rug promised to a buyer before the day you gave: they will hear of it
+            const was = heldFor(it, s.day);
+            const rel = was ? s.relationships[was] : undefined;
+            set({ inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, reservedFor: undefined, reservedUntil: undefined } : i)), ...(was && rel && was !== 'malek' ? { relationships: { ...s.relationships, [was]: remember(rel, { k: 'promise', day: s.day, rug: it.typeId }) } } : {}) });
+            return `The ${RUGS[it.typeId].name} is back on the stall for anyone.${was && rel ? ` ${BUYERS[was]?.name ?? 'They'} will hear you did not keep it for ${isShe(was) ? 'her' : 'him'}.` : ''}`;
           }
           const until = s.day + RESERVE_DAYS;
           set({ inventory: s.inventory.map((i) => (i.uid === uid ? { ...i, reservedFor: buyerId, reservedUntil: until } : i)) });
@@ -5452,6 +5481,9 @@ export const useGame = create<GameState & Actions>()(
         if (version < 31 && p.world?.party) p.world.party.herd = undefined;
         // save 30: the rival houses (systems/houses.ts) start trading the night after an older save loads
         if (version < 30 && p.started && !p.houses) p.houses = freshHouses(p.day ?? 1);
+        // save 32: the stories (systems/stories.ts) and buyers' memories (systems/memory.ts): an older game starts both empty,
+        // and the first tale may begin after a quiet fortnight
+        if (version < 32 && p.started && !p.stories) p.stories = freshStories(p.day ?? 1);
         // dominoes with the coffee-house regulars and knot counting arrived with save 24: an empty record of each
         if (version < 24) { p.dominoes = p.dominoes ?? {}; p.knotCounts = p.knotCounts ?? {}; p.knotTally = p.knotTally ?? { tries: 0, close: 0 }; }
         if (version < 19) { p.malek = p.malek ?? { ...MALEK_START }; p.parcels = p.parcels ?? []; }

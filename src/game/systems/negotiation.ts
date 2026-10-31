@@ -1,5 +1,6 @@
 import { WEAVERY_LINES } from '../../data/weaveryLines';
 import { HOUSE_FX } from './houseFx';
+import { arrival } from './memory';
 import { UNVOICED_SET } from '../../data/buyerLinesUnvoiced';
 import { demandFor } from '../economy/market';
 import { VOICE_COLOUR, HELLO, colourOf } from '../../data/voiceColour';
@@ -45,6 +46,12 @@ export interface ActionView {
 }
 
 export interface Encounter {
+  /** what they remember of you, said as they arrive (systems/memory.ts) */
+  memLine?: string;
+  /** the news of theirs told this visit (data/buyerLife.ts), to be kept as told */
+  lifeTold?: string;
+  /** a kindness shown at the counter: tea, or asking after the family when they like it */
+  kindShown?: boolean;
   /** a feast has buyers looking for one kind of rug (seasons.ts) */
   want?: { typeIds?: string[]; traits?: string[]; mult: number; label: string };
   /** Malek: the price was agreed but he was not convinced, so he did not buy */
@@ -547,6 +554,16 @@ export function startEncounter(buyerId: string, ctx: Ctx, displayed: string[], t
     const t = RUGS[onWall[(ctx.day ?? 0) % onWall.length].typeId];
     enc.log.push({ speaker: 'system', text: `${b.name.split(' ')[0]} looks up at the ${t?.name ?? 'carpet'} framed on your wall.` });
     enc.log.push({ speaker: 'seller', text: WEAVERY_LINES.admired[((ctx.day ?? 0) + rel.visits) % WEAVERY_LINES.admired.length] });
+  }
+  // what they remember of you, good and bad: one line as they come up, and their news if they have been away
+  if (!tutorial && !b.royal) {
+    const ar = arrival(buyerId, rel, ctx.day ?? 0);
+    if (ar.line) { enc.memLine = ar.line; enc.log.push({ speaker: 'narrator', text: ar.line }); }
+    if (ar.news) { enc.lifeTold = ar.news.k; enc.log.push({ speaker: 'buyer', text: ar.news.line, mood: 'neutral' }); }
+    enc.trust = clamp(enc.trust + ar.trust, 0, 100);
+    enc.patience = Math.max(10, enc.patience + ar.patience);
+    enc.interest = clamp(enc.interest + ar.interest, 0, 100);
+    if (ar.trust <= -6 && enc.mood === 'neutral') enc.mood = 'skeptical';
   }
   // a returning buyer does not forget being insulted or lied to: they arrive colder and thinner-skinned
   if (rel.visits > 0 && rel.bad > 0) {
@@ -1158,6 +1175,7 @@ export function doAction(enc: Encounter, ctx: Ctx, id: ActionId, price?: number)
       const skill = lvl(ctx, 'speech');
       if (r) buyerSay(enc, like >= 0 ? r.good : r.bad, like > 0 ? 'warm' : like < 0 ? 'skeptical' : 'neutral');
       else buyerSay(enc, pick(L.smallTalk, ctx.rng, av(enc, ctx)));
+      if (kind === 'kind' && like >= 0) enc.kindShown = true;
       if (like > 0) adjust(enc, { trust: 8 + Math.round(skill / 3), interest: 4, patience: kind === 'kind' ? 8 : 0 });
       else if (like === 0) adjust(enc, { trust: 2 + Math.round(skill / 5), patience: -3 });
       else adjust(enc, { trust: -6 + Math.round(skill / 5), patience: -6 });

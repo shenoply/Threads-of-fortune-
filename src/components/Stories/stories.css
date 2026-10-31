@@ -1,0 +1,38 @@
+/* The stories (Stories.tsx): a beat as a card, its choices as buttons; the list under Progress */
+.sto-cards { display: grid; gap: 10px; margin: 8px 0; }
+.sto-beat { padding: 12px; border-radius: 12px; background: linear-gradient(180deg, rgba(58, 36, 18, 0.92), rgba(28, 18, 10, 0.94)); box-shadow: inset 0 0 0 1px rgba(214, 164, 84, 0.45), 0 6px 18px rgba(0, 0, 0, 0.35); color: var(--text); text-align: left; }
+.sto-beat.bare { padding: 8px 0 0; background: none; box-shadow: none; }
+.sto-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.sto-face { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--parchment, #e9dcc0); border: 2px solid var(--brass, #c9a160); flex: none; }
+.sto-face img { width: 100%; height: 100%; object-fit: cover; }
+.sto-face b { font-family: var(--display); font-size: 22px; color: var(--ink, #2a1a0e); }
+.sto-head { display: flex; flex-direction: column; min-width: 0; }
+.sto-head small { font-family: var(--label); font-size: 12px; letter-spacing: 0.12em; color: #d9a24a; }
+.sto-head b { font-family: var(--display); font-weight: 500; font-size: 19px; line-height: 1.2; color: #fff0d2; }
+.sto-text { margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: #ecdcbc; }
+.sto-choices { display: grid; gap: 6px; margin-top: 10px; }
+.sto-choice { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; font-size: 15px; line-height: 1.25; padding: 8px 12px; white-space: normal; }
+.sto-choice small { font-size: 14px; color: #ffd27a; white-space: nowrap; }
+.sto-choice small.short { color: #f0a080; white-space: normal; text-align: right; }
+.sto-due { margin: 2px 0 0; font-size: 14px; color: var(--text-dim, #bba882); }
+.sto-msg { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.32); font-size: 15px; line-height: 1.4; color: #ffe1a0; }
+/* in a letter */
+.post-item .sto-beat.bare .sto-choices { margin-top: 6px; }
+/* the list under Progress */
+.fold.sto-fold { width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0; }
+.sto-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.sto-item { padding: 10px 12px; border-radius: 10px; background: rgba(28, 19, 11, 0.62); box-shadow: inset 0 0 0 1px rgba(214, 164, 84, 0.2); }
+.sto-item.done { opacity: 0.85; }
+.sto-item-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sto-item-head b { font-size: 16px; font-weight: 600; color: var(--text); }
+.sto-state { font-family: var(--label); font-size: 12px; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); color: var(--text-dim); white-space: nowrap; }
+.sto-state.now { color: #ffd27a; box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.5); }
+.sto-state.done { color: var(--good); }
+.sto-where { margin: 6px 0 0; font-size: 14px; line-height: 1.4; color: var(--text-dim); }
+.sto-item .sto-beat { margin-top: 8px; }
+.sto-picks { margin-top: 6px; }
+.sto-picks summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14px; color: var(--text-dim); }
+.sto-picks ol { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.4; color: var(--text); }
+.sto-picks small { font-family: var(--label); font-size: 12px; color: #c9a160; }
+/* on the town menu */
+.tm-body .sto-cards { margin: 6px 0 10px; }

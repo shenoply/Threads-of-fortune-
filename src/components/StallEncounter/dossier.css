@@ -42,3 +42,12 @@
 .know-buyer.seen { animation: none; opacity: .85; border-color: rgba(231,189,110,.4); }
 @keyframes know-bob { 50% { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 14px rgba(255,210,122,.4); } }
 @media (prefers-reduced-motion: reduce) { .know-buyer { animation: none; } }
+
+/* what they remember of you (systems/memory.ts) */
+.ds-mem { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ds-mem li { font-size: 14px; line-height: 1.35; padding: 5px 9px 5px 22px; border-radius: 7px; background: #1b130b; position: relative; color: #ecdcbc; }
+.ds-mem li::before { position: absolute; left: 8px; top: 5px; font-size: 13px; }
+.ds-mem li.good::before { content: '+'; color: #b9e08a; }
+.ds-mem li.bad::before { content: '\2212'; color: #f0a080; }
+.ds-mem li.news::before { content: '\2022'; color: #e6b552; }
+.ds-mem li.bad { color: #f3c8b8; }

@@ -32,6 +32,9 @@ import type { MerchantSub } from '../Merchant/Merchant';
 import type { RugItem } from '../../game/types';
 import { skipDays } from '../../game/testerHook';
 import { forceMove, housesOf } from '../../game/systems/houses';
+import { forceStory, pendingAll, storyList } from '../../game/systems/stories';
+import { ARCS } from '../../data/stories';
+import { remember } from '../../game/systems/memory';
 import './admin.css';
 
 type S = GameState;
@@ -134,6 +137,13 @@ async function toStall(nav: AdminNav) {
   set({ world: { ...S().world, hour: Math.max(8, Math.min(16, S().world.hour)) }, dayOver: false });
   nav.map({ view: 'district', stall: true });
   await taps(['day-summary-ok?', 'stall-wait', 'stall-wait?']);
+}
+/** the stall between buyers, where someone waits to speak to you (a story's beat) */
+async function toStallIdle(nav: AdminNav) {
+  if (S().world.at !== 'giza') teleport('giza');
+  set({ world: { ...S().world, hour: Math.max(8, Math.min(16, S().world.hour)) }, dayOver: false, encounter: null, held: null });
+  nav.map({ view: 'district', stall: true });
+  await taps(['day-summary-ok?']);
 }
 const home = (nav: AdminNav) => { const at = S().world.at; nav.map(at === 'giza' ? { view: 'district' } : at ? { view: 'world', panel: at } : { view: 'world' }); };
 
@@ -437,6 +447,58 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         return `${line} ${housesOf(S()).log.length - n0} things heard of the houses.`;
       } },
     ] },
+    { id: 'stories', title: 'Stories', gist: (() => { const l = storyList(g); const w = l.filter((x) => x.pending).length; return l.length ? `${l.length} begun${w ? `, ${w} waiting` : ''}` : 'none begun yet'; })(), acts: [
+      { label: 'Show the stories', testid: 'adm-st-show', run: async () => {
+        await leave(() => nav.merchant('collection'));
+        await openFold('stories-fold');
+        return 'The stories, under Progress.';
+      } },
+      ...ARCS.flatMap((a) => [
+        { label: `Begin: ${a.title}`, testid: `adm-st-start-${a.id}`, run: async () => {
+          pastOpening();
+          // the people a tale needs: Hasan and Yusuf known at the stall, money for the bigger choices
+          const s0 = S();
+          if (a.id === 'wedding') set({ relationships: { ...s0.relationships, hassan: s0.relationships.hassan?.visits ? s0.relationships.hassan : { visits: 2, purchases: 1, spent: 300, affinity: 10, bad: 0, lastLines: [] }, yusuf: s0.relationships.yusuf?.visits ? s0.relationships.yusuf : { visits: 2, purchases: 1, spent: 300, affinity: 10, bad: 0, lastLines: [] } } });
+          if (S().cash < 40000) set({ cash: 40000 });
+          const r = forceStory(S(), a.id, 'start');
+          set(r.patch);
+          const p = pendingAll(S()).find((x) => x.arc.id === a.id);
+          if (p?.beat.via === 'stall') await toStallIdle(nav);
+          else if (p?.beat.via === 'town') { const t = typeof p.beat.town === 'function' ? p.beat.town(p.c) : p.beat.town; if (t) { teleport(t); nav.map({ view: 'world', panel: t }); } }
+          else { await leave(() => nav.merchant('collection')); await openFold('stories-fold'); }
+          return r.text;
+        } },
+        { label: `Next beat: ${a.title}`, testid: `adm-st-next-${a.id}`, run: async () => {
+          pastOpening();
+          const r = forceStory(S(), a.id, 'advance');
+          set(r.patch);
+          const p = pendingAll(S()).find((x) => x.arc.id === a.id);
+          if (p?.beat.via === 'stall') await toStallIdle(nav);
+          else if (p?.beat.via === 'town') { const t = typeof p.beat.town === 'function' ? p.beat.town(p.c) : p.beat.town; if (t) { teleport(t); nav.map({ view: 'world', panel: t }); } }
+          else { await leave(() => nav.merchant('collection')); await openFold('stories-fold'); }
+          return r.text;
+        } },
+      ]),
+      { label: 'A regular comes back with news', testid: 'adm-mem-news', run: async () => {
+        pastOpening();
+        const s0 = S();
+        const sam = s0.relationships.samira ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] };
+        const rel = remember(remember({ ...sam, visits: Math.max(3, sam.visits), purchases: Math.max(3, sam.purchases), seen: s0.day - 90, lifeDay: undefined, life: [] }, { k: 'fair', day: s0.day - 90, rug: 'cairo-garden' }), { k: 'kind', day: s0.day - 120 });
+        if (S().world.at !== 'giza') teleport('giza');
+        set({ relationships: { ...s0.relationships, samira: rel }, queue: ['samira', ...S().queue.filter((q) => q !== 'samira')].slice(0, 4), visitIdx: 0, arrivals: [8, 10, 12, 14], encounter: null, held: null });
+        await toStall(nav);
+        return 'Samira, three months away, remembers a fair price and brings her news. Tap her card to see what she remembers.';
+      } },
+      { label: 'A buyer you lied to comes back', testid: 'adm-mem-lie', run: async () => {
+        pastOpening();
+        const s0 = S();
+        const y = s0.relationships.yusuf ?? { visits: 0, purchases: 0, spent: 0, affinity: 0, bad: 0, lastLines: [] };
+        if (S().world.at !== 'giza') teleport('giza');
+        set({ relationships: { ...s0.relationships, yusuf: remember({ ...y, visits: Math.max(2, y.visits), purchases: Math.max(1, y.purchases), seen: s0.day - 5 }, { k: 'lie', day: s0.day - 5 }) }, queue: ['yusuf', ...S().queue.filter((q) => q !== 'yusuf')].slice(0, 4), visitIdx: 0, arrivals: [8, 10, 12, 14], encounter: null, held: null });
+        await toStall(nav);
+        return 'Yusuf caught you in a tall story last week. He comes back wary.';
+      } },
+    ] },
     { id: 'fight', title: 'Road fight', gist: `${combatOf(g).wins} won · ${combatOf(g).losses} lost`, acts: [
       ...([['Easy odds', 0.45, 3, 'adm-fight-easy'], ['Even odds', 1, 5, 'adm-fight-even'], ['Hard odds', 1.9, 9, 'adm-fight-hard']] as const).map(([l, ratio, size, testid]) => ({ label: l, testid, run: async () => {
         const f = roadFight(ratio, size);
@@ -648,6 +710,7 @@ const DESC: Record<string, string> = {
   dress: 'The pieces that dress the Giza stall, and money to buy them.',
   shops: 'A shop in Alexandria with an agent and three rugs on the wall; then the Monday takings.',
   rivals: 'The four rival houses and Shukri: make any house move now, then answer it under Progress.',
+  stories: 'The five stories: begin any of them now, or bring its next beat at once; and buyers who remember you.',
   ranks: 'The dealers\' sales table for Cairo this season: your place, a push up it, the season\'s end.',
   fight: 'A band stops you on the road just outside Cairo, at the odds you pick.',
   road: 'Start the walk from Cairo to Suez with a road story set to happen in the first hour.',

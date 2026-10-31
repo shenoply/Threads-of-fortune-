@@ -4,6 +4,8 @@ import { useGame } from '../../game/state/store';
 import { dateFor } from '../../game/economy/economy';
 import { arrived } from '../../game/systems/post';
 import { readPost } from '../../game/systems/stallHelpActions';
+import { pendingAll } from '../../game/systems/stories';
+import { StoryBeat } from '../Stories/Stories';
 
 /** Letters and telegrams that have reached you, newest first. Opening the list marks them read. */
 export function PostList() {
@@ -21,6 +23,7 @@ export function PostList() {
       <small>{l.kind === 'telegram' ? 'TELEGRAM' : 'LETTER'} · {dateFor(l.day).short} · {l.from}</small>
       <b>{l.title}</b>
       <p>{l.body}</p>
+      {l.story && pendingAll(g).some((x) => x.arc.id === l.story!.arc && x.run.beat === l.story!.beat) && <StoryBeat arc={l.story.arc} bare />}
     </div>
   );
   return (

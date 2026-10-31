@@ -18,6 +18,7 @@ import { inLawHouses } from './household';
 import { tableOf, cityName, seasonOf, freshRanks } from './ranks';
 import { boyName } from './shopBoy';
 import { HOUSE_FX, type HouseCorner } from './houseFx';
+import { sour, remember, forget } from './memory';
 
 export interface HouseDef {
   id: string;
@@ -210,7 +211,10 @@ function doMove(kind: MoveKind, d: HouseDef, s: GameState, H0: HousesState, day:
   if (kind === 'court') {
     if (me.purse < 1000 || !['cairo', 'alexandria'].includes(d.home)) return null;
     const busy = new Set([...H.courted.map((c) => c.buyer), ...Object.keys(H.defected)]);
-    const regs = Object.entries(s.relationships ?? {}).filter(([id, r]) => (r.purchases ?? 0) >= 3 && (r.bad ?? 0) < 3 && !KEEP.has(id) && BUYERS[id] && !BUYERS[id].royal && !busy.has(id)).map(([id]) => id).sort();
+    // a buyer you treated badly is the easiest to win (systems/memory.ts): they come first, and one sale is enough
+    const ok = ([id]: [string, unknown]) => !KEEP.has(id) && BUYERS[id] && !BUYERS[id].royal && !busy.has(id);
+    const soured = Object.entries(s.relationships ?? {}).filter((e) => ok(e) && (e[1].purchases ?? 0) >= 1 && (e[1].bad ?? 0) < 3 && sour(e[1], day)).map(([id]) => id).sort();
+    const regs = soured.length ? soured : Object.entries(s.relationships ?? {}).filter((e) => ok(e) && (e[1].purchases ?? 0) >= 3 && (e[1].bad ?? 0) < 3).map(([id]) => id).sort();
     if (!regs.length) return null;
     const buyer = regs[Math.floor(hx(seed, day, `${d.id}:court`) * regs.length)];
     me.purse -= 600;
@@ -469,7 +473,9 @@ export function houseCounter(s: GameState, kind: CounterKind, id: string, arg?: 
     H.courted = H.courted.filter((c) => c.buyer !== buyer);
     if (kind === 'win-back') { const { [buyer]: _x, ...rest } = H.defected; void _x; H.defected = rest; }
     me.wins = (me.wins ?? 0) + 1;
-    const rel = s.relationships[buyer];
+    const rel0 = s.relationships[buyer];
+    // they remember the gift, and it makes up for the slight
+    const rel = rel0 ? remember(forget(rel0, ['slight', 'promise']), { k: 'gift', day }) : undefined;
     return done(kind === 'gift' ? `You sent ${b} a box of sweets from Groppi's with your card. ${b} stays with you.` : `You called on ${b} with a gift and an apology for whatever went wrong. ${b} will come to your stall again.`, {
       ...spend(cost, kind === 'gift' ? `A gift for ${b}` : `Winning ${b} back from ${name}`),
       ...(rel ? { relationships: { ...s.relationships, [buyer]: { ...rel, affinity: Math.min(100, rel.affinity + 5) } } } : {}),

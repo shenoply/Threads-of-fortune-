@@ -15,6 +15,8 @@ import './dossier.css';
 import { buyerMarks } from '../../data/epithets';
 import { TraitMarks } from '../Epithet/Epithet';
 import { filedAs } from '../../data/renamedIds';
+import { memNote, MEM_WEIGHT } from '../../game/systems/memory';
+import { LIFE_NEWS, LIFE_ANY } from '../../data/buyerLife';
 
 const LIKES: Record<string, string> = {
   restrained: 'Quiet patterns', story: 'A rug with a story', fineWeave: 'A fine weave', antique: 'Age', warm: 'Warm colours', bold: 'Bold patterns',
@@ -106,6 +108,24 @@ export function BuyerDossier({ enc, onClose }: { enc: Encounter; onClose: () => 
             </>
           ) : <p className="ds-unknown" data-testid="dossier-unknown">Not known yet. Ask about the room, or what draws them, and it fills in.</p>}
         </section>
+
+        {(() => {
+          // what they remember of you (systems/memory.ts) and the news they have told you
+          const mem = (rel?.mem ?? []).slice().reverse();
+          const life = (rel?.life ?? []).map((k) => [...(LIFE_NEWS[enc.buyerId] ?? []), ...LIFE_ANY].find((n) => n.k === k)?.note).filter(Boolean) as string[];
+          const sent = rel?.friendOf ? BUYERS[rel.friendOf]?.name : undefined;
+          if (!mem.length && !life.length && !sent) return null;
+          return (
+            <section className="ds-sec" data-testid="dossier-memory">
+              <h4>What they remember</h4>
+              <ul className="ds-mem">
+                {sent && <li className="good">Sent to you by {sent}</li>}
+                {mem.map((m, i) => <li key={i} className={(m.w ?? MEM_WEIGHT[m.k]) < 0 ? 'bad' : 'good'}>{memNote(m, enc.buyerId)}</li>)}
+                {life.map((n) => <li key={n} className="news">{n}</li>)}
+              </ul>
+            </section>
+          );
+        })()}
 
         <div className="ds-facts">
           <span><small>Spends</small><b>{knowsBudget ? `${fmt(budget[0])} – ${fmt(budget[1])}` : '?'}</b></span>

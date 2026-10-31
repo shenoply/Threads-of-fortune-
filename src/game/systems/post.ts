@@ -21,6 +21,8 @@ export interface Letter {
   title: string;
   body: string;
   read?: boolean;
+  /** a beat of a story that asks for an answer (systems/stories.ts) */
+  story?: { arc: string; beat: string };
 }
 export interface PostState {
   letters: Letter[];

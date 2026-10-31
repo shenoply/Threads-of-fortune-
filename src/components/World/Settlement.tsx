@@ -1,3 +1,4 @@
+import { StoryCards } from '../Stories/Stories';
 import { RecordSeller } from '../Radio/RecordSeller';
 import { recordsIn, recordsOwned } from '../../data/records';
 import { Gunsmith } from './Gunsmith';
@@ -722,6 +723,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
             <div className="tm-body">
               {!moreOpen && walkIt && <div className="tm-list tm-walk">{tile(walkIt)}</div>}
               {!moreOpen && <p className="tm-blurb">{st.blurb}</p>}
+              {!moreOpen && <StoryCards via="town" town={id} />}
               {note && <p className="tm-note"><Glossed text={note} /></p>}
               {wireWord && <p className="tm-note once-line" role="note" data-testid="once-telegraph">{ONCE.telegraph.text}</p>}
               {!moreOpen ? (

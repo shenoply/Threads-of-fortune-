@@ -74,6 +74,8 @@ export interface RugItem {
   /** put aside for one buyer: hidden from everyone else at the stall until this day */
   reservedFor?: string;
   reservedUntil?: number;
+  /** a carpet from one of the stories (systems/stories.ts): its key there */
+  story?: string;
   notes: string[];
 }
 
@@ -213,6 +215,17 @@ export interface Relationship {
   commissionDone?: boolean;
   referred?: boolean;
   lastLines: string[];
+  /** what they remember of you (systems/memory.ts; save 31) */
+  mem?: import('./systems/memory').Mem[];
+  /** the day of their last visit */
+  seen?: number;
+  /** their news already told you (data/buyerLife.ts), and the day the last of it was */
+  life?: string[];
+  lifeDay?: number;
+  /** the buyer who sent them to you */
+  friendOf?: string;
+  /** the day they last sent you a friend */
+  sentDay?: number;
 }
 
 export interface LedgerEntry {

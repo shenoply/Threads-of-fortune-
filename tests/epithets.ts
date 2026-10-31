@@ -11,7 +11,7 @@ const set = (x: Partial<ReturnType<typeof g>>) => useGame.setState(x);
 let fails = 0;
 const check = (ok: unknown, msg: string) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (!ok) fails++; };
 
-check(EP.EPITHETS.length >= 10 && EP.EPITHETS.length <= 14, `${EP.EPITHETS.length} epithets`);
+check(EP.EPITHETS.length >= 10 && EP.EPITHETS.length <= 18, `${EP.EPITHETS.length} epithets`);
 for (const e of EP.EPITHETS) if (e.against) check(EP.EPITHET[e.against]?.against === e.id, `${e.id} and ${e.against} oppose each other both ways`);
 
 g().newGame?.();

@@ -23,6 +23,7 @@ import { settlementById } from '../../game/systems/world';
 
 import { RanksFold } from '../World/RankTable';
 import { RivalsFold } from '../World/Rivals';
+import { StoriesFold } from '../Stories/Stories';
 import type { MissionState } from '../../data/missions';
 
 /** Where a rug can be found, for the Register. */
@@ -67,6 +68,7 @@ export function Fortune() {
     <>
       <button className="btn ency-open" onClick={() => window.dispatchEvent(new CustomEvent('tof:ency'))} data-testid="open-encyclopedia">The encyclopedia: people, families, towns, carpets, bands</button>
       <Book />
+      <StoriesFold />
       {(g.favours?.active.length ?? 0) > 0 && (
         <Fold id="pr-favours" testid="favours" title="Favours you have taken on" gist={`${g.favours!.active.length}`}>
           <div className="house">
