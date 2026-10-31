@@ -65,7 +65,8 @@ export function Ambush({ party, onDone, onTurnBack, onTrain = false }: { party: 
   // your name in their book (robbed once with nothing to pay): the price is doubled until you pay in full
   const marked = (g.banditMark ?? 0) > 0;
   // the band's going rate for the road, by its ground and its size, never a share of a merchant's fortune (systems/combat.ts)
-  const tax = roadToll(threat.id, size, g.cash, { ratio }) * (marked ? 2 : 1);
+  // the errand's train robbers ask a newcomer's price: half a pound, not most of the errand purse
+  const tax = party.id === 'opening-bandits' ? Math.min(50, roadToll(threat.id, size, g.cash, { ratio })) : roadToll(threat.id, size, g.cash, { ratio }) * (marked ? 2 : 1);
   // what they take by force: more than the toll, and still only what a band can carry off
   const robbed = (mult: number, share: number) => Math.min(g.cash, roadToll(threat.id, size, g.cash, { ratio, mult, share }));
   const token = !rebels && (g.chiefTokenUntil ?? 0) >= g.day;

@@ -1755,7 +1755,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               <div className="wc-main">
                 <b>{plan.settlement ? plan.settlement.name : isExplored(w.fog, plan.to) ? 'Open country' : 'Unexplored land'}</b>
                 <span data-testid="plan-walk">
-                  {plan.days < 0.1 ? 'A short walk' : `On foot: about ${durationLabel(est.elapsedDays)} (${plan.days.toFixed(1)} days' march at ${milesPerDay(sp.pxPerDay)} mi a day, ${camping ? `camping at night${nightRule === 'ask' ? ' if you choose to' : ''}` : 'marching through the night'}${est.waitDays ? `, and ${daysWord(est.waitDays)} waiting for an escort at the narrows` : ''})`}{groundLine(plan.path)} · needs {est.rations} ration{est.rations === 1 ? '' : 's'} ({perDay} a day){w.party.food < est.rations ? ' · not enough food' : ''}
+                  {plan.days < 0.1 ? 'A short walk' : est.elapsedDays < 0.5 ? `On foot: about ${durationLabel(est.elapsedDays)}` : `On foot: about ${durationLabel(est.elapsedDays)} (${plan.days.toFixed(1)} days' march at ${milesPerDay(sp.pxPerDay)} mi a day, ${camping ? `camping at night${nightRule === 'ask' ? ' if you choose to' : ''}` : 'marching through the night'}${est.waitDays ? `, and ${daysWord(est.waitDays)} waiting for an escort at the narrows` : ''})`}{groundLine(plan.path)} · needs {est.rations} ration{est.rations === 1 ? '' : 's'} ({perDay} a day){w.party.food < est.rations ? ' · not enough food' : ''}
                 </span>
                 {(() => {
                   // what the walk leaves for the way home, and a job there that needs a rug packed here
