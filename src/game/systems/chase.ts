@@ -89,7 +89,7 @@ export function stepChase(c0: ChaseState, dt: number, push: boolean): ChaseState
   // pushing spends the animals' wind; easing off gets it back. Blown animals cannot be pushed.
   const pushing = push && c.wind > 2;
   c.wind = Math.max(0, Math.min(100, c.wind + (pushing ? -15 : 11) * dt));
-  if (push && c.wind <= 2 && c0.wind > 2) say(c.mode === 'pursue' ? 'Your horses are blown. Ease off and let them breathe.' : 'The animals are spent. Ease off or they will drop.', 'bad');
+  if (push && c.wind <= 2 && c0.wind > 2) say(c.mode === 'pursue' ? 'Your horses are blown. Ease off and let them breathe.' : 'The animals are spent. Ease off and let them get their wind back.', 'bad');
   const ratio = paceRatio(c);
   const myGo = ratio * (pushing ? 1.4 : 0.85);
 

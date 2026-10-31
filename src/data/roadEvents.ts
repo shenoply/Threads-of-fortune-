@@ -60,7 +60,7 @@ export const ROAD_EVENTS: RoadEvent[] = [
   { id: 'patrol-desert', where: 'desert', when: 'day', text: 'Two men of the Camel Corps ride up, read your papers slowly and wave you on.', fx: { hours: 0.5 } },
   { id: 'patrol-sown', where: 'sown', when: 'day', text: 'A police patrol stops the caravan at a village edge and reads your papers. Half an hour, and you are let go.', fx: { hours: 0.5 } },
   { id: 'cart-axle', where: 'sown', when: 'day', text: 'A cart has broken its axle across the road. Your party helps lift it clear: an hour lost, and the carter\'s thanks.', fx: { hours: 1, rep: 1 } },
-  { id: 'lame-beast', where: 'any', needs: { animals: true }, text: 'One of the animals goes lame on a stone. Its load is shared out and the pace drops for a while.', fx: { hours: 2 } },
+  { id: 'lame-beast', where: 'any', needs: { animals: true }, text: 'One of the animals picks up a stone in its hoof. Working it out, and soothing the beast, costs a couple of hours.', fx: { hours: 2 } },
   { id: 'girth-strap', where: 'any', needs: { animals: true }, text: 'A girth strap breaks and a load slides into the dust. Repacking it costs an hour.', fx: { hours: 1 } },
   { id: 'funeral', where: 'sown', when: 'day', text: 'A funeral goes by on its way to the village burial ground. You stand aside until it has passed.', fx: { hours: 0.5 } },
   { id: 'stray-goat', where: 'any', when: 'day', text: 'An old man asks whether you have seen a goat with a red rag tied to its horn. You have not.' },

@@ -534,7 +534,7 @@ export default function App() {
     const seek = (sel: string) => { let n = 0; const find = () => { const el = document.querySelector(sel); if (el) el.scrollIntoView({ block: 'start' }); else if (++n < 20) window.setTimeout(find, 100); }; window.setTimeout(find, 120); };
     if (w.kind === 'debt' || w.kind === 'pay') setFinance(true);
     else if (w.kind === 'rashid') { setTab('supplier'); seek('[data-testid="family-debt"]'); }
-    else if (w.kind === 'food') { setTab('caravan'); seek('[data-testid="cv-butcher"], [data-testid="food-summary"], [data-testid="cv-food"]'); }
+    else if (w.kind === 'food') { setTab('caravan'); seek('[data-testid="cv-hungry"], [data-testid="food-summary"], [data-testid="cv-food"]'); }
     else setTab('hero');
   };
   useEffect(() => {

@@ -530,7 +530,6 @@ interface Actions {
   dropFood: (n: number) => string;
   /** buy n units of a souk item (src/data/provisions.ts): rations into party.food, comforts lift morale a little once a day */
   buyProvision: (id: string, n: number) => string;
-  butcherAnimal: (breed: string) => string;
   trade: (breed: string, delta: number) => string;
   /** leave one animal at this town's stable, or take back everything stabled here (paying the days) */
   stableAnimal: (breed: string) => string;
@@ -1605,14 +1604,7 @@ export const useGame = create<GameState & Actions>()(
                 notes.push(`No food tonight. ${TROOPS[id].name} pulls you aside: "The sacks are empty, effendi. Fill them soon, or some of us will think about leaving."`);
               }
             }
-            // after a couple of lean days, a starving animal can collapse; the risk climbs the longer it goes on
-            const animalIds = Object.keys(party.animals).filter((k) => party.animals[k] > 0);
-            if (hd >= 2 && animalIds.length && rng() < Math.min(0.6, (hd - 1) * 0.15)) {
-              const id = animalIds[Math.floor(rng() * animalIds.length)];
-              party.animals = { ...party.animals, [id]: party.animals[id] - 1 };
-              notes.push(`No food for days. Your ${BREEDS[id].name} could not go on and had to be left behind.`);
-              repBill -= 1;
-            }
+            // the animals graze and browse what the road gives: hunger slows the caravan but never costs a beast
             if (hd === 1) notes.push('No food left. You are hungry and the caravan is slower.');
             if ((s.parcels ?? []).length) notes.push("You still have Malek's parcels in your pack: eat a serving from Stock and your own ration is covered tonight.");
             else if (hd >= 2) { notes.push(`${hd} days with no food. The caravan is exhausted and moving badly.`); repBill -= 1; }
@@ -3155,7 +3147,6 @@ export const useGame = create<GameState & Actions>()(
         robBroke: () => {
           const s = get();
           const party = s.world.party;
-          const herdIds = Object.entries(party.animals ?? {}).filter(([, n]) => n > 0).map(([id]) => id);
           const w = s.wardrobe ?? START_WARDROBE;
           // his best clothes are what a robber wants; the stall clothes are not worth the trouble
           const takeable = w.owned.filter((id) => id !== 'classic-stall' && id !== 'market-work' && OUTFIT[id]).sort((a, b) => OUTFIT[b].price - OUTFIT[a].price);
@@ -3164,12 +3155,7 @@ export const useGame = create<GameState & Actions>()(
           const journal = (text: string) => [...get().journal, { day: s.day, text, kind: 'road' as const }];
           type Fate = { w: number; ok: boolean; art?: string; go: () => string };
           const fates: Fate[] = [
-            // 1 your animals
-            { art: 'rob-animal', w: 3, ok: herdIds.length > 0, go: () => {
-              const id = herdIds[Math.floor(rng() * herdIds.length)];
-              set({ world: { ...get().world, party: { ...party, animals: { ...party.animals, [id]: (party.animals[id] ?? 1) - 1 } } }, journal: journal(`Robbed on the road: they took ${BREEDS[id] ? withArticle(midName(BREEDS[id].name)) : 'a beast'}.`) });
-              return `So they take ${BREEDS[id] ? withArticle(midName(BREEDS[id].name)) : 'a beast'} instead, and lead it away. You will carry less and go slower until you buy another.`;
-            } },
+            // (your animals are never taken: robbers take money, goods, clothes or a day)
             // 2 your clothes
             { art: 'rob-clothes', w: 3, ok: takeable.length > 0, go: () => {
               const id = takeable[0];
@@ -3295,22 +3281,6 @@ export const useGame = create<GameState & Actions>()(
           audio.sfx('coin');
           const got = item.rations ? `${item.rations * n} ration${item.rations * n === 1 ? '' : 's'}` : 'enough for the evening';
           return `Bought ${item.name}, ${got}, for ${fmt(price)}.${lifts ? ' The men are pleased.' : ''}${overloadNote(get())}`;
-        },
-
-        /** A last resort on the road with the sacks empty: butcher a pack animal for rations. You lose the animal for good. */
-        butcherAnimal: (breed) => {
-          const s = get();
-          const b = BREEDS[breed];
-          const animals = { ...s.world.party.animals };
-          if (!b || (animals[breed] ?? 0) <= 0) return '';
-          animals[breed] -= 1;
-          const rations = 8 + Math.round(b.load / 2);
-          set({
-            world: { ...s.world, party: { ...s.world.party, animals, food: s.world.party.food + rations, hungryDays: 0 } },
-            journal: [...s.journal, { day: s.day, text: `Butchered your ${b.name} for meat. Grim, but it will feed everyone for days.`, kind: 'road' }],
-          });
-          audio.sfx('step');
-          return `You butcher the ${b.name}. Hard, but it buys you ${rations} rations of food.`;
         },
 
         trade: (breed, delta) => {
