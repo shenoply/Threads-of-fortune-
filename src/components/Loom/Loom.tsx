@@ -3,6 +3,7 @@
 // steps, one row of choices and the button. Each choice shows what it adds to the price. The weaver
 // keeps the proportions and outlines, so whatever you choose is woven properly.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { InlineName } from '../Touch/InlineName';
 import { Tip } from '../Tips/Tip';
 import { CarpetView } from '../RugViewer/CarpetView';
 import { createPortal } from 'react-dom';
@@ -148,10 +149,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
     const w = weaveryLine('collect'); void voice.say('seller', w);
     setNote(`“${w}” ${msg}`);
   };
-  const rename = (id: string, old: string) => {
-    const n = window.prompt('A name for this carpet', old);
-    if (n && n.trim()) { g.renameCarpet(id, n); audio.sfx('pen'); }
-  };
+  const rename = (id: string, n: string) => { g.renameCarpet(id, n); audio.sfx('pen'); };
 
   return createPortal(
     <div className="overlay loom-screen" data-testid="loom" onClick={(e) => e.stopPropagation()}
@@ -173,7 +171,7 @@ export function Loom({ onClose }: { onClose: () => void }) {
             return (
               <div key={w.id} className="lm-wip">
                 <OnLoom src={renderDesign(des, 420, 0.85)} done={ready ? 1 : Math.max(0.05, Math.min(0.97, 1 - (w.ready - g.day) / Math.max(1, daysFor(des, owned))))} onClick={() => setZoom({ src: renderDesign(des, 1640, 0.9), name: des.name })} />
-                <button className="lm-wip-name" onClick={() => rename(des.id, des.name)} data-testid={`loom-rename-${des.id}`}><b>{des.name} ✎</b><small>{ready ? 'Off the loom' : `On the loom · ready ${dateFor(w.ready).short}, ${w.ready - g.day === 1 ? 'tomorrow' : `in ${w.ready - g.day} days`}`}</small></button>
+                <InlineName className="lm-wip-name" value={des.name} onSave={(n) => rename(des.id, n)} testid={`loom-rename-${des.id}`}><b>{des.name} ✎</b><small>{ready ? 'Off the loom' : `On the loom · ready ${dateFor(w.ready).short}, ${w.ready - g.day === 1 ? 'tomorrow' : `in ${w.ready - g.day} days`}`}</small></InlineName>
                 {ready && <button className="btn primary small" onClick={() => collect(w.id)} data-testid={`loom-collect-${w.id}`}>Collect</button>}
               </div>
             );

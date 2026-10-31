@@ -52,3 +52,7 @@
 
 /* the level, title and goal notices take a finger now (a tap or a swipe puts them away) */
 .levelup[data-swipe] { pointer-events: auto; }
+/* naming in place */
+.inline-name { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.inline-name input { min-height: 44px; min-width: 0; flex: 1 1 160px; font-size: 16px; padding: 0 10px; background: #0f0a06; color: var(--parchment); border: 1px solid var(--line); border-radius: 6px; }
+.inline-name .btn { min-height: 44px; min-width: 44px; }
