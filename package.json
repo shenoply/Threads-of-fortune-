@@ -14,6 +14,7 @@
     "pc": "npm run build:pc && npm --prefix desktop run start",
     "package:linux": "npm run build:pc && node desktop/package.mjs linux",
     "package:win": "npm run build:pc && node desktop/package.mjs win32",
+    "package:mac": "npm run build:pc && node desktop/package.mjs darwin",
     "package:win-demo": "npm run build:pc-demo && node desktop/package.mjs win32",
     "package:pc": "npm run build:pc && node desktop/package.mjs linux win32"
   },

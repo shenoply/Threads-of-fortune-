@@ -35,18 +35,27 @@ writeFileSync(join(STAGE, 'package.json'), JSON.stringify({
 
 for (const platform of platforms) {
   const [dir] = await packager({
-    dir: STAGE, out: OUT, overwrite: true, platform, arch: 'x64', electronVersion,
+    dir: STAGE, out: OUT, overwrite: true, platform, arch: platform === 'darwin' ? (process.env.MAC_ARCH || 'universal') : 'x64', electronVersion,
     name: platform === 'win32' ? EXE : NAME, executableName: platform === 'win32' ? EXE : 'threads-of-fortune',
     appVersion: game.version, appCopyright: `© ${new Date().getFullYear()} ${NAME}`,
     // the art and sound stay loose files: the app serves them straight from the folder
     asar: false, prune: false, derefSymlinks: true,
     // Linux can take its icon from the window; the Windows .exe gets its icon below (no Wine here)
-    icon: platform === 'win32' ? undefined : join(HERE, 'build', 'icon.png'),
+    icon: platform === 'win32' ? undefined : platform === 'darwin' ? (existsSync(join(HERE, 'build', 'icon.icns')) ? join(HERE, 'build', 'icon.icns') : undefined) : join(HERE, 'build', 'icon.png'),
+    ...(platform === 'darwin' ? { appBundleId: 'com.threadsoffortune.game', appCategoryType: 'public.app-category.games' } : {}),
     ignore: [/^\/node_modules/],
   });
   if (platform === 'win32') await windowsResources(join(dir, `${EXE}.exe`));
   const zip = `${dir}.zip`;
   rmSync(zip, { force: true });
+  if (platform === 'darwin') {
+    // a Mac app must keep a valid signature after packaging, or macOS calls it damaged: sign it ad hoc (no Apple ID)
+    const app = join(dir, `${NAME}.app`);
+    if (process.platform === 'darwin') execFileSync('codesign', ['--force', '--deep', '--sign', '-', app], { stdio: 'inherit' });
+    // ditto keeps the framework symlinks a Mac app needs
+    if (process.platform === 'darwin') execFileSync('ditto', ['-c', '-k', '--keepParent', app, zip], { stdio: 'inherit' });
+    else execFileSync('zip', ['-q', '-r', '-y', '-1', zip, `${NAME}.app`], { cwd: dir, stdio: 'inherit' });
+  } else
   // stored pictures and sound are already compressed: a light zip level is as small and much faster
   execFileSync('zip', ['-q', '-r', '-1', zip, '.'], { cwd: dir, stdio: 'inherit' });
   console.log(`${platform}: ${dir}\n  zip: ${zip}`);
