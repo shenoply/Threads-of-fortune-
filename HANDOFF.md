@@ -20,6 +20,12 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
 ## Where the game lives now
 - It is published from GitHub to https://shenoply.github.io/Threads-of-fortune-/ by
   .github/workflows/pages.yml on every push to main. The artifact is kept in step as well.
+- No JPGs are served: every picture under public/art is WebP (since 2026-10-31; the code names
+  .webp, and src/game/state/artPaths.ts rewrites old .jpg names in saves when the game opens). The
+  former JPGs are the masters in art-src/jpg-masters/<same path>. A new painting goes into public/ as
+  WebP (Pillow: quality 80, method 6; 84 for rugs) with its master in art-src/. Some older tools still
+  write JPGs into public/ (travel_art.py, battle.py, ...): convert their output before committing.
+  Files no screen uses are kept in art-src/unused/.
 - The wardrobe loads WebP copies of the hero PNGs (src/data/wardrobe.ts baseSrc/layerSrc/coverSrc).
   The PNGs are the masters: after changing any, run `python3 tools/webp.py` to refresh the WebP copies.
 - tools/refit.py fits tops, coats, trousers and shoes to the base body (sleeves and legs no wider

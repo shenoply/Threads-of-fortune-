@@ -52,8 +52,8 @@ for vid, nums in VENUES.items():
 front('22', VEN / 'closed-door.webp'); total += (VEN / 'closed-door.webp').stat().st_size
 for num, cid in PORTRAITS.items():
     im = crop_to(master(num).convert('RGB'), 1.0).resize((512, 512), Image.LANCZOS)
-    im.save(POR / f'{cid}.jpg', 'JPEG', quality=88, optimize=True)
-    total += (POR / f'{cid}.jpg').stat().st_size
+    im.save(POR / f'{cid}.webp', 'WEBP', quality=80, method=6)
+    total += (POR / f'{cid}.webp').stat().st_size
 # Nadia at the stall: the whole figure, fitted inside the buyer cut-out size
 n = master('09').convert('RGBA')
 n.thumbnail((655, 983), Image.LANCZOS)
