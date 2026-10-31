@@ -10,51 +10,82 @@ export interface NamedMan {
   hurtUntil?: number;
   /** a name the men gave him, earned in fights */
   by?: string;
+  /** the town he was taken on in */
+  home?: string;
 }
-export interface FallenMan { name: string; kind: string; day: number; fights: number; kills: number; where?: string }
+export interface FallenMan {
+  name: string; kind: string; day: number; fights: number; kills: number; where?: string;
+  /** save 31: his face, the town he came from, the day he joined, how he died */
+  face?: string; home?: string; joined?: number; how?: string;
+  /** the day money went to his family */
+  paid?: number;
+}
 
-const REGION: Record<string, PoolRegion> = { bedouin: 'bedouin', desertcaptain: 'bedouin', reformed: 'bedouin', arnaut: 'anatolia' };
-const AGE: Record<string, ('y' | 'm' | 'o')[]> = { fellah: ['y'], bedouin: ['y', 'm'], reformed: ['y', 'm'], veteran: ['m', 'o'], desertcaptain: ['m', 'o'] };
+// who a man is follows what he was hired as: a Bedouin rider is always a Bedouin, an Arnaut an Albanian,
+// the Giza, Cairo and Alexandria watchmen are Egyptians; a guard, a veteran or a village lad is a man of
+// the town he was hired in
+type NameRegion = 'egypt' | 'bedouin' | 'albanian' | 'levant' | 'iraq' | 'persia' | 'turkish';
+const FIXED: Record<string, NameRegion> = { bedouin: 'bedouin', desertcaptain: 'bedouin', reformed: 'bedouin', arnaut: 'albanian', watchman: 'egypt', sentinel: 'egypt', harbour: 'egypt' };
+const OF_CULTURE: Record<string, NameRegion> = { egypt: 'egypt', copt: 'egypt', bedouin: 'bedouin', levant: 'levant', armenian: 'levant', greek: 'egypt', iraq: 'iraq', persia: 'persia', anatolia: 'turkish' };
+const FACE_REGION: Record<NameRegion, PoolRegion> = { egypt: 'egypt', bedouin: 'bedouin', albanian: 'anatolia', levant: 'levant', iraq: 'iraq', persia: 'persia', turkish: 'anatolia' };
+const AGE: Record<string, ('y' | 'm' | 'o')[]> = { fellah: ['y'], watchman: ['y', 'm'], bedouin: ['y', 'm'], reformed: ['y', 'm'], guard: ['m'], sentinel: ['m'], harbour: ['m'], veteran: ['m', 'o'], desertcaptain: ['m', 'o'], arnaut: ['m', 'o'] };
+/** working men, not gentlemen: a village lad or a reformed raider has a plain face, no guard a notable's */
+const CLS: Record<string, ('humble' | 'trade')[]> = { fellah: ['humble'], watchman: ['humble'], reformed: ['humble'], bedouin: ['humble'] };
 
 const GIVEN: Record<string, string[]> = {
   egypt: ['Mitwalli', 'Sayed', 'Ragab', 'Abdel-Sattar', 'Hamdi', 'Fathi', 'Mansour', 'Shaaban', 'Zaki', 'Hassanein', 'Desouki', 'Metwalli', 'Gaber', 'Ashour', 'Bayoumi', 'Khalaf', 'Ramadan', 'Sabry', 'Taha', 'Suleiman', 'Fawzi', 'Abbas', 'Mahrous', 'Hanafi'],
   bedouin: ['Mutlaq', 'Sweilim', 'Eid', 'Salem', 'Audeh', 'Hamad', 'Faraj', 'Mufleh', 'Nasser', 'Sabbah', 'Hussein', 'Atallah', 'Jazi', 'Rashed', 'Ghanem', 'Khalaf'],
-  anatolia: ['Bajram', 'Ilir', 'Gjergj', 'Ramiz', 'Selim', 'Hysen', 'Dervish', 'Kasem'],
+  albanian: ['Bajram', 'Ilir', 'Gjergj', 'Ramiz', 'Selim', 'Hysen', 'Dervish', 'Kasem'],
+  levant: ['Khalil', 'Salim', 'Fares', 'Rizq', 'Musa', 'Saleh', 'Mahmoud', 'Hussein', 'Abdallah', 'Jamil', 'Darwish', 'Yunis', 'Shukri', 'Odeh', 'Hasan', 'Ali'],
+  iraq: ['Jassim', 'Kadhim', 'Abbas', 'Hashim', 'Salman', 'Mahdi', 'Hamid', 'Yasin', 'Saleh', 'Jabbar', 'Hamza', 'Shakir'],
+  persia: ['Gholam', 'Hossein', 'Reza', 'Karim', 'Abbas', 'Javad', 'Mehdi', 'Esmail', 'Qasem', 'Rahim', 'Nader', 'Morad'],
+  turkish: ['Mehmet', 'Hasan', 'Osman', 'Halil', 'Mustafa', 'Ali', 'Hüseyin', 'Rıza', 'Nuri', 'Sadık', 'Yusuf', 'Ramazan'],
 };
 const FAMILY: Record<string, string[]> = {
   egypt: ['Abu Zeid', 'el-Masri', 'Shalabi', 'Abu Hamed', 'el-Fiqi', 'Abdel-Aal', 'Mansi', 'el-Saeedi', 'Hegazi', 'Abu Shusha', 'el-Gammal', 'Abu Daif', 'Qandil', 'el-Sharqawi'],
   bedouin: ['al-Huweitat', 'Abu Rabia', 'al-Tarabin', 'al-Azazmeh', 'Abu Sitta', 'al-Sawarka', 'al-Masaid', 'Abu Tayi'],
-  anatolia: ['Gjoka', 'Leka', 'Dibra', 'Kruja', 'Shehu'],
+  albanian: ['Gjoka', 'Leka', 'Dibra', 'Kruja', 'Shehu'],
+  levant: ['Abu Khalil', 'Shami', 'Halabi', 'Daher', 'Salameh', 'Nassar', 'Hourani', 'Zoubi', 'Abu Ghosh', 'Masri', 'Jabali', 'Ayyoub'],
+  iraq: ['al-Jubouri', 'al-Dulaimi', 'al-Shammari', 'al-Ubaidi', 'al-Hilli', 'al-Basri', 'al-Rubai', 'al-Kubaisi'],
+  persia: ['Lor', 'Kurd', 'Hamadani', 'Kermanshahi', 'Isfahani', 'Bakhtiari', 'Qashqai', 'Tabrizi'],
+  turkish: ['oğlu Ahmet', 'Demirci', 'Çoban', 'Konyalı', 'Karadağlı', 'Topal', 'Kara', 'Uzun'],
 };
 /** names the men give one of their own after enough fights: plain and earned */
 const BYNAMES = ['the Steady', 'the Quiet', 'the Hawk', 'Iron Hand', 'the Patient', 'Abu Barud', 'the Lion', 'the Wall', 'Sharp-Eye', 'the Lucky'];
 
 const h = (s: string) => { let x = 2166136261; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; };
-export const regionOf = (kind: string): PoolRegion => REGION[kind] ?? 'egypt';
+const nameRegion = (kind: string, culture?: string): NameRegion => FIXED[kind] ?? OF_CULTURE[culture ?? 'egypt'] ?? 'egypt';
+export const regionOf = (kind: string, culture?: string): PoolRegion => FACE_REGION[nameRegion(kind, culture)];
 export const manLabel = (m: NamedMan) => (m.by ? `${m.name.split(' ')[0]} ${m.by}` : m.name);
 export const kindName = (kind: string) => (TROOPS[kind]?.name ?? kind).toLowerCase().replace('bedouin', 'Bedouin').replace('cairo', 'Cairo').replace('giza', 'Giza').replace('arnaut', 'Arnaut');
 /** the face, or the troop's own picture until the pool's painting exists */
 export const manFace = (m: NamedMan) => `art/people/small/${m.face}.webp`;
 export const manFallback = (m: { kind: string }) => `art/troops/${m.kind}.jpg`;
 
-function freshMan(kind: string, day: number, taken: Set<string>, takenFaces: Set<string>, salt: string): NamedMan {
-  const region = regionOf(kind);
-  const g = GIVEN[region] ?? GIVEN.egypt, f = FAMILY[region] ?? FAMILY.egypt;
+function freshMan(kind: string, day: number, taken: Set<string>, takenFaces: Set<string>, salt: string, place?: Place): NamedMan {
+  const nr = nameRegion(kind, place?.culture);
+  const region = FACE_REGION[nr];
+  const g = GIVEN[nr] ?? GIVEN.egypt, f = FAMILY[nr] ?? FAMILY.egypt;
   let name = '';
   for (let i = 0; i < 60 && (!name || taken.has(name)); i++) {
     const k = h(`${salt}:${kind}:${i}`);
     name = `${g[k % g.length]} ${f[(k >>> 8) % f.length]}`;
   }
   const ages = AGE[kind] ?? ['m'];
-  const faces = POOL.filter((p) => p.region === region && p.sex === 'm' && ages.includes(p.age));
-  const all = faces.length ? faces : POOL.filter((p) => p.sex === 'm' && ages.includes(p.age));
+  const cls = CLS[kind] ?? ['humble', 'trade'];
+  const near = POOL.filter((p) => p.region === region && p.sex === 'm' && ages.includes(p.age));
+  const plain = near.filter((p) => (cls as string[]).includes(p.cls));
+  const faces = plain.length ? plain : near.filter((p) => p.cls !== 'notable');
+  const all = faces.length ? faces : near.length ? near : POOL.filter((p) => p.sex === 'm' && ages.includes(p.age) && p.region === 'egypt');
   const free = all.filter((p) => !takenFaces.has(p.id));
   const pick = (free.length ? free : all)[h(`${salt}:face`) % (free.length || all.length || 1)];
-  return { id: `m${h(`${salt}:${name}`).toString(36)}`, name, kind, face: pick?.id ?? 'egypt-m-m-01', joined: day, fights: 0, kills: 0, scars: 0 };
+  return { id: `m${h(`${salt}:${name}`).toString(36)}`, name, kind, face: pick?.id ?? 'egypt-m-m-01', joined: day, fights: 0, kills: 0, scars: 0, ...(place?.id ? { home: place.id } : {}) };
 }
+/** where new men are taken on: the town and its people */
+export interface Place { id?: string; culture?: string }
 
 /** keep the roster in step with the troop counts: new hires get a name, men let go leave (the newest first) */
-export function syncMen(men: NamedMan[], troops: Record<string, number>, day: number): NamedMan[] {
+export function syncMen(men: NamedMan[], troops: Record<string, number>, day: number, place?: Place): NamedMan[] {
   let out = men.filter((m) => (troops[m.kind] ?? 0) > 0);
   const byKind = new Map<string, NamedMan[]>();
   for (const m of out) byKind.set(m.kind, [...(byKind.get(m.kind) ?? []), m]);
@@ -71,7 +102,7 @@ export function syncMen(men: NamedMan[], troops: Record<string, number>, day: nu
     if (!TROOPS[kind]) continue;
     const have = out.filter((m) => m.kind === kind).length;
     for (let i = have; i < (n ?? 0); i++) {
-      const m = freshMan(kind, day, names, faces, `${kind}:${day}:${i}:${out.length}`);
+      const m = freshMan(kind, day, names, faces, `${kind}:${day}:${i}:${out.length}:${place?.id ?? ''}`, place);
       names.add(m.name); faces.add(m.face); out = [...out, m]; changed = true;
     }
   }
@@ -143,6 +174,21 @@ export function promoteMen(men: NamedMan[], ups: { from: string; to: string }[])
   }
   return { men: out, up };
 }
+
+/** true when every kind has exactly as many named men as the counts say */
+export function rosterMatches(men: NamedMan[], troops: Record<string, number>): boolean {
+  const kinds = new Set([...Object.keys(troops).filter((k) => TROOPS[k] && (troops[k] ?? 0) > 0), ...men.map((m) => m.kind)]);
+  for (const k of kinds) if (men.filter((m) => m.kind === k).length !== (troops[k] ?? 0)) return false;
+  return true;
+}
+
+/** a man as he is remembered once he is buried */
+export const fallenOf = (m: NamedMan, day: number, where?: string, how?: string): FallenMan => ({
+  name: manLabel(m), kind: m.kind, day, fights: m.fights, kills: m.kills, face: m.face, joined: m.joined,
+  ...(where ? { where } : {}), ...(m.home ? { home: m.home } : {}), ...(how ? { how } : {}),
+});
+/** what goes to a dead man's family: about a season of his wage, never less than a pound */
+export const familySum = (f: Pick<FallenMan, 'kind'>) => Math.max(100, Math.round((TROOPS[f.kind]?.wage ?? 8) * 30 / 10) * 10);
 
 /** "Mitwalli Abu Zeid and Sayed el-Masri" */
 export const nameList = (ms: NamedMan[]) => {

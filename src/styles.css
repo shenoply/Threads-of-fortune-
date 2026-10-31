@@ -3869,3 +3869,24 @@ body:has(.settlement) .app > .objective-bar.news { z-index: 55; box-shadow: 0 0 
 .reserved.kept { color: var(--brass-hi, #e3bd6b); }
 .family-debt .fd-btns .btn { min-height: 44px; }
 .idle-bare .btn.small { min-height: 44px; margin-left: 4px; }
+
+/* the men under each line of the Caravan tab, and the Fallen */
+.menkind { display: grid; gap: 4px; }
+.menof { list-style: none; margin: 0 0 4px 22px; padding: 0 0 0 10px; border-left: 1px solid rgba(201,150,72,.3); display: grid; gap: 3px; }
+.menof li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.menof__who { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 9px; background: none; border: 0; padding: 2px 0; text-align: left; color: inherit; cursor: pointer; }
+.menof__who img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: 50% 22%; flex: none; box-shadow: 0 0 0 1.5px rgba(231,189,110,.5); }
+.menof__who span { display: flex; flex-direction: column; min-width: 0; }
+.menof__who b { font-family: var(--display); font-weight: 500; font-size: 15.5px; color: var(--parchment); }
+.menof__who small { font-family: var(--body); font-size: 14px; color: var(--text-dim); }
+.menof li.hurt img { filter: grayscale(.5) brightness(.85); }
+.menof__go { min-height: 44px; margin-left: 45px; }
+.fallen ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.fallen li { display: grid; grid-template-columns: 48px 1fr; gap: 10px; align-items: start; padding: 8px; border-radius: 4px; border: 1px solid var(--line); background: #120c07; }
+.fallen li img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; object-position: 50% 22%; filter: grayscale(1) sepia(.25) brightness(.85); box-shadow: 0 0 0 1px rgba(201,150,72,.45); }
+.fallen li span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fallen li b { font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--parchment); }
+.fallen li small { font-family: var(--body); font-size: 14px; color: var(--text-dim); }
+.fallen li .btn { align-self: flex-start; margin-top: 4px; min-height: 44px; }
+.fallen__paid { color: #a9c08a !important; }
+.fallen__owed { color: #d9a37a !important; }

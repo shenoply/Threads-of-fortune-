@@ -82,7 +82,7 @@ import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
 import { capacity, load as caravanLoad } from '../systems/caravan';
 import { roadToll, BAND_ROAD, CLEAR_DAYS, NAME_ON_ROAD, PRISONER_BOUNTY, RIFLE_PRICE, RIFLE_SELL, SERGEANT_AFTER, SERGEANT_NAMES, combatStart, hashSeed, isWin, newLeader, promote, promotionLine, ransomFor, rngFrom, type CombatState, type Leader, type Result as ClashResult } from '../systems/combat';
-import { syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList } from '../systems/men';
+import { type NamedMan, syncMen, killMen, woundMen, bloodMen, promoteMen, manLabel, kindName, nameList, fallenOf, familySum, nextToGo } from '../systems/men';
 import { threatForParty } from '../../data/travelThreats1925';
 import { startingParty, dailyFood, wages, strength, scoutBonus, recruitPool, SKILL_MODS, animalCount, partySize, MORALE_START, MORALE_DESERT_AT, troopCap, troopCount, animalCap, setHealthMods, setConditionMods, type PartyState } from '../systems/caravan';
 import { JOBS, openJobs, newVisit, type Visit } from '../../data/jobs';
@@ -537,6 +537,10 @@ interface Actions {
   fetchStabled: () => string;
   recruit: (troop: string, key: string, n: number) => string;
   dismiss: (troop: string, n: number) => void;
+  /** send one named man home: his kind's count drops by one and he leaves the roster */
+  dismissMan: (id: string) => string;
+  /** money to a fallen man's family (index into combat.fallen) */
+  payFallen: (i: number) => string;
   toggleStored: (uid: string) => void;
   finishOpening: () => void;
   beginDayOne: () => void;
@@ -1594,7 +1598,8 @@ export const useGame = create<GameState & Actions>()(
               const id = aGuard(ids);
               if (moraleV <= MORALE_DESERT_AT) {
                 party.troops[id] -= 1;
-                notes.push(`No food, and patience ran out. ${withArticle(midName(TROOPS[id].name)).replace(/^a/, 'A')} speaks for the rest: "We did not sign on to starve, effendi." He takes what he's owed and walks.`);
+                const who = walkedOff(s, id, 1);
+                notes.push(`No food, and patience ran out. ${who ? `${who}, ${withArticle(kindName(id))},` : withArticle(midName(TROOPS[id].name)).replace(/^a/, 'A')} speaks for the rest: "We did not sign on to starve, effendi." He takes what he's owed and walks.`);
                 moraleV = 45;
               } else {
                 notes.push(`No food tonight. ${TROOPS[id].name} pulls you aside: "The sacks are empty, effendi. Fill them soon, or some of us will think about leaving."`);
@@ -1666,7 +1671,8 @@ export const useGame = create<GameState & Actions>()(
                 if (moraleV <= MORALE_DESERT_AT) {
                   const leave = Math.min(party.troops[id], 2);
                   party.troops[id] -= leave;
-                  notes.push(`Wages unpaid too long. ${leave === 1 ? `${withArticle(midName(TROOPS[id].name)).replace(/^a/, 'A')} collects what he is` : `${leave} ${midName(TROOPS[id].plural)} collect what they're`} owed in kind and ${leave === 1 ? 'leaves' : 'leave'}.`);
+                  const who = walkedOff(s, id, leave);
+                  notes.push(`Wages unpaid too long. ${leave === 1 ? `${who || withArticle(midName(TROOPS[id].name)).replace(/^a/, 'A')} collects what he is` : `${who ? `${who}, ${midName(TROOPS[id].plural)},` : `${leave} ${midName(TROOPS[id].plural)}`} collect what they're`} owed in kind and ${leave === 1 ? 'leaves' : 'leave'}.`);
                   moraleV = 45;
                 } else {
                   notes.push(`You could not pay wages tonight. ${TROOPS[id].name} is blunt about it: "No pay, no patience, effendi. Settle up soon."`);
@@ -2581,7 +2587,7 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const c0 = combatOf(s);
           const seed = `${s.day}:${c0.wins}:${c0.losses}:${o.kills}`;
-          let men = syncMen(c0.men ?? [], s.world.party.troops, s.day);
+          let men = syncMen(c0.men ?? [], s.world.party.troops, s.day, s.world.at ? { id: s.world.at, culture: cultureOf(s.world.at) } : undefined);
           const k = killMen(men, o.lost, seed); men = k.men;
           const w = woundMen(men, o.hurt ?? {}, s.day, seed); men = w.men;
           const b = bloodMen(men, o.kills, seed); men = b.men;
@@ -2591,7 +2597,7 @@ export const useGame = create<GameState & Actions>()(
           for (const m of b.named) lines.push(`The men have started calling ${m.name.split(' ')[0]} "${m.by}".`);
           let sergeant = c0.sergeant;
           if (sergeant?.manId && k.fallen.some((m) => m.id === sergeant!.manId)) { lines.push(`Sergeant ${sergeant.name} is among them. The men are quiet tonight.`); sergeant = undefined; }
-          const fallen = [...(c0.fallen ?? []), ...k.fallen.map((m) => ({ name: manLabel(m), kind: m.kind, day: s.day, fights: m.fights, kills: m.kills, where: o.where }))].slice(-60);
+          const fallen = [...(c0.fallen ?? []), ...k.fallen.map((m) => fallenOf(m, s.day, o.where, 'killed fighting raiders'))].slice(-60);
           set({ combat: { ...c0, men, fallen, sergeant } });
           return lines.join(' ');
         },
@@ -3056,9 +3062,12 @@ export const useGame = create<GameState & Actions>()(
               for (const id of Object.keys(party.troops)) {
                 let lost = 0;
                 for (let i = 0; i < party.troops[id]; i++) if (rng() < chance) lost++;
-                if (lost) { party.troops[id] -= lost; losses.push(`${lost} ${midName(lost > 1 ? TROOPS[id].plural : TROOPS[id].name)}`); }
+                if (lost) { party.troops[id] -= lost; lostBy[id] = (lostBy[id] ?? 0) + lost; losses.push(`${lost} ${midName(lost > 1 ? TROOPS[id].plural : TROOPS[id].name)}`); }
               }
             };
+            const lostBy: Record<string, number> = {};
+            // the dead by name, buried where they fell (never "gone home")
+            const buried = () => { const b = buryMen(s, lostBy, BAND_ROAD[p.id] ?? roadNear(p), `${p.id}:${s.day}:${hour}`); if (b.combat) set({ combat: b.combat }); return b.line ? ` ${b.line}` : ''; };
             if (rng() < pWin) {
               casualties(0.08);
               const loot = 8 + Math.floor(rng() * 25);
@@ -3077,7 +3086,7 @@ export const useGame = create<GameState & Actions>()(
                     ? ` ${n} of the beaten raiders ask to ride with you. You lead as many men as your name allows, so you take on ${took} and the other rides off.`
                     : ` ${n === 1 ? 'One of the beaten raiders asks' : `${n} of the beaten raiders ask`} to ride with you, but you already lead as many men as your name allows. ${n === 1 ? 'He rides' : 'They ride'} off.`;
               }
-              msg = `Your men stand firm and the raiders break and scatter. You pick up ${fmt(loot)} they dropped.${losses.length ? ` Lost: ${losses.join(', ')}.` : ' No one was hurt.'}${join}`;
+              msg = `Your men stand firm and the raiders break and scatter. You pick up ${fmt(loot)} they dropped.${losses.length ? ` Lost: ${losses.join(', ')}.${buried()}` : ' No one was hurt.'}${join}`;
               const moved = parties.map((x) => (x.id === partyId ? { ...x, x: x.home?.x ?? x.x, y: x.home?.y ?? x.y, cooldownUntil: s.day + 4, size: Math.max(2, (x.size ?? 4) - 2), strength: Math.max(4, (x.strength ?? 8) - 4) } : x));
               set({ world: { ...get().world, party, parties: moved } });
               set({ cash, reputation: rep, ledger });
@@ -3095,7 +3104,7 @@ export const useGame = create<GameState & Actions>()(
               rugMsg = ` They take the ${RUGS[r.typeId].name}.`;
             }
             ledger.push({ day: s.day, kind: 'expense', label: 'Robbed by raiders', amount: -lostCash });
-            msg = `The fight goes badly. You lose ${fmt(lostCash)}.${rugMsg}${losses.length ? ` Lost: ${losses.join(', ')}.` : ''}`;
+            msg = `The fight goes badly. You lose ${fmt(lostCash)}.${rugMsg}${losses.length ? ` Lost: ${losses.join(', ')}.${buried()}` : ''}`;
             set({ inventory, world: { ...get().world, party, parties } });
             set({ cash, reputation: rep, ledger });
             return msg;
@@ -3385,6 +3394,36 @@ export const useGame = create<GameState & Actions>()(
           const s = get();
           const have = s.world.party.troops[troop] ?? 0;
           set({ world: { ...s.world, party: { ...s.world.party, troops: { ...s.world.party.troops, [troop]: Math.max(0, have - n) } } } });
+        },
+
+        dismissMan: (id) => {
+          const s = get();
+          const c = combatOf(s);
+          const m = (c.men ?? []).find((x) => x.id === id);
+          if (!m) return '';
+          const have = s.world.party.troops[m.kind] ?? 0;
+          const sgt = c.sergeant?.manId === id;
+          const text = `${m.name} takes his pay and goes home.${sgt ? ' You have no sergeant now.' : ''}`;
+          // the man and the count go together, so the roster never sends home someone else
+          set({ combat: { ...c, men: (c.men ?? []).filter((x) => x.id !== id), ...(sgt ? { sergeant: undefined } : {}) }, world: { ...s.world, party: { ...s.world.party, troops: { ...s.world.party.troops, [m.kind]: Math.max(0, have - 1) } } }, journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] });
+          return text;
+        },
+
+        payFallen: (i) => {
+          const s = get();
+          const c = combatOf(s);
+          const f = c.fallen?.[i];
+          if (!f || f.paid) return '';
+          if (!s.world.at) return 'Money for a family goes by the post: send it from a town.';
+          const sum = familySum(f);
+          if (s.cash < sum) return `Not enough cash: his family is owed ${fmt(sum)}.`;
+          const fallen = (c.fallen ?? []).map((x, j) => (j === i ? { ...x, paid: s.day } : x));
+          const home = f.home ? settlementById(f.home)?.name : undefined;
+          const text = `You send ${fmt(sum)} to the family of ${f.name}${home ? ` in ${home}` : ''}. The men hear of it.`;
+          const party = { ...s.world.party, morale: Math.min(100, (s.world.party.morale ?? MORALE_START) + 6) };
+          set({ cash: s.cash - sum, combat: { ...c, fallen }, reputation: s.reputation + (fallen.filter((x) => x.paid).length === 1 ? 1 : 0), world: { ...s.world, party }, ledger: [...s.ledger, { day: s.day, kind: 'expense', label: `To the family of ${f.name}`, amount: -sum }], journal: [...s.journal, { day: s.day, text, kind: 'road' as const }] });
+          audio.sfx('coins');
+          return text;
         },
 
         toggleStored: (uid) => {
@@ -5729,15 +5768,45 @@ useGame.subscribe((s, prev) => {
   useGame.setState({ favours: { ...s.favours, active: s.favours.active.filter((f) => !late.includes(f)), failed: s.favours.failed + late.length }, journal: [...s.journal, ...late.map((f) => ({ day: s.day, text: `You let a favour lapse: ${favourPromise(f)}. ${person(f.giver)?.short} will not forget it.`, kind: 'road' as const }))] });
   for (const f of late) useGame.getState().folkAdjust(f.giver, -10, `You let a favour lapse: ${favourPromise(f)}.`);
 });
+/** the men killed in a fight away from the battle field, chosen by name and buried: the roster loses
+ *  exactly them before the counts drop, so nobody is mistaken for a man sent home */
+function buryMen(s: GameState, lost: Record<string, number>, where: string, seed: string): { combat?: CombatState; line: string } {
+  if (!Object.values(lost).some((n) => n > 0)) return { line: '' };
+  const c0 = combatOf(s);
+  const at = s.world.at;
+  const k = killMen(syncMen(c0.men ?? [], s.world.party.troops, s.day, at ? { id: at, culture: cultureOf(at) } : undefined), lost, seed);
+  if (!k.fallen.length) return { line: '' };
+  let sergeant = c0.sergeant, sgt = '';
+  if (sergeant?.manId && k.fallen.some((m) => m.id === sergeant!.manId)) { sgt = ` Sergeant ${sergeant.name} is among them.`; sergeant = undefined; }
+  const line = (k.fallen.length === 1 ? `You bury ${manLabel(k.fallen[0])}, ${withArticle(kindName(k.fallen[0].kind))}, by the road.` : `You bury ${nameList(k.fallen)} by the road.`) + sgt;
+  return { combat: { ...c0, men: k.men, sergeant, fallen: [...(c0.fallen ?? []), ...k.fallen.map((m) => fallenOf(m, s.day, where, 'killed fighting raiders'))].slice(-60) }, line };
+}
+/** "on the road near Tanta" */
+function roadNear(p: { x: number; y: number }) {
+  const t = [...SETTLEMENTS].sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+  return t ? `the road near ${t.name}` : 'the road';
+}
+/** men whose leaving the journal has already told: the roster drops them without a second line */
+const told = new Set<string>();
+/** the men of a kind who walk off when patience runs out (the newest first, as when you send one home) */
+function walkedOff(s: GameState, kind: string, n: number) {
+  let men = [...(combatOf(s).men ?? [])];
+  const out: NamedMan[] = [];
+  for (let i = 0; i < n; i++) { const m = nextToGo(men, kind); if (!m) break; out.push(m); told.add(m.id); men = men.filter((x) => x.id !== m.id); }
+  return nameList(out);
+}
 // every man behind the troop counts has a name: hires get one, men let go leave the roster
 const syncRoster = (s: GameState) => {
   if (!s.world?.party?.troops) return;
   const c = combatOf(s);
-  const men = syncMen(c.men ?? [], s.world.party.troops, s.day);
+  const at = s.world.at;
+  const men = syncMen(c.men ?? [], s.world.party.troops, s.day, at ? { id: at, culture: cultureOf(at) } : undefined);
   if (men === c.men) return;
   // a man let go leaves the roster by name; if he was your sergeant, the post is empty until another earns it
-  const gone = (c.men ?? []).filter((m) => !men.some((x) => x.id === m.id));
-  const sgtGone = !!c.sergeant?.manId && gone.some((m) => m.id === c.sergeant!.manId);
+  const goneAll = (c.men ?? []).filter((m) => !men.some((x) => x.id === m.id));
+  const gone = goneAll.filter((m) => !told.has(m.id));
+  for (const m of goneAll) told.delete(m.id);
+  const sgtGone = !!c.sergeant?.manId && goneAll.some((m) => m.id === c.sergeant!.manId);
   useGame.setState({
     combat: { ...c, men, ...(sgtGone ? { sergeant: undefined } : {}) },
     ...(gone.length ? { journal: [...s.journal, { day: s.day, text: `${gone.map((m) => m.name).join(', ')} ${gone.length === 1 ? 'takes his' : 'take their'} pay and ${gone.length === 1 ? 'goes' : 'go'} home.${sgtGone ? ' You have no sergeant now.' : ''}`, kind: 'road' as const }] } : {}),

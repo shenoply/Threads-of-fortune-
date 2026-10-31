@@ -12,6 +12,7 @@ import { animalPrice } from '../../game/state/store';
 import { recruitPool, speedInfo, partySize, strength, wages, dailyFood, foodDaysLeft, animalCount, morale as moraleOf } from '../../game/systems/caravan';
 import { AnimalPlate } from './AnimalPlate';
 import { TroopPage, MenTalk, capLine } from './Troops';
+import { MenOf, FallenList } from './MenRoll';
 import { troopCount, troopCap, animalCap, strengthCap } from '../../game/systems/caravan';
 import { Icon } from '../Icon';
 import { provisionsAt, stapleAt, provisionPrice } from '../../data/provisions';
@@ -199,10 +200,13 @@ export function CaravanRoster() {
           </div>
           <p className="set-demand" data-testid="troop-cap-roster">{capLine(troopCount(p), g.reputation)}. A bigger name brings more men who will follow you.</p>
           {troops.map(([id, n]) => (
-            <div className="mkt-row" key={id}>
+            <div className="menkind" key={id}>
+            <div className="mkt-row">
               <img className="troop-pic small tappable" src={`art/troops/${id}.jpg`} alt={TROOPS[id].name} onClick={() => setPage(id)} data-testid={`roster-info-${id}`} />
               <span className="troop-name-btn" onClick={() => setPage(id)}><b>{n} {n === 1 ? TROOPS[id].name : TROOPS[id].plural}</b><small>Strength {TROOPS[id].strength} each · {fmt(TROOPS[id].wage)} a day each{PROMOTE[id] ? ` · road experience ${Math.floor(combatOf(g).xp[id] ?? 0)} of ${PROMOTE[id].xp}: then one becomes a ${((n: string) => (/^(Cairo|Giza|Bedouin|Arnaut|Alexandria)\b/.test(n) ? n : n[0].toLowerCase() + n.slice(1)))(TROOPS[PROMOTE[id].to].name)}` : ''}{id === 'veteran' && combatOf(g).sergeant ? ` · Sergeant ${combatOf(g).sergeant!.name} leads them` : ''}</small></span>
               <button className="btn" onClick={() => g.dismiss(id, 1)} data-testid={`dismiss-${id}`}>{(() => { const m = nextToGo(g.combat?.men ?? [], id); return m ? `Send ${m.name.split(' ')[0]} home` : 'Send one home'; })()}</button>
+            </div>
+            <MenOf kind={id} />
             </div>
           ))}
         </div>
@@ -214,6 +218,7 @@ export function CaravanRoster() {
         Wages {fmt(wages(p))} a day · food {dailyFood(p)} ration{dailyFood(p) === 1 ? '' : 's'} a day · {sp.over ? 'overloaded, moving slowly' : `carrying ${Math.round(sp.load)} of ${sp.cap} loads`}
         {sp.hungry ? ' · out of food' : ''}
       </p>
+      <FallenList />
     </div>
   );
 }
