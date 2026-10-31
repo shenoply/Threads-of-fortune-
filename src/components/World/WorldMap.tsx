@@ -26,7 +26,7 @@ import { nameOnRoad, useGame, ferryFare, localBid } from '../../game/state/store
 import { rankChip } from './RankTable';
 import { SETTLEMENTS, ROAD_WELLS, motorLorry, type Settlement } from '../../data/world';
 import { CAR_BY_ID } from '../../data/cars';
-import { carRoute, carFit, carCost, carName } from '../../game/systems/cars';
+import { carRoute, carFit, carCost, carName, CARS_ON } from '../../game/systems/cars';
 import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
@@ -555,7 +555,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const s0 = useGame.getState();
     const c = s0.car;
     const m = c ? CAR_BY_ID[c.model] : undefined;
-    if (!c || !m || c.at !== from) return undefined;
+    if (!CARS_ON || !c || !m || c.at !== from) return undefined;
     const r = carRoute(from, to, c.model, s0.day, s0.seed);
     if (!r.route) return r.why ? { ok: false, why: r.why, hours: 0, cost: 0, model: c.model } : undefined;
     if (isPersian(to) && !persiaOpen(s0)) return { ok: false, why: persiaWhy(s0), hours: r.route.hours, cost: 0, model: c.model };

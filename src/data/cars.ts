@@ -1,3 +1,7 @@
+/** Motor cars are set aside for now (owner's call): the garages, the Drive button and your car stay hidden.
+ *  Flip to true to bring them back; nothing else changes. */
+export const CARS_ON = false;
+
 // Motor cars for sale, and the roads they can use, 1925.
 // The makes are the game's own. Prices are in piastres (100 PT = £1). A Dodge tourer sold for about
 // £275 in Jerusalem in the mid-1920s; the other prices are set around it.

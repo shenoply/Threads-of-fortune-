@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGame } from '../../game/state/store';
-import { CAR_BY_ID, CAR_FREIGHT, GARAGE_TOWNS, RESALE, carsSoldIn, roadsLine, type CarModel } from '../../data/cars';
+import { CARS_ON, CAR_BY_ID, CAR_FREIGHT, GARAGE_TOWNS, RESALE, carsSoldIn, roadsLine, type CarModel } from '../../data/cars';
 import { SEA_ROUTES } from '../../data/world';
 import { settlementById } from '../../game/systems/world';
 import { fmt } from '../../game/economy/money';
@@ -19,6 +19,7 @@ function GarageArt({ city }: { city: string }) {
 
 /** Where your car stands, in a line, in every town; here, what you can do with it. */
 export function CarWhere({ id, onNote }: { id: string; onNote: (t: string) => void }) {
+  if (!CARS_ON) return null;
   const car = useGame((s) => s.car);
   const cash = useGame((s) => s.cash);
   const shipCar = useGame((s) => s.shipCar);
@@ -99,6 +100,7 @@ export function MotorGarage({ id, onNote }: { id: string; onNote: (t: string) =>
 
 /** "Your motor car" on the caravan page: the model, where it is, drives made, and selling it. */
 export function OwnCarRow() {
+  if (!CARS_ON) return null;
   const car = useGame((s) => s.car);
   const at = useGame((s) => s.world.at);
   const sellCar = useGame((s) => s.sellCar);

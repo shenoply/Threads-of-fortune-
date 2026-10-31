@@ -1,3 +1,4 @@
+import { CARS_ON } from '../data/cars';
 // What a new merchant is shown, and when. Day one is the stall, Rashid, Malek and Bilgin; the rest of the
 // game's trades and services come into view at the moment they first matter, each with one short line.
 // Nothing here is a new saved field: an opened system is marked in tipsSeen ('open-<id>'), so it stays
@@ -91,7 +92,7 @@ export const UNLOCKS: Record<Sys, Rule> = {
   },
   // the motor garages: once a car is within reach, or after a few weeks of trade
   garage: {
-    when: (s) => (finished(s) && (s.cash >= 15000 || s.day >= 21)) || !!s.car,
+    when: (s) => CARS_ON && ((finished(s) && (s.cash >= 15000 || s.day >= 21)) || !!s.car),
     line: () => 'The motor garages in Cairo, Jaffa, Beirut and Baghdad will sell you a car.',
     later: 'Opens when you have £150 for a motor car.',
   },

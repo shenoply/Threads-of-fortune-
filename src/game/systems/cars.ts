@@ -1,5 +1,6 @@
 // Your own motor car: the roads it can use, who and what fits in it, what a drive costs, and what
 // can go wrong on the way. Pure functions; the store's buyCar/sellCar/driveCar/carArrived use them.
+export { CARS_ON } from '../../data/cars';
 import { CARS, CAR_BY_ID, CAR_ROADS, DESERT_PAPERS, type CarModel, type CarRoad } from '../../data/cars';
 import { BREEDS } from '../../data/animals';
 import { rollFor } from './fieldwork';
