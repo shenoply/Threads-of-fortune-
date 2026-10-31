@@ -13,6 +13,7 @@ import { eraById } from '../game/economy/era';
 import { dateFor } from '../game/economy/economy';
 import { fmt } from '../game/economy/money';
 import { filedAs } from './renamedIds';
+import { isShe } from '../game/systems/memory';
 
 export interface Ctx {
   s: GameState;
@@ -408,10 +409,12 @@ const museum: Arc = {
 // 4. Two weddings in the lane
 // ======================================================================================================
 const TABRIZ = 2600;
+/** whose wedding asks you: Hasan's when both have a carpet, Yusuf's when Rashid sold it to him */
+const winner = (c: Ctx) => (c.f.won === 'both' ? 'hassan' : c.f.won === 'none' ? 'yusuf' : String(c.f.won));
 const wedding: Arc = {
   id: 'wedding', title: 'Two weddings in the lane',
   blurb: 'Hasan of the Nile Star and Yusuf of the Hotel Nefertari both want the same great carpet.',
-  unlock: (s, day) => day >= 40 && s.reputation >= 5,
+  unlock: (s, day) => day >= 40 && s.reputation >= 8,
   first: 'hasan',
   beats: {
     hasan: {
@@ -428,7 +431,7 @@ const wedding: Arc = {
       id: 'yusuf', via: 'stall', who: 'Yusuf', face: P('yusuf'), title: 'Yusuf wants the same carpet',
       soon: () => 'The lane is talking about weddings.',
       text: (c) => `Yusuf of the Hotel Nefertari comes the same week. His son Mahmoud is married on the same Thursday as Zeinab, and Yusuf wants the great Tabriz from Rashid's back room. "I know Hasan wants it. I will pay forty-five pounds. Hasan has thirty-two, and his coffee house has not been painted since the war."${c.f.promised ? ' You have promised it to Hasan.' : ''}${c.f.refused ? ' You told Hasan you could not get it.' : ''} Rashid will let you have it for ${fmt(TABRIZ)}.`,
-      expires: 10, lapse: 'yusuf',
+      expires: 10, lapse: 'neither',
       choices: [
         { id: 'hasan', label: 'Sell it to Hasan, as you said', hidden: (c) => !!c.f.refused, cost: TABRIZ,
           go: () => go('Hasan counts out thirty-two pounds in coins, and weeps a little. Yusuf goes away stiff and polite.', 'invite', 6,
@@ -439,6 +442,9 @@ const wedding: Arc = {
         { id: 'pair', label: 'Ask Rashid for a second carpet to match', cost: TABRIZ * 2, hidden: (c) => !!c.f.refused,
           go: () => go('Rashid grumbles, and finds a sister to the Tabriz in a dealer\'s store in Tanta: not so fine, but a pair. Hasan pays thirty-two pounds, Yusuf forty; each thinks he has the better one.', 'invite', 6,
             [{ cash: 7200, label: 'Two Tabriz carpets, to Hasan and Yusuf' }, { mem: 'hassan', m: { k: 'story', note: 'A Tabriz for Zeinab\'s wedding', w: 2 }, forget: ['slight'] }, { mem: 'yusuf', m: { k: 'story', note: 'A Tabriz for Mahmoud\'s wedding', w: 2 } }], { won: 'both' }) },
+        { id: 'neither', label: 'Tell them both to go to Rashid themselves',
+          go: () => go('Rashid sells it to Yusuf, who pays more. Hasan blames you a little, and Rashid a great deal.', 'invite', 6,
+            [{ mem: 'hassan', m: { k: 'slight', note: 'You left the Tabriz to Rashid and Yusuf', w: -1 } }], { won: 'none', lost: 'hassan' }) },
         { id: 'bid', label: 'Let them bid against each other',
           cost: TABRIZ, hidden: (c) => !!c.f.refused,
           go: () => go('They bid in front of the whole lane. Yusuf wins at fifty-five pounds. Both of them think less of you for it.', 'invite', 6,
@@ -452,8 +458,8 @@ const wedding: Arc = {
       expires: 10, lapse: 'decline',
       choices: [
         { id: 'go', label: 'Go, with a present for the couple', cost: 150,
-          go: (c) => { const w = c.f.won === 'both' ? 'hassan' : String(c.f.won); const f = stranger(c.s, c.day); return go(`You dance more than you meant to.${f ? ` ${BUYERS[f]?.name}, a cousin of the family, takes your card and says ${BUYERS[f]?.name.startsWith('Miss') || BUYERS[f]?.name.startsWith('Madame') ? 'she' : 'he'} will call at your stall.` : ''}`, 'after', 60, [{ mem: w, m: { k: 'gift' } }, ...(c.f.won === 'both' ? [{ mem: 'yusuf', m: { k: 'gift' } } as Fx] : []), ...(f ? [{ appoint: f, inDays: 3, friendOf: w } as Fx] : [])]); } },
-        { id: 'send', label: 'Send a present, and stay at the stall', cost: 100, go: (c) => go('Your present is opened in front of everyone. It is thought proper.', 'after', 60, [{ mem: c.f.won === 'both' ? 'hassan' : String(c.f.won), m: { k: 'gift' } }]) },
+          go: (c) => { const w = winner(c); const f = stranger(c.s, c.day); return go(`You dance more than you meant to.${f ? ` ${BUYERS[f]?.name}, a cousin of the family, takes your card and says ${isShe(f) ? 'she' : 'he'} will call at your stall.` : ''}`, 'after', 60, [{ mem: w, m: { k: 'gift' } }, ...(c.f.won === 'both' ? [{ mem: 'yusuf', m: { k: 'gift' } } as Fx] : []), ...(f ? [{ appoint: f, inDays: 3, friendOf: w } as Fx] : [])]); } },
+        { id: 'send', label: 'Send a present, and stay at the stall', cost: 100, go: (c) => go('Your present is opened in front of everyone. It is thought proper.', 'after', 60, [{ mem: winner(c), m: { k: 'gift' } }]) },
         { id: 'decline', label: 'Send your regrets', go: () => go('Your regrets are noted.', 'after', 60) },
       ],
     },

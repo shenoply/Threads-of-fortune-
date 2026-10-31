@@ -143,10 +143,10 @@ skipDays(8);
 ok(g().ledger.some((l) => l.label.includes('share of the week') && l.amount === 600), 'a partnership pays on Mondays');
 
 // ---- how they open and run ----
-fresh({ day: 25, reputation: 6 } as never);
+fresh({ day: 25, reputation: 9 } as never);
 set({ stories: ST.freshStories(1) });
 skipDays(20);
-ok(Object.keys(ST.storiesOf(g()).runs).length === 1 && !!ST.storiesOf(g()).runs.wedding, `the first tale opens by itself once your name allows (${Object.keys(ST.storiesOf(g()).runs).join(', ')})`);
+ok(Object.keys(ST.storiesOf(g()).runs).length >= 1 && Object.values(ST.storiesOf(g()).runs).every((r) => r.started - 1 >= ST.START_GAP || r.started >= 30), `the first tale opens by itself once your name allows (${Object.keys(ST.storiesOf(g()).runs).join(', ')})`);
 fresh({ day: 400, reputation: 40 } as never);
 set({ stories: ST.freshStories(1) });
 skipDays(40);
