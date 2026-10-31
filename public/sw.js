@@ -136,7 +136,16 @@ async function dropReplaced() {
   for (const req of await c.keys()) if (REPLACED.paths.test(new URL(req.url).pathname)) await c.delete(req);
   await c.put(markUrl, new Response('1'));
 }
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim().then(() => dropReplaced()).catch(() => {}).then(() => tidy())));
+// The pictures were JPGs until 2026-10 and are WebP now (new names): the kept JPGs are never asked for
+// again, so they are dropped once instead of taking up the phone's space for ever.
+async function dropOldJpgs() {
+  const c = await caches.open(CACHE);
+  const markUrl = new URL('__sw-webp-2026-10-31__', self.registration.scope).href;
+  if (await c.match(markUrl)) return;
+  for (const req of await c.keys()) if (/\/art\/.*\.jpe?g$/.test(new URL(req.url).pathname)) await c.delete(req);
+  await c.put(markUrl, new Response('1'));
+}
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim().then(() => dropReplaced()).then(() => dropOldJpgs()).catch(() => {}).then(() => tidy())));
 
 self.addEventListener('fetch', (e) => {
   const r = e.request;

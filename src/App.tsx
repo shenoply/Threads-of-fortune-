@@ -4,12 +4,10 @@ import { installTesterHook } from './game/testerHook';
 import { DEMO } from './game/demo';
 import { DemoEnd } from './components/Demo/DemoEnd';
 installTesterHook();
-import { EncyclopediaHost } from './components/Folk/Encyclopedia';
 import { recordPlayer } from './game/audio/recordPlayer';
 import { recordsOwned } from './data/records';
 import { RevealHost } from './components/Reveal/Reveal';
 import { MomentHost } from './components/Moment/Moment';
-import { DreamHost } from './components/Dream/Dream';
 import { GiftButton } from './components/Daily/Daily';
 import { SimOptions } from './components/Title/SimOptions';
 import { BigNews, freshNews } from './components/Newspaper/BigNews';
@@ -32,9 +30,7 @@ import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
 import { START_WARDROBE, fullSrc, stallSrc } from './data/wardrobe';
 import { headFace, HERO_FACE } from './game/heroLook';
-import { PlayAsYourself, SandboxChoose } from './components/Sandbox/PlayAsYourself';
 import { ModeChooser, type Mode } from './components/Title/ModeChooser';
-import { Rescue } from './components/World/Rescue';
 import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
@@ -56,8 +52,6 @@ import { stallDressing } from './game/stallDressing';
 import { rugThumb } from './components/RugViewer/rugArt';
 import { StallEncounter } from './components/StallEncounter/StallEncounter';
 import { Documentary, DayOneCard, introSeen, markIntroSeen } from './components/Documentary/Documentary';
-import { Supplier } from './components/Supplier/Supplier';
-import { Inventory } from './components/Inventory/Inventory';
 import { Guide, guidePage } from './components/Guide/Guide';
 import { MilestoneNotice, MissionScene, ObjectiveBar, SideTasks } from './components/Mission/Mission';
 import { HomeSceneCard } from './components/Character/HomeScene';
@@ -104,6 +98,27 @@ const Radio = lazy(() => withWires(import('./components/Radio/Radio')).then((m) 
 const Gramophone = lazy(() => import('./components/Radio/Gramophone').then((m) => ({ default: m.Gramophone })));
 const Calendar = lazy(() => import('./components/Calendar/Calendar').then((m) => ({ default: m.Calendar })));
 const HeroHub = lazy(() => import('./components/Hero/HeroHub').then((m) => ({ default: m.HeroHub })));
+// also loaded when first shown, after the title is up: the dream (its host waits for the night), the
+// people's book, the supplier and stock tabs (fetched in a quiet moment once a game is open), the
+// sandbox's character sheets and the rescue
+const DreamHost = lazy(() => import('./components/Dream/Dream').then((m) => ({ default: m.DreamHost })));
+const EncyclopediaHost = lazy(() => import('./components/Folk/Encyclopedia').then((m) => ({ default: m.EncyclopediaHost })));
+const loadSupplier = () => import('./components/Supplier/Supplier');
+const loadInventory = () => import('./components/Inventory/Inventory');
+const Supplier = lazy(() => loadSupplier().then((m) => ({ default: m.Supplier })));
+const Inventory = lazy(() => loadInventory().then((m) => ({ default: m.Inventory })));
+const PlayAsYourself = lazy(() => import('./components/Sandbox/PlayAsYourself').then((m) => ({ default: m.PlayAsYourself })));
+const SandboxChoose = lazy(() => import('./components/Sandbox/PlayAsYourself').then((m) => ({ default: m.SandboxChoose })));
+const Rescue = lazy(() => import('./components/World/Rescue').then((m) => ({ default: m.Rescue })));
+let tabsAsked = false;
+/** the stock and supplier tabs, fetched in a quiet moment once a game is open, so they open at once */
+function prefetchTabs() {
+  if (tabsAsked) return;
+  tabsAsked = true;
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  const go = () => { loadInventory().catch(() => {}); loadSupplier().catch(() => {}); };
+  window.setTimeout(() => (w.requestIdleCallback ? w.requestIdleCallback(go, { timeout: 5000 }) : go()), 3000);
+}
 // the tester's sheet (beta build): loaded only when opened from Settings
 const AdminSheet = lazy(() => import('./components/Admin/AdminSheet').then((m) => ({ default: m.AdminSheet })));
 
@@ -751,6 +766,7 @@ export default function App() {
   const vibrate = useVibration();
   // on the map in a town, fetch the screens opened next (Malek, the cafe, the telegraph) in a quiet moment
   useEffect(() => { if (phase === 'game' && tab === 'map' && g.at) prefetchNextScreens(); }, [phase, tab, g.at]);
+  useEffect(() => { if (phase === 'game') prefetchTabs(); }, [phase]);
   const [cashFlash, setCashFlash] = useState(false);
   const prevCash = useRef(g.cash);
   useEffect(() => {
@@ -840,7 +856,7 @@ export default function App() {
   if (phase === 'title') {
     return (
       <div className="title-screen" data-testid="title">
-        <DreamHost />
+        <Suspense fallback={null}><DreamHost /></Suspense>
         <div className="bg" key={titleBg.src} style={{ backgroundImage: `url(${titleBg.src})`, backgroundPosition: titleBg.pos ?? '50% 45%' }} />
         <Atmosphere hour={17.4} />
         <div className="title-card">
@@ -894,8 +910,8 @@ export default function App() {
             </div>
           </div>
           {chooser && <ModeChooser current={g.started ? { day: g.day, ironman: !!g.ironman } : null} slots={slots} onBackup={downloadSave} first={chooser === 'any' ? undefined : chooser} onStart={startMode} onClose={() => setChooser(null)} />}
-          {sbx === 'choose' && <SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} />}
-          {sbx === 'yourself' && <PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox(look); setSbx(''); setPhase('dayone'); }} />}
+          {sbx === 'choose' && <Suspense fallback={null}><SandboxChoose onClose={() => setSbx('')} onHassan={() => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onYourself={() => setSbx('yourself')} /></Suspense>}
+          {sbx === 'yourself' && <Suspense fallback={null}><PlayAsYourself onClose={() => setSbx('')} onHassan={() => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox({ kind: 'hassan' }); setSbx(''); setPhase('dayone'); }} onStart={(look) => { audio.ensure(); if (!freshForSandbox()) return; useGame.getState().startSandbox(look); setSbx(''); setPhase('dayone'); }} /></Suspense>}
           {loadOpen && !(g.started && g.ironman) && (
             <div className="slot-list" data-testid="title-slot-list">
               {slots.map((info, i) => info && (
@@ -951,7 +967,7 @@ export default function App() {
       </header>
       <RevealHost />
       <MomentHost />
-      <DreamHost />
+      <Suspense fallback={null}><DreamHost /></Suspense>
       <WeaverLink />
 
       {g.started && ruin.stage > 0 && !(tab === 'stall' && g.encounter) && (
@@ -975,7 +991,7 @@ export default function App() {
       {phase === 'game' && <MilestoneNotice />}
       {phase === 'game' && <MissionScene />}
       {phase === 'game' && <HomeSceneCard />}
-      {phase === 'game' && <EncyclopediaHost />}
+      {phase === 'game' && <Suspense fallback={null}><EncyclopediaHost /></Suspense>}
       {/* the character growing as you play: each skill gained, each level and perk earned */}
       {phase === 'game' && <><SkillPops /><LevelUpToast /></>}
       {/* the objective and mission news belong to the map and the stall, where you act on them; on Me,
@@ -1014,8 +1030,8 @@ export default function App() {
             <button className="btn primary" onClick={() => setTab('map')} data-testid="goto-world">Open the world map</button>
           </div>
         ))}
-        {tab === 'supplier' && <Supplier toast={toast} />}
-        {tab === 'inventory' && <Inventory onRashid={() => setTab('supplier')} />}
+        {tab === 'supplier' && <Suspense fallback={null}><Supplier toast={toast} /></Suspense>}
+        {tab === 'inventory' && <Suspense fallback={null}><Inventory onRashid={() => setTab('supplier')} /></Suspense>}
         {tab === 'ledger' && <Merchant sub={msub} setSub={setMsub} onBack={() => setTab('hero')} />}
         {tab === 'hero' && <Suspense fallback={null}><HeroHub onProgress={() => { audio.sfx('tap'); setMsub('road'); setTab('ledger'); }} progressNew={g.progressNew} /></Suspense>}
         {tab === 'caravan' && <CaravanScreen onGo={chapterGo} />}
@@ -1073,7 +1089,7 @@ export default function App() {
         })}
       </nav>
 
-      {g.rescue && <Rescue />}
+      {g.rescue && <Suspense fallback={null}><Rescue /></Suspense>}
       {/* one card at a time: the night's summary first, then a job offer waiting from before */}
       {phase === 'game' && !g.rescue && <><DaySummary />{!summaryUp && <SeasonReport />}{!summaryUp && !newsUp && <JobOffer />}</>}
       {settings && (

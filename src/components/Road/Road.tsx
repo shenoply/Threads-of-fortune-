@@ -31,11 +31,16 @@ function Bars({ needs }: { needs: Need[] }) {
   );
 }
 
+// a stall's picture on the road is a card a few dozen pixels wide: its 320-wide copy (art/stalls/thumbs)
+// is enough, and a phone does not hold the 768 one decoded for it
+const small = (src: string) => src.replace(/^art\/stalls\/([^/]+-768)\.webp$/, 'art/stalls/thumbs/$1.webp');
 function Pic({ src, locked }: { src: string; locked: boolean }) {
   const [ok, setOk] = useState(true);
+  const [big, setBig] = useState(false);
+  const shown = big ? src : small(src);
   return (
     <span className={`road-pic ${locked ? 'locked' : ''}`} aria-hidden="true">
-      {src && ok ? <img src={src} alt="" loading="lazy" onError={() => setOk(false)} /> : <Icon name="star" />}
+      {src && ok ? <img src={shown} alt="" loading="lazy" onError={() => (shown !== src ? setBig(true) : setOk(false))} /> : <Icon name="star" />}
       {locked && <span className="road-lock"><Icon name="lock" /></span>}
     </span>
   );
@@ -114,7 +119,7 @@ export function Road() {
             <details data-testid={`road-chapter-${ch}`}>
               <summary><h4>{ch + 1 < RANKS.length ? `Towards ${RANKS[ch + 1].name}` : 'The end of the road'}</h4>
                 {/* a glimpse of what the stretch holds, before it is opened */}
-                <span className="road-peek" aria-hidden="true">{steps.filter((x) => x.chapter === ch && !x.rank && x.pic).slice(0, 4).map((x) => <img key={x.id} src={x.pic} alt="" loading="lazy" className={x.done ? '' : 'dim'} />)}</span><span className="dim road-count">{ch < rk ? 'done' : (() => { const n = steps.filter((x) => x.chapter === ch).length; return `${n} ${n === 1 ? 'step' : 'steps'}`; })()}</span></summary>
+                <span className="road-peek" aria-hidden="true">{steps.filter((x) => x.chapter === ch && !x.rank && x.pic).slice(0, 4).map((x) => <img key={x.id} src={small(x.pic!)} alt="" loading="lazy" className={x.done ? '' : 'dim'} />)}</span><span className="dim road-count">{ch < rk ? 'done' : (() => { const n = steps.filter((x) => x.chapter === ch).length; return `${n} ${n === 1 ? 'step' : 'steps'}`; })()}</span></summary>
               <ol>
                 {steps.filter((x) => x.chapter === ch).map((st) => (
                   <li key={st.id} className={`road-step ${st.done ? 'done' : ''} ${st.rank ? 'rank' : ''}`} data-testid={`road-${st.id}`}>
