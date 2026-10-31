@@ -36,3 +36,4 @@
 .sto-picks small { font-family: var(--label); font-size: 12px; color: #c9a160; }
 /* on the town menu */
 .tm-body .sto-cards { margin: 6px 0 10px; }
+.sto-face svg { width: 55%; height: 55%; color: var(--brass-hi); }

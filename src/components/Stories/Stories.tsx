@@ -2,6 +2,7 @@
 // stall, on a town's menu, or under Progress for the Courier's items), with its choices as plain buttons;
 // and the Stories list under Progress: each tale begun, where it stands, and what you chose.
 import { useState } from 'react';
+import { Icon } from '../Icon';
 import { useGame } from '../../game/state/store';
 import { fmt } from '../../game/economy/money';
 import { dateFor } from '../../game/economy/economy';
@@ -11,8 +12,8 @@ import './stories.css';
 
 function Face({ src, name }: { src?: string; name: string }) {
   const [gone, setGone] = useState(false);
-  const initial = name.replace(/^(Mr|Mrs|Miss|Madame|Dr|Old Mr|Unsigned.*|Y\.)\s*/i, '').charAt(0) || '?';
-  return <span className="sto-face">{src && !gone ? <img src={src} alt="" loading="lazy" onError={() => setGone(true)} /> : <b>{initial}</b>}</span>;
+  void name;
+  return <span className="sto-face">{src && !gone ? <img src={src} alt="" loading="lazy" onError={() => setGone(true)} /> : <Icon name="scroll" />}</span>;
 }
 
 /** The choices of a beat, with what happened once one is taken. `bare`: no heading (inside a letter). */
