@@ -75,7 +75,7 @@ const skip = (n: number) => { for (let i = 0; i < n; i++) { useGame.setState({ w
 skip(25);
 ok(mare()?.due !== undefined, `after some weeks together she is in foal, due day ${mare()?.due}: "${st().journal.find((j) => /in foal/.test(j.text))?.text}"`);
 skip((mare()?.due ?? st().day) - st().day + 1);
-const foal = (st().stableHerd?.cairo ?? []).find((a) => a.dam === h1.name);
+const foal = (st().stableHerd?.cairo ?? []).find((a) => a.dam === 'Kuhaila');
 ok(!!foal && (st().stabled?.cairo?.animals.arabian ?? 0) === 3, `the foal is born at the stable and counted: ${foal?.name}, ${foal ? ageWords(foal, st().day) : ''}`);
 ok(st().journal.some((j) => /has given birth/.test(j.text)), `"${st().journal.find((j) => /has given birth/.test(j.text))?.text}"`);
 if (foal) {
