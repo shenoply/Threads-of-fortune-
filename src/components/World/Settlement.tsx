@@ -6,6 +6,7 @@ import { GARAGE_TOWNS, carsSoldIn } from '../../data/cars';
 import { carName } from '../../game/systems/cars';
 import { GUNSMITH_TOWN } from '../../data/arms';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { openGuide } from '../Guide/Guide';
 // the telegraph counter is opened rarely: loaded when first asked for
 const DominoTable = lazy(() => import('../Cafe/DominoTable').then((m) => ({ default: m.DominoTable })));
 const TelegraphOffice = lazy(() => import('./TelegraphOffice').then((m) => ({ default: m.TelegraphOffice })));
@@ -388,7 +389,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
         {/* the purse rides with the tabs: two separate sticky bars ended up on top of each other */}
         {tab !== 'town' && <div className="set-purse" data-testid="set-purse"><Icon name="coin" />You have <b>{fmt(g.cash)}</b></div>}
         </div>
-        {note && <p className="set-note" data-testid="set-note">{note}</p>}
+        {note && <p className="set-note" data-testid="set-note"><Glossed text={note} /></p>}
         {tab === 'town' && (<>
         <p className="set-blurb">{st.blurb}</p>
         <TownMoney id={id} />
@@ -721,7 +722,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
             <div className="tm-body">
               {!moreOpen && walkIt && <div className="tm-list tm-walk">{tile(walkIt)}</div>}
               {!moreOpen && <p className="tm-blurb">{st.blurb}</p>}
-              {note && <p className="tm-note">{note}</p>}
+              {note && <p className="tm-note"><Glossed text={note} /></p>}
               {wireWord && <p className="tm-note once-line" role="note" data-testid="once-telegraph">{ONCE.telegraph.text}</p>}
               {!moreOpen ? (
                 <div className="tm-groups" data-testid="town-menu-groups">
@@ -854,3 +855,26 @@ function MapThumb({ x, y, zoom }: { x: number; y: number; zoom: number }) {
   }, [x, y, zoom, artTick]);
   return <canvas ref={ref} className="thumb" />;
 }
+
+/** the rug grades, said the first time a note names one: "a Fine rug (Fine: a better grade of rug, worth
+ *  more to collectors)", with the How to play page of the game's words beside it. Once read, plain text. */
+const GRADE_GLOSS: Record<string, string> = {
+  Fine: 'a better grade of rug, worth more to collectors',
+  Exceptional: 'a grade above Fine, for rich collectors',
+  Legendary: 'the rarest grade, a rug with a name',
+};
+function Glossed({ text }: { text: string }) {
+  const m = /\b(Fine|Exceptional|Legendary) rug\b/.exec(text);
+  const key = m ? `gloss-${m[1].toLowerCase()}` : '';
+  // read once when first shown: the next note naming the grade is plain
+  const [first] = useState(() => !!m && !(useGame.getState().tipsSeen ?? []).includes(key));
+  useEffect(() => { if (first) useGame.getState().seeTip(key); }, [first, key]);
+  if (!m || !first) return <>{text}</>;
+  const end = m.index + m[0].length;
+  return (
+    <>
+      {text.slice(0, end)} <span className="grade-gloss" data-testid="grade-gloss">({m[1]}: {GRADE_GLOSS[m[1]]}; <button className="link-btn" onClick={() => openGuide('words')} data-testid="gloss-words">Words used in the game</button>)</span>{text.slice(end)}
+    </>
+  );
+}
+

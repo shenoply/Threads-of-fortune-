@@ -59,6 +59,11 @@ export function rashidStock(day: number, rng: () => number, rep = 0, commonOnly 
       qty: limited ? 1 : (RUGS[tpl.typeId].tier ?? 1) === 1 ? 2 + Math.floor(rng() * 3) : (RUGS[tpl.typeId].tier ?? 1) === 2 ? 1 + Math.floor(rng() * 2) : 1,
     });
   }
+  // the first days: a newcomer who has just paid Rashid his ten pounds always finds one rug he can afford
+  // to put on the stall (a dirty Nile reed mat, a few piastres), so the stall is never bare for want of cash
+  if (day <= 3 && !out.some((o) => o.price <= 50)) {
+    out.push({ uid: newUid('s'), typeId: 'nile-reed', condition: 'Dirty', price: offerPrice('nile-reed', 'Dirty'), tag: 'Dirty', qty: 2 });
+  }
   return out;
 }
 

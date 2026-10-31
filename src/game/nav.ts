@@ -16,3 +16,10 @@ export const takeMalekRequest = () => { const w = malekWanted; malekWanted = fal
 /** "See Dr Feras" from anywhere in Cairo: the app shows Cairo's town and the clinic opens (no travelling involved) */
 export const CLINIC_EVENT = 'tof:open-clinic';
 export const openClinic = () => window.dispatchEvent(new Event(CLINIC_EVENT));
+
+/** whether the world map's trip card is up (and for which town), so the objective line can drop its own
+ *  "Plan the trip" button while the card is already open, as it drops "Your stall" over the stall */
+let tripCard: string | null = null; const tripSubs = new Set<() => void>();
+export const setTripCardOpen = (town: string | null) => { if (tripCard !== town) { tripCard = town; tripSubs.forEach((f) => f()); } };
+export const tripCardSub = (cb: () => void) => { tripSubs.add(cb); return () => { tripSubs.delete(cb); }; };
+export const tripCardTown = () => tripCard;

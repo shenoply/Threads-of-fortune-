@@ -8,6 +8,7 @@ import { NextOnRoad } from '../Road/Road';
 import { SKILLS, SKILL_ORDER, levelOf, xpFor } from '../../data/character';
 import { useAtStall } from '../Radio/Gramophone';
 import { openingDone } from '../../game/opening';
+import { allOpen } from '../../game/unlocks';
 import { lookUps, sceneIdFor, sceneSmall } from '../../game/stallScenes';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -112,9 +113,12 @@ export function StallIdle({ onGo }: { onGo: (t: Target) => void }) {
       {/* the next thing worth working for, once the opening's own steps are done */}
       {/* the other things to do at the stall: Improve, and the rest folded away so the one big button stands out */}
       <div className="idle-more">
-        <button className={`btn small idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve" title={canBuy.length ? `You can afford: ${canBuy[0].name}` : undefined}>
-          <Icon name="star" /> Improve{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}
-        </button>
+        {/* the first day is the stall and Rashid only: improving the stall comes once a day's sales are done */}
+        {g.day < INTRO.improve && !allOpen(g)
+          ? <span className="btn small idle-improve locked" aria-disabled="true" data-testid="idle-improve-later"><Icon name="star" /> Improve <small>opens tomorrow</small></span>
+          : <button className={`btn small idle-improve ${canBuy.length ? 'has-new' : ''}`} onClick={() => { audio.sfx('tap'); openUpgrades(); }} data-testid="idle-improve" title={canBuy.length ? `You can afford: ${canBuy[0].name}` : undefined}>
+              <Icon name="star" /> Improve{canBuy.length ? <b className="idle-badge">{canBuy.length}</b> : null}
+            </button>}
         <button className={`btn small idle-more-toggle ${more ? 'on' : ''}`} onClick={() => setMore((m) => !m)} aria-expanded={more} data-testid="idle-more-toggle">More {more ? '▴' : '▾'}</button>
       </div>
       {more && (
@@ -192,7 +196,8 @@ const STALL_PULL: Record<string, string> = {
   khan: 'A shop in the Khan. Collectors, and purses a quarter deeper.',
 };
 /** the day each part of the trade first shows on the stall screen */
-const INTRO = { dream: 2, market: 5, rival: 9, week: 14, season: 21 };
+// (Improve after the first day's sales; the next-stall race with Shukri from the second week's eve)
+const INTRO = { improve: 2, dream: 7, market: 5, rival: 7, week: 14, season: 21 };
 function NewNote({ text }: { text: string }) {
   return <p className="new-note" data-testid="new-note"><b>NEW</b> {text}</p>;
 }

@@ -14,6 +14,7 @@ import { CaravanTrade } from '../Folk/CaravanTrade';
 import { caravanMaster } from '../../game/systems/population';
 import { fmt } from '../../game/economy/money';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { setTripCardOpen } from '../../game/nav';
 import { portraitMarker, type PortraitMarker } from './portraitMarker';
 import { houseMarks, HOUSE } from '../../game/systems/houses';
 import { RIVAL } from '../../data/rivals';
@@ -31,7 +32,7 @@ import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger, tripEstimate, durationLabel, type FareLine,
-  MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, walkPace, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidth } from '../../game/systems/mapRender';
@@ -230,7 +231,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   };
   const planState = plan;
   const dawnSeen = useRef(useGame.getState().day);
-  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean; car?: string };
+  type Moving = { path: Pt[]; done: number; train: boolean; dest?: string; pxPerDay?: number; pace?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean; car?: string };
   // resume a journey already under way, from where the caravan actually is along its path
   const [moving, setMovingRaw] = useState<null | Moving>(() => {
     const j = useGame.getState().journey;
@@ -246,6 +247,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     return { ...j, done: Math.max(j.done, best) };
   });
+  // the trip card is up: the objective line drops its own "Plan the trip" (game/nav.ts)
+  useEffect(() => { setTripCardOpen(plan && !moving ? plan.settlement?.id ?? 'open' : null); }, [plan, moving]);
+  useEffect(() => () => setTripCardOpen(null), []);
   // every change is saved: a paid ticket is never lost to a new day or a rebuilt screen. Setting off
   // also closes a finished stall day, so the journey is not frozen behind the day's ledger.
   /** "about 35 h, arrives Fri 04:00": the same clock the journey will run on */
@@ -600,7 +604,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       return p0;
     }
     const path = st && isWaterPx(st) && !findPath(from, target) ? null : findPath(from, target);
-    const days = path ? pathDays(path, sp.pxPerDay) * seasonPathMult(g.day, path) : 0;
+    // (Giza and Cairo stand closer than the map draws them: SHORT_WALKS)
+    const days = path ? (pathDays(path, sp.pxPerDay) * seasonPathMult(g.day, path)) / walkPace(here?.id, st?.id, path) : 0;
     const train = here && st ? railJourney(here.id, st.id, fp) ?? undefined : undefined;
     // the same check setOff() warns about in text, done here too so the route line itself can go red
     const risky = !!path && routeDanger(path, w.parties, g.day) > strength(w.party);
@@ -691,7 +696,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     follow.current = true;
     if (w.at) walkBegun();
     planBorder(p.path, p.settlement?.id);
-    setMoving({ path: p.path, done: 0, train: false, dest: p.settlement?.id });
+    setMoving({ path: p.path, done: 0, train: false, dest: p.settlement?.id, pace: walkPace(w.at, p.settlement?.id, p.path) });
     setPlan(null);
     const ferry = (w.at === 'giza' && p.settlement?.id === 'cairo') || (w.at === 'cairo' && p.settlement?.id === 'giza');
     setAlt(p.train || p.ships.length || p.motor.length || ferry ? p : null);
@@ -872,7 +877,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (st0.border && moving.mode !== 'ferry') { raf = requestAnimationFrame(loop); return; }
       let speed = moving.train ? moving.pxPerDay ?? 220 : speedInfo(st0.world.party, st0.inventory).pxPerDay;
       // the ground underfoot: quick on a road, slow in sand and hills
-      if (!moving.train && !moving.mode) speed *= terrainSpeed(livePos) || 1;
+      if (!moving.train && !moving.mode) speed *= (terrainSpeed(livePos) || 1) * (moving.pace ?? 1);
       // a khamsin blowing over the road: sand in the eyes, the camels keep their heads down
       const sand = !moving.train && inKhamsin(st0.day, livePos);
       if (sand) speed *= KHAMSIN_PACE;
@@ -1869,6 +1874,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       {encounter && encounter.kind === 'raiders' && (
         <Ambush
           party={encounter}
+          onTrain={!!moving?.train && !moving?.mode}
           onDone={(msg) => { setReport(msg); setEncounter(null); if (useGame.getState().rescue) setMoving(null); }}
           onTurnBack={(msg) => { setEncounter(null); turnBack(msg); }}
         />

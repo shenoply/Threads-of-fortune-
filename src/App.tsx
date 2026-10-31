@@ -22,9 +22,9 @@ import { HealthStrip, wellness } from './components/Health/HealthStrip';
 import { foodDaysLeft, troopCount, animalCount } from './game/systems/caravan';
 import { DISEASE } from './game/systems/disease';
 import { firstDue } from './game/firstWeek';
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { OPEN_UPGRADES, UpgradesSheet } from './components/Inventory/StallUpgrades';
-import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip } from './game/nav';
+import { MALEK_EVENT, PLAN_EVENT, CLINIC_EVENT, openMalek, planTrip, tripCardSub, tripCardTown } from './game/nav';
 import { eventsOn, eventsStarting, laneDay } from './game/economy/life';
 import { fmt } from './game/economy/money';
 import { radio } from './game/radio/player';
@@ -351,6 +351,8 @@ export default function App() {
   // the map is home; the stall screen is only for a sale in progress and for the first day's lesson
   const [tab, setTab] = useState<Tab>('map');
   const stallSheetUp = useStallSheetOpen();
+  // the trip card already open on the map: no "Plan the trip" over it
+  const tripTown = useSyncExternalStore(tripCardSub, tripCardTown);
   // each screen comes in with a short fade and rise when the bottom tabs switch (feel.ts)
   const mainRef = useRef<HTMLElement>(null);
   useEnterAnimation(mainRef, tab);
@@ -975,7 +977,7 @@ export default function App() {
       {phase === 'game' && (tab === 'map' || tab === 'supplier' || (tab === 'stall' && !g.encounter)) && (() => {
         const fh = g.fhText !== undefined ? { text: g.fhText, btn: g.fhBtn!, n: g.fhN!, of: g.fhOf!, go: g.fhGo!, label: g.fhLabel } : null;
         // no button to the screen you are already on: the thing to press there is lit instead
-        const here = fh && ((fh.go === 'supplier' && tab === 'supplier') || (fh.go === 'stall' && (tab === 'stall' || (tab === 'map' && stallSheetUp))));
+        const here = fh && ((fh.go === 'supplier' && tab === 'supplier') || (fh.go === 'stall' && (tab === 'stall' || (tab === 'map' && stallSheetUp))) || (tab === 'map' && !!tripTown && fh.go === tripTown));
         const goStall = () => (g.at === 'giza' ? mapGo({ view: 'district', stall: true }) : chapterGo('district'));
         return (
           <ObjectiveBar onMenu={() => { forceSave(); audio.stopAll(); setPhase('title'); }}

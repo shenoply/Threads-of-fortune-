@@ -2234,6 +2234,8 @@ button.hud-chip { cursor: pointer; }
 /* stall upgrades from the stall itself: a button with a count when one is affordable, and a line saying which */
 .idle-improve { width: 100%; margin-top: 8px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .idle-improve.has-new { border-color: var(--brass-hi); color: var(--brass-hi); }
+.idle-improve.locked { opacity: .6; cursor: default; }
+.idle-improve.locked small { font-size: 14px; color: var(--text-dim); }
 .idle-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--brass-hi); color: #1b1006; font-size: 12px; }
 .idle-upgrade { color: var(--brass-hi); font-size: 14px; margin: 4px 0 0; }
 .upgrade.can-buy { border-color: var(--brass-hi); }
@@ -3920,3 +3922,6 @@ body:has(.settlement) .app > .objective-bar.news { z-index: 55; box-shadow: 0 0 
 .anp-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .anp-acts .btn { min-height: 44px; }
 .anc-away { margin: 8px 0 0; font-size: 14px; }
+/* a rug grade said in plain words the first time a town note names it (Settlement.tsx Glossed) */
+.grade-gloss { color: var(--text-dim); }
+.link-btn { display: inline-block; background: none; border: 0; padding: 12px 2px; margin: -12px 0; font: inherit; color: var(--k-gold); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }

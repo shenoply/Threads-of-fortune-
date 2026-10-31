@@ -89,3 +89,7 @@
 .lm-swatches button.skein i { position: absolute; inset: 0; background: var(--dye) url(art/loom/skein.webp) center / contain no-repeat; background-blend-mode: multiply; -webkit-mask: url(art/loom/skein.webp) center / contain no-repeat; mask: url(art/loom/skein.webp) center / contain no-repeat; filter: brightness(1.25) saturate(1.1); }
 .lm-swatches button.skein em { position: absolute; right: 2px; top: -2px; font-style: normal; color: #ffe1a3; font-size: 20px; text-shadow: 0 1px 2px #000; }
 .lm-swatches button.skein.on { box-shadow: 0 0 0 2px #0f0a06, 0 0 0 4px #f6b54a; }
+
+/* the weavers not yet open: a quiet line where the button will be, saying when */
+.stock-later { margin: 0; max-width: 11rem; font-size: 14px; line-height: 1.3; color: var(--text-dim); }
+.stock-later b { display: block; color: var(--parchment); font-weight: 600; }

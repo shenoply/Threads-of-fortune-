@@ -142,6 +142,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     title: 'Words used in the game',
     lines: [
       'Estimate (≈ £): what a rug usually fetches in good condition.',
+      'Fine, Exceptional, Legendary: grades of rug above the plain village rug. The better the grade, the more collectors pay for it.',
       'Condition: good, dirty or worn. Dirty and worn rugs sell for less until repaired.',
       'Reputation: your good name in the bazaar. It opens ranks, buyers and doors.',
       'Net worth: your money and rugs, less what you owe.',

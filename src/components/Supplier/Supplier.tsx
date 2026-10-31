@@ -75,8 +75,6 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
   return (
     <div className="screen" data-testid="supplier">
       {film && createPortal(<IntroFilm id="rashid" onDone={() => { useGame.getState().markIntroSeen('rashid'); setFilm(false); }} />, document.body)}
-      {/* the day's sealed bale comes first: the first thing on his page */}
-      <BaleCard toast={toast} />
       <div className="screen-head">
         <div>
           {/* his house is the Wikalat el-Ghuri across the river; you buy from what his runner brings to Giza */}
@@ -171,6 +169,8 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
       ) : (
         <div className="family-debt paid">Your father's hundred pounds is paid off.</div>
       )}
+      {/* what you came for is above (his stock, the debt); the day's sealed bale, a gamble, comes after */}
+      <BaleCard toast={toast} />
       <Rumours max={4} />
     </div>
   );
