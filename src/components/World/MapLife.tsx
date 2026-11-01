@@ -3,13 +3,15 @@
 // loop straight from the live camera (no React render per frame), about thirty times a second, and not at
 // all while the tab is hidden or "Map life" is off in Settings.
 import { useEffect, useRef } from 'react';
-import { SHIPS, CARAVANS, WEATHER, WAKE, type ArtItem } from '../../data/mapArt';
-import { mapLanes, poseAt } from '../../game/systems/mapLife';
-import { paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
+import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { mapLanes, poseAt, shipFrame } from '../../game/systems/mapLife';
+import { sheetFor, paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
 
 export interface Camera { tx: number; ty: number; s: number; w: number; h: number }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+/** each type's hull length as a fraction of a sheet frame (tools/blender-ships.py: length / 11.5 units), for its wake */
+const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.87, cargo: 0.8, 'small-steamer': 0.64, schooner: 0.64, dhow: 0.61, felucca: 0.49 };
 /** frame times of the last few seconds, for the performance check (tests/maplife.mjs) */
 const perf = { frames: 0, ms: 0, worst: 0 };
 if (typeof window !== 'undefined') (window as unknown as { __mapLife?: typeof perf }).__mapLife = perf;
@@ -75,13 +77,36 @@ export function MapLife({ camera, on }: { camera: () => Camera | null; on: boole
         dirty = true;
       }
       ctx.globalAlpha = 1;
-      // ships, each turned to its heading, its wake trailing behind it
+      // ships: the Blender sheet's frame for the heading when the sheet is in, else the painting (or its
+      // placeholder) turned to the heading; the wake trailing behind either way
       const wake = paintingFor(WAKE) ?? wakePlaceholder();
       for (const it of SHIPS) {
         const lane = lanes.get(it.code);
         if (!lane) continue;
         const p = poseAt(lane, t);
         const x = X(p.x), y = Y(p.y);
+        const sheet = sheetFor(it);
+        if (sheet) {
+          // the Blender ship: the frame nearest its heading, never turned, so masts and funnel stay upright;
+          // one size for every type (each sheet keeps the ships' sizes to one another)
+          const fsz = clamp(30 * s, 40, 80);
+          if (!seen(x, y, fsz)) continue;
+          const f = shipFrame(p.angle);
+          const L = fsz * (SHEET_LENGTH[it.ship!] ?? 0.8);
+          // the wake lies on the water, foreshortened like the ship, trailing from its stern
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(1, SHEET_TILT);
+          ctx.rotate(f.ground);
+          ctx.globalAlpha = p.turning ? 0.35 : 0.8;
+          ctx.drawImage(wake, -L * 0.62 - L * 0.29, -L * 0.62, L * 1.24, L * 1.24);
+          ctx.restore();
+          ctx.globalAlpha = 1;
+          const fw = sheet.width / SHEET_FRAMES, fh = sheet.height;
+          ctx.drawImage(sheet, f.i * fw, 0, fw, fh, x - fsz * SHEET_ANCHOR.x, y - fsz * SHEET_ANCHOR.y, fsz, fsz);
+          dirty = true;
+          continue;
+        }
         const size = it.ship === 'felucca' ? clamp(18 * s, 20, 46) : clamp(26 * s, 28, 64);
         if (!seen(x, y, size)) continue;
         ctx.save();

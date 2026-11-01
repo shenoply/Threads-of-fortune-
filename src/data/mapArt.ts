@@ -155,16 +155,39 @@ export const onArtFiles = (f: () => void) => { subs.add(f); return () => { subs.
 /** The painting for a piece, if it is in the folder: its own name first, else any file under its code
  *  ("S3-felucca.png", "S3.png", "S3-nile-boat.webp"), WebP before PNG. */
 export function artFile(code: string, name = ''): string | undefined {
-  const lc = files.map((f) => f.toLowerCase());
+  // only the paintings at the top of the folder (the ships/ sheets are found by shipSheet)
+  const top = files.filter((f) => !f.includes('/'));
+  const lc = top.map((f) => f.toLowerCase());
   const pick = (stem: string) => {
-    for (const ext of ['.webp', '.png']) { const i = lc.indexOf(`${stem}${ext}`.toLowerCase()); if (i >= 0) return files[i]; }
+    for (const ext of ['.webp', '.png']) { const i = lc.indexOf(`${stem}${ext}`.toLowerCase()); if (i >= 0) return top[i]; }
     return undefined;
   };
   const own = (name && pick(`${code}-${name}`)) || pick(code);
   if (own) return `art/map/${own}`;
   const pre = `${code}-`.toLowerCase();
   // the compass parts are whole codes: "K-compass-base" must not take "K-compass-base-old"; others take any name
-  const byCode = code.startsWith('K-') ? undefined : files.find((f, i) => lc[i].startsWith(pre) && /\.(webp|png)$/.test(lc[i]) && !/^k-/.test(lc[i]));
+  const byCode = code.startsWith('K-') ? undefined : top.find((f, i) => lc[i].startsWith(pre) && /\.(webp|png)$/.test(lc[i]) && !/^k-/.test(lc[i]));
   return byCode ? `art/map/${byCode}` : undefined;
 }
 export const itemFile = (it: ArtItem) => artFile(it.code, it.name);
+
+// ---------- the Blender ships: one sprite sheet per type, 16 headings ----------
+// public/art/map/ships/<type>.webp (tools/blender-ships.py, then tools/ships-sheet.py): 16 square frames
+// side by side, frame i the ship sailing i x 22.5 degrees clockwise from east on the ground (0 east,
+// 4 south, 8 west, 12 north), seen from the south 48 degrees above the horizon with the sun in the
+// north-west. The waterline centre of the ship sits at SHEET_ANCHOR of the frame.
+export const SHIP_SHEET: Record<ShipKind, string> = {
+  steamer: 'steamer', cargo: 'cargo', felucca: 'felucca', dhow: 'dhow', schooner: 'schooner', 'small-steamer': 'caspian',
+};
+export const SHEET_FRAMES = 16;
+/** where the ship's waterline centre sits in a frame, as fractions of its width and height */
+export const SHEET_ANCHOR = { x: 0.5, y: 0.6 } as const;
+/** how far the ground is foreshortened in the sheets (the sine of the camera's 48 degrees) */
+export const SHEET_TILT = Math.sin((48 * Math.PI) / 180);
+/** The sprite sheet for a ship, if it is in the folder (WebP before PNG). */
+export function shipSheet(it: ArtItem): string | undefined {
+  if (!it.ship) return undefined;
+  const t = SHIP_SHEET[it.ship];
+  for (const ext of ['.webp', '.png']) { const f = files.find((n) => n.toLowerCase() === `ships/${t}${ext}`); if (f) return `art/map/${f}`; }
+  return undefined;
+}

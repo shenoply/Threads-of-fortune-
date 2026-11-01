@@ -1,9 +1,9 @@
 // The living travel map, checked without a browser: the art registry, the compass needle, the ships'
 // and caravans' lanes against the land mask, and inked journeys with the save 34 migration.
 //   npx tsx tests/maplife.ts
-import { MAP_ART, LANDMARKS, SHIPS, CARAVANS, WEATHER, COMPASS, MAP_LABELS, expectedFile, setArtFiles, artFile, itemFile } from '../src/data/mapArt';
+import { MAP_ART, LANDMARKS, SHIPS, CARAVANS, WEATHER, COMPASS, MAP_LABELS, expectedFile, setArtFiles, artFile, itemFile, shipSheet, SHIP_SHEET, SHEET_TILT } from '../src/data/mapArt';
 import { Needle, turnBetween, bearing } from '../src/game/systems/compass';
-import { mapLanes, poseAt } from '../src/game/systems/mapLife';
+import { mapLanes, poseAt, shipFrame } from '../src/game/systems/mapLife';
 import { thin, inkLine, addInk, inkPath, pathUpTo, nearInk, INK_CAP } from '../src/game/systems/inked';
 import { isWaterPx, terrainAt, isBlockedPx, findPath, settlementById, MAP_W, MAP_H, dist } from '../src/game/systems/world';
 import { SETTLEMENTS, ROAD_WELLS } from '../src/data/world';
@@ -36,6 +36,36 @@ ok(itemFile(SHIPS[0]) === 'art/map/S1-steamer.webp', 'WebP before PNG');
 ok(itemFile(SHIPS[9]) === 'art/map/S10-steamer.png' && artFile('S1') !== 'art/map/S10-steamer.png', 'S1 and S10 are not confused');
 ok(itemFile(LANDMARKS[0]) === 'art/map/01-giza.png' && itemFile(LANDMARKS[1]) === undefined, 'landmark 01 found, 02 not');
 setArtFiles([]);
+
+// ---- the Blender ships: a sheet per type, 16 headings ----
+setArtFiles(['S1-steamer.png', 'ships/steamer.webp', 'ships/steamer.png', 'ships/dhow.png', 'ships/caspian.webp']);
+ok(shipSheet(SHIPS[0]) === 'art/map/ships/steamer.webp' && shipSheet(SHIPS[9]) === 'art/map/ships/steamer.webp', 'S1 and S10 take the steamer sheet, WebP before PNG');
+ok(shipSheet(SHIPS[3]) === 'art/map/ships/dhow.png' && shipSheet(SHIPS[8]) === 'art/map/ships/caspian.webp', 'the dhows take the dhow sheet, S9 the small Caspian steamer');
+ok(shipSheet(SHIPS[1]) === undefined && shipSheet(SHIPS[2]) === undefined, 'a type without a sheet has none (the painting or placeholder is drawn)');
+ok(itemFile(SHIPS[0]) === 'art/map/S1-steamer.png' && artFile('S') === undefined, 'a sheet is never taken for a single painting');
+ok(SHIPS.every((s) => SHIP_SHEET[s.ship!]), 'every ship has a sheet type');
+setArtFiles([]);
+{
+  const deg = Math.PI / 180;
+  ok(shipFrame(0).i === 0 && shipFrame(Math.PI / 2).i === 4 && shipFrame(Math.PI).i === 8 && shipFrame(-Math.PI / 2).i === 12, 'east, south, west and north are frames 0, 4, 8 and 12');
+  ok(shipFrame(Math.PI * 2 - 0.01).i === 0 && shipFrame(Math.PI * 4 + Math.PI / 2).i === 4, 'headings past a full turn wrap round');
+  // on the slanting view a heading 30 degrees north of east on the map is nearer north on the ground
+  const ne = shipFrame(-30 * deg);
+  ok(Math.abs(ne.ground - Math.atan2(-0.5 / SHEET_TILT, Math.cos(30 * deg))) < 1e-9 && ne.i === 14, `30 degrees north of east on the map is frame 14, not 15 (ground ${(ne.ground / deg).toFixed(1)} degrees)`);
+  let worst = 0, jumps = 0, prev = shipFrame(0).i;
+  for (let a = 0; a < 360; a += 0.5) {
+    const f = shipFrame(a * deg);
+    worst = Math.max(worst, Math.abs(f.rest));
+    if (f.i !== prev) { if ((f.i - prev + 16) % 16 !== 1) jumps++; prev = f.i; }
+  }
+  ok(worst <= 11.25 * deg + 1e-9, `the frame is never more than 11.25 degrees off the heading (${(worst / deg).toFixed(2)})`);
+  ok(jumps === 0, 'turning steadily, the frames step one at a time through all 16');
+  // a ship coming about at the end of its lane passes through the frames in order
+  const l = mapLanes().get('S1')!;
+  const seenFrames = new Set<number>();
+  for (let t = 0; t < 2 * (l.secs + l.turn); t += 0.05) { const p = poseAt(l, t); if (p.turning) seenFrames.add(shipFrame(p.angle).i); }
+  ok(seenFrames.size >= 9, `S1 shows ${seenFrames.size} headings as it comes about`);
+}
 
 // ---- the compass needle ----
 ok(Math.abs(turnBetween(0.1, Math.PI * 2 - 0.1) + 0.2) < 1e-9, 'the needle turns the short way past north');

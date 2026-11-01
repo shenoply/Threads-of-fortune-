@@ -39,6 +39,14 @@ const saved = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of
   ok(sv.version === 34 && Array.isArray(sv.state.inked) && sv.state.inked.length === 0, `the version 33 save opens as 34 with no inked lines (version ${sv.version}, inked ${JSON.stringify(sv.state.inked)})`);
 }
 
+// ---- the Blender ships: the six sprite sheets come in with the map, small ----
+{
+  const got = await p.evaluate(() => performance.getEntriesByType('resource').filter((e) => e.name.includes('/art/map/ships/')).map((e) => ({ n: e.name.split('/').pop(), kb: Math.round((e.encodedBodySize || e.transferSize) / 1024) })));
+  const names = new Set(got.map((g) => g.n));
+  ok(['steamer', 'cargo', 'felucca', 'dhow', 'schooner', 'caspian'].every((t) => names.has(`${t}.webp`)), `the six ship sheets are loaded with the map (${[...names].join(', ')})`);
+  ok(got.every((g) => g.kb < 300), `each sheet is small (${got.map((g) => `${g.n} ${g.kb} KB`).join(', ')})`);
+}
+
 // ---- the compass ----
 const angle = () => p.locator('[data-testid=map-compass]').getAttribute('data-angle').then(Number);
 const off = (a, b) => { const d = Math.abs(((a - b) % 360 + 540) % 360 - 180); return d; };

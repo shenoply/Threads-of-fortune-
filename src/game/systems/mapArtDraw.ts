@@ -1,7 +1,7 @@
 // Drawing the map's painted pieces (src/data/mapArt.ts): the painting when its file is in public/art/map,
 // else a restrained ink-and-brass placeholder drawn here. The placeholders are drawn once onto small
 // canvases and reused, so a frame only copies pictures.
-import { itemFile, artFile, onArtFiles, LANDMARKS, CARTOUCHE, SCALE_BAR, MAP_LABELS, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { itemFile, artFile, shipSheet, onArtFiles, LANDMARKS, CARTOUCHE, SCALE_BAR, MAP_LABELS, type ArtItem, type ShipKind } from '../../data/mapArt';
 
 const INK = '#3d2a19';
 const INK_SOFT = 'rgba(61,42,25,0.75)';
@@ -29,6 +29,8 @@ function picture(src: string | undefined): HTMLImageElement | null {
 /** The painting for a piece, if its file is in and has loaded. */
 export const paintingFor = (it: ArtItem) => picture(itemFile(it));
 export const paintingByCode = (code: string) => picture(artFile(code));
+/** A ship's 16-heading sprite sheet (art/map/ships/<type>.webp), once loaded. */
+export const sheetFor = (it: ArtItem) => picture(shipSheet(it));
 
 // ---------- placeholders ----------
 const cache = new Map<string, HTMLCanvasElement>();

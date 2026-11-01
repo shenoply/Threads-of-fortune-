@@ -38,6 +38,8 @@ const mapArtFiles = (): Plugin => ({
     if (id !== '\0virtual:map-art-files') return undefined;
     let list: string[] = [];
     try { list = readdirSync(MAP_ART_DIR).filter((f) => /\.(webp|png)$/i.test(f)).sort(); } catch { /* no folder yet */ }
+    // the Blender ships' sprite sheets, one per type, in the ships/ folder (listed as "ships/steamer.webp")
+    try { list = list.concat(readdirSync(`${MAP_ART_DIR}/ships`).filter((f) => /\.(webp|png)$/i.test(f)).sort().map((f) => `ships/${f}`)); } catch { /* none */ }
     return `export default ${JSON.stringify(list)};`;
   },
   configureServer(server) {

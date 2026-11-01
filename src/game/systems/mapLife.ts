@@ -3,7 +3,7 @@
 // A ship keeps to a short lane of open water near its spot (every point on it water, with a little sea
 // either side); the felucca keeps to the Nile; a caravan walks a short stretch of road, or of open
 // desert, near its spot. Each goes slowly one way, turns, and comes back.
-import { CARAVANS, SHIPS, type ArtItem } from '../../data/mapArt';
+import { CARAVANS, SHIPS, SHEET_FRAMES, SHEET_TILT, type ArtItem } from '../../data/mapArt';
 import { ROAD_LINES } from '../../data/terrain';
 import { dist, isBlockedPx, isWaterPx, terrainAt, MAP_W, MAP_H, type Pt } from './world';
 
@@ -145,4 +145,18 @@ export function poseAt(lane: Lane, t: number): Pose {
   u -= lane.secs;
   const q = at(lane.pts, 0); const k = ease(u / lane.turn);
   return { x: q.p.x, y: q.p.y, angle: q.a + Math.PI + Math.PI * k, out: false, turning: k || 0.001 };
+}
+
+/** The ship sheet's frame for a heading on the map (radians, 0 = east, clockwise). The sheets are drawn from
+ *  the map's slanting view, where the ground is foreshortened north to south, so the heading on the ground
+ *  that looks like `angle` on the map is found first; then the nearest of the 16 frames. `ground` is that
+ *  heading (the wake is laid on the ground at it), `rest` what is left over after the frame (within +-11.25
+ *  degrees; the picture is not turned by it, so masts stay upright). */
+export function shipFrame(angle: number): { i: number; ground: number; rest: number } {
+  const ground = Math.atan2(Math.sin(angle) / SHEET_TILT, Math.cos(angle));
+  const step = (Math.PI * 2) / SHEET_FRAMES;
+  const i = ((Math.round(ground / step) % SHEET_FRAMES) + SHEET_FRAMES) % SHEET_FRAMES;
+  let rest = ground - i * step;
+  rest = Math.atan2(Math.sin(rest), Math.cos(rest));
+  return { i, ground, rest };
 }
