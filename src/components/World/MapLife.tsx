@@ -10,8 +10,8 @@ import { sheetFor, paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceho
 export interface Camera { tx: number; ty: number; s: number; w: number; h: number }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-/** each type's hull length as a fraction of a sheet frame (tools/blender-ships.py: length / 11.5 units), for its wake */
-const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.87, cargo: 0.8, 'small-steamer': 0.64, schooner: 0.64, dhow: 0.61, felucca: 0.49 };
+/** each type's hull length as a fraction of a sheet frame (tools/blender-ships.py: length / 12.2 units), for its wake */
+const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.82, cargo: 0.75, 'small-steamer': 0.61, schooner: 0.61, dhow: 0.57, felucca: 0.46 };
 /** frame times of the last few seconds, for the performance check (tests/maplife.mjs) */
 const perf = { frames: 0, ms: 0, worst: 0 };
 if (typeof window !== 'undefined') (window as unknown as { __mapLife?: typeof perf }).__mapLife = perf;
@@ -89,7 +89,7 @@ export function MapLife({ camera, on }: { camera: () => Camera | null; on: boole
         if (sheet) {
           // the Blender ship: the frame nearest its heading, never turned, so masts and funnel stay upright;
           // one size for every type (each sheet keeps the ships' sizes to one another)
-          const fsz = clamp(30 * s, 40, 80);
+          const fsz = clamp(32 * s, 48, 88);
           if (!seen(x, y, fsz)) continue;
           const f = shipFrame(p.angle);
           const L = fsz * (SHEET_LENGTH[it.ship!] ?? 0.8);

@@ -77,3 +77,16 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   (src/game/systems/mapLife.ts) on their own canvas (components/World/MapLife.tsx); "Map life" in Settings
   stops them. Every way travelled is inked into the save (state.inked, systems/inked.ts). Dividers and the
   trade lens are the two tools under the zoom buttons. tests/maplife.ts and tests/maplife.mjs check it all.
+- The map's ships are Blender models rendered from 16 headings (since 2026-11-01): `tools/blender-ships.py`
+  (run with the bpy venv's python: `python tools/blender-ships.py art-src/ships/render [type ...]`) renders each
+  type at every 22.5 degrees, ship and shadow separately, 320 px, camera from the south 48 degrees up, sun in the
+  north-west fixed in the world; `python3 tools/ships-sheet.py --contact out.png` adds the soft shadow, a thin ink
+  edge, the smoke plume (steamers, drifting astern), a little blur and grain, halves the frames to 160 px and writes
+  one sheet per type to public/art/map/ships/<type>.webp (masters art-src/ships/<type>.png; the raw renders in
+  art-src/ships/render are not kept in git). Types: steamer (S1, S10), cargo (S2, S7), felucca (S3), dhow (S4, S5,
+  S8), schooner (S6), caspian (S9); SHIP_SHEET in src/data/mapArt.ts. Frame i is the ship sailing i x 22.5 degrees
+  clockwise from east on the ground (0 east, 4 south, 8 west, 12 north). shipFrame() in systems/mapLife.ts turns
+  a map heading into the ground heading (the sheets' ground is foreshortened by sin 48) and picks the nearest
+  frame; the picture is never rotated, so masts stay upright. The wake is laid under it on the same foreshortened
+  ground. Precedence: a type's sheet first; without it, a single painting S<n>-*.webp/png turned to the heading as
+  before; without that, the ink placeholder. To use a painted single ship instead, take that type's sheet out.
