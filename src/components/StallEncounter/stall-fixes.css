@@ -203,3 +203,11 @@
 .stall .band .skills-line { align-self: flex-start; margin: 2px 0 0; padding: 4px 0; min-height: 32px; border: 0; background: none; color: #c9a160; font: 500 14px/1.3 var(--label); letter-spacing: .04em; text-align: left; cursor: pointer; animation: skills-fade 6s ease forwards; }
 .stall .band .skills-line em { font-style: italic; font-family: var(--body); color: var(--text-dim); letter-spacing: 0; }
 @keyframes skills-fade { 0% { opacity: 0; } 8%, 75% { opacity: .9; } 100% { opacity: 0; } }
+/* the rug on the table is the carpet itself (CarpetView, compact): its box is the patch of counter it
+   lies on and takes the hands; the canvas runs past the box (mostly upwards) so the carpet can be tipped
+   up out of it, and draws its own perspective, so the box has no transform, frame or shadow of its own */
+.scene.stall .stage .split-rug.live { left: 50%; bottom: calc(var(--rug-b, 6%) - 1%); width: min(34%, calc((100% - 2 * var(--crop, 0px)) * .56)); max-width: 380px; height: auto; aspect-ratio: 2.3 / 1; transform: translateX(-50%); border: 0; box-shadow: none; animation: none; z-index: 4; }
+.scene.audience .audience-rug.live { width: 30%; max-width: 300px; aspect-ratio: 2.3 / 1; transform: none; border: 0; box-shadow: none; animation: none; z-index: 4; }
+.carpet-view.compact { position: absolute; inset: 0; display: block; }
+.carpet-view.compact .cv-stage { position: absolute; inset: 0; overflow: visible; background: none; touch-action: none; }
+.carpet-view.compact .cv-canvas { inset: auto; left: -25%; top: -150%; width: 150%; height: 275%; pointer-events: none; }

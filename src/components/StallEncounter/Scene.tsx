@@ -11,7 +11,8 @@ import type { RugItem } from '../../game/types';
 import { BUYERS } from '../../data/buyers';
 import { RUGS } from '../../data/rugs';
 import { rugSrc, rugThumb } from '../RugViewer/rugArt';
-import { RugPicture } from '../RugViewer/RugPicture';
+import { CarpetView, mayRoll } from '../RugViewer/CarpetView';
+import { wornSrc } from '../RugViewer/wear';
 import type { PlaybackView } from '../BuyerDialogue/usePlayback';
 import { PortraitOrCameo, PersonBack } from '../People/Person';
 import { personFor } from '../../data/people';
@@ -123,9 +124,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: ScenePro
         <img className="audience-art" src={`art/royal/${buyer.id}-audience.webp`} alt={`An audience with ${buyer.name}`} style={{ objectPosition: `50% ${buyer.royal.focusY}%` }} draggable={false} />
         <div className="scene-fade" />
         {rugT && presented && (
-          <div className="audience-rug" key={unfoldKey} data-testid="table-rug">
-            <RugPicture src={rugSrc(rugT)} condition={presented.condition} seed={presented.uid} alt={`${rugT.name}, unrolled before ${buyer.name}`} />
-          </div>
+          <TableCarpet key={unfoldKey} item={presented} className="audience-rug" label={`${rugT.name}, unrolled before ${buyer.name}`} />
         )}
         <Atmosphere indoor />
         {text && (
@@ -221,9 +220,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: ScenePro
         <StallProps sc={sc} front inFront={inFront} />
         <StallGramophone sc={sc} inFront={inFront} />
         {rugT && presented && (
-          <div className="split-rug" key={unfoldKey} data-testid="table-rug">
-            <RugPicture src={rugSrc(rugT)} condition={presented.condition} seed={presented.uid} alt={`${rugT.name} laid out on the table`} />
-          </div>
+          <TableCarpet key={unfoldKey} item={presented} className="split-rug" label={`${rugT.name} laid out on the table`} />
         )}
         {(() => {
           // a radio or paper that would stand in front of someone moves along the counter to a free
@@ -433,6 +430,25 @@ export function BuyerFace({ id, size = 36 }: { id: string; size?: number }) {
     <span className="buyer-face" data-testid="buyer-face" style={{ width: size, height: size }}>
       <PortraitOrCameo id={id} spec={personFor(id)} size={size} />
     </span>
+  );
+}
+
+/** The rug you are showing, laid on the table: the carpet itself (CarpetView, compact), unrolled as it
+ *  is put down and there to be turned round, tipped to the buyer or up to you, or looked at closer,
+ *  without leaving the stall. Drawn with its dirt or wear, and only once that is painted. */
+function TableCarpet({ item, className, label }: { item: RugItem; className: string; label: string }) {
+  const t = RUGS[item.typeId];
+  const [src, setSrc] = useState('');
+  useEffect(() => {
+    let live = true;
+    wornSrc(rugSrc(t), item.condition, item.uid).then((u) => { if (live) setSrc(u); });
+    return () => { live = false; };
+  }, [t, item.condition, item.uid]);
+  const [roll] = useState(mayRoll);
+  return (
+    <div className={`${className} live`} data-testid="table-rug" data-condition={item.condition} role="group" aria-label={label}>
+      {src && <CarpetView compact src={src} unroll={roll} />}
+    </div>
   );
 }
 
