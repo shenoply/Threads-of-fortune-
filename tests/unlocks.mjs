@@ -36,7 +36,7 @@ async function edit(fn, version) {
   await p.waitForTimeout(1200);
 }
 const UNTUT = `s.tutorial = { done: true, step: 'done', inspected: true }; s.introSeen = ['malek','arran','abuhamid','bilgin-chess','rashid','nabil','cohen','alexandria']; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.guideSeen = true; s.totalSales = 1; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 });`;
-const IN_CAIRO = (h = 10) => `s.world.at = 'cairo'; s.world.x = 214.3; s.world.y = 413.7; s.world.hour = ${h}; s.journey = undefined;`;
+const IN_CAIRO = (h = 10) => `s.world.at = 'cairo'; s.world.x = 438.5; s.world.y = 588.8; s.world.hour = ${h}; s.journey = undefined;`;
 // every tile of the town menu, the ones behind "More in …" too
 async function townTiles() {
   await p.click('[data-testid=nav-map]').catch(() => {}); await p.waitForTimeout(800);
@@ -73,7 +73,7 @@ check(/caravan: opens tomorrow/i.test(await p.locator('.toast').first().innerTex
 
 // 2. the opening asks for a guard: the guard yard, the animal market and the Caravan tab open, with a line
 // (day one is the stall and Rashid's ten pounds; the guard step is the next morning's)
-await edit(`s.world.at = 'giza'; s.world.x = 146.9; s.world.y = 443.7; s.day = 2; s.totalSales = 2; s.cash = 1500; s.family.first.paid = s.family.first.sum; s.family.first.done = 1; s.family.first.how = 'early'; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
+await edit(`s.world.at = 'giza'; s.world.x = 421.1; s.world.y = 595; s.day = 2; s.totalSales = 2; s.cash = 1500; s.family.first.paid = s.family.first.sum; s.family.first.done = 1; s.family.first.how = 'early'; s.ledger.push({ day: s.day, kind: 'purchase', label: 'Bought a rug from Rashid', amount: -75 }); s.world.rumours = [...(s.world.rumours||[]), 'Khan el-Khalili pays a third more than Giza for a good rug. Go with a guard.'];`);
 const n2 = await note();
 check(/guard yard/i.test(n2), `the guard step brings a short notice: "${n2}"`);
 check((await has('.overlay [data-testid=unlock-note], [role=dialog] [data-testid=unlock-note]')) === 0, 'the notice is not a card');
@@ -91,7 +91,7 @@ check(leak.length === 0, `early Cairo hides the later systems${leak.length ? `: 
 await p.screenshot({ path: `${SHOTS}/unlocks-cairo-early.png` });
 
 // 3. a rug in doubt: Arran's laboratory
-await edit(`s.inventory[0].flawKnown = true; s.inventory[0].dye = 'aniline'; s.world.at = 'giza'; s.world.x = 146.9; s.world.y = 443.7;`);
+await edit(`s.inventory[0].flawKnown = true; s.inventory[0].dye = 'aniline'; s.world.at = 'giza'; s.world.x = 421.1; s.world.y = 595;`);
 const n3 = await note();
 check(/Arran/.test(n3), `a doubtful rug brings Arran: "${n3}"`);
 check((await gizaPlaces()).includes('poi-lab'), 'his laboratory is on the plan');

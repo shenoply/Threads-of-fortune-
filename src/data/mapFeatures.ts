@@ -1,9 +1,13 @@
 // Hand-placed cartographic features, in real longitude/latitude, projected at runtime.
 
-// the projection of the coastlines in geo.json (its `proj`), copied here so that 115 KB file is only fetched
-// for the engraved map (mapRender.ts) and is not part of the opening download; keep the two in step
-export const PROJ: { lon0: number; lat1: number; kx: number; k: number } = { lon0: 25.5, lat1: 37.2, kx: 52.05882352941176, k: 62.073030244694905 };
-export const proj = (lon: number, lat: number) => ({ x: (lon - PROJ.lon0) * PROJ.kx, y: (PROJ.lat1 - lat) * PROJ.k });
+import { geo } from './projection';
+// Placed on the painted travel map by longitude and latitude (data/projection.ts). `k` is about how many map
+// units a degree of latitude spans there, for sizes given in degrees.
+export const PROJ: { k: number } = { k: 50 };
+export const proj = (lon: number, lat: number) => geo(lon, lat);
+/** the projection the coastlines in geo.json were drawn in (its `proj`): the engraved map (mapRender.ts)
+ *  reads them back to longitude and latitude before placing them */
+export const GEO_JSON_PROJ = { lon0: 25.5, lat1: 37.2, kx: 52.05882352941176, k: 62.073030244694905 };
 
 // Mountain ranges as polylines of [lon, lat]; peaks are drawn along them.
 export const RANGES: { pts: [number, number][]; size: number }[] = [

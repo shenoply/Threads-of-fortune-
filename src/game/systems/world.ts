@@ -1,24 +1,23 @@
-import { MASK_W, MASK_H, CELL, WATER_ROWS } from '../../data/landmask';
-import { EAST_ROWS } from '../../data/eastGround';
+import { MASK_W, MASK_H, CELL, WATER_ROWS, STRAIT_CELLS } from '../../data/landmask';
 import { TERRAIN_ROWS } from '../../data/terrain';
 import { BARRIER_ROWS, BARRIER_NAMES } from '../../data/barriers';
 import { motorLorry, SETTLEMENTS, SEA_ROUTES, RAIL_LINKS, MOTOR_ROUTES, RAIL_FARE_PER_KM, RAIL_FARE_MIN, ANIMAL_FREIGHT, type Settlement } from '../../data/world';
-import { PAINT_W, EAST_W, PERSIA_ROADS } from '../../data/persiaMap';
+import { geo } from '../../data/projection';
 import { BREEDS } from '../../data/animals';
 import { seaDelayOn, SEASON_NOW } from '../economy/calendar1925';
 import { eraMotor } from '../economy/era';
 
 export interface Pt { x: number; y: number }
 
-// The painted travel map (1536 x 1024, shown 885 x 590) and, east of it, Persia drawn in code
-// (data/persiaMap.ts, systems/persiaArt.ts): the map is 1265 units across.
-export const MAP_W = EAST_W, MAP_H = 590;
-export { PAINT_W };
-/** Painting pixels to map units. */
-export const paint = (x: number, y: number): Pt => ({ x: x * (PAINT_W / 1536), y: y * (PAINT_W / 1536) });
-/** The ground grid over the whole map: the painting's 177 columns (landmask.ts, terrain.ts, barriers.ts)
- *  and Persia's beyond them. */
-export const GRID_W = Math.round(MAP_W / CELL);
+// The painted travel map: one painting from Crete to Kerman (art/world/travel-map*.webp, 1610 x 977 as
+// painted), shown 2000 x 1214 map units. Anything is placed on it by longitude and latitude with geo()
+// (data/projection.ts, fitted to the painting by tools/build-map.py).
+export const MAP_W = 2000, MAP_H = 1214;
+/** The view the zoom is measured against: the old painting's frame (885 x 590 units), so zoom 1, the
+ *  closest zoom and the names shown at each zoom are as they were before the map grew. */
+export const VIEW_W = 885, VIEW_H = 590;
+/** The ground grid over the whole map (landmask.ts, terrain.ts, barriers.ts): 400 x 243 cells. */
+export const GRID_W = MASK_W;
 export const PX_PER_DAY = 24; // on foot with pack animals, about 40 km a day
 export const TRAIN_PX_PER_DAY = 220; // about 400 km a day including stops
 export const TRAIN_SPEEDUP = TRAIN_PX_PER_DAY / PX_PER_DAY;
@@ -28,15 +27,6 @@ const water = new Uint8Array(GRID_W * MASK_H);
 WATER_ROWS.forEach((row, y) => {
   for (let x = 0; x < MASK_W; x++) water[y * GRID_W + x] = row.charCodeAt(x) === 49 ? 1 : 0;
 });
-// the ground east of the painting, cell by cell
-// (baked by tools/build-east-ground.ts: worked out cell by cell it cost a phone a tenth of a second at every start)
-const EAST_GROUND: string[] = [];
-for (let y = 0; y < MASK_H; y++)
-  for (let x = MASK_W; x < GRID_W; x++) {
-    const g = EAST_ROWS[y][x - MASK_W];
-    EAST_GROUND[y * GRID_W + x] = g;
-    if (g === 'w') water[y * GRID_W + x] = 1;
-  }
 
 export const cellOf = (p: Pt) => ({ cx: Math.max(0, Math.min(GRID_W - 1, Math.floor(p.x / CELL))), cy: Math.max(0, Math.min(MASK_H - 1, Math.floor(p.y / CELL))) });
 export const isWaterPx = (p: Pt) => {
@@ -46,9 +36,9 @@ export const isWaterPx = (p: Pt) => {
 const centre = (cx: number, cy: number): Pt => ({ x: cx * CELL + CELL / 2, y: cy * CELL + CELL / 2 });
 export const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
 
-// Terrain from the painting (tools/build-terrain.py): roads are quick, fertile valleys normal going, open desert
+// Terrain from the painting (tools/build-map.py): roads are quick, fertile valleys normal going, open desert
 // and hills slow, mountains closed except where a road crosses them, as in Bannerlord.
-// Rivers, lakes and the canal (tools/build-barriers.py) are closed too, and a river is crossed only at a
+// Rivers, lakes and the canal are closed too, and a river is crossed only at a
 // bridge (as quick as a road) or a ford (slow, wet going).
 export type Terrain = 'road' | 'fertile' | 'desert' | 'hills' | 'mountains' | 'water' | 'river' | 'lake' | 'canal' | 'bridge' | 'ford';
 const KIND: Record<string, Terrain> = { r: 'road', f: 'fertile', d: 'desert', h: 'hills', m: 'mountains' };
@@ -60,35 +50,16 @@ const kindOf: Terrain[] = new Array(GRID_W * MASK_H);
 for (let y = 0; y < MASK_H; y++)
   for (let x = 0; x < GRID_W; x++) {
     const i = y * GRID_W + x;
-    if (x >= MASK_W) {
-      const k: Terrain = water[i] ? 'water' : KIND[EAST_GROUND[i]] ?? 'desert';
-      kindOf[i] = k;
-      speedOf[i] = TERRAIN_SPEED[k];
-      continue;
-    }
     const bar = BARRIER[BARRIER_ROWS[y]?.[x] ?? '.'];
-    // a bridge or ford also opens a river the sea mask drew (the Nile above Cairo)
-    const opened = BARRIER_ROWS[y]?.[x] === 'O'; // land an old trace marked as water
-    if (opened) water[i] = 0;
     const land = KIND[TERRAIN_ROWS[y]?.[x] ?? 'd'] ?? 'desert';
-    const k: Terrain = bar === 'bridge' || bar === 'ford' ? bar : bar ?? (water[i] ? 'water' : land === 'mountains' && opened ? 'fertile' : land);
+    const k: Terrain = bar === 'bridge' || bar === 'ford' ? bar : bar ?? (water[i] ? 'water' : land);
     kindOf[i] = k;
     speedOf[i] = TERRAIN_SPEED[k];
-  }
-// the Persian roads, laid over the ground: through the Zagros and the Alborz they are the only way
-for (const r of PERSIA_ROADS)
-  for (let k = 1; k < r.pts.length; k++) {
-    const a = r.pts[k - 1], b = r.pts[k], n = Math.ceil(dist(a, b));
-    for (let t = 0; t <= n; t++) {
-      const cx = Math.floor((a.x + ((b.x - a.x) * t) / n) / CELL), cy = Math.floor((a.y + ((b.y - a.y) * t) / n) / CELL);
-      const i = cy * GRID_W + cx;
-      if (['desert', 'hills', 'mountains', 'fertile'].includes(kindOf[i])) { kindOf[i] = 'road'; speedOf[i] = TERRAIN_SPEED.road; }
-    }
   }
 const idxOf = (p: Pt) => { const { cx, cy } = cellOf(p); return cy * GRID_W + cx; };
 export const terrainAt = (p: Pt): Terrain => kindOf[idxOf(p)];
 /** the river, lake or crossing here by name, if it has one */
-export const placeNameAt = (p: Pt): string | undefined => { const { cx, cy } = cellOf(p); return cx < MASK_W ? BARRIER_NAMES[cy * MASK_W + cx] : undefined; };
+export const placeNameAt = (p: Pt): string | undefined => { const { cx, cy } = cellOf(p); return BARRIER_NAMES[cy * MASK_W + cx]; };
 /** How fast the caravan goes here, as a share of its pace on good ground (0 = cannot go). */
 export const terrainSpeed = (p: Pt) => speedOf[idxOf(p)];
 export const isBlockedPx = (p: Pt) => speedOf[idxOf(p)] === 0;
@@ -108,7 +79,8 @@ function nearestOpen(cx: number, cy: number): [number, number] {
 /** Time cost (in cell-lengths at good-ground pace) of a straight line, or Infinity if it crosses closed ground. */
 function lineCost(a: Pt, b: Pt) {
   const len = dist(a, b);
-  const steps = Math.max(1, Math.ceil(len / (CELL / 2)));
+  // (a quarter of a cell apart, so a straightened line does not clip the corner of a closed cell)
+  const steps = Math.max(1, Math.ceil(len / (CELL / 4)));
   let cost = 0;
   for (let i = 0; i < steps; i++) {
     const t = (i + 0.5) / steps;
@@ -176,6 +148,8 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
         if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= MASK_H) continue;
         const ni = ny * GRID_W + nx;
         if (!speedOf[ni] || closed[ni]) continue;
+        // no slipping diagonally between two closed cells that touch at a corner
+        if (dx && dy && (!speedOf[cy * GRID_W + nx] || !speedOf[ny * GRID_W + cx])) continue;
         const ng = gScore[cur] + (dx && dy ? 1.4142 : 1) * 0.5 * (1 / speedOf[cur] + 1 / speedOf[ni]);
         if (ng < gScore[ni]) {
           gScore[ni] = ng;
@@ -211,9 +185,9 @@ export function findPath(from: Pt, to: Pt): Pt[] | null {
 /** Ships keep to the sea: a search across water cells from the water nearest each port, straightened
  * wherever open water allows. Returns null if no sea lane joins them on the map. */
 const SEA_DIRS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]];
-// the straits are narrower than a mask cell, so they are opened for ships only: the Dardanelles and the Bosporus
+// the straits are narrower than a mask cell, so they are opened for ships only: the Dardanelles
 const sea = Uint8Array.from(water);
-for (const [x, y] of [[22, 14], [22, 15], [34, 12], [34, 11], [34, 10], [35, 9]]) sea[y * GRID_W + x] = 1;
+for (const [x, y] of STRAIT_CELLS) sea[y * GRID_W + x] = 1;
 const isSeaPx = (p: Pt) => { const { cx, cy } = cellOf(p); return sea[cy * GRID_W + cx] === 1; };
 function nearestWater(cx: number, cy: number): number {
   for (let r = 0; r < 16; r++)
@@ -488,23 +462,15 @@ export function durationLabel(days: number) {
 
 // ---------- Fog of war ----------
 export const FOG_LEN = GRID_W * MASK_H;
+let blank = '';
 export function blankFog() {
-  return '0'.repeat(FOG_LEN);
+  return blank || (blank = '0'.repeat(FOG_LEN));
 }
-/** A fog of the right size for today's map. Saves from before Persia was added (save 24) kept
- *  177 cells a row: each row is carried over and Persia's cells start unexplored. */
-let fitIn = '', fitOut = '';
+/** A fog of the right size for today's map. A fog of any other size belongs to an older map (saves before
+ *  33 are carried over cell by cell when they load, state/store.ts): it is not read cell by cell here, and
+ *  the map starts unexplored rather than showing it in the wrong places. */
 export function fitFog(fog: string): string {
-  if (fog.length === FOG_LEN) return fog;
-  if (fog === fitIn) return fitOut;
-  let out: string;
-  if (fog.length === MASK_W * MASK_H) {
-    const pad = '0'.repeat(GRID_W - MASK_W);
-    out = '';
-    for (let y = 0; y < MASK_H; y++) out += fog.slice(y * MASK_W, (y + 1) * MASK_W) + pad;
-  } else out = (fog + '0'.repeat(FOG_LEN)).slice(0, FOG_LEN);
-  fitIn = fog; fitOut = out;
-  return out;
+  return fog && fog.length === FOG_LEN ? fog : blankFog();
 }
 export function revealFog(fog: string, p: Pt, radiusCells = 7): string {
   const { cx, cy } = cellOf(p);
@@ -583,7 +549,7 @@ export function spawnParties(rng: () => number): Party[] {
   // raiders patrol the Sinai tracks and the Syrian desert; Bedouin herd near their camp
   RAID_HOMES().forEach((_, i) => out.push(desertRaiders(i, rng)));
   // a free company of guards looking for work
-  [paint(720, 620), paint(430, 700)].forEach((h, i) => {
+  [geo(33.6, 30.9), geo(31.75, 30.15)].forEach((h, i) => {
     const p = randomLand(h, 20, rng);
     out.push({ id: `m${i}`, kind: 'mercenaries', name: i ? 'Unemployed gendarmes' : 'Circassian riders for hire', size: 4, strength: 16, x: p.x, y: p.y, path: [p, randomLand(h, 30, rng)], travelled: 0, speed: 20, home: h });
   });
@@ -628,7 +594,8 @@ function roadBand(i: number, rng: () => number): Party {
 export function spawnRoadBands(rng: () => number): Party[] {
   return ROAD_BANDS.map((_, i) => roadBand(i, rng));
 }
-const RAID_HOMES = () => [paint(760, 740), paint(1020, 600)];
+// the Tih plateau of Sinai, and the desert east of Amman
+const RAID_HOMES = () => [geo(33.9, 29.7), geo(37.4, 31.8)];
 function desertRaiders(i: number, rng: () => number): Party {
   const h = RAID_HOMES()[i];
   const p = randomLand(h, 30, rng);

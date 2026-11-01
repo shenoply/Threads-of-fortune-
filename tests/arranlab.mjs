@@ -62,7 +62,7 @@ try {
   console.log('asked:', (await st()).arranBooks.fibres.phase, '|', (await p.locator('[data-testid=arran-say]').textContent()).slice(0, 60));
   await p.click('[data-testid=arran-leave]');
   // to Cairo (the route itself is the ordinary map journey; here the save is moved)
-  await edit(`Object.assign(s.world, { at: 'cairo', hour: 10, x: 214.3, y: 413.7 });`); await reload();
+  await edit(`Object.assign(s.world, { at: 'cairo', hour: 10, x: 438.5, y: 588.8 });`); await reload();
   await toTown('cairo');
   await p.screenshot({ path: `${S}/lab-${tag}-menu.png` });
   (await p.locator('[data-testid=menu-more]').count() && await p.click('[data-testid=menu-more]')); console.log('library in menu:', await p.locator('[data-testid=menu-library]').textContent());

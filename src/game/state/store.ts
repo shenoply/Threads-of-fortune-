@@ -75,10 +75,11 @@ import { audio, DEFAULT_VOLUMES, type Channel, type Volumes } from '../audio/eng
 import { stopArranVoice, syncArranVolume } from '../audio/arranVoice';
 import { NPCS, QUESTS, SETTLEMENTS, SEA_ROUTES } from '../../data/world';
 import {
-  blankFog, revealFog, fitFog, spawnParties, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom, partyFare, railJourney,
+  blankFog, revealFog, spawnParties, GRID_W, FOG_LEN, spawnRoadBands, stepParties, settlementById, seaRoutesFrom, motorRoutesFrom, partyFare, railJourney,
   type Party, type Pt,
 } from '../systems/world';
 import { CONDITION_FACTOR } from '../../data/rugs';
+import { OLD_MAP, oldToNew } from './mapMove';
 import { perceivedValue } from '../systems/negotiation';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { BREEDS, ANIMAL_MARKETS, withArticle } from '../../data/animals';
@@ -117,7 +118,7 @@ import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSH
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
 import { DEMO, DEMO_MISSIONS } from '../demo';
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -5719,8 +5720,14 @@ export const useGame = create<GameState & Actions>()(
           const w = p.world;
           const have = new Set((w.parties ?? []).map((x) => x.id));
           const added = spawnParties(rng).filter((x) => ['rb6', 'rb7', 'p6'].includes(x.id) && !have.has(x.id));
-          p.world = { ...w, fog: fitFog(w.fog ?? blankFog()), known: [...new Set([...(w.known ?? []), ...PERSIAN_ROAD])], parties: [...(w.parties ?? []), ...added] };
+          // (the fog is left at its old size: save 33 below carries it onto the new map)
+          p.world = { ...w, fog: w.fog ?? blankFog(), known: [...new Set([...(w.known ?? []), ...PERSIAN_ROAD])], parties: [...(w.parties ?? []), ...added] };
         }
+        // Save 33: the travel map became one painting from Crete to Kerman (2000 x 1214 units, data/projection.ts).
+        // Everything a save kept on the old map (1265 x 590: the old painting and Persia east of it) is carried
+        // to the same place on the new one (state/mapMove.ts). A fog still of an old size marks a world still
+        // on the old map (the older migrations above that reset the world already put it on the new one).
+        if (version < 33 && p.world) moveToNewMap(p);
         return p as GameState & Actions;
       },
       onRehydrateStorage: () => (state) => {
@@ -5890,6 +5897,46 @@ function buryMen(s: GameState, lost: Record<string, number>, where: string, seed
   if (sergeant?.manId && k.fallen.some((m) => m.id === sergeant!.manId)) { sgt = ` Sergeant ${sergeant.name} is among them.`; sergeant = undefined; }
   const line = (k.fallen.length === 1 ? `You bury ${manLabel(k.fallen[0])}, ${withArticle(kindName(k.fallen[0].kind))}, by the road.` : `You bury ${nameList(k.fallen)} by the road.`) + sgt;
   return { combat: { ...c0, men: k.men, sergeant, fallen: [...(c0.fallen ?? []), ...k.fallen.map((m) => fallenOf(m, s.day, where, 'killed fighting raiders'))].slice(-60) }, line };
+}
+/** Save 33: a world kept on the old travel map, carried onto the new one (see the migration). */
+function moveToNewMap(p: Partial<GameState>) {
+  const w = p.world!;
+  const oldFog = w.fog ?? '';
+  const oldCols = oldFog.length === OLD_MAP.cols * OLD_MAP.rows ? OLD_MAP.cols : oldFog.length === 177 * OLD_MAP.rows ? 177 : 0;
+  if (!oldCols) { if (oldFog.length !== FOG_LEN) p.world = { ...w, fog: blankFog() }; return; }
+  const mv = (q: Pt): Pt => { const n = oldToNew(q); return { x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10 }; };
+  // the explored ground: every explored cell of the old map opens the cells round the same place on the new
+  const fog = blankFog().split('');
+  const rows = FOG_LEN / GRID_W;
+  for (let i = 0; i < oldFog.length; i++) {
+    if (oldFog.charCodeAt(i) !== 49) continue;
+    const q = mv({ x: (i % oldCols) * OLD_MAP.cell + OLD_MAP.cell / 2, y: Math.floor(i / oldCols) * OLD_MAP.cell + OLD_MAP.cell / 2 });
+    const cx = Math.floor(q.x / 5), cy = Math.floor(q.y / 5);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (x >= 0 && y >= 0 && x < GRID_W && y < rows) fog[y * GRID_W + x] = '1';
+    }
+  }
+  let at = w.at && SETTLEMENTS.some((x) => x.id === w.at) ? w.at : null;
+  let pos: Pt = at ? settlementById(at) : mv({ x: w.x, y: w.y });
+  // a journey under way on the old map ends where it was going (its path is of the old map)
+  if (p.journey) {
+    const dest = p.journey.dest && SETTLEMENTS.some((x) => x.id === p.journey!.dest) ? p.journey.dest : null;
+    if (dest) { at = dest; pos = settlementById(dest); }
+    p.journey = undefined;
+  }
+  let fogStr = fog.join('');
+  fogStr = revealFog(fogStr, pos, 7);
+  // the bands and caravans gather afresh on the new map's roads, each keeping its strength and any score it has to settle
+  const before = new Map((w.parties ?? []).map((x) => [x.id, x]));
+  const parties = spawnParties(rng).map((x) => {
+    const o = before.get(x.id);
+    return o ? { ...x, size: o.size ?? x.size, strength: o.strength ?? x.strength, full: o.full, vendetta: o.vendetta, feudSince: o.feudSince, cooldownUntil: o.cooldownUntil } : x;
+  });
+  // anyone else on the road (a band met on the way, the cousins) is carried to the same place
+  const ids = new Set(parties.map((x) => x.id));
+  for (const o of before.values()) if (!ids.has(o.id)) parties.push({ ...o, ...mv(o), path: (o.path ?? []).map(mv), home: o.home ? mv(o.home) : o.home });
+  p.world = { ...w, at, x: pos.x, y: pos.y, fog: fogStr, parties };
 }
 /** "on the road near Tanta" */
 function roadNear(p: { x: number; y: number }) {

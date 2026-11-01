@@ -51,6 +51,18 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   compressed file and decodes each line on its own, cut at an MP3 frame boundary. Never decode a
   whole file with decodeAudioData: half an hour of speech is ~400 MB of samples, and that is what
   crashed the game on iPhones. Keep new recordings constant-bitrate so byte offsets follow time.
+- The travel map is one painting from Crete to Kerman (since save 33): master art-src/world/
+  travel-map-painting-1610.png (as painted) and travel-map-master-4800.png (upscaled with Real-ESRGAN
+  x4plus, BSD-3, blended 70/30 with a plain Lanczos resize so it does not look waxy); the WebP copies in
+  public/art/world are travel-map-4k (4800), -3k (3072), travel-map (2048) and -768. The map is
+  2000 x 1214 units on a 400 x 243 grid of 5-unit cells. `python3 tools/build-map.py --report --overlay
+  out.png` fits the projection (control points measured on the painting, a quadratic plus a thin-plate
+  spline: src/data/projection.ts, `geo(lon, lat)`), writes every town's and well's x, y into
+  src/data/world.ts from its longitude and latitude, and rebuilds landmask.ts (sea from the blues),
+  terrain.ts (fertile from the greens, mountains from snow and painted relief, the roads by lon/lat
+  waypoints), barriers.ts (the Nile, its two Delta branches, the canal, Tigris, Euphrates, Shatt and the
+  Jordan, hand-traced, with bridges and fords) and src/game/state/mapMove.ts (old map to new, for saves
+  before 33). Place anything new by longitude and latitude with geo(); never by hand-typed map units.
 - Battle art: masters in art-src/battle (not deployed; prompts and manifest alongside). Run
   `python3 tools/battle.py` to make the WebP copies in public/art/battle. The fight in
   src/components/World/Ambush.tsx draws them through BattleField.tsx (BAND_ART lists each band's

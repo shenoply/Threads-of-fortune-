@@ -58,11 +58,11 @@ await p.waitForFunction((k) => { try { return JSON.parse(localStorage.getItem(k)
 // a new game: Persia is on the map, greyed, and shut
 const s0 = await state();
 ok(['khanaqin', 'kermanshah', 'tehran', 'kerman'].every((id) => s0.world.known.includes(id)), 'the Persian road is on the map from the start');
-ok(s0.world.fog.length === 253 * 118, `the fog covers the map with Persia (${s0.world.fog.length})`);
+ok(s0.world.fog.length === 400 * 243, `the fog covers the whole map, Persia with it (${s0.world.fog.length})`);
 
 // in Baghdad with a passport, money and one rug packed; no shops, no Persian visa
 await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
-  s.world.at = 'baghdad'; s.world.x = 823.9; s.world.y = 266.2; s.world.hour = 7; s.world.parties = []; s.cash = 50000; s.dayOver = false;
+  s.world.at = 'baghdad'; s.world.x = 1084.5; s.world.y = 450.9; s.world.hour = 7; s.world.parties = []; s.cash = 50000; s.dayOver = false;
   s.passport = { day: s.day }; s.lastTown = 'baghdad'; delete s.persianVisa; delete s.shops; s.upgrades = (s.upgrades || []).filter((u) => u !== 'khan');
   s.world.party.food = 60;
   const base = s.inventory[0]; s.inventory = [0, 1, 2].map((n) => ({ ...base, uid: 'pz' + n, paid: 1000, stored: false, restoringUntil: undefined }));
@@ -163,9 +163,9 @@ await p.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k)); d.versi
 await p.reload(); await p.waitForTimeout(500);
 if (await has('continue')) await p.click('[data-testid=continue]');
 await p.waitForTimeout(1500);
-const live = await mod('game/state/store.ts', 'const s = store.useGame.getState(); return { known: s.world.known, fog: s.world.fog.length, explored: s.world.fog.slice(0, 177), bands: s.world.parties.map((x) => x.id), visa: !!s.persianVisa };');
+const live = await mod('game/state/store.ts', 'const s = store.useGame.getState(); return { known: s.world.known, fog: s.world.fog.length, explored: [[1084.5, 450.9], [438.5, 588.8], [372.7, 62.1]].every(([x, y]) => s.world.fog[Math.floor(y / 5) * 400 + Math.floor(x / 5)] === "1"), persian: s.world.fog[Math.floor(339.8 / 5) * 400 + Math.floor(1375.1 / 5)], x: s.world.x, bands: s.world.parties.map((x) => x.id), visa: !!s.persianVisa };');
 ok(live.known.includes('tehran') && live.known.includes('khanaqin'), 'migrated: Persia on the map');
-ok(live.fog === 253 * 118 && live.explored === '1'.repeat(177), 'migrated: fog widened, explored country kept');
+ok(live.fog === 400 * 243 && live.explored && live.persian === '0' && live.x === 1084.5, 'migrated: onto the one-painting map, explored country kept, Persia (Tehran) still unexplored, at Baghdad');
 ok(live.bands.includes('rb6') && live.bands.includes('rb7'), 'migrated: the Zagros raiders ride the passes');
 ok(!live.visa, 'migrated: no visa');
 await openMap();

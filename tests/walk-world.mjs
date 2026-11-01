@@ -14,7 +14,7 @@ const edit = (fn) => p.evaluate((src) => { const k = 'threads-of-fortune-save'; 
 await p.goto(`http://localhost:${PORT}/`); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'))); await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
 const bad = [];
-for (const [from, fx, fy, to] of [['giza', 146.9, 443.7, 'cairo'], ['giza', 146.9, 443.7, 'tanta'], ['cairo', 214.3, 413.7, 'giza'], ['cairo', 214.3, 413.7, 'saqqara'], ['giza', 146.9, 443.7, 'portsaid']]) {
+for (const [from, fx, fy, to] of [['giza', 421.1, 595, 'cairo'], ['giza', 421.1, 595, 'tanta'], ['cairo', 438.5, 588.8, 'giza'], ['cairo', 438.5, 588.8, 'saqqara'], ['giza', 421.1, 595, 'portsaid']]) {
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.guideSeen = true; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; localStorage.setItem('tof-skip-chapters', '1');
     Object.assign(s.world, { at: '${from}', x: ${fx}, y: ${fy}, hour: 7 }); s.cash = 0; s.journey = undefined; s.dayOver = false; s.world.known = [...new Set([...s.world.known, 'tanta', 'saqqara', 'fayoum', 'suez', 'portsaid'])];`);
   await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]');

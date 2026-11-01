@@ -33,7 +33,7 @@ await p.waitForFunction((k) => { try { return JSON.parse(localStorage.getItem(k)
 
 // in Cairo with two rugs packed and money to spend; no papers yet
 await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
-  s.world.at = 'cairo'; s.world.x = 214.3; s.world.y = 413.7; s.world.hour = 8; s.world.parties = []; s.cash = 5000; s.dayOver = false;
+  s.world.at = 'cairo'; s.world.x = 438.5; s.world.y = 588.8; s.world.hour = 8; s.world.parties = []; s.cash = 5000; s.dayOver = false;
   s.world.known = [...new Set([...s.world.known, 'jerusalem', 'damascus', 'jaffa'])];
   const base = s.inventory[0]; s.inventory = [0, 1].map((n) => ({ ...base, uid: 'bt' + n, paid: n ? 1200 : 800, stored: false, restoringUntil: undefined }));
   delete s.lastTown; delete s.passport; delete s.border; delete s.changer;`);
@@ -76,7 +76,7 @@ await p.reload(); await p.waitForTimeout(1200);
 ok(!(await has('border-card')), 'no second card after a reload');
 
 // Damascus: prices in Syrian pounds, and the money-changer takes his cut on the first deal
-await edit(`delete s.journey; /* the train still on its way on from the frontier */ s.world.at = 'damascus'; s.world.x = 486.9; s.world.y = 291.0; s.lastTown = 'damascus'; s.inventory = s.inventory.slice(0, 1); s.world.hour = 9; s.dayOver = false; delete s.changer; delete s.border; s.cash = 5000;`);
+await edit(`delete s.journey; /* the train still on its way on from the frontier */ s.world.at = 'damascus'; s.world.x = 735.2; s.world.y = 459.9; s.lastTown = 'damascus'; s.inventory = s.inventory.slice(0, 1); s.world.hour = 9; s.dayOver = false; delete s.changer; delete s.border; s.cash = 5000;`);
 await openMap();
 await p.locator('[data-testid=place-damascus]').dispatchEvent('click'); await p.waitForTimeout(800);
 await fromTownMenu(p, 'market');
@@ -103,7 +103,7 @@ console.log('   town:', (await p.locator('[data-testid=town-money]').innerText()
 await shot('6-damascus-town');
 
 // Turkey without papers: turned back at the frontier
-await edit(`delete s.journey; s.world.at = 'konya'; s.world.x = 305.4; s.world.y = 146.9; s.lastTown = 'aleppo'; delete s.passport; delete s.changer; s.world.hour = 9;
+await edit(`delete s.journey; s.world.at = 'konya'; s.world.x = 557; s.world.y = 222.4; s.lastTown = 'aleppo'; delete s.passport; delete s.changer; s.world.hour = 9;
   s.border = { key: 'aleppo>konya:' + s.day, from: 'aleppo', to: 'konya', fromC: 'syria', toC: 'turkey', day: s.day, post: 'Meidan Ekbez, on the Baghdad Railway' };`);
 if (!(await has('border-card'))) await openMap();
 await p.waitForSelector('[data-testid=border-card]', { timeout: 5000 }).catch(() => {});

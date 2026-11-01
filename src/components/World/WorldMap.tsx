@@ -32,7 +32,7 @@ import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger, tripEstimate, durationLabel, type FareLine,
-  MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, walkPace, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, VIEW_W, VIEW_H, findPath, routeLeg, routeThrough, pathLength, pathDays, walkPace, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { isPc } from '../../platform/pc';
@@ -59,7 +59,7 @@ import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
 import { cityLocked, lockedWhy, lockNeeds, openingStep } from '../../game/opening';
 import { persiaOpen, persiaWhy } from '../../game/unlocks';
-import { inPersia, PERSIA_ROADS } from '../../data/persiaMap';
+import { inPersia } from '../../data/persiaMap';
 import { guideTarget } from '../../game/guide';
 import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R, KHAMSIN_PACE, floodPace, seasonPathMult, snowPass, SNOW_PACE } from '../../game/systems/mapNews';
 import { ferryHours, SEASON_NOW } from '../../game/economy/calendar1925';
@@ -395,17 +395,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const lastScale = useRef(1);
   if (timeScale > 0) lastScale.current = timeScale;
 
-  // zoom 1 is the map filling the screen; on a tall phone that shows only the Delta, so you can zoom
-  // out further, down to the whole map fitted on screen with dark margins round it
-  // (zoom 1 is measured against the painting, so Persia, drawn east of it, does not change the usual view)
-  const base = Math.max(size.w / PAINT_W, size.h / MAP_H);
+  // zoom 1 is a view about the size of Egypt and the Levant filling the screen (the old painting's frame,
+  // VIEW_W x VIEW_H, so the zooms and the names shown at each are as before the map grew); you can zoom
+  // out further, down to the whole map filling the screen
+  const base = Math.max(size.w / VIEW_W, size.h / VIEW_H);
   // zoomed right out the map still fills the screen (on a tall phone it fills the height and pans sideways), never a thin strip
   const minZ = Math.min(1, Math.max(size.w / MAP_W, size.h / MAP_H) / base);
   // the closest zoom: where the painting is still crisp on this screen (its pixels blown up no more than
   // about 1.6 times), never closer than 2.6 nor further than the old 4.5
   const artW = paintedMapWidth();
   const dprNow = typeof window !== 'undefined' ? Math.min(3, window.devicePixelRatio || 1) : 1;
-  const maxZ = artW ? Math.max(minZ, 2.6, Math.min(4.5, ((artW / PAINT_W) * 1.6) / (base * dprNow))) : 4.5;
+  const maxZ = artW ? Math.max(minZ, 2.6, Math.min(4.5, ((artW / MAP_W) * 1.6) / (base * dprNow))) : 4.5;
   /** the close-in views (the stall bubble over Giza, names on the bands) come at 3, or at the closest zoom if that is nearer */
   const closeZ = Math.min(3, maxZ) - 0.01;
   const s = base * z;
@@ -433,7 +433,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // a trunk route (both ends a city, port or your home) draws heavier than a local track to a village,
   // oasis, monastery or camp — so the map reads "this is the way between places that matter" at a glance
   const MAJOR_KIND = new Set(['home', 'city', 'town', 'port']);
-  const roads = useMemo(() => [...ROAD_LINES.map((r) => ({ a: r.a, b: r.b, pts: r.pts.map(([x, y]) => ({ x, y })) })), ...PERSIA_ROADS].map((r) => ({
+  const roads = useMemo(() => ROAD_LINES.map((r) => ({ a: r.a, b: r.b, pts: r.pts.map(([x, y]) => ({ x, y })) })).map((r) => ({
     pts: r.pts,
     major: MAJOR_KIND.has(settlementById(r.a).kind) && MAJOR_KIND.has(settlementById(r.b).kind),
   })), []);
@@ -1464,9 +1464,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         onPointerLeave={(e) => { if (e.pointerType !== 'mouse') return; pts.current.delete(e.pointerId); if (drag.current?.moved) setPan(panRef.current); drag.current = null; setHoverBlocked(false); }}
         style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
-        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
+        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt, the Levant, Iraq and Persia in 1925" />
+        {/* the hour's tint over the screen only, not the whole map: at a close zoom the map is many screens across,
+            and a blended layer that size is more than a phone's graphics memory will hold */}
+        <div className="daynight" style={{ background: tint(w.hour) }} />
         <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)} data-tier={tier}>
-          <div className="daynight" style={{ background: tint(w.hour) }} />
           {sandZones.map((c, i) => (
             <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
           ))}

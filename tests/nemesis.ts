@@ -5,8 +5,8 @@ import { nemesisLine, type Leader } from '../src/game/systems/combat';
 
 let fails = 0;
 const ok = (c: boolean, w: string) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${w}`); if (!c) fails++; };
-const band = (vendetta: boolean): Party => ({ id: 'rb0', kind: 'raiders', name: 'x', size: 6, strength: 20, x: 250, y: 400, path: [{ x: 250, y: 400 }, { x: 250, y: 400 }], travelled: 0, speed: 26, vendetta });
-const me = { x: 250, y: 435 }; // 35 away: out of an ordinary band's reach
+const band = (vendetta: boolean): Party => ({ id: 'rb0', kind: 'raiders', name: 'x', size: 6, strength: 20, x: 300, y: 700, path: [{ x: 300, y: 700 }, { x: 300, y: 700 }], travelled: 0, speed: 26, vendetta });
+const me = { x: 300, y: 735 }; // open desert west of the Nile, 35 away: out of an ordinary band's reach
 const rng = () => 0.5;
 const plain = stepParties([band(false)], 0.2, rng, me, 30, 10)[0];
 const feud = stepParties([band(true)], 0.2, rng, me, 30, 10)[0];

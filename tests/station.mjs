@@ -17,7 +17,7 @@ await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1500);
 const raw = await p.evaluate((k) => localStorage.getItem(k), K);
 await p.goto('about:blank'); await p.goto(BASE);
-await p.evaluate(([k, r]) => { const d = JSON.parse(r); Object.assign(d.state, { tutorial: { done: true, step: 'done', inspected: true }, cash: 5000, journey: undefined }); Object.assign(d.state.world, { at: 'cairo', x: 214.3, y: 413.7, hour: 10 }); d.state.guideSeen = true; localStorage.setItem(k, JSON.stringify(d)); }, [K, raw]);
+await p.evaluate(([k, r]) => { const d = JSON.parse(r); Object.assign(d.state, { tutorial: { done: true, step: 'done', inspected: true }, cash: 5000, journey: undefined }); Object.assign(d.state.world, { at: 'cairo', x: 438.5, y: 588.8, hour: 10 }); d.state.guideSeen = true; localStorage.setItem(k, JSON.stringify(d)); }, [K, raw]);
 await p.reload(); if (await p.locator('[data-testid=continue]').count()) await p.click('[data-testid=continue]');
 await p.click('[data-testid=nav-map]').catch(() => {}); await p.waitForTimeout(800);
 if (await p.locator('[data-testid=guide-skip]').count()) await p.click('[data-testid=guide-skip]');

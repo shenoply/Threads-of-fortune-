@@ -12,9 +12,10 @@ await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1'))); // the opening locks every town but Giza and Cairo
 await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {}); /* day one is on disk before the save is edited */
-await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.tutorial = { done: true, step: 'done', inspected: true }; d.state.world.fog = '1'.repeat(177 * 118); Object.assign(d.state.world, { at: 'beirut', x: 381.4, y: 266.2 }); d.state.world.known = [...new Set([...(d.state.world.known ?? []), 'beirut', 'damascus'])]; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
+await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); d.state.tutorial = { done: true, step: 'done', inspected: true }; d.state.world.fog = '1'.repeat(400 * 243); Object.assign(d.state.world, { at: 'beirut', x: 680.7, y: 441 }); d.state.world.known = [...new Set([...(d.state.world.known ?? []), 'beirut', 'damascus'])]; (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { /* hold the game's autosave off the edited save until the reload */ const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); });
 await p.reload(); await p.click('[data-testid=continue]'); await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800);
-for (let i = 0; i < 4; i++) { await p.click('button[aria-label="Zoom out"]').catch(() => {}); }
+// (two steps in: Beirut, the range and Damascus well apart on screen)
+for (let i = 0; i < 2; i++) { await p.click('button[aria-label="Zoom in"]').catch(() => {}); await p.waitForTimeout(200); }
 await p.waitForTimeout(600);
 // screen transform from two town markers
 const centre = async (id) => { const r = await p.locator(`[data-testid=place-${id}]`).boundingBox(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; };
@@ -24,8 +25,8 @@ const [A, B] = [await centre('beirut'), await centre('damascus')];
 const s = (B.x - A.x) / (T.damascus.x - T.beirut.x);
 const toScreen = (x, y) => ({ x: A.x + (x - T.beirut.x) * s, y: A.y + (y - T.beirut.y) * s });
 const card = () => p.locator('.wc-main').first().innerText().catch(() => '');
-// 1. Mount Lebanon, between Beirut and Damascus (painting 770,400)
-let q = toScreen(770 / 1.7356, 400 / 1.7356);
+// 1. Mount Lebanon, between Beirut and Damascus (its snows on the painting, 585,341 of 1610)
+let q = toScreen(585 * 2000 / 1610, 341 * 2000 / 1610);
 await p.mouse.move(q.x, q.y); await p.mouse.down(); await p.mouse.up(); await p.waitForTimeout(500);
 let txt = await card();
 check('Tapping Mount Lebanon says mountains cannot be crossed', /No caravan can cross these mountains/.test(txt), JSON.stringify(txt.slice(0, 90)));
