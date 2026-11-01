@@ -19,8 +19,8 @@ export class Needle {
   v = 0;
   /** where it is drawn to */
   target = 0;
-  // stiffness and damping: under-damped (damping ratio about 0.3), so it swings past once or twice and settles
-  constructor(public k = 16, public c = 2.4) {}
+  // stiffness and damping: under-damped (damping ratio about 0.4), so it swings past once, a little, and settles
+  constructor(public k = 16, public c = 3.2) {}
   setTarget(t: number) { this.target = this.a + turnBetween(this.a, t); }
   /** move on by dt seconds (taken in small steps, so a slow frame does not throw the needle about) */
   step(dt: number) {

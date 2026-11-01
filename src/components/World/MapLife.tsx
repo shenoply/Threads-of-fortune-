@@ -34,7 +34,8 @@ export function MapLife({ camera, on }: { camera: () => Camera | null; on: boole
       const c = camRef.current();
       if (!c) return;
       const start = performance.now();
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      // soft painted pieces need no more than one and a half pixels to the point; fewer pixels to fill and composite
+      const dpr = Math.min(1.5, window.devicePixelRatio || 1);
       const W = Math.round(c.w * dpr), H = Math.round(c.h * dpr);
       if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       ctx.setTransform(1, 0, 0, 1, 0, 0);

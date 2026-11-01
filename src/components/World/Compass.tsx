@@ -26,7 +26,7 @@ export function Compass({ aim, onTap }: { aim: CompassAim; onTap: () => void }) 
   useEffect(() => {
     const n = new Needle();
     n.a = n.target = aimRef.current();
-    let raf = 0, last = performance.now(), shown = NaN;
+    let raf = 0, last = performance.now(), shown = -999;
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
