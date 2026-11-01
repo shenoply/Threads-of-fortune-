@@ -181,7 +181,7 @@ export const SHIP_SHEET: Record<ShipKind, string> = {
 };
 export const SHEET_FRAMES = 16;
 /** where the ship's waterline centre sits in a frame, as fractions of its width and height */
-export const SHEET_ANCHOR = { x: 0.5, y: 0.6 } as const;
+export const SHEET_ANCHOR = { x: 0.5, y: 0.594 } as const;
 /** how far the ground is foreshortened in the sheets (the sine of the camera's 48 degrees) */
 export const SHEET_TILT = Math.sin((48 * Math.PI) / 180);
 /** The sprite sheet for a ship, if it is in the folder (WebP before PNG). */
