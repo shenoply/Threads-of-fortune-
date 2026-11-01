@@ -25,8 +25,9 @@ body.travelling .map-compass { opacity: 0.95; }
 .world-svg .route-trail { stroke: rgba(78,46,20,0.75); stroke-width: 1.8px; vector-effect: non-scaling-stroke; stroke-dasharray: none; stroke-linejoin: round; }
 
 /* dividers: the measured walk, a fine dashed line between two small brass marks */
-.world-svg .divider-line { fill: none; stroke: #2c1e12; stroke-width: 1.6px; vector-effect: non-scaling-stroke; stroke-dasharray: 5 4; stroke-linecap: round; }
-.world-svg .divider-pt circle { fill: rgba(217,187,124,0.9); stroke: #2c1e12; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.world-svg .divider-line { fill: none; stroke: #5a1a10; stroke-width: 2.2px; vector-effect: non-scaling-stroke; stroke-dasharray: 6 4; stroke-linecap: round; filter: drop-shadow(0 0 1.5px rgba(255,236,196,0.95)); }
+.world-svg .divider-pt { filter: drop-shadow(0 0 1px rgba(255,236,196,0.9)); }
+.world-svg .divider-pt circle { fill: rgba(217,187,124,0.95); stroke: #2c1e12; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
 .world-svg .divider-pt path { stroke: #2c1e12; stroke-width: 1px; vector-effect: non-scaling-stroke; }
 
 /* the tools: the dividers and the trade lens, drawn in the buttons' own thin line */
