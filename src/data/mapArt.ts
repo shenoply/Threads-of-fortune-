@@ -1,4 +1,4 @@
-// The painted pieces that sit on the travel map (the art brief: art-src/map-art-brief, positions.csv), each
+// The painted pieces that sit on the travel map (the artist's brief, "Threads of Fortune: map art brief", with its positions.csv), each
 // under its code. A piece is drawn from public/art/map/<code>-<name>.webp (or .png) once that file is in
 // the folder; until then the map draws a plain ink placeholder in its place. Nothing here needs changing
 // when the paintings arrive: the build lists the folder (vite.config.ts, virtual:map-art-files) and

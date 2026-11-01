@@ -67,3 +67,13 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   `python3 tools/battle.py` to make the WebP copies in public/art/battle. The fight in
   src/components/World/Ambush.tsx draws them through BattleField.tsx (BAND_ART lists each band's
   men, leader and the grounds it fights on; fieldFor picks one per fight).
+- The living travel map (save 34): src/data/mapArt.ts lists every piece of the map art brief under its code
+  (01-giza … 33-rutba landmarks, S1..S10 ships, S-wake, C1..C5 caravans, K-compass-base/needle/rim, T cartouche,
+  B scale bar, W1..W4 weather, F-corner, M-* markers) with its spot from the brief's positions.csv. To add a
+  painting, drop it into public/art/map as <code>-<name>.webp (or .png; any name after the code works):
+  vite.config.ts lists that folder at build time (virtual:map-art-files), and the map draws the file in place
+  of its ink placeholder (src/game/systems/mapArtDraw.ts). No code change. The compass is the Blender render
+  (tools/blender-compass.py). Ships and caravans move on lanes checked against the land mask
+  (src/game/systems/mapLife.ts) on their own canvas (components/World/MapLife.tsx); "Map life" in Settings
+  stops them. Every way travelled is inked into the save (state.inked, systems/inked.ts). Dividers and the
+  trade lens are the two tools under the zoom buttons. tests/maplife.ts and tests/maplife.mjs check it all.

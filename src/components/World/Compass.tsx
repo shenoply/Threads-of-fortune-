@@ -2,7 +2,7 @@
 // paintings in public/art/map, K-compass-*; drawn in ink when a file is missing). The needle settles on north
 // with a damped swing; on the road it swings to the way you are heading; when a town is chosen it points
 // there for a moment. A tap brings the map back to you. The needle is turned straight in the DOM by its own
-// small frame loop, which rests once the needle does.
+// small frame loop, which touches the page only while the needle moves.
 import { useEffect, useRef, useState } from 'react';
 import { COMPASS, itemFile, onArtFiles } from '../../data/mapArt';
 import { Needle } from '../../game/systems/compass';
