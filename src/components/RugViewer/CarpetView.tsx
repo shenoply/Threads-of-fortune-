@@ -4,7 +4,9 @@
 // so you can go to a corner or the fringe. Two fingers: pinch to zoom about the point between them,
 // move to slide it, twist to turn it (or the turn button). The roll bar under it rolls it up or lays it out as far as you like, whatever angle or
 // zoom it is at; the roll button does it in one go. A double tap lays it straight again.
-// Used by the inspector and by the weaver's screen for carpets of your own.
+// Used by the inspector and by the weaver's screen for carpets of your own; and, compact, on the
+// stall's counter: there it lies in perspective on the table, with no tools, no roll bar and no hint,
+// and the canvas only draws while something moves.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CORE as CORE_R, THICK as THICK_T, extent, outerRadius, rollAt, springStep } from '../../game/roll';
 import { audio } from '../../game/audio/engine';
@@ -14,6 +16,12 @@ import './carpet-view.css';
 const TILT = 0.6; // how far the view tips while the carpet is in its roll, so the roll reads as round
 const F = 2.6; // camera distance, in carpet lengths
 const ZMIN = 0.6, ZMAX = 4;
+/** on the counter the carpet lies seen from the front, its far edge away from you; a drag up tips it
+ *  over towards the buyer (past edge-on you see its back), down lifts it up to you */
+const COUNTER = -1.02, COUNTER_TIP: [number, number] = [-2.1, -0.12];
+
+/** a carpet unrolls as it is shown; not for players who asked for less motion, nor in automated runs */
+export const mayRoll = () => typeof window !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!navigator.webdriver || !!(window as { __tofRoll?: boolean }).__tofRoll);
 
 interface View {
   p: number; v: number; goal: number | null; hand: number | null; sound: boolean;
@@ -35,13 +43,19 @@ export interface CarpetViewProps {
   /** a line over the picture (e.g. "Simulated reverse") */
   label?: ReactNode;
   hint?: boolean;
+  /** in a scene (the stall's counter): just the carpet, lying in perspective in its box; the canvas
+   *  runs past the box so it can tip up out of it, and only the box takes the hands */
+  compact?: boolean;
 }
 
-export function CarpetView({ src, filter, unroll = false, onUse, tools, label, hint: hintOn = false }: CarpetViewProps) {
+export function CarpetView({ src, filter, unroll = false, onUse, tools, label, hint: hintOn = false, compact = false }: CarpetViewProps) {
+  const rp = compact ? COUNTER : 0;
   const box = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const img = useRef<HTMLImageElement | null>(null);
-  const V = useRef<View>({ p: unroll ? 0 : 1, v: 0, goal: unroll ? 1 : null, hand: null, sound: false, settle: 0, settleAmp: 0, yaw: 0, pitch: 0, zoom: 1, px: 0, py: 0, vy: 0, ease: null, rest: 0, dirty: true });
+  const V = useRef<View>({ p: unroll ? 0 : 1, v: 0, goal: unroll ? 1 : null, hand: null, sound: false, settle: 0, settleAmp: 0, yaw: 0, pitch: rp, zoom: 1, px: 0, py: 0, vy: 0, ease: null, rest: 0, dirty: true });
+  // compact: wakes the drawing loop, which sleeps while nothing moves
+  const kick = useRef(() => {});
   const [ui, setUi] = useState({ p: unroll ? 0 : 1, zoom: 1, turned: false, moving: unroll });
   const [hint, setHint] = useState(hintOn);
   useEffect(() => { if (!hint) return; const t = window.setTimeout(() => setHint(false), 6000); return () => clearTimeout(t); }, [hint]);
@@ -55,8 +69,8 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       // a long carpet on a tall phone screen lies up the screen, so it fills it
       const el = box.current;
       const v = V.current;
-      if (el && el.clientHeight > el.clientWidth * 1.15 && im.naturalWidth > im.naturalHeight * 1.15 && v.rest === 0 && v.yaw === 0) { v.rest = Math.PI / 2; v.yaw = Math.PI / 2; }
-      v.dirty = true;
+      if (!compact && el && el.clientHeight > el.clientWidth * 1.15 && im.naturalWidth > im.naturalHeight * 1.15 && v.rest === 0 && v.yaw === 0) { v.rest = Math.PI / 2; v.yaw = Math.PI / 2; }
+      v.dirty = true; kick.current();
     };
     im.src = src;
   }, [src]);
@@ -96,6 +110,12 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
         v.dirty = true; moving = true;
       }
       if (v.dirty) { draw(); v.dirty = false; }
+      if (compact) {
+        // asleep until a hand, a resize or a new picture wakes it (kick)
+        if (!moving && v.hand == null && Math.abs(v.vy) <= 0.05) { raf = 0; return; }
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       if (now - uiT > 90) {
         uiT = now;
         const turned = Math.abs(v.yaw - v.rest) > 0.01 || Math.abs(v.pitch) > 0.01 || Math.abs(v.zoom - 1) > 0.01 || Math.abs(v.px) > 1 || Math.abs(v.py) > 1;
@@ -115,14 +135,17 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       const p = v.p, iw = im.naturalWidth, ih = im.naturalHeight, wz = ih / iw;
       // the size it lies at when flat and straight: the whole carpet in view, either way round
       const along = Math.abs(Math.sin(v.rest)) > 0.5;
-      const S0 = along ? Math.min(H * 0.9, (W * 0.92) / wz) : Math.min(W * 0.92, (H * 0.88) / wz);
+      // compact: it lies in the box (the canvas's parent), which the canvas overhangs
+      const box = c.parentElement;
+      const AW = compact && box ? box.clientWidth : W, AH = compact && box ? box.clientHeight : H;
+      const S0 = compact ? Math.min(AW * 0.96, (AH * 0.86) / (wz * Math.max(0.3, Math.abs(Math.cos(rp))))) : along ? Math.min(H * 0.9, (W * 0.92) / wz) : Math.min(W * 0.92, (H * 0.88) / wz);
       const phi = TILT * Math.pow(1 - p, 0.7);
       const cph = Math.cos(phi), sph = Math.sin(phi);
       const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch);
       const [x0, x1] = extent(p);
       const len = x1 - x0;
       // closer in as it rolls up, so the roll is not lost in the middle of the screen
-      const zr = Math.max(1, Math.min(1.5, (along ? H * 0.9 : W * 0.9) / (S0 * len), (along ? W * 0.86 : H * 0.86) / (S0 * wz)));
+      const zr = compact ? Math.max(1, Math.min(1.3, (AW * 0.9) / (S0 * len))) : Math.max(1, Math.min(1.5, (along ? H * 0.9 : W * 0.9) / (S0 * len), (along ? W * 0.86 : H * 0.86) / (S0 * wz)));
       const S = S0 * (1 + (zr - 1) * Math.pow(1 - p, 1.5)) * v.zoom;
       const raw = (x: number, y: number, z: number) => {
         const X = x * cy - z * sy, Z = x * sy + z * cy;
@@ -132,7 +155,9 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
         return { x: Xs * S * k, y: Zs * S * k, d: Dep };
       };
       const cen = raw((x0 + x1) / 2, 0, 0);
-      const ox = W / 2 + v.px - cen.x, oy = H / 2 + v.py - cen.y;
+      const mx = compact && box ? -c.offsetLeft + AW / 2 : W / 2, my = compact && box ? -c.offsetTop + AH / 2 : H / 2;
+      const ox = mx + v.px - cen.x, oy = my + v.py - cen.y;
+      if (compact) { c.dataset.yaw = v.yaw.toFixed(3); c.dataset.pitch = v.pitch.toFixed(3); c.dataset.zoom = v.zoom.toFixed(2); c.dataset.draws = String(+(c.dataset.draws ?? 0) + 1); }
       const proj = (x: number, y: number, z: number) => { const q = raw(x, y, z); return { x: ox + q.x, y: oy + q.y, d: q.d }; };
       const wob = v.settle > 0 ? v.settleAmp * Math.exp(-v.settle * 5.5) * Math.sin(v.settle * 15) : 0;
       // the shadow it throws on the floor
@@ -172,10 +197,12 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
         piece(u0, u1, { x: u0 - 0.5, y: lift(u0) }, { x: u1 - 0.5, y: lift(u1) }, !!wob && u1 > 0.72);
       }
       // tipped towards you, the pile darkens a little; tipped right over, you see its back in shade
-      if (Math.abs(sp) > 0.05 && flatEnd > 0) {
+      // (on the counter: as it leaves the way it lies, and more once its back is to you)
+      const shadeA = compact ? Math.min(0.42, Math.abs(Math.sin(v.pitch - rp)) * 0.22 + (cp < 0 ? 0.2 : 0)) : Math.min(0.3, Math.abs(sp) * 0.3);
+      if (shadeA > 0.015 && flatEnd > 0) {
         const a = proj(-0.5, 0, -wz / 2), b = proj(flatEnd - 0.5, 0, -wz / 2), cc = proj(flatEnd - 0.5, 0, wz / 2), d = proj(-0.5, 0, wz / 2);
         g.filter = 'none';
-        g.fillStyle = `rgba(10,6,3,${Math.min(0.3, Math.abs(sp) * 0.3).toFixed(3)})`;
+        g.fillStyle = `rgba(10,6,3,${shadeA.toFixed(3)})`;
         g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(cc.x, cc.y); g.lineTo(d.x, d.y); g.closePath(); g.fill();
         g.filter = filter || 'none';
       }
@@ -193,12 +220,14 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       }
       g.filter = 'none';
     };
-    const ro = new ResizeObserver(() => { V.current.dirty = true; });
+    kick.current = () => { if (alive && !raf) { last = 0; raf = requestAnimationFrame(frame); } };
+    const ro = new ResizeObserver(() => { V.current.dirty = true; kick.current(); });
     ro.observe(c);
+    if (compact && c.parentElement) ro.observe(c.parentElement);
     raf = requestAnimationFrame(frame);
-    return () => { alive = false; cancelAnimationFrame(raf); ro.disconnect(); };
-  }, [filter]);
-  useEffect(() => { V.current.dirty = true; }, [src, filter]);
+    return () => { alive = false; cancelAnimationFrame(raf); raf = 0; ro.disconnect(); };
+  }, [filter, compact]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { V.current.dirty = true; kick.current(); }, [src, filter]);
 
   // ---- the hands ----
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -206,7 +235,9 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
   // a pinch: zoom about the point between the fingers (cx, cy: the stage's centre on screen), and a twist turns it
   const pinch = useRef<{ d: number; z: number; mx: number; my: number; px: number; py: number; cx: number; cy: number; a: number; yaw: number; twist: boolean } | null>(null);
   const lastTap = useRef(0);
-  const straighten = () => { const v = V.current; v.vy = 0; v.ease = { yaw: v.rest + Math.round((v.yaw - v.rest) / (2 * Math.PI)) * 2 * Math.PI, pitch: 0, zoom: 1, px: 0, py: 0 }; };
+  const straighten = () => { const v = V.current; v.vy = 0; v.ease = { yaw: v.rest + Math.round((v.yaw - v.rest) / (2 * Math.PI)) * 2 * Math.PI, pitch: rp, zoom: 1, px: 0, py: 0 }; kick.current(); };
+  // compact: a gesture that moved the carpet is not also a tap on the scene behind it
+  const handled = useRef(false);
   const release = () => {
     const v = V.current;
     if (v.hand != null) { v.hand = null; v.goal = null; }
@@ -223,6 +254,7 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const v = V.current;
     v.ease = null;
+    handled.current = false;
     if (pointers.current.size === 2) {
       drag.current = null;
       const [a, b] = [...pointers.current.values()];
@@ -251,7 +283,7 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       da = Math.atan2(Math.sin(da), Math.cos(da));
       if (!pc.twist && Math.abs(da) > 0.26) pc.twist = true;
       if (pc.twist) v.yaw = pc.yaw + da;
-      v.dirty = true; used();
+      v.dirty = true; used(); handled.current = true; kick.current();
       return;
     }
     const d = drag.current;
@@ -265,9 +297,9 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       const c = cv.current, lim = c ? Math.max(c.clientWidth, c.clientHeight) * v.zoom * 0.6 : Infinity;
       v.px = Math.max(-lim, Math.min(lim, d.px + dx)); v.py = Math.max(-lim, Math.min(lim, d.py + dy));
     } else if (d.axis === 'x') { const ny = d.yaw + dx * 0.009; v.vy = 0.6 * v.vy + 0.4 * ((ny - v.yaw) / dt); v.yaw = ny; }
-    else v.pitch = Math.max(-0.9, Math.min(0.9, d.pitch + dy * 0.007));
+    else v.pitch = compact ? Math.max(COUNTER_TIP[0], Math.min(COUNTER_TIP[1], d.pitch + dy * 0.007)) : Math.max(-0.9, Math.min(0.9, d.pitch + dy * 0.007));
     d.lt = e.timeStamp;
-    v.dirty = true;
+    v.dirty = true; handled.current = true; kick.current();
   };
   const onUp = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
@@ -275,19 +307,28 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
     const d = drag.current;
     drag.current = null;
     const v = V.current;
-    if (d && d.on) { if (e.timeStamp - d.lt > 90 || d.axis !== 'x') v.vy = 0; v.vy = Math.max(-10, Math.min(10, v.vy)); return; }
+    if (d && d.on) { if (e.timeStamp - d.lt > 90 || d.axis !== 'x') v.vy = 0; v.vy = Math.max(-10, Math.min(10, v.vy)); kick.current(); return; }
     if (d && !d.on) {
       // a tap: a carpet still unrolling jumps to the end; two quick taps lay it straight
-      if (v.goal != null) { v.p = v.goal; v.v = 0; v.goal = null; v.dirty = true; }
-      if (e.timeStamp - lastTap.current < 320) { straighten(); used(); }
+      if (v.goal != null) { v.p = v.goal; v.v = 0; v.goal = null; v.dirty = true; kick.current(); }
+      if (e.timeStamp - lastTap.current < 320) { straighten(); used(); handled.current = true; }
       lastTap.current = e.timeStamp;
     }
   };
 
   const toggleRoll = () => { const v = V.current; v.hand = null; v.goal = v.p > 0.5 ? 0 : 1; v.sound = false; used(); };
-  const zoomBy = (f: number) => { const v = V.current; v.ease = null; v.zoom = Math.max(ZMIN, Math.min(ZMAX, v.zoom * f)); if (v.zoom <= 1.001) { v.px = 0; v.py = 0; } v.dirty = true; used(); };
+  const zoomBy = (f: number) => { const v = V.current; v.ease = null; v.zoom = Math.max(ZMIN, Math.min(ZMAX, v.zoom * f)); if (v.zoom <= 1.001) { v.px = 0; v.py = 0; } v.dirty = true; used(); kick.current(); };
   const quarter = () => { const v = V.current; v.vy = 0; v.ease = { yaw: v.yaw + Math.PI / 2, pitch: v.pitch, zoom: v.zoom, px: v.px, py: v.py }; used(); };
 
+  if (compact) return (
+    <div className="carpet-view compact" ref={box}>
+      <div className="cv-stage" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onWheel={(e) => zoomBy(e.deltaY < 0 ? 1.12 : 0.89)}
+        onClick={(e) => { if (handled.current) e.stopPropagation(); }} onDoubleClick={(e) => e.stopPropagation()}
+        data-noswipe data-nopull data-testid="scene-carpet">
+        <canvas ref={cv} className="cv-canvas" aria-hidden="true" />
+      </div>
+    </div>
+  );
   return (
     <div className="carpet-view" ref={box}>
       <div className="cv-stage" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onWheel={(e) => zoomBy(e.deltaY < 0 ? 1.12 : 0.89)} data-testid="carpet-stage">

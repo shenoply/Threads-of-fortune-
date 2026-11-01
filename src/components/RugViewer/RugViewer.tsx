@@ -14,11 +14,9 @@ import { RugFlags } from '../Inventory/RugFlags';
 import { KnotCount } from '../KnotCount/KnotCount';
 import { countable, knotVerdict, densityLine } from '../../game/knots';
 import { useWornSrc } from './wear';
-import { CarpetView } from './CarpetView';
+import { CarpetView, mayRoll } from './CarpetView';
 import { pageProps, useSwipePages } from '../Touch/SwipePages';
 
-/** the carpet unrolls as the inspector opens; not for players who asked for less motion, nor in automated runs */
-const mayRoll = () => typeof window !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!navigator.webdriver || !!(window as { __tofRoll?: boolean }).__tofRoll);
 
 const TABS = ['Overview', 'Condition', 'Weave', 'Fringe', 'Provenance', 'Estimate'] as const;
 
