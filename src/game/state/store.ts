@@ -52,6 +52,7 @@ import { BOOKS as ARRAN_BOOKS, LIBRARIES, bookPhase, serviceBook, type BookId, t
 import { SHOP } from '../systems/arranShop';
 import { COHEN_START, cohenDue, type CohenState } from '../systems/cohen';
 import { rubTruth, migrateRubFinding } from '../systems/arranLab';
+import { addInk } from '../systems/inked';
 import { KHAMSIN_DAYS, REVOLVER_STRENGTH, CARTRIDGE_STRENGTH, ROCKET_RISK, RESTORATIVE_FATIGUE, cabinetItem, type CabinetId } from '../systems/arranCabinet';
 import { CARGO_JOBS, CHECKPOINTS, midSentence, CONDITION_START, PASS_DANGER, DIET, PASS_CHOICES, TONIC, classify, dayCondition, fatigueEffect, passWeather, resolvePass, resolvePatrol, rollFor, routeExposure, takeTonic as tonicEffect, type CargoItem, type Condition1925, type PassChoice, type PassOutcome, type PatrolOutcome } from '../systems/fieldwork';
 import { NABIL_START, nabilDue, rugKey, type NabilMemory } from '../systems/nabil';
@@ -118,7 +119,7 @@ import { costOf, daysFor, defaultName, loomsFree, needsWorkshop, priceOf, WORKSH
 import { registerDesigns, registerFromSave, validDesign } from '../loom/registry';
 import { filedAs } from '../../data/renamedIds';
 import { DEMO, DEMO_MISSIONS } from '../demo';
-export const SAVE_VERSION = 33;
+export const SAVE_VERSION = 34;
 export interface DominoRecord { won: number; lost: number; drawn: number; friend: number; playedDay?: number; stakeDay?: number; talkDay?: number; told: number }
 /** the Persian road (save 24): on the map from the start, greyed until it opens (unlocks.ts) */
 const PERSIAN_ROAD = ['khanaqin', ...PERSIA_IDS];
@@ -352,6 +353,8 @@ export interface GameState {
   introSeen?: string[];
   /** a journey under way (path, how far along, by what): kept so a paid train or ship survives the map
    *  screen being rebuilt, a new day, or a reload */
+  /** every way actually travelled, kept as fine ink lines on the map (systems/inked.ts): flat [x, y, ...] in map units */
+  inked: number[][];
   journey?: { path: { x: number; y: number }[]; done: number; train: boolean; dest?: string; pxPerDay?: number; mode?: 'ship' | 'motor' | 'ferry'; lorry?: boolean; /** your own car on this drive (its model id) */ car?: string };
   /** the khamsin kit protects until this day */
   khamsinUntil?: number;
@@ -491,6 +494,8 @@ interface Actions {
   /** The map clock running while you stay put: time passes, parties move, days turn over away from home. */
   worldTick: (days: number) => string[];
   arriveAt: (id: string | null) => void;
+  /** ink a travelled way onto the map for good */
+  inkJourney: (pts: { x: number; y: number }[]) => void;
   /** collect, inspect and deliver cargo on arriving somewhere */
   cargoAt: (id: string) => void;
   /** arriving somewhere: a visitor who wants a rug, or a job that is ready, is offered (never done
@@ -1090,6 +1095,7 @@ export function bestMarket(s: Pick<GameState, 'day' | 'world'>, item: Pick<RugIt
 function initial(): Omit<GameState, keyof Actions> {
   return {
     version: SAVE_VERSION,
+    inked: [],
     openingSeen: false,
     started: false,
     day: 1,
@@ -2389,6 +2395,7 @@ export const useGame = create<GameState & Actions>()(
           return 'The ferry noses across the brown river. An hour and a half later you step ashore at Cairo.';
         },
 
+        inkJourney: (pts) => set((s) => ({ inked: addInk(s.inked, pts) })),
         arriveAt: (id) => {
           const s = get();
           if (id && s.world.at !== id) {
@@ -5728,6 +5735,8 @@ export const useGame = create<GameState & Actions>()(
         // to the same place on the new one (state/mapMove.ts). A fog still of an old size marks a world still
         // on the old map (the older migrations above that reset the world already put it on the new one).
         if (version < 33 && p.world) moveToNewMap(p);
+        // Save 34: the ways travelled are inked on the map from now on; an older save starts with none
+        if (version < 34 || !Array.isArray(p.inked)) p.inked = [];
         return p as GameState & Actions;
       },
       onRehydrateStorage: () => (state) => {

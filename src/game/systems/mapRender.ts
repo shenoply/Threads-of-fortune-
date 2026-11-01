@@ -27,6 +27,7 @@ import { MASK_H } from '../../data/landmask';
 import { RAIL_LINKS } from '../../data/world';
 import { MAP_W, MAP_H, GRID_W, fitFog, settlementById, routeLeg } from './world';
 import { crossfadeCanvas } from '../feel';
+import { MAP_LABELS, drawLandmarks, drawCartouche, type ArtLayer } from './mapArtDraw';
 
 type Ring = number[];
 
@@ -116,29 +117,15 @@ function paintedRails() {
 }
 
 // the painted map's names, by longitude and latitude (placed on the painting through data/projection.ts)
-const PAINT_LABELS: { text: string; lon: number; lat: number; kind: 'region' | 'sea' | 'minor' | 'river'; size?: number; rot?: number }[] = [
-  { text: 'EGYPT', lon: 28.6, lat: 28.4, kind: 'region', size: 1.25 },
-  { text: 'SINAI', lon: 33.75, lat: 29.35, kind: 'region', size: 0.8 },
-  { text: 'PALESTINE', lon: 35.05, lat: 31.15, kind: 'region', size: 0.55, rot: -58 },
-  { text: 'TRANSJORDAN', lon: 37.0, lat: 30.9, kind: 'region', size: 0.7 },
-  { text: 'SYRIA', lon: 38.6, lat: 34.7, kind: 'region', size: 1 },
-  { text: 'ANATOLIA', lon: 34.0, lat: 38.9, kind: 'region', size: 1.1 },
-  { text: 'IRAQ', lon: 42.6, lat: 32.6, kind: 'region', size: 1.1 },
-  { text: 'PERSIA', lon: 54.0, lat: 33.0, kind: 'region', size: 1.25 },
-  { text: 'ARABIA', lon: 43.5, lat: 26.0, kind: 'region', size: 1.25 },
-  { text: 'Mediterranean Sea', lon: 28.5, lat: 33.6, kind: 'sea', size: 1.1 },
-  { text: 'Red Sea', lon: 37.0, lat: 24.6, kind: 'sea', size: 0.9, rot: 58 },
-  { text: 'Black Sea', lon: 34.5, lat: 42.2, kind: 'sea', size: 0.9 },
-  { text: 'Caspian Sea', lon: 51.0, lat: 39.6, kind: 'sea', size: 0.9 },
-  { text: 'Persian Gulf', lon: 50.6, lat: 27.6, kind: 'sea', size: 0.9, rot: 38 },
-  { text: 'Gulf of Oman', lon: 59.0, lat: 24.6, kind: 'sea', size: 0.8, rot: 20 },
+// the painted map's names: the seas, rivers and regions at the art brief's spots (data/mapArt.ts MAP_LABELS),
+// and the lesser names of deserts and ranges by longitude and latitude
+const PAINT_MINOR: { text: string; lon: number; lat: number; kind: 'minor'; size?: number; rot?: number }[] = [
   { text: 'Syrian Desert', lon: 39.3, lat: 32.6, kind: 'minor', size: 1.1 },
   { text: 'Zagros', lon: 49.0, lat: 32.6, kind: 'minor', size: 0.95, rot: 40 },
   { text: 'Dasht-i Kavir', lon: 54.5, lat: 34.6, kind: 'minor', size: 0.9 },
-  { text: 'Nile', lon: 31.9, lat: 27.3, kind: 'river', rot: 72 },
-  { text: 'Euphrates', lon: 39.7, lat: 35.4, kind: 'river', rot: 28 },
-  { text: 'Tigris', lon: 45.2, lat: 32.6, kind: 'river', rot: 40 },
 ];
+let paintLabels: { text: string; x: number; y: number; kind: 'region' | 'sea' | 'minor' | 'river'; size?: number; rot?: number }[] | null = null;
+const PAINT_LABELS = () => paintLabels ??= [...MAP_LABELS, ...PAINT_MINOR.map((l) => ({ ...l, ...proj(l.lon, l.lat) }))];
 const ringPath = (rings: Ring[]) => {
   const p = new Path2D();
   for (const r of rings) {
@@ -237,7 +224,7 @@ const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
 const lastArt = new WeakMap<HTMLCanvasElement, CanvasImageSource | null>();
-export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean } = {}) {
+export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean; art?: ArtLayer } = {}) {
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const world = () => ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
@@ -479,10 +466,16 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     screen();
   }
 
+  // the painted pieces that stand on the map: the town landmarks (at a middle zoom and closer), and far out
+  // the title cartouche and the scale ornament
+  if (art && opts.art) {
+    drawLandmarks(ctx, X, Y, s, w, h, opts.art);
+    if (opts.art.overview) drawCartouche(ctx, X, Y, s, milesPx(1));
+  }
   // labels
   if (opts.labels !== false) {
-    for (const l of art ? PAINT_LABELS : LABELS) {
-      const p = proj(l.lon, l.lat);
+    for (const l of art ? PAINT_LABELS() : LABELS.map((q) => ({ ...q, ...proj(q.lon, q.lat) }))) {
+      const p = { x: l.x, y: l.y };
       const x = X(p.x), y = Y(p.y);
       if (x < -200 || y < -60 || x > w + 200 || y > h + 60) continue;
       const size = (l.kind === 'region' ? 15 : l.kind === 'sea' ? 15 : l.kind === 'river' ? 11 : 11) * (l.size ?? 1) * zf;
