@@ -5,7 +5,7 @@
 
 /* the compass: bottom left, clear of the date bar (its bottom is set from the bar's height) and the phone's edges */
 .map-compass {
-  position: absolute; left: calc(10px + env(safe-area-inset-left, 0px)); bottom: 84px; z-index: 6;
+  position: absolute; left: calc(10px + env(safe-area-inset-left, 0px)); bottom: var(--map-foot, 84px); z-index: 6;
   width: 68px; height: 68px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
   filter: drop-shadow(0 3px 5px rgba(20,12,6,0.55));
   -webkit-tap-highlight-color: transparent;
@@ -19,7 +19,8 @@
 body.travelling .map-compass { opacity: 0.95; }
 
 /* every way travelled: a fine sepia ink line, the same width at every zoom */
-.world-svg .inked { fill: none; stroke: rgba(78,46,20,0.62); stroke-width: 1.5px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.world-svg .inked-halo { fill: none; stroke: rgba(246,234,204,0.55); stroke-width: 4px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.world-svg .inked { fill: none; stroke: rgba(70,36,12,0.85); stroke-width: 1.7px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
 /* the way behind on the journey now: the same ink, drawing itself in as you go */
 .world-svg .route-trail { stroke: rgba(78,46,20,0.75); stroke-width: 1.8px; vector-effect: non-scaling-stroke; stroke-dasharray: none; stroke-linejoin: round; }
 
@@ -33,7 +34,8 @@ body.travelling .map-compass { opacity: 0.95; }
 .map-tools .tool-div.on, .map-tools .tool-lens.on { border-color: #e0a24a; color: #ffe2a8; background: rgba(60,38,16,0.92); }
 
 /* the chips beside the tools: the dividers' answer, the trade lens's key */
-.map-chips { position: absolute; right: calc(58px + env(safe-area-inset-right, 0px)); top: 8px; z-index: 7; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: min(420px, calc(100% - 76px)); pointer-events: none; }
+.map-chips { position: absolute; left: calc(88px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); bottom: var(--map-foot, 84px); z-index: 7; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
+.pc .map-chips { left: 116px; right: auto; max-width: 560px; }
 .map-chip { pointer-events: auto; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid rgba(224,162,74,0.7); border-radius: 4px; background: rgba(20,12,6,0.9); color: var(--parchment, #efe3c4); font-size: 14px; line-height: 1.3; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
 .map-chip b { color: #ffe2a8; font-weight: 600; }
 .map-chip button { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: inherit; opacity: 0.8; cursor: pointer; }

@@ -81,7 +81,7 @@ export function MapLife({ camera, on }: { camera: () => Camera | null; on: boole
         if (!lane) continue;
         const p = poseAt(lane, t);
         const x = X(p.x), y = Y(p.y);
-        const size = it.ship === 'felucca' ? clamp(18 * s, 18, 46) : clamp(26 * s, 22, 64);
+        const size = it.ship === 'felucca' ? clamp(18 * s, 20, 46) : clamp(26 * s, 28, 64);
         if (!seen(x, y, size)) continue;
         ctx.save();
         ctx.translate(x, y);

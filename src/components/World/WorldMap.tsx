@@ -1594,6 +1594,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
+            {inkD && <path d={inkD} className="inked-halo" />}
             {inkD && <path d={inkD} className="inked" data-testid="inked" />}
             {split && split.behind.length > 1 && <polyline ref={trailRef} points={split.behind.map((p) => `${p.x},${p.y}`).join(' ')} className="route-trail" data-testid="route-trail" />}
             {divOn && divResult?.path && <polyline points={divResult.path.map((p) => `${p.x},${p.y}`).join(' ')} className="divider-line" data-testid="divider-line" />}

@@ -49,7 +49,7 @@ export function Compass({ aim, onTap }: { aim: CompassAim; onTap: () => void }) 
     const el = box.current, wrap = el?.closest('.world-map') as HTMLElement | null;
     const bar = wrap?.querySelector<HTMLElement>('.bl-bar');
     if (!el || !wrap || !bar) return;
-    const place = () => { el.style.bottom = `${Math.max(8, wrap.clientHeight - bar.offsetTop + 10)}px`; };
+    const place = () => { wrap.style.setProperty('--map-foot', `${Math.max(8, wrap.clientHeight - bar.offsetTop + 10)}px`); };
     const ro = new ResizeObserver(place);
     ro.observe(bar); ro.observe(wrap);
     place();

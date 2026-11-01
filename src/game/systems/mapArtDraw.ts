@@ -155,10 +155,11 @@ export function cloudPlaceholder(n: number): HTMLCanvasElement {
   return canvas(`cloud:${n}`, 256, 256, (g) => {
     let a = n * 9301 + 49297;
     const r = () => ((a = (a * 233280 + 49297) % 233280) / 233280);
-    for (let i = 0; i < 14; i++) {
-      const x = 128 + (r() - 0.5) * 140, y = 128 + (r() - 0.5) * 60, R = 30 + r() * 40;
+    // many faint puffs spread wide and flat, so no one spot is bright
+    for (let i = 0; i < 26; i++) {
+      const x = 128 + (r() - 0.5) * 170, y = 128 + (r() - 0.5) * 70 * (1 - Math.abs(r() - 0.5)), R = 26 + r() * 36;
       const gr = g.createRadialGradient(x, y, 0, x, y, R);
-      gr.addColorStop(0, 'rgba(255,252,244,0.34)'); gr.addColorStop(1, 'rgba(255,252,244,0)');
+      gr.addColorStop(0, 'rgba(255,252,244,0.11)'); gr.addColorStop(1, 'rgba(255,252,244,0)');
       g.fillStyle = gr; g.fillRect(x - R, y - R, R * 2, R * 2);
     }
   });
@@ -236,7 +237,7 @@ export function drawLandmarks(ctx: CanvasRenderingContext2D, X: (x: number) => n
 export function drawCartouche(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, unitsPer100Miles: number) {
   // the cartouche: about a sixth of the map's width
   {
-    const W = 330 * s, H = W / 2;
+    const W = 300 * s, H = W / 2;
     const cx = X(CARTOUCHE.x!), cy = Y(CARTOUCHE.y!);
     const img = paintingFor(CARTOUCHE);
     ctx.save();
@@ -260,9 +261,15 @@ export function drawCartouche(ctx: CanvasRenderingContext2D, X: (x: number) => n
     }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = INK;
-    ctx.font = `700 ${Math.max(9, W * 0.07)}px Cinzel, Georgia, serif`;
-    ctx.fillText('THREADS OF FORTUNE', cx, cy - H * 0.06);
-    ctx.font = `italic ${Math.max(7, W * 0.04)}px Alegreya, Georgia, serif`;
+    // the lettering sized to sit well inside the border
+    const fit = (text: string, font: (px: number) => string, px: number, maxW: number) => {
+      ctx.font = font(px);
+      const m = ctx.measureText(text).width;
+      if (m > maxW) ctx.font = font(px * (maxW / m));
+    };
+    fit('THREADS OF FORTUNE', (px) => `700 ${px}px Cinzel, Georgia, serif`, W * 0.062, W * 0.66);
+    ctx.fillText('THREADS OF FORTUNE', cx, cy - H * 0.05);
+    fit('Egypt, the Levant, Iraq and Persia · 1925', (px) => `italic ${px}px Alegreya, Georgia, serif`, W * 0.036, W * 0.6);
     ctx.fillStyle = INK_SOFT;
     ctx.fillText('Egypt, the Levant, Iraq and Persia · 1925', cx, cy + H * 0.1);
     ctx.restore();
