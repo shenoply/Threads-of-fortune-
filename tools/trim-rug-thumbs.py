@@ -111,6 +111,19 @@ def tighten(im: Image.Image, box):
     return (x, y, x2, y2)
 
 
+def hairline(im):
+    """after scaling down, a last row of the long sides can still be mostly pale and flat (ground or the
+    carpet's soft shadow): drop up to 3 such rows top and bottom"""
+    d = np.asarray(im.convert('RGB')).astype(np.int32)
+    def flat(y):
+        r = d[y]
+        return ((r[:, 0] > 195) & (r[:, 1] > 185) & (r[:, 2] > 165)).mean() > 0.45 and r.std(axis=0).mean() < 14
+    t, b = 0, im.height
+    while t < 3 and flat(t): t += 1
+    while im.height - b < 3 and flat(b - 1): b -= 1
+    return im.crop((0, t, im.width, b)) if (t or b < im.height) else im
+
+
 def sheet(pairs, out: Path, label: str):
     cw, ch, cols = 220, 160, 6
     rows = (len(pairs) + cols - 1) // cols
@@ -150,6 +163,7 @@ def main():
             c = (im.convert('RGBA') if im.mode in ('RGBA', 'LA', 'P') else im.convert('RGB')).crop(box)
             k = min(1, 400 / max(c.size))
             out = c.resize((max(1, round(c.width * k)), max(1, round(c.height * k))), Image.LANCZOS)
+            out = hairline(out)
             out.save(thumb, 'WEBP', quality=84, method=6, alpha_quality=90)
         print(f'{full.stem:28s} {im.size} crop={box} -> {out.size}')
         after.append((full.stem, out))
