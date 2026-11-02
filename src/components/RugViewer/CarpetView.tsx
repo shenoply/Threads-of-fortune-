@@ -11,6 +11,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CORE as CORE_R, THICK as THICK_T, extent, outerRadius, rollAt, springStep } from '../../game/roll';
 import { audio } from '../../game/audio/engine';
 import { Icon } from '../Icon';
+import { carpetCrop } from './trim';
 import './carpet-view.css';
 
 const TILT = 0.6; // how far the view tips while the carpet is in its roll, so the roll reads as round
@@ -46,13 +47,35 @@ export interface CarpetViewProps {
   /** in a scene (the stall's counter): just the carpet, lying in perspective in its box; the canvas
    *  runs past the box so it can tip up out of it, and only the box takes the hands */
   compact?: boolean;
+  /** a picture to fall back on if `src` cannot be loaded (a worn picture whose blob has gone) */
+  fallback?: string;
+  /** a small copy already at hand, drawn while `src` is on its way */
+  preview?: string;
 }
 
-export function CarpetView({ src, filter, unroll = false, onUse, tools, label, hint: hintOn = false, compact = false }: CarpetViewProps) {
+/** the picture the carpet is drawn from: the photograph cut down to the carpet itself (trim.ts), so a
+ *  studio ground round it is not drawn as part of the carpet */
+interface Pic { el: CanvasImageSource; w: number; h: number }
+function cutToCarpet(im: HTMLImageElement, key: string): Pic {
+  const W = im.naturalWidth, H = im.naturalHeight;
+  const b = carpetCrop(im, key.length > 300 ? `${key.length}:${key.slice(-160)}` : key);
+  if (!b) return { el: im, w: W, h: H };
+  try {
+    const c = document.createElement('canvas'); c.width = b.w; c.height = b.h;
+    const g = c.getContext('2d');
+    if (!g) return { el: im, w: W, h: H };
+    g.drawImage(im, b.x, b.y, b.w, b.h, 0, 0, b.w, b.h);
+    return { el: c, w: b.w, h: b.h };
+  } catch { return { el: im, w: W, h: H }; }
+}
+
+export function CarpetView({ src, filter, unroll = false, onUse, tools, label, hint: hintOn = false, compact = false, fallback, preview }: CarpetViewProps) {
   const rp = compact ? COUNTER : 0;
   const box = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
-  const img = useRef<HTMLImageElement | null>(null);
+  const img = useRef<Pic | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const V = useRef<View>({ p: unroll ? 0 : 1, v: 0, goal: unroll ? 1 : null, hand: null, sound: false, settle: 0, settleAmp: 0, yaw: 0, pitch: rp, zoom: 1, px: 0, py: 0, vy: 0, ease: null, rest: 0, dirty: true });
   // compact: wakes the drawing loop, which sleeps while nothing moves
   const kick = useRef(() => {});
@@ -62,18 +85,33 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
   const used = () => { onUse?.(); setHint(false); };
 
   // the picture
+  // (each picture asked for is drawn when it comes, unless a newer one is already drawn: a small first
+  // picture shows while the full one is on its way, and a slow one that arrives late is dropped; one that
+  // will not load gives way to the fallback, and the carpet already drawn stays until a new one is in)
+  const asked = useRef(0), shown = useRef(0);
   useEffect(() => {
-    const im = new Image();
-    im.onload = () => {
-      img.current = im;
-      // a long carpet on a tall phone screen lies up the screen, so it fills it
-      const el = box.current;
-      const v = V.current;
-      if (!compact && el && el.clientHeight > el.clientWidth * 1.15 && im.naturalWidth > im.naturalHeight * 1.15 && v.rest === 0 && v.yaw === 0) { v.rest = Math.PI / 2; v.yaw = Math.PI / 2; }
-      v.dirty = true; kick.current();
+    const load = (u: string, last: boolean, n: number) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.onload = () => {
+        if (n < shown.current || !mounted.current) return;
+        shown.current = n;
+        if (!im.naturalWidth) { if (!last && fallback) load(fallback, true, n); return; }
+        const pic = cutToCarpet(im, u);
+        img.current = pic;
+        // a long carpet on a tall phone screen lies up the screen, so it fills it
+        const el = box.current;
+        const v = V.current;
+        if (!compact && el && el.clientHeight > el.clientWidth * 1.15 && pic.w > pic.h * 1.15 && v.rest === 0 && v.yaw === 0) { v.rest = Math.PI / 2; v.yaw = Math.PI / 2; }
+        v.dirty = true; kick.current();
+      };
+      im.onerror = () => { if (mounted.current && n >= shown.current && !last && fallback && fallback !== u) load(fallback, true, n); };
+      im.src = u;
     };
-    im.src = src;
-  }, [src]);
+    // the small picture first, if there is one, then the full one
+    if (preview && preview !== src) load(preview, true, ++asked.current);
+    if (src) load(src, !fallback || fallback === src, ++asked.current);
+  }, [src, preview, fallback]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // drawing and motion, every frame
   useEffect(() => {
@@ -91,7 +129,7 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       let moving = false;
       // the roll: under the finger, springing to an end, or resting where it was left
       if (v.hand != null) { const np = Math.max(0, Math.min(1, v.hand)); if (np !== v.p) { v.p = np; v.dirty = true; } v.v = 0; v.settle = 0; }
-      else if (v.goal != null) {
+      else if (v.goal != null && img.current) {
         if (!v.sound && Math.abs(v.goal - v.p) > 0.05) { v.sound = true; audio.sfx('unfold'); }
         [v.p, v.v] = springStep(v.p, v.v, v.goal, dt, 4.4, 0.8);
         if (v.p > 1) { v.settleAmp = Math.min(0.02, Math.abs(v.v) * 0.008); v.p = 1; v.v = 0; v.settle = v.settle || 0.0001; }
@@ -130,9 +168,9 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
       const im = img.current;
-      if (!im || !im.naturalWidth) return;
+      if (!im || !im.w) return;
       const v = V.current;
-      const p = v.p, iw = im.naturalWidth, ih = im.naturalHeight, wz = ih / iw;
+      const p = v.p, iw = im.w, ih = im.h, wz = ih / iw;
       // the size it lies at when flat and straight: the whole carpet in view, either way round
       const along = Math.abs(Math.sin(v.rest)) > 0.5;
       // compact: it lies in the box (the canvas's parent), which the canvas overhangs
@@ -163,8 +201,12 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
       // the shadow it throws on the floor
       {
         const a = proj(Math.max(x0, -0.5), 0, -wz / 2), b = proj(Math.min(p - 0.5, 0.5), 0, -wz / 2), cc = proj(Math.min(p - 0.5, 0.5), 0, wz / 2), d = proj(Math.max(x0, -0.5), 0, wz / 2);
-        g.fillStyle = 'rgba(0,0,0,0.3)';
-        g.beginPath(); g.moveTo(a.x + 5, a.y + 9); g.lineTo(b.x + 5, b.y + 9); g.lineTo(cc.x + 5, cc.y + 9); g.lineTo(d.x + 5, d.y + 9); g.closePath(); g.fill();
+        // (lying on the counter it throws a short soft one, close under it, not a grey slab on the cloth)
+        const [sx, sy] = compact ? [1, 2.5] : [5, 9];
+        g.fillStyle = compact ? 'rgba(20,12,6,0.32)' : 'rgba(0,0,0,0.3)';
+        if (compact) g.filter = 'blur(2px)';
+        g.beginPath(); g.moveTo(a.x + sx, a.y + sy); g.lineTo(b.x + sx, b.y + sy); g.lineTo(cc.x + sx, cc.y + sy); g.lineTo(d.x + sx, d.y + sy); g.closePath(); g.fill();
+        g.filter = 'none';
       }
       g.filter = filter || 'none';
       const L = { x: -0.35, y: 0.94 };
@@ -174,7 +216,7 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
         const ta = (B.x - A.x) / sw, tb = (B.y - A.y) / sw, tc = (C.x - A.x) / ih, td = (C.y - A.y) / ih;
         g.setTransform(dpr * ta, dpr * tb, dpr * tc, dpr * td, dpr * (A.x - ta * sx0), dpr * (A.y - tb * sx0));
         const over = shade ? sw * 0.6 + 0.6 : 0.6;
-        g.drawImage(im, sx0, 0, Math.min(iw - sx0, sw + over), ih, sx0, 0, Math.min(iw - sx0, sw + over), ih);
+        g.drawImage(im.el, sx0, 0, Math.min(iw - sx0, sw + over), ih, sx0, 0, Math.min(iw - sx0, sw + over), ih);
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
         if (!shade) return;
         let tx = P1.x - P0.x, ty = P1.y - P0.y; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
@@ -224,8 +266,14 @@ export function CarpetView({ src, filter, unroll = false, onUse, tools, label, h
     const ro = new ResizeObserver(() => { V.current.dirty = true; kick.current(); });
     ro.observe(c);
     if (compact && c.parentElement) ro.observe(c.parentElement);
+    // a phone may drop a canvas's pixels while the game is in the background or short of memory: draw
+    // it again when the canvas comes back or the page is shown again (the compact one sleeps otherwise)
+    const again = () => { if (document.visibilityState !== 'hidden') { V.current.dirty = true; kick.current(); } };
+    c.addEventListener('contextrestored', again);
+    document.addEventListener('visibilitychange', again);
+    window.addEventListener('pageshow', again);
     raf = requestAnimationFrame(frame);
-    return () => { alive = false; cancelAnimationFrame(raf); raf = 0; ro.disconnect(); };
+    return () => { alive = false; cancelAnimationFrame(raf); raf = 0; ro.disconnect(); c.removeEventListener('contextrestored', again); document.removeEventListener('visibilitychange', again); window.removeEventListener('pageshow', again); };
   }, [filter, compact]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { V.current.dirty = true; kick.current(); }, [src, filter]);
 
