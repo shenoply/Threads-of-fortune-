@@ -90,3 +90,18 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   frame; the picture is never rotated, so masts stay upright. The wake is laid under it on the same foreshortened
   ground. Precedence: a type's sheet first; without it, a single painting S<n>-*.webp/png turned to the heading as
   before; without that, the ink placeholder. To use a painted single ship instead, take that type's sheet out.
+- The map's decorations (since 2026-11-02): hand-painted palms, trees, olives, peaks, hills, desert marks, fields and
+  sea marks laid over the painting. The artist paints ten transparent sheets (2048 x 2048, items in a grid with gaps,
+  lit from the north-west, seen from about 30 degrees up): 01-palms, 02-broadleaf, 03-conifers, 04-olives,
+  05-peaks-snow, 06-peaks-bare, 07-hills, 08-desert, 09-fields, 10-sea (what each holds, in reading order, is in
+  src/data/mapKitSheets.json). Put them in art-src/map-kit/sheets/ and run
+  `python3 -I tools/cut-sheets.py --contact /tmp/kit.png`: it finds each item by its alpha, crops, trims and packs
+  each sheet into public/art/map/kit/<sheet>.webp with <sheet>.json (frames, base points, groups); the map draws an
+  atlas in place of that sheet's ink placeholders on its own (no code change). If a sheet's item count differs from
+  the manifest, it says so; a <sheet>.groups.json beside the sheet (group names in reading order) settles it.
+  Where each decoration stands: `python3 tools/build-mapkit.py --overlay /tmp/zones.png` (painting relief, snow and
+  greens, regions by longitude and latitude, clear of water, rivers, towns, names and routes; seeded) writes
+  src/data/mapKitZones.ts. Run it again after moving towns, roads or names. Drawing: src/game/systems/mapKitDraw.ts
+  (cached tiles on the base map; with Map life on and close in, trees sway and sea marks fade on the life canvas).
+  Tester switch: "Travel map decorations" in the tester sheet, or ?kit=0 / ?kit=1. Tests: tests/mapkit.ts,
+  tests/mapkit-shots.mjs, tests/mapkit-perf.mjs.

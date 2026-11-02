@@ -41,6 +41,8 @@ import mapArtList from 'virtual:map-art-files';
 import { setArtFiles, LANDMARKS } from '../../data/mapArt';
 import { onMapArt, type ArtLayer, type LandmarkLook } from '../../game/systems/mapArtDraw';
 import { MapLife, type Camera } from './MapLife';
+import { onMapKit } from '../../game/systems/mapKitDraw';
+import { useMapKit } from '../../game/mapKitPref';
 import { Compass } from './Compass';
 import { bearing } from '../../game/systems/compass';
 import { inkPath, pathUpTo, nearInk } from '../../game/systems/inked';
@@ -462,11 +464,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
-  useEffect(() => { paintedMap(); const a = onPaintedMap(() => setArtTick((t) => t + 1)); const b = onMapArt(() => setArtTick((t) => t + 1)); return () => { a(); b(); }; }, []);
+  useEffect(() => { paintedMap(); const a = onPaintedMap(() => setArtTick((t) => t + 1)); const b = onMapArt(() => setArtTick((t) => t + 1)); const k = onMapKit(() => setArtTick((t) => t + 1)); return () => { a(); b(); k(); }; }, []);
   // the painted pieces on the base map (landmarks, the cartouche): what to draw, set each render below
   const artLayerRef = useRef<ArtLayer | undefined>(undefined);
   // the map's life (ships, caravans, weather) and the compass
   const life = useMapLife();
+  // the painted decorations (tester's switch), and whether they sway: the base map is drawn again when either changes
+  const kitOn = useMapKit();
+  const kitRef = useRef(kitOn); kitRef.current = kitOn;
+  const lifeRef = useRef(life); lifeRef.current = life;
+  useEffect(() => { setArtTick((t) => t + 1); }, [kitOn, life]);
   const headingRef = useRef<number | null>(null);
   const meLive = useRef<Pt | null>(null);
   const trailRef = useRef<SVGPolylineElement>(null);
@@ -520,7 +527,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     if (M) Object.assign(c.style, { left: `${-M}px`, top: `${-M}px`, width: `${cw}px`, height: `${ch}px`, transform: 'translate(0px, 0px)', willChange: 'transform' });
     else Object.assign(c.style, { left: '', top: '', width: '', height: '', transform: '', willChange: '' });
-    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads, art: artLayerRef.current });
+    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads, art: artLayerRef.current, kit: kitRef.current ? { life: lifeRef.current } : undefined });
     drawn.current = { x: p.x, y: p.y, s: sc, m: M, w: W, h: H, fog: fogImg, art: artTickRef.current, at: now };
   };
   useEffect(() => {
@@ -1581,7 +1588,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
         <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt, the Levant, Iraq and Persia in 1925" />
-        <MapLife camera={cameraNow} on={life} />
+        <MapLife camera={cameraNow} on={life} kit={kitOn} fog={w.fog} />
         {/* the hour's tint over the screen only, not the whole map: at a close zoom the map is many screens across,
             and a blended layer that size is more than a phone's graphics memory will hold */}
         <div className="daynight" style={{ background: tint(w.hour) }} />

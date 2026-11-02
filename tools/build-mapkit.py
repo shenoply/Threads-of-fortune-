@@ -319,19 +319,22 @@ def main(argv=None):
     x, y = geo(lon, lat)
     # stand it on the nearest spot whose outline is clear (the summit is the spot, the base a little below)
     best = None
-    for rr in range(0, 40, 2):
-      for k in range(max(1, rr * 2)):
-        t = 2 * math.pi * k / max(1, rr * 2)
-        bx, by = x + rr * math.cos(t), y + KH['peak-big'] * size * 0.75 + rr * math.sin(t)
-        h = KH['peak-big'] * size
-        if pl.outline_ok('peak-big', bx, by, h * BOOST[0], h * KA['peak-big'] * BOOST[0]): best = (bx, by); break
-      if best: break
+    for bst, sz in ((BOOST[0], size), (1.0, size), (1.0, size * 0.8)):
+      h = KH['peak-big'] * sz
+      for rr in range(0, 50, 2):
+        for k in range(max(1, rr * 2)):
+          t = 2 * math.pi * k / max(1, rr * 2)
+          bx, by = x + rr * math.cos(t), y + h * 0.75 + rr * math.sin(t)
+          if pl.outline_ok('peak-big', bx, by, h * bst, h * KA['peak-big'] * bst, False, 0 if bst > 1 else 2): best = (bx, by); break
+        if best: break
+      if best: size = sz; break
     bx, by = best or (x, y + KH['peak-big'] * size * 0.75)
     pl.add('peak-big', bx, by, size, 0, rng, 60, force=True)
   pl.scatter('peak-bare', np.where(mount, 1.0, 0), [(0, 26), (1, 14), (2, 8)], size=peak_size, kind_of=peak_kind, order=score)
 
   # ---- 2. hills: the edges and foothills of the ranges
-  foot = (nd.binary_dilation(mount, iterations=5) & ~mount) | ((rel > np.where(lowered, 7.0, 8.5)) & ~mount)
+  near_mount = edt(mount) < 45
+  foot = (nd.binary_dilation(mount, iterations=5) & ~mount) | ((rel > np.where(lowered, 7.0, 8.5)) & ~mount & near_mount)
   foot &= land & ~near_nile & ~delta
   hill_d = np.where(foot, 0.55, 0)
   pl.scatter('hill-ochre', hill_d, [(0, 50), (1, 28), (2, 16)],
@@ -393,7 +396,7 @@ def main(argv=None):
   for lon, lat, r in OASES:
     x, y = geo(lon, lat); put(disc(x, y, r), 0.95)
   for p in C['places']:
-    if p['kind'] in ('oasis', 'camp', 'well', 'caravan'): put(disc(p['x'], p['y'], 30) & ~disc(p['x'], p['y'], 12), 0.9)
+    if p['kind'] in ('oasis', 'camp', 'well', 'caravan'): put(disc(p['x'], p['y'], 24) & ~disc(p['x'], p['y'], 10), 0.65)
   pa_d[~land] = 0
   pl.scatter('palm', pa_d, [(0, 20), (1, 9), (2, 4.2)])
 

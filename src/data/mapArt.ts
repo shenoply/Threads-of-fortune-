@@ -152,6 +152,8 @@ export function setArtFiles(list: readonly string[]) {
   subs.forEach((f) => f());
 }
 export const onArtFiles = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
+/** every file the build found in public/art/map (with its subfolder: "ships/dhow.webp", "kit/01-palms.json") */
+export const artFiles = (): readonly string[] => files;
 /** The painting for a piece, if it is in the folder: its own name first, else any file under its code
  *  ("S3-felucca.png", "S3.png", "S3-nile-boat.webp"), WebP before PNG. */
 export function artFile(code: string, name = ''): string | undefined {

@@ -40,6 +40,8 @@ const mapArtFiles = (): Plugin => ({
     try { list = readdirSync(MAP_ART_DIR).filter((f) => /\.(webp|png)$/i.test(f)).sort(); } catch { /* no folder yet */ }
     // the Blender ships' sprite sheets, one per type, in the ships/ folder (listed as "ships/steamer.webp")
     try { list = list.concat(readdirSync(`${MAP_ART_DIR}/ships`).filter((f) => /\.(webp|png)$/i.test(f)).sort().map((f) => `ships/${f}`)); } catch { /* none */ }
+    // the decoration atlases (tools/cut-sheets.py), each an image with its frames beside it ("kit/01-palms.webp", "kit/01-palms.json")
+    try { list = list.concat(readdirSync(`${MAP_ART_DIR}/kit`).filter((f) => /\.(webp|png|json)$/i.test(f)).sort().map((f) => `kit/${f}`)); } catch { /* none */ }
     return `export default ${JSON.stringify(list)};`;
   },
   configureServer(server) {

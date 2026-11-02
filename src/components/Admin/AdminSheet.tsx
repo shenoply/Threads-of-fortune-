@@ -28,6 +28,8 @@ import { roadEventById } from '../../data/roadEvents';
 import { hh, heirOf, ageOf, childName, BRIDES, tidyHousehold, type HouseholdState } from '../../game/systems/household';
 import { persiaOpen } from '../../game/unlocks';
 import type { MapIntent } from '../World/Campaign';
+import { mapKitOn, setMapKit } from '../../game/mapKitPref';
+import { kitPresent } from '../../game/systems/mapKitDraw';
 import type { MerchantSub } from '../Merchant/Merchant';
 import type { RugItem } from '../../game/types';
 import { skipDays } from '../../game/testerHook';
@@ -262,6 +264,10 @@ export function AdminSheet({ nav, onClose }: { nav: AdminNav; onClose: () => voi
         if (!d) return 'No Eid ahead in the calendar.';
         jumpTo(d); await leave(() => void toStall(nav)); return `${longDate(d)}: ${eventsOn(d).find((e) => /^Eid/i.test(e.name))?.name}.`;
       } },
+    ] },
+    { id: 'mapkit', title: 'Travel map decorations', gist: (() => { const p = Object.values(kitPresent()).filter(Boolean).length; return `${mapKitOn() ? 'shown' : 'hidden'} · ${p ? `${p} of 10 painted sheets in` : 'ink placeholders'}`; })(), acts: [
+      { label: 'Show them', testid: 'adm-kit-on', run: () => { setMapKit(true); return 'Palms, trees, peaks and the rest are on the travel map.'; } },
+      { label: 'Hide them', testid: 'adm-kit-off', run: () => { setMapKit(false); return 'The travel map shows the painting alone.'; } },
     ] },
     { id: 'era', title: 'The years', gist: (() => { const t = timesOn(g.day); return t.now.length ? t.now.slice(0, 2).map((x) => x.name).join(' · ') : t.talk.length ? 'talk in the coffee houses' : 'steady times'; })(), acts: [
       ...[1926, 1927, 1928, 1929, 1930].map((y) => ({ label: `1 Jan ${y}`, testid: `adm-year-${y}`, run: async () => {

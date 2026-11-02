@@ -28,6 +28,7 @@ import { RAIL_LINKS } from '../../data/world';
 import { MAP_W, MAP_H, GRID_W, fitFog, settlementById, routeLeg } from './world';
 import { crossfadeCanvas } from '../feel';
 import { MAP_LABELS, drawLandmarks, drawCartouche, type ArtLayer } from './mapArtDraw';
+import { drawKit } from './mapKitDraw';
 
 type Ring = number[];
 
@@ -224,7 +225,7 @@ const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
 const lastArt = new WeakMap<HTMLCanvasElement, CanvasImageSource | null>();
-export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean; art?: ArtLayer } = {}) {
+export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean; art?: ArtLayer; kit?: { life: boolean } } = {}) {
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const world = () => ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
@@ -254,6 +255,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(art, 0, 0, MAP_W, MAP_H);
     screen();
+    // the painted decorations (palms, trees, peaks ...), under the roads, the fog and the names
+    if (opts.kit) drawKit(ctx, v, opts.kit.life);
   } else {
   // the engraved map's coastlines, grain and stipple are only built when it is drawn (the painting needs none of it)
   if (!needGeo()) { screen(); ctx.fillStyle = '#2a1d12'; ctx.fillRect(0, 0, w, h); return; }

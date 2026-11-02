@@ -5,6 +5,9 @@
 import { useEffect, useRef } from 'react';
 import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, type ArtItem, type ShipKind } from '../../data/mapArt';
 import { mapLanes, poseAt, shipFrame } from '../../game/systems/mapLife';
+import { drawKitLive } from '../../game/systems/mapKitDraw';
+import { FOG_LEN, GRID_W } from '../../game/systems/world';
+import { MASK_H, CELL } from '../../data/landmask';
 import { sheetFor, paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
 
 export interface Camera { tx: number; ty: number; s: number; w: number; h: number }
@@ -16,10 +19,14 @@ const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.82, cargo: 
 const perf = { frames: 0, ms: 0, worst: 0 };
 if (typeof window !== 'undefined') (window as unknown as { __mapLife?: typeof perf }).__mapLife = perf;
 
-export function MapLife({ camera, on }: { camera: () => Camera | null; on: boolean }) {
+export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => Camera | null; on: boolean; kit?: boolean; fog?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const camRef = useRef(camera);
   camRef.current = camera;
+  const kitRef = useRef(kit);
+  kitRef.current = kit;
+  const fogRef = useRef(fog);
+  fogRef.current = fog;
   useEffect(() => {
     const cv = ref.current;
     if (!cv || !on) { if (cv) cv.getContext('2d')?.clearRect(0, 0, cv.width, cv.height); return; }
@@ -48,6 +55,12 @@ export function MapLife({ camera, on }: { camera: () => Camera | null; on: boole
       const { s, tx, ty } = c;
       const X = (x: number) => x * s + tx, Y = (y: number) => y * s + ty;
       const seen = (x: number, y: number, r: number) => x > -r && y > -r && x < c.w + r && y < c.h + r;
+      // close in, the trees and palms sway and the sea marks breathe (the still ones are on the base map)
+      if (kitRef.current) {
+        const fg = fogRef.current;
+        const dim = fg.length === FOG_LEN ? (x: number, y: number) => (fg.charCodeAt(Math.min(MASK_H - 1, Math.floor(y / CELL)) * GRID_W + Math.min(GRID_W - 1, Math.floor(x / CELL))) === 49 ? 1 : 0.42) : undefined;
+        if (drawKitLive(ctx, c, dpr, t, dim)) dirty = true;
+      }
       // weather first, under the boats: clouds drift east and fade at each end of their run; the haze breathes
       for (const it of WEATHER) {
         const img = paintingFor(it);
