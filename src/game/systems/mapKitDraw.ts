@@ -107,6 +107,17 @@ onArtFiles(loadAtlases);
 interface Sprite { img: CanvasImageSource; sx: number; sy: number; sw: number; sh: number; ax: number; ay: number; ih: number; id?: string }
 const PH = 3; // placeholder variants per kind
 const phCache = new Map<string, Sprite>();
+// The ink placeholders are only for checking placement (?kit=1 in the address): in play a kind with no painted
+// sheet yet draws nothing, so the map looks as before until the real art arrives.
+const showPlaceholders = (() => { try { return typeof location !== 'undefined' && new URLSearchParams(location.search).get('kit') === '1'; } catch { return false; } })();
+let blank: Sprite | null = null;
+function blankSprite(): Sprite {
+  if (!blank) {
+    const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(1, 1) : Object.assign(document.createElement('canvas'), { width: 1, height: 1 });
+    blank = { img: c, sx: 0, sy: 0, sw: 1, sh: 1, ax: 0, ay: 1, ih: 1, id: 'blank' };
+  }
+  return blank;
+}
 function spriteFor(k: number, variant: number): Sprite {
   const kk = KIT_KINDS[k];
   const a = atlases.get(kk.sheet);
@@ -117,6 +128,7 @@ function spriteFor(k: number, variant: number): Sprite {
       return { img: a.img, sx: f.x, sy: f.y, sw: f.w, sh: f.h, ax: f.ax, ay: f.ay, ih: f.ih, id: `${kk.sheet}#${fi}` };
     }
   }
+  if (!showPlaceholders) return blankSprite();
   const v = variant % PH, key = `${k}:${v}`;
   let sp = phCache.get(key);
   if (!sp) phCache.set(key, (sp = { ...placeholder(kk.kind, v), id: `p${key}` }));
