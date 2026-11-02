@@ -5,6 +5,7 @@
 // and kept as a blob URL that any <img> or the inspector's carpet view can use.
 import { useEffect, useState } from 'react';
 import type { Condition } from '../../game/types';
+import { carpetCrop } from './trim';
 
 export const WEARS: Condition[] = ['Dirty', 'Worn', 'Damaged'];
 export const showsWear = (c?: Condition): c is Condition => !!c && WEARS.includes(c);
@@ -21,27 +22,16 @@ function seeded(s: string) {
   };
 }
 
-/** where the rug lies in its picture: the box of pixels that are neither transparent nor the photograph's pale ground */
+/** where the rug lies in its picture: the carpet's own box (trim.ts: the pale studio ground and its
+ *  shadow, or a transparent ground, left out), so dirt and wear fall on the carpet and not on the ground
+ *  round it, and the carpet view can still cut the ground away afterwards */
 function rugBox(im: HTMLImageElement, W: number, H: number) {
-  const s = 96, sh = Math.max(8, Math.round((s * H) / W));
-  const c = document.createElement('canvas'); c.width = s; c.height = sh;
-  const g = c.getContext('2d', { willReadFrequently: true })!;
-  g.drawImage(im, 0, 0, s, sh);
-  const d = g.getImageData(0, 0, s, sh).data;
-  const at = (x: number, y: number) => (y * s + x) * 4;
-  const k = at(1, 1), bg = [d[k], d[k + 1], d[k + 2]], bgA = d[k + 3];
-  let x0 = s, y0 = sh, x1 = 0, y1 = 0;
-  for (let y = 0; y < sh; y++) for (let x = 0; x < s; x++) {
-    const i = at(x, y);
-    const ground = d[i + 3] < 40 || (bgA > 200 && Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) < 36);
-    if (ground) continue;
-    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
-  }
-  if (x1 <= x0 || y1 <= y0) return { x: W * 0.06, y: H * 0.06, w: W * 0.88, h: H * 0.88 };
+  const c = carpetCrop(im, im.src.length > 300 ? `${im.src.length}:${im.src.slice(-160)}` : im.src);
+  const sx = W / im.naturalWidth, sy = H / im.naturalHeight;
+  const x0 = c ? c.x * sx : 0, y0 = c ? c.y * sy : 0, w0 = c ? c.w * sx : W, h0 = c ? c.h * sy : H;
   // the fringe sits at the short ends: step in a little more along the length
-  const fx = W >= H ? 0.035 : 0.01, fy = W >= H ? 0.01 : 0.035;
-  const x = ((x0 / s) + fx) * W, y = ((y0 / sh) + fy) * H;
-  return { x, y, w: ((x1 + 1) / s - fx) * W - x, h: ((y1 + 1) / sh - fy) * H - y };
+  const fx = (w0 >= h0 ? 0.035 : 0.01) * w0, fy = (w0 >= h0 ? 0.01 : 0.035) * h0;
+  return { x: x0 + fx, y: y0 + fy, w: w0 - 2 * fx, h: h0 - 2 * fy };
 }
 type Box = ReturnType<typeof rugBox>;
 
