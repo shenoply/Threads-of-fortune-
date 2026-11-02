@@ -65,7 +65,7 @@ export function itemsIn(z: Zones, x0: number, y0: number, x1: number, y1: number
 let zones: Zones | null = null, zonesAsked = false;
 const listeners = new Set<() => void>();
 export const onMapKit = (f: () => void) => { listeners.add(f); return () => { listeners.delete(f); }; };
-const changed = () => { tiles.clear(); listeners.forEach((f) => f()); };
+const changed = () => { scaled.clear(); queue = []; tiles.clear(); listeners.forEach((f) => f()); };
 /** The zones, once their module has loaded (asked for on the first call; a separate download, not at startup). */
 export function kitZones(): Zones | null {
   if (!zonesAsked && typeof window !== 'undefined') {
@@ -104,7 +104,7 @@ function loadAtlases() {
 onArtFiles(loadAtlases);
 
 // ---------- the sprites: an atlas frame, or a placeholder ----------
-interface Sprite { img: CanvasImageSource; sx: number; sy: number; sw: number; sh: number; ax: number; ay: number; ih: number }
+interface Sprite { img: CanvasImageSource; sx: number; sy: number; sw: number; sh: number; ax: number; ay: number; ih: number; id?: string }
 const PH = 3; // placeholder variants per kind
 const phCache = new Map<string, Sprite>();
 function spriteFor(k: number, variant: number): Sprite {
@@ -113,13 +113,13 @@ function spriteFor(k: number, variant: number): Sprite {
   if (a) {
     const g = a.groups[kk.group];
     if (g && g.length) {
-      const f = a.frames[g[variant % g.length]];
-      return { img: a.img, sx: f.x, sy: f.y, sw: f.w, sh: f.h, ax: f.ax, ay: f.ay, ih: f.ih };
+      const fi = g[variant % g.length], f = a.frames[fi];
+      return { img: a.img, sx: f.x, sy: f.y, sw: f.w, sh: f.h, ax: f.ax, ay: f.ay, ih: f.ih, id: `${kk.sheet}#${fi}` };
     }
   }
   const v = variant % PH, key = `${k}:${v}`;
   let sp = phCache.get(key);
-  if (!sp) phCache.set(key, (sp = placeholder(kk.kind, v)));
+  if (!sp) phCache.set(key, (sp = { ...placeholder(kk.kind, v), id: `p${key}` }));
   return sp;
 }
 
@@ -252,29 +252,53 @@ function placeholder(kind: string, v: number): Sprite {
   return { img: c, sx: 0, sy: 0, sw: W, sh: CH, ax: cx, ay: by, ih };
 }
 
+/** A sprite shrunk once to about `hpx` pixels tall (in steps of a sixth of an octave), with a good filter: the tiles
+ *  and the live layer then copy it at nearly its own size, which is cheap, instead of shrinking a large picture each
+ *  time, which is not (on a phone, many times over). */
+const scaled = new Map<string, { c: CanvasImageSource; k: number; sp: Sprite }>();
+function scaledSprite(kind: number, variant: number, hpx: number) {
+  const sp = spriteFor(kind, variant);
+  const step = Math.round(Math.log2(hpx / sp.ih) * 6);
+  const key = `${sp.id}:${step}`;
+  let e = scaled.get(key);
+  if (!e) {
+    const k = Math.pow(2, step / 6);
+    if (k >= 0.9) e = { c: sp.img, k, sp };          // drawn at about its size or larger: no shrinking to do
+    else {
+      const w = Math.max(1, Math.ceil(sp.sw * k)), h = Math.max(1, Math.ceil(sp.sh * k));
+      const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+      const g = c.getContext('2d') as CanvasRenderingContext2D;
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      g.drawImage(sp.img, sp.sx, sp.sy, sp.sw, sp.sh, 0, 0, sp.sw * k, sp.sh * k);
+      e = { c, k, sp: { ...sp, img: c, sx: 0, sy: 0, sw: sp.sw * k, sh: sp.sh * k, ax: sp.ax * k, ay: sp.ay * k, ih: sp.ih * k } };
+    }
+    if (scaled.size > 4000) scaled.clear();
+    scaled.set(key, e);
+  }
+  return e.sp;
+}
 /** draw item i with its base at (x, y) in the context's current pixels, `hpx` pixels tall */
 function drawItem(g: CanvasRenderingContext2D, z: Zones, i: number, x: number, y: number, hpx: number) {
-  const sp = spriteFor(z.kind[i], z.variant[i]);
+  const sp = scaledSprite(z.kind[i], z.variant[i], hpx);
   const k = hpx / sp.ih;
   g.drawImage(sp.img, sp.sx, sp.sy, sp.sw, sp.sh, x - sp.ax * k, y - sp.ay * k, sp.sw * k, sp.sh * k);
 }
 
 // ---------- the cached tiles ----------
 const TILE = 384;
-const tiles = new Map<string, { c: HTMLCanvasElement; used: number }>();
+const tiles = new Map<string, { c: CanvasImageSource; h?: CanvasImageSource; used: number }>();
 /** how far an item can reach from its base, in map units (the very large peak, drawn half as large again far out) */
 const REACH_UP = 95, REACH_SIDE = 90;
-const perf = { built: 0, buildMs: 0, drawMs: 0, draws: 0, liveMs: 0, liveFrames: 0, liveItems: 0, tiles: 0 };
-if (typeof window !== 'undefined') (window as unknown as { __mapKit?: typeof perf }).__mapKit = perf;
+const perf = { blitMs: 0, built: 0, buildMs: 0, drawMs: 0, draws: 0, liveMs: 0, liveFrames: 0, liveItems: 0, tiles: 0 };
+if (typeof window !== 'undefined') Object.assign(window, { __mapKit: perf });
 
-function buildTile(z: Zones, b: number, sB: number, tx: number, ty: number, live: boolean) {
-  const c = document.createElement('canvas');
-  c.width = c.height = TILE;
+function buildTile(z: Zones, b: number, sB: number, tx: number, ty: number, live: boolean): HTMLCanvasElement {
+  const c = Object.assign(document.createElement('canvas'), { width: TILE, height: TILE });
   const g = c.getContext('2d')!;
   const T = TILE / b;
   const lod = lodFor(sB), boost = boostFor(sB);
   const ids = itemsIn(z, tx * T - REACH_SIDE, ty * T, (tx + 1) * T + REACH_SIDE, (ty + 1) * T + REACH_UP);
-  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'low';
   for (const i of ids) {
     if (z.lod[i] > lod) continue;
     if (live && isLiveKind(z.kind[i])) continue;
@@ -303,32 +327,96 @@ export function drawKit(ctx: CanvasRenderingContext2D, v: KitView, life: boolean
   let n = 0;
   ctx.save();
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'medium';
+  // bilinear: the tiles are drawn at about their own size, and a better filter costs a phone dear when they are not
+  ctx.imageSmoothingQuality = 'low';
   const snap = (p: number) => Math.round(p * v.dpr) / v.dpr;
-  for (let ty = Math.floor(y0 / T); ty <= Math.floor(y1 / T); ty++)
-    for (let tx = Math.floor(x0 / T); tx <= Math.floor(x1 / T); tx++) {
+  const want: Job[] = [];
+  const tx0 = Math.floor(x0 / T), tx1 = Math.floor(x1 / T), ty0 = Math.floor(y0 / T), ty1 = Math.floor(y1 / T);
+  for (let ty = ty0; ty <= ty1; ty++)
+    for (let tx = tx0; tx <= tx1; tx++) {
       if (tx < 0 || ty < 0 || tx * T > 2000 || ty * T > 1214) continue;
       const key = `${b}:${tx}:${ty}:${live ? 1 : 0}`;
       let t = tiles.get(key);
-      if (!t) {
-        const s0 = performance.now();
-        t = { c: buildTile(z, b, sB, tx, ty, live), used: now };
-        tiles.set(key, t);
-        perf.built++; perf.buildMs += performance.now() - s0;
-      }
+      // a few tiles are made now; the rest a moment later, between frames, and the map drawn again then
+      if (!t && performance.now() - t0 < BUILD_BUDGET) t = make(z, { key, b, sB, tx, ty, live, seen: true }, now);
+      if (!t) { want.push({ key, b, sB, tx, ty, live, seen: true }); continue; }
       t.used = now;
       const L = snap(tx * T * v.s + v.tx), Tp = snap(ty * T * v.s + v.ty), R = snap((tx + 1) * T * v.s + v.tx), B = snap((ty + 1) * T * v.s + v.ty);
-      ctx.drawImage(t.c, L, Tp, R - L, B - Tp);
+      const b0 = performance.now();
+      // a frame drawn at a lower resolution than the tiles (the map on the move) copies a half-size copy of each, made once
+      ctx.drawImage(v.dpr * 1.4 < sharp ? half(t) : t.c, L, Tp, R - L, B - Tp);
+      perf.blitMs += performance.now() - b0;
       n++;
     }
   ctx.restore();
-  // keep about twice what a screen shows (a zoom back, a pan back), the least recently drawn going first
-  const cap = Math.max(24, n * 2 + 8);
-  if (tiles.size > cap) {
-    const old = [...tiles.entries()].sort((a, c) => a[1].used - c[1].used);
-    for (let i = 0; i < old.length - cap; i++) tiles.delete(old[i][0]);
-  }
+  // and, once the view has settled, the ring of tiles round the screen, made between frames, so a drag finds them ready
+  const viewKey = `${b}:${live}`;
+  if (viewKey !== lastView) { lastView = viewKey; settledAt = now; }
+  if (now - settledAt > 1500) for (let ty = ty0 - 1; ty <= ty1 + 1; ty++)
+    for (let tx = tx0 - 1; tx <= tx1 + 1; tx++) {
+      if (ty >= ty0 && ty <= ty1 && tx >= tx0 && tx <= tx1) continue;
+      if (tx < 0 || ty < 0 || tx * T > 2000 || ty * T > 1214) continue;
+      const key = `${b}:${tx}:${ty}:${live ? 1 : 0}`;
+      if (!tiles.has(key)) want.push({ key, b, sB, tx, ty, live, seen: false });
+    }
+  queue = want;
+  if (want.length) later();
+  // keep the screen and its ring twice over (a zoom back, a pan back), the least recently drawn going first
+  const ring = (tx1 - tx0 + 3) * (ty1 - ty0 + 3);
+  cap = Math.max(48, ring * 2);
+  evict();
   perf.tiles = tiles.size; perf.draws++; perf.drawMs += performance.now() - t0;
+}
+function half(t: { c: CanvasImageSource; h?: CanvasImageSource }) {
+  if (!t.h) {
+    const c = Object.assign(document.createElement('canvas'), { width: TILE / 2, height: TILE / 2 });
+    const g = c.getContext('2d')!;
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'medium';
+    g.drawImage(t.c, 0, 0, TILE / 2, TILE / 2);
+    t.h = c;
+  }
+  return t.h;
+}
+interface Job { key: string; b: number; sB: number; tx: number; ty: number; live: boolean; seen: boolean }
+const BUILD_BUDGET = 6;
+let queue: Job[] = [], cap = 32, timer = 0, lastView = '', settledAt = 0;
+function make(z: Zones, j: Job, now: number) {
+  const s0 = performance.now();
+  const t = { c: buildTile(z, j.b, j.sB, j.tx, j.ty, j.live), used: now };
+  tiles.set(j.key, t);
+  perf.built++; perf.buildMs += performance.now() - s0;
+  return t;
+}
+function evict() {
+  if (tiles.size <= cap) return;
+  const old = [...tiles.entries()].sort((a, c) => a[1].used - c[1].used);
+  for (let i = 0; i < old.length - cap; i++) tiles.delete(old[i][0]);
+}
+/** make the waiting tiles in slices between frames; when one the screen wanted is in, ask for the map to be drawn again */
+function later() {
+  if (timer) return;
+  // in the browser's idle time where it offers it (between frames, never holding one up), else in short slices
+  const idle = typeof requestIdleCallback === 'function';
+  const run = (dl?: IdleDeadline) => {
+    timer = 0;
+    const z = zones;
+    if (!z) return;
+    const t0 = performance.now();
+    const more = () => (dl ? dl.timeRemaining() > 3 : performance.now() - t0 < 4);
+    let shown = false;
+    // one tile at a time (a tile is a few milliseconds on a phone): the frames keep coming between them
+    while (queue.length && more()) {
+      const j = queue.shift()!;
+      if (tiles.has(j.key)) continue;
+      make(z, j, j.seen ? performance.now() : performance.now() - 1);
+      shown ||= j.seen;
+      break;
+    }
+    if (shown) listeners.forEach((f) => f());
+    if (queue.length) schedule();
+  };
+  const schedule = () => { timer = (idle ? requestIdleCallback(run, { timeout: 400 }) : window.setTimeout(run, 16)) as unknown as number; };
+  schedule();
 }
 
 /** The live kinds under the camera, drawn each frame on the life canvas (close in, with Map life on): trees and palms

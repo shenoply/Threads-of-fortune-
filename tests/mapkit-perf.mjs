@@ -5,7 +5,9 @@
 import { chromium } from 'playwright';
 import { openMap, view, dragBy } from './mapkit-shots.mjs';
 const b = await chromium.launch();
-const p = await b.newPage({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
+// TOUCH=0: drag with the mouse instead of touch events (the DevTools touch events are slow to dispatch under throttling)
+const touch = process.env.TOUCH !== '0';
+const p = await b.newPage({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, hasTouch: touch, isMobile: touch });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await openMap(p, 'phone');
 const cdp = await p.context().newCDPSession(p);
@@ -29,15 +31,19 @@ for (const [name, at, steps] of [['middle', [660, 330], 2], ['close', [425, 585]
   await view(p, at, steps);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   for (const on of [true, false]) {
-    await setKit(on); await p.waitForTimeout(1500);
+    await setKit(on); await p.waitForTimeout(4000);
     const k0 = await p.evaluate(() => ({ ...window.__mapKit }));
     const idle = await frames(3000);
+    const kd = await p.evaluate(() => window.__mapKit.draws);
     const dr = await frames(3500, drag);
     const k1 = await p.evaluate(() => ({ ...window.__mapKit }));
+    dr.mapRedraws = k1.draws - kd;
     const live = k1.liveFrames - k0.liveFrames ? +((k1.liveMs - k0.liveMs) / (k1.liveFrames - k0.liveFrames)).toFixed(2) : 0;
     const draw = k1.draws - k0.draws ? +((k1.drawMs - k0.drawMs) / (k1.draws - k0.draws)).toFixed(2) : 0;
     const build = k1.built - k0.built ? +((k1.buildMs - k0.buildMs) / (k1.built - k0.built)).toFixed(2) : 0;
     out[`${name} kit ${on ? 'on' : 'off'}`] = { idle, drag: dr, kitDrawMs: draw, tilesBuilt: k1.built - k0.built, msPerTile: build, liveMsPerFrame: live, liveItems: k1.liveItems };
+    const st = await p.evaluate(() => ({ s: parseFloat(document.querySelector('[data-testid=world-inner]').style.width) / 2000, life: document.querySelector('[data-testid=map-life]')?.dataset.on }));
+    out[`${name} kit ${on ? 'on' : 'off'}`].scale = +st.s.toFixed(2); out[`${name} kit ${on ? 'on' : 'off'}`].life = st.life;
     console.log(name, on ? 'on ' : 'off', JSON.stringify(out[`${name} kit ${on ? 'on' : 'off'}`]));
   }
 }

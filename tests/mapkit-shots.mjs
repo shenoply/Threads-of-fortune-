@@ -19,7 +19,9 @@ export async function openMap(p, tag) {
     const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state;
     const W = await import('/src/game/systems/world.ts'); const { SETTLEMENTS } = await import('/src/data/world.ts');
     s.tutorial = { done: true, step: 'done', inspected: true }; s.guideSeen = true; s.missionNews = undefined; s.levelUps = []; s.titleNews = []; s.tipsSeen = [...(s.tipsSeen ?? []), 'map', 'town', 'road'];
-    s.world.fog = '1'.repeat(W.FOG_LEN); s.world.known = SETTLEMENTS.map((x) => x.id); s.world.hour = 10; s.world.parties = [];
+    s.world.fog = '1'.repeat(W.FOG_LEN); s.world.known = SETTLEMENTS.map((x) => x.id);
+    // stand in Jaffa: zooming right in over Giza while there walks down into the district
+    { const j = SETTLEMENTS.find((x) => x.id === 'jaffa'); s.world.at = 'jaffa'; s.world.x = j.x; s.world.y = j.y; } s.world.hour = 10; s.world.parties = [];
     (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false);
     const w = Storage.prototype.setItem; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000);
   });
@@ -30,7 +32,7 @@ export async function openMap(p, tag) {
   await p.waitForTimeout(2000);
 }
 /** the camera: scale and pan, read from the map layer */
-const cam = (p) => p.evaluate(() => { const el = document.querySelector('[data-testid=world-inner]'); const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(el.style.transform); return { s: parseFloat(el.style.width) / 2000, x: +m[1], y: +m[2] }; });
+const cam = (p) => p.evaluate(() => { const el = document.querySelector('[data-testid=world-inner]'); const r = el.getBoundingClientRect(), q = el.parentElement.getBoundingClientRect(); return { s: r.width / 2000, x: r.left - q.left, y: r.top - q.top }; });
 /** a drag on the map: touch on a touch screen (through the DevTools protocol), the mouse elsewhere */
 export async function dragBy(p, sx, sy, dx, dy, steps = 8) {
   const touch = await p.evaluate(() => matchMedia('(pointer: coarse)').matches);
@@ -38,6 +40,12 @@ export async function dragBy(p, sx, sy, dx, dy, steps = 8) {
     await p.mouse.move(sx, sy); await p.mouse.down();
     for (let j = 1; j <= steps; j++) await p.mouse.move(sx + dx * (j / steps), sy + dy * (j / steps));
     await p.mouse.up(); return;
+  }
+  // start on bare map, never on a town's pin (a touch there opens the town)
+  for (let k = 0; k < 12; k++) {
+    const pin = await p.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return !e || !!e.closest('button, a, [role=button], .place'); }, [sx, sy]);
+    if (!pin) break;
+    sx += (k % 2 ? -1 : 1) * 37 * (k + 1); sy += 23;
   }
   const cdp = p.__cdp ??= await p.context().newCDPSession(p);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: sx, y: sy }] });
@@ -53,7 +61,7 @@ async function centre(p, mx, my) {
     // in short strokes from the middle (a long drag would leave the map); slow, so it does not fling
     const sx = box.x + box.w / 2, sy = box.y + box.h / 2;
     const n = Math.ceil(Math.max(Math.abs(dx) / (box.w * 0.35), Math.abs(dy) / (box.h * 0.35), 1));
-    for (let i = 0; i < n; i++) { await dragBy(p, sx, sy, dx / n, dy / n); await p.waitForTimeout(120); }
+    for (let i = 0; i < n; i++) { await dragBy(p, sx, sy, dx / n, dy / n); await p.waitForTimeout(120); if (await p.locator('[data-testid=town-menu]').count()) throw new Error('a drag opened a town'); }
     await p.waitForTimeout(400);
   }
 }

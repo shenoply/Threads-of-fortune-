@@ -394,6 +394,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useEffect(() => { if (panel) openTown.at = panel; }, [panel]);
   useEffect(() => { if (openTown.at && openTown.at !== w.at) openTown.at = null; }, [w.at]);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
+  const kitLate = useRef<number | undefined>(undefined);
   const pts = useRef(new Map<number, Pt>());
   // a pinch in progress: only a CSS transform on the map layer and the canvas until the fingers lift,
   // then zoom and camera are committed once (m0/m: the point between the fingers, wrap-local)
@@ -464,7 +465,16 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
-  useEffect(() => { paintedMap(); const a = onPaintedMap(() => setArtTick((t) => t + 1)); const b = onMapArt(() => setArtTick((t) => t + 1)); const k = onMapKit(() => setArtTick((t) => t + 1)); return () => { a(); b(); k(); }; }, []);
+  useEffect(() => { paintedMap(); const a = onPaintedMap(() => setArtTick((t) => t + 1)); const b = onMapArt(() => setArtTick((t) => t + 1)); const k = onMapKit(() => {
+      // decoration tiles made between frames: drawn in at once when the map is still; on the move the map is slid,
+      // not redrawn, and the sharp redraw a moment after it stops brings them in
+      const bump = () => {
+        window.clearTimeout(kitLate.current);
+        if (drag.current?.moved || gest.current || performance.now() - travelAt.current < 400) { kitLate.current = window.setTimeout(bump, 450); return; }
+        setArtTick((t) => t + 1);
+      };
+      bump();
+    }); return () => { a(); b(); k(); }; }, []);
   // the painted pieces on the base map (landmarks, the cartouche): what to draw, set each render below
   const artLayerRef = useRef<ArtLayer | undefined>(undefined);
   // the map's life (ships, caravans, weather) and the compass
@@ -555,7 +565,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   );
   const clampRef = useRef(clampPan);
   clampRef.current = clampPan;
-  const centreOn = useCallback((p: Pt, sc = s) => setPan(clampPan({ x: size.w / 2 - p.x * sc, y: size.h / 2 - p.y * sc }, sc)), [clampPan, s, size, setPan]);
+  const centreOn = useCallback((p: Pt, sc = s) => {
+    const np = clampPan({ x: size.w / 2 - p.x * sc, y: size.h / 2 - p.y * sc }, sc);
+    setPan(np);
+    // after a fling the layer was moved by hand: if the camera comes back to where React last put it, React sees no
+    // change and would leave the layer and the painting where the fling left them
+    if (innerRef.current && sc === s) { innerRef.current.style.transform = `translate(${np.x}px, ${np.y}px)`; requestAnimationFrame(() => paintRef.current(false)); }
+  }, [clampPan, s, size, setPan]);
 
   useEffect(() => {
     centreOn({ x: w.x, y: w.y });
