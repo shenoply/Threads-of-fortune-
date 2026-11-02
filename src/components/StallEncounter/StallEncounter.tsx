@@ -248,18 +248,25 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
     g.act(id);
   };
 
-  const onRug = (uid: string) => {
-    if (!enc || enc.outcome) {
+  // when a rug was last put on the table: a second tap that quick is the same tap twice, not a wish to look
+  // closer (timed by the taps themselves, so a phone busy painting the rug does not stretch the gap)
+  const putDown = useRef({ uid: '', at: 0 });
+  const onRug = (uid: string, at = performance.now()) => {
+    if (!enc) {
       setInspect(uid);
       return;
     }
+    // the buyer has done (bought, or gone): a tap meant to show a rug opens nothing (a long press still looks)
+    if (enc.outcome) return;
     if (enc.presented === uid && !enc.prompt) {
+      if (putDown.current.uid === uid && at - putDown.current.at < 1200) return;
       setInspect(uid);
       g.inspectorOpened();
       audio.sfx('brush');
       return;
     }
     setDial(null);
+    putDown.current = { uid, at };
     g.present(uid);
   };
 
@@ -355,7 +362,7 @@ export function StallEncounter({ onGoto, onLeaveAudience }: { onGoto?: (t: 'supp
             <button
               key={it.uid}
               className={`rugcard ${isP ? 'presented' : ''} ${rugGlow(it.uid) ? 'glow' : ''} ${enc?.seek === t.id ? 'sought' : ''}`}
-              onClick={(e) => { if ((e.currentTarget as HTMLElement).dataset.held === '1') { delete (e.currentTarget as HTMLElement).dataset.held; return; } onRug(it.uid); }}
+              onClick={(e) => { if ((e.currentTarget as HTMLElement).dataset.held === '1') { delete (e.currentTarget as HTMLElement).dataset.held; return; } onRug(it.uid, e.timeStamp); }}
               {...longPress(tut ? undefined : () => inspectNow(it.uid))}
               disabled={disabledByTut}
               data-testid={`rug-${t.id}`}

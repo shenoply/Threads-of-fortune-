@@ -11,39 +11,74 @@ import { buzz } from '../../game/feel';
 const HOLD_MS = 480;
 const SLOP = 8;
 
-/** press and hold: `onHold` after a short while, unless the finger moved (a swipe) or lifted first. The
- *  click that follows a hold is marked (data-held) so the card's tap does not also fire. */
+/** the one press being held, wherever it is: kept here and not in the card's handlers, because the
+ *  stall redraws the tray many times a second while a buyer's line is typed out, and each redraw hands
+ *  the card new handlers; a timer kept in the handlers' own closure was then out of reach of the lift
+ *  that should have stopped it, and a plain tap opened the inspector half a second later. */
+let held: { t: number; x: number; y: number; el: HTMLElement; id: number; off: () => void } | null = null;
+function letGo() {
+  if (!held) return;
+  window.clearTimeout(held.t);
+  held.off();
+  held = null;
+}
+
+/** press and hold: `onHold` after a short while, unless the finger moved (a swipe), lifted, or the page
+ *  scrolled first, wherever the finger is by then (the lift is heard on the whole window, so a card
+ *  that moves or is redrawn under the finger still lets go). The click that follows a hold is marked
+ *  (data-held) so the card's tap does not also fire. */
 export function longPress(onHold?: () => void) {
   if (!onHold) return {};
-  let t = 0, x = 0, y = 0;
-  const clear = () => { window.clearTimeout(t); t = 0; };
   return {
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       if (e.button !== 0) return;
-      x = e.clientX; y = e.clientY;
       const el = e.currentTarget;
       // a held Buy or Haggle button is a button, not a look at the rug
       const ctl = (e.target as HTMLElement).closest('button, input, select, textarea, a, [data-nohold]');
       if (ctl && ctl !== el) return;
+      letGo();
       delete el.dataset.held;
-      clear();
-      t = window.setTimeout(() => {
-        t = 0; el.dataset.held = '1'; buzz(12); onHold();
+      const id = e.pointerId, x = e.clientX, y = e.clientY;
+      const move = (ev: PointerEvent) => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > SLOP) letGo(); };
+      const up = (ev: PointerEvent) => { if (ev.pointerId === id) letGo(); };
+      const any = () => letGo();
+      const opts = { capture: true, passive: true } as const;
+      window.addEventListener('pointermove', move, opts);
+      window.addEventListener('pointerup', up, opts);
+      window.addEventListener('pointercancel', up, opts);
+      window.addEventListener('scroll', any, opts);
+      window.addEventListener('blur', any);
+      document.addEventListener('visibilitychange', any);
+      const off = () => {
+        window.removeEventListener('pointermove', move, opts);
+        window.removeEventListener('pointerup', up, opts);
+        window.removeEventListener('pointercancel', up, opts);
+        window.removeEventListener('scroll', any, opts);
+        window.removeEventListener('blur', any);
+        document.removeEventListener('visibilitychange', any);
+      };
+      const t = window.setTimeout(() => {
+        const mine = held?.el === el;
+        letGo();
+        // the card has gone (another rug came to the front, the tray closed): no look
+        if (!mine || !el.isConnected) return;
+        el.dataset.held = '1'; buzz(12); onHold();
         // the click that ends the hold is not a tap on the card
         const swallow = (ev: Event) => { if (el.dataset.held) { ev.stopPropagation(); ev.preventDefault(); delete el.dataset.held; } };
         el.addEventListener('click', swallow, { capture: true, once: true });
         window.setTimeout(() => { el.removeEventListener('click', swallow, { capture: true }); delete el.dataset.held; }, 900);
       }, HOLD_MS);
+      held = { t, x, y, el, id, off };
     },
-    onPointerMove: (e: React.PointerEvent<HTMLElement>) => { if (t && Math.hypot(e.clientX - x, e.clientY - y) > SLOP) clear(); },
-    onPointerUp: clear,
-    onPointerCancel: clear,
-    onPointerLeave: clear,
+    // the card's own lift and leave, as well as the window's
+    onPointerUp: letGo,
+    onPointerCancel: letGo,
+    onPointerLeave: (e: React.PointerEvent<HTMLElement>) => { if (e.pointerType === 'mouse') letGo(); },
     // the right mouse button is the PC's press and hold (src/platform/pc.ts): it looks closer at once
     onContextMenu: (e: React.MouseEvent) => {
       e.preventDefault();
       const pt = (e.nativeEvent as PointerEvent).pointerType;
-      if (pt === 'mouse' || (!pt && e.button === 2)) { clear(); onHold(); }
+      if (pt === 'mouse' || (!pt && e.button === 2)) { letGo(); onHold(); }
     },
     'data-hold': '',
   };
