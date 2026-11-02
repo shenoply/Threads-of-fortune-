@@ -31,32 +31,47 @@ export async function openMap(p, tag) {
 }
 /** the camera: scale and pan, read from the map layer */
 const cam = (p) => p.evaluate(() => { const el = document.querySelector('[data-testid=world-inner]'); const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(el.style.transform); return { s: parseFloat(el.style.width) / 2000, x: +m[1], y: +m[2] }; });
-export async function view(p, [mx, my], steps) {
-  for (let i = 0; i < 10; i++) { const z = p.locator('button[aria-label="Zoom out"]'); if (!(await z.count()) || await z.first().isDisabled()) break; await z.first().click().catch(() => {}); await p.waitForTimeout(350); }
-  for (let i = 0; i < steps; i++) { const z = p.locator('[data-testid=world-zoom-in]'); if (!(await z.count()) || await z.first().isDisabled()) break; await z.first().click().catch(() => {}); await p.waitForTimeout(350); }
-  await p.waitForTimeout(500);
+/** a drag on the map: touch on a touch screen (through the DevTools protocol), the mouse elsewhere */
+export async function dragBy(p, sx, sy, dx, dy, steps = 8) {
+  const touch = await p.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  if (!touch) {
+    await p.mouse.move(sx, sy); await p.mouse.down();
+    for (let j = 1; j <= steps; j++) await p.mouse.move(sx + dx * (j / steps), sy + dy * (j / steps));
+    await p.mouse.up(); return;
+  }
+  const cdp = p.__cdp ??= await p.context().newCDPSession(p);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: sx, y: sy }] });
+  for (let j = 1; j <= steps; j++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: sx + dx * (j / steps), y: sy + dy * (j / steps) }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+async function centre(p, mx, my) {
   const box = await p.locator('[data-testid=world-inner]').evaluate((el) => { const r = el.parentElement.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   for (let k = 0; k < 3; k++) {
     const c = await cam(p);
     const dx = box.w / 2 - (mx * c.s + c.x), dy = box.h / 2 - (my * c.s + c.y);
     if (Math.abs(dx) < 4 && Math.abs(dy) < 4) break;
-    // drag in short strokes from the middle (a long drag would leave the map)
+    // in short strokes from the middle (a long drag would leave the map); slow, so it does not fling
     const sx = box.x + box.w / 2, sy = box.y + box.h / 2;
     const n = Math.ceil(Math.max(Math.abs(dx) / (box.w * 0.35), Math.abs(dy) / (box.h * 0.35), 1));
-    for (let i = 0; i < n; i++) {
-      await p.mouse.move(sx, sy); await p.mouse.down();
-      for (let j = 1; j <= 8; j++) await p.mouse.move(sx + (dx / n) * (j / 8), sy + (dy / n) * (j / 8));
-      await p.mouse.up(); await p.waitForTimeout(80);
-    }
+    for (let i = 0; i < n; i++) { await dragBy(p, sx, sy, dx / n, dy / n); await p.waitForTimeout(120); }
     await p.waitForTimeout(400);
   }
+}
+export async function view(p, [mx, my], steps) {
+  for (let i = 0; i < 10; i++) { const z = p.locator('button[aria-label="Zoom out"]'); if (!(await z.count()) || await z.first().isDisabled()) break; await z.first().click().catch(() => {}); await p.waitForTimeout(350); }
+  // over the place first, then in (zooming right in over Giza would walk down into the district)
+  await p.waitForTimeout(400);
+  await centre(p, mx, my);
+  for (let i = 0; i < steps; i++) { const z = p.locator('[data-testid=world-zoom-in]'); if (!(await z.count()) || await z.first().isDisabled()) break; await z.first().click().catch(() => {}); await p.waitForTimeout(350); }
+  await p.waitForTimeout(500);
+  await centre(p, mx, my);
   await p.waitForTimeout(1200);
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
   const b = await chromium.launch();
   for (const [vw, vh, tag, dpr] of [[412, 915, 'phone', 2.625], [1920, 1080, 'pc', 1]]) {
     if (ONLY && ONLY !== tag) continue;
-    const p = await b.newPage({ viewport: { width: vw, height: vh }, deviceScaleFactor: dpr, hasTouch: tag === 'phone' });
+    const p = await b.newPage({ viewport: { width: vw, height: vh }, deviceScaleFactor: dpr, hasTouch: tag === 'phone', isMobile: tag === 'phone' });
     const errs = []; p.on('pageerror', (e) => errs.push(e.message));
     await openMap(p, tag);
     for (const [name, at, steps] of VIEWS) {

@@ -3,9 +3,9 @@
 // and close in over the Delta (where, with Map life on, the palms sway).
 //   PORT=5173 node tests/mapkit-perf.mjs
 import { chromium } from 'playwright';
-import { openMap, view } from './mapkit-shots.mjs';
+import { openMap, view, dragBy } from './mapkit-shots.mjs';
 const b = await chromium.launch();
-const p = await b.newPage({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, hasTouch: true });
+const p = await b.newPage({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await openMap(p, 'phone');
 const cdp = await p.context().newCDPSession(p);
@@ -20,12 +20,7 @@ async function frames(ms, act) {
   return { avg: +avg.toFixed(1), p95: +ft[Math.floor(ft.length * 0.95)].toFixed(1), worst: +ft[ft.length - 1].toFixed(1), n: ft.length };
 }
 const drag = async () => {
-  const sx = 206, sy = 520;
-  for (let k = 0; k < 4; k++) {
-    await p.mouse.move(sx, sy); await p.mouse.down();
-    for (let j = 1; j <= 24; j++) await p.mouse.move(sx + (k % 2 ? -1 : 1) * j * 9, sy + Math.sin(j / 4) * 30);
-    await p.mouse.up();
-  }
+  for (let k = 0; k < 4; k++) await dragBy(p, 206, 520, (k % 2 ? -1 : 1) * 200, 40, 24);
 };
 const setKit = (on) => p.evaluate(async (on) => { (await import('/src/game/mapKitPref.ts')).setMapKit(on); }, on);
 const out = {};

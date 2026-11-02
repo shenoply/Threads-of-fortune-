@@ -359,7 +359,7 @@ def main(argv=None):
   cedar = poly([(35.62, 33.55), (35.9, 33.5), (36.3, 34.25), (36.35, 34.65), (36.05, 34.65), (35.72, 34.0)])
   zagros = poly([(43.0, 37.4), (45.5, 37.4), (46.8, 35.9), (48.6, 33.9), (51.6, 30.9), (52.6, 29.5), (51.6, 29.1), (49.6, 30.4), (47.6, 32.1), (45.6, 33.9), (44.6, 35.4), (43.0, 36.6)])
   bl_d = np.maximum.reduce([G(pontic) * 0.8, G(hyrc, 0.5) * 1.0, G(caucasus, 0.25) * 0.65, G(w_anat) * 0.45, G(greece, 0.15) * 0.35,
-                            G(taurus) * 0.3, np.where(zagros & (rel > 6) & (rel < 15), 0.3, 0)])
+                            G(taurus) * 0.3, np.where(zagros & (rel > 6) & (rel < 15), 0.13, 0)])
   low = rel < 10
   con_d = np.maximum.reduce([G(pontic) * 0.55 * ~low, G(hyrc, 0.4) * 0.45 * ~low, G(caucasus, 0.3) * 0.5 * ~low, G(w_anat) * 0.35 * ~low,
                              G(greece, 0.3) * 0.45, G(taurus, 0.15) * 0.45 * ~low, np.where(cedar, 0.75, 0)])
