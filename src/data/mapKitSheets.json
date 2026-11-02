@@ -1,0 +1,37 @@
+{
+  "_": "The map decoration sheets (art-src/map-kit/sheets/<stem>.png, 2048 x 2048, transparent). Each sheet's items, in reading order (rows top to bottom, each row left to right), fall into these groups; 'largest' takes the biggest item of the sheet out into a group of its own. 'px' is the tallest an item is kept in the atlas (pixels). Read by tools/cut-sheets.py and src/game/systems/mapKitDraw.ts.",
+  "sheets": {
+    "01-palms": {"groups": [["palm", 12]], "px": 112},
+    "02-broadleaf": {"groups": [["tree", 12], ["clump", 6]], "px": 112},
+    "03-conifers": {"groups": [["conifer", 12]], "px": 112},
+    "04-olives": {"groups": [["olive", 12]], "px": 96},
+    "05-peaks-snow": {"groups": [["peak", 11]], "largest": "big", "px": 200, "pxLargest": 400},
+    "06-peaks-bare": {"groups": [["bare", 6], ["granite", 6]], "px": 200},
+    "07-hills": {"groups": [["ochre", 6], ["green", 6]], "px": 128},
+    "08-desert": {"groups": [["dune", 8], ["outcrop", 6], ["scrub", 8]], "px": 96},
+    "09-fields": {"groups": [["field", 6]], "px": 128},
+    "10-sea": {"groups": [["wave", 10], ["shallow", 4]], "px": 80}
+  },
+  "_clear": "How far decorations keep from what the map draws over them, in map units, at the farthest zoom of level 0; scaled by lodScale for levels 1 and 2 (pins, names and lines stay the same size on screen, so cover less ground close in). town: a city, port, town or home; place: a village, oasis, camp or well (each with its name below it); road: half the width kept along roads, railways and motor routes; sea: along the sea routes. Read by tools/build-mapkit.py and tests/mapkit.ts.",
+  "clear": {"town": 14, "place": 10, "road": 4.5, "sea": 8, "lodScale": [1, 0.65, 0.45]},
+  "_kinds": "Each decoration kind on the map: the sheet and group it is drawn from, its height in map units at size 1 (zoom 2), its usual width to height, whether it sways with Map life on, and whether it sits on the sea. The order is fixed: tools/build-mapkit.py stores each item's kind by its index here.",
+  "kinds": [
+    {"kind": "palm", "sheet": "01-palms", "group": "palm", "h": 9, "aspect": 0.8, "sway": true, "sea": false},
+    {"kind": "broadleaf", "sheet": "02-broadleaf", "group": "tree", "h": 8, "aspect": 0.9, "sway": true, "sea": false},
+    {"kind": "clump", "sheet": "02-broadleaf", "group": "clump", "h": 11, "aspect": 1.5, "sway": true, "sea": false},
+    {"kind": "conifer", "sheet": "03-conifers", "group": "conifer", "h": 9, "aspect": 0.55, "sway": true, "sea": false},
+    {"kind": "olive", "sheet": "04-olives", "group": "olive", "h": 6, "aspect": 1.0, "sway": true, "sea": false},
+    {"kind": "peak-snow", "sheet": "05-peaks-snow", "group": "peak", "h": 20, "aspect": 1.5, "sway": false, "sea": false},
+    {"kind": "peak-big", "sheet": "05-peaks-snow", "group": "big", "h": 55, "aspect": 1.7, "sway": false, "sea": false},
+    {"kind": "peak-bare", "sheet": "06-peaks-bare", "group": "bare", "h": 17, "aspect": 1.5, "sway": false, "sea": false},
+    {"kind": "peak-granite", "sheet": "06-peaks-bare", "group": "granite", "h": 17, "aspect": 1.5, "sway": false, "sea": false},
+    {"kind": "hill-ochre", "sheet": "07-hills", "group": "ochre", "h": 10, "aspect": 2.2, "sway": false, "sea": false},
+    {"kind": "hill-green", "sheet": "07-hills", "group": "green", "h": 10, "aspect": 2.2, "sway": false, "sea": false},
+    {"kind": "dune", "sheet": "08-desert", "group": "dune", "h": 6, "aspect": 3.0, "sway": false, "sea": false},
+    {"kind": "outcrop", "sheet": "08-desert", "group": "outcrop", "h": 7, "aspect": 1.4, "sway": false, "sea": false},
+    {"kind": "scrub", "sheet": "08-desert", "group": "scrub", "h": 4, "aspect": 1.2, "sway": false, "sea": false},
+    {"kind": "field", "sheet": "09-fields", "group": "field", "h": 6, "aspect": 2.0, "sway": false, "sea": false},
+    {"kind": "wave", "sheet": "10-sea", "group": "wave", "h": 4, "aspect": 3.0, "sway": false, "sea": true},
+    {"kind": "shallow", "sheet": "10-sea", "group": "shallow", "h": 6, "aspect": 3.0, "sway": false, "sea": true}
+  ]
+}
