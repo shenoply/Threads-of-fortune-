@@ -26,6 +26,7 @@ import { stallFigure } from './stallArt';
 import { BuyerCard } from '../Merchant/Customers';
 import { useSwipeAway } from '../Touch/SwipeAway';
 import { BoyChip } from './ShopBoyCard';
+import { StallMoments } from './StallMoments';
 
 import { CAT_VARIANTS, catPose, spotsHere, spotsOf } from '../../game/stallDressing';
 import { dressingArt, DRESSING_BY_ID } from '../../data/shops';
@@ -235,6 +236,7 @@ export function Scene({ enc, presented, view, onSkip, onCat, onBuyer }: ScenePro
           );
         })()}
         <StallCat sc={sc} onCat={onCat} rugOnCounter={!!(rugT && presented)} tag={!buyer} />
+        <StallMoments enc={enc} sc={sc} k={sw < 700 ? 1.35 : 1} />
       </div>
       {/* a buyer who gives up gets up and goes, and the picture says so in words too */}
       <Atmosphere sheltered={sc.sky} indoor={!sc.sky} />

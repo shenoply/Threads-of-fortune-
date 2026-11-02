@@ -211,3 +211,12 @@
 .carpet-view.compact { position: absolute; inset: 0; display: block; }
 .carpet-view.compact .cv-stage { position: absolute; inset: 0; overflow: visible; background: none; touch-action: none; }
 .carpet-view.compact .cv-canvas { inset: auto; left: -25%; top: -150%; width: 150%; height: 275%; pointer-events: none; }
+
+/* the stall's small moments (StallMoments.tsx): strips of frames stepped through, never in the way of a tap */
+.scene.stall .stall-moment { position: absolute; z-index: 4; pointer-events: none; background-repeat: no-repeat; background-position-y: 0; }
+@keyframes tof-moment { from { background-position-x: 0%; } to { background-position-x: 100%; } }
+.scene.stall .stall-lamp-glow { position: absolute; z-index: 2; aspect-ratio: 1; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(circle, rgba(255,184,100,.34), rgba(255,150,70,.12) 38%, rgba(255,140,60,0) 70%); opacity: .9; }
+.scene.stall .stall-lamp-glow.flicker { animation: tof-lamp-flicker 3.7s ease-in-out infinite; }
+@keyframes tof-lamp-flicker { 0%, 100% { opacity: .9; } 17% { opacity: .78; } 31% { opacity: .95; } 46% { opacity: .84; } 63% { opacity: 1; } 79% { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .scene.stall .stall-moment, .scene.stall .stall-lamp-glow { animation: none !important; } }
