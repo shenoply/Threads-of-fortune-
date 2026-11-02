@@ -35,6 +35,8 @@
 .reveal.done .reveal-card { opacity: 1; transform: translateY(-44%) scale(1); }
 .reveal-pic { display: block; width: 190px; height: 126px; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 26px rgba(0, 0, 0, .6), 0 0 0 2px rgba(230, 181, 82, .7); margin-bottom: 8px; background: #2a1c10; }
 .reveal-pic.rug { width: 150px; height: 220px; }
+.reveal-pic.rug:has(.cutrug) { display: grid; place-items: center; }
+.reveal-pic.rug .cutrug { width: 100%; }
 .reveal-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .reveal-card small { font-family: var(--label); text-transform: uppercase; letter-spacing: .14em; font-size: 12px; color: #e6b552; }
 .reveal-card b { font-family: var(--display); font-weight: 500; font-size: 22px; color: #f6e7c4; line-height: 1.15; padding: 0 10px; }
@@ -47,6 +49,7 @@
 .reveal.instant .reveal-card { opacity: 1; transform: translateY(-50%); transition: none; }
 .reveal.instant .reveal-pic.rug { display: flex; justify-content: center; width: 100%; height: auto; max-width: 90vw; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
 .reveal.instant .reveal-pic.rug img { width: auto; height: auto; max-width: 90vw; max-height: 54vh; min-width: 180px; object-fit: contain; box-shadow: 0 10px 28px rgba(0, 0, 0, .65); }
+.reveal.instant .reveal-pic.rug .cutrug { width: min(90vw, calc(54vh * var(--ar))); min-width: 180px; box-shadow: 0 10px 28px rgba(0, 0, 0, .65); }
 .reveal.instant .reveal-stage { width: 100vw; }
 .reveal.instant .reveal-stage { height: auto; min-height: 380px; }
 
@@ -85,6 +88,7 @@
 .reveal.unroll .reveal-card em { margin-top: 8px; }
 .reveal.unroll .reveal-pic.rug { width: 100%; height: auto; background: none; box-shadow: none; }
 .reveal.unroll .reveal-pic.rug img { width: 100%; height: auto; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.6); }
+.reveal.unroll .reveal-pic.rug .cutrug { width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,.6); }
 .reveal.unroll .reveal-card:has(.reveal-pic.rug) { width: min(270px, 74vw); }
 
 .reveal-pic.prop { width: 150px; height: 150px; background: radial-gradient(circle, #3a2814, #1a1008); }

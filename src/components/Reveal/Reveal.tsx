@@ -10,6 +10,7 @@ import { fmt } from '../../game/economy/money';
 import { RugViewer } from '../RugViewer/RugViewer';
 import { RUGS, RUG_IDS, PERSIAN_RUG_IDS } from '../../data/rugs';
 import { rugSrc } from '../RugViewer/rugArt';
+import { CutRug } from '../RugViewer/CutRug';
 import { useGame, SET_REWARD } from '../../game/state/store';
 import './reveal.css';
 
@@ -112,7 +113,7 @@ export function RevealHost() {
           </div>
         )}
         <div className="reveal-card">
-          {cur.pic && <span className={`reveal-pic ${cur.picKind ?? 'photo'}`}><img src={cur.pic} alt="" /></span>}
+          {cur.pic && <span className={`reveal-pic ${cur.picKind ?? 'photo'}`}>{cur.picKind === 'rug' ? <CutRug src={cur.pic} alt="" /> : <img src={cur.pic} alt="" />}</span>}
           <small>{cur.kicker}</small>
           <b className={`${cur.amount ? 'rv-money' : ''}${cur.tier ? ` t-tier-${cur.tier}` : ''}`}>{cur.amount ? <CountUp to={cur.amount} run={counting} /> : cur.title}</b>
           {cur.line && <span>{cur.line}</span>}

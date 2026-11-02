@@ -10,7 +10,8 @@ import type { AuctionHouse } from '../../game/auction/types';
 import { RUGS, CONDITION_FACTOR } from '../../data/rugs';
 import { fmt } from '../../game/economy/money';
 import { levelOf } from '../../data/character';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugSrc, rugThumb } from '../RugViewer/rugArt';
+import { CutRug } from '../RugViewer/CutRug';
 import { audio } from '../../game/audio/engine';
 import { dateOfDay } from '../../game/economy/life';
 import { Tip } from '../Tips/Tip';
@@ -84,7 +85,7 @@ export function Auction({ houseId, onClose }: { houseId: string; onClose: () => 
               const done = (g.lotsSold ?? []).includes(l.key);
               return (
                 <div key={l.key} className={`auction-lot ${done ? 'sold' : ''}`} data-testid={`lot-${i}`}>
-                  {l.bundle ? <span className="lot-img bale" /> : <img src={rugSrc(RUGS[l.typeIds[0]])} alt="" className="lookable" onClick={() => setLook({ typeId: l.typeIds[0], condition: l.conditions[0], provenance: l.provenance[0], flaw: flawFor(`${l.key}#0`, h.tier === 'grand' ? 'auction-grand' : 'auction-small', l.typeIds[0]), key: `${l.key}#0` })} />}
+                  {l.bundle ? <span className="lot-img bale" /> : <img src={rugThumb(RUGS[l.typeIds[0]])} alt="" className="lookable" onClick={() => setLook({ typeId: l.typeIds[0], condition: l.conditions[0], provenance: l.provenance[0], flaw: flawFor(`${l.key}#0`, h.tier === 'grand' ? 'auction-grand' : 'auction-small', l.typeIds[0]), key: `${l.key}#0` })} />}
                   <span><b>Lot {i + 1}: {lotTitle(l)}</b><small>{l.bundle ? 'Mixed village rugs' : `${l.conditions[0]} · ${l.provenance[0]} provenance`}{l.reoffered ? ' · offered again' : ''}</small><small>Estimate {fmt(l.estimate[0])}–{fmt(l.estimate[1])}{done ? ' · sold' : ''}</small></span>
                 </div>
               );
@@ -313,7 +314,7 @@ function Floor({ h, houseId, lot, n, total, room, appr, onLeave, onDone, onNext 
       <div className="floor-scene">
         <p className="floor-call" data-testid="floor-call">{line ? `“${line}”` : "…"}</p>
         <p className="floor-who">{who}</p>
-        <div className="floor-rug">{lot.bundle ? <span className="lot-img bale big" /> : <img src={rugSrc(t)} alt={t.name} className="lookable" onClick={() => setLook(true)} />}</div>
+        <div className="floor-rug">{lot.bundle ? <span className="lot-img bale big" /> : <CutRug src={rugSrc(t)} alt={t.name} className="lookable" onClick={() => setLook(true)} />}</div>
         {look && !lot.bundle && <div className="venue-overlay"><RugViewer preview={{ typeId: lot.typeIds[0], condition: lot.conditions[0], provenance: lot.provenance[0], flaw: flawFor(`${lot.key}#0`, h.tier === 'grand' ? 'auction-grand' : 'auction-small', lot.typeIds[0]) }} onClose={() => setLook(false)} /></div>}
         <div className="floor-room">
           {room.map((b) => (

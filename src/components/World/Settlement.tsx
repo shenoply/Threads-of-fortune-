@@ -30,7 +30,7 @@ import { bestMarket, localAskPrice, localBid, localOffers, useGame } from '../..
 import { NPCS, QUESTS, SETTLEMENTS } from '../../data/world';
 import { RUGS } from '../../data/rugs';
 import { settlementById, seaRoutesFrom, railJourney } from '../../game/systems/world';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugThumb } from '../RugViewer/rugArt';
 import { Portrait } from './Portrait';
 import { Dialogue } from './Dialogue';
 import { FolkCard, FolkRow } from '../Folk/FolkCard';
@@ -612,7 +612,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                   const farLine = far && far.bid > o.price ? ` · dealers in ${settlementById(far.sid).name} pay about ${fmt(far.bid)}` : '';
                   return (
                     <div className="mkt-row" key={o.key} data-testid={`buy-${o.typeId}`} {...longPress(() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey }))}>
-                      <img src={rugSrc(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
+                      <img src={rugThumb(t)} alt="" className="lookable" onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw, key: offerKey })} style={o.condition === 'Dirty' ? { filter: 'sepia(0.5) brightness(0.75)' } : undefined} />
                       <span><b>{t.name}{o.left > 1 && <span className="qty"> ×{o.left}</span>}</b><small>{t.tier === 4 ? 'A treasure · ' : ''}{o.condition} · Giza buyers value it at {fmt(t.valueBand[0])}–{fmt(t.valueBand[1])}{farLine}</small><OfferFlags typeId={o.typeId} flaw={flaw} /></span>
                       <button className="btn primary" disabled={g.cash < o.price} onClick={() => setNote(g.buyLocal(id, o.key))}>Buy {localMoney(o.price, id, g.day)}</button>
                     </div>
@@ -641,7 +641,7 @@ export function SettlementPanel({ id, onClose, onStall, tab: initialTab = 'town'
                     const bid = undercutBid(g, id, askToday !== undefined ? Math.min(localBid(id, i, g.day), Math.max(0, askToday - 1)) : localBid(id, i, g.day));
                     return (
                       <div className="mkt-row" key={i.uid} data-testid={`sell-${t.id}`}>
-                        <img src={rugSrc(t)} alt="" />
+                        <img src={rugThumb(t)} alt="" />
                         <span><b>{t.name}</b><small>{i.condition} · {i.provenance} · you paid {fmt(i.paid)}{i.paid > bid ? <em className="warn" data-testid="sell-loss"> · a loss of {fmt(i.paid - bid)}</em> : null}</small></span>
                         <button className="btn" onClick={() => { const b = g.sellLocal(i.uid, id); setNote(`Sold ${t.name} for ${localMoneyLong(b, id, g.day)}.`); }}>Sell {localMoney(bid, id, g.day)}</button>
                       </div>

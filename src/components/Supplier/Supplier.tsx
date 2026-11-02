@@ -13,7 +13,7 @@ import { voice } from '../../game/audio/voice';
 import { RUGS } from '../../data/rugs';
 import { RASHID_PROFILE, rashidCredit } from '../../data/suppliers';
 import { RASHID } from '../../data/dialogue';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugThumb } from '../RugViewer/rugArt';
 import { RugViewer, type RugPreview } from '../RugViewer/RugViewer';
 import { flawFor } from '../../game/systems/fakes';
 import { EARLY_OFF, dueDate, firstDue } from '../../game/firstWeek';
@@ -121,7 +121,7 @@ export function Supplier({ toast }: { toast: (s: string) => void }) {
           return (
             <div className="offer" key={o.uid} data-testid={`offer-${t.id}`} {...longPress(() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw: flawFor(o.uid, 'rashid', o.typeId), key: o.uid }))}>
               <div className={`img ${o.condition === 'Dirty' ? 'dirty' : o.condition === 'Damaged' ? 'damaged' : ''}`} onClick={() => setLook({ typeId: o.typeId, condition: o.condition, price: o.price, flaw: flawFor(o.uid, 'rashid', o.typeId), key: o.uid })} role="button" aria-label={`Look closely at ${t.name}`} data-testid={`look-${t.id}`}>
-                <img src={rugSrc(t)} alt={t.name} />
+                <img src={rugThumb(t)} alt={t.name} />
                 <span className="look-hint"><Icon name="search" /> Look closer</span>
                 {o.tag && <span className={`tag ${o.tag}`}>{o.tag === 'Limited' ? 'Today only' : o.tag}</span>}
               </div>

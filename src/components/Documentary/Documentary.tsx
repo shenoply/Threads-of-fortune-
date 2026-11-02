@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DOCUMENTARY } from '../../data/dialogue';
 import { audio } from '../../game/audio/engine';
 import { voice } from '../../game/audio/voice';
-import { rugSrc } from '../RugViewer/rugArt';
+import { rugSrc, rugThumb } from '../RugViewer/rugArt';
 import { RUGS, RUG_IDS, TIERS } from '../../data/rugs';
 import { FIRST_WORD } from '../../game/firstWeek';
 
@@ -110,7 +110,7 @@ export function Documentary({ onEnd, canSkip = true }: { onEnd: () => void; canS
                 <div className="dt-head"><small>TIER {['', 'I', 'II', 'III', 'IV'][d.tier]}</small><b>{TIERS[d.tier].name}</b><span>{TIERS[d.tier].note.split('. ')[0]}</span></div>
                 <div className="dt-rugs">
                   {RUG_IDS.filter((id) => RUGS[id].tier === d.tier).slice(0, 4).map((id, j) => (
-                    <figure key={id} style={{ animationDelay: `${j * 0.35}s` }}><img src={rugSrc(RUGS[id])} alt="" /><figcaption>{RUGS[id].name}</figcaption></figure>
+                    <figure key={id} style={{ animationDelay: `${j * 0.35}s` }}><img src={rugThumb(RUGS[id])} alt="" /><figcaption>{RUGS[id].name}</figcaption></figure>
                   ))}
                 </div>
               </div>
@@ -121,7 +121,7 @@ export function Documentary({ onEnd, canSkip = true }: { onEnd: () => void; canS
                   const id = RUG_IDS.filter((r) => RUGS[r].tier === tier).slice(-1)[0];
                   return (
                     <figure key={tier} style={{ animationDelay: `${j * 0.9}s` }}>
-                      <img src={rugSrc(RUGS[id])} alt="" />
+                      <img src={rugThumb(RUGS[id])} alt="" />
                       <figcaption><b>{TIERS[tier].name}</b><span>{TIERS[tier].note.split('. ')[0]}</span></figcaption>
                     </figure>
                   );
