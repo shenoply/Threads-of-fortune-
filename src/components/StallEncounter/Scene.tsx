@@ -435,19 +435,31 @@ export function BuyerFace({ id, size = 36 }: { id: string; size?: number }) {
 
 /** The rug you are showing, laid on the table: the carpet itself (CarpetView, compact), unrolled as it
  *  is put down and there to be turned round, tipped to the buyer or up to you, or looked at closer,
- *  without leaving the stall. Drawn with its dirt or wear, and only once that is painted. */
+ *  without leaving the stall. Drawn with its dirt or wear. It goes down at once from the small picture
+ *  the tray has already loaded (with its wear painted on), and the full picture takes its place when it
+ *  has come; if a painted picture cannot be had, the plain one is drawn, so a carpet is always there. */
 function TableCarpet({ item, className, label }: { item: RugItem; className: string; label: string }) {
   const t = RUGS[item.typeId];
-  const [src, setSrc] = useState('');
+  const thumb = rugThumb(t), full = rugSrc(t);
+  const [pic, setPic] = useState<{ small: string; big: string }>({ small: '', big: '' });
   useEffect(() => {
     let live = true;
-    wornSrc(rugSrc(t), item.condition, item.uid).then((u) => { if (live) setSrc(u); });
-    return () => { live = false; };
-  }, [t, item.condition, item.uid]);
+    setPic({ small: '', big: '' });
+    // the small one first, then the full one (painted after, so it does not hold up the first)
+    wornSrc(thumb, item.condition, item.uid).then((small) => {
+      if (!live) return;
+      setPic((p) => ({ ...p, small }));
+      if (full !== thumb) wornSrc(full, item.condition, item.uid).then((big) => { if (live) setPic((p) => ({ ...p, big })); });
+    });
+    // and if painting the wear is slow (a busy phone), the plain small picture meanwhile
+    const late = window.setTimeout(() => { if (live) setPic((p) => (p.small ? p : { ...p, small: thumb })); }, 1200);
+    return () => { live = false; clearTimeout(late); };
+  }, [thumb, full, item.condition, item.uid]);
   const [roll] = useState(mayRoll);
+  const src = pic.big || pic.small;
   return (
-    <div className={`${className} live`} data-testid="table-rug" data-condition={item.condition} role="group" aria-label={label}>
-      {src && <CarpetView compact src={src} unroll={roll} />}
+    <div className={`${className} live`} data-testid="table-rug" data-condition={item.condition} data-pic={pic.big ? 'full' : pic.small ? 'small' : ''} role="group" aria-label={label}>
+      {src && <CarpetView compact src={src} preview={pic.big ? pic.small : undefined} fallback={thumb} unroll={roll} />}
     </div>
   );
 }
