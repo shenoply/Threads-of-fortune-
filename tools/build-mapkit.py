@@ -201,7 +201,8 @@ class Placer:
         idx = rng.permutation(len(cx))
       roll = rng.uniform(0, 1, len(cx))
       for k in idx:
-        if roll[k] >= d[k]: continue
+        # the far level a little fuller, so a region still reads as wooded or palm-lined zoomed right out
+        if roll[k] >= d[k] * (1.6 if lod == 0 else 1.0): continue
         x, y = float(cx[k]), float(cy[k])
         if not self.spaced(kind, x, y, sp): continue
         kd = kind_of(x, y) if kind_of else kind

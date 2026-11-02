@@ -29,7 +29,7 @@ const drag = async () => {
 };
 const setKit = (on) => p.evaluate(async (on) => { (await import('/src/game/mapKitPref.ts')).setMapKit(on); }, on);
 const out = {};
-for (const [name, at, steps] of [['middle', [660, 330], 2], ['close', [425, 585], 99]]) {
+for (const [name, at, steps] of [['middle', [660, 330], 2], ['close', [425, 585], 8]]) {
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   await view(p, at, steps);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });

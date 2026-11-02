@@ -8,7 +8,7 @@ const OUT = process.env.OUT ?? SHOTS;
 const ONLY = process.env.ONLY;
 let fails = 0;
 // the map point to centre on and how far in (0 right out, then that many steps in from right out; 99 all the way)
-const VIEWS = [['1-whole-map', [1000, 607], 0], ['2-delta-close', [425, 585], 99], ['3-lebanon-anatolia', [660, 330], 2], ['4-zagros-caspian', [1300, 330], 2], ['5-lebanon-close', [700, 445], 99]];
+const VIEWS = [['1-whole-map', [1000, 607], 0], ['2-delta-close', [425, 585], 8], ['3-lebanon-anatolia', [660, 330], 2], ['4-zagros-caspian', [1300, 330], 2], ['5-lebanon-close', [700, 445], 8]];
 export async function openMap(p, tag) {
   await p.goto(`http://localhost:${PORT}/`);
   await p.evaluate((pc) => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1'), pc && localStorage.setItem('tof-layout', 'pc')), tag === 'pc');
