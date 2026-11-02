@@ -86,10 +86,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await view(p, at, steps);
       await p.screenshot({ path: `${OUT}/${tag}-${name}.png` });
       if (name === '2-delta-close' || name === '3-lebanon-anatolia') {
-        await p.evaluate(async () => { (await import('/src/game/mapKitPref.ts')).setMapKit(false); });
+        await p.evaluate(() => window.__setMapKit(false));
         await p.waitForTimeout(900);
         await p.screenshot({ path: `${OUT}/${tag}-${name}-off.png` });
-        await p.evaluate(async () => { (await import('/src/game/mapKitPref.ts')).setMapKit(true); });
+        await p.evaluate(() => window.__setMapKit(true));
         await p.waitForTimeout(600);
       }
     }

@@ -324,6 +324,8 @@ export function drawKit(ctx: CanvasRenderingContext2D, v: KitView, life: boolean
   const T = TILE / b;
   const x0 = -v.tx / v.s, y0 = -v.ty / v.s, x1 = x0 + v.w / v.s, y1 = y0 + v.h / v.s;
   const now = performance.now();
+  const moving = v.dpr * 1.4 < sharp;
+  if (moving) movingAt = now;
   let n = 0;
   ctx.save();
   ctx.imageSmoothingEnabled = true;
@@ -338,7 +340,8 @@ export function drawKit(ctx: CanvasRenderingContext2D, v: KitView, life: boolean
       const key = `${b}:${tx}:${ty}:${live ? 1 : 0}`;
       let t = tiles.get(key);
       // a few tiles are made now; the rest a moment later, between frames, and the map drawn again then
-      if (!t && performance.now() - t0 < BUILD_BUDGET) t = make(z, { key, b, sB, tx, ty, live, seen: true }, now);
+      // (none while the map moves: a drag is never held up; the ring round the screen is usually ready anyway)
+      if (!t && !moving && performance.now() - t0 < BUILD_BUDGET) t = make(z, { key, b, sB, tx, ty, live, seen: true }, now);
       if (!t) { want.push({ key, b, sB, tx, ty, live, seen: true }); continue; }
       t.used = now;
       const L = snap(tx * T * v.s + v.tx), Tp = snap(ty * T * v.s + v.ty), R = snap((tx + 1) * T * v.s + v.tx), B = snap((ty + 1) * T * v.s + v.ty);
@@ -379,10 +382,12 @@ function half(t: { c: CanvasImageSource; h?: CanvasImageSource }) {
 }
 interface Job { key: string; b: number; sB: number; tx: number; ty: number; live: boolean; seen: boolean }
 const BUILD_BUDGET = 6;
-let queue: Job[] = [], cap = 32, timer = 0, lastView = '', settledAt = 0;
+let queue: Job[] = [], cap = 32, timer = 0, lastView = '', settledAt = 0, movingAt = 0;
 function make(z: Zones, j: Job, now: number) {
   const s0 = performance.now();
-  const t = { c: buildTile(z, j.b, j.sB, j.tx, j.ty, j.live), used: now };
+  const t: { c: HTMLCanvasElement; h?: CanvasImageSource; used: number } = { c: buildTile(z, j.b, j.sB, j.tx, j.ty, j.live), used: now };
+  // on a sharp screen the moving map is drawn at half the resolution: its half-size copy made now, not mid-drag
+  if (Math.min(2, window.devicePixelRatio || 1) > 1.4) half(t);
   tiles.set(j.key, t);
   perf.built++; perf.buildMs += performance.now() - s0;
   return t;
@@ -401,6 +406,8 @@ function later() {
     timer = 0;
     const z = zones;
     if (!z) return;
+    // the map on the move (drawn at the lower resolution a moment ago): leave the main thread to the drag
+    if (performance.now() - movingAt < 350) { schedule(); return; }
     const t0 = performance.now();
     const more = () => (dl ? dl.timeRemaining() > 3 : performance.now() - t0 < 4);
     let shown = false;

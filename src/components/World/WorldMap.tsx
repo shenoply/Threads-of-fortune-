@@ -466,12 +466,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
   useEffect(() => { paintedMap(); const a = onPaintedMap(() => setArtTick((t) => t + 1)); const b = onMapArt(() => setArtTick((t) => t + 1)); const k = onMapKit(() => {
-      // decoration tiles made between frames: drawn in at once when the map is still; on the move the map is slid,
-      // not redrawn, and the sharp redraw a moment after it stops brings them in
+      // decoration tiles made between frames (or the zones or an atlas come in): drawn in at once when the map is still;
+      // on the move the map is slid, not redrawn, and they are drawn in once it stops
       const bump = () => {
         window.clearTimeout(kitLate.current);
         if (drag.current?.moved || gest.current || performance.now() - travelAt.current < 400) { kitLate.current = window.setTimeout(bump, 450); return; }
-        setArtTick((t) => t + 1);
+        // the canvas alone is drawn again (no render of the whole map screen for a few new tiles)
+        paintRef.current(false);
       };
       bump();
     }); return () => { a(); b(); k(); }; }, []);

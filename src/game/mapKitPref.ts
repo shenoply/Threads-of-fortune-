@@ -21,3 +21,5 @@ export function setMapKit(v: boolean) {
   subs.forEach((f) => f());
 }
 export const useMapKit = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, mapKitOn, () => true);
+// for the review and performance scripts (tests/mapkit-shots.mjs, tests/mapkit-perf.mjs): the same switch the tester sheet uses
+if (typeof window !== 'undefined') (window as unknown as { __setMapKit?: typeof setMapKit }).__setMapKit = setMapKit;

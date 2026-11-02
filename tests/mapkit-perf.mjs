@@ -24,14 +24,17 @@ async function frames(ms, act) {
 const drag = async () => {
   for (let k = 0; k < 4; k++) await dragBy(p, 206, 520, (k % 2 ? -1 : 1) * 200, 40, 24);
 };
-const setKit = (on) => p.evaluate(async (on) => { (await import('/src/game/mapKitPref.ts')).setMapKit(on); }, on);
+const setKit = (on) => p.evaluate((on) => window.__setMapKit(on), on);
 const out = {};
 for (const [name, at, steps] of [['middle', [660, 330], 2], ['close', [425, 585], 8]]) {
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   await view(p, at, steps);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   for (const on of [true, false]) {
-    await setKit(on); await p.waitForTimeout(4000);
+    await setKit(on); await p.waitForTimeout(8000); // the tiles round the view are made in the idle time after it settles
+    // one drag first, unmeasured: the very first drag at a new zoom is slow in this harness whether or not the kit is
+    // on (the DevTools touch events wait on each redraw, and a slow redraw lets the sharp redraw in between moves)
+    await drag(); await p.waitForTimeout(3000);
     const k0 = await p.evaluate(() => ({ ...window.__mapKit }));
     const idle = await frames(3000);
     const kd = await p.evaluate(() => window.__mapKit.draws);
