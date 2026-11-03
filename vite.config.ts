@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import { COLD_TITLES } from './src/game/bootArt';
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 // The built page, for a quicker first screen on a phone line:
 // - the stylesheet loads alongside the code instead of holding back the loading screen (main.tsx waits
 //   for it before drawing the game);
@@ -24,6 +26,34 @@ function check(es){es.forEach(function(e){code.forEach(function(c){if(e.name.ind
 try{new PerformanceObserver(function(l){check(l.getEntries());}).observe({type:'resource',buffered:true});setTimeout(start,10000);}catch(e){start();}})();</script>`;
     return html.replace('</head>', `  ${boot}\n</head>`);
   } },
+});
+// The paintings that sit on the travel map (src/data/mapArt.ts): the names of the files in public/art/map,
+// so the map draws a painting once its file is in the folder and its ink placeholder until then, with no
+// request for a file that is not there. Adding or removing a file there reloads the dev server's page.
+const MAP_ART_DIR = fileURLToPath(new URL('./public/art/map', import.meta.url));
+const mapArtFiles = (): Plugin => ({
+  name: 'map-art-files',
+  resolveId(id) { return id === 'virtual:map-art-files' ? '\0virtual:map-art-files' : undefined; },
+  load(id) {
+    if (id !== '\0virtual:map-art-files') return undefined;
+    let list: string[] = [];
+    try { list = readdirSync(MAP_ART_DIR).filter((f) => /\.(webp|png)$/i.test(f)).sort(); } catch { /* no folder yet */ }
+    // the Blender ships' sprite sheets, one per type, in the ships/ folder (listed as "ships/steamer.webp")
+    try { list = list.concat(readdirSync(`${MAP_ART_DIR}/ships`).filter((f) => /\.(webp|png)$/i.test(f)).sort().map((f) => `ships/${f}`)); } catch { /* none */ }
+    // the decoration atlases (tools/cut-sheets.py), each an image with its frames beside it ("kit/01-palms.webp", "kit/01-palms.json")
+    try { list = list.concat(readdirSync(`${MAP_ART_DIR}/kit`).filter((f) => /\.(webp|png|json)$/i.test(f)).sort().map((f) => `kit/${f}`)); } catch { /* none */ }
+    return `export default ${JSON.stringify(list)};`;
+  },
+  configureServer(server) {
+    server.watcher.add(MAP_ART_DIR);
+    const changed = (f: string) => {
+      if (!f.startsWith(MAP_ART_DIR)) return;
+      const m = server.moduleGraph.getModuleById('\0virtual:map-art-files');
+      if (m) { server.moduleGraph.invalidateModule(m); server.ws.send({ type: 'full-reload' }); }
+    };
+    server.watcher.on('add', changed);
+    server.watcher.on('unlink', changed);
+  },
 });
 // The desktop app's build (`npm run build:pc`, desktop/, docs/PC-BUILD.md): `vite build --mode pc` must work
 // with no network, so the Google Fonts link becomes the copy kept in public/fonts/, and the web app's
@@ -58,7 +88,7 @@ function atStartup(id: string, meta: Meta): boolean {
 }
 export default defineConfig({
   base: './',
-  plugins: [react(), quickStart(), pcBuild(), { name: 'startup-set', buildStart() { startup = null; } }],
+  plugins: [react(), quickStart(), pcBuild(), mapArtFiles(), { name: 'startup-set', buildStart() { startup = null; } }],
   build: {
     outDir: 'dist', assetsInlineLimit: 0,
     // fetch the code, data and library files side by side, not one after the other

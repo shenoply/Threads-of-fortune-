@@ -23,7 +23,9 @@ import { recordPlayer } from '../../game/audio/recordPlayer';
 import './dream.css';
 
 const LENGTH = 55; // seconds over each stretch of the map; the flight itself goes on until the third knock
-const MAP = 'art/world/travel-map-3k.webp', MAP_PX = 2048 / 885; // map units to picture pixels
+// the painted travel map, laid out at about the scale the flight had on the old one (2.3 picture pixels
+// to a map unit): the 3072-wide copy stretched over 4608 x 2797 (see .fc-plane in dream.css)
+const MAP = 'art/world/travel-map-3k.webp', MAP_PX = 4608 / 2000; // map units to picture pixels
 const SAFFRON = 'art/saffron-stall.webp';
 /** the flight's own music: the solo nay, breathy and airy like the night wind, heard nowhere else but a desert camp */
 const FLIGHT_TRACK = 'audio/music/solo-nay-flute.mp3';
@@ -400,7 +402,7 @@ function Dream({ mode, onDone }: { mode: 'night' | 'nap' | 'play'; onDone: () =>
         <div className="fc-sky" style={{ backgroundImage: 'url(art/dream/sky-night.webp), linear-gradient(180deg, #050818 0%, #0f1434 22%, #24204a 34%, #3a2a48 40%, transparent 46%)' }} />
         {skyline && ['far', 'mid', 'near'].map((k, i) => <div key={k} className={`fc-layer ${k}`} ref={(el) => { layers.current[i] = el; }} style={{ backgroundImage: `url(art/dream/bg-${region}-${k}.webp)` }} />)}
         <div className={`fc-plane${skyline ? ' gone' : ''}`} ref={plane} style={{ backgroundImage: `url(${MAP})` }}>
-          {SETTLEMENTS.filter((s) => s.x < 885).map((s) => <i key={s.id} className={`fc-town ${s.kind}`} style={{ left: s.x * MAP_PX, top: s.y * MAP_PX }} />)}
+          {SETTLEMENTS.map((s) => <i key={s.id} className={`fc-town ${s.kind}`} style={{ left: s.x * MAP_PX, top: s.y * MAP_PX }} />)}
         </div>
         <div className="fc-night" style={{ background: `linear-gradient(180deg, transparent 0%, ${legNow.tint}cc 30%, ${legNow.tint}99 100%)` }} />
         <div className="fc-fog" />

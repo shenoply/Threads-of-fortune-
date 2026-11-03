@@ -22,7 +22,7 @@ await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-se
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]');
 await p.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('threads-of-fortune-save')).state.started === true; } catch { return false; } }, null, { timeout: 10000 }).catch(() => {});
 await p.evaluate(() => { const k = 'threads-of-fortune-save'; const d = JSON.parse(localStorage.getItem(k)); const s = d.state; s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
-  Object.assign(s.world, { at: 'cairo', hour: 8, x: 214.3, y: 413.7 }); s.world.party.troops = { guard: 2, fellah: 2, veteran: 1 }; s.world.party.animals = { falahi: 2 }; s.world.party.food = 40; s.cash = 3000; s.reputation = 40;
+  Object.assign(s.world, { at: 'cairo', hour: 8, x: 438.5, y: 588.8 }); s.world.party.troops = { guard: 2, fellah: 2, veteran: 1 }; s.world.party.animals = { falahi: 2 }; s.world.party.food = 40; s.cash = 3000; s.reputation = 40;
   (window.__tofEdit = true, localStorage.setItem(k, JSON.stringify(d)), window.__tofEdit = false, (() => { const w = Storage.prototype.setItem; if (w.__hold) return; const h = function (key, v) { if (key === 'threads-of-fortune-save' && !window.__tofEdit) return; return w.call(this, key, v); }; h.__hold = true; Storage.prototype.setItem = h; setTimeout(() => { if (Storage.prototype.setItem === h) Storage.prototype.setItem = w; }, 4000); })()); localStorage.setItem('tof-skip-chapters', '1'); });
 await p.reload(); if (await has('[data-testid=continue]')) await p.click('[data-testid=continue]'); await p.waitForTimeout(800);
 await p.click('[data-testid=nav-map]').catch(() => {}); await p.waitForTimeout(500);
@@ -185,7 +185,7 @@ void txt3;
 await leave();
 
 // 4. the police post: the bounty paid, the leader jailed, his road quiet; the wanted list shows it
-await inGame((m) => { const s = m.useGame.getState(); m.useGame.setState({ world: { ...s.world, x: 214.3, y: 413.7, at: 'cairo' } }); });
+await inGame((m) => { const s = m.useGame.getState(); m.useGame.setState({ world: { ...s.world, x: 438.5, y: 588.8, at: 'cairo' } }); });
 await p.locator('[data-testid=place-cairo]').dispatchEvent('click').catch(() => {}); await p.waitForTimeout(600);
 if (await has('[data-testid=menu-more]')) await p.click('[data-testid=menu-more]');
 await p.waitForSelector('[data-testid=menu-wanted]', { timeout: 5000 }).catch(() => {});
@@ -229,7 +229,7 @@ await leave();
 
 // 6b. a name on the road: after enough wins, a band no stronger than you lets you pass with a word
 await inGame((m, c) => { const s = m.useGame.getState(); const mine = 2 + Object.entries(s.world.party.troops).reduce((a, [id, n]) => a + ({ guard: 4, veteran: 6, fellah: 1, reformed: 3 }[id] ?? 2) * n, 0);
-  m.useGame.setState({ combat: { ...(s.combat ?? c.combatStart()), wins: 6 }, world: { ...s.world, at: 'cairo', x: 214.3, y: 413.7, hour: 7, party: { ...s.world.party, food: 80 }, parties: s.world.parties.map((q) => (q.id === 'rb1' ? { ...q, x: 222, y: 417, speed: 0, cooldownUntil: 0, size: 5, strength: mine } : q.kind === 'raiders' ? { ...q, cooldownUntil: s.day + 30 } : q)) } }); });
+  m.useGame.setState({ combat: { ...(s.combat ?? c.combatStart()), wins: 6 }, world: { ...s.world, at: 'cairo', x: 438.5, y: 588.8, hour: 7, party: { ...s.world.party, food: 80 }, parties: s.world.parties.map((q) => (q.id === 'rb1' ? { ...q, x: 222, y: 417, speed: 0, cooldownUntil: 0, size: 5, strength: mine } : q.kind === 'raiders' ? { ...q, cooldownUntil: s.day + 30 } : q)) } }); });
 await p.evaluate(() => window.dispatchEvent(new CustomEvent('tof:plan-trip', { detail: 'suez' }))); await p.waitForTimeout(500);
 await p.locator('[data-testid=travel]').dispatchEvent('click').catch(() => {});
 await p.locator('[data-testid=speed-4]').dispatchEvent('click').catch(() => {});

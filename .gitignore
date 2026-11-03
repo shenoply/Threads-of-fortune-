@@ -18,3 +18,6 @@ __pycache__/
 .claude/
 dist-pc/
 release/
+
+# raw Blender ship renders (tools/blender-ships.py); the sheets in art-src/ships are the masters
+art-src/ships/render/

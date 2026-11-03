@@ -35,6 +35,7 @@ import { preload, buyerArt, STALL_ART } from './game/preload';
 import { SecretCode } from './components/Settings/SecretCode';
 import { FullScreenButton, InstallButton } from './components/Settings/FullScreen';
 import { PcSettings } from './platform/PcSettings';
+import { useMapLife, setMapLife } from './game/mapLifePref';
 import { isDesktopApp } from './platform/platform';
 import { HowItPlays, openHowItPlays } from './components/Guide/HowItPlays';
 import { useShallow } from 'zustand/react/shallow';
@@ -764,6 +765,7 @@ export default function App() {
   const cashT = useTween(g.cash);
   const repT = useTween(g.reputation);
   const vibrate = useVibration();
+  const mapLife = useMapLife();
   // on the map in a town, fetch the screens opened next (Malek, the cafe, the telegraph) in a quiet moment
   useEffect(() => { if (phase === 'game' && tab === 'map' && g.at) prefetchNextScreens(); }, [phase, tab, g.at]);
   useEffect(() => { if (phase === 'game') prefetchTabs(); }, [phase]);
@@ -1158,6 +1160,14 @@ export default function App() {
                 </details>
               </>
             )}
+            <h3 className="set-h">Map</h3>
+            <div className="toggle-row">
+              <span>
+                Map life
+                <small>Ships, caravans, clouds and birds moving on the travel map.</small>
+              </span>
+              <button className="switch" role="switch" aria-checked={mapLife} aria-label="Map life" onClick={() => setMapLife(!mapLife)} data-testid="toggle-map-life"><i>Off</i><i>On</i></button>
+            </div>
             <PcSettings />
             {soundOptions}
             <SimOptions value={g.sim ?? FULL_SIM} onChange={g.setSim} locked={!!g.ironman} />

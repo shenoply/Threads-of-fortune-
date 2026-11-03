@@ -16,7 +16,7 @@ await p.reload();
 await p.click('[data-testid=skip-to-day]'); await p.click('[data-testid=begin-day-one]'); await p.waitForTimeout(1500);
 await st((m) => { const s = m.useGame.getState(); const missions = { ...s.missions }; for (const k of ['alexandria', 'beasts']) missions[k] = 'done'; m.useGame.setState({ tutorial: { done: true, step: 'done', inspected: true }, cash: 20000, levelUps: [], titleNews: [], missionNews: undefined, missions, introSeen: ['malek', 'arran', 'abuhamid', 'bilgin-chess', 'rashid', 'nabil', 'cohen', 'alexandria', 'damascus'], tipsSeen: [...(s.tipsSeen ?? []), 'open-all'] }); });
 // in Damascus
-await st((m) => { const s = m.useGame.getState(); m.useGame.setState({ passport: { day: 0 }, lastTown: 'damascus', border: undefined, world: { ...s.world, at: 'damascus', x: 486.9, y: 291, hour: 10, known: [...new Set([...s.world.known, 'damascus'])] } }); });
+await st((m) => { const s = m.useGame.getState(); m.useGame.setState({ passport: { day: 0 }, lastTown: 'damascus', border: undefined, world: { ...s.world, at: 'damascus', x: 735.2, y: 459.9, hour: 10, known: [...new Set([...s.world.known, 'damascus'])] } }); });
 await p.evaluate(() => window.dispatchEvent(new CustomEvent('tof:go', { detail: { view: 'world', panel: 'damascus', tab: 'town' } }))); await p.waitForTimeout(1200);
 await p.screenshot({ path: `${SHOTS}/folk-town.png` });
 if (!(await p.locator('[data-testid=menu-notables]').isVisible().catch(() => false)) && await has('[data-testid=menu-more]')) { await p.click('[data-testid=menu-more]'); await p.waitForTimeout(300); }

@@ -1,0 +1,51 @@
+/* The travel map's life, compass, inked journeys, dividers and trade lens (MapLife.tsx, Compass.tsx, WorldMap.tsx) */
+
+/* the ships, caravans and weather: one canvas over the painting, under the towns and pins */
+.world .map-life { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* the compass: bottom left, clear of the date bar (its bottom is set from the bar's height) and the phone's edges */
+.map-compass {
+  position: absolute; left: calc(10px + env(safe-area-inset-left, 0px)); bottom: var(--map-foot, 84px); z-index: 6;
+  width: 68px; height: 68px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  filter: drop-shadow(0 3px 5px rgba(20,12,6,0.55));
+  -webkit-tap-highlight-color: transparent;
+}
+.map-compass > img, .map-compass > svg, .map-compass .mc-needle { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-compass .mc-needle { display: block; transform-origin: 50% 50%; will-change: transform; }
+.map-compass .mc-needle img, .map-compass .mc-needle svg { width: 100%; height: 100%; display: block; }
+.map-compass img { pointer-events: none; user-select: none; }
+.map-compass:focus-visible { outline: 2px solid #e0b25a; outline-offset: 2px; }
+.pc .map-compass { width: 88px; height: 88px; left: 16px; }
+body.travelling .map-compass { opacity: 0.95; }
+
+/* every way travelled: a fine sepia ink line, the same width at every zoom */
+.world-svg .inked-halo { fill: none; stroke: rgba(246,234,204,0.55); stroke-width: 4px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.world-svg .inked { fill: none; stroke: rgba(70,36,12,0.85); stroke-width: 1.7px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+/* the way behind on the journey now: the same ink, drawing itself in as you go */
+.world-svg .route-trail { stroke: rgba(78,46,20,0.75); stroke-width: 1.8px; vector-effect: non-scaling-stroke; stroke-dasharray: none; stroke-linejoin: round; }
+
+/* dividers: the measured walk, a fine dashed line between two small brass marks */
+.world-svg .divider-line { fill: none; stroke: #5a1a10; stroke-width: 2.2px; vector-effect: non-scaling-stroke; stroke-dasharray: 6 4; stroke-linecap: round; filter: drop-shadow(0 0 1.5px rgba(255,236,196,0.95)); }
+.world-svg .divider-pt { filter: drop-shadow(0 0 1px rgba(255,236,196,0.9)); }
+.world-svg .divider-pt circle { fill: rgba(217,187,124,0.95); stroke: #2c1e12; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.world-svg .divider-pt path { stroke: #2c1e12; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+
+/* the tools: the dividers and the trade lens, drawn in the buttons' own thin line */
+.map-tools .tool-div svg, .map-tools .tool-lens svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; display: block; margin: auto; }
+.map-tools .tool-div.on, .map-tools .tool-lens.on { border-color: #e0a24a; color: #ffe2a8; background: rgba(60,38,16,0.92); }
+
+/* the chips beside the tools: the dividers' answer, the trade lens's key */
+.map-chips { position: absolute; left: calc(88px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); bottom: var(--map-foot, 84px); z-index: 7; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
+.pc .map-chips { left: 116px; right: auto; max-width: 560px; }
+.map-chip { pointer-events: auto; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid rgba(224,162,74,0.7); border-radius: 4px; background: rgba(20,12,6,0.9); color: var(--parchment, #efe3c4); font-size: 14px; line-height: 1.3; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+.map-chip b { color: #ffe2a8; font-weight: 600; }
+.map-chip button { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: inherit; opacity: 0.8; cursor: pointer; }
+.map-chip button svg { width: 14px; height: 14px; }
+
+/* the trade lens's coins: a brass disc up and right of each town's mark, as large as the town pays */
+.lens-coin { position: absolute; width: var(--d); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2); translate: 13px -15px; border-radius: 50%; pointer-events: none; z-index: 2;
+  background: radial-gradient(circle at 35% 30%, #f3dc9a 0 18%, #c99b45 45%, #8a6424 100%);
+  border: 1px solid #3d2a19; box-shadow: inset 0 0 0 2px rgba(255,236,190,0.28), 0 1px 2px rgba(0,0,0,0.45); }
+.lens-coin.best { outline: 1.5px solid rgba(255,226,168,0.9); outline-offset: 2px; }
+.world-inner.pinching .lens-coin { scale: var(--inv-k, 1); }
+.world-map.overview .map-life { opacity: 0.85; }

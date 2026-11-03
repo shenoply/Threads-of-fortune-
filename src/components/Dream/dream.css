@@ -23,7 +23,7 @@
 /* the map below, at night (Dream.tsx) */
 .fc-world { position: absolute; inset: 0; overflow: hidden; perspective: 620px; perspective-origin: 34% 8%; background: #070a1e; }
 .fc-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #050818 0%, #0f1434 22%, #24204a 34%, #3a2a48 40%, transparent 46%); z-index: 1; pointer-events: none; }
-.fc-plane { position: absolute; left: 0; top: 0; width: 2048px; height: 1365px; background-size: 100% 100%; transform-origin: 0 0; filter: brightness(.58) saturate(.7) contrast(1.05); will-change: transform; }
+.fc-plane { position: absolute; left: 0; top: 0; width: 4608px; height: 2797px; background-size: 100% 100%; transform-origin: 0 0; filter: brightness(.58) saturate(.7) contrast(1.05); will-change: transform; }
 .fc-town { position: absolute; width: 0; height: 0; }
 .fc-town::after { content: ''; position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle, rgba(255,214,140,.95) 0, rgba(255,190,110,.45) 30%, transparent 70%); }
 .fc-town.city::after, .fc-town.home::after { left: -28px; top: -28px; width: 56px; height: 56px; }

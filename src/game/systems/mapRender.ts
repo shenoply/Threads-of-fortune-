@@ -7,16 +7,28 @@ let geo: Geo | null = null, geoAsked = false;
 function needGeo(): Geo | null {
   if (!geoAsked) {
     geoAsked = true;
-    import('../../data/geo.json').then((m) => { geo = (m.default ?? m) as Geo; artListeners.forEach((f) => f()); }).catch(() => { geoAsked = false; });
+    import('../../data/geo.json').then((m) => { geo = reproject((m.default ?? m) as Geo); artListeners.forEach((f) => f()); }).catch(() => { geoAsked = false; });
   }
   return geo;
 }
-import { RANGES, DESERTS, FERTILE, PALMS, LABELS, RAILWAYS, PROJ, proj } from '../../data/mapFeatures';
+/** geo.json's rings are in the projection it was drawn in: carried to longitude and latitude, then onto the painting */
+function reproject(g: Geo): Geo {
+  const P = GEO_JSON_PROJ;
+  const ring = (r: number[]) => {
+    const out: number[] = [];
+    for (let i = 0; i < r.length; i += 2) { const q = proj(r[i] / P.kx + P.lon0, P.lat1 - r[i + 1] / P.k); out.push(q.x, q.y); }
+    return out;
+  };
+  const rings = (rs: unknown) => (rs as number[][]).map(ring);
+  return { ...g, land: rings(g.land), landHoles: rings(g.landHoles), lakes: rings(g.lakes), rivers: rings(g.rivers) } as Geo;
+}
+import { RANGES, DESERTS, FERTILE, PALMS, LABELS, RAILWAYS, PROJ, GEO_JSON_PROJ, proj } from '../../data/mapFeatures';
 import { MASK_H } from '../../data/landmask';
-import { persiaCanvas, PERSIA_X0 } from './persiaArt';
 import { RAIL_LINKS } from '../../data/world';
-import { MAP_W, MAP_H, PAINT_W, GRID_W, fitFog, paint, settlementById, routeLeg } from './world';
+import { MAP_W, MAP_H, GRID_W, fitFog, settlementById, routeLeg } from './world';
 import { crossfadeCanvas } from '../feel';
+import { MAP_LABELS, drawLandmarks, drawCartouche, type ArtLayer } from './mapArtDraw';
+import { drawKit } from './mapKitDraw';
 
 type Ring = number[];
 
@@ -55,7 +67,7 @@ function loadSharp() {
   // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   // a phone that cannot hold the big picture decoded keeps the small one
-  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4608-wide painting (travel-map-4k.webp), crisp at 1920x1080
+  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4800-wide painting (travel-map-4k.webp)
   const pc = typeof document !== 'undefined' && document.documentElement.classList.contains('pc');
   loadPicture(phone ? 'art/world/travel-map-3k.webp' : pc ? 'art/world/travel-map-4k.webp' : 'art/world/travel-map.webp')
     .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
@@ -71,16 +83,6 @@ function askSmall() {
     .then((p) => { artSmall = p; smallReady = true; if (!artReady) artListeners.forEach((f) => f()); })
     .catch(() => {})
     .finally(() => { smallDone = true; if (wantSharp) loadSharp(); });
-}
-// Persia's painting: asked for with the sharp western copy, drawn over x = 855..1265 (feathered in its
-// first 30 units so the two paintings meet without a seam)
-let eastImg: CanvasImageSource | null = null, eastAsked = false;
-function paintedEast(): CanvasImageSource | null {
-  if (!eastAsked && typeof Image !== 'undefined') {
-    eastAsked = true;
-    loadPicture('art/world/persia-painted.webp').then((p) => { eastImg = p; artListeners.forEach((f) => f()); }).catch(() => {});
-  }
-  return eastImg;
 }
 
 /** The painting, once it has loaded (the sharp copy when it is in, the small one before that). */
@@ -115,29 +117,16 @@ function paintedRails() {
   return railCache;
 }
 
-const PAINT_LABELS: { text: string; x: number; y: number; kind: 'region' | 'sea' | 'minor' | 'river'; size?: number; rot?: number }[] = [
-  { text: 'EGYPT', x: 360, y: 930, kind: 'region', size: 1.25 },
-  { text: 'SINAI', x: 790, y: 880, kind: 'region', size: 0.9 },
-  { text: 'PALESTINE', x: 690, y: 660, kind: 'region', size: 0.7 },
-  { text: 'TRANSJORDAN', x: 900, y: 660, kind: 'region', size: 0.75 },
-  { text: 'SYRIA', x: 1010, y: 430, kind: 'region', size: 1 },
-  { text: 'ANATOLIA', x: 470, y: 185, kind: 'region', size: 1.1 },
-  { text: 'IRAQ', x: 1290, y: 560, kind: 'region', size: 1.1 },
-  { text: 'Mediterranean Sea', x: 330, y: 470, kind: 'sea', size: 1.1 },
-  { text: 'Red Sea', x: 720, y: 960, kind: 'sea', size: 0.9, rot: 58 },
-  { text: 'Black Sea', x: 560, y: 40, kind: 'sea', size: 0.9 },
-  { text: 'Syrian Desert', x: 1090, y: 620, kind: 'minor', size: 1.1 },
-  { text: 'Nile', x: 342, y: 880, kind: 'river', rot: 72 },
-  { text: 'Euphrates', x: 1150, y: 395, kind: 'river', rot: 28 },
-  // Persia, east of the painting (map units converted to painting pixels)
-  ...([
-    { text: 'PERSIA', x: 1150, y: 262, kind: 'region', size: 1.25 },
-    { text: 'Caspian Sea', x: 1068, y: 82, kind: 'sea', size: 0.9 },
-    { text: 'Persian Gulf', x: 1040, y: 470, kind: 'sea', size: 0.9, rot: 18 },
-    { text: 'Zagros', x: 968, y: 318, kind: 'minor', size: 0.95, rot: 40 },
-    { text: 'Dasht-i Kavir', x: 1140, y: 236, kind: 'minor', size: 0.9 },
-  ] as const).map((l) => ({ ...l, x: (l.x * 1536) / PAINT_W, y: (l.y * 1536) / PAINT_W })),
+// the painted map's names, by longitude and latitude (placed on the painting through data/projection.ts)
+// the painted map's names: the seas, rivers and regions at the art brief's spots (data/mapArt.ts MAP_LABELS),
+// and the lesser names of deserts and ranges by longitude and latitude
+const PAINT_MINOR: { text: string; lon: number; lat: number; kind: 'minor'; size?: number; rot?: number }[] = [
+  { text: 'Syrian Desert', lon: 39.3, lat: 32.6, kind: 'minor', size: 1.1 },
+  { text: 'Zagros', lon: 49.0, lat: 32.6, kind: 'minor', size: 0.95, rot: 40 },
+  { text: 'Dasht-i Kavir', lon: 54.5, lat: 34.6, kind: 'minor', size: 0.9 },
 ];
+let paintLabels: { text: string; x: number; y: number; kind: 'region' | 'sea' | 'minor' | 'river'; size?: number; rot?: number }[] | null = null;
+const PAINT_LABELS = () => paintLabels ??= [...MAP_LABELS, ...PAINT_MINOR.map((l) => ({ ...l, ...proj(l.lon, l.lat) }))];
 const ringPath = (rings: Ring[]) => {
   const p = new Path2D();
   for (const r of rings) {
@@ -236,7 +225,7 @@ const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
 const lastArt = new WeakMap<HTMLCanvasElement, CanvasImageSource | null>();
-export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean } = {}) {
+export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean; art?: ArtLayer; kit?: { life: boolean } } = {}) {
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const world = () => ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
@@ -264,13 +253,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     world();
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(art, 0, 0, PAINT_W, MAP_H);
-    // Persia, east of the painting: its own painting (art/world/persia-painted.webp, its left 30 units
-    // fading in over the western one), or until that is in, the one drawn in code (persiaArt.ts)
-    const east = paintedEast() ?? persiaCanvas(() => artListeners.forEach((f) => f()));
-    if (east) ctx.drawImage(east, PERSIA_X0, 0, MAP_W - PERSIA_X0, MAP_H);
-    else { ctx.fillStyle = 'rgb(208,158,96)'; ctx.fillRect(PAINT_W, 0, MAP_W - PAINT_W, MAP_H); }
+    ctx.drawImage(art, 0, 0, MAP_W, MAP_H);
     screen();
+    // the painted decorations (palms, trees, peaks ...), under the roads, the fog and the names
+    if (opts.kit) drawKit(ctx, v, opts.kit.life);
   } else {
   // the engraved map's coastlines, grain and stipple are only built when it is drawn (the painting needs none of it)
   if (!needGeo()) { screen(); ctx.fillStyle = '#2a1d12'; ctx.fillRect(0, 0, w, h); return; }
@@ -483,10 +469,16 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     screen();
   }
 
+  // the painted pieces that stand on the map: the town landmarks (at a middle zoom and closer), and far out
+  // the title cartouche and the scale ornament
+  if (art && opts.art) {
+    drawLandmarks(ctx, X, Y, s, w, h, opts.art);
+    if (opts.art.overview) drawCartouche(ctx, X, Y, s, milesPx(1));
+  }
   // labels
   if (opts.labels !== false) {
-    for (const l of art ? PAINT_LABELS : LABELS) {
-      const p = 'x' in l ? paint(l.x, l.y) : proj(l.lon, l.lat);
+    for (const l of art ? PAINT_LABELS() : LABELS.map((q) => ({ ...q, ...proj(q.lon, q.lat) }))) {
+      const p = { x: l.x, y: l.y };
       const x = X(p.x), y = Y(p.y);
       if (x < -200 || y < -60 || x > w + 200 || y > h + 60) continue;
       const size = (l.kind === 'region' ? 15 : l.kind === 'sea' ? 15 : l.kind === 'river' ? 11 : 11) * (l.size ?? 1) * zf;
@@ -615,7 +607,8 @@ function cartouche(ctx: CanvasRenderingContext2D, x: number, y: number, zf: numb
 }
 
 /** Scale bar length in screen px for 100 miles at the current zoom. */
-export const milesPx = (s: number) => (paintedMap() ? 104 : (160.9 / 111) * PROJ.k) * s;
+// (about 0.48 map units to the kilometre, the middle of the painting's scale between the towns: tools/build-map.py)
+export const milesPx = (s: number) => 77.3 * s;
 
 /** Fog texture: unexplored land shown as blank parchment. */
 export function fogCanvas(fog: string) {

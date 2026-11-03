@@ -97,7 +97,7 @@ try {
   check(w.rec.told === 1 && w.rec.won === 2, 'a second win the same day: no second piece of talk');
 
   // ── Damascus: Abu Sa'id, from the city walk ──
-  await edit(`Object.assign(s.world, { at: 'damascus', x: 486.9, y: 291, hour: 11 }); s.guideSeen = true;`);
+  await edit(`Object.assign(s.world, { at: 'damascus', x: 735.2, y: 459.9, hour: 11 }); s.guideSeen = true;`);
   await p.reload(); if (await has('continue')) await p.click('[data-testid=continue]');
   await p.click('[data-testid=nav-map]'); await p.waitForTimeout(500);
   if (await has('guide-skip')) await p.click('[data-testid=guide-skip]');

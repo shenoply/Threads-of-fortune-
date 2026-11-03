@@ -41,7 +41,7 @@ try {
 
   // ---- 1. a Cairo dealer offers a faked Golden Palm (day 6, reputation 25: his back-room piece) ----
   await edit(`s.tutorial = { done: true, step: 'done', inspected: true }; s.missionNews = undefined; s.levelUps = []; s.titleNews = [];
-    s.day = 6; s.reputation = 25; s.cash = 6000; s.world.at = 'cairo'; s.world.hour = 9; s.world.x = 214.3; s.world.y = 413.7;
+    s.day = 6; s.reputation = 25; s.cash = 6000; s.world.at = 'cairo'; s.world.hour = 9; s.world.x = 438.5; s.world.y = 588.8;
     s.labUnlocked = ['fibre', 'dye']; s.arranTools = ['loupe']; s.inventory = s.inventory.slice(0, 2); s.queue = []; s.visitIdx = 0;
     s.lastSummary = undefined; s.journey = undefined;`);
   await closeCards();

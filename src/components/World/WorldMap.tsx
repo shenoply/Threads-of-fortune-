@@ -32,11 +32,22 @@ import { waterOf } from '../../game/systems/malek';
 import { TROOPS, MARKETS } from '../../data/caravan';
 import { ROAD_LINES } from '../../data/terrain';
 import { routeDanger, tripEstimate, durationLabel, type FareLine,
-  MAP_W, MAP_H, PAINT_W, findPath, routeLeg, routeThrough, pathLength, pathDays, walkPace, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
+  MAP_W, MAP_H, VIEW_W, VIEW_H, findPath, routeLeg, routeThrough, pathLength, pathDays, walkPace, terrainAt, terrainSpeed, TERRAIN_LABEL, isBlockedPx, placeNameAt, pathGround, along, isWaterPx, isExplored, dist, seaRoutesFrom, motorRoutesFrom, railJourney,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { isPc } from '../../platform/pc';
 import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidth } from '../../game/systems/mapRender';
+import mapArtList from 'virtual:map-art-files';
+import { setArtFiles, LANDMARKS } from '../../data/mapArt';
+import { onMapArt, type ArtLayer, type LandmarkLook } from '../../game/systems/mapArtDraw';
+import { MapLife, type Camera } from './MapLife';
+import { onMapKit } from '../../game/systems/mapKitDraw';
+import { useMapKit } from '../../game/mapKitPref';
+import { Compass } from './Compass';
+import { bearing } from '../../game/systems/compass';
+import { inkPath, pathUpTo, nearInk } from '../../game/systems/inked';
+import { useMapLife } from '../../game/mapLifePref';
+import './maplife.css';
 import { animalCount, speedInfo, strength, partySize, foodDaysLeft, dailyFood, troopCount, morale as moraleOf, fatiguePace, healthMods } from '../../game/systems/caravan';
 import { MenTalk } from './Troops';
 import { Icon } from '../Icon';
@@ -59,12 +70,15 @@ import { milesPerDay } from './CaravanScreen';
 import { StallOverhead } from './StallOverhead';
 import { cityLocked, lockedWhy, lockNeeds, openingStep } from '../../game/opening';
 import { persiaOpen, persiaWhy } from '../../game/unlocks';
-import { inPersia, PERSIA_ROADS } from '../../data/persiaMap';
+import { inPersia } from '../../data/persiaMap';
 import { guideTarget } from '../../game/guide';
 import { newsMarks, khamsinZones, inKhamsin, partyGoods, NEWS_ICON, NEWS_TIP, KHAMSIN_R, KHAMSIN_PACE, floodPace, seasonPathMult, snowPass, SNOW_PACE } from '../../game/systems/mapNews';
 import { ferryHours, SEASON_NOW } from '../../game/economy/calendar1925';
 import { roadEventDue, startRoadEvent, settleRoadEvent, choicesFor, eventText, walkBegun, absHour, CARD_MIN_MS } from '../../game/systems/roadEvents';
 import type { RoadEvent } from '../../data/roadEvents';
+
+// the paintings in public/art/map, as the build found them
+setArtFiles(mapArtList);
 
 export const DAYS_PER_SECOND = 1 / 24; // one game hour per second at 1x (a day in 24 s; 6 s at 4x), on the road or standing still
 const MAJOR = ['home', 'city', 'port'];
@@ -260,7 +274,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const d = g.day + Math.floor(t / 24), h = t % 24;
     return `${durationLabel(days)}, arrives ${dateFor(d).weekday.slice(0, 3)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
   };
+  // the journey as it stands, for inking the way behind when it ends or turns
+  const movingNow = useRef<Moving | null>(moving);
   const setMoving = (m: null | Moving) => {
+    const prev = movingNow.current;
+    movingNow.current = m;
+    // a journey that ends, turns or gives way to another: the way actually travelled is inked on the map
+    if (prev && (!m || m.path !== prev.path)) {
+      const wd = useGame.getState().world;
+      const behind = travelledPart(prev.path, { x: wd.x, y: wd.y }).behind;
+      if (behind.length > 1) useGame.getState().inkJourney(behind);
+    }
     setMovingRaw(m);
     const st = useGame.getState();
     useGame.setState({ journey: m ?? undefined, ...(m && st.dayOver ? { dayOver: false } : {}) });
@@ -370,6 +394,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useEffect(() => { if (panel) openTown.at = panel; }, [panel]);
   useEffect(() => { if (openTown.at && openTown.at !== w.at) openTown.at = null; }, [w.at]);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
+  const kitLate = useRef<number | undefined>(undefined);
   const pts = useRef(new Map<number, Pt>());
   // a pinch in progress: only a CSS transform on the map layer and the canvas until the fingers lift,
   // then zoom and camera are committed once (m0/m: the point between the fingers, wrap-local)
@@ -395,17 +420,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const lastScale = useRef(1);
   if (timeScale > 0) lastScale.current = timeScale;
 
-  // zoom 1 is the map filling the screen; on a tall phone that shows only the Delta, so you can zoom
-  // out further, down to the whole map fitted on screen with dark margins round it
-  // (zoom 1 is measured against the painting, so Persia, drawn east of it, does not change the usual view)
-  const base = Math.max(size.w / PAINT_W, size.h / MAP_H);
+  // zoom 1 is a view about the size of Egypt and the Levant filling the screen (the old painting's frame,
+  // VIEW_W x VIEW_H, so the zooms and the names shown at each are as before the map grew); you can zoom
+  // out further, down to the whole map filling the screen
+  const base = Math.max(size.w / VIEW_W, size.h / VIEW_H);
   // zoomed right out the map still fills the screen (on a tall phone it fills the height and pans sideways), never a thin strip
   const minZ = Math.min(1, Math.max(size.w / MAP_W, size.h / MAP_H) / base);
   // the closest zoom: where the painting is still crisp on this screen (its pixels blown up no more than
   // about 1.6 times), never closer than 2.6 nor further than the old 4.5
   const artW = paintedMapWidth();
   const dprNow = typeof window !== 'undefined' ? Math.min(3, window.devicePixelRatio || 1) : 1;
-  const maxZ = artW ? Math.max(minZ, 2.6, Math.min(4.5, ((artW / PAINT_W) * 1.6) / (base * dprNow))) : 4.5;
+  const maxZ = artW ? Math.max(minZ, 2.6, Math.min(4.5, ((artW / MAP_W) * 1.6) / (base * dprNow))) : 4.5;
   /** the close-in views (the stall bubble over Giza, names on the bands) come at 3, or at the closest zoom if that is nearer */
   const closeZ = Math.min(3, maxZ) - 0.01;
   const s = base * z;
@@ -433,14 +458,41 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // a trunk route (both ends a city, port or your home) draws heavier than a local track to a village,
   // oasis, monastery or camp — so the map reads "this is the way between places that matter" at a glance
   const MAJOR_KIND = new Set(['home', 'city', 'town', 'port']);
-  const roads = useMemo(() => [...ROAD_LINES.map((r) => ({ a: r.a, b: r.b, pts: r.pts.map(([x, y]) => ({ x, y })) })), ...PERSIA_ROADS].map((r) => ({
+  const roads = useMemo(() => ROAD_LINES.map((r) => ({ a: r.a, b: r.b, pts: r.pts.map(([x, y]) => ({ x, y })) })).map((r) => ({
     pts: r.pts,
     major: MAJOR_KIND.has(settlementById(r.a).kind) && MAJOR_KIND.has(settlementById(r.b).kind),
   })), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogImg = useMemo(() => fogCanvas(w.fog), [w.fog]);
   const [artTick, setArtTick] = useState(0);
-  useEffect(() => { paintedMap(); return onPaintedMap(() => setArtTick((t) => t + 1)); }, []);
+  useEffect(() => { paintedMap(); const a = onPaintedMap(() => setArtTick((t) => t + 1)); const b = onMapArt(() => setArtTick((t) => t + 1)); const k = onMapKit(() => {
+      // decoration tiles made between frames (or the zones or an atlas come in): drawn in at once when the map is still;
+      // on the move the map is slid, not redrawn, and they are drawn in once it stops
+      const bump = () => {
+        window.clearTimeout(kitLate.current);
+        if (drag.current?.moved || gest.current || performance.now() - travelAt.current < 400) { kitLate.current = window.setTimeout(bump, 450); return; }
+        // the canvas alone is drawn again (no render of the whole map screen for a few new tiles)
+        paintRef.current(false);
+      };
+      bump();
+    }); return () => { a(); b(); k(); }; }, []);
+  // the painted pieces on the base map (landmarks, the cartouche): what to draw, set each render below
+  const artLayerRef = useRef<ArtLayer | undefined>(undefined);
+  // the map's life (ships, caravans, weather) and the compass
+  const life = useMapLife();
+  // the painted decorations (tester's switch), and whether they sway: the base map is drawn again when either changes
+  const kitOn = useMapKit();
+  const kitRef = useRef(kitOn); kitRef.current = kitOn;
+  const lifeRef = useRef(life); lifeRef.current = life;
+  useEffect(() => { setArtTick((t) => t + 1); }, [kitOn, life]);
+  const headingRef = useRef<number | null>(null);
+  const meLive = useRef<Pt | null>(null);
+  const trailRef = useRef<SVGPolylineElement>(null);
+  const pointAt = useRef<{ to: Pt; until: number } | null>(null);
+  // dividers: two places tapped, the walk between them in days; the trade lens: what each town pays
+  const [divOn, setDivOn] = useState(false);
+  const [divPts, setDivPts] = useState<{ pt: Pt; id?: string; name?: string }[]>([]);
+  const [lens, setLens] = useState(false);
   /** Paint the map at the live camera (panRef), not the last committed one; the travel loop calls this every frame.
    *  On the move the map is drawn once at 1x with a margin round the screen and slid under CSS (a GPU move,
    *  no repaint) until the camera nears the margin; whole-canvas redraws at 2x every frame cost ~100 ms a frame on
@@ -486,7 +538,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     if (M) Object.assign(c.style, { left: `${-M}px`, top: `${-M}px`, width: `${cw}px`, height: `${ch}px`, transform: 'translate(0px, 0px)', willChange: 'transform' });
     else Object.assign(c.style, { left: '', top: '', width: '', height: '', transform: '', willChange: '' });
-    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads });
+    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads, art: artLayerRef.current, kit: kitRef.current ? { life: lifeRef.current } : undefined });
     drawn.current = { x: p.x, y: p.y, s: sc, m: M, w: W, h: H, fog: fogImg, art: artTickRef.current, at: now };
   };
   useEffect(() => {
@@ -514,7 +566,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   );
   const clampRef = useRef(clampPan);
   clampRef.current = clampPan;
-  const centreOn = useCallback((p: Pt, sc = s) => setPan(clampPan({ x: size.w / 2 - p.x * sc, y: size.h / 2 - p.y * sc }, sc)), [clampPan, s, size, setPan]);
+  const centreOn = useCallback((p: Pt, sc = s) => {
+    const np = clampPan({ x: size.w / 2 - p.x * sc, y: size.h / 2 - p.y * sc }, sc);
+    setPan(np);
+    // after a fling the layer was moved by hand: if the camera comes back to where React last put it, React sees no
+    // change and would leave the layer and the painting where the fling left them
+    if (innerRef.current && sc === s) { innerRef.current.style.transform = `translate(${np.x}px, ${np.y}px)`; requestAnimationFrame(() => paintRef.current(false)); }
+  }, [clampPan, s, size, setPan]);
 
   useEffect(() => {
     centreOn({ x: w.x, y: w.y });
@@ -868,6 +926,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     let lastView = performance.now();
     let inSand = false;
     let inSnow = false;
+    let trailAt = 0;
     // the frame-by-frame view goes straight to the DOM; React hears about it only a few times a second
     // (a pinch or a fling owns the camera while it lasts: its transform is not overwritten)
     const syncView = () => { lastView = performance.now(); setLive(livePos); if (!gest.current && !fling.current && !drag.current?.moved) setPan(panRef.current); };
@@ -900,8 +959,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       if (moving.mode === 'ferry') days = (dt / 6) * ferryDays();
       done += days * speed;
       acc += days;
+      const prevPos = livePos;
       const { pos, done: arrived } = along(moving.path, done);
       livePos = pos;
+      meLive.current = pos;
+      // the compass follows the way you are heading
+      if (Math.hypot(pos.x - prevPos.x, pos.y - prevPos.y) > 0.01) headingRef.current = bearing(prevPos, pos);
+      // the way behind you inks itself in as you go
+      if (trailRef.current && now - trailAt > 90) { trailAt = now; trailRef.current.setAttribute('points', pathUpTo(moving.path, done).map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')); }
       // reaching the narrows: stop, and the crossing is chosen here, on the road
       const pt = passTrip.current;
       if (pt && !moving.train && !moving.mode && done >= pt.atPx && !useGame.getState().crossings?.[pt.key]) {
@@ -1144,6 +1209,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // a single tap on open map: plan the way there (or open the town you are in); mid-journey, goTo asks before the caravan turns
   tapRef.current = (mp: Pt) => {
     const st = SETTLEMENTS.filter((x) => w.known.includes(x.id) && placeShown(x)).map((x) => ({ x, d: dist(x, mp) })).filter((o) => o.d * s < 22).sort((a, b) => a.d - b.d)[0]?.x;
+    // with the dividers out, a tap marks a point to measure from or to, and plans nothing
+    if (divOn) { divTap(mp, st); return; }
     if (st && st.id === w.at && !moving) { setPanel(st.id); return; }
     goTo(mp, st);
   };
@@ -1228,6 +1295,79 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const keyPlace = (id: string) => w.at === id || plan?.settlement?.id === id || moving?.dest === id || missionTarget === id || guideCity === id;
   const placeShown = (st: Settlement) => tier > 0 || keyPlace(st.id) || !!venueFor(st.id) || MAJOR.includes(st.kind);
 
+  // The landmarks on the base map: warm where you have been (where you are, or on a way you have inked),
+  // plain where you know the place and may go, dimmed where you do not or cannot yet.
+  const lockedNow = SETTLEMENTS.filter((x) => w.known.includes(x.id) && cityLocked(g, x.id)).map((x) => x.id).join(',');
+  const landmarkLook = useMemo<LandmarkLook>(() => {
+    const out: LandmarkLook = {};
+    const locked = new Set(lockedNow.split(','));
+    for (const it of LANDMARKS) {
+      const id = it.town!, well = ROAD_WELLS.find((x) => x.id === id), st = well ? undefined : SETTLEMENTS.find((x) => x.id === id);
+      const at = well ?? st;
+      if (!at) continue;
+      const known = well ? isExplored(w.fog, well) : w.known.includes(id) && !locked.has(id);
+      out[id] = w.at === id || g.lastTown === id || nearInk(g.inked, at, 6) ? 'visited' : known ? 'known' : 'dim';
+    }
+    return out;
+  }, [w.known, w.at, w.fog, g.inked, g.lastTown, lockedNow]); // eslint-disable-line react-hooks/exhaustive-deps
+  const overview = z <= minZ * 1.2;
+  artLayerRef.current = { tier, overview, landmarks: landmarkLook };
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => paintRef.current(false));
+    return () => cancelAnimationFrame(raf);
+  }, [tier, overview, landmarkLook]);
+
+  // The compass: north at rest; on the road the way you are heading; a town just chosen, towards it for a moment.
+  useEffect(() => { const st = plan?.settlement; if (st) pointAt.current = { to: { x: st.x, y: st.y }, until: performance.now() + 2600 }; }, [plan?.settlement?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!moving) { headingRef.current = null; meLive.current = null; } }, [moving]);
+  const compassAim = () => {
+    const wd = useGame.getState().world;
+    const me = (movingNow.current && meLive.current) || { x: wd.x, y: wd.y };
+    const pa = pointAt.current;
+    if (pa && performance.now() < pa.until && Math.hypot(pa.to.x - me.x, pa.to.y - me.y) > 1) return bearing(me, pa.to);
+    return movingNow.current && headingRef.current !== null ? headingRef.current : 0;
+  };
+  const findMe = () => { follow.current = true; followAt.current = 0; stopFling(); centreOn(moving && live ? live : { x: w.x, y: w.y }); audio.sfx('tap'); };
+  /** the camera as the map layer shows it this instant, a pinch included (for the life canvas) */
+  const cameraNow = (): Camera | null => {
+    const sz = sizeRef.current, G = gest.current;
+    if (G) return { tx: G.m.x + (G.pan0.x - G.m0.x) * G.k, ty: G.m.y + (G.pan0.y - G.m0.y) * G.k, s: sRef.current * G.k, w: sz.w, h: sz.h };
+    return { tx: panRef.current.x, ty: panRef.current.y, s: sRef.current, w: sz.w, h: sz.h };
+  };
+
+  // Dividers: the walk between the two places tapped, by the game's own pathfinding at your caravan's pace.
+  const divTap = (pt: Pt, st?: Settlement) => {
+    const at = st ? { pt: { x: st.x, y: st.y }, id: st.id, name: st.name } : { pt, name: placeNameAt(pt) };
+    setDivPts((d) => (d.length === 1 ? [d[0], at] : [at]));
+    audio.sfx('tap');
+  };
+  const divResult = useMemo(() => {
+    if (divPts.length < 2) return null;
+    const [a, b] = divPts;
+    if (isBlockedPx(a.pt) || isBlockedPx(b.pt)) return { path: null, days: 0, miles: 0, why: 'water' as const };
+    const path = findPath(a.pt, b.pt);
+    if (!path) return { path: null, days: 0, miles: 0, why: 'none' as const };
+    const days = (pathDays(path, sp.pxPerDay) * seasonPathMult(g.day, path)) / walkPace(a.id, b.id, path);
+    return { path, days, miles: Math.round((pathLength(path) / milesPx(1)) * 100), why: '' as const };
+  }, [divPts, sp.pxPerDay, g.day]);
+  const divName = (d: { name?: string }) => d.name ?? 'open country';
+
+  // The trade lens: beside each known town, a coin as large as that town's dealers would pay for the rugs you carry.
+  const packedKey = g.inventory.filter((i) => !i.stored && !i.restoringUntil).map((i) => i.uid).join(',');
+  const lensMarks = useMemo(() => {
+    if (!lens) return null;
+    const packed = g.inventory.filter((i) => !i.stored && !i.restoringUntil);
+    if (!packed.length) return { n: 0, rows: [] as { st: Settlement; sum: number; k: number }[], best: undefined as Settlement | undefined, top: 0 };
+    const locked = new Set(lockedNow.split(','));
+    const rows0 = SETTLEMENTS.filter((st) => w.known.includes(st.id) && !st.gateway && st.sells.length && !locked.has(st.id))
+      .map((st) => ({ st, sum: packed.reduce((a, r) => a + localBid(st.id, r, g.day), 0) }));
+    const max = Math.max(0, ...rows0.map((r) => r.sum)), min = Math.min(max, ...rows0.map((r) => r.sum));
+    const rows = rows0.map((r) => ({ ...r, k: max > min ? (r.sum - min) / (max - min) : 1 }));
+    const best = rows.find((r) => r.sum === max)?.st;
+    return { n: packed.length, rows, best, top: max };
+  }, [lens, packedKey, w.known, g.day, lockedNow]); // eslint-disable-line react-hooks/exhaustive-deps
+  const inkD = useMemo(() => inkPath(g.inked), [g.inked]);
+
   // Keep the town names readable: after each render, your medallion and the party medallions step aside
   // (a few fixed nudges, the first that fits) from any town name, town mark or each other; a trader or
   // pilgrim band that finds no room is hidden, raiders always stay. Only positions are written here.
@@ -1269,7 +1409,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     // the screen, and the controls fixed over the map, in the map layer's own coordinates
     const view: Box = { l: wr.left - ir.left + 4, t: wr.top - ir.top + 4, r: wr.right - ir.left - 4, b: wr.bottom - ir.top - 4 };
-    const controls = [...wrapEl.querySelectorAll('.map-tools > button, .scalebar, .find-me-pill, .world-hud, .bl-bar, .overhead-pin')].map((el) => rel(el, 3)).filter((b) => b.r > b.l);
+    const controls = [...wrapEl.querySelectorAll('.map-tools > button, .scalebar, .find-me-pill, .world-hud, .bl-bar, .overhead-pin, .map-compass, .map-chips')].map((el) => rel(el, 3)).filter((b) => b.r > b.l);
     const dotOf = new Map<Element, Box>();
     inner.querySelectorAll('.place:not(.pl-off)').forEach((pl) => { const d = pl.querySelector('.pdot'); if (d) dotOf.set(pl, rel(d)); });
     const marks = [...dotOf.values()];
@@ -1296,7 +1436,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       };
       const tries = cands.map(shift);
       const free = (bx: Box) => !names.some((n) => hits(bx, n)) && !controls.some((c) => hits(bx, c));
-      const at = tries.find((t) => free(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => free(t.box)) ?? (it.pri === 0 ? tries[0] : null);
+      const at = tries.find((t) => free(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => free(t.box)) ?? (it.pri <= 0 ? tries[0] : null);
       if (!at) { it.el.style.visibility = 'hidden'; continue; }
       if (at.x || at.y) it.el.style.translate = `${Math.round(at.x)}px ${Math.round(at.y)}px`;
       names.push(at.box);
@@ -1349,7 +1489,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // The towns on the map: built again only when something they show changes (the zoom, what is known,
   // where you are bound, jobs and shops), not on each of the travel loop's updates
   const placeClick = useRef<(st: Settlement) => void>(() => {});
-  placeClick.current = (st: Settlement) => { if (w.at === st.id && !moving) setPanel(st.id); else goTo(st, st); };
+  placeClick.current = (st: Settlement) => { if (divOn) { divTap(st, st); return; } if (w.at === st.id && !moving) setPanel(st.id); else goTo(st, st); };
   const lockedKey = SETTLEMENTS.filter((x) => w.known.includes(x.id) && cityLocked(g, x.id)).map((x) => x.id).join(',');
   const placesLayer = useMemo(() => SETTLEMENTS.filter((st) => w.known.includes(st.id)).map((st) => {
             const shown = placeShown(st), key = keyPlace(st.id);
@@ -1369,7 +1509,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               onPointerDown={(e) => e.stopPropagation()}
               onPointerUp={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); placeClick.current(st); }}
-              data-pri={key ? 0 : venueFor(st.id) || MAJOR.includes(st.kind) ? 1 : st.kind === 'town' ? 2 : 3}
+              data-pri={w.at === st.id || plan?.settlement?.id === st.id ? -1 : key ? 0 : st.kind === 'home' ? 1 : st.kind === 'city' || venueFor(st.id) ? 1.2 : st.kind === 'port' ? 1.4 : st.kind === 'town' ? 2 : 3}
               data-testid={`place-${st.id}`}
             >
               <span className="pdot"><Icon name={kindIcon[st.kind] ?? 'pin'} /></span>
@@ -1464,9 +1604,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         onPointerLeave={(e) => { if (e.pointerType !== 'mouse') return; pts.current.delete(e.pointerId); if (drag.current?.moved) setPan(panRef.current); drag.current = null; setHoverBlocked(false); }}
         style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
-        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt and the Levant in 1925" />
+        <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt, the Levant, Iraq and Persia in 1925" />
+        <MapLife camera={cameraNow} on={life} kit={kitOn} fog={w.fog} />
+        {/* the hour's tint over the screen only, not the whole map: at a close zoom the map is many screens across,
+            and a blended layer that size is more than a phone's graphics memory will hold */}
+        <div className="daynight" style={{ background: tint(w.hour) }} />
         <div className="world-inner" ref={innerRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, width: MAP_W * s, height: MAP_H * s }} data-testid="world-inner" data-zoom={z.toFixed(2)} data-tier={tier}>
-          <div className="daynight" style={{ background: tint(w.hour) }} />
           {sandZones.map((c, i) => (
             <div key={i} className="sand-haze" style={{ left: (c.x - KHAMSIN_R) * s, top: (c.y - KHAMSIN_R) * s, width: KHAMSIN_R * 2 * s, height: KHAMSIN_R * 2 * s }} data-testid="sand-haze" />
           ))}
@@ -1475,12 +1618,19 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <span key={c.name} className={`xing xing-${c.kind}`} style={{ left: c.x * s, top: c.y * s }} title={`${c.name}${c.kind === 'ford' ? ' (slow)' : ''}`} aria-hidden="true">{c.kind === 'bridge' ? '⌒' : '≈'}</span>
           ))}
           <svg className="world-svg" viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: MAP_W * s, height: MAP_H * s }}>
-            {split && split.behind.length > 1 && <polyline points={split.behind.map((p) => `${p.x},${p.y}`).join(' ')} className="route-trail" data-testid="route-trail" />}
+            {inkD && <path d={inkD} className="inked-halo" />}
+            {inkD && <path d={inkD} className="inked" data-testid="inked" />}
+            {split && split.behind.length > 1 && <polyline ref={trailRef} points={split.behind.map((p) => `${p.x},${p.y}`).join(' ')} className="route-trail" data-testid="route-trail" />}
+            {divOn && divResult?.path && <polyline points={divResult.path.map((p) => `${p.x},${p.y}`).join(' ')} className="divider-line" data-testid="divider-line" />}
+            {divOn && divPts.map((d, i) => <g key={i} className="divider-pt" transform={`translate(${d.pt.x} ${d.pt.y})`}><circle r={5 / s} /><path d={`M0 ${-9 / s}V${9 / s}M${-9 / s} 0H${9 / s}`} /></g>)}
             {routeSvg && <polyline points={routeSvg.map((p) => `${p.x},${p.y}`).join(' ')} className={`route ${moving ? 'live' : ''} ${routeRisky ? 'danger' : ''}`} />}
             {moving && reroute?.path && <polyline points={reroute.path.map((p) => `${p.x},${p.y}`).join(' ')} className="route reroute-line" />}
             {plan && !plan.path && <circle cx={plan.to.x} cy={plan.to.y} r="6" className="route-bad" />}
           </svg>
           {placesLayer}
+          {lensMarks?.rows.map(({ st, sum, k }) => (
+            <span key={st.id} className={`lens-coin${lensMarks.best?.id === st.id ? ' best' : ''}`} style={{ left: st.x * s, top: st.y * s, ['--d' as string]: `${(7 + 15 * k).toFixed(1)}px` }} title={`${st.name}: about ${fmt(sum)} for what you carry`} aria-label={`${st.name}: about ${fmt(sum)}`} data-testid={`coin-${st.id}`} data-k={k.toFixed(2)} data-sum={Math.round(sum)} />
+          ))}
           {visibleParties.map((p) => {
             const mine = strength(w.party);
             const raid = p.kind === 'raiders' && !!p.strength;
@@ -1599,11 +1749,36 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
             <i style={{ transform: `rotate(${meAngle}deg)` }} aria-hidden="true">➜</i> Back to your caravan
           </button>
         )}
+        <Compass aim={compassAim} onTap={findMe} />
+        {(divOn || lens) && (
+          <div className="map-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+            {divOn && (
+              <div className="map-chip" role="status" data-testid="divider-chip">
+                <span>{divPts.length === 0 ? 'Dividers: tap the first place' : divPts.length === 1 ? <>From {divName(divPts[0])}: tap the second place</>
+                  : !divResult?.path ? (divResult?.why === 'water' ? 'Open water: tap two places on land' : <>No way on foot from {divName(divPts[0])} to {divName(divPts[1])}</>)
+                  : <><b>{divName(divPts[0])} to {divName(divPts[1])}</b> · {divResult.days < 0.15 ? 'a few hours on foot' : `about ${daysWord(Math.max(1, Math.round(divResult.days)))} on foot`} · {divResult.miles} miles</>}</span>
+                <button type="button" onClick={() => { setDivOn(false); setDivPts([]); }} aria-label="Put the dividers away" data-testid="divider-close"><Icon name="x" /></button>
+              </div>
+            )}
+            {lens && lensMarks && (
+              <div className="map-chip" role="status" data-testid="lens-chip">
+                <span>{lensMarks.n === 0 ? 'You carry no rugs, so there is nothing to price.' : <>The coins show what each town pays for the {lensMarks.n === 1 ? 'rug' : `${lensMarks.n} rugs`} you carry.{lensMarks.best && <> Best: <b>{lensMarks.best.name}</b>, about {fmt(lensMarks.top)}.</>}</>}</span>
+                <button type="button" onClick={() => setLens(false)} aria-label="Close the trade lens" data-testid="lens-close"><Icon name="x" /></button>
+              </div>
+            )}
+          </div>
+        )}
         <div className="scalebar" aria-hidden="true" data-testid="scalebar"><i style={{ width: scaleBar.w }} /><span>{scaleBar.mi} miles</span></div>
         <div className="map-tools" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={() => zoomTo(z + 0.6)} aria-label="Zoom in" data-testid="world-zoom-in">+</button>
           <button onClick={() => zoomTo(z - 0.6)} aria-label="Zoom out">−</button>
           <button onClick={() => { follow.current = true; followAt.current = 0; stopFling(); centreOn(moving && live ? live : { x: w.x, y: w.y }); }} aria-label="Centre on your caravan" title="Back to your caravan" data-testid="world-recenter"><Icon name="locate" /><small className="tool-cap">You</small></button>
+          <button className={`tool-div${divOn ? ' on' : ''}`} onClick={() => { setDivOn((o) => !o); setDivPts([]); audio.sfx('tap'); }} aria-pressed={divOn} aria-label="Dividers: measure the walk between two places" title="Dividers" data-testid="dividers-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2" /><path d="M11 6.2 6.5 20.5M13 6.2l4.5 14.3M8.4 14.5h7.2" /></svg>
+          </button>
+          <button className={`tool-lens${lens ? ' on' : ''}`} onClick={() => { setLens((o) => !o); audio.sfx('tap'); }} aria-pressed={lens} aria-label="Trade lens: what each town pays for what you carry" title="Trade lens" data-testid="lens-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="M14.5 14.5 20 20" /><circle cx="10" cy="10" r="2.6" /></svg>
+          </button>
           <button className="jobs-btn" onClick={() => setJobsOpen((o) => !o)} aria-label="Objectives" title="Objectives" data-testid="jobs-btn"><Icon name="scroll" />{jobs.length + visits.length > 0 && <b>{jobs.length + visits.length}</b>}</button>
         </div>
       </div>

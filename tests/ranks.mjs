@@ -85,7 +85,7 @@ check(r.newSeason.place === r.newSeason.of, 'the new season starts you at the bo
 await p.evaluate(async () => {
   const S = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')));
   const g = S.useGame.getState();
-  S.useGame.setState({ ranks: { ...g.ranks, tables: { ...g.ranks.tables, cairo: { you: 25000 } } }, lastSummary: undefined, jobNote: undefined, world: { ...g.world, at: 'cairo', x: 214.3, y: 413.7, hour: 8, parties: [] } });
+  S.useGame.setState({ ranks: { ...g.ranks, tables: { ...g.ranks.tables, cairo: { you: 25000 } } }, lastSummary: undefined, jobNote: undefined, world: { ...g.world, at: 'cairo', x: 438.5, y: 588.8, hour: 8, parties: [] } });
 });
 for (const x of ['day-summary-ok', 'big-news-ok', 'mission-ok']) { const y = p.locator(`[data-testid=${x}]`); if (await y.count()) await y.first().click({ timeout: 1500 }).catch(() => {}); }
 await p.locator('[data-testid=nav-map]').click({ timeout: 3000 }).catch(() => {});

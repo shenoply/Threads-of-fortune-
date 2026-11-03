@@ -78,7 +78,7 @@ try {
   if (await has('errand-buyfood-field_safety')) { await p.click('[data-testid=errand-buyfood-field_safety]'); console.log('   bought food:', await p.locator('[data-testid=errand-note-field_safety]').textContent(), '| food now', (await live()).food); }
 
   if (process.env.START === 'sinai') {
-    await edit(`s.world.at = 'sinai'; const t = { x: 489.7, y: 460.9 }; s.world.x = t.x; s.world.y = t.y; s.day = 16; s.world.hour = 6.5; s.crossings = { 'giza>sinai:1': { choice: 'escort', risk: 40, outcome: { kind: 'hard', text: '', fatigue: 18, foodLost: 2, cashLost: 0, cargoLost: false, extraDays: 0 } } };`);
+    await edit(`s.world.at = 'sinai'; const t = { x: 608.8, y: 676.3 }; s.world.x = t.x; s.world.y = t.y; s.day = 16; s.world.hour = 6.5; s.crossings = { 'giza>sinai:1': { choice: 'escort', risk: 40, outcome: { kind: 'hard', text: '', fatigue: 18, foodLost: 2, cashLost: 0, cargoLost: false, extraDays: 0 } } };`);
     await reload(); await p.waitForTimeout(800); if (!(await has('town-menu'))) { await p.click('[data-testid=nav-map]'); await p.waitForTimeout(800); }
     console.log('   (resumed at St Catherine\'s; the outward walk was verified in a full run: arrived day 16, 25 March)');
   } else {
@@ -156,7 +156,7 @@ try {
   const pat = await p.evaluate(async () => { const m = await import(performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/game/state/store.ts')) ?? '/src/game/state/store.ts'); const s = m.useGame.getState(); return { note: s.jobNote, patrols: s.patrols }; });
   console.log('6. patrol at Suez:', pat.note ?? '(no note)', '| patrols', JSON.stringify(pat.patrols ?? {}).slice(0, 240));
   // the lab is in Giza: come home (the stall button only opens the district there)
-  await edit(`Object.assign(s.world, { at: 'giza', x: 146.9, y: 443.7 }); s.journey = null;`); await reload();
+  await edit(`Object.assign(s.world, { at: 'giza', x: 421.1, y: 595 }); s.journey = null;`); await reload();
   await toLab(); await p.click('[data-testid=arran-tab-road]'); await p.waitForTimeout(200);
   await p.locator('[data-testid=arran-patrols]').scrollIntoViewIfNeeded().catch(() => {});
   console.log('   in the lab:', await p.locator('[data-testid=arran-patrols]').innerText().then((t) => t.replace(/\n+/g, ' | ')).catch(() => 'none'), '| watch:', await p.locator('[data-testid=arran-attention]').textContent());
