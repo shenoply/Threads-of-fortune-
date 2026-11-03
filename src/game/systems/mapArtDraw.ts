@@ -249,7 +249,7 @@ function tonedSprite(img: HTMLImageElement, key: string, wpx: number, look: 'vis
   if (look !== 'visited') {
     // a place you know but have not been to: a little paler; one you cannot go to yet: faded nearly to the paper's colour
     const d = g.getImageData(0, 0, W, H), px = d.data;
-    const sat = look === 'known' ? 0.88 : 0.3, lift = look === 'known' ? 0 : 0.1, alpha = look === 'known' ? 1 : 0.66;
+    const sat = look === 'known' ? 0.88 : 0.35, lift = look === 'known' ? 0 : 0.08, alpha = look === 'known' ? 1 : 0.8;
     for (let i = 0; i < px.length; i += 4) {
       const l = px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11;
       px[i] = l + (px[i] - l) * sat + (232 - l) * lift;
