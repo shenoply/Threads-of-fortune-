@@ -69,7 +69,9 @@ function loadSharp() {
   // a phone that cannot hold the big picture decoded keeps the small one
   // the PC layout (a big screen, src/platform/pc.ts) gets the full 4800-wide painting (painted-map-4k.webp)
   const pc = typeof document !== 'undefined' && document.documentElement.classList.contains('pc');
-  loadPicture(phone ? 'art/world/painted-map-3k.webp' : pc ? 'art/world/painted-map-4k.webp' : 'art/world/painted-map.webp')
+  // a phone with memory to spare (Android reports it: 4 GB or more) gets the full one too, so the closest zoom stays crisp
+  const mem = typeof navigator !== 'undefined' ? (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 0 : 0;
+  loadPicture(pc || (phone && mem >= 4) ? 'art/world/painted-map-4k.webp' : phone ? 'art/world/painted-map-3k.webp' : 'art/world/painted-map.webp')
     .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
     .catch(() => { artFailed = true; artListeners.forEach((f) => f()); });
 }

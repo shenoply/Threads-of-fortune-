@@ -3,14 +3,14 @@
 // loop straight from the live camera (no React render per frame), about thirty times a second, and not at
 // all while the tab is hidden or "Map life" is off in Settings.
 import { useEffect, useRef } from 'react';
-import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, PAINT_ANCHOR, shipPainting, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { SHIPS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, PAINT_ANCHOR, shipPainting, type ArtItem, type ShipKind } from '../../data/mapArt';
 import SIZES from '../../data/mapOverlays.json';
 import type { Pt } from '../../game/systems/world';
 import { mapLanes, poseAt, shipFrame } from '../../game/systems/mapLife';
 import { drawKitLive } from '../../game/systems/mapKitDraw';
 import { FOG_LEN, GRID_W } from '../../game/systems/world';
 import { MASK_H, CELL } from '../../data/landmask';
-import { sheetFor, shipPaintingFor, paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
+import { sheetFor, shipPaintingFor, paintingFor, shipPlaceholder, wakePlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
 
 export interface Camera { tx: number; ty: number; s: number; w: number; h: number }
 
@@ -20,7 +20,6 @@ const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.82, cargo: 
 /** the painted mail steamer's width and the first caravan's, in their pictures' pixels: every ship and every caravan is
  *  drawn at one scale from these (tools/map-overlays.py shrinks each set by one factor) */
 const PAINT_STEAMER_W = (SIZES.sizes as unknown as Record<string, number[]>)['S1-steamer.webp']?.[0] ?? 293;
-const CARAVAN_REF_W = (SIZES.sizes as unknown as Record<string, number[]>)['C1-caravan.webp']?.[0] ?? 411;
 /** +1 when a lane's outward leg runs east (the paintings face right), -1 when it runs west */
 const facingOut = (pts: Pt[]) => (pts[pts.length - 1].x >= pts[0].x ? 1 : -1);
 /** ?ships=blender (or tof-ships=blender in local storage) shows the Blender sheets, for comparison */
@@ -179,41 +178,7 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         ctx.restore();
         dirty = true;
       }
-      // caravans: they face the way they walk (mirrored by the leg, never turned on their heads; turned over through
-      // a turn at the end of the stretch), every painting at one scale so the camels agree
-      for (const it of CARAVANS as ArtItem[]) {
-        const lane = lanes.get(it.code);
-        if (!lane) continue;
-        const p = poseAt(lane, t);
-        const x = X(p.x), y = Y(p.y);
-        const img = paintingFor(it);
-        if (img) {
-          const k = clamp(30 * s, 40, 96) / CARAVAN_REF_W;
-          const cw = img.naturalWidth * k, ch = img.naturalHeight * k;
-          if (!seen(x, y, cw)) continue;
-          const out = facingOut(lane.pts);
-          const dir = (p.out ? out : -out) * (p.turning ? Math.cos(Math.PI * p.turning) : 1);
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.scale(Math.abs(dir) < 0.08 ? 0.08 * Math.sign(dir || 1) : dir, 1);
-          // the feet on the way, a breath of a bob as they walk
-          ctx.drawImage(img, -cw / 2, -ch * 0.92 + Math.sin(t * 3) * ch * 0.008, cw, ch);
-          ctx.restore();
-          dirty = true;
-          continue;
-        }
-        const size = clamp(40 * s, 34, 96);
-        if (!seen(x, y, size)) continue;
-        const left = Math.cos(p.angle) < 0;
-        ctx.save();
-        ctx.translate(x, y);
-        if (left) ctx.scale(-1, 1);
-        const ph = caravanPlaceholder(it.camels ?? 4, Math.floor(t * 2.2) % 2);
-        const w = size * 1.25, h = (w * ph.height) / ph.width;
-        ctx.drawImage(ph, -w / 2, -h / 2, w, h);
-        ctx.restore();
-        dirty = true;
-      }
+      // no caravans: the painted ones wandered the deserts to no purpose (removed 2026-11-03; C1..C5 kept unused)
       const ms = performance.now() - start;
       perf.frames++; perf.ms += ms; perf.worst = Math.max(perf.worst, ms);
     };

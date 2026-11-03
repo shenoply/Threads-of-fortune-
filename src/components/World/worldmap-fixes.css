@@ -70,3 +70,12 @@
 .world .me.medal .me-train.flip .me-grp { right: auto; left: calc(var(--k) * 22px); }
 .world .me.medal .me-train .me-grp .me-tok { position: static; display: block; width: 18px; height: 18px; }
 .world .me.medal .me-train .me-n { position: absolute; right: -5px; top: -6px; min-width: 12px; height: 12px; padding: 0 2px; border-radius: 6px; background: #2a180c; border: 1px solid #c9a24a; color: #f3e3c2; font: 700 8px/10px var(--label, sans-serif); font-style: normal; text-align: center; }
+
+/* the stall on the map close in (2026-11-03): a small round window beside Giza, no longer a big bubble over the
+   towns; a short caption under it, the stall's name only in the stall itself */
+.world .overhead-pin { width: auto; gap: 2px; animation: none; }
+.world .overhead-pin .overhead.compact { width: 44px; height: 44px; border-width: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.45); }
+.world .overhead-pin .overhead.compact .overhead-img { width: 44px; height: 44px; aspect-ratio: 1 / 1; object-fit: cover; object-position: 38% 62%; border: 0; border-radius: 50%; }
+.world .overhead-pin .overhead.compact .overhead-label { display: none; }
+.world .overhead-pin .overhead-cap { font-size: 11px; line-height: 1.3; padding: 0 5px; letter-spacing: 0.04em; cursor: pointer; }
+.world .me[data-noname='1'] .me-name { display: none; }

@@ -73,7 +73,8 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   painting, drop it into public/art/map as <code>-<name>.webp (or .png; any name after the code works):
   vite.config.ts lists that folder at build time (virtual:map-art-files), and the map draws the file in place
   of its ink placeholder (src/game/systems/mapArtDraw.ts). No code change. The compass is the Blender render
-  (tools/blender-compass.py). Ships and caravans move on lanes checked against the land mask
+  (tools/blender-compass.py). Ships move on lanes checked against the land mask (the painted caravans C1..C5 no
+  longer walk the map since 2026-11-03: their wandering served no purpose; the files stay, unused)
   (src/game/systems/mapLife.ts) on their own canvas (components/World/MapLife.tsx); "Map life" in Settings
   stops them. Every way travelled is inked into the save (state.inked, systems/inked.ts). Dividers and the
   trade lens are the two tools under the zoom buttons. tests/maplife.ts and tests/maplife.mjs check it all.
@@ -101,7 +102,8 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   the manifest, it says so; a <sheet>.groups.json beside the sheet (group names in reading order) settles it.
   Where each decoration stands: `python3 tools/build-mapkit.py --overlay /tmp/zones.png` (painting relief, snow and
   greens, regions by longitude and latitude, clear of water, rivers, towns, names and routes; seeded) writes
-  src/data/mapKitZones.ts. Run it again after moving towns, roads or names. Drawing: src/game/systems/mapKitDraw.ts
+  src/data/mapKitZones.ts. Run it again after moving towns, roads or names. Since 2026-11-03 it places no dunes, outcrops, scrub or ochre
+  hills (on flat sand they read as stickers), green hills only on green ground, and no peak standing alone off a range. Drawing: src/game/systems/mapKitDraw.ts
   (cached tiles on the base map; with Map life on and close in, trees sway and sea marks fade on the life canvas).
   Tester switch: "Travel map decorations" in the tester sheet, or ?kit=0 / ?kit=1. Tests: tests/mapkit.ts,
   tests/mapkit-shots.mjs, tests/mapkit-perf.mjs.
@@ -113,11 +115,15 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   S1/S2/S3/S4/S6/S9 ships and S-wake, C1..C5-caravan.webp and people/<what>.webp, plus src/data/mapOverlays.json
   (every picture's size; ships, caravans and people each shrunk by one factor so their sizes agree). The pack's
   "donkey cart" is a ploughman with an ox (people/plough.webp). Layout: src/game/systems/mapOverlays.ts.
-  Landmarks stand just above their town's pin, from the middle zoom in, most important first; one that would cover
-  another landmark, or any pin, name or mark as the page laid them out (WorldMap's label pass hands the boxes over),
-  shifts aside, shrinks a step, or is left out at that zoom; warm where visited, paler where known, faded where
+  Landmarks stand just above their town's pin, most important first (where you are first); zoomed far out only the
+  cities', ports', your home's and your own town's, a size smaller. One that would cover another landmark, or any pin,
+  name or mark as the page laid them out (WorldMap's label pass hands the boxes over, with your medallion and the stall
+  window), is lifted over its own town's marks, shifts aside, goes under the town's name, shrinks a step, or is left out
+  at that zoom; moved off its pin (or far out) it must stand on dry land; warm where visited, paler where known, faded where
   closed; none in unexplored country. Ships: the type's painting faces its leg (mirrored westward, turned over
   through a turn, tilted at most about 5 degrees), the painted wake under it. Caravans: mirrored by leg, one scale.
   People: PEOPLE in src/data/mapArt.ts (a town, or a stretch of road), placed once on dry ground clear of roads,
   rails, pins, names, landmarks and painted names; drawn on the base map close in with Map life on only.
-  Tests: tests/mapoverlays.ts.
+  The stall at Giza shows close in as a small round window west of the town (tap opens it), not a bubble over the towns.
+  The closest zoom is capped where the painting stays crisp (never under 2.45); Android phones with 4 GB or more load the
+  4800-wide copy. Tests: tests/mapoverlays.ts.

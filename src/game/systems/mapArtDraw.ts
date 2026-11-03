@@ -267,12 +267,11 @@ const explored = (fog: string | undefined, x: number, y: number) => !fog || fog.
 
 const hashKey = (t: string) => { let h = 7; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return h; };
 let layoutMemo: { key: string; spots: LandmarkSpot[] } | null = null;
-/** The town landmarks: from the middle zoom in, each just above its town's pin, laid out so none hides a pin, a name
+/** The town landmarks: each just above its town's pin (zoomed far out, only the cities', your home's and your own), laid out so none hides a pin, a name
  *  or another landmark (systems/mapOverlays.ts); warm where you have been, paler where you know the place, faded where
  *  you cannot go yet; none in unexplored country. Before a painting is in, nothing at the towns (their pins say enough)
  *  and a tiny ink mark at a well, close in. */
 export function drawLandmarks(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, w: number, h: number, L: ArtLayer, dpr = 1) {
-  if (L.tier < 1) return;
   const pins = new Set((L.pins ?? '').split(','));
   const shown = (id: string) => !!L.landmarks[id] && !!placeAt(id) && explored(L.fog, placeAt(id)!.x, placeAt(id)!.y);
   const key = `${s.toFixed(3)}|${L.tier}|${L.pins}|${L.here}|${L.blocks?.key.length ?? 0}:${hashKey(L.blocks?.key ?? '')}|${Object.keys(L.landmarks).filter(shown).join(',')}`;

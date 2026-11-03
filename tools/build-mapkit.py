@@ -10,14 +10,15 @@ projection, src/data/projection.ts):
     (the Hessian's strongest bend), peaks set in rows along them, the heart of a range first and largest;
     snowy where the painting is white, red granite in Sinai, the Red Sea hills and Midian, bare elsewhere;
     Ararat and Damavand as the two very large snowy peaks at their real places;
-  - hills on the edges and foothills of the ranges, green where the painting is green;
+  - green hills on the foothills of the ranges, only where the painting is green;
   - trees on the painting's greens inside sensible regions (the Black Sea coast, the Caspian shore, the
     Caucasus, western Anatolia, Greece, the Taurus), cedars on Mount Lebanon, oak in the Zagros foothills;
   - olives on the Levant coast, western Anatolia, Greece, Crete and Cyprus, and thick in the Ghouta;
   - fields in the Delta, the Nile valley, the Fayoum and Mesopotamia; palms thick along the Nile and in the
     Delta, the Fayoum, down the Tigris and Euphrates to Basra, on the Gulf and Oman coasts, in the Jordan
     valley and at the oases and wells, sparse on the Levant coast;
-  - dunes, rocky outcrops and scrub in the deserts; wave strokes on the open sea, shallows along coasts.
+  - nothing in the open deserts (no dunes, outcrops, scrub or ochre hills: they read as stickers on the sand),
+    and no peak standing alone off a range; wave strokes on the open sea, shallows along coasts.
 Nothing stands on water but the sea marks, nothing on a river, and every town, name, road and route is
 kept clear. Each item is checked by its whole outline at the largest it is drawn (it is drawn larger when
 zoomed out, src/game/systems/mapKitDraw.ts). Each item gets a level of detail: level 0 is a sparse set
@@ -333,13 +334,12 @@ def main(argv=None):
     pl.add('peak-big', bx, by, size, 0, rng, 60, force=True)
   pl.scatter('peak-bare', np.where(mount, 1.0, 0), [(0, 26), (1, 14), (2, 8)], size=peak_size, kind_of=peak_kind, order=score)
 
-  # ---- 2. hills: the edges and foothills of the ranges
+  # ---- 2. hills: the green foothills of the ranges only. Ochre hills on bare ground read as stickers floating on
+  # the sand (owner's test on a phone, 2026-11-03), so none are placed: the painting's own relief carries the desert.
   near_mount = edt(mount) < 45
   foot = (nd.binary_dilation(mount, iterations=5) & ~mount) | ((rel > np.where(lowered, 7.0, 8.5)) & ~mount & near_mount)
-  foot &= land & ~near_nile & ~delta
-  hill_d = np.where(foot, 0.3, 0)
-  pl.scatter('hill-ochre', hill_d, [(0, 50), (1, 28), (2, 16)],
-             kind_of=lambda x, y: 'hill-green' if green[cell(x, y)] > 0.18 else 'hill-ochre')
+  foot &= land & ~near_nile & ~delta & (green > 0.22)
+  pl.scatter('hill-green', np.where(foot, 0.3, 0), [(0, 50), (1, 28), (2, 16)])
 
   # ---- 3. fields: the Delta, the Nile valley, the Fayoum, Mesopotamia
   field_d = np.zeros((GH, GW))
@@ -401,29 +401,8 @@ def main(argv=None):
   pa_d[~land] = 0
   pl.scatter('palm', pa_d, [(0, 20), (1, 9), (2, 4.2)])
 
-  # ---- 7. desert marks
-  nafud = box(39.3, 43.6, 27.2, 29.4)
-  dahna = poly([(44.0, 28.2), (45.2, 28.2), (48.6, 23.0), (47.5, 22.4)])
-  rub = box(44.0, 57.0, 18.0, 23.2)
-  syrian = box(37.4, 43.0, 30.6, 35.0)
-  western = box(23.5, 30.6, 21.0, 30.9) & ~nile_region
-  sand_sea = box(24.6, 27.4, 24.0, 29.6)
-  n_sinai = box(32.4, 34.3, 30.4, 31.2)
-  sinai = box(32.8, 34.9, 28.0, 30.4)
-  kavir = box(51.5, 56.8, 33.4, 36.0)
-  lut = box(57.0, 60.5, 28.4, 32.2)
-  arabia = box(36.0, 51.0, 21.0, 30.5)
-  desert_ok = land & ~mount & (green < 0.12) & ~near_nile & ~near_meso & ~delta & ~fayoum
-  du_d = np.maximum.reduce([np.where(nafud, 0.8, 0), np.where(dahna, 0.7, 0), np.where(rub, 0.75, 0), np.where(sand_sea, 0.75, 0),
-                            np.where(western, 0.2, 0), np.where(n_sinai, 0.5, 0), np.where(lut, 0.55, 0), np.where(syrian, 0.08, 0),
-                            np.where(kavir, 0.15, 0)]) * desert_ok * (rel < 9)
-  oc_d = np.maximum.reduce([np.where(syrian, 0.5, 0), np.where(western & ~sand_sea, 0.4, 0), np.where(sinai, 0.25, 0), np.where(kavir, 0.35, 0),
-                            np.where(lut, 0.35, 0), np.where(arabia & ~nafud & ~dahna & ~rub, 0.3, 0)]) * desert_ok * (rel > 3)
-  sc_d = np.maximum.reduce([np.where(syrian, 0.45, 0), np.where(arabia, 0.3, 0), np.where(western, 0.25, 0), np.where(sinai, 0.3, 0),
-                            np.where(kavir | lut, 0.3, 0)]) * desert_ok
-  pl.scatter('dune', du_d, [(0, 80), (1, 44), (2, 26)])
-  pl.scatter('outcrop', oc_d, [(0, 90), (1, 46), (2, 26)])
-  pl.scatter('scrub', sc_d, [(1, 36), (2, 15)])
+  # ---- 7. desert marks: none. Dunes, outcrops and scrub stood as lone mounds on flat sand and looked pasted on;
+  # the painted deserts already show their dunes and stony ground.
 
   # ---- 8. the sea: wave strokes on open water, shallows along the coasts
   wv_d = np.where(open_sea & (d_shore >= 22), 0.65, 0)
@@ -431,6 +410,15 @@ def main(argv=None):
   pl.scatter('wave', wv_d, [(0, 100), (1, 55), (2, 32)])
   pl.scatter('shallow', sh_d, [(1, 80), (2, 46)])
 
+  # no peak standing alone: one with fewer than four others within 40 units is a mound on the plain, not a range
+  pk = [t for t in pl.items if KINDS[t[0]] in ('peak-snow', 'peak-bare', 'peak-granite')]
+  if pk:
+    xy = np.array([(t[2], t[3]) for t in pk])
+    from scipy.spatial import cKDTree
+    nn = np.array([len(v) - 1 for v in cKDTree(xy).query_ball_point(xy, 40)])
+    lone = {id(t) for t, c in zip(pk, nn) if c < 4}
+    pl.items = [t for t in pl.items if id(t) not in lone]
+    print(f'{len(lone)} lone peaks left out')
   items = sorted(pl.items, key=lambda t: (t[3], t[2], t[0]))
   write(a.out, items)
   counts = {}

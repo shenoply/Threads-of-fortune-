@@ -103,13 +103,7 @@ for (const s of SHIPS) {
   ok(bad === 0 && l.len >= 20, `${s.code} (${s.ship}) sails ${l.len.toFixed(0)} units, always on ${s.ship === 'felucca' ? 'the Nile' : 'water'}${bad ? ` (${bad} points off)` : ''}`);
   ok(dist(l.pts[0], s as { x: number; y: number }) < 80, `${s.code} stays near its spot`);
 }
-for (const c of CARAVANS) {
-  const l = lanes.get(c.code);
-  if (!l) { ok(false, `${c.code} has a way`); continue; }
-  let bad = 0;
-  for (let t = 0; t < 2 * (l.secs + l.turn); t += 1) { const p = poseAt(l, t); if (isBlockedPx(p) || isWaterPx(p)) bad++; }
-  ok(bad === 0 && dist(l.pts[0], c as { x: number; y: number }) < 70, `${c.code} walks ${l.len.toFixed(0)} units of land near its spot`);
-}
+ok(CARAVANS.every((c) => !lanes.has(c.code)), 'no caravans walk the map');
 {
   const l = lanes.get('S1')!;
   const a = poseAt(l, 0), b = poseAt(l, 0.5);

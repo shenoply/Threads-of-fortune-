@@ -1,11 +1,10 @@
-// The travel map's moving pieces (src/data/mapArt.ts): where each ship sails and each caravan walks, and
+// The travel map's moving pieces (src/data/mapArt.ts): where each ship sails, and
 // where it is at a given moment. Pure, so the lanes can be checked against the land mask in a test.
 // A ship keeps to a short lane of open water near its spot (every point on it water, with a little sea
-// either side); the felucca keeps to the Nile; a caravan walks a short stretch of road, or of open
-// desert, near its spot. Each goes slowly one way, turns, and comes back.
-import { CARAVANS, SHIPS, SHEET_FRAMES, SHEET_TILT, type ArtItem } from '../../data/mapArt';
-import { ROAD_LINES } from '../../data/terrain';
-import { dist, isBlockedPx, isWaterPx, terrainAt, MAP_W, MAP_H, type Pt } from './world';
+// either side); the felucca keeps to the Nile. Each goes slowly one way, turns, and comes back.
+// (The painted caravans no longer walk the map: their wandering served no purpose.)
+import { SHIPS, SHEET_FRAMES, SHEET_TILT, type ArtItem } from '../../data/mapArt';
+import { dist, isWaterPx, terrainAt, MAP_W, MAP_H, type Pt } from './world';
 
 export interface Lane { code: string; pts: Pt[]; len: number; /** seconds for one way */ secs: number; /** seconds to turn round at each end */ turn: number; phase: number }
 export interface Pose { x: number; y: number; /** heading, radians, 0 = east (the art faces right), clockwise */ angle: number; /** moving towards the lane's end (false: coming back) */ out: boolean; /** 0..1 how far through a turn (0 when under way) */ turning: number }
@@ -72,33 +71,8 @@ function riverLane(c: Pt, half: number): Pt[] | null {
   });
   return sm.every((p) => terrainAt(p) === 'river') ? sm : pts;
 }
-/** A caravan's way: the stretch of the nearest road near its spot, or a straight track over open ground. */
-function landLane(c: Pt, half: number): Pt[] | null {
-  // every road, resampled every 2 units, so a stretch can be cut to length anywhere along it
-  let best: { line: Pt[]; i: number; d: number } | null = null;
-  for (const r of ROAD_LINES) {
-    const line: Pt[] = [];
-    for (let j = 1; j < r.pts.length; j++) {
-      const [ax, ay] = r.pts[j - 1], [bx, by] = r.pts[j];
-      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 2));
-      for (let k = j === 1 ? 0 : 1; k <= n; k++) line.push({ x: ax + ((bx - ax) * k) / n, y: ay + ((by - ay) * k) / n });
-    }
-    line.forEach((p, i) => { const d = dist(p, c); if (d < 45 && (!best || d < best.d)) best = { line, i, d }; });
-  }
-  const walkable = (p: Pt) => inMap(p) && !isBlockedPx(p) && !isWaterPx(p);
-  if (best) {
-    const { line, i } = best as { line: Pt[]; i: number };
-    const step = Math.round(half / 2);
-    const out = line.slice(Math.max(0, i - step), i + step + 1);
-    // keep only every fourth point (8 units apart): the caravan's heading turns gently
-    const thin = out.filter((_, k) => k % 4 === 0 || k === out.length - 1);
-    if (thin.length >= 2 && lengthOf(thin) > 16 && out.every(walkable)) return thin;
-  }
-  return straightLane(c, walkable, half * 2, 16);
-}
-
 let lanes: Map<string, Lane> | null = null;
-/** Every ship's and caravan's lane (worked out once). */
+/** Every ship's lane (worked out once). */
 export function mapLanes(): Map<string, Lane> {
   if (lanes) return lanes;
   lanes = new Map();
@@ -112,7 +86,7 @@ export function mapLanes(): Map<string, Lane> {
     if (s.ship === 'felucca') add(s, riverLane(c, 45), 0.9);
     else add(s, straightLane(c, (p) => seaAt(p, s.ship === 'steamer' || s.ship === 'cargo' ? 8 : 5), 90, 24), s.ship === 'steamer' ? 1.6 : s.ship === 'cargo' ? 1.2 : 0.9);
   }
-  for (const cv of CARAVANS) add(cv, landLane({ x: cv.x!, y: cv.y! }, 24), 0.45);
+  // caravans no longer walk the map (2026-11-03): only ships have lanes
   return lanes;
 }
 

@@ -27,7 +27,9 @@ ok(z.n === KIT_COUNT && z.n > 3000, `${z.n} decorations decoded`);
 const count: Record<string, number> = {};
 for (let i = 0; i < z.n; i++) count[KIT_KINDS[z.kind[i]].kind] = (count[KIT_KINDS[z.kind[i]].kind] ?? 0) + 1;
 console.log('     ' + KIT_KINDS.map((k) => `${k.kind} ${count[k.kind] ?? 0}`).join(', '));
-ok(KIT_KINDS.every((k) => (count[k.kind] ?? 0) > 0), 'every kind is placed somewhere');
+// dunes, outcrops, scrub and ochre hills are no longer placed: on flat sand they read as stickers (2026-11-03)
+const NONE = ['hill-ochre', 'dune', 'outcrop', 'scrub'];
+ok(KIT_KINDS.every((k) => NONE.includes(k.kind) ? !count[k.kind] : (count[k.kind] ?? 0) > 0), 'every kind but the desert marks is placed somewhere, and no desert marks');
 let sorted = true;
 for (let i = 1; i < z.n; i++) if (z.y[i] < z.y[i - 1]) { sorted = false; break; }
 ok(sorted, 'stored back to front (by the base, top of the map first)');

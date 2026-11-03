@@ -428,10 +428,11 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // zoomed right out the map still fills the screen (on a tall phone it fills the height and pans sideways), never a thin strip
   const minZ = Math.min(1, Math.max(size.w / MAP_W, size.h / MAP_H) / base);
   // the closest zoom: where the painting is still crisp on this screen (its pixels blown up no more than
-  // about 1.6 times), never closer than 2.6 nor further than the old 4.5
+  // about 1.6 times on the map canvas, which is drawn at most 2 device pixels a CSS pixel), never closer than 2.45
+  // (just past the close tier, so every name still shows) nor further than the old 4.5
   const artW = paintedMapWidth();
-  const dprNow = typeof window !== 'undefined' ? Math.min(3, window.devicePixelRatio || 1) : 1;
-  const maxZ = artW ? Math.max(minZ, 2.6, Math.min(4.5, ((artW / MAP_W) * 1.6) / (base * dprNow))) : 4.5;
+  const dprNow = typeof window !== 'undefined' ? Math.min(2, window.devicePixelRatio || 1) : 1;
+  const maxZ = artW ? Math.max(minZ, 2.45, Math.min(4.5, ((artW / MAP_W) * 1.6) / (base * dprNow))) : 2.6;
   /** the close-in views (the stall bubble over Giza, names on the bands) come at 3, or at the closest zoom if that is nearer */
   const closeZ = Math.min(3, maxZ) - 0.01;
   const s = base * z;
@@ -603,6 +604,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     setPan(clampPan({ x: pt.x - ((pt.x - cur.x) / s) * ns, y: pt.y - ((pt.y - cur.y) / s) * ns }, ns));
     setZ(nz);
   };
+  // the sharp painting came in after you had zoomed closer than it stays crisp at: step back out to its closest zoom
+  useEffect(() => { if (z > maxZ + 0.01 && size.w > 0) zoomAt({ x: size.w / 2, y: size.h / 2 }, maxZ); }, [maxZ]); // eslint-disable-line react-hooks/exhaustive-deps
   /** The buttons and the wheel: zoom about the middle of the screen. */
   const zoomTo = (nz: number) => {
     // zooming past the closest view over Giza, while you are there, takes you down into the district
@@ -1377,6 +1380,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   // pilgrim band that finds no room is hidden, raiders always stay. Only positions are written here.
   const layoutKey = useRef('');
   const layoutPlaces = useRef<unknown>(null);
+  const [, setRelayout] = useState(0);
+  const relayouts = useRef(0);
   useLayoutEffect(() => {
     const inner = innerRef.current, wrapEl = wrap.current;
     if (!inner || !wrapEl) return;
@@ -1391,7 +1396,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       layoutKey.current = '';
     }
     // laid out again only when something that moves a name or a pin has changed, not on every update on the road
-    const key = [s.toFixed(4), tier, Math.round(pan.x / 16), Math.round(pan.y / 16), size.w, size.h, selParty ?? '', Math.round((mePt.x * s) / 4), Math.round((mePt.y * s) / 4), moving ? 1 : 0, train.shown.length, showOverhead ? 1 : 0, meOff ? 1 : 0,
+    const key = [s.toFixed(4), tier, z >= closeZ ? 1 : 0, Math.round(pan.x / 16), Math.round(pan.y / 16), size.w, size.h, selParty ?? '', Math.round((mePt.x * s) / 4), Math.round((mePt.y * s) / 4), moving ? 1 : 0, train.shown.length, showOverhead ? 1 : 0, meOff ? 1 : 0,
       visibleParties.map((p) => `${p.id}:${Math.round((p.x * s) / 4)}:${Math.round((p.y * s) / 4)}`).join(',')].join('|');
     if (key === layoutKey.current && layoutPlaces.current === placesLayer) return;
     layoutKey.current = key;
@@ -1422,6 +1427,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // is clear of the names already placed, the buttons over the map and the other marks. A name with no
     // room anywhere is left out (never one of the places that matter now).
     const items = lblEls.map((el) => { const pl = el.closest('.place'); return { el, pri: Number((pl as HTMLElement | null)?.dataset.pri ?? 3), box: rel(el, 1), dot: pl ? dotOf.get(pl) : undefined }; }).sort((a, b) => a.pri - b.pri);
+    // the mission tag and job flags over the pins stay where they are: a name keeps clear of them too
+    const tags = [...inner.querySelectorAll('.place:not(.pl-off) > .pmission, .place:not(.pl-off) > .pjob')].map((el) => rel(el, 1)).filter((b) => b.r > b.l);
     const names: Box[] = [];
     for (const it of items) {
       const b = it.box, d = it.dot, bw = b.r - b.l;
@@ -1440,7 +1447,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       };
       const tries = cands.map(shift);
       const free = (bx: Box) => !names.some((n) => hits(bx, n)) && !controls.some((c) => hits(bx, c));
-      const at = tries.find((t) => free(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => free(t.box)) ?? (it.pri <= 0 ? tries[0] : null);
+      const clearOf = (bx: Box) => free(bx) && !tags.some((t) => hits(bx, t));
+      const at = tries.find((t) => clearOf(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => clearOf(t.box)) ?? tries.find((t) => free(t.box)) ?? (it.pri <= 0 ? tries[0] : null);
       if (!at) { it.el.style.visibility = 'hidden'; continue; }
       if (at.x || at.y) it.el.style.translate = `${Math.round(at.x)}px ${Math.round(at.y)}px`;
       names.push(at.box);
@@ -1452,17 +1460,26 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const meX = mePt.x * s, meY = mePt.y * s;
     const trainEl = meRef.current?.querySelector<HTMLElement>('.me-train') ?? null;
     const nTok = trainEl ? train.shown.length * 2.75 : 0; // two grouped tokens of 22px each, counted in 8px steps
-    const meBox = (dx: number, dy: number): Box => ({ l: meX + dx - 22, r: meX + dx + (moving ? 32 : 22), t: meY + dy - 48, b: meY + dy - 2 });
+    // (close in your name sits under the medallion: it counts too)
+    let nameOn = z >= closeZ;
+    const meBox = (dx: number, dy: number): Box => ({ l: meX + dx - (nameOn ? 30 : 22), r: meX + dx + (moving ? 32 : nameOn ? 30 : 22), t: meY + dy - 48, b: meY + dy + (nameOn ? 18 : -2) });
     const trainBox = (dx: number, dy: number, right: boolean): Box[] => !nTok ? [] : [right
       ? { l: meX + dx + 20, r: meX + dx + 28 + nTok * 8, t: meY + dy - 27, b: meY + dy - 1 }
       : { l: meX + dx - 28 - nTok * 8, r: meX + dx - 20, t: meY + dy - 27, b: meY + dy - 1 }];
     const ME_TRY: [number, number][] = [[0, 0], [0, -14], [-36, -4], [36, -4], [0, -30], [-48, 14], [48, 14], [0, 34]];
-    let meAt: [number, number, boolean] = [0, 0, false];
-    search: for (const [dx, dy] of ME_TRY) {
-      for (const right of [false, true]) {
-        if ([meBox(dx, dy), ...trainBox(dx, dy, right)].every((bx) => !names.some((n) => hits(bx, n)))) { meAt = [dx, dy, right]; break search; }
+    let meAt: [number, number, boolean] | null = null;
+    // with your name under the medallion if there is room for it anywhere, else without it (the name hidden)
+    for (const withName of nameOn ? [true, false] : [false]) {
+      nameOn = withName;
+      search: for (const [dx, dy] of ME_TRY) {
+        for (const right of [false, true]) {
+          if ([meBox(dx, dy), ...trainBox(dx, dy, right)].every((bx) => !names.some((n) => hits(bx, n)) && !tags.some((t) => hits(bx, t)) && !controls.some((c) => hits(bx, c)))) { meAt = [dx, dy, right]; break search; }
+        }
       }
+      if (meAt) break;
     }
+    if (!meAt) { meAt = [0, 0, false]; nameOn = false; }
+    if (meRef.current) meRef.current.dataset.noname = z >= closeZ && !nameOn ? '1' : '';
     if (meRef.current) meRef.current.style.translate = meAt[0] || meAt[1] ? `${meAt[0]}px ${meAt[1]}px` : '';
     trainEl?.classList.toggle('flip', meAt[2]);
     const taken: Box[] = [...names, ...marks, meBox(meAt[0], meAt[1]), ...trainBox(meAt[0], meAt[1], meAt[2])];
@@ -1490,6 +1507,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     // where the pins, their names and the marks beside them ended up, in map units: the landmarks painted on the
     // map keep clear of them (systems/mapOverlays.ts landmarkLayout); the map is drawn again when they move
+    // in map units by the layer's scale as drawn: mid-gesture (or in the frame a zoom lands) it can differ from s;
+    // then measured again a moment later, once it has settled
+    const ks = ir.width / MAP_W || s;
+    if (Math.abs(ks / s - 1) > 0.01) { if (relayouts.current++ < 6) setTimeout(() => { layoutKey.current = ''; setRelayout((n) => n + 1); }, 300); } else relayouts.current = 0;
     const blocks: PinBlock[] = [];
     inner.querySelectorAll<HTMLElement>('.place:not(.pl-off)').forEach((pl) => {
       const id = pl.dataset.testid?.slice(6) ?? '';
@@ -1497,9 +1518,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         if (el.style.visibility === 'hidden') return;
         const b = rel(el);
         if (b.r <= b.l) return;
-        blocks.push({ id, dot: el.classList.contains('pdot'), box: { l: b.l / s, t: b.t / s, r: b.r / s, b: b.b / s } });
+        blocks.push({ id, dot: el.classList.contains('pdot'), box: { l: b.l / ks, t: b.t / ks, r: b.r / ks, b: b.b / ks } });
       });
     });
+    // standing in a town, your medallion, your men and animals and your name count as that town's: its landmark
+    // stands clear above them, never hidden behind you; the stall's bubble at Giza is kept clear of as well
+    if (!moving && meRef.current) {
+      meRef.current.querySelectorAll<HTMLElement>('.me-medal, .me-grp, .me-name').forEach((el) => {
+        const b = rel(el);
+        if (b.r > b.l) blocks.push({ id: w.at ?? 'me', dot: false, box: { l: b.l / ks, t: b.t / ks, r: b.r / ks, b: b.b / ks } });
+      });
+    }
+    if (pinEl) { const b = rel(pinEl, 2); if (b.r > b.l) blocks.push({ id: 'stall', dot: false, box: { l: b.l / ks, t: b.t / ks, r: b.r / ks, b: b.b / ks } }); }
     const bkey = `${s.toFixed(3)}|` + blocks.map((b) => `${b.id}${Math.round(b.box.l * 4)},${Math.round(b.box.t * 4)},${Math.round(b.box.r * 4)},${Math.round(b.box.b * 4)}`).join(';');
     if (bkey !== pinBlocks.current.key) {
       pinBlocks.current = { key: bkey, list: blocks };
@@ -1706,9 +1736,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
 
         {menStop && <MenTalk stopped onClose={() => { setMenStop(false); if (moving && !nightfall && !sleeping && !camp) setTimeScale(lastScale.current || 1); }} />}
         {showOverhead && (
-          <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 100, Math.max(100, gizaScreen.x)), top: Math.min(size.h - 100, Math.max(100, gizaScreen.y - 110)) }} data-testid="overhead-pin">
+          // the stall in a small round window west of Giza (open desert there): clear of the pyramids above the pin,
+          // of Cairo and its names to the east and of your men beside you; a tap opens it
+          <div className="overhead-pin" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} style={{ left: Math.min(size.w - 34, Math.max(34, gizaScreen.x - 92)), top: Math.min(size.h - 40, Math.max(34, gizaScreen.y - 22)) }}
+            role="button" aria-label={w.at === 'giza' ? 'Your stall. Tap to open it.' : 'Your stall in Giza'} title={w.at === 'giza' ? 'Your stall. Tap to open it.' : 'Your stall in Giza'} data-testid="overhead-pin">
             <StallOverhead compact onOpen={() => (w.at === 'giza' ? onStall() : planTo(giza, giza))} />
-            <span className="overhead-cap">{w.at === 'giza' ? 'Your stall. Tap to open it.' : 'Your stall in Giza'}</span>
+            <span className="overhead-cap" onClick={() => (w.at === 'giza' ? onStall() : planTo(giza, giza))}>Your stall</span>
           </div>
         )}
 

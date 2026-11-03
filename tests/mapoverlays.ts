@@ -54,7 +54,9 @@ for (const [s, tier, what] of [[2.6, 1, 'phone, middle'], [2.96, 2, 'phone, clos
     { id: 'giza', dot: true, box: { l: giza.x - 3, r: giza.x + 3, t: giza.y - 3, b: giza.y + 3 } },
     { id: 'cairo', dot: false, box: { l: giza.x - 40, r: giza.x + 40, t: giza.y - 60, b: giza.y - 4 } },
   ]);
-  ok(free.length === 1 && free[0].box.b <= giza.y - 3 && blocked.length === 0, 'a landmark stands on its pin and gives way to a name laid over its spot');
+  const cb = { l: giza.x - 40, r: giza.x + 40, t: giza.y - 60, b: giza.y - 4 };
+  const clear = blocked.every((l) => l.box.r <= cb.l || l.box.l >= cb.r || l.box.b <= cb.t || l.box.t >= cb.b);
+  ok(free.length === 1 && free[0].box.b <= giza.y - 3 && clear && blocked.every((l) => l.box.t >= giza.y + 3), 'a landmark stands on its pin and gives way to a name laid over its spot (it goes under the pin instead, or is left out)');
 }
 
 // ---- the people

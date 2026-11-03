@@ -2,8 +2,9 @@
 // the zoom so none hides a pin, a name or another landmark, and the small groups of people near the towns, placed once
 // clear of water, roads, railways, pins, names and landmarks.
 // The landmark stands just above its town's pin (its foot at the top of the pin), at the town's own spot; a road well
-// has no pin, so its vignette stands on the spot. Most important first (home, cities, ports, towns, the rest, wells);
-// one that would overlap a landmark already placed, or another town's pin and name, is left out at that zoom.
+// has no pin, so its vignette stands on the spot. Most important first (where you are, home, cities, ports, towns, the
+// rest, wells); one that would overlap a landmark already placed, or another town's pin and name, is left out at that
+// zoom. Zoomed far out only the cities', your home's and your own town's show, a size smaller.
 import SIZES from '../../data/mapOverlays.json';
 import { LANDMARKS, MAP_LABELS, PEOPLE, type ArtItem, type PeopleArt } from '../../data/mapArt';
 import { SETTLEMENTS, ROAD_WELLS, RAIL_LINKS, type SettlementKind } from '../../data/world';
@@ -39,23 +40,28 @@ export function pinBox(p: Place, s: number, tier: number): Box {
 
 // ---------- the landmarks ----------
 export const landmarkFile = (it: ArtItem) => `${it.code}-${it.name}.webp`;
-/** the landmark's size on screen at scale s, in px: as wide as about 20 map units, never under 56 px nor over 116 */
-export function landmarkPx(it: ArtItem, s: number): { w: number; h: number } {
+/** the landmark's size on screen at scale s, in px: as wide as about 20 map units, never under 56 px (48 zoomed far
+ *  out, `far`, where only the cities' and your own town's show) nor over 116 */
+export function landmarkPx(it: ArtItem, s: number, far = false): { w: number; h: number } {
   const [iw, ih] = SZ[landmarkFile(it)] ?? [384, 256];
-  const W = clamp(20 * s, 56, 116), H = W * 0.74;
+  const W = clamp(20 * s, far ? 48 : 56, 116), H = W * 0.74;
   const k = Math.min(W / iw, H / ih);
   return { w: iw * k, h: ih * k };
 }
 /** how far to one side a landmark may stand from above its pin, in its own widths */
 const SHIFTS = [0, -0.3, 0.3, -0.45, 0.45];
 const SHRINK = [1, 0.85, 0.72];
+/** the most a landmark is lifted above its pin to clear what stands there, in px */
+const LIFT = 56;
+/** the places whose landmarks show zoomed far out (and where you are) */
+const FAR_KINDS = new Set<string>(['home', 'city', 'port']);
 const RANK: Record<string, number> = { home: 0, city: 1, port: 1.5, town: 2, monastery: 3, oasis: 3, camp: 3, village: 3.5, well: 4 };
 export interface LandmarkSpot { it: ArtItem; x: number; /** the foot, map units */ y: number; w: number; h: number; box: Box }
 /** The box a landmark takes at scale s, in map units, its foot at the top of its town's pin (a well's on the spot). */
-export function landmarkBox(it: ArtItem, s: number): LandmarkSpot | null {
+export function landmarkBox(it: ArtItem, s: number, far = false): LandmarkSpot | null {
   const p = placeOf(it.town!);
   if (!p) return null;
-  const { w, h } = landmarkPx(it, s);
+  const { w, h } = landmarkPx(it, s, far);
   // the pin's top (the name below it centres the pair on the town), and a pixel of air
   const foot = p.kind === 'well' ? p.y + 3 / s : p.y - (NAMED_MID.has(p.kind) ? 21 : 12) / s;
   return { it, x: p.x, y: foot, w, h, box: { l: p.x - w / 2 / s, r: p.x + w / 2 / s, t: foot - h / s, b: foot } };
@@ -65,7 +71,9 @@ export function landmarkBox(it: ArtItem, s: number): LandmarkSpot | null {
  *  `pins`: the places whose pins are on screen (known towns). `first` puts a place ahead of its rank (where you are). */
 export interface PinBlock { id: string; /** the pin itself (not its name or a mark beside it) */ dot: boolean; box: Box }
 export function landmarkLayout(s: number, tier: number, shown: (id: string) => boolean, pins: (id: string) => boolean, first?: (id: string) => boolean, blocks?: PinBlock[]): LandmarkSpot[] {
-  const cand = LANDMARKS.filter((it) => shown(it.town!)).map((it) => ({ it, p: placeOf(it.town!)! })).filter((c) => c.p);
+  // far out (tier 0) only the cities', your home's and where you are
+  const cand = LANDMARKS.filter((it) => shown(it.town!)).map((it) => ({ it, p: placeOf(it.town!)! }))
+    .filter((c) => c.p && (tier > 0 || FAR_KINDS.has(c.p.kind) || !!first?.(c.it.town!)));
   cand.sort((a, b) => (first?.(b.it.town!) ? 1 : 0) - (first?.(a.it.town!) ? 1 : 0) || (RANK[a.p.kind] ?? 3) - (RANK[b.p.kind] ?? 3) || a.p.y - b.p.y);
   // what is on the map: the pins, names and marks as the page laid them out, else as they usually stand
   const boxes: { id: string; b: Box; dot: boolean }[] = blocks?.length ? blocks.map((q) => ({ id: q.id, b: q.box, dot: q.dot }))
@@ -73,29 +81,44 @@ export function landmarkLayout(s: number, tier: number, shown: (id: string) => b
   const out: LandmarkSpot[] = [];
   const pad = 2 / s;
   for (const c of cand) {
-    const L0 = landmarkBox(c.it, s);
+    const L0 = landmarkBox(c.it, s, tier === 0);
     if (!L0) continue;
     // its foot just above its pin, or above its name where the name sits over the pin
     const own = boxes.filter((q) => q.id === c.p.id);
     const dot = own.find((q) => q.dot);
     const feet = blocks?.length && c.p.kind !== 'well' ? [...new Set([dot ? dot.b.t - 1.5 / s : L0.y, Math.min(...own.map((q) => q.b.t), L0.y) - 1.5 / s])] : [L0.y];
-    // straight above if it fits; else a little to one side or the other (never off its pin), else a size smaller
-    let done = false;
-    for (const f of SHRINK) {
-      for (const foot of feet) {
-        for (const k of SHIFTS) {
-          const w = L0.w * f, h = L0.h * f, dx = (k * w) / s;
-          const L = { ...L0, x: L0.x + dx, y: foot, w, h, box: { l: L0.x + dx - w / 2 / s, r: L0.x + dx + w / 2 / s, t: foot - h / s, b: foot } };
-          if (out.some((o) => hit(o.box, L.box, pad))) continue;
-          if (boxes.some((q) => hit(q.b, L.box, -0.5 / s) && (blocks?.length ? true : q.id !== c.p.id))) continue;
-          out.push(L);
-          done = true;
-          break;
+    // straight above if it fits, lifted over whatever stands just above the pin (its mission tag, rank mark, your
+    // medallion: never more than LIFT px, never past another town's marks); else a little to one side or the other (never off its pin); else under the
+    // town's name, on open ground (zoomed out, where the towns crowd together); else a size smaller. Moved off its
+    // pin, or zoomed far out, it must stand on dry land (never out at sea off a coast town).
+    const lift = LIFT / s;
+    const below = Math.max(L0.y, ...own.map((q) => q.b.b)) + 1.5 / s;
+    const fits = (f: number, k: number, foot0: number, down: boolean): LandmarkSpot | null => {
+      const w = L0.w * f, h = L0.h * f, dx = (k * w) / s;
+      let foot = down ? foot0 + h / s : foot0;
+      const start = foot;
+      for (let n = 0; n < 4; n++) {
+        const L = { ...L0, x: L0.x + dx, y: foot, w, h, box: { l: L0.x + dx - w / 2 / s, r: L0.x + dx + w / 2 / s, t: foot - h / s, b: foot } };
+        if (out.some((o) => hit(o.box, L.box, pad))) return null;
+        const under = boxes.filter((q) => hit(q.b, L.box, -0.5 / s) && (blocks?.length ? true : q.id !== c.p.id));
+        if (!under.length) {
+          if ((down || tier === 0 || foot < feet[0] - 4 / s) && (isWaterPx({ x: L.x, y: foot - 1 / s }) || isWaterPx({ x: L.x, y: foot - h / 2 / s }))) return null;
+          return L;
         }
-        if (done) break;
+        // it steps past its own town's marks (and your medallion), never past another town's
+        if (under.some((q) => q.id !== c.p.id && q.id !== 'me')) return null;
+        foot = down ? Math.max(...under.map((q) => q.b.b)) + h / s + 1.5 / s : Math.min(...under.map((q) => q.b.t)) - 1.5 / s;
+        if (Math.abs(foot - start) > lift) return null;
       }
-      if (done) break;
+      return null;
+    };
+    let got: LandmarkSpot | null = null;
+    for (const f of SHRINK) {
+      for (const k of SHIFTS) { for (const foot0 of feet) { got = fits(f, k, foot0, false); if (got) break; } if (got) break; }
+      if (!got && blocks?.length && c.p.kind !== 'well') for (const k of SHIFTS) { got = fits(f, k, below, true); if (got) break; }
+      if (got) break;
     }
+    if (got) out.push(got);
   }
   return out;
 }
