@@ -1,0 +1,23 @@
+THREADS OF FORTUNE — COMPLETE MAP ART PACK
+
+terrain-decoration-sheets/
+  Ten separate 2048x2048 transparent PNG sheets: palms, broadleaf, conifers,
+  olives, snowy peaks, bare peaks, hills, desert details, fields, sea details.
+
+overlay-sheets/
+  Regional landmark, ship, caravan, people, and route sprite sheets.
+
+individual-overlays/landmarks/
+  33 PNG cutouts, 512x512. Names identify the intended landmarks.
+individual-overlays/ships/
+  7 PNG cutouts, 768x768. S1 passenger steamer is reused for S10; S2 cargo
+  steamer for S7; S4 dhow for S5 and S8. Includes S-wake.
+individual-overlays/caravans/
+  5 PNG cutouts, 1024x1024, C1-C5.
+individual-overlays/people-and-routes/
+  12 period people/group cutouts and 6 route/railway segments, 512x512.
+
+map/01-map-plain.jpg is the unchanged 3200x1942 gameplay map. The other map
+files are position guides and coordinates. references/style-reference-
+illustrated-map.png is for painted style only, not geographic placement.
+This pack contains art and reference files only; no game code or deployment files.
