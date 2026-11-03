@@ -25,7 +25,7 @@ import './dream.css';
 const LENGTH = 55; // seconds over each stretch of the map; the flight itself goes on until the third knock
 // the painted travel map, laid out at about the scale the flight had on the old one (2.3 picture pixels
 // to a map unit): the 3072-wide copy stretched over 4608 x 2797 (see .fc-plane in dream.css)
-const MAP = 'art/world/travel-map-3k.webp', MAP_PX = 4608 / 2000; // map units to picture pixels
+const MAP = 'art/world/painted-map-3k.webp', MAP_PX = 4608 / 2000; // map units to picture pixels
 const SAFFRON = 'art/saffron-stall.webp';
 /** the flight's own music: the solo nay, breathy and airy like the night wind, heard nowhere else but a desert camp */
 const FLIGHT_TRACK = 'audio/music/solo-nay-flute.mp3';

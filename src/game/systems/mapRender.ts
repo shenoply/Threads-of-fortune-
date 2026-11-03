@@ -67,9 +67,9 @@ function loadSharp() {
   // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   // a phone that cannot hold the big picture decoded keeps the small one
-  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4800-wide painting (travel-map-4k.webp)
+  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4800-wide painting (painted-map-4k.webp)
   const pc = typeof document !== 'undefined' && document.documentElement.classList.contains('pc');
-  loadPicture(phone ? 'art/world/travel-map-3k.webp' : pc ? 'art/world/travel-map-4k.webp' : 'art/world/travel-map.webp')
+  loadPicture(phone ? 'art/world/painted-map-3k.webp' : pc ? 'art/world/painted-map-4k.webp' : 'art/world/painted-map.webp')
     .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
     .catch(() => { artFailed = true; artListeners.forEach((f) => f()); });
 }
@@ -79,7 +79,7 @@ let wantSharp = false, smallDone = false;
 function askSmall() {
   if (smallAsked) return;
   smallAsked = true;
-  loadPicture('art/world/travel-map-768.webp')
+  loadPicture('art/world/painted-map-768.webp')
     .then((p) => { artSmall = p; smallReady = true; if (!artReady) artListeners.forEach((f) => f()); })
     .catch(() => {})
     .finally(() => { smallDone = true; if (wantSharp) loadSharp(); });
