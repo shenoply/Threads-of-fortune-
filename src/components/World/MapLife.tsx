@@ -3,20 +3,30 @@
 // loop straight from the live camera (no React render per frame), about thirty times a second, and not at
 // all while the tab is hidden or "Map life" is off in Settings.
 import { useEffect, useRef } from 'react';
-import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, PAINT_ANCHOR, type ArtItem, type ShipKind } from '../../data/mapArt';
+import SIZES from '../../data/mapOverlays.json';
+import type { Pt } from '../../game/systems/world';
 import { mapLanes, poseAt, shipFrame } from '../../game/systems/mapLife';
 import { drawKitLive } from '../../game/systems/mapKitDraw';
 import { FOG_LEN, GRID_W } from '../../game/systems/world';
 import { MASK_H, CELL } from '../../data/landmask';
-import { sheetFor, paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
+import { sheetFor, shipPaintingFor, paintingFor, shipPlaceholder, wakePlaceholder, caravanPlaceholder, cloudPlaceholder, hazePlaceholder, drawBirds } from '../../game/systems/mapArtDraw';
 
 export interface Camera { tx: number; ty: number; s: number; w: number; h: number }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** each type's hull length as a fraction of a sheet frame (tools/blender-ships.py: length / 12.2 units), for its wake */
 const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.82, cargo: 0.75, 'small-steamer': 0.61, schooner: 0.61, dhow: 0.57, felucca: 0.46 };
+/** the painted mail steamer's width and the first caravan's, in their pictures' pixels: every ship and every caravan is
+ *  drawn at one scale from these (tools/map-overlays.py shrinks each set by one factor) */
+const PAINT_STEAMER_W = (SIZES.sizes as unknown as Record<string, number[]>)['S1-steamer.webp']?.[0] ?? 293;
+const CARAVAN_REF_W = (SIZES.sizes as unknown as Record<string, number[]>)['C1-caravan.webp']?.[0] ?? 411;
+/** +1 when a lane's outward leg runs east (the paintings face right), -1 when it runs west */
+const facingOut = (pts: Pt[]) => (pts[pts.length - 1].x >= pts[0].x ? 1 : -1);
+/** ?ships=blender (or tof-ships=blender in local storage) shows the Blender sheets, for comparison */
+const SHIP_STYLE = (() => { try { return new URLSearchParams(location.search).get('ships') ?? localStorage.getItem('tof-ships') ?? 'painted'; } catch { return 'painted'; } })();
 /** frame times of the last few seconds, for the performance check (tests/maplife.mjs) */
-const perf = { frames: 0, ms: 0, worst: 0 };
+const perf = { frames: 0, ms: 0, worst: 0, t0: 0 };
 if (typeof window !== 'undefined') (window as unknown as { __mapLife?: typeof perf }).__mapLife = perf;
 
 export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => Camera | null; on: boolean; kit?: boolean; fog?: string }) {
@@ -34,6 +44,7 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
     if (!ctx) return;
     const lanes = mapLanes();
     const t0 = performance.now();
+    perf.t0 = t0;
     let raf = 0, last = 0, dirty = false;
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
@@ -90,14 +101,46 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         dirty = true;
       }
       ctx.globalAlpha = 1;
-      // ships: the Blender sheet's frame for the heading when the sheet is in, else the painting (or its
-      // placeholder) turned to the heading; the wake trailing behind either way
-      const wake = paintingFor(WAKE) ?? wakePlaceholder();
+      // ships: the type's painting, facing its heading (mirrored on a westward leg, tilted a few degrees at most,
+      // so masts stay upright and the smoke trails astern), the wake under it; or the Blender sheet's frame for the
+      // heading (the fallback, or ?ships=blender); without either, the ink placeholder turned to the heading
+      const wakeArt = paintingFor(WAKE);
+      const wake = wakeArt ?? wakePlaceholder();
       for (const it of SHIPS) {
         const lane = lanes.get(it.code);
         if (!lane) continue;
         const p = poseAt(lane, t);
         const x = X(p.x), y = Y(p.y);
+        const paint = SHIP_STYLE !== 'blender' ? shipPaintingFor(it) : null;
+        if (paint) {
+          // every type at one scale (the paintings keep the ships' sizes to one another): a mail steamer about 28 map
+          // units long, between 44 and 84 px
+          // (the felucca a size smaller: the Nile is narrow)
+          const k = (clamp(28 * s, 44, 84) / PAINT_STEAMER_W) * (it.ship === 'felucca' ? 0.72 : 1);
+          const pw = paint.naturalWidth * k, ph = paint.naturalHeight * k;
+          if (!seen(x, y, Math.max(pw, ph))) continue;
+          // which way it faces: by the leg (out or back along its lane), turned over through a turn
+          const out = facingOut(lane.pts);
+          const dir = (p.out ? out : -out) * (p.turning ? Math.cos(Math.PI * p.turning) : 1);
+          const ahead = Math.atan2(Math.sin(p.angle), Math.abs(Math.cos(p.angle)));
+          const tilt = clamp((dir >= 0 ? ahead : -ahead) * 0.06, -0.08, 0.08);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(tilt);
+          ctx.scale(Math.abs(dir) < 0.08 ? 0.08 * Math.sign(dir || 1) : dir, 1);
+          // (a felucca on the winding Nile leaves no wake worth drawing: it would trail over the banks)
+          if (wakeArt && it.ship !== 'felucca') {
+            // the painted wake trails from the stern, foam fading out astern; faint through a turn
+            const ww = pw * 0.95, wh = (ww * wakeArt.naturalHeight) / wakeArt.naturalWidth;
+            ctx.globalAlpha = 0.75 * (p.turning ? 1 - Math.sin(Math.PI * p.turning) : 1);
+            ctx.drawImage(wakeArt, -pw * 0.18 - ww, -wh * 0.62, ww, wh);
+            ctx.globalAlpha = 1;
+          }
+          ctx.drawImage(paint, -pw * PAINT_ANCHOR.x, -ph * PAINT_ANCHOR.y, pw, ph);
+          ctx.restore();
+          dirty = true;
+          continue;
+        }
         const sheet = sheetFor(it);
         if (sheet) {
           // the Blender ship: the frame nearest its heading, never turned, so masts and funnel stay upright;
@@ -112,7 +155,7 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
           ctx.scale(1, SHEET_TILT);
           ctx.rotate(f.ground);
           ctx.globalAlpha = p.turning ? 0.35 : 0.8;
-          ctx.drawImage(wake, -L * 0.62 - L * 0.29, -L * 0.62, L * 1.24, L * 1.24);
+          ctx.drawImage(wakeArt ? wakePlaceholder() : wake, -L * 0.62 - L * 0.29, -L * 0.62, L * 1.24, L * 1.24);
           ctx.restore();
           ctx.globalAlpha = 1;
           const fw = sheet.width / SHEET_FRAMES, fh = sheet.height;
@@ -127,31 +170,44 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         ctx.rotate(p.angle);
         // seen from above, a ship turned round is simply rotated; the wake fades while it comes about
         ctx.globalAlpha = p.turning ? 0.35 : 0.8;
-        ctx.drawImage(wake, -size / 2, -size / 2, size, size);
+        ctx.drawImage(wakePlaceholder(), -size / 2, -size / 2, size, size);
         ctx.globalAlpha = 1;
         ctx.drawImage(paintingFor(it) ?? shipPlaceholder(it.ship!), -size / 2, -size / 2, size, size);
         ctx.restore();
         dirty = true;
       }
-      // caravans: they face the way they walk (mirrored, never turned on their heads)
+      // caravans: they face the way they walk (mirrored by the leg, never turned on their heads; turned over through
+      // a turn at the end of the stretch), every painting at one scale so the camels agree
       for (const it of CARAVANS as ArtItem[]) {
         const lane = lanes.get(it.code);
         if (!lane) continue;
         const p = poseAt(lane, t);
         const x = X(p.x), y = Y(p.y);
+        const img = paintingFor(it);
+        if (img) {
+          const k = clamp(30 * s, 40, 96) / CARAVAN_REF_W;
+          const cw = img.naturalWidth * k, ch = img.naturalHeight * k;
+          if (!seen(x, y, cw)) continue;
+          const out = facingOut(lane.pts);
+          const dir = (p.out ? out : -out) * (p.turning ? Math.cos(Math.PI * p.turning) : 1);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(Math.abs(dir) < 0.08 ? 0.08 * Math.sign(dir || 1) : dir, 1);
+          // the feet on the way, a breath of a bob as they walk
+          ctx.drawImage(img, -cw / 2, -ch * 0.92 + Math.sin(t * 3) * ch * 0.008, cw, ch);
+          ctx.restore();
+          dirty = true;
+          continue;
+        }
         const size = clamp(40 * s, 34, 96);
         if (!seen(x, y, size)) continue;
-        const img = paintingFor(it);
         const left = Math.cos(p.angle) < 0;
         ctx.save();
         ctx.translate(x, y);
         if (left) ctx.scale(-1, 1);
-        if (img) ctx.drawImage(img, -size / 2, -size / 2 + Math.sin(t * 3) * size * 0.006, size, size);
-        else {
-          const ph = caravanPlaceholder(it.camels ?? 4, Math.floor(t * 2.2) % 2);
-          const w = size * 1.25, h = (w * ph.height) / ph.width;
-          ctx.drawImage(ph, -w / 2, -h / 2, w, h);
-        }
+        const ph = caravanPlaceholder(it.camels ?? 4, Math.floor(t * 2.2) % 2);
+        const w = size * 1.25, h = (w * ph.height) / ph.width;
+        ctx.drawImage(ph, -w / 2, -h / 2, w, h);
         ctx.restore();
         dirty = true;
       }

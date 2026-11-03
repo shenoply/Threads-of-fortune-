@@ -88,8 +88,8 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   clockwise from east on the ground (0 east, 4 south, 8 west, 12 north). shipFrame() in systems/mapLife.ts turns
   a map heading into the ground heading (the sheets' ground is foreshortened by sin 48) and picks the nearest
   frame; the picture is never rotated, so masts stay upright. The wake is laid under it on the same foreshortened
-  ground. Precedence: a type's sheet first; without it, a single painting S<n>-*.webp/png turned to the heading as
-  before; without that, the ink placeholder. To use a painted single ship instead, take that type's sheet out.
+  ground. Since 2026-11-03 the artist's painted ships come first (the overlays below); a type's sheet is the fallback
+  where it has no painting, and ?ships=blender (or localStorage tof-ships=blender) shows the sheets instead.
 - The map's decorations (since 2026-11-02): hand-painted palms, trees, olives, peaks, hills, desert marks, fields and
   sea marks laid over the painting. The artist paints ten transparent sheets (2048 x 2048, items in a grid with gaps,
   lit from the north-west, seen from about 30 degrees up): 01-palms, 02-broadleaf, 03-conifers, 04-olives,
@@ -105,3 +105,19 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   (cached tiles on the base map; with Map life on and close in, trees sway and sea marks fade on the life canvas).
   Tester switch: "Travel map decorations" in the tester sheet, or ?kit=0 / ?kit=1. Tests: tests/mapkit.ts,
   tests/mapkit-shots.mjs, tests/mapkit-perf.mjs.
+- The map's painted overlays (since 2026-11-03, the artist's complete map art pack): masters in art-src/map-overlays/
+  (landmarks/, ships/, caravans/, people/, the pack's sheets/ and index; unused/ holds the route pieces, not used: the
+  map draws its own roads and rails, and the pack's pieces are partly cut off and misnamed). `python3 -I
+  tools/map-overlays.py --contact /tmp/o.png` cleans each cut-out (clears the faint haze, drops the bits of
+  neighbouring items cut with it), trims it and writes public/art/map/<code>-<name>.webp (landmarks 01..33),
+  S1/S2/S3/S4/S6/S9 ships and S-wake, C1..C5-caravan.webp and people/<what>.webp, plus src/data/mapOverlays.json
+  (every picture's size; ships, caravans and people each shrunk by one factor so their sizes agree). The pack's
+  "donkey cart" is a ploughman with an ox (people/plough.webp). Layout: src/game/systems/mapOverlays.ts.
+  Landmarks stand just above their town's pin, from the middle zoom in, most important first; one that would cover
+  another landmark, or any pin, name or mark as the page laid them out (WorldMap's label pass hands the boxes over),
+  shifts aside, shrinks a step, or is left out at that zoom; warm where visited, paler where known, faded where
+  closed; none in unexplored country. Ships: the type's painting faces its leg (mirrored westward, turned over
+  through a turn, tilted at most about 5 degrees), the painted wake under it. Caravans: mirrored by leg, one scale.
+  People: PEOPLE in src/data/mapArt.ts (a town, or a stretch of road), placed once on dry ground clear of roads,
+  rails, pins, names, landmarks and painted names; drawn on the base map close in with Map life on only.
+  Tests: tests/mapoverlays.ts.

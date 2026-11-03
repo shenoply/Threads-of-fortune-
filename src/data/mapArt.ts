@@ -193,3 +193,46 @@ export function shipSheet(it: ArtItem): string | undefined {
   for (const ext of ['.webp', '.png']) { const f = files.find((n) => n.toLowerCase() === `ships/${t}${ext}`); if (f) return `art/map/${f}`; }
   return undefined;
 }
+
+// ---------- the painted ships (the artist's single pictures, one per type, facing right) ----------
+// public/art/map/S<n>-<name>.webp (tools/map-overlays.py): the type's painting is shared by every ship of that type
+// (S1 for S10, S2 for S7, S4 for S5 and S8). It is drawn facing its heading, mirrored for a westward leg, never
+// turned more than a few degrees, so masts stay upright and the steamers' smoke trails astern.
+export const SHIP_PAINT: Record<ShipKind, string> = { steamer: 'S1', cargo: 'S2', felucca: 'S3', dhow: 'S4', schooner: 'S6', 'small-steamer': 'S9' };
+/** The painted ship for a type, if it is in the folder. */
+export const shipPainting = (it: ArtItem) => (it.ship ? artFile(SHIP_PAINT[it.ship]) : undefined);
+/** where the waterline centre sits in a painted ship, as fractions of its width and height */
+export const PAINT_ANCHOR = { x: 0.5, y: 0.86 } as const;
+
+// ---------- people near the towns (close in only) ----------
+// public/art/map/people/<art>.webp: small painted groups standing beside a town or a road. Where each stands is
+// worked out from what must stay clear (systems/mapOverlays.ts placePeople): never on water, a road or railway,
+// a pin or a name, a landmark, or another group. `near` is a town (or road well); `road` puts the group beside
+// the road from `near` to `to`, `at` of the way along.
+export type PeopleArt = 'market-sellers' | 'town-walkers' | 'grain-merchants' | 'fishermen' | 'porters' | 'farmers' | 'plough' | 'soldiers' | 'guards' | 'camel-guide' | 'donkey-traveller' | 'horse-riders';
+export interface PeopleSpot { art: PeopleArt; near: string; to?: string; at?: number; /** fishermen stand at the water's edge */ shore?: boolean }
+export const PEOPLE: PeopleSpot[] = [
+  { art: 'market-sellers', near: 'cairo' },
+  { art: 'market-sellers', near: 'damascus' },
+  { art: 'market-sellers', near: 'baghdad' },
+  { art: 'market-sellers', near: 'isfahan' },
+  { art: 'town-walkers', near: 'jerusalem' },
+  { art: 'town-walkers', near: 'tehran' },
+  { art: 'town-walkers', near: 'aleppo' },
+  { art: 'grain-merchants', near: 'tanta' },
+  { art: 'grain-merchants', near: 'hamadan' },
+  { art: 'fishermen', near: 'alexandria', shore: true },
+  { art: 'fishermen', near: 'beirut', shore: true },
+  { art: 'porters', near: 'portsaid' },
+  { art: 'porters', near: 'suez' },
+  { art: 'farmers', near: 'fayoum' },
+  { art: 'plough', near: 'tanta', to: 'cairo', at: 0.5 },
+  { art: 'farmers', near: 'baghdad', to: 'khanaqin', at: 0.3 },
+  { art: 'soldiers', near: 'khanaqin' },
+  { art: 'guards', near: 'well-rutba' },
+  { art: 'camel-guide', near: 'portsaid', to: 'bedouin', at: 0.55 },
+  { art: 'camel-guide', near: 'damascus', to: 'baghdad', at: 0.62 },
+  { art: 'donkey-traveller', near: 'jerusalem', to: 'amman', at: 0.4 },
+  { art: 'horse-riders', near: 'ankara', to: 'konya', at: 0.3 },
+  { art: 'horse-riders', near: 'aleppo', to: 'damascus', at: 0.3 },
+];

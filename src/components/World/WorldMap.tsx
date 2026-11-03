@@ -40,6 +40,7 @@ import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidt
 import mapArtList from 'virtual:map-art-files';
 import { setArtFiles, LANDMARKS } from '../../data/mapArt';
 import { onMapArt, type ArtLayer, type LandmarkLook } from '../../game/systems/mapArtDraw';
+import type { PinBlock } from '../../game/systems/mapOverlays';
 import { MapLife, type Camera } from './MapLife';
 import { onMapKit } from '../../game/systems/mapKitDraw';
 import { useMapKit } from '../../game/mapKitPref';
@@ -478,6 +479,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }); return () => { a(); b(); k(); }; }, []);
   // the painted pieces on the base map (landmarks, the cartouche): what to draw, set each render below
   const artLayerRef = useRef<ArtLayer | undefined>(undefined);
+  // the pins' boxes as the layout pass left them, for the landmarks
+  const pinBlocks = useRef<{ key: string; list: PinBlock[] }>({ key: '', list: [] });
   // the map's life (ships, caravans, weather) and the compass
   const life = useMapLife();
   // the painted decorations (tester's switch), and whether they sway: the base map is drawn again when either changes
@@ -1311,11 +1314,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     return out;
   }, [w.known, w.at, w.fog, g.inked, g.lastTown, lockedNow]); // eslint-disable-line react-hooks/exhaustive-deps
   const overview = z <= minZ * 1.2;
-  artLayerRef.current = { tier, overview, landmarks: landmarkLook };
+  const pinsKey = w.known.join(',');
+  artLayerRef.current = { tier, overview, landmarks: landmarkLook, fog: w.fog, pins: pinsKey, here: w.at ?? undefined, life, blocks: pinBlocks.current };
   useEffect(() => {
     const raf = requestAnimationFrame(() => paintRef.current(false));
     return () => cancelAnimationFrame(raf);
-  }, [tier, overview, landmarkLook]);
+  }, [tier, overview, landmarkLook, pinsKey, w.at, life]);
 
   // The compass: north at rest; on the road the way you are heading; a town just chosen, towards it for a moment.
   useEffect(() => { const st = plan?.settlement; if (st) pointAt.current = { to: { x: st.x, y: st.y }, until: performance.now() + 2600 }; }, [plan?.settlement?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1483,6 +1487,24 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       el.style.setProperty('--ny', `${keep?.[1] ?? 0}px`);
       el.classList.toggle('nudged', !!keep && (keep[0] !== 0 || keep[1] !== 0));
       if (keep) taken.push(...boxes(keep[0], keep[1]));
+    }
+    // where the pins, their names and the marks beside them ended up, in map units: the landmarks painted on the
+    // map keep clear of them (systems/mapOverlays.ts landmarkLayout); the map is drawn again when they move
+    const blocks: PinBlock[] = [];
+    inner.querySelectorAll<HTMLElement>('.place:not(.pl-off)').forEach((pl) => {
+      const id = pl.dataset.testid?.slice(6) ?? '';
+      pl.querySelectorAll<HTMLElement>(':scope > .pdot, :scope > .plbl, :scope > .pjob, :scope > .pnews, :scope > .prival, :scope > .pmission, :scope > .plock').forEach((el) => {
+        if (el.style.visibility === 'hidden') return;
+        const b = rel(el);
+        if (b.r <= b.l) return;
+        blocks.push({ id, dot: el.classList.contains('pdot'), box: { l: b.l / s, t: b.t / s, r: b.r / s, b: b.b / s } });
+      });
+    });
+    const bkey = `${s.toFixed(3)}|` + blocks.map((b) => `${b.id}${Math.round(b.box.l * 4)},${Math.round(b.box.t * 4)},${Math.round(b.box.r * 4)},${Math.round(b.box.b * 4)}`).join(';');
+    if (bkey !== pinBlocks.current.key) {
+      pinBlocks.current = { key: bkey, list: blocks };
+      if (artLayerRef.current) artLayerRef.current.blocks = pinBlocks.current;
+      requestAnimationFrame(() => paintRef.current(false));
     }
   });
 

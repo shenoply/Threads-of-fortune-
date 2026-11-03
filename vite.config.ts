@@ -42,6 +42,8 @@ const mapArtFiles = (): Plugin => ({
     try { list = list.concat(readdirSync(`${MAP_ART_DIR}/ships`).filter((f) => /\.(webp|png)$/i.test(f)).sort().map((f) => `ships/${f}`)); } catch { /* none */ }
     // the decoration atlases (tools/cut-sheets.py), each an image with its frames beside it ("kit/01-palms.webp", "kit/01-palms.json")
     try { list = list.concat(readdirSync(`${MAP_ART_DIR}/kit`).filter((f) => /\.(webp|png|json)$/i.test(f)).sort().map((f) => `kit/${f}`)); } catch { /* none */ }
+    // the small groups of people near the towns (tools/map-overlays.py: "people/porters.webp")
+    try { list = list.concat(readdirSync(`${MAP_ART_DIR}/people`).filter((f) => /\.(webp|png)$/i.test(f)).sort().map((f) => `people/${f}`)); } catch { /* none */ }
     return `export default ${JSON.stringify(list)};`;
   },
   configureServer(server) {

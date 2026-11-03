@@ -27,7 +27,7 @@ import { MASK_H } from '../../data/landmask';
 import { RAIL_LINKS } from '../../data/world';
 import { MAP_W, MAP_H, GRID_W, fitFog, settlementById, routeLeg } from './world';
 import { crossfadeCanvas } from '../feel';
-import { MAP_LABELS, drawLandmarks, drawCartouche, type ArtLayer } from './mapArtDraw';
+import { MAP_LABELS, drawLandmarks, drawPeople, drawCartouche, type ArtLayer } from './mapArtDraw';
 import { drawKit } from './mapKitDraw';
 
 type Ring = number[];
@@ -472,7 +472,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
   // the painted pieces that stand on the map: the town landmarks (at a middle zoom and closer), and far out
   // the title cartouche and the scale ornament
   if (art && opts.art) {
-    drawLandmarks(ctx, X, Y, s, w, h, opts.art);
+    drawLandmarks(ctx, X, Y, s, w, h, opts.art, dpr);
+    drawPeople(ctx, X, Y, s, w, h, opts.art, dpr);
     if (opts.art.overview) drawCartouche(ctx, X, Y, s, milesPx(1));
   }
   // labels

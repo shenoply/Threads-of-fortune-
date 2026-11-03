@@ -1,7 +1,11 @@
 // Drawing the map's painted pieces (src/data/mapArt.ts): the painting when its file is in public/art/map,
 // else a restrained ink-and-brass placeholder drawn here. The placeholders are drawn once onto small
 // canvases and reused, so a frame only copies pictures.
-import { itemFile, artFile, shipSheet, onArtFiles, LANDMARKS, CARTOUCHE, SCALE_BAR, MAP_LABELS, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { itemFile, artFile, artFiles, shipSheet, shipPainting, onArtFiles, LANDMARKS, CARTOUCHE, SCALE_BAR, MAP_LABELS, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { SETTLEMENTS, ROAD_WELLS } from '../../data/world';
+import { MASK_H, CELL } from '../../data/landmask';
+import { FOG_LEN, GRID_W } from './world';
+import { landmarkLayout, placePeople, type LandmarkSpot, type PinBlock } from './mapOverlays';
 
 const INK = '#3d2a19';
 const INK_SOFT = 'rgba(61,42,25,0.75)';
@@ -13,7 +17,7 @@ const BRASS_HI = '#d9bb7c';
 const loaded = new Map<string, HTMLImageElement | null>();
 const listeners = new Set<() => void>();
 export const onMapArt = (f: () => void) => { listeners.add(f); return () => { listeners.delete(f); }; };
-onArtFiles(() => { loaded.clear(); listeners.forEach((f) => f()); });
+onArtFiles(() => { loaded.clear(); toned.clear(); layoutMemo = null; listeners.forEach((f) => f()); });
 /** The painting at `src`, once decoded (null until then; asked for on the first call). */
 function picture(src: string | undefined): HTMLImageElement | null {
   if (!src || typeof Image === 'undefined') return null;
@@ -29,6 +33,8 @@ function picture(src: string | undefined): HTMLImageElement | null {
 /** The painting for a piece, if its file is in and has loaded. */
 export const paintingFor = (it: ArtItem) => picture(itemFile(it));
 export const paintingByCode = (code: string) => picture(artFile(code));
+/** A ship type's single painting (art/map/S<n>-<name>.webp), once loaded. */
+export const shipPaintingFor = (it: ArtItem) => picture(shipPainting(it));
 /** A ship's 16-heading sprite sheet (art/map/ships/<type>.webp), once loaded. */
 export const sheetFor = (it: ArtItem) => picture(shipSheet(it));
 
@@ -204,35 +210,123 @@ export interface ArtLayer {
   /** zoomed right out: the cartouche and the scale ornament show */
   overview: boolean;
   landmarks: LandmarkLook;
+  /** the explored country (world.fog): nothing painted stands in the unexplored */
+  fog?: string;
+  /** the places whose pins are on the map (the towns you know), comma separated */
+  pins?: string;
+  /** where you are: its landmark goes first */
+  here?: string;
+  /** Map life is on (the people near the towns show close in) */
+  life?: boolean;
+  /** where the pins, names and their marks are on the map, as the page laid them out (WorldMap) */
+  blocks?: { key: string; list: PinBlock[] };
 }
 
-/** The town landmarks at their spots: warm where you have been, dimmed where you have not or cannot go yet.
- *  Before a painting is in, nothing at the towns (their pins say enough) and a tiny ink mark at a well, close in. */
-export function drawLandmarks(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, w: number, h: number, L: ArtLayer) {
-  if (L.tier < 1) return;
-  for (const it of LANDMARKS) {
-    const look = L.landmarks[it.town!];
-    const x = X(it.x!), y = Y(it.y!);
-    if (x < -90 || y < -90 || x > w + 90 || y > h + 90) continue;
-    const img = paintingFor(it);
-    if (img) {
-      const size = Math.max(36, Math.min(84, 30 * s));
-      ctx.save();
-      ctx.globalAlpha = look === 'visited' ? 1 : look === 'known' ? 0.78 : 0.42;
-      if (look !== 'visited' && 'filter' in ctx) ctx.filter = look === 'known' ? 'saturate(0.7)' : 'saturate(0.2) brightness(0.9)';
-      // the vignette stands on the town's spot, its foot a little below the pin
-      ctx.drawImage(img, x - size / 2, y - size * 0.86, size, size);
-      ctx.restore();
-    } else if (it.town!.startsWith('well-') && L.tier >= 2) {
-      // a tiny ink glyph: a ring round a dot, the old atlas sign for a well
-      ctx.save();
-      ctx.globalAlpha = look === 'visited' ? 0.9 : 0.5;
-      ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
+/** A picture shrunk once to the size it is drawn at (in steps of a twelfth of an octave), toned for how the place is
+ *  known: the frame then copies it at its own size, which is cheap even on a phone, and no canvas filter is needed. */
+const toned = new Map<string, HTMLCanvasElement>();
+function tonedSprite(img: HTMLImageElement, key: string, wpx: number, look: 'visited' | 'known' | 'dim', flip = false): HTMLCanvasElement {
+  const step = Math.round(Math.log2(Math.max(4, wpx)) * 12);
+  const k = `${key}:${look}:${step}:${flip ? 1 : 0}`;
+  let c = toned.get(k);
+  if (c) return c;
+  const W = Math.max(2, Math.round(Math.pow(2, step / 12))), H = Math.max(2, Math.round((W * img.naturalHeight) / img.naturalWidth));
+  c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d')!;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  // halve in steps down to twice the size, so a large picture shrinks without shimmer
+  let src: CanvasImageSource = img, sw = img.naturalWidth, sh = img.naturalHeight;
+  while (sw > W * 2.2) {
+    const t = document.createElement('canvas');
+    t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
+    const tg = t.getContext('2d')!; tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high';
+    tg.drawImage(src, 0, 0, t.width, t.height);
+    src = t; sw = t.width; sh = t.height;
   }
+  if (flip) { g.translate(W, 0); g.scale(-1, 1); }
+  g.drawImage(src, 0, 0, W, H);
+  if (look !== 'visited') {
+    // a place you know but have not been to: a little paler; one you cannot go to yet: faded nearly to the paper's colour
+    const d = g.getImageData(0, 0, W, H), px = d.data;
+    const sat = look === 'known' ? 0.88 : 0.3, lift = look === 'known' ? 0 : 0.1, alpha = look === 'known' ? 1 : 0.66;
+    for (let i = 0; i < px.length; i += 4) {
+      const l = px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11;
+      px[i] = l + (px[i] - l) * sat + (232 - l) * lift;
+      px[i + 1] = l + (px[i + 1] - l) * sat + (214 - l) * lift;
+      px[i + 2] = l + (px[i + 2] - l) * sat + (172 - l) * lift;
+      px[i + 3] *= alpha;
+    }
+    g.putImageData(d, 0, 0);
+  }
+  if (toned.size > 600) toned.clear();
+  toned.set(k, c);
+  return c;
+}
+const explored = (fog: string | undefined, x: number, y: number) => !fog || fog.length !== FOG_LEN || fog.charCodeAt(Math.min(MASK_H - 1, Math.max(0, Math.floor(y / CELL))) * GRID_W + Math.min(GRID_W - 1, Math.max(0, Math.floor(x / CELL)))) === 49;
+
+const hashKey = (t: string) => { let h = 7; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return h; };
+let layoutMemo: { key: string; spots: LandmarkSpot[] } | null = null;
+/** The town landmarks: from the middle zoom in, each just above its town's pin, laid out so none hides a pin, a name
+ *  or another landmark (systems/mapOverlays.ts); warm where you have been, paler where you know the place, faded where
+ *  you cannot go yet; none in unexplored country. Before a painting is in, nothing at the towns (their pins say enough)
+ *  and a tiny ink mark at a well, close in. */
+export function drawLandmarks(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, w: number, h: number, L: ArtLayer, dpr = 1) {
+  if (L.tier < 1) return;
+  const pins = new Set((L.pins ?? '').split(','));
+  const shown = (id: string) => !!L.landmarks[id] && !!placeAt(id) && explored(L.fog, placeAt(id)!.x, placeAt(id)!.y);
+  const key = `${s.toFixed(3)}|${L.tier}|${L.pins}|${L.here}|${L.blocks?.key.length ?? 0}:${hashKey(L.blocks?.key ?? '')}|${Object.keys(L.landmarks).filter(shown).join(',')}`;
+  if (!layoutMemo || layoutMemo.key !== key) layoutMemo = { key, spots: landmarkLayout(s, L.tier, shown, (id) => pins.has(id), (id) => id === L.here, L.blocks?.list) };
+  const spots = layoutMemo.spots;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'low';
+  for (const sp of spots) {
+    const it = sp.it, look = L.landmarks[it.town!] ?? 'dim';
+    const x = X(sp.x), y = Y(sp.y);
+    if (x < -sp.w || y < -10 || x > w + sp.w || y > h + sp.h + 10) continue;
+    const img = paintingFor(it);
+    if (img) ctx.drawImage(tonedSprite(img, it.code, sp.w * dpr, look), x - sp.w / 2, y - sp.h, sp.w, sp.h);
+  }
+  // the wells with no painting yet: the old atlas sign for a well, close in
+  if (L.tier >= 2) for (const it of LANDMARKS) {
+    if (!it.town!.startsWith('well-') || paintingFor(it) || itemFile(it)) continue;
+    const p = placeAt(it.town!);
+    if (!p || !explored(L.fog, p.x, p.y)) continue;
+    const x = X(p.x), y = Y(p.y);
+    if (x < -10 || y < -10 || x > w + 10 || y > h + 10) continue;
+    ctx.globalAlpha = L.landmarks[it.town!] === 'visited' ? 0.9 : 0.5;
+    ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+const places = new Map<string, { x: number; y: number } | null>();
+function placeAt(id: string) {
+  if (!places.has(id)) { const p = SETTLEMENTS.find((q) => q.id === id) ?? ROAD_WELLS.find((q) => q.id === id); places.set(id, p ? { x: p.x, y: p.y } : null); }
+  return places.get(id) ?? null;
+}
+
+/** The people near the towns: small painted groups at their spots (systems/mapOverlays.ts placePeople), close in and
+ *  with Map life on only, and only in country you have seen. Still: they are seasoning, not a crowd. */
+export function drawPeople(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, w: number, h: number, L: ArtLayer, dpr = 1) {
+  if (L.tier < 2 || !L.life) return;
+  const list = artFiles();
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'low';
+  for (const p of placePeople()) {
+    const x = X(p.x), y = Y(p.y), pw = p.w * s, ph = p.h * s;
+    if (x < -pw || y < -2 || x > w + pw || y > h + ph) continue;
+    if (!explored(L.fog, p.x, p.y)) continue;
+    const file = `people/${p.art}.webp`;
+    if (!list.includes(file)) continue;
+    const img = picture(`art/map/${file}`);
+    if (!img) continue;
+    ctx.drawImage(tonedSprite(img, file, pw * dpr, 'visited', p.flip), x - pw / 2, y - ph, pw, ph);
+  }
+  ctx.restore();
 }
 
 /** The title cartouche and the scale ornament, zoomed right out only. */
