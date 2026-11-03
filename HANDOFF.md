@@ -54,7 +54,15 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
 - The travel map is one painting from Crete to Kerman (since save 33): master art-src/world/
   travel-map-painting-1610.png (as painted) and travel-map-master-4800.png (upscaled with Real-ESRGAN
   x4plus, BSD-3, blended 70/30 with a plain Lanczos resize so it does not look waxy); the WebP copies in
-  public/art/world are travel-map-4k (4800), -3k (3072), travel-map (2048) and -768. The map is
+  public/art/world are travel-map-4k (4800), -3k (3072), travel-map (2048) and -768. Close in (where the 4800 picture
+  would be blown up more than 1.8 times on the screen: middle and close zoom on a phone, close zoom on a PC) the map also
+  draws tiles over it: art/world/tiles-9k/r<row>c<col>.webp, 1024 px, 10 x 6, the master doubled (Lanczos) with a gentle
+  local contrast on the lightness and a faint procedural paper grain, all from `python3 -I tools/map-tiles.py` (--crop
+  x,y,w out.png shows one spot before and after). Only the tiles on screen are fetched, once the map is still, and at
+  most 24 are kept decoded (10 on a phone under 4 GB); the single picture stays underneath, so a missing tile shows
+  the painting. Close in the canvas is drawn at the screen's full pixel density (2.6 on a Pixel 7a), else at 2. The
+  painting's softness close in is the master's own: it is the 1610-px painting enlarged three times; a new master or
+  new tiles need NEW file names (the service worker keeps pictures by name). The map is
   2000 x 1214 units on a 400 x 243 grid of 5-unit cells. `python3 tools/build-map.py --report --overlay
   out.png` fits the projection (control points measured on the painting, a quadratic plus a thin-plate
   spline: src/data/projection.ts, `geo(lon, lat)`), writes every town's and well's x, y into
@@ -115,14 +123,23 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   S1/S2/S3/S4/S6/S9 ships and S-wake, C1..C5-caravan.webp and people/<what>.webp, plus src/data/mapOverlays.json
   (every picture's size; ships, caravans and people each shrunk by one factor so their sizes agree). The pack's
   "donkey cart" is a ploughman with an ox (people/plough.webp). Layout: src/game/systems/mapOverlays.ts.
-  Landmarks stand just above their town's pin, most important first (where you are first); zoomed far out only the
+  Landmarks (since 2026-11-03 about 1.7 times bigger: 32 map units wide, 92-176 px, 84 far out, shrinking in steps to
+  half where crowded) stand just above their town's pin, most important first (where you are first); zoomed far out only the
   cities', ports', your home's and your own town's, a size smaller. One that would cover another landmark, or any pin,
   name or mark as the page laid them out (WorldMap's label pass hands the boxes over, with your medallion and the stall
   window), is lifted over its own town's marks, shifts aside, goes under the town's name, shrinks a step, or is left out
   at that zoom; moved off its pin (or far out) it must stand on dry land; warm where visited, paler where known, faded where
-  closed; none in unexplored country. Ships: the type's painting faces its leg (mirrored westward, turned over
+  closed; none in unexplored country. Ships: sized for their water (src/game/systems/mapLife.ts shipLook: a steamer
+  20 map units long, 30-58 px, on the open sea; two thirds of that in a narrow gulf or strait, half on a river; SHIPS'
+  `water` in mapArt.ts; S11 in the Gulf of Suez and S12 on the Marmara added for the narrow waters), never wider than
+  their water: the hull stays on water all along the lane at the drawn size, and a ship too small to read fades out.
+  The life canvas draws the ships from the camera the painting is shown at (WorldMap's shownCam, set where the canvas
+  is drawn, slid or pinched), at once when it changes: before, it read the committed camera (the pan moved at once,
+  the scale a render later) at 30 frames a second, so ships jumped and lagged on a zoom (tests/map-zoomlock.mjs checks
+  every frame of a wheel zoom and a pinch). The type's painting faces its leg (mirrored westward, turned over
   through a turn, tilted at most about 5 degrees), the painted wake under it. Caravans: mirrored by leg, one scale.
-  People: PEOPLE in src/data/mapArt.ts (a town, or a stretch of road), placed once on dry ground clear of roads,
+  People: PEOPLE in src/data/mapArt.ts (a town, or a stretch of road; the Beirut fishermen find no shore clear of the
+  bigger landmark and are left out), placed once on dry ground clear of roads,
   rails, pins, names, landmarks and painted names; drawn on the base map close in with Map life on only.
   The stall at Giza shows close in as a small round window west of the town (tap opens it), not a bubble over the towns.
   The closest zoom is capped where the painting stays crisp (never under 2.45); Android phones with 4 GB or more load the

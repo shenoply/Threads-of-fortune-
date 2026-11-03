@@ -36,7 +36,7 @@ import { routeDanger, tripEstimate, durationLabel, type FareLine,
   settlementById, type Pt, type Party,
 } from '../../game/systems/world';
 import { isPc } from '../../platform/pc';
-import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidth } from '../../game/systems/mapRender';
+import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidth, onMapTiles, tilesWanted } from '../../game/systems/mapRender';
 import mapArtList from 'virtual:map-art-files';
 import { setArtFiles, LANDMARKS } from '../../data/mapArt';
 import { onMapArt, type ArtLayer, type LandmarkLook } from '../../game/systems/mapArtDraw';
@@ -396,6 +396,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   useEffect(() => { if (openTown.at && openTown.at !== w.at) openTown.at = null; }, [w.at]);
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null);
   const kitLate = useRef<number | undefined>(undefined);
+  const tileLate = useRef<number | undefined>(undefined);
   const pts = useRef(new Map<number, Pt>());
   // a pinch in progress: only a CSS transform on the map layer and the canvas until the fingers lift,
   // then zoom and camera are committed once (m0/m: the point between the fingers, wrap-local)
@@ -477,7 +478,17 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         paintRef.current(false);
       };
       bump();
-    }); return () => { a(); b(); k(); }; }, []);
+    });
+    // close-zoom tiles come in: drawn in once the map is still (on the move they wait, like the decorations)
+    const tl = onMapTiles(() => {
+      const bump = () => {
+        window.clearTimeout(tileLate.current);
+        if (drag.current?.moved || gest.current || performance.now() - travelAt.current < 400) { tileLate.current = window.setTimeout(bump, 300); return; }
+        paintRef.current(false);
+      };
+      bump();
+    });
+    return () => { a(); b(); k(); tl(); }; }, []);
   // the painted pieces on the base map (landmarks, the cartouche): what to draw, set each render below
   const artLayerRef = useRef<ArtLayer | undefined>(undefined);
   // the pins' boxes as the layout pass left them, for the landmarks
@@ -503,6 +514,12 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
    *  a phone. A moment after the camera stops it is drawn again, sharp. */
   const paintRef = useRef<(travel?: boolean) => void>(() => {});
   const drawn = useRef({ x: 0, y: 0, s: 0, m: 0, w: 0, h: 0, fog: null as unknown, art: -1, at: 0 });
+  // the camera the painting is shown at this instant (as drawn, slid or pinched): the ships are drawn from this,
+  // never from the camera being committed (panRef moves the moment a zoom is asked for, the scale only on the
+  // next render, and the painting is redrawn a frame after that), and drawn again the moment it changes
+  const shownCam = useRef<{ tx: number; ty: number; s: number } | null>(null);
+  const lifeDraw = useRef<(() => void) | null>(null);
+  const showCam = (tx: number, ty: number, sc: number) => { shownCam.current = { tx, ty, s: sc }; lifeDraw.current?.(); };
   const travelAt = useRef(0);
   const lastTravelPan = useRef({ x: NaN, y: NaN });
   const sharpTimer = useRef<number | undefined>(undefined);
@@ -530,10 +547,14 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       const fresh = (d.fog === fogImg || now - d.at < 4000) && d.art === artTickRef.current;
       if (d.m > 0 && fresh && d.s === sc && d.w === W && d.h === H && Math.abs(ox) <= d.m - 4 && Math.abs(oy) <= d.m - 4) {
         c.style.transform = `translate(${ox}px, ${oy}px)`;
+        showCam(p.x, p.y, d.s);
         return;
       }
     }
-    const dpr = travel ? 1 : Math.min(2, window.devicePixelRatio || 1);
+    // at rest drawn at 2 device pixels a CSS pixel; close in (where the tiles are drawn) at the screen's full density, a
+    // phone's 2.6 included: at 2 the browser stretched the drawn map by a third again, a second blur over the painting's
+    const tilesOn = tilesWanted(sc);
+    const dpr = travel ? 1 : Math.min(tilesOn ? 3 : 2, window.devicePixelRatio || 1);
     const M = travel ? 160 : 0;
     const cw = W + 2 * M, ch = H + 2 * M;
     if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) {
@@ -542,8 +563,10 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     }
     if (M) Object.assign(c.style, { left: `${-M}px`, top: `${-M}px`, width: `${cw}px`, height: `${ch}px`, transform: 'translate(0px, 0px)', willChange: 'transform' });
     else Object.assign(c.style, { left: '', top: '', width: '', height: '', transform: '', willChange: '' });
-    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads, art: artLayerRef.current, kit: kitRef.current ? { life: lifeRef.current } : undefined });
+    drawWorld(c.getContext('2d')!, { w: cw, h: ch, s: sc, tx: p.x + M, ty: p.y + M, dpr }, { fog: fogImg, roads, art: artLayerRef.current, kit: kitRef.current ? { life: lifeRef.current } : undefined, tiles: tilesOn ? (travel ? 'draw' : 'fetch') : undefined });
     drawn.current = { x: p.x, y: p.y, s: sc, m: M, w: W, h: H, fog: fogImg, art: artTickRef.current, at: now };
+    c.dataset.cam = `${p.x},${p.y},${sc},${M}`;
+    showCam(p.x, p.y, sc);
   };
   useEffect(() => {
     // while the travel loop is drawing, a React update (the view synced a few times a second) slides the map too
@@ -1157,6 +1180,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (c) {
       c.style.transformOrigin = '0 0';
       c.style.transform = `translate(${G.m.x + (G.off.x - G.M - G.m0.x) * k + G.M}px, ${G.m.y + (G.off.y - G.M - G.m0.y) * k + G.M}px) scale(${k})`;
+      // the painting as the CSS shows it: drawn at (d.x, d.y, d.s), slid by G.off, scaled k about the fingers
+      const d = drawn.current;
+      showCam(G.m.x + (d.x + G.off.x - G.m0.x) * k, G.m.y + (d.y + G.off.y - G.m0.y) * k, d.s * k);
     }
   };
   const startPinch = () => {
@@ -1337,9 +1363,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
   const findMe = () => { follow.current = true; followAt.current = 0; stopFling(); centreOn(moving && live ? live : { x: w.x, y: w.y }); audio.sfx('tap'); };
   /** the camera as the map layer shows it this instant, a pinch included (for the life canvas) */
   const cameraNow = (): Camera | null => {
-    const sz = sizeRef.current, G = gest.current;
-    if (G) return { tx: G.m.x + (G.pan0.x - G.m0.x) * G.k, ty: G.m.y + (G.pan0.y - G.m0.y) * G.k, s: sRef.current * G.k, w: sz.w, h: sz.h };
-    return { tx: panRef.current.x, ty: panRef.current.y, s: sRef.current, w: sz.w, h: sz.h };
+    const sz = sizeRef.current, c = shownCam.current;
+    return c ? { tx: c.tx, ty: c.ty, s: c.s, w: sz.w, h: sz.h } : null;
   };
 
   // Dividers: the walk between the two places tapped, by the game's own pathfinding at your caravan's pace.
@@ -1657,7 +1682,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         style={hoverBlocked ? { cursor: 'not-allowed' } : undefined}
       >
         <canvas ref={canvasRef} className="world-canvas" aria-label="Map of Egypt, the Levant, Iraq and Persia in 1925" />
-        <MapLife camera={cameraNow} on={life} kit={kitOn} fog={w.fog} />
+        <MapLife camera={cameraNow} drawNow={lifeDraw} on={life} kit={kitOn} fog={w.fog} />
         {/* the hour's tint over the screen only, not the whole map: at a close zoom the map is many screens across,
             and a blended layer that size is more than a phone's graphics memory will hold */}
         <div className="daynight" style={{ background: tint(w.hour) }} />

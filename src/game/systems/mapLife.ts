@@ -3,7 +3,8 @@
 // A ship keeps to a short lane of open water near its spot (every point on it water, with a little sea
 // either side); the felucca keeps to the Nile. Each goes slowly one way, turns, and comes back.
 // (The painted caravans no longer walk the map: their wandering served no purpose.)
-import { SHIPS, SHEET_FRAMES, SHEET_TILT, type ArtItem } from '../../data/mapArt';
+import { SHIPS, SHEET_FRAMES, SHEET_TILT, SHIP_PAINT, PAINT_ANCHOR, type ArtItem, type ShipWater } from '../../data/mapArt';
+import SIZES from '../../data/mapOverlays.json';
 import { dist, isWaterPx, terrainAt, MAP_W, MAP_H, type Pt } from './world';
 
 export interface Lane { code: string; pts: Pt[]; len: number; /** seconds for one way */ secs: number; /** seconds to turn round at each end */ turn: number; phase: number }
@@ -84,7 +85,10 @@ export function mapLanes(): Map<string, Lane> {
   for (const s of SHIPS) {
     const c = { x: s.x!, y: s.y! };
     if (s.ship === 'felucca') add(s, riverLane(c, 45), 0.9);
-    else add(s, straightLane(c, (p) => seaAt(p, s.ship === 'steamer' || s.ship === 'cargo' ? 8 : 5), 90, 24), s.ship === 'steamer' ? 1.6 : s.ship === 'cargo' ? 1.2 : 0.9);
+    // a gulf or strait a few miles across: a shorter lane with less sea either side (the ship is drawn small to fit)
+    else if (s.water === 'narrow') add(s, straightLane(c, (p) => seaAt(p, 2.5), 48, 12), 0.7);
+    // on the open sea, well out from the coasts (so the ship can be drawn at its full size), else nearer them
+    else add(s, straightLane(c, (p) => seaAt(p, 14), 90, 24) ?? straightLane(c, (p) => seaAt(p, s.ship === 'steamer' || s.ship === 'cargo' ? 8 : 5), 90, 24), s.ship === 'steamer' ? 1.6 : s.ship === 'cargo' ? 1.2 : 0.9);
   }
   // caravans no longer walk the map (2026-11-03): only ships have lanes
   return lanes;
@@ -133,4 +137,66 @@ export function shipFrame(angle: number): { i: number; ground: number; rest: num
   let rest = ground - i * step;
   rest = Math.atan2(Math.sin(rest), Math.cos(rest));
   return { i, ground, rest };
+}
+
+// ---------- how big each ship is drawn ----------
+// The paintings keep the ships' sizes to one another (tools/map-overlays.py): each is drawn at one scale, set from the
+// mail steamer's width. On the open sea the steamer is about 20 map units long, between 30 and 58 px; in a narrow gulf
+// or strait a size smaller, on a river smaller still. Wherever it sails it is never drawn bigger than its water: its
+// hull stays on the water at every point of its lane, so a ship never overlaps the land at the size it is drawn.
+const PSZ = SIZES.sizes as unknown as Record<string, [number, number]>;
+const STEAMER_W = PSZ['S1-steamer.webp']?.[0] ?? 293;
+export const WATER_SCALE: Record<ShipWater, number> = { sea: 1, narrow: 0.66, river: 0.5 };
+export const waterOf = (it: ArtItem): ShipWater => it.water ?? (it.ship === 'felucca' ? 'river' : 'sea');
+/** the painting's size in its own pixels (the type's picture, as tools/map-overlays.py wrote it) */
+export function paintingPx(it: ArtItem): [number, number] {
+  const code = SHIP_PAINT[it.ship!];
+  const k = Object.keys(PSZ).find((f) => f.startsWith(`${code}-`));
+  return k ? PSZ[k] : [STEAMER_W, 174];
+}
+/** the hull's footprint as fractions of the picture: the middle 80% of its width, from 30% of its height above the
+ *  waterline to the foot of the picture (the sails and the smoke stand over whatever is behind) */
+export const HULL = { w: 0.8, up: 0.3 } as const;
+const onWater = (it: ArtItem) => (waterOf(it) === 'river' ? (p: Pt) => terrainAt(p) === 'river' || isWaterPx(p) : (p: Pt) => inMap(p) && isWaterPx(p));
+/** is the hull of a ship `w` map units wide on the water with its waterline at p */
+export function hullOnWater(it: ArtItem, p: Pt, w: number): boolean {
+  const [iw, ih] = paintingPx(it), h = (w * ih) / iw, ok = onWater(it);
+  const top = p.y - h * Math.min(HULL.up, PAINT_ANCHOR.y), bot = p.y + h * (1 - PAINT_ANCHOR.y);
+  for (let i = 0; i <= 6; i++) for (let j = 0; j <= 2; j++) {
+    if (!ok({ x: p.x + w * HULL.w * (i / 6 - 0.5), y: top + ((bot - top) * j) / 2 })) return false;
+  }
+  return true;
+}
+/** points along a lane, about every two units */
+export function lanePoints(lane: Lane): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 1; i < lane.pts.length; i++) {
+    const a = lane.pts[i - 1], b = lane.pts[i], n = Math.max(1, Math.ceil(dist(a, b) / 2));
+    for (let k = i === 1 ? 0 : 1; k <= n; k++) out.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n });
+  }
+  return out;
+}
+const roomCache = new Map<string, number>();
+/** the widest the ship may be drawn, in map units, with its hull on the water all along its lane */
+export function shipRoom(it: ArtItem): number {
+  const hit = roomCache.get(it.code);
+  if (hit !== undefined) return hit;
+  const lane = mapLanes().get(it.code);
+  let w = 0;
+  if (lane) {
+    const pts = lanePoints(lane);
+    let lo = 0, hi = 80;
+    for (let n = 0; n < 16; n++) { const m = (lo + hi) / 2; if (pts.every((p) => hullOnWater(it, p, m))) lo = m; else hi = m; }
+    w = lo;
+  }
+  roomCache.set(it.code, w);
+  return w;
+}
+/** The ship's drawn width in px at map scale s (px per unit), and how opaque (a ship too small to read fades out
+ *  rather than popping out between two zoom steps). */
+export function shipLook(it: ArtItem, s: number): { w: number; alpha: number } {
+  const steamer = Math.max(30, Math.min(58, 20 * s)) * WATER_SCALE[waterOf(it)];
+  const want = (steamer * paintingPx(it)[0]) / STEAMER_W;
+  const w = Math.min(want, shipRoom(it) * s);
+  return { w, alpha: Math.max(0, Math.min(1, (w - 7) / 5)) };
 }

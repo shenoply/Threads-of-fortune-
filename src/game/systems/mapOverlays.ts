@@ -40,17 +40,18 @@ export function pinBox(p: Place, s: number, tier: number): Box {
 
 // ---------- the landmarks ----------
 export const landmarkFile = (it: ArtItem) => `${it.code}-${it.name}.webp`;
-/** the landmark's size on screen at scale s, in px: as wide as about 20 map units, never under 56 px (48 zoomed far
- *  out, `far`, where only the cities' and your own town's show) nor over 116 */
+/** the landmark's size on screen at scale s, in px: as wide as about 32 map units, never under 92 px (84 zoomed far
+ *  out, `far`, where only the cities' and your own town's show) nor over 176 (since 2026-11-03: about 1.7 times the
+ *  size they were, which read as stamps on a phone) */
 export function landmarkPx(it: ArtItem, s: number, far = false): { w: number; h: number } {
   const [iw, ih] = SZ[landmarkFile(it)] ?? [384, 256];
-  const W = clamp(20 * s, far ? 48 : 56, 116), H = W * 0.74;
+  const W = clamp(32 * s, far ? 84 : 92, 176), H = W * 0.74;
   const k = Math.min(W / iw, H / ih);
   return { w: iw * k, h: ih * k };
 }
 /** how far to one side a landmark may stand from above its pin, in its own widths */
 const SHIFTS = [0, -0.3, 0.3, -0.45, 0.45];
-const SHRINK = [1, 0.85, 0.72];
+const SHRINK = [1, 0.86, 0.74, 0.62, 0.52];
 /** the most a landmark is lifted above its pin to clear what stands there, in px */
 const LIFT = 56;
 /** the places whose landmarks show zoomed far out (and where you are) */
@@ -237,7 +238,7 @@ export function placePeople(): PeoplePlace[] {
     if (!anchor) continue;
     const { w, h } = peopleSize(sp.art);
     let best: { x: number; y: number; cost: number } | null = null;
-    const r0 = sp.to ? 2.5 : 6, r1 = sp.to ? 20 : sp.shore ? 32 : 24;
+    const r0 = sp.to ? 2.5 : 6, r1 = sp.to ? 32 : sp.shore ? 32 : 24;
     for (let r = r0; r <= r1; r += 1.25) {
       for (let k = 0; k < 24; k++) {
         const a = (k * Math.PI) / 12;

@@ -5,8 +5,10 @@
 // setArtFiles() hands that list to the map.
 // Positions are the brief's, in per cent of the map's width and height from the top-left corner.
 import { MAP_W, MAP_H } from '../game/systems/world';
+import { geo } from './projection';
 
 export type ArtKind = 'landmark' | 'ship' | 'wake' | 'caravan' | 'compass' | 'cartouche' | 'scale' | 'weather' | 'frame' | 'marker';
+export type ShipWater = 'sea' | 'narrow' | 'river';
 export type ShipKind = 'steamer' | 'cargo' | 'felucca' | 'dhow' | 'schooner' | 'small-steamer';
 export type WeatherKind = 'cloud' | 'sandstorm' | 'birds';
 
@@ -22,6 +24,9 @@ export interface ArtItem {
   /** the town (or road well) a landmark belongs to */
   town?: string;
   ship?: ShipKind;
+  /** the water a ship sails: the open sea (the Mediterranean, the Red Sea, the Gulf, the Caspian), a narrow gulf or
+   *  strait (the Gulf of Suez, the Marmara), or a river (the Nile); it is drawn smaller the narrower its water */
+  water?: ShipWater;
   weather?: WeatherKind;
   /** camels in a caravan (for the placeholder) */
   camels?: number;
@@ -75,7 +80,7 @@ const S = (n: number, name: string, ship: ShipKind, xp: number, yp: number): Art
 export const SHIPS: ArtItem[] = [
   S(1, 'steamer', 'steamer', 16.5, 36.2),
   S(2, 'cargo', 'cargo', 26.0, 40.4),
-  S(3, 'felucca', 'felucca', 26.1, 71.0),
+  { ...S(3, 'felucca', 'felucca', 26.1, 71.0), water: 'river' },
   S(4, 'dhow', 'dhow', 33.0, 65.1),
   S(5, 'dhow', 'dhow', 64.5, 53.5),
   S(6, 'schooner', 'schooner', 9.0, 17.7),
@@ -83,6 +88,9 @@ export const SHIPS: ArtItem[] = [
   S(8, 'dhow', 'dhow', 86.5, 74.1),
   S(9, 'steamer', 'small-steamer', 70.0, 14.0),
   S(10, 'steamer', 'steamer', 5.5, 34.6),
+  // (added 2026-11-03, after the brief) the narrow waters: a small steamer in the Gulf of Suez, a dhow on the Marmara
+  { code: 'S11', name: 'steamer', kind: 'ship', ship: 'small-steamer', water: 'narrow', px: [768, 768], ...geo(33.0, 28.6) },
+  { code: 'S12', name: 'dhow', kind: 'ship', ship: 'dhow', water: 'narrow', px: [768, 768], ...geo(28.3, 40.75) },
 ];
 export const WAKE: ArtItem = { code: 'S-wake', name: '', kind: 'wake', px: [768, 768] };
 

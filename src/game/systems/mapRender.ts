@@ -109,6 +109,67 @@ export function warmPaintedMap(sharp: boolean) {
 }
 export function onPaintedMap(f: () => void) { artListeners.add(f); return () => { artListeners.delete(f); }; }
 
+// ---------- the close-zoom tiles ----------
+// Close in, the single painting is blown up two to four times on a phone's screen and smears. There the map is drawn
+// from tiles cut straight from the full-size master at twice its size, with a gentle local contrast and a faint paper
+// grain (tools/map-tiles.py: art/world/tiles-9k/r<row>c<col>.webp, 1024 px), laid exactly over the single picture,
+// which stays underneath (so a tile still coming in, or the edge between two, shows the painting, never a gap).
+// Only the tiles on screen are fetched, and only once the map stands still; a few dozen at most are kept decoded.
+const TILE_DIR = 'art/world/tiles-9k';
+export const MAP_TILES = { tile: 1024, cols: 10, rows: 6, w: 9600, h: 5826 } as const;
+/** device pixels per pixel of the single 4800 painting past which the tiles are drawn */
+export const TILE_FROM = 1.8;
+const tiles = new Map<string, { img: CanvasImageSource | null; used: number }>();
+const tileListeners = new Set<() => void>();
+let tilesLoading = 0, tileNote = 0, tileClock = 0;
+const lowMemory = () => { const m = typeof navigator !== 'undefined' ? (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 0 : 0; return m > 0 && m < 4; };
+export function onMapTiles(f: () => void) { tileListeners.add(f); return () => { tileListeners.delete(f); }; }
+/** are the tiles wanted at this scale (CSS px per map unit) on this screen */
+export function tilesWanted(s: number): boolean {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  return (s * dpr) / (4800 / MAP_W) >= TILE_FROM;
+}
+function askTile(key: string, r: number, c: number) {
+  tiles.set(key, { img: null, used: tileClock });
+  tilesLoading++;
+  loadPicture(`${TILE_DIR}/r${r}c${c}.webp`)
+    .then((img) => { const t = tiles.get(key); if (t) t.img = img; else (img as ImageBitmap).close?.(); })
+    .catch(() => { /* stays empty: the single painting shows there */ })
+    .finally(() => {
+      tilesLoading--;
+      // the map is drawn again once the tiles asked for together are all in (a whole redraw is the costly part of a
+      // frame), or a quarter of a second after the first of them if the rest are slow
+      const note = () => { window.clearTimeout(tileNote); tileNote = 0; tileListeners.forEach((f) => f()); };
+      if (!tilesLoading) note();
+      else if (!tileNote) tileNote = window.setTimeout(note, 250);
+    });
+}
+/** Draw the tiles under the view (world transform set), fetching the missing ones when `fetchNew`. */
+function drawTiles(ctx: CanvasRenderingContext2D, v: View, fetchNew: boolean) {
+  const kx = MAP_TILES.w / MAP_W, ky = MAP_TILES.h / MAP_H, T = MAP_TILES.tile;
+  const x0 = -v.tx / v.s, y0 = -v.ty / v.s, x1 = (v.w - v.tx) / v.s, y1 = (v.h - v.ty) / v.s;
+  const c0 = Math.max(0, Math.floor((x0 * kx) / T)), c1 = Math.min(MAP_TILES.cols - 1, Math.floor((x1 * kx) / T));
+  const r0 = Math.max(0, Math.floor((y0 * ky) / T)), r1 = Math.min(MAP_TILES.rows - 1, Math.floor((y1 * ky) / T));
+  const now = ++tileClock;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    const key = `${r},${c}`;
+    const t = tiles.get(key);
+    if (!t) { if (fetchNew && tilesLoading < 6) askTile(key, r, c); continue; }
+    t.used = now;
+    if (!t.img) continue;
+    const iw = (t.img as ImageBitmap).width, ih = (t.img as ImageBitmap).height;
+    ctx.drawImage(t.img, (c * T) / kx, (r * T) / ky, iw / kx, ih / ky);
+  }
+  // keep the most recently drawn few decoded (each is 4 MB), the rest let go
+  const keep = lowMemory() ? 10 : 24;
+  if (tiles.size > keep) {
+    const old = [...tiles.entries()].filter(([, t]) => t.img && t.used < now).sort((a, b) => a[1].used - b[1].used);
+    for (const [k, t] of old.slice(0, tiles.size - keep)) { (t.img as ImageBitmap).close?.(); tiles.delete(k); }
+  }
+}
+
 let railCache: { x: number; y: number }[][] | null = null;
 function paintedRails() {
   if (railCache) return railCache;
@@ -227,7 +288,7 @@ const PAPER = '#ead8ac';
 const INK = '#4a3421';
 
 const lastArt = new WeakMap<HTMLCanvasElement, CanvasImageSource | null>();
-export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean; art?: ArtLayer; kit?: { life: boolean } } = {}) {
+export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: HTMLCanvasElement | null; roads?: { pts: { x: number; y: number }[]; major: boolean }[]; labels?: boolean; art?: ArtLayer; kit?: { life: boolean }; /** draw the close-zoom tiles (fetching any missing when 'fetch') */ tiles?: 'draw' | 'fetch' } = {}) {
   const { w, h, s, tx, ty, dpr } = v;
   const screen = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const world = () => ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
@@ -256,6 +317,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, v: View, opts: { fog?: 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(art, 0, 0, MAP_W, MAP_H);
+    if (opts.tiles) drawTiles(ctx, v, opts.tiles === 'fetch');
     screen();
     // the painted decorations (palms, trees, peaks ...), under the roads, the fog and the names
     if (opts.kit) drawKit(ctx, v, opts.kit.life);

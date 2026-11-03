@@ -3,7 +3,7 @@
 //   npx tsx tests/maplife.ts
 import { MAP_ART, LANDMARKS, SHIPS, CARAVANS, WEATHER, COMPASS, MAP_LABELS, expectedFile, setArtFiles, artFile, itemFile, shipSheet, SHIP_SHEET, SHEET_TILT } from '../src/data/mapArt';
 import { Needle, turnBetween, bearing } from '../src/game/systems/compass';
-import { mapLanes, poseAt, shipFrame } from '../src/game/systems/mapLife';
+import { mapLanes, poseAt, shipFrame, shipLook, waterOf, hullOnWater, lanePoints, paintingPx } from '../src/game/systems/mapLife';
 import { thin, inkLine, addInk, inkPath, pathUpTo, nearInk, INK_CAP } from '../src/game/systems/inked';
 import { isWaterPx, terrainAt, isBlockedPx, findPath, settlementById, MAP_W, MAP_H, dist } from '../src/game/systems/world';
 import { SETTLEMENTS, ROAD_WELLS } from '../src/data/world';
@@ -18,7 +18,7 @@ const ok = (c: boolean, what: string) => { console.log(`${c ? 'ok  ' : 'FAIL'} $
 const codes = MAP_ART.map((a) => a.code);
 ok(new Set(codes).size === codes.length, `every code is used once (${codes.length} pieces)`);
 ok(LANDMARKS.length === 33 && LANDMARKS[0].code === '01' && LANDMARKS[32].code === '33', '33 landmarks, 01 to 33');
-ok(SHIPS.length === 10 && CARAVANS.length === 5 && WEATHER.length === 4, '10 ships, 5 caravans, 4 weather pieces');
+ok(SHIPS.length === 12 && CARAVANS.length === 5 && WEATHER.length === 4, '12 ships (the brief\'s ten, and two for the narrow waters), 5 caravans, 4 weather pieces');
 ok(['K-compass-base', 'K-compass-needle', 'K-compass-rim', 'S-wake', 'T', 'B', 'F-corner', 'M-city', 'M-port', 'M-camp', 'M-locked'].every((c) => codes.includes(c)), 'compass, wake, cartouche, scale, frame and markers are listed');
 ok(expectedFile(LANDMARKS[0]) === 'art/map/01-giza.png' && expectedFile(SHIPS[2]) === 'art/map/S3-felucca.png' && expectedFile(COMPASS.base) === 'art/map/K-compass-base.png', 'file names follow the brief (01-giza.png, S3-felucca.png, K-compass-base.png)');
 const towns = new Set([...SETTLEMENTS.map((s) => s.id), ...ROAD_WELLS.map((w) => w.id)]);
@@ -98,12 +98,34 @@ for (const s of SHIPS) {
   let bad = 0;
   for (let t = 0; t < 2 * (l.secs + l.turn); t += 0.5) {
     const p = poseAt(l, t);
-    if (s.ship === 'felucca' ? terrainAt(p) !== 'river' : !isWaterPx(p)) bad++;
+    if (waterOf(s) === 'river' ? terrainAt(p) !== 'river' : !isWaterPx(p)) bad++;
   }
-  ok(bad === 0 && l.len >= 20, `${s.code} (${s.ship}) sails ${l.len.toFixed(0)} units, always on ${s.ship === 'felucca' ? 'the Nile' : 'water'}${bad ? ` (${bad} points off)` : ''}`);
+  ok(bad === 0 && l.len >= (waterOf(s) === 'narrow' ? 12 : 20), `${s.code} (${s.ship}) sails ${l.len.toFixed(0)} units, always on ${s.ship === 'felucca' ? 'the Nile' : 'water'}${bad ? ` (${bad} points off)` : ''}`);
   ok(dist(l.pts[0], s as { x: number; y: number }) < 80, `${s.code} stays near its spot`);
 }
 ok(CARAVANS.every((c) => !lanes.has(c.code)), 'no caravans walk the map');
+
+// ---- each ship's size for its water, and never over the land at the size it is drawn ----
+{
+  const SCALES = [0.45, 0.7, 1, 1.36, 1.8, 2.4, 3.3, 4.5, 5.6];
+  const steamerAt = (it: typeof SHIPS[number], s: number) => (shipLook(it, s).w * paintingPx(SHIPS[0])[0]) / paintingPx(it)[0];
+  const byWater = (w: string) => SHIPS.filter((it) => waterOf(it) === w);
+  ok(byWater('river').length >= 1 && byWater('narrow').length >= 2 && byWater('sea').length >= 8, `ships on the open sea (${byWater('sea').map((i) => i.code)}), in narrow waters (${byWater('narrow').map((i) => i.code)}) and on the Nile (${byWater('river').map((i) => i.code)})`);
+  // at the same zoom, a ship on a river is drawn smaller than one in a narrow gulf, and that smaller than one at sea
+  for (const s of [1.36, 2.4, 3.3]) {
+    const big = (w: string) => Math.max(...byWater(w).map((it) => steamerAt(it, s)));
+    const small = (w: string) => Math.min(...byWater(w).map((it) => steamerAt(it, s)));
+    ok(big('river') < small('narrow') + 0.01 && big('narrow') < small('sea') + 0.01, `at scale ${s}: river ${big('river').toFixed(0)} px < narrow ${small('narrow').toFixed(0)}-${big('narrow').toFixed(0)} < sea ${small('sea').toFixed(0)}-${big('sea').toFixed(0)} (as a steamer's width)`);
+  }
+  ok(SHIPS.every((it) => SCALES.every((s) => shipLook(it, s).w <= 60 * (paintingPx(it)[0] / paintingPx(SHIPS[0])[0]) + 0.01)), 'no ship over 60 px (a steamer at most 58: they were up to 84)');
+  let off = 0; const where: string[] = [];
+  for (const it of SHIPS) {
+    const l = lanes.get(it.code); if (!l) continue;
+    const pts = lanePoints(l);
+    for (const s of SCALES) { const w = shipLook(it, s).w / s; if (shipLook(it, s).alpha > 0 && !pts.every((p) => hullOnWater(it, p, w))) { off++; where.push(`${it.code}@${s}`); } }
+  }
+  ok(off === 0, `every ship's hull stays on the water all along its lane at every zoom${where.length ? ` (${where.join(', ')})` : ''}`);
+}
 {
   const l = lanes.get('S1')!;
   const a = poseAt(l, 0), b = poseAt(l, 0.5);

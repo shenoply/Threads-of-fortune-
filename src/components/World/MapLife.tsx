@@ -4,9 +4,8 @@
 // all while the tab is hidden or "Map life" is off in Settings.
 import { useEffect, useRef } from 'react';
 import { SHIPS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, PAINT_ANCHOR, shipPainting, type ArtItem, type ShipKind } from '../../data/mapArt';
-import SIZES from '../../data/mapOverlays.json';
 import type { Pt } from '../../game/systems/world';
-import { mapLanes, poseAt, shipFrame } from '../../game/systems/mapLife';
+import { mapLanes, poseAt, shipFrame, shipLook } from '../../game/systems/mapLife';
 import { drawKitLive } from '../../game/systems/mapKitDraw';
 import { FOG_LEN, GRID_W } from '../../game/systems/world';
 import { MASK_H, CELL } from '../../data/landmask';
@@ -17,9 +16,6 @@ export interface Camera { tx: number; ty: number; s: number; w: number; h: numbe
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** each type's hull length as a fraction of a sheet frame (tools/blender-ships.py: length / 12.2 units), for its wake */
 const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.82, cargo: 0.75, 'small-steamer': 0.61, schooner: 0.61, dhow: 0.57, felucca: 0.46 };
-/** the painted mail steamer's width and the first caravan's, in their pictures' pixels: every ship and every caravan is
- *  drawn at one scale from these (tools/map-overlays.py shrinks each set by one factor) */
-const PAINT_STEAMER_W = (SIZES.sizes as unknown as Record<string, number[]>)['S1-steamer.webp']?.[0] ?? 293;
 /** +1 when a lane's outward leg runs east (the paintings face right), -1 when it runs west */
 const facingOut = (pts: Pt[]) => (pts[pts.length - 1].x >= pts[0].x ? 1 : -1);
 /** ?ships=blender (or tof-ships=blender in local storage) shows the Blender sheets, for comparison */
@@ -28,7 +24,7 @@ const SHIP_STYLE = (() => { try { return new URLSearchParams(location.search).ge
 const perf = { frames: 0, ms: 0, worst: 0, t0: 0 };
 if (typeof window !== 'undefined') (window as unknown as { __mapLife?: typeof perf }).__mapLife = perf;
 
-export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => Camera | null; on: boolean; kit?: boolean; fog?: string }) {
+export function MapLife({ camera, drawNow, on, kit = false, fog = '' }: { camera: () => Camera | null; /** set to a function the map calls the moment it shows the painting at a new camera */ drawNow?: { current: (() => void) | null }; on: boolean; kit?: boolean; fog?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const camRef = useRef(camera);
   camRef.current = camera;
@@ -44,14 +40,22 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
     const lanes = mapLanes();
     const t0 = performance.now();
     perf.t0 = t0;
-    let raf = 0, last = 0, dirty = false;
+    let raf = 0, last = 0, dirty = false, seenCam = '';
+    // Drawn about thirty times a second while the map stands still (plenty for things this slow), and at once,
+    // in the same frame, whenever the painting is shown at another camera (a zoom, a pinch, a drag), so the ships
+    // never lag behind it, run ahead of it or show for a frame at the wrong scale.
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      const c = camRef.current();
+      const key = c ? `${c.tx},${c.ty},${c.s},${c.w},${c.h}` : '';
+      if (key === seenCam && now - last < 32) return;
+      draw(now);
+    };
     const draw = (now: number) => {
-      raf = requestAnimationFrame(draw);
-      // about thirty frames a second is plenty for things this slow
-      if (now - last < 32) return;
-      last = now;
       const c = camRef.current();
       if (!c) return;
+      last = now;
+      seenCam = `${c.tx},${c.ty},${c.s},${c.w},${c.h}`;
       const start = performance.now();
       // soft painted pieces need no more than one and a half pixels to the point; fewer pixels to fill and composite
       const dpr = Math.min(1.5, window.devicePixelRatio || 1);
@@ -110,15 +114,15 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         if (!lane) continue;
         const p = poseAt(lane, t);
         const x = X(p.x), y = Y(p.y);
+        // its size for its water (open sea, a narrow gulf, a river), never bigger than the water it sails
+        const look = shipLook(it, s);
+        if (look.alpha <= 0) continue;
         const painted = SHIP_STYLE !== 'blender' && !!shipPainting(it);
         const paint = painted ? shipPaintingFor(it) : null;
         // (a painting still loading: nothing for a moment, rather than fetching the sheet meanwhile)
         if (painted && !paint) continue;
         if (paint) {
-          // every type at one scale (the paintings keep the ships' sizes to one another): a mail steamer about 28 map
-          // units long, between 44 and 84 px
-          // (the felucca a size smaller: the Nile is narrow)
-          const k = (clamp(28 * s, 44, 84) / PAINT_STEAMER_W) * (it.ship === 'felucca' ? 0.72 : 1);
+          const k = look.w / paint.naturalWidth;
           const pw = paint.naturalWidth * k, ph = paint.naturalHeight * k;
           if (!seen(x, y, Math.max(pw, ph))) continue;
           // which way it faces: by the leg (out or back along its lane), turned over through a turn
@@ -133,13 +137,14 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
           // (a felucca on the winding Nile leaves no wake worth drawing: it would trail over the banks)
           if (wakeArt && it.ship !== 'felucca') {
             // the painted wake trails from the stern, foam fading out astern; faint through a turn
-            const ww = pw * 0.95, wh = (ww * wakeArt.naturalHeight) / wakeArt.naturalWidth;
-            ctx.globalAlpha = 0.75 * (p.turning ? 1 - Math.sin(Math.PI * p.turning) : 1);
+            const ww = pw * (it.water === 'narrow' ? 0.6 : 0.95), wh = (ww * wakeArt.naturalHeight) / wakeArt.naturalWidth;
+            ctx.globalAlpha = 0.75 * look.alpha * (p.turning ? 1 - Math.sin(Math.PI * p.turning) : 1);
             ctx.drawImage(wakeArt, -pw * 0.18 - ww, -wh * 0.62, ww, wh);
-            ctx.globalAlpha = 1;
           }
+          ctx.globalAlpha = look.alpha;
           ctx.drawImage(paint, -pw * PAINT_ANCHOR.x, -ph * PAINT_ANCHOR.y, pw, ph);
           ctx.restore();
+          ctx.globalAlpha = 1;
           dirty = true;
           continue;
         }
@@ -147,7 +152,7 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         if (sheet) {
           // the Blender ship: the frame nearest its heading, never turned, so masts and funnel stay upright;
           // one size for every type (each sheet keeps the ships' sizes to one another)
-          const fsz = clamp(32 * s, 48, 88);
+          const fsz = look.w * 1.25;
           if (!seen(x, y, fsz)) continue;
           const f = shipFrame(p.angle);
           const L = fsz * (SHEET_LENGTH[it.ship!] ?? 0.8);
@@ -165,7 +170,7 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
           dirty = true;
           continue;
         }
-        const size = it.ship === 'felucca' ? clamp(18 * s, 20, 46) : clamp(26 * s, 28, 64);
+        const size = look.w;
         if (!seen(x, y, size)) continue;
         ctx.save();
         ctx.translate(x, y);
@@ -179,13 +184,15 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         dirty = true;
       }
       // no caravans: the painted ones wandered the deserts to no purpose (removed 2026-11-03; C1..C5 kept unused)
+      cv.dataset.cam = `${tx},${ty},${s}`;
       const ms = performance.now() - start;
       perf.frames++; perf.ms += ms; perf.worst = Math.max(perf.worst, ms);
     };
-    const go = () => { cancelAnimationFrame(raf); if (!document.hidden) raf = requestAnimationFrame(draw); };
+    const go = () => { cancelAnimationFrame(raf); if (!document.hidden) raf = requestAnimationFrame(tick); };
     document.addEventListener('visibilitychange', go);
     go();
-    return () => { cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', go); };
+    if (drawNow) drawNow.current = () => { if (!document.hidden) draw(performance.now()); };
+    return () => { cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', go); if (drawNow) drawNow.current = null; };
   }, [on]);
   return <canvas ref={ref} className="map-life" aria-hidden="true" data-testid="map-life" data-on={on ? '1' : '0'} />;
 }
