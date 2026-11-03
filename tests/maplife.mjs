@@ -8,6 +8,9 @@ const b = await chromium.launch();
 let fails = 0;
 const ok = (c, what) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${what}`); if (!c) fails++; };
 const p = await b.newPage({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
+// the map's ship pictures as they are fetched (the page's own resource list fills up before the map opens)
+const shipGets = [];
+p.on('response', async (r) => { const u = r.url(); if (/\/art\/map\/(S\d|S-wake|ships\/)/.test(u)) shipGets.push({ n: u.split('/').slice(-2).join('/'), kb: Math.round(((await r.body().catch(() => Buffer.alloc(0))).length) / 1024) }); });
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 await p.goto(`http://localhost:${PORT}/`);
 await p.evaluate(() => (localStorage.clear(), localStorage.setItem('tof-intro-seen-v2', '1'), localStorage.setItem('tof-films-once', '1'), localStorage.setItem('tof-skip-chapters', '1')));
@@ -39,12 +42,13 @@ const saved = () => p.evaluate(() => JSON.parse(localStorage.getItem('threads-of
   ok(sv.version === 34 && Array.isArray(sv.state.inked) && sv.state.inked.length === 0, `the version 33 save opens as 34 with no inked lines (version ${sv.version}, inked ${JSON.stringify(sv.state.inked)})`);
 }
 
-// ---- the Blender ships: the six sprite sheets come in with the map, small ----
+// ---- the ships: the artist's six paintings (and the wake) come in with the map, small; the Blender sheets stay unused ----
 {
-  const got = await p.evaluate(() => performance.getEntriesByType('resource').filter((e) => e.name.includes('/art/map/ships/')).map((e) => ({ n: e.name.split('/').pop(), kb: Math.round((e.encodedBodySize || e.transferSize) / 1024) })));
-  const names = new Set(got.map((g) => g.n));
-  ok(['steamer', 'cargo', 'felucca', 'dhow', 'schooner', 'caspian'].every((t) => names.has(`${t}.webp`)), `the six ship sheets are loaded with the map (${[...names].join(', ')})`);
-  ok(got.every((g) => g.kb < 300), `each sheet is small (${got.map((g) => `${g.n} ${g.kb} KB`).join(', ')})`);
+  const got = shipGets;
+  const names = new Set(got.map((g) => g.n.split('/').pop()));
+  ok(['S1-steamer', 'S2-cargo', 'S3-felucca', 'S4-dhow', 'S6-schooner', 'S9-steamer', 'S-wake'].every((t) => names.has(`${t}.webp`)), `the six painted ships and the wake are loaded with the map (${[...names].join(', ')})`);
+  ok(!got.some((g) => g.n.startsWith('ships/')), 'the Blender sheets are not fetched while the paintings are in');
+  ok(got.every((g) => g.kb < 120), `each painting is small (${got.map((g) => `${g.n} ${g.kb} KB`).join(', ')})`);
 }
 
 // ---- the compass ----

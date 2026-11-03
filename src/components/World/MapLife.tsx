@@ -3,7 +3,7 @@
 // loop straight from the live camera (no React render per frame), about thirty times a second, and not at
 // all while the tab is hidden or "Map life" is off in Settings.
 import { useEffect, useRef } from 'react';
-import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, PAINT_ANCHOR, type ArtItem, type ShipKind } from '../../data/mapArt';
+import { SHIPS, CARAVANS, WEATHER, WAKE, SHEET_FRAMES, SHEET_ANCHOR, SHEET_TILT, PAINT_ANCHOR, shipPainting, type ArtItem, type ShipKind } from '../../data/mapArt';
 import SIZES from '../../data/mapOverlays.json';
 import type { Pt } from '../../game/systems/world';
 import { mapLanes, poseAt, shipFrame } from '../../game/systems/mapLife';
@@ -111,7 +111,10 @@ export function MapLife({ camera, on, kit = false, fog = '' }: { camera: () => C
         if (!lane) continue;
         const p = poseAt(lane, t);
         const x = X(p.x), y = Y(p.y);
-        const paint = SHIP_STYLE !== 'blender' ? shipPaintingFor(it) : null;
+        const painted = SHIP_STYLE !== 'blender' && !!shipPainting(it);
+        const paint = painted ? shipPaintingFor(it) : null;
+        // (a painting still loading: nothing for a moment, rather than fetching the sheet meanwhile)
+        if (painted && !paint) continue;
         if (paint) {
           // every type at one scale (the paintings keep the ships' sizes to one another): a mail steamer about 28 map
           // units long, between 44 and 84 px
