@@ -337,7 +337,7 @@ def main(argv=None):
   near_mount = edt(mount) < 45
   foot = (nd.binary_dilation(mount, iterations=5) & ~mount) | ((rel > np.where(lowered, 7.0, 8.5)) & ~mount & near_mount)
   foot &= land & ~near_nile & ~delta
-  hill_d = np.where(foot, 0.55, 0)
+  hill_d = np.where(foot, 0.3, 0)
   pl.scatter('hill-ochre', hill_d, [(0, 50), (1, 28), (2, 16)],
              kind_of=lambda x, y: 'hill-green' if green[cell(x, y)] > 0.18 else 'hill-ochre')
 
