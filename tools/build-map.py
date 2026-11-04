@@ -22,6 +22,10 @@ from scipy import ndimage as nd
 
 ROOT = __file__.rsplit('/tools/', 1)[0]
 PAINTING = f'{ROOT}/art-src/world/travel-map-painting-1610.png'
+# the sea, lakes and river water are read from the repainted map (since 2026-11-04: tools/map-repaint.py, shrunk to 1610), whose
+# coasts are the old ones to a pixel or two; the ground (greens, snow, relief) still from the first painting, so the terrain
+# the game plays on does not change with the new brushwork
+WATER_PAINTING = f'{ROOT}/art-src/world/travel-map-painting2-1610.png'
 PW, PH = 1610, 977
 MAP_W, MAP_H = 2000, 1214
 S = MAP_W / PW                     # map units per painting pixel
@@ -151,6 +155,12 @@ def mu(p):  # painting px -> map units
 # ---------------------------------------------------------------- 3. sea, lakes, ground
 img = np.asarray(Image.open(PAINTING).convert('RGB')).astype(int)
 R_, G_, B_ = img[..., 0], img[..., 1], img[..., 2]
+_wimg = np.asarray(Image.open(WATER_PAINTING).convert('RGB')).astype(int)
+# the sea from the repainted map; the lakes and the rivers' water from the first painting (the repaint's greens and teals in
+# the Delta and the marshes read as water by colour)
+wet2 = (_wimg[..., 2] > _wimg[..., 0] + 8) & (_wimg[..., 2] > 60)
+lab2, nlab2 = nd.label(wet2)
+sizes2 = nd.sum(wet2, lab2, range(1, nlab2 + 1))
 wet = (B_ > R_ + 8) & (B_ > 60)
 lab, nlab = nd.label(wet)
 sizes = nd.sum(wet, lab, range(1, nlab + 1))
@@ -176,8 +186,8 @@ def line_mask(lines, width_px, size=(PW, PH)):
 # the Suez Canal (painting px): drawn in blue, but a canal, not open sea
 CANAL = [(418, 449), (419, 462), (420, 474), (422, 484), (425, 493)]
 canal_px = line_mask([CANAL], 7)
-sea_px = np.isin(lab, np.where(sizes >= 1000)[0] + 1) & ~canal_px
-lake_px = np.isin(lab, np.where((sizes >= 120) & (sizes < 1000))[0] + 1)
+sea_px = np.isin(lab2, np.where(sizes2 >= 1000)[0] + 1) & ~canal_px
+lake_px = np.isin(lab, np.where((sizes >= 120) & (sizes < 1000))[0] + 1) & ~sea_px
 sea = per_cell(sea_px) > 0.45
 
 # ---------------------------------------------------------------- 4. rivers (painting px)

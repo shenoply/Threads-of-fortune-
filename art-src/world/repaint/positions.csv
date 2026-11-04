@@ -1,0 +1,81 @@
+code,item,x_percent,y_percent
+1,landmark: Giza,21.1,49.0
+2,landmark: Saqqara,21.0,50.2
+3,landmark: Fayoum,20.6,54.2
+4,landmark: Cairo,21.9,48.5
+5,landmark: Tanta,20.8,46.4
+6,landmark: Alexandria,17.7,46.1
+7,landmark: Port Said,25.7,46.1
+8,landmark: Suez,26.3,50.4
+9,landmark: St Catherine's,30.4,55.7
+10,landmark: Tarabin camp,30.4,46.8
+11,landmark: Jaffa,32.0,42.9
+12,landmark: Jerusalem,33.3,43.4
+13,landmark: Beirut,34.0,36.3
+14,landmark: Damascus,36.8,37.9
+15,landmark: Amman,35.7,42.8
+16,landmark: Aleppo,39.1,26.5
+17,landmark: Konya,27.9,18.3
+18,landmark: Constantinople,18.6,5.1
+19,landmark: Angora,28.7,10.0
+20,landmark: Baghdad,54.2,37.1
+21,landmark: Khanaqin,56.8,32.4
+22,landmark: Kermanshah,60.4,32.7
+23,landmark: Hamadan,63.0,31.6
+24,landmark: Tehran,68.8,28.0
+25,landmark: Tabriz,59.6,17.9
+26,landmark: Kashan,69.1,34.3
+27,landmark: Isfahan,69.8,39.3
+28,landmark: Kerman,82.5,49.1
+29,landmark: Ajrud fort,25.9,50.0
+30,landmark: Ayun Musa,26.7,51.0
+31,landmark: Wadi Feiran,29.6,55.3
+32,landmark: Bir el-Abd,28.2,46.7
+33,landmark: Rutba wells,46.2,38.2
+S1,passenger steamer,16.5,36.2
+S2,cargo steamer,26.0,40.4
+S3,felucca,26.1,71.0
+S4,dhow,33.0,65.1
+S5,dhow,64.5,53.5
+S6,schooner,9.0,17.7
+S7,cargo steamer,37.0,76.6
+S8,dhow,86.5,74.1
+S9,small steamer,70.0,14.0
+S10,passenger steamer,5.5,34.6
+C1,camel caravan,45.0,39.5
+C2,camel caravan,29.5,49.0
+C3,camel caravan,41.0,62.6
+C4,camel caravan,76.5,46.1
+C5,camel caravan,14.5,62.6
+K,compass,10.0,87.3
+T,title cartouche,52.5,89.0
+B,scale bar,52.5,96.0
+W1,cloud,19.0,17.7
+W2,cloud,65.5,24.7
+W3,sandstorm,48.0,70.8
+W4,seabirds,15.0,41.6
+label,Mediterranean Sea,13.0,32.5
+label,Aegean Sea,8.8,21.8
+label,Black Sea,31.0,1.2
+label,Sea of Marmara,16.5,6.2
+label,Red Sea,39.5,79.1
+label,Gulf of Suez,25.0,55.0
+label,Gulf of Aqaba,32.0,56.8
+label,Dead Sea,35.0,46.1
+label,Persian Gulf,68.0,57.7
+label,Gulf of Oman,88.0,72.5
+label,Caspian Sea,70.0,11.5
+label,Lake Van,52.5,13.6
+label,Lake Urmia,56.8,20.6
+label,Nile,23.5,74.1
+label,Euphrates,46.5,31.3
+label,Tigris,53.0,32.9
+label,EGYPT,12.0,67.5
+label,SINAI,29.5,54.4
+label,PALESTINE,32.0,39.5
+label,SYRIA,42.0,33.8
+label,TRANSJORDAN,38.0,47.8
+label,ARABIA,52.0,67.5
+label,IRAQ,54.0,44.5
+label,PERSIA,78.0,34.6
+label,ANATOLIA,23.5,13.2

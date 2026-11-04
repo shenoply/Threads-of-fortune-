@@ -6,7 +6,7 @@
 // rest, wells); one that would overlap a landmark already placed, or another town's pin and name, is left out at that
 // zoom. Zoomed far out only the cities', your home's and your own town's show, a size smaller.
 import SIZES from '../../data/mapOverlays.json';
-import { LANDMARKS, MAP_LABELS, PEOPLE, type ArtItem, type PeopleArt } from '../../data/mapArt';
+import { LANDMARKS, MAP_LABELS, PEOPLE, PAINTED_LANDMARKS, paintedBox, type ArtItem, type PeopleArt } from '../../data/mapArt';
 import { SETTLEMENTS, ROAD_WELLS, RAIL_LINKS, type SettlementKind } from '../../data/world';
 import { ROAD_LINES } from '../../data/terrain';
 import { geo } from '../../data/projection';
@@ -39,6 +39,8 @@ export function pinBox(p: Place, s: number, tier: number): Box {
 }
 
 // ---------- the landmarks ----------
+/** the landmarks painted into the map itself (map units): an overlay never covers one */
+export const PAINTED_BOXES: Box[] = LANDMARKS.map(paintedBox).filter((b): b is Box => !!b);
 export const landmarkFile = (it: ArtItem) => `${it.code}-${it.name}.webp`;
 /** the landmark's size on screen at scale s, in px: as wide as about 32 map units, never under 92 px (84 zoomed far
  *  out, `far`, where only the cities' and your own town's show) nor over 176 (since 2026-11-03: about 1.7 times the
@@ -73,7 +75,8 @@ export function landmarkBox(it: ArtItem, s: number, far = false): LandmarkSpot |
 export interface PinBlock { id: string; /** the pin itself (not its name or a mark beside it) */ dot: boolean; box: Box }
 export function landmarkLayout(s: number, tier: number, shown: (id: string) => boolean, pins: (id: string) => boolean, first?: (id: string) => boolean, blocks?: PinBlock[]): LandmarkSpot[] {
   // far out (tier 0) only the cities', your home's and where you are
-  const cand = LANDMARKS.filter((it) => shown(it.town!)).map((it) => ({ it, p: placeOf(it.town!)! }))
+  // (a landmark painted into the map itself is not laid over it again)
+  const cand = LANDMARKS.filter((it) => !PAINTED_LANDMARKS.has(it.code) && shown(it.town!)).map((it) => ({ it, p: placeOf(it.town!)! }))
     .filter((c) => c.p && (tier > 0 || FAR_KINDS.has(c.p.kind) || !!first?.(c.it.town!)));
   cand.sort((a, b) => (first?.(b.it.town!) ? 1 : 0) - (first?.(a.it.town!) ? 1 : 0) || (RANK[a.p.kind] ?? 3) - (RANK[b.p.kind] ?? 3) || a.p.y - b.p.y);
   // what is on the map: the pins, names and marks as the page laid them out, else as they usually stand
@@ -100,7 +103,7 @@ export function landmarkLayout(s: number, tier: number, shown: (id: string) => b
       const start = foot;
       for (let n = 0; n < 4; n++) {
         const L = { ...L0, x: L0.x + dx, y: foot, w, h, box: { l: L0.x + dx - w / 2 / s, r: L0.x + dx + w / 2 / s, t: foot - h / s, b: foot } };
-        if (out.some((o) => hit(o.box, L.box, pad))) return null;
+        if (out.some((o) => hit(o.box, L.box, pad)) || PAINTED_BOXES.some((o) => hit(o, L.box, -4))) return null;  // (a corner over a painted one's edge is let pass)
         const under = boxes.filter((q) => hit(q.b, L.box, -0.5 / s) && (blocks?.length ? true : q.id !== c.p.id));
         if (!under.length) {
           if ((down || tier === 0 || foot < feet[0] - 4 / s) && (isWaterPx({ x: L.x, y: foot - 1 / s }) || isWaterPx({ x: L.x, y: foot - h / 2 / s }))) return null;

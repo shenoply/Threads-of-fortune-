@@ -9,7 +9,10 @@ a little mottling and long fibres, all drawn procedurally from the pixel's posit
 from one tile into the next). Nothing moves: tile (c, r) is exactly the master's pixels c*512 .. c*512+512 across and
 r*512 .. down, doubled, so the tiles lie exactly over the single picture.
 
-  python3 -I tools/map-tiles.py [--out public/art/world/tiles-9k] [--crop x,y,w out.png] [--q 84]
+  python3 -I tools/map-tiles.py [--out public/art/world/tiles2-9k] [--master PNG] [--treated] [--crop x,y,w out.png] [--q 84]
+
+Since 2026-11-04 the master is the repainted one (art-src/world/travel-map-master2-4800.png, tools/map-repaint.py): its detail is
+painted, so the tiles are its plain Lanczos doubling; --treated brings back the contrast and grain pass made for the old master.
 
 Writes <out>/r<row>c<col>.webp (the grid's size is MAP_TILES in src/game/systems/mapRender.ts). --crop writes a before/after strip
 of one spot (master pixels) instead, for review.
@@ -19,7 +22,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MASTER = os.path.join(ROOT, 'art-src/world/travel-map-master-4800.png')
+MASTER = os.path.join(ROOT, 'art-src/world/travel-map-master2-4800.png')
 TILE = 1024          # tile size, enlarged pixels
 UP = 2               # enlargement
 PAD = 48             # master pixels round each tile while working (the blurs reach this far)
@@ -73,10 +76,15 @@ def blur(a, sigma):
     return a
 
 
+PLAIN = True   # the repainted master (since 2026-11-04) carries its own brushwork: no contrast pass, no grain
+
+
 def treat(rgb, gx0, gy0):
     """the enlarged, treated picture for an RGB uint8 crop of the master whose top-left is master pixel (gx0, gy0)"""
     im = Image.fromarray(rgb)
     up = im.resize((im.width * UP, im.height * UP), Image.LANCZOS)
+    if PLAIN:
+        return np.asarray(up)
     a = np.asarray(up, dtype=np.float32) / 255
     L = a @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
     # local contrast on the lightness: a broad pass (forms, relief) and a fine one (the brush), both gentle
@@ -93,11 +101,15 @@ def treat(rgb, gx0, gy0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=os.path.join(ROOT, 'public/art/world/tiles-9k'))
+    ap.add_argument('--out', default=os.path.join(ROOT, 'public/art/world/tiles2-9k'))
+    ap.add_argument('--master', default=MASTER)
+    ap.add_argument('--treated', action='store_true', help='the old local-contrast and paper-grain pass (for the old, softer master)')
     ap.add_argument('--q', type=int, default=84)
     ap.add_argument('--crop', nargs=2, metavar=('X,Y,W', 'OUT'))
     a = ap.parse_args()
-    m = np.asarray(Image.open(MASTER).convert('RGB'))
+    global PLAIN
+    PLAIN = not a.treated
+    m = np.asarray(Image.open(a.master).convert('RGB'))
     H, W = m.shape[:2]
     padded = np.pad(m, ((PAD, PAD), (PAD, PAD), (0, 0)), mode='edge')
     if a.crop:

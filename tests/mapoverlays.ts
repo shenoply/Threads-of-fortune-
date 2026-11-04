@@ -6,7 +6,7 @@
 //   npx tsx tests/mapoverlays.ts
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { LANDMARKS, SHIPS, CARAVANS, PEOPLE, SHIP_PAINT } from '../src/data/mapArt';
+import { LANDMARKS, SHIPS, CARAVANS, PEOPLE, SHIP_PAINT, PAINTED_LANDMARKS } from '../src/data/mapArt';
 import { landmarkLayout, landmarkFile, pinBox, placePeople, peopleClear, nearestWay, underName, PEOPLE_SCALES } from '../src/game/systems/mapOverlays';
 import { SETTLEMENTS } from '../src/data/world';
 import { isWaterPx, terrainAt } from '../src/game/systems/world';
@@ -41,17 +41,20 @@ for (const [s, tier, what] of [[2.6, 1, 'phone, middle'], [2.96, 2, 'phone, clos
   for (const l of L) for (const q of SETTLEMENTS) if (!q.gateway && q.id !== l.it.town && hit(pinBox({ id: q.id, kind: q.kind, name: q.name.split(',')[0], x: q.x, y: q.y }, s, tier), l.box)) onPin++;
   ok(clash === 0 && onPin === 0, `${what} (s ${s}): ${L.length} landmarks, none over another (${clash}) or another town's pin and name (${onPin})`);
   if (tier === 2) {
-    const want = ['giza', 'cairo', 'jerusalem', 'damascus', 'baghdad', 'tehran', 'isfahan', 'istanbul'];
+    // (since 2026-11-04 the repainted map has most landmarks painted in: only the ones it lacks are laid over it)
+    const want = ['fayoum', 'amman'];  // (Saqqara's, between the Giza and Cairo pins, gives way to their names close in)
     const missing = want.filter((t) => !L.some((l) => l.it.town === t));
-    ok(!missing.length, `${what}: the home and the chief cities show${missing.length ? ` (missing ${missing.join(', ')})` : ''}`);
+    ok(!missing.length, `${what}: the towns whose landmark the painting lacks show theirs${missing.length ? ` (missing ${missing.join(', ')})` : ''}`);
+    const twice = L.filter((l) => PAINTED_LANDMARKS.has(l.it.code)).map((l) => l.it.town);
+    ok(!twice.length, `${what}: no landmark painted into the map is laid over it again${twice.length ? ` (${twice.join(', ')})` : ''}`);
   }
 }
 // laid out round the pins as the page placed them: a block over a landmark's spot pushes it aside or leaves it out
 {
-  const giza = SETTLEMENTS.find((q) => q.id === 'giza')!;
-  const free = landmarkLayout(4, 2, (id) => id === 'giza', pinned, undefined, [{ id: 'giza', dot: true, box: { l: giza.x - 3, r: giza.x + 3, t: giza.y - 3, b: giza.y + 3 } }]);
-  const blocked = landmarkLayout(4, 2, (id) => id === 'giza', pinned, undefined, [
-    { id: 'giza', dot: true, box: { l: giza.x - 3, r: giza.x + 3, t: giza.y - 3, b: giza.y + 3 } },
+  const giza = SETTLEMENTS.find((q) => q.id === 'amman')!;
+  const free = landmarkLayout(4, 2, (id) => id === 'amman', pinned, undefined, [{ id: 'amman', dot: true, box: { l: giza.x - 3, r: giza.x + 3, t: giza.y - 3, b: giza.y + 3 } }]);
+  const blocked = landmarkLayout(4, 2, (id) => id === 'amman', pinned, undefined, [
+    { id: 'amman', dot: true, box: { l: giza.x - 3, r: giza.x + 3, t: giza.y - 3, b: giza.y + 3 } },
     { id: 'cairo', dot: false, box: { l: giza.x - 40, r: giza.x + 40, t: giza.y - 60, b: giza.y - 4 } },
   ]);
   const cb = { l: giza.x - 40, r: giza.x + 40, t: giza.y - 60, b: giza.y - 4 };

@@ -144,3 +144,23 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   The stall at Giza shows close in as a small round window west of the town (tap opens it), not a bubble over the towns.
   The closest zoom is capped where the painting stays crisp (never under 2.45); Android phones with 4 GB or more load the
   4800-wide copy. Tests: tests/mapoverlays.ts.
+- The repainted travel map (since 2026-11-04, branch `repaint`, awaiting the owner's approval): the artist's whole-map repaint
+  and nine sections are in art-src/world/repaint/ (whole.png 1610 wide; tile-N.png 1536 x 1024, each the old master's
+  rectangle in tiles.csv, 1728 x 1152; positions.csv the brief's town dots). `python3 -I tools/map-repaint.py` stitches
+  art-src/world/travel-map-master2-4800.png from them: each section enlarged by 1728/1536 at its rectangle, fitted to the old
+  geography by a smooth optical flow on water and rivers (sections up to 47 px, 95% under 2-19), colour-matched to whole.png
+  in Lab (separately on sea and land, away from the landmarks), joined along graph-cut seams with a narrow multi-band blend,
+  each landmark taken from one section only (FORCE, for Kashan and Isfahan, which two sections painted in different
+  spots). Tiles 7 and 8 came back as a miniature map: SKIP leaves them out and whole.png fills their rectangles (the south:
+  Upper Egypt, the Red Sea, Arabia); drop the corrected tile-7.png / tile-8.png into the folder, take them out of SKIP and run
+  it again. PAINT_OUT lists the made-up buildings and landmarks painted far from any town (Oman and the Gulf, Homs, south
+  Sinai, a second Baghdad, a duplicate Jerusalem on Amman's dot), filled with nearby brushwork. 4800 wide is the old size:
+  the sections carry about 4267 px of detail across, whole.png 1610. The WebP copies are public/art/world/painted2-map-4k,
+  -3k, painted2-map, -768; the close-zoom tiles art/world/tiles2-9k (tools/map-tiles.py, now a plain Lanczos doubling:
+  --treated brings back the contrast and grain made for the old master). build-map.py reads the sea from the repaint
+  (travel-map-painting2-1610.png, the master shrunk) and the lakes, rivers and ground from the first painting, so the terrain
+  does not change with the new brushwork. Landmarks painted into the map (PAINTED_LANDMARKS in src/data/mapArt.ts, with where
+  each stands, PAINTED_AT) get no overlay; the overlays stay for Saqqara, Fayoum, Amman and the wells at Ajrud, Ayun Musa and
+  Wadi Feiran; town names step off a painted landmark's middle where they can. The terrain kit (mapKitDraw.ts) is off by
+  default (src/game/mapKitPref.ts, key tof-map-kit2; ?kit=1 or the tester sheet turns it on). Review shots:
+  tests/map-repaint-shots.mjs.

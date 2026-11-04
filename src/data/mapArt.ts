@@ -75,6 +75,38 @@ export const LANDMARKS: ArtItem[] = [
   L(33, 'rutba', 'well-rutba', 46.2, 38.2),
 ];
 
+/** The landmarks the repainted travel map (art-src/world/travel-map-master2-4800.png, since 2026-11-04) has painted in at
+ *  their towns: their separate overlays are not drawn. The rest (Saqqara's step pyramid, Fayoum's waterwheels, Amman's
+ *  theatre, the wells at Ajrud, Ayun Musa and Wadi Feiran) the painter left out or put far from the town (painted out
+ *  again, tools/map-repaint.py), so their overlays stay. */
+export const PAINTED_LANDMARKS = new Set<string>(['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '16', '17',
+  '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '32', '33']);
+/** Where the painting has them, map units [l, t, r, b], measured on the master where the painter put them off the town's
+ *  dot; any other painted one is taken to stand on its dot, about 50 units wide. The overlays and the town
+ *  names keep clear of these. */
+const PAINTED_AT: Record<string, [number, number, number, number]> = {
+  '01': [366, 608, 421, 641],   // Giza: the pyramids and the Sphinx, south-west of the town on the desert edge
+  '04': [418, 573, 473, 614],   // Cairo: the Citadel mosque
+  '05': [407, 545, 435, 576],   // Tanta
+  '07': [498, 530, 534, 564],   // Port Said: the lighthouse and the company building
+  '08': [529, 600, 599, 636],   // Suez: the quay and the steamer
+  '09': [580, 650, 623, 672],   // St Catherine's: the walls on the mountain
+  '10': [597, 552, 655, 582],   // the Tarabin tents and camels
+  '11': [620, 485, 686, 540],   // Jaffa: the old town on its hill, and the clock tower
+  '12': [654, 513, 689, 538],   // Jerusalem: the Dome of the Rock
+  '13': [648, 416, 689, 445],   // Beirut: the harbour
+  '14': [727, 428, 795, 470],   // Damascus
+  '24': [1343, 316, 1430, 351], // Tehran
+  '26': [1359, 399, 1432, 430], // Kashan
+  '27': [1370, 455, 1463, 499], // Isfahan
+  '32': [553, 558, 580, 588],   // Bir el-Abd: the well
+};
+export function paintedBox(it: ArtItem): { l: number; t: number; r: number; b: number } | null {
+  if (!PAINTED_LANDMARKS.has(it.code)) return null;
+  const m = PAINTED_AT[it.code];
+  return m ? { l: m[0], t: m[1], r: m[2], b: m[3] } : { l: it.x! - 25, t: it.y! - 28, r: it.x! + 25, b: it.y! + 8 };
+}
+
 const S = (n: number, name: string, ship: ShipKind, xp: number, yp: number): ArtItem =>
   ({ code: `S${n}`, name, kind: 'ship', ship, px: [768, 768], ...P(xp, yp) });
 export const SHIPS: ArtItem[] = [

@@ -40,7 +40,7 @@ import { drawWorld, fogCanvas, milesPx, onPaintedMap, paintedMap, paintedMapWidt
 import mapArtList from 'virtual:map-art-files';
 import { setArtFiles, LANDMARKS } from '../../data/mapArt';
 import { onMapArt, type ArtLayer, type LandmarkLook } from '../../game/systems/mapArtDraw';
-import type { PinBlock } from '../../game/systems/mapOverlays';
+import { PAINTED_BOXES, type PinBlock } from '../../game/systems/mapOverlays';
 import { MapLife, type Camera } from './MapLife';
 import { onMapKit } from '../../game/systems/mapKitDraw';
 import { useMapKit } from '../../game/mapKitPref';
@@ -1455,6 +1455,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     // the mission tag and job flags over the pins stay where they are: a name keeps clear of them too
     const tags = [...inner.querySelectorAll('.place:not(.pl-off) > .pmission, .place:not(.pl-off) > .pjob')].map((el) => rel(el, 1)).filter((b) => b.r > b.l);
     const names: Box[] = [];
+    // the painted landmarks' middles, in the layer's px (their outer quarter may be overlapped)
+    const painted: Box[] = PAINTED_BOXES.map((q) => { const mx = (q.r - q.l) / 4, my = (q.b - q.t) / 4; return { l: (q.l + mx) * s, r: (q.r - mx) * s, t: (q.t + my) * s, b: (q.b - my) * s }; });
     for (const it of items) {
       const b = it.box, d = it.dot, bw = b.r - b.l;
       if (b.r < view.l - 60 || b.l > view.r + 60 || b.b < view.t - 60 || b.t > view.b + 60) { names.push(b); continue; }
@@ -1473,7 +1475,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       const tries = cands.map(shift);
       const free = (bx: Box) => !names.some((n) => hits(bx, n)) && !controls.some((c) => hits(bx, c));
       const clearOf = (bx: Box) => free(bx) && !tags.some((t) => hits(bx, t));
-      const at = tries.find((t) => clearOf(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => clearOf(t.box)) ?? tries.find((t) => free(t.box)) ?? (it.pri <= 0 ? tries[0] : null);
+      // (best of all off the landmarks painted into the map: a name over the middle of one hides it)
+      const onPainted = (bx: Box) => painted.some((q) => hits(bx, q));
+      const at = tries.find((t) => clearOf(t.box) && !marks.some((m) => m !== d && hits(t.box, m)) && !onPainted(t.box)) ?? tries.find((t) => clearOf(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => clearOf(t.box)) ?? tries.find((t) => free(t.box)) ?? (it.pri <= 0 ? tries[0] : null);
       if (!at) { it.el.style.visibility = 'hidden'; continue; }
       if (at.x || at.y) it.el.style.translate = `${Math.round(at.x)}px ${Math.round(at.y)}px`;
       names.push(at.box);

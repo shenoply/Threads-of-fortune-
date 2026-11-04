@@ -67,11 +67,11 @@ function loadSharp() {
   // phones get a 3072-wide copy: the full 4608 one is more than some phones will decode for a canvas
   const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   // a phone that cannot hold the big picture decoded keeps the small one
-  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4800-wide painting (painted-map-4k.webp)
+  // the PC layout (a big screen, src/platform/pc.ts) gets the full 4800-wide painting (painted2-map-4k.webp)
   const pc = typeof document !== 'undefined' && document.documentElement.classList.contains('pc');
   // a phone with memory to spare (Android reports it: 4 GB or more) gets the full one too, so the closest zoom stays crisp
   const mem = typeof navigator !== 'undefined' ? (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 0 : 0;
-  loadPicture(pc || (phone && mem >= 4) ? 'art/world/painted-map-4k.webp' : phone ? 'art/world/painted-map-3k.webp' : 'art/world/painted-map.webp')
+  loadPicture(pc || (phone && mem >= 4) ? 'art/world/painted2-map-4k.webp' : phone ? 'art/world/painted2-map-3k.webp' : 'art/world/painted2-map.webp')
     .then((p) => { artImg = p; artReady = true; artListeners.forEach((f) => f()); })
     .catch(() => { artFailed = true; artListeners.forEach((f) => f()); });
 }
@@ -81,7 +81,7 @@ let wantSharp = false, smallDone = false;
 function askSmall() {
   if (smallAsked) return;
   smallAsked = true;
-  loadPicture('art/world/painted-map-768.webp')
+  loadPicture('art/world/painted2-map-768.webp')
     .then((p) => { artSmall = p; smallReady = true; if (!artReady) artListeners.forEach((f) => f()); })
     .catch(() => {})
     .finally(() => { smallDone = true; if (wantSharp) loadSharp(); });
@@ -111,11 +111,11 @@ export function onPaintedMap(f: () => void) { artListeners.add(f); return () => 
 
 // ---------- the close-zoom tiles ----------
 // Close in, the single painting is blown up two to four times on a phone's screen and smears. There the map is drawn
-// from tiles cut straight from the full-size master at twice its size, with a gentle local contrast and a faint paper
-// grain (tools/map-tiles.py: art/world/tiles-9k/r<row>c<col>.webp, 1024 px), laid exactly over the single picture,
+// from tiles cut straight from the full-size master at twice its size (the repainted master since 2026-11-04, its own
+// brushwork, so a plain enlargement: tools/map-tiles.py: art/world/tiles2-9k/r<row>c<col>.webp, 1024 px), laid exactly over the single picture,
 // which stays underneath (so a tile still coming in, or the edge between two, shows the painting, never a gap).
 // Only the tiles on screen are fetched, and only once the map stands still; a few dozen at most are kept decoded.
-const TILE_DIR = 'art/world/tiles-9k';
+const TILE_DIR = 'art/world/tiles2-9k';
 export const MAP_TILES = { tile: 1024, cols: 10, rows: 6, w: 9600, h: 5826 } as const;
 /** device pixels per pixel of the single 4800 painting past which the tiles are drawn */
 export const TILE_FROM = 1.8;
