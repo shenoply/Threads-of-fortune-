@@ -17,6 +17,8 @@ How:
   4. Seams: in each overlap a graph-cut seam (the least-difference path, colour and gradient) picks one section's pixels; the
      sections are joined along it with a multi-band blend of few bands (detail cut within a pixel or two, colour eased over
      some dozens), so nothing painted twice ghosts.
+  5. (since 2026-11-05) The whole.png strip sharpened and its join eased (south_join), then every building the painter put in
+     painted out (LANDMARKS_OUT): the game draws its own, bigger landmark overlays on the towns.
 The size is the old master's, 4800 x 2913: the sections carry about 1536/1728 x 4800 = 4267 px of detail across the map, so
 this is a slight enlargement and invents nothing; the whole.png strip (the south, under tiles 7 and 8) carries 1610.
 """
@@ -71,6 +73,318 @@ PAINT_OUT = [
 ]
 
 
+# Every landmark and building the painter put in (since 2026-11-05): painted out of the finished master, the separate
+# landmark overlays (public/art/map/NN-<town>.webp) stand on the towns instead (the painted ones were small and often off
+# their towns). Master px: (what, cx, cy, rx, ry), an ellipse round the vignette and its cast shadow; a vignette of odd
+# shape takes two. Filled by guided quilting (synth_out below).
+LANDMARKS_OUT = [
+  # on coasts, rivers and the Delta's canals: guided quilting, so the shore or the water goes on where it ran
+  ('constantinople', 900, 106, 160, 62, 'quilt'),
+  ('alexandria', 812, 1338, 78, 40, 'quilt'),
+  ('tanta', 1013, 1343, 40, 46, 'quilt'),
+  ('cairo', 1080, 1424, 72, 60, 'quilt'),
+  ('port-said', 1233, 1316, 48, 52, 'quilt'),
+  ('suez', 1372, 1478, 88, 58, 'quilt'),
+  ('suez-bay', 1345, 1530, 80, 22, 'quilt'),
+  ('suez-ship', 1300, 1500, 36, 28, 'quilt'),
+  ('beirut', 1628, 1038, 92, 42, 'quilt'),
+  ('haifa', 1600, 1196, 58, 44, 'quilt'),
+  ('jaffa', 1520, 1258, 44, 44, 'quilt'),
+  ('jerusalem', 1612, 1268, 52, 34, 'quilt'),
+  # on open ground: quilted from the ground round it, the first painting only a faint guide, no water copied in
+  ('angora', 1375, 296, 112, 54, 'copy'),
+  ('konya', 1280, 526, 112, 60, 'land64'),
+  ('giza', 944, 1502, 86, 50, 'copy2'),
+  ('bir-el-abd', 1362, 1384, 46, 38, 'quilt'),
+  ('tarabin', 1506, 1372, 86, 38, 'quilt'),
+  ('st-catherine', 1457, 1590, 58, 34, 'copy2'),
+  ('aleppo', 1925, 748, 100, 60, 'quilt'),
+  ('beirut-smudge', 1752, 1030, 30, 26, 'copy'),
+  ('damascus', 1822, 1082, 100, 60, 'copy'),
+  ('rutba', 2245, 1120, 112, 48, 'copy2'),
+  ('baghdad', 2650, 1060, 100, 58, 'land'),
+  ('palms-iraq', 2505, 1250, 40, 42, 'copy'),
+  ('khanaqin', 2697, 937, 112, 66, 'copy2'),
+  ('kermanshah', 2885, 918, 82, 54, 'copy'),
+  ('hamadan', 3000, 890, 50, 42, 'copy'),
+  ('hamadan-trees', 3050, 912, 24, 16, 'copy'),
+  ('tabriz', 2908, 508, 120, 50, 'copy2'),
+  ('tehran', 3328, 800, 128, 58, 'copy2'),
+  ('kashan', 3350, 1003, 104, 44, 'copy2'),
+  ('isfahan', 3385, 1165, 112, 45, 'copy'),
+  ('isfahan-trees', 3480, 1175, 30, 25, 'copy'),
+  ('isfahan-dome', 3405, 1112, 32, 26, 'copy'),
+  ('isfahan-minaret', 3350, 1120, 14, 28, 'copy'),
+  ('kerman', 3980, 1412, 90, 56, 'copy2'),
+]
+
+
+def min_cut(E, K, ov):
+  """which pixels of a new patch to take (0..1, P x P), image-quilting style: along each side where the patch overlaps
+  what is already laid (K), the least-error path through the overlap; outside it the old pixels stay. Softened by a
+  pixel or so, so the cut never shows as a hard edge."""
+  P = E.shape[0]
+  N = np.ones((P, P), np.float32)
+  def path(C):   # C: rows x cols; a top-to-bottom path, one column per row
+    r, c = C.shape
+    cum = C.copy()
+    for i in range(1, r):
+      prev = cum[i - 1]
+      m = np.minimum(prev, np.minimum(np.r_[np.inf, prev[:-1]], np.r_[prev[1:], np.inf]))
+      cum[i] += m
+    j = int(np.argmin(cum[-1])); out = np.zeros(r, int); out[-1] = j
+    for i in range(r - 2, -1, -1):
+      lo, hi = max(0, j - 1), min(c, j + 2)
+      j = lo + int(np.argmin(cum[i, lo:hi])); out[i] = j
+    return out
+  cols = np.arange(P)
+  if K[:, :ov].mean() > 0.5:
+    pth = path(E[:, :ov]); N[cols[None, :] < pth[:, None]] = 0
+  if K[:, -ov:].mean() > 0.5:
+    pth = path(E[:, -ov:]) + P - ov; N[cols[None, :] > pth[:, None]] = 0
+  if K[:ov, :].mean() > 0.5:
+    pth = path(E[:ov, :].T); N[cols[:, None] < pth[None, :]] = 0
+  if K[-ov:, :].mean() > 0.5:
+    pth = path(E[-ov:, :].T) + P - ov; N[cols[:, None] > pth[None, :]] = 0
+  N = gblur(N, 1.0)
+  N[~K] = 1
+  return N
+
+
+def synth_out(img, guide, hole, bad, P=40, step=26, R=360, wg=0.6, we=1.0, dry=False, ww_pen=0.0, others=None, log=None):
+  """Fill `hole` (bool, master size) in img (uint8, master size) by guided quilting: patch by patch (P px, overlapping by
+  P - step), the stretch of the same painting nearby (within R px) whose own pixels agree best with what is already there
+  (round the hole and the patches laid so far) and whose ground in `guide` (the first painting, which has no buildings and
+  the same coasts and rivers) looks most like the guide's ground at the hole, so a coast, a river or a field edge goes on
+  where it ran. No copy from `bad` (other buildings, other holes). The patches are feathered into one another, the whole
+  eased into the ground round it."""
+  H, W = hole.shape
+  lbl, n = nd.label(cv2.dilate(hole.astype(np.uint8), np.ones((3, 3), np.uint8)))
+  out = img.copy()
+  for k in range(1, n + 1):
+    ys, xs = np.where(lbl == k)
+    hx0, hx1, hy0, hy1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    X0, Y0 = max(0, hx0 - R), max(0, hy0 - R)
+    X1, Y1 = min(W, hx1 + R), min(H, hy1 + R)
+    hl = (lbl[Y0:Y1, X0:X1] == k)
+    # a little beyond the vignette, so its edge is laid by patches too and feathered
+    grow = cv2.dilate(hl.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))) > 0
+    T = lab(out[Y0:Y1, X0:X1])
+    G = lab(guide[Y0:Y1, X0:X1])
+    G = gblur(G, 1.2)
+    G[..., 0] *= 0.6
+    G = np.dstack([G, water_and_rivers(guide[Y0:Y1, X0:X1]) * 25]).astype(np.float32)
+    # source positions (top-left corners) whose patch keeps clear of anything bad
+    bl = bad[Y0:Y1, X0:X1] | grow
+    # on open ground no water is copied in at all (a lake or a stretch of river copied in would be a new one)
+    if dry: bl = bl | (cv2.dilate((water_and_rivers(out[Y0:Y1, X0:X1]) > 0.25).astype(np.uint8), np.ones((7, 7), np.uint8)) > 0)
+    bl = bl.astype(np.float32)
+    ii = cv2.integral(bl)
+    hh, ww = hl.shape
+    okpos = (ii[P:, P:] - ii[:-P, P:] - ii[P:, :-P] + ii[:-P, :-P]) == 0   # (hh-P+1, ww-P+1)
+    # the brushwork's busyness (mean gradient of the lightness): a source as busy as the ground round the hole, so the
+    # fill is never a smooth smear (least squares alone prefers the smoothest stretch)
+    gm = np.hypot(cv2.Sobel(T[..., 0], cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(T[..., 0], cv2.CV_32F, 0, 1, ksize=3))
+    ring = (cv2.dilate(hl.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (61, 61))) > 0) & ~grow
+    if others is not None and (ring & ~others[Y0:Y1, X0:X1]).sum() > 200: ring &= ~others[Y0:Y1, X0:X1]
+    e_t = gm[ring].mean()
+    e_s = cv2.boxFilter(gm, -1, (P, P), normalize=True, borderType=cv2.BORDER_REFLECT)[P // 2:P // 2 + hh - P + 1, P // 2:P // 2 + ww - P + 1]
+    epen = we * ((e_s - e_t) / max(e_t, 1)) ** 2 * 100
+    # and as snowy and as green as the ground round it (a clump of snow or a stand of trees copied onto bare hills reads
+    # as a blot)
+    rw = out[Y0:Y1, X0:X1].astype(np.float32)
+    # (water: as much of it in the copied patch as the first painting has at the spot, so no islet or spit is copied in)
+    wsrc = cv2.boxFilter((water_and_rivers(out[Y0:Y1, X0:X1]) > 0.25).astype(np.float32), -1, (P, P), normalize=True, borderType=cv2.BORDER_REFLECT)[P // 2:P // 2 + hh - P + 1, P // 2:P // 2 + ww - P + 1]
+    wgd = (water_and_rivers(guide[Y0:Y1, X0:X1]) > 0.25).astype(np.float32)
+    for cls in (((rw.mean(-1) > 190) & ((rw.max(-1) - rw.min(-1)) < 60)),
+                ((rw[..., 1] > rw[..., 0] * 0.97) & (rw.mean(-1) < 150))):
+      fr = cls[ring].mean()
+      fs = cv2.boxFilter(cls.astype(np.float32), -1, (P, P), normalize=True, borderType=cv2.BORDER_REFLECT)[P // 2:P // 2 + hh - P + 1, P // 2:P // 2 + ww - P + 1]
+      epen = epen + 3000 * np.maximum(0, np.abs(fs - fr) - 0.04) ** 2
+    known = ~grow
+    # (the other buildings not yet painted out are not known ground: nothing is matched to them)
+    if others is not None: known &= ~(others[Y0:Y1, X0:X1] & ~grow)
+    cur = T.copy()
+    gy0, gx0 = np.where(grow)[0].min(), np.where(grow)[1].min()
+    gy1, gx1 = np.where(grow)[0].max() + 1, np.where(grow)[1].max() + 1
+    ov = P - step
+    used = 0
+    for py in range(gy0 - ov, gy1 - ov, step):
+      for px in range(gx0 - ov, gx1 - ov, step):
+        py_, px_ = min(max(0, py), hh - P), min(max(0, px), ww - P)
+        g = grow[py_:py_ + P, px_:px_ + P]
+        if not (g & ~known[py_:py_ + P, px_:px_ + P]).any(): continue
+        K = known[py_:py_ + P, px_:px_ + P]
+        tp = np.ascontiguousarray(cur[py_:py_ + P, px_:px_ + P])
+        c1 = cv2.matchTemplate(T, tp, cv2.TM_SQDIFF, mask=np.dstack([K.astype(np.float32)] * 3)) / max(K.sum(), 1)
+        c2 = cv2.matchTemplate(G, np.ascontiguousarray(G[py_:py_ + P, px_:px_ + P]), cv2.TM_SQDIFF) / (P * P)
+        cost = c1 + wg * c2 + epen
+        if ww_pen:
+          kn = K.mean()
+          # the known part of the patch says how much water there is where it is known; the first painting where it is not
+          tw = (wgd[py_:py_ + P, px_:px_ + P] * (1 - K)).sum() + ((water_and_rivers(rgb(tp)) > 0.25) * K).sum()
+          cost = cost + ww_pen * np.maximum(0, np.abs(wsrc - tw / (P * P)) - 0.02) ** 2
+        cost[~okpos] = np.inf
+        sy, sx = np.unravel_index(np.argmin(cost), cost.shape)
+        if not np.isfinite(cost[sy, sx]): continue
+        src = T[sy:sy + P, sx:sx + P]
+        # its colour shifted by the mean difference on the overlap (a patch from a lighter or bluer stretch would show as a block)
+        if K.sum() > P:
+          src = src + ((tp - src) * K[..., None]).sum((0, 1)) / K.sum() * 0.85
+        N = min_cut(((src - tp) ** 2).sum(-1), K, ov)
+        cur[py_:py_ + P, px_:px_ + P] = tp * (1 - N[..., None]) + src * N[..., None]
+        known[py_:py_ + P, px_:px_ + P] = True
+        used += 1
+    syn = cur
+    # eased into the ground round it: the difference on a thin band just outside the vignette, spread smoothly inward
+    band = grow & ~hl
+    d = (T - syn) * band[..., None]
+    sg = 10
+    off = gblur(d, sg) / np.maximum(gblur(band.astype(np.float32), sg), 1e-3)[..., None]
+    wgt = np.clip(gblur(band.astype(np.float32), sg) / 0.05, 0, 1)[..., None]
+    syn = syn + off * wgt * 0.8
+    # feathered: the vignette itself all synthesis, the band blended out to the painting
+    f = np.clip(nd.distance_transform_edt(~hl) / 6.0, 0, 1)
+    f = (1 - f) * grow
+    f = np.maximum(f, hl).astype(np.float32)[..., None]
+    region = T * (1 - f) + syn * f
+    out[Y0:Y1, X0:X1] = np.where(grow[..., None], rgb(region), out[Y0:Y1, X0:X1])
+    if log is not None: log.append((k, hx0, hy0, hx1 - hx0, hy1 - hy0, used))
+  return out
+
+
+def copy_out(img, spot, bad, R=560, ke=2.0, near=30.0, others=None):
+  """paint out one spot (master px ellipse) by copying in one stretch of the same painting nearby, whole, so its brushwork
+  stays coherent (as paint_out), chosen by how the ground round the spot looks in a terrain descriptor rather than in
+  plain colour: the colour softened (so no stretch wins for being smooth), how busy the brushwork is (relief or plain),
+  the snow, the green and the water, compared on the ring round the spot; no water inside the copy, nothing from `bad`,
+  and the nearer the better. The copy is eased into the ring by a smooth colour offset and feathered in."""
+  _, cx, cy, rx, ry = spot[:5]
+  H, W = img.shape[:2]
+  pad = 1.7
+  bx0, by0, bx1, by1 = int(cx - rx * pad), int(cy - ry * pad), int(cx + rx * pad), int(cy + ry * pad)
+  X0, Y0, X1, Y1 = max(0, bx0 - R), max(0, by0 - R), min(W, bx1 + R), min(H, by1 + R)
+  win = img[Y0:Y1, X0:X1]
+  L = lab(win)
+  f = win.astype(np.float32)
+  gm = np.hypot(cv2.Sobel(L[..., 0], cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(L[..., 0], cv2.CV_32F, 0, 1, ksize=3))
+  snow = ((f.mean(-1) > 190) & ((f.max(-1) - f.min(-1)) < 60)).astype(np.float32)
+  green = ((f[..., 1] > f[..., 0] * 0.97) & (f.mean(-1) < 150)).astype(np.float32)
+  wat = (water_and_rivers(win) > 0.25).astype(np.float32)
+  D = np.dstack([gblur(L, 3), gblur(gm, 6)[..., None] * ke, gblur(snow, 4)[..., None] * 60, gblur(green, 4)[..., None] * 40,
+                 gblur(wat, 2)[..., None] * 80]).astype(np.float32)
+  bw, bh = bx1 - bx0, by1 - by0
+  tx, ty = bx0 - X0, by0 - Y0
+  m = ellipse_mask((bh, bw), bx0, by0, cx, cy, rx, ry)
+  ring = ((ellipse_mask((bh, bw), bx0, by0, cx, cy, rx * pad, ry * pad, 0.01) > 0.5) & (m == 0))
+  # (another building not yet painted out is no guide to the ground)
+  if others is not None:
+    oth = np.zeros_like(ring); oy0, ox0 = max(0, by0), max(0, bx0)
+    oth[oy0 - by0:min(H, by1) - by0, ox0 - bx0:min(W, bx1) - bx0] = others[oy0:min(H, by1), ox0:min(W, bx1)]
+    if (ring & ~oth).sum() > 200: ring &= ~oth
+  ring = ring.astype(np.float32)
+  tmpl = np.ascontiguousarray(D[ty:ty + bh, tx:tx + bw])
+  cost = cv2.matchTemplate(D, tmpl, cv2.TM_SQDIFF, mask=np.ascontiguousarray(np.dstack([ring] * D.shape[2]))) / ring.sum()
+  hh, ww = cost.shape
+  # no water, nothing bad, inside the ellipse (and its feather) of the copy
+  inner = (ellipse_mask((bh, bw), bx0, by0, cx, cy, rx * 1.15, ry * 1.15, 0.01) > 0.5).astype(np.float32)
+  for blk in (wat, bad[Y0:Y1, X0:X1].astype(np.float32)):
+    c = cv2.matchTemplate(blk, inner, cv2.TM_CCORR)
+    cost[c > 0.5] = np.inf
+  # the bad mask over the whole box (the ring of a copy may not be another building either)
+  yy, xx = np.mgrid[0:hh, 0:ww]
+  d2 = (xx - tx) ** 2 + (yy - ty) ** 2
+  cost[d2 < (max(rx, ry) * 2.2) ** 2] = np.inf
+  cost = cost + near * d2 / (R * R)
+  sy, sx = np.unravel_index(np.argmin(cost), cost.shape)
+  if not np.isfinite(cost[sy, sx]): return None
+  src = L[sy:sy + bh, sx:sx + bw].copy()
+  tgt = L[ty:ty + bh, tx:tx + bw]
+  rm = ring * (1 - wet(win[ty:ty + bh, tx:tx + bw]))
+  if rm.sum() < 30: rm = ring
+  sg = max(rx, ry) * 0.4
+  num = gblur((tgt - src) * rm[..., None], sg); den = gblur(rm, sg)[..., None]
+  glob = ((tgt - src) * rm[..., None]).sum((0, 1)) / max(rm.sum(), 1)
+  wgt = np.clip(den / 0.05, 0, 1)
+  src = src + num / np.maximum(den, 1e-6) * wgt + glob * (1 - wgt)
+  out = tgt * (1 - m[..., None]) + src * m[..., None]
+  img[by0:by1, bx0:bx1] = rgb(out)
+  return (sx - tx, sy - ty)
+
+
+def south_join(res, owner, a1=0.9, a2=0.3, fade=0.35, band=90):
+  """the whole.png strip (the south, under the skipped tiles 7 and 8; owner == 1) is whole.png enlarged three times and read
+  soft beside the sections, with a hard line where they meet (2026-11-05: the owner saw it where the Nile changes width).
+  Its lightness is sharpened (a fine and a broader unsharp mask, the colour left alone), eased in over a few pixels at the
+  join; on the sections' side the finest brushwork is eased back a little over `band` px towards the join, so the change of
+  sharpness runs over a stretch instead of along a line. (The broad colour already runs on across the join: the
+  multi-band blend sees to it.)"""
+  W = owner == 1
+  if not W.any(): return res
+  dIn = nd.distance_transform_edt(W).astype(np.float32)
+  dOut = nd.distance_transform_edt(~W).astype(np.float32)
+  ys, xs = np.where(dOut < band + 40)
+  y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+  L = lab(res[y0:y1, x0:x1])
+  di, do = dIn[y0:y1, x0:x1], dOut[y0:y1, x0:x1]
+  Wc = W[y0:y1, x0:x1]
+  l = L[..., 0]
+  hp1 = l - gblur(l, 2.2); hp2 = l - gblur(gblur(l, 2.2), 7)
+  ws = np.clip(di / 12, 0, 1) * Wc
+  wf = fade * np.clip(1 - do / band, 0, 1) * ~Wc
+  l2 = l + ws * (a1 * hp1 + a2 * hp2) - wf * hp1
+  L2 = L.copy(); L2[..., 0] = l2
+  out = res.copy()
+  out[y0:y1, x0:x1] = rgb(L2)
+  return out
+
+
+def ellipses(spots, shape=(MH, MW)):
+  m = np.zeros(shape, np.uint8)
+  for _, cx, cy, rx, ry, *_ in spots: cv2.ellipse(m, (int(cx), int(cy)), (int(rx), int(ry)), 0, 0, 360, 1, -1)
+  return m > 0
+
+
+BUSY = {}
+QUILT = dict(wg=1.5, ww_pen=3000.0)
+# per spot, where another weighing came out cleaner (each looked at full size)
+QUILT_SPOT = {'alexandria': dict(wg=0.6)}
+
+
+def landmarks_out(res, old, only=None):
+  bad = cv2.dilate(ellipses(LANDMARKS_OUT).astype(np.uint8), np.ones((31, 31), np.uint8)) > 0
+  # the frame of the painting is not copied in
+  bad[:40] = bad[-40:] = True; bad[:, :40] = bad[:, -40:] = True
+  todo = [l for l in LANDMARKS_OUT if only is None or l[0] in only]
+  # the buildings still standing (each comes off as it is painted out): no fill is matched to one
+  left = cv2.dilate(ellipses(todo).astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
+  def done(spots):
+    nonlocal left
+    left &= ~(cv2.dilate(ellipses(spots).astype(np.uint8), np.ones((15, 15), np.uint8)) > 0)
+  out = res.copy()
+  for l in todo:
+    if l[5] != 'copy2': continue
+    bo = copy_out(out, l, bad, others=left & ~ellipses([l]))
+    done([l])
+    print(f'copy2: {l[0]} at {l[1]},{l[2]}: brushwork from {bo} px off', file=sys.stderr)
+  for l in todo:
+    if l[5] != 'copy': continue
+    bo = paint_out(out, 0, 0, ('master',) + tuple(l[1:5]) + ('ring',), old, bad, R=520, busy=BUSY.get(l[0], (1.0, 0))[0], near=BUSY.get(l[0], (1.0, 0))[1], others=left & ~ellipses([l]))
+    done([l])
+    print(f'copy: {l[0]} at {l[1]},{l[2]}: brushwork from {bo} px off', file=sys.stderr)
+  runs = [('quilt', QUILT, [l for l in todo if l[5] == 'quilt' and l[0] not in QUILT_SPOT])]
+  runs += [('quilt', {**QUILT, **QUILT_SPOT[l[0]]}, [l]) for l in todo if l[5] == 'quilt' and l[0] in QUILT_SPOT]
+  runs += [('land', dict(wg=0.0, dry=True, P=48, step=32), [l for l in todo if l[5] == 'land']),
+           ('land64', dict(wg=0.0, dry=True, P=64, step=44), [l for l in todo if l[5] == 'land64'])]
+  for how, kw, spots in runs:
+    if not spots: continue
+    log = []
+    out = synth_out(out, old, ellipses(spots), bad, log=log, others=left, **kw)
+    done(spots)
+    for k, x, y, w, h, u in log: print(f'{how}: hole {k} at {x},{y} ({w}x{h} px): {u} patches', file=sys.stderr)
+  return out
+
+
 # Regions taken from one section only, where two sections each painted the same towns in different spots: (tile, x0, y0, x1, y1)
 FORCE = [
   # Kashan and Isfahan: tile 6 has them on their dots, tile 3 (whose bottom edge they are on) higher up
@@ -119,7 +433,7 @@ def ellipse_mask(shape, x0, y0, cx, cy, rx, ry, feather=0.35):
   return np.clip((1 + feather - d) / feather, 0, 1)
 
 
-def paint_out(img, x0, y0, spot, guide, bad):
+def paint_out(img, x0, y0, spot, guide, bad, R=900, busy=None, near=0.0, others=None):
   """paint out one spot of img (top-left at master (x0, y0)): the best-matching stretch of the same painting nearby is
   copied in (its brushwork), carried on the broad shape of the same spot in `guide` (whole.png or the old master, so the
   ground keeps its geography), matched to the ring round the spot and feathered in. `bad` marks master pixels that may
@@ -135,6 +449,7 @@ def paint_out(img, x0, y0, spot, guide, bad):
   L = lab(img)
   m = ellipse_mask((bh, bw), bx0, by0, cx, cy, rx, ry)
   ring = (ellipse_mask((bh, bw), bx0, by0, cx, cy, rx * pad, ry * pad, 0.01) > 0.5) & (m == 0)
+  if others is not None and (ring & ~others[by0:by1, bx0:bx1]).sum() > 200: ring &= ~others[by0:by1, bx0:bx1]
   tgt = L[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0]
   # the guide's broad shape here, moved to the painting's colours on the ring
   G = lab(guide[by0:by1, bx0:bx1])
@@ -150,6 +465,7 @@ def paint_out(img, x0, y0, spot, guide, bad):
   # green ground is copied only into green ground
   rg = greenish[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0][ring].mean() if ring.any() else 0
   greenish = snowy | (greenish if rg < 0.15 else np.zeros_like(greenish))
+  if busy is not None: greenish = np.zeros_like(greenish)   # (the snow and green of the copy are matched to the ring instead)
   wr = cv2.dilate(((water_and_rivers(img) > 0.25) | greenish).astype(np.uint8), np.ones((9, 9), np.uint8)).astype(np.float32)
   iw = cv2.integral(wr)
   ex0, ey0 = int(cx - rx * 1.1) - bx0, int(cy - ry * 1.1) - by0
@@ -161,7 +477,17 @@ def paint_out(img, x0, y0, spot, guide, bad):
   ms = cv2.resize(m, (bw // q, bh // q), interpolation=cv2.INTER_AREA) > 0.3
   ts = Ls[(by0 - y0) // q:(by0 - y0) // q + rs.shape[0], (bx0 - x0) // q:(bx0 - x0) // q + rs.shape[1]]
   gs = cv2.resize(Glow, (rs.shape[1], rs.shape[0]), interpolation=cv2.INTER_AREA)
-  R, st = 900, 10
+  st = 10
+  if busy is not None:
+    # (since 2026-11-05, for the landmarks) a stretch as busy, as snowy and as green as the ring round the spot, so the
+    # fill is neither a soft smear (the whole.png south) nor a blot of snow or trees
+    gmf = np.hypot(cv2.Sobel(L[..., 0], cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(L[..., 0], cv2.CV_32F, 0, 1, ksize=3))
+    snowf = ((fe.mean(-1) > 190) & ((fe.max(-1) - fe.min(-1)) < 60)).astype(np.float32)
+    greenf = ((fe[..., 1] > fe[..., 0] * 0.97) & (fe.mean(-1) < 150)).astype(np.float32)
+    rr = ring
+    feats = [(cv2.integral(gmf), gmf[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0][rr].mean(), 'g'),
+             (cv2.integral(snowf), snowf[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0][rr].mean(), 's'),
+             (cv2.integral(greenf), greenf[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0][rr].mean(), 'v')]
   # no water at all in the copied spot if it can be had, else a little (a land of many streams)
   for tol in (0, 0.04 * ew * eh, 0.12 * ew * eh):
    if bo is not None: break
@@ -177,6 +503,13 @@ def paint_out(img, x0, y0, spot, guide, bad):
       c = Ls[sy // q:sy // q + rs.shape[0], sx // q:sx // q + rs.shape[1]]
       if c.shape[:2] != rs.shape: continue
       e = ((c[rs] - ts[rs]) ** 2).mean() + (gw * ((gblur(c, 2)[ms] - gs[ms]) ** 2).mean() if gw else 0)
+      if busy is not None:
+        A = (vx - ux) * (vy - uy)
+        for I, tv, kind in feats:
+          v = (I[vy, vx] - I[uy, vx] - I[vy, ux] + I[uy, ux]) / A
+          e += busy * 100 * ((v - tv) / max(tv, 1)) ** 2 if kind == 'g' else 3000 * max(0, abs(v - tv) - 0.03) ** 2
+        # and the nearer the better (the same country)
+        e += near * (dx * dx + dy * dy) / (R * R)
       if best is None or e < best: best, bo = e, (dx, dy)
   if bo is None:
     out = tgt * (1 - m[..., None]) + G * m[..., None]
@@ -403,6 +736,8 @@ def build(debug=None, sigma=140, bands=5, report=None):
   if (~own).any():
     print(f'{(~own).sum()} px owned by no section: filled from whole.png', file=sys.stderr)
     res[~own] = base[~own]
+  # the whole.png strip sharpened, and its join with the sections eased (since 2026-11-05)
+  if layers[0][4] == 'whole': res = south_join(res, owner)
   for sp, bo in log:
     print(f'painted out {sp[0]} at {sp[1]},{sp[2]} ({sp[3] * 2}x{sp[4] * 2} px): brushwork from {bo} px off, shape from {sp[5]}', file=sys.stderr)
   if debug:
@@ -425,8 +760,12 @@ def main():
   ap.add_argument('--debug')
   ap.add_argument('--sigma', type=float, default=140)
   ap.add_argument('--bands', type=int, default=5)
+  ap.add_argument('--stitched', help='a stitched master saved by --save-stitched: only the landmarks are painted out')
+  ap.add_argument('--save-stitched', help='also save the stitched master before the landmarks are painted out')
   a = ap.parse_args()
-  res = build(a.debug, a.sigma, a.bands)
+  res = read_rgb(a.stitched) if a.stitched else build(a.debug, a.sigma, a.bands)
+  if a.save_stitched: Image.fromarray(res).save(a.save_stitched, compress_level=1)
+  res = landmarks_out(res, read_rgb(OLD))
   Image.fromarray(res).save(a.out, optimize=False, compress_level=6)
   print(f'wrote {a.out} ({MW} x {MH})')
 

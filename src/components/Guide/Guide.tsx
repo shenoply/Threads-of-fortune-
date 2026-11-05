@@ -42,7 +42,7 @@ const PAGES: { id?: string; img: string; pos?: string; title: string; lines: str
     lines: ['Your rank runs from Stall keeper to Purveyor to Kings. Each rank needs a reputation and a net worth (what you own, less what you owe). Me shows what the next rank needs.', 'Reputation rises with good sales and kept promises, and falls with cheating. As your name grows, the bazaar gives you names from how you trade, like al-Sadiq, the Truthful, or al-Shatir, the Shrewd. Titles are earned for single deeds. Skills grow by doing.'],
   },
   {
-    id: 'travel', img: 'art/world/painted2-map.webp', pos: '24% 47%',
+    id: 'travel', img: 'art/world/painted3-map.webp', pos: '24% 47%',
     title: 'Travel',
     lines: ['Tap a town, then Travel. Walking is slow: about twelve days to Damascus. The Nile ferry takes you to Cairo in an hour and a half; trains, ships and the Nairn motor car go further, for a fare.', 'The ground sets the pace. Roads are quickest, farmland is fair going, open desert and hills are slow. No caravan crosses the mountains or the sea: the roads go through the passes, and ships go round.', 'Everyone eats. Buy food in a town before a long road, and pack rugs in your Stock to sell elsewhere.'],
   },

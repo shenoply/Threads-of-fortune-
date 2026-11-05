@@ -634,14 +634,14 @@ table.ledger .neg { color: var(--bad); }
 .place { position: absolute; transform: translate(-50%, -50%); background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; z-index: 2; }
 .place .pdot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(28,18,10,0.88); border: 1.5px solid var(--parchment-2); box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 .place .pdot svg { width: 12px; height: 12px; color: var(--parchment); }
-.place .plbl { font-family: var(--label); font-size: 13px; color: #1b1006; background: rgba(239,224,191,0.9); padding: 0 5px; border-radius: 2px; white-space: nowrap; }
+.place .plbl { font-family: var(--label); font-size: 11px; line-height: 1.32; color: #1b1006; background: rgba(239,224,191,0.82); padding: 0 3.5px; border-radius: 2px; white-space: nowrap; }
 .place.kind-village .pdot, .place.kind-camp .pdot, .place.kind-oasis .pdot, .place.kind-monastery .pdot { width: 18px; height: 18px; }
 .place.here .pdot { background: var(--crimson); border-color: #fff1d6; }
 .place.sel .pdot { box-shadow: 0 0 0 3px var(--brass-hi), 0 0 14px rgba(231,189,110,0.8); }
 .party { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1px; z-index: 3; pointer-events: none; }
 .pbadge { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(239,224,191,0.95); border: 1.5px solid #3a2414; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 .pbadge svg { width: 13px; height: 13px; color: #2a1606; }
-.pname { font-family: var(--label); font-size: 12.5px; white-space: nowrap; padding: 0 5px; border-radius: 2px; background: rgba(18,11,6,0.82); color: var(--parchment); }
+.pname { font-family: var(--label); font-size: 11.5px; white-space: nowrap; padding: 0 5px; border-radius: 2px; background: rgba(18,11,6,0.82); color: var(--parchment); }
 .pname.small { font-size: 11.5px; padding: 0 3px; }
 .party-raiders .pbadge { background: #b3412c; border-color: #fff1d6; }
 .party-raiders .pbadge svg { color: #fff1d6; }
@@ -754,7 +754,7 @@ table.ledger .neg { color: var(--bad); }
 .place .pdot { background: #f1e4c3; border: 1.5px solid #4a3421; }
 .place .pdot svg { color: #4a3421; }
 .place.kind-city .pdot, .place.kind-port .pdot, .place.kind-home .pdot { width: 24px; height: 24px; border-width: 2px; }
-.place .plbl { font-family: 'Cinzel', Georgia, serif; font-weight: 600; font-size: 13px; letter-spacing: 0.04em; color: #3a2616; background: rgba(241,228,195,0.88); border: 1px solid rgba(74,52,33,0.4); }
+.place .plbl { font-family: 'Cinzel', Georgia, serif; font-weight: 600; font-size: 11px; letter-spacing: 0.035em; color: #3a2616; background: rgba(241,228,195,0.8); border: 1px solid rgba(74,52,33,0.32); }
 .place.here .pdot { background: #9a3326; border-color: #fff1d6; }
 .place.here .pdot svg { color: #fff1d6; }
 
@@ -1047,7 +1047,7 @@ table.ledger .neg { color: var(--bad); }
 .mission-reward { color: var(--good); font-family: var(--label); }
 .mission-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
 .place.mission .pdot { box-shadow: 0 0 0 3px #f0c86a, 0 0 16px 4px rgba(240,200,106,0.7); animation: glowLift 1.8s ease-in-out infinite; }
-.pmission { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--label); font-size: 12.5px; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 3px; background: #9a3326; color: #fbe9c4; border: 1px solid #f0c86a; pointer-events: none; }
+.pmission { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--label); font-size: 11px; letter-spacing: 0.06em; padding: 1px 5px; border-radius: 3px; background: #9a3326; color: #fbe9c4; border: 1px solid #f0c86a; pointer-events: none; }
 
 /* Character sheet */
 .hud-rep { cursor: pointer; border: 1px solid var(--line-strong); }
@@ -1587,7 +1587,7 @@ table.ledger .neg { color: var(--bad); }
 .step-away{position:static;transform:none;display:flex;flex-direction:row;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:8px;border:2px solid #b07a3f;background:#2a1c10;color:#ffe7c2;font-weight:700;font-size:14.5px}
 .step-away small{font-weight:400;font-size:11.5px;color:#d8c09a}
 .waiting-pill img{width:36px;height:36px}.waiting-pill b{font-size:14px}.waiting-pill small{font-size:12px}
-.pjob{position:absolute;left:50%;top:-24px;transform:translateX(-50%);white-space:nowrap;padding:2px 8px;border-radius:10px;background:#3a2410;border:1px solid #e0a24a;color:#ffe2a8;font-size:12px;pointer-events:none;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.pjob{position:absolute;left:50%;top:-24px;transform:translateX(-50%);white-space:nowrap;padding:1px 6px;border-radius:9px;background:#3a2410;border:1px solid #e0a24a;color:#ffe2a8;font-size:11px;pointer-events:none;max-width:170px;overflow:hidden;text-overflow:ellipsis}
 .jobs-btn{position:absolute;right:10px;top:136px;z-index:6;height:40px;padding:0 12px;border-radius:12px;border:2px solid #e0a24a;background:#2a190cee;color:#ffe2a8;font-weight:700;font-size:15px}
 .jobs-btn b{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-left:4px;border-radius:11px;background:#e0a24a;color:#1b110a;font-size:13px}
 .job-row{display:flex;gap:10px;align-items:center;padding:10px;margin:8px 0;border-radius:10px;background:#2a1a0e;border:1px solid #5a3b20}
@@ -3156,12 +3156,13 @@ body.travelling .world-hud { display: none; }
 .place.pl-off { opacity: 0; scale: .5; pointer-events: none !important; }
 .place.pl-off::before { display: none; }
 /* job and visitor flags: the town's name with the icon out at middle zoom, the whole errand close in */
-.pjob.short { max-width: 130px; padding: 1px 7px; font-size: 11.5px; }
+.pjob.short { max-width: 130px; padding: 1px 6px; font-size: 10.5px; }
 .pjob.full { max-width: 210px; }
-.pjob.icon { padding: 1px 4px; top: -10px; left: auto; right: calc(50% + 9px); transform: none; font-size: 11px; }
+.pjob.icon { padding: 1px 3px; top: -10px; left: auto; right: calc(50% + 9px); transform: none; font-size: 10px; }
 .pjob.visit.icon { top: 8px; }
 /* far out, smaller names and marks so the Levant's cities sit side by side */
-.world-inner[data-tier="0"] .place .plbl { font-size: 10.5px; padding: 0 3px; letter-spacing: .02em; }
+.world-inner[data-tier="0"] .place .plbl { font-size: 11px; padding: 0 3px; letter-spacing: .02em; }
+.world-inner[data-tier="2"] .place .plbl { font-size: 11.5px; padding: 0 4px; }
 .world-inner[data-tier="0"] .place .pdot { width: 19px; height: 19px; border-width: 1.5px; }
 .world-inner[data-tier="0"] .place .pdot svg { width: 10px; height: 10px; }
 /* notices: one short line at the top under the bar, a few seconds, a tap clears it */
@@ -3690,7 +3691,7 @@ button.img.fresh::after { content: ''; position: absolute; inset: 0; background:
 /* zoomed right out: the painting steps back, the cities, you and the danger come forward */
 .world-canvas { transition: filter .4s; }
 .world-map.overview .world-canvas { filter: saturate(.75) brightness(.82) contrast(.95); }
-.world-map.overview .place.kind-city .plbl, .world-map.overview .place.kind-port .plbl, .world-map.overview .place.kind-home .plbl, .world-map.overview .place.here .plbl { font-size: 15.5px; padding: 1px 7px; font-weight: 600; }
+.world-map.overview .place.kind-city .plbl, .world-map.overview .place.kind-port .plbl, .world-map.overview .place.kind-home .plbl, .world-map.overview .place.here .plbl { font-size: 11.5px; padding: 0 4px; font-weight: 600; }
 .world-map.overview .party:not(.party-raiders) { opacity: 0; pointer-events: none; }
 .world-map.overview .party-raiders:not(.hunting) .pname { display: none !important; }
 

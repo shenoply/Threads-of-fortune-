@@ -155,8 +155,8 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   Upper Egypt, the Red Sea, Arabia); drop the corrected tile-7.png / tile-8.png into the folder, take them out of SKIP and run
   it again. PAINT_OUT lists the made-up buildings and landmarks painted far from any town (Oman and the Gulf, Homs, south
   Sinai, a second Baghdad, a duplicate Jerusalem on Amman's dot), filled with nearby brushwork. 4800 wide is the old size:
-  the sections carry about 4267 px of detail across, whole.png 1610. The WebP copies are public/art/world/painted2-map-4k,
-  -3k, painted2-map, -768; the close-zoom tiles art/world/tiles2-9k (tools/map-tiles.py, now a plain Lanczos doubling:
+  the sections carry about 4267 px of detail across, whole.png 1610. The WebP copies are public/art/world/painted3-map-4k,
+  -3k, painted3-map, -768 (since 2026-11-05; painted2 before); the close-zoom tiles art/world/tiles3-9k (tools/map-tiles.py, now a plain Lanczos doubling:
   --treated brings back the contrast and grain made for the old master). build-map.py reads the sea from the repaint
   (travel-map-painting2-1610.png, the master shrunk) and the lakes, rivers and ground from the first painting, so the terrain
   does not change with the new brushwork. Landmarks painted into the map (PAINTED_LANDMARKS in src/data/mapArt.ts, with where
@@ -164,3 +164,18 @@ Steps for the session that has push access to shenoply/Threads-of-fortune-:
   Wadi Feiran; town names step off a painted landmark's middle where they can. The terrain kit (mapKitDraw.ts) is off by
   default (src/game/mapKitPref.ts, key tof-map-kit2; ?kit=1 or the tester sheet turns it on). Review shots:
   tests/map-repaint-shots.mjs.
+- Landmarks back as overlays (since 2026-11-05, after the owner's Pixel 7a test: "words too big, landmarks so small"):
+  tools/map-repaint.py paints every building the repaint had out of the master (LANDMARKS_OUT: on coasts and the Delta by
+  guided quilting from the painting's own brushwork, steered by the first painting's water so shores run on; on open
+  ground by copying one matched stretch whole, `copy`/`copy2`), after sharpening the soft whole.png strip in the south
+  and easing its join (south_join). `--stitched PNG` repaints only that last step from a saved stitch (`--save-stitched`).
+  PAINTED_LANDMARKS is empty: all 33 overlays draw, toned warmer and a little softer to sit in the painting
+  (mapArtDraw.ts tonedSprite `tone`), sized by LANDMARK_RULE (48 map units wide, 138-264 px, 126 far out: 1.5 times the
+  old 32 units, 92/84-176 px). Where neither above nor below its pin is free, a landmark stands beside its town (clear of
+  its pin, name, your medallion and, at Giza, the stall window). Town names 11 px (11.5 close in and for the cities far
+  out; were 13, and 15.5 far out), thinner plates; region and sea names 11.5 px x size (were 15); job flags 11 px.
+  Labels: the town you stand in is named just under your medallion and moves with it; no name sits under the medallion;
+  a city's or home's name wins over a lesser town's job flag, and a job flag never covers a more important pin; far out,
+  of two pins on one spot the lesser steps back (pl-crowd), and shop and crown marks show from the middle zoom in.
+  The scale ornament stays on screen far out on a wide screen; W2 drifts over the Iraqi plain with a soft shadow, not
+  over the Zagros snow; PALESTINE is inland. Review shots: tests/map-repaint-shots.mjs.

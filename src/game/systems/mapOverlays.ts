@@ -28,13 +28,13 @@ const PLACES: Place[] = [
 const placeOf = (id: string) => PLACES.find((p) => p.id === id);
 const NAMED_MID = new Set<string>(['home', 'city', 'town', 'port']);
 /** A town's pin and name on screen at scale s (map px per unit), as a box in map units. The pin (22-24 px) sits over
- *  its name (Cinzel 13 px, about 9.5 px a letter), the pair centred on the town. `tier` 2 names every place, 1 only
+ *  its name (Cinzel 11 px, about 8.4 px a letter), the pair centred on the town. `tier` 2 names every place, 1 only
  *  the towns, cities and ports (WorldMap's rule). */
 export function pinBox(p: Place, s: number, tier: number): Box {
   const named = tier >= 2 || NAMED_MID.has(p.kind);
   // (and the shop, job and news marks that sit beside a pin)
-  const half = ((named ? Math.max(13, (p.name.length * 9.5 + 14) / 2) : 13) + 12) / s;
-  const up = (named ? 22 : 13) / s, down = (named ? 22 : 13) / s;
+  const half = ((named ? Math.max(13, (p.name.length * 8.4 + 10) / 2) : 13) + 12) / s;
+  const up = (named ? 22 : 13) / s, down = (named ? 20 : 13) / s;
   return { l: p.x - half, r: p.x + half, t: p.y - up, b: p.y + down };
 }
 
@@ -42,12 +42,13 @@ export function pinBox(p: Place, s: number, tier: number): Box {
 /** the landmarks painted into the map itself (map units): an overlay never covers one */
 export const PAINTED_BOXES: Box[] = LANDMARKS.map(paintedBox).filter((b): b is Box => !!b);
 export const landmarkFile = (it: ArtItem) => `${it.code}-${it.name}.webp`;
-/** the landmark's size on screen at scale s, in px: as wide as about 32 map units, never under 92 px (84 zoomed far
- *  out, `far`, where only the cities' and your own town's show) nor over 176 (since 2026-11-03: about 1.7 times the
- *  size they were, which read as stamps on a phone) */
+/** the landmark's size on screen at scale s, in px: as wide as about 48 map units, never under 138 px (126 zoomed far
+ *  out, `far`, where only the cities' and your own town's show) nor over 264 (since 2026-11-05 half as big again as the
+ *  rule before, 32 units, 92/84-176 px: on a phone they still read as small, and the painting's own were painted out) */
+export const LANDMARK_RULE = { units: 48, min: 138, minFar: 126, max: 264 };
 export function landmarkPx(it: ArtItem, s: number, far = false): { w: number; h: number } {
   const [iw, ih] = SZ[landmarkFile(it)] ?? [384, 256];
-  const W = clamp(32 * s, far ? 84 : 92, 176), H = W * 0.74;
+  const W = clamp(LANDMARK_RULE.units * s, far ? LANDMARK_RULE.minFar : LANDMARK_RULE.min, LANDMARK_RULE.max), H = W * 0.74;
   const k = Math.min(W / iw, H / ih);
   return { w: iw * k, h: ih * k };
 }
@@ -55,7 +56,7 @@ export function landmarkPx(it: ArtItem, s: number, far = false): { w: number; h:
 const SHIFTS = [0, -0.3, 0.3, -0.45, 0.45];
 const SHRINK = [1, 0.86, 0.74, 0.62, 0.52];
 /** the most a landmark is lifted above its pin to clear what stands there, in px */
-const LIFT = 56;
+const LIFT = 72;
 /** the places whose landmarks show zoomed far out (and where you are) */
 const FAR_KINDS = new Set<string>(['home', 'city', 'port']);
 const RANK: Record<string, number> = { home: 0, city: 1, port: 1.5, town: 2, monastery: 3, oasis: 3, camp: 3, village: 3.5, well: 4 };
@@ -120,6 +121,20 @@ export function landmarkLayout(s: number, tier: number, shown: (id: string) => b
     for (const f of SHRINK) {
       for (const k of SHIFTS) { for (const foot0 of feet) { got = fits(f, k, foot0, false); if (got) break; } if (got) break; }
       if (!got && blocks?.length && c.p.kind !== 'well') for (const k of SHIFTS) { got = fits(f, k, below, true); if (got) break; }
+      // else beside its town, to the right or the left: its near edge just clear of the town's own pin, name and marks
+      // (and your medallion, standing there), its middle at the pin's height (since 2026-11-05: in the crowded Delta,
+      // Giza and Cairo stand a pin's width apart, and above and below are taken by Tanta's and Saqqara's marks)
+      if (!got && blocks?.length && c.p.kind !== 'well' && own.length) {
+        const ob = { l: Math.min(...own.map((q) => q.b.l)), r: Math.max(...own.map((q) => q.b.r)) };
+        const dotB: Box = dot?.b ?? { l: L0.x - 11 / s, r: L0.x + 11 / s, t: L0.y, b: L0.y + 22 / s };
+        const mid = (dotB.t + dotB.b) / 2;
+        const w = L0.w * f, h = L0.h * f;
+        for (const side of [1, -1]) {
+          const cx = side > 0 ? ob.r + 3 / s + w / 2 / s : ob.l - 3 / s - w / 2 / s;
+          got = fits(f, ((cx - L0.x) * s) / w, mid + (h * 0.45) / s, false);
+          if (got) break;
+        }
+      }
       if (got) break;
     }
     if (got) out.push(got);
@@ -178,8 +193,8 @@ const NAMES = [...MAP_LABELS.map((l) => ({ text: l.text, kind: l.kind as string,
 export function underName(p: Pt, s: number) {
   const zf = clamp(s / 1.6, 0.75, 1.7);
   for (const l of NAMES) {
-    const font = (l.kind === 'region' || l.kind === 'sea' ? 15 : 11) * l.size * zf;
-    const gap = l.kind === 'region' ? 0.35 : l.kind === 'sea' ? 0.12 : l.kind === 'river' ? 0.08 : 0.18;
+    const font = (l.kind === 'region' || l.kind === 'sea' ? 11.5 : 10) * l.size * zf;
+    const gap = l.kind === 'region' ? 0.3 : l.kind === 'sea' ? 0.12 : l.kind === 'river' ? 0.08 : 0.18;
     const hw = (l.text.length * font * (0.62 + gap)) / 2 / s + 2, hh = (font * 0.7) / s + 1.5;
     const a = (-l.rot * Math.PI) / 180, dx = p.x - l.x, dy = p.y - l.y;
     const u = dx * Math.cos(a) - dy * Math.sin(a), v = dx * Math.sin(a) + dy * Math.cos(a);
@@ -241,7 +256,7 @@ export function placePeople(): PeoplePlace[] {
     if (!anchor) continue;
     const { w, h } = peopleSize(sp.art);
     let best: { x: number; y: number; cost: number } | null = null;
-    const r0 = sp.to ? 2.5 : 6, r1 = sp.to ? 32 : sp.shore ? 32 : 24;
+    const r0 = sp.to ? 2.5 : 6, r1 = sp.to ? 32 : sp.shore ? 32 : 30;
     for (let r = r0; r <= r1; r += 1.25) {
       for (let k = 0; k < 24; k++) {
         const a = (k * Math.PI) / 12;

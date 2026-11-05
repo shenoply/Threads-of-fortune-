@@ -1427,8 +1427,25 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     layoutKey.current = key;
     layoutPlaces.current = placesLayer;
     const wr = wrapEl.getBoundingClientRect();
+    // zoomed far out, towns a few miles apart share one spot on the screen: the lesser of two whose pins would
+    // overlap steps back at that zoom (where you are and are bound first, then cities, ports, towns), so no pin sits on
+    // another (Giza and Cairo, Jaffa and Jerusalem)
+    {
+      const pls = [...inner.querySelectorAll<HTMLElement>('.place:not(.pl-off)')];
+      pls.forEach((pl) => pl.classList.remove('pl-crowd'));
+      if (tier === 0) {
+        const kept: DOMRect[] = [];
+        pls.sort((a, b) => Number(a.dataset.pri ?? 3) - Number(b.dataset.pri ?? 3));
+        for (const pl of pls) {
+          const d = pl.querySelector('.pdot')?.getBoundingClientRect();
+          if (!d) continue;
+          if (kept.some((k) => d.left < k.right + 2 && d.right > k.left - 2 && d.top < k.bottom + 2 && d.bottom > k.top - 2) && Number(pl.dataset.pri ?? 3) > -1) { pl.classList.add('pl-crowd'); continue; }
+          kept.push(d);
+        }
+      }
+    }
     // undo the last pass, then measure once
-    const lblEls = [...inner.querySelectorAll<HTMLElement>('.place:not(.pl-off) .plbl')];
+    const lblEls = [...inner.querySelectorAll<HTMLElement>('.place:not(.pl-off):not(.pl-crowd) .plbl')];
     for (const el of lblEls) { el.style.translate = ''; el.style.visibility = ''; }
     const pinEl = wrapEl.querySelector<HTMLElement>('.overhead-pin');
     if (pinEl) pinEl.style.translate = '';
@@ -1445,22 +1462,44 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const view: Box = { l: wr.left - ir.left + 4, t: wr.top - ir.top + 4, r: wr.right - ir.left - 4, b: wr.bottom - ir.top - 4 };
     const controls = [...wrapEl.querySelectorAll('.map-tools > button, .scalebar, .find-me-pill, .world-hud, .bl-bar, .overhead-pin, .map-compass, .map-chips')].map((el) => rel(el, 3)).filter((b) => b.r > b.l);
     const dotOf = new Map<Element, Box>();
-    inner.querySelectorAll('.place:not(.pl-off)').forEach((pl) => { const d = pl.querySelector('.pdot'); if (d) dotOf.set(pl, rel(d)); });
+    inner.querySelectorAll('.place:not(.pl-off):not(.pl-crowd)').forEach((pl) => { const d = pl.querySelector('.pdot'); if (d) dotOf.set(pl, rel(d)); });
     const marks = [...dotOf.values()];
     // Town names, the most important first (where you are and are bound, then cities, ports and home, then
     // towns): each sits under its mark, or else above it, to its right or to its left, the first place that
     // is clear of the names already placed, the buttons over the map and the other marks. A name with no
     // room anywhere is left out (never one of the places that matter now).
-    const items = lblEls.map((el) => { const pl = el.closest('.place'); return { el, pri: Number((pl as HTMLElement | null)?.dataset.pri ?? 3), box: rel(el, 1), dot: pl ? dotOf.get(pl) : undefined }; }).sort((a, b) => a.pri - b.pri);
+    // your medallion where it stands (it steps aside below only if it must): another town's name keeps off it, so a
+    // name is never hidden behind you (Cairo's, standing at Giza, far out)
+    if (meRef.current) meRef.current.style.translate = '';
+    const medal = meRef.current?.querySelector('.me-medal');
+    const meStill: Box | null = medal && !meOff ? rel(medal, 2) : null;
+    const items = lblEls.map((el) => { const pl = el.closest('.place'); return { el, id: (pl as HTMLElement | null)?.dataset.testid?.slice(6) ?? '', pri: Number((pl as HTMLElement | null)?.dataset.pri ?? 3), box: rel(el, 1), dot: pl ? dotOf.get(pl) : undefined }; }).sort((a, b) => a.pri - b.pri);
     // the mission tag and job flags over the pins stay where they are: a name keeps clear of them too
-    const tags = [...inner.querySelectorAll('.place:not(.pl-off) > .pmission, .place:not(.pl-off) > .pjob')].map((el) => rel(el, 1)).filter((b) => b.r > b.l);
+    const tagEls = [...inner.querySelectorAll<HTMLElement>('.place:not(.pl-off):not(.pl-crowd) > .pmission, .place:not(.pl-off):not(.pl-crowd) > .pjob, .place:not(.pl-off):not(.pl-crowd) > .pcrown')];
+    tagEls.forEach((el) => { el.style.visibility = ''; });
+    const tagPri = tagEls.map((el) => Number((el.parentElement as HTMLElement | null)?.dataset.pri ?? 3));
+    const NONE: Box = { l: -1e6, r: -1e6, t: -1e6, b: -1e6 };
+    const tags = tagEls.map((el) => { const b = rel(el, 1); return b.r > b.l + 2 ? b : NONE; });
+    // a lesser place's job or visitor flag never sits on a more important place's pin (Saqqara's on Giza's)
+    tagEls.forEach((el, i) => {
+      if (!el.classList.contains('pjob') || tags[i] === NONE) return;
+      for (const [pl, d] of dotOf) if (pl !== el.parentElement && Number((pl as HTMLElement).dataset.pri ?? 3) < tagPri[i] && hits(tags[i], d)) { el.style.visibility = 'hidden'; tags[i] = NONE; return; }
+    });
     const names: Box[] = [];
+    let hereName: Box | null = null;
+    let hereEl: { el: HTMLElement; x: number; y: number } | null = null;
     // the painted landmarks' middles, in the layer's px (their outer quarter may be overlapped)
     const painted: Box[] = PAINTED_BOXES.map((q) => { const mx = (q.r - q.l) / 4, my = (q.b - q.t) / 4; return { l: (q.l + mx) * s, r: (q.r - mx) * s, t: (q.t + my) * s, b: (q.b - my) * s }; });
     for (const it of items) {
       const b = it.box, d = it.dot, bw = b.r - b.l;
       if (b.r < view.l - 60 || b.l > view.r + 60 || b.b < view.t - 60 || b.t > view.b + 60) { names.push(b); continue; }
       const cands: [number, number][] = [[0, 0]];
+      // where you stand, your medallion is the town's mark: its name goes just under the medallion, or beside it
+      const mine = !!meStill && it.id === w.at && !moving;
+      if (mine && meStill) {
+        const midY = (meStill.t + meStill.b) / 2 - (b.t + b.b) / 2;
+        cands.unshift([(meStill.l + meStill.r) / 2 - (b.l + b.r) / 2, meStill.b + 1 - b.t], [meStill.r + 2 - b.l, midY], [meStill.l - 2 - b.r, midY]);
+      }
       if (d) {
         const midY = (d.t + d.b) / 2 - (b.t + b.b) / 2;
         cands.push([0, d.t - 2 - b.b], [d.r + 3 - b.l, midY], [d.l - 3 - b.r, midY]);
@@ -1473,14 +1512,18 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         return { x, y: dy, box: { l: b.l + x, r: b.r + x, t: b.t + dy, b: b.b + dy } };
       };
       const tries = cands.map(shift);
-      const free = (bx: Box) => !names.some((n) => hits(bx, n)) && !controls.some((c) => hits(bx, c));
+      const free = (bx: Box) => !names.some((n) => hits(bx, n)) && !controls.some((c) => hits(bx, c)) && !(meStill && hits(bx, meStill));
       const clearOf = (bx: Box) => free(bx) && !tags.some((t) => hits(bx, t));
       // (best of all off the landmarks painted into the map: a name over the middle of one hides it)
       const onPainted = (bx: Box) => painted.some((q) => hits(bx, q));
       const at = tries.find((t) => clearOf(t.box) && !marks.some((m) => m !== d && hits(t.box, m)) && !onPainted(t.box)) ?? tries.find((t) => clearOf(t.box) && !marks.some((m) => m !== d && hits(t.box, m))) ?? tries.find((t) => clearOf(t.box)) ?? tries.find((t) => free(t.box)) ?? (it.pri <= 0 ? tries[0] : null);
       if (!at) { it.el.style.visibility = 'hidden'; continue; }
+      // a name that could only go over a lesser town's job or visitor flag wins the spot: the flag steps back at this zoom
+      // (Giza's name under Saqqara's "Mats for the diggers", close in)
+      if (it.pri <= 1.4) tags.forEach((t, i) => { if (tagPri[i] > it.pri && tagEls[i].classList.contains('pjob') && hits(at.box, t)) { tagEls[i].style.visibility = 'hidden'; tags[i] = NONE; } });
       if (at.x || at.y) it.el.style.translate = `${Math.round(at.x)}px ${Math.round(at.y)}px`;
       names.push(at.box);
+      if (mine) { hereName = at.box; hereEl = { el: it.el, x: at.x, y: at.y }; }
     }
     // Your medallion and the party medallions step aside (a few fixed nudges, the first that fits) from any
     // town name, town mark or each other; a trader or pilgrim band that finds no room is hidden, raiders
@@ -1502,7 +1545,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
       nameOn = withName;
       search: for (const [dx, dy] of ME_TRY) {
         for (const right of [false, true]) {
-          if ([meBox(dx, dy), ...trainBox(dx, dy, right)].every((bx) => !names.some((n) => hits(bx, n)) && !tags.some((t) => hits(bx, t)) && !controls.some((c) => hits(bx, c)))) { meAt = [dx, dy, right]; break search; }
+          // (the name of the town you stand in was set just under your medallion where it stands: it does not push you aside)
+          if ([meBox(dx, dy), ...trainBox(dx, dy, right)].every((bx) => !names.some((n) => n !== hereName && hits(bx, n)) && !tags.some((t) => hits(bx, t)) && !controls.some((c) => hits(bx, c)))) { meAt = [dx, dy, right]; break search; }
         }
       }
       if (meAt) break;
@@ -1510,6 +1554,13 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     if (!meAt) { meAt = [0, 0, false]; nameOn = false; }
     if (meRef.current) meRef.current.dataset.noname = z >= closeZ && !nameOn ? '1' : '';
     if (meRef.current) meRef.current.style.translate = meAt[0] || meAt[1] ? `${meAt[0]}px ${meAt[1]}px` : '';
+    // the name of the town you stand in goes with your medallion where it steps aside
+    if (hereEl && (meAt[0] || meAt[1])) {
+      const hx = hereEl.x + meAt[0], hy = hereEl.y + meAt[1];
+      hereEl.el.style.translate = `${Math.round(hx)}px ${Math.round(hy)}px`;
+      const i = names.indexOf(hereName!);
+      if (i >= 0) names[i] = { l: hereName!.l + meAt[0], r: hereName!.r + meAt[0], t: hereName!.t + meAt[1], b: hereName!.b + meAt[1] };
+    }
     trainEl?.classList.toggle('flip', meAt[2]);
     const taken: Box[] = [...names, ...marks, meBox(meAt[0], meAt[1]), ...trainBox(meAt[0], meAt[1], meAt[2])];
     const rank = (p: Party) => (p.kind === 'raiders' ? (dist(p, mePt) < 22 ? 0 : 1) : p.kind === 'mercenaries' ? 2 : 3);
@@ -1541,9 +1592,9 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
     const ks = ir.width / MAP_W || s;
     if (Math.abs(ks / s - 1) > 0.01) { if (relayouts.current++ < 6) setTimeout(() => { layoutKey.current = ''; setRelayout((n) => n + 1); }, 300); } else relayouts.current = 0;
     const blocks: PinBlock[] = [];
-    inner.querySelectorAll<HTMLElement>('.place:not(.pl-off)').forEach((pl) => {
+    inner.querySelectorAll<HTMLElement>('.place:not(.pl-off):not(.pl-crowd)').forEach((pl) => {
       const id = pl.dataset.testid?.slice(6) ?? '';
-      pl.querySelectorAll<HTMLElement>(':scope > .pdot, :scope > .plbl, :scope > .pjob, :scope > .pnews, :scope > .prival, :scope > .pmission, :scope > .plock').forEach((el) => {
+      pl.querySelectorAll<HTMLElement>(':scope > .pdot, :scope > .plbl, :scope > .pjob, :scope > .pnews, :scope > .prival, :scope > .pmission, :scope > .plock, :scope > .pcrown, :scope > .pshop').forEach((el) => {
         if (el.style.visibility === 'hidden') return;
         const b = rel(el);
         if (b.r <= b.l) return;
@@ -1558,7 +1609,7 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
         if (b.r > b.l) blocks.push({ id: w.at ?? 'me', dot: false, box: { l: b.l / ks, t: b.t / ks, r: b.r / ks, b: b.b / ks } });
       });
     }
-    if (pinEl) { const b = rel(pinEl, 2); if (b.r > b.l) blocks.push({ id: 'stall', dot: false, box: { l: b.l / ks, t: b.t / ks, r: b.r / ks, b: b.b / ks } }); }
+    if (pinEl) { const b = rel(pinEl, 2); if (b.r > b.l) blocks.push({ id: 'giza', dot: false, box: { l: b.l / ks, t: b.t / ks, r: b.r / ks, b: b.b / ks } }); }
     const bkey = `${s.toFixed(3)}|` + blocks.map((b) => `${b.id}${Math.round(b.box.l * 4)},${Math.round(b.box.t * 4)},${Math.round(b.box.r * 4)},${Math.round(b.box.b * 4)}`).join(';');
     if (bkey !== pinBlocks.current.key) {
       pinBlocks.current = { key: bkey, list: blocks };
@@ -1598,8 +1649,8 @@ export function WorldMap({ onStall, onDistrict, openPanel, openTab, planFor, goF
               {missionTarget === st.id && <span className="pmission" data-testid="mission-pin"><Icon name="star" /> Mission</span>}
               {visit && flag ? <span className={`pjob visit ${flag}`} title={visit.who} data-testid={`visit-pin-${st.id}`}><Icon name="hourglass" />{flag === 'icon' ? null : <> {flag === 'full' ? visit.who : st.name}</>}</span>
                 : job && flag && <span className={`pjob ${flag}`} title={job.title} data-testid={`job-pin-${st.id}`}><Icon name="scroll" />{flag === 'icon' ? null : <> {flag === 'full' ? job.title : st.name}</>}</span>}
-              {venueFor(st.id) && <span className="pcrown" title="Royal court" data-testid={`crown-${st.id}`}><Icon name="crown" /></span>}
-              {SHOP_CITIES[st.id] && (() => {
+              {venueFor(st.id) && tier > 0 && <span className="pcrown" title="Royal court" data-testid={`crown-${st.id}`}><Icon name="crown" /></span>}
+              {SHOP_CITIES[st.id] && (tier > 0 || !!g.shops?.[st.id]) && (() => {
                 const c = SHOP_CITIES[st.id], mine = !!g.shops?.[st.id], ready = !mine && g.reputation >= c.rep;
                 return <span className={`pshop ${mine ? 'mine' : ready ? 'ready' : 'later'}`} title={mine ? 'Your shop' : `A shop to buy here: ${fmt(c.cost)}, reputation ${c.rep}${ready ? '' : ` (you have ${g.reputation})`}`} data-testid={`shop-pin-${st.id}`}><Icon name="store" /></span>;
               })()}

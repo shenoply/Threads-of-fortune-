@@ -9,7 +9,7 @@ a little mottling and long fibres, all drawn procedurally from the pixel's posit
 from one tile into the next). Nothing moves: tile (c, r) is exactly the master's pixels c*512 .. c*512+512 across and
 r*512 .. down, doubled, so the tiles lie exactly over the single picture.
 
-  python3 -I tools/map-tiles.py [--out public/art/world/tiles2-9k] [--master PNG] [--treated] [--crop x,y,w out.png] [--q 84]
+  python3 -I tools/map-tiles.py [--out public/art/world/tiles3-9k] [--master PNG] [--treated] [--crop x,y,w out.png] [--q 84]
 
 Since 2026-11-04 the master is the repainted one (art-src/world/travel-map-master2-4800.png, tools/map-repaint.py): its detail is
 painted, so the tiles are its plain Lanczos doubling; --treated brings back the contrast and grain pass made for the old master.
@@ -101,7 +101,7 @@ def treat(rgb, gx0, gy0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=os.path.join(ROOT, 'public/art/world/tiles2-9k'))
+    ap.add_argument('--out', default=os.path.join(ROOT, 'public/art/world/tiles3-9k'))
     ap.add_argument('--master', default=MASTER)
     ap.add_argument('--treated', action='store_true', help='the old local-contrast and paper-grain pass (for the old, softer master)')
     ap.add_argument('--q', type=int, default=84)

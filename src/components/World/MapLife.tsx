@@ -14,6 +14,25 @@ import { sheetFor, shipPaintingFor, paintingFor, shipPlaceholder, wakePlaceholde
 export interface Camera { tx: number; ty: number; s: number; w: number; h: number }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+/** A cloud's shadow on the ground: its own shape, darkened and softened (shrunk and enlarged again), made once. Laid a
+ *  little south-east of the cloud, it keeps a white cloud readable over white snow (W2 over the Zagros read as a pale
+ *  wash, 2026-11-05) without any canvas filter. */
+const cloudShadows = new Map<CanvasImageSource, HTMLCanvasElement>();
+function cloudShadow(img: CanvasImageSource): HTMLCanvasElement {
+  let c = cloudShadows.get(img);
+  if (c) return c;
+  const small = document.createElement('canvas'); small.width = 48; small.height = 48;
+  const sg = small.getContext('2d')!;
+  sg.drawImage(img, 0, 0, 48, 48);
+  sg.globalCompositeOperation = 'source-in';
+  sg.fillStyle = 'rgb(58,44,32)'; sg.fillRect(0, 0, 48, 48);
+  c = document.createElement('canvas'); c.width = 192; c.height = 192;
+  const g = c.getContext('2d')!;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(small, 0, 0, 192, 192);
+  cloudShadows.set(img, c);
+  return c;
+}
 /** each type's hull length as a fraction of a sheet frame (tools/blender-ships.py: length / 12.2 units), for its wake */
 const SHEET_LENGTH: Partial<Record<ShipKind, number>> = { steamer: 0.82, cargo: 0.75, 'small-steamer': 0.61, schooner: 0.61, dhow: 0.57, felucca: 0.46 };
 /** +1 when a lane's outward leg runs east (the paintings face right), -1 when it runs west */
@@ -85,8 +104,11 @@ export function MapLife({ camera, drawNow, on, kit = false, fog = '' }: { camera
           const period = 140, run = 140, u = ((t + (it.code === 'W2' ? 60 : 0)) % period) / period;
           const x = X(it.x! - run / 2 + run * u), y = Y(it.y! + Math.sin(t / 23) * 4), size = 170 * s;
           if (!seen(x, y, size)) continue;
-          ctx.globalAlpha = Math.sin(Math.PI * u) * 0.9 * fade;
-          ctx.drawImage(img ?? cloudPlaceholder(it.code === 'W2' ? 2 : 1), x - size / 2, y - size / 2, size, size);
+          const a = Math.sin(Math.PI * u) * 0.9 * fade, pic = img ?? cloudPlaceholder(it.code === 'W2' ? 2 : 1);
+          ctx.globalAlpha = a * 0.3;
+          ctx.drawImage(cloudShadow(pic), x - size / 2 + size * 0.05, y - size / 2 + size * 0.08, size, size);
+          ctx.globalAlpha = a;
+          ctx.drawImage(pic, x - size / 2, y - size / 2, size, size);
         } else if (it.weather === 'sandstorm') {
           const x = X(it.x!), y = Y(it.y!), size = 240 * s * (1 + Math.sin(t / 7) * 0.04);
           if (!seen(x, y, size)) continue;

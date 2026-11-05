@@ -38,7 +38,7 @@ const CITY_IMG: Record<string, string> = {
   alexandria: 'art/world/city-alexandria.webp', amman: 'art/world/city-amman.webp', baghdad: 'art/world/city-baghdad.webp', damascus: 'art/world/city-damascus.webp',
   istanbul: 'art/world/city-istanbul.webp', jerusalem: 'art/world/city-jerusalem.webp', giza: 'art/world/giza-district.webp', cairo: 'art/cities/cairo-1925-map.webp',
   beirut: 'art/world/city-damascus.webp', jaffa: 'art/world/city-jerusalem.webp', konya: 'art/world/city-istanbul.webp', ankara: 'art/world/city-istanbul.webp', aleppo: 'art/world/city-damascus.webp',
-  tanta: 'art/world/giza-district.webp', portsaid: 'art/world/city-alexandria.webp', suez: 'art/world/painted2-map.webp', sinai: 'art/world/painted2-map.webp', bedouin: 'art/world/painted2-map.webp',
+  tanta: 'art/world/giza-district.webp', portsaid: 'art/world/city-alexandria.webp', suez: 'art/world/painted3-map.webp', sinai: 'art/world/painted3-map.webp', bedouin: 'art/world/painted3-map.webp',
 };
 const CITY_NAME: Record<string, string> = { portsaid: 'Port Said', bedouin: 'the Tarabin camp', sinai: 'Sinai' };
 const EVENT_IMG: Record<string, [string, string]> = {
@@ -47,7 +47,7 @@ const EVENT_IMG: Record<string, [string, string]> = {
   adha: ['art/world/giza-district.webp', 'The feast at Giza.'], mawlid: ['art/cities/cairo-1925-map.webp', 'Cairo on the Prophet\'s Birthday.'], badawi: ['art/world/giza-district.webp', 'The road to the Tanta fair.'],
   nile: ['art/cities/cairo-1925-map.webp', 'The river at Cairo.'], cotton: ['art/world/city-alexandria.webp', 'The cotton port at Alexandria.'], slump: ['art/world/city-alexandria.webp', 'Quiet days at the cotton exchange.'],
   season: ['art/world/giza-district.webp', 'Winter visitors at Giza.'], tut: ['art/world/giza-district.webp', 'Egyptomania reaches Giza.'], summer: ['art/world/city-alexandria.webp', 'The court\'s summer city.'],
-  paris: ['art/rugs/village-kilim-canal.webp', 'The kind of kilim Paris wants.'], jeddah: ['art/world/painted2-map.webp', 'The road to the Hejaz.'], hajj: ['art/world/painted2-map.webp', 'The pilgrim road.'], hejaz: ['art/world/painted2-map.webp', 'Shipping lanes to Jeddah.'],
+  paris: ['art/rugs/village-kilim-canal.webp', 'The kind of kilim Paris wants.'], jeddah: ['art/world/painted3-map.webp', 'The road to the Hejaz.'], hajj: ['art/world/painted3-map.webp', 'The pilgrim road.'], hejaz: ['art/world/painted3-map.webp', 'Shipping lanes to Jeddah.'],
   hadda: ['art/world/city-amman.webp', 'Amman.'], jouvenel: ['art/world/city-damascus.webp', 'The Levant under the Mandate.'], republic: ['art/world/city-istanbul.webp', 'The Republic\'s old capital.'],
 };
 function imageFor(e: GameEvent): { img?: string; caption?: string } {

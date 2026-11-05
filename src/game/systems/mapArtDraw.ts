@@ -225,9 +225,9 @@ export interface ArtLayer {
 /** A picture shrunk once to the size it is drawn at (in steps of a twelfth of an octave), toned for how the place is
  *  known: the frame then copies it at its own size, which is cheap even on a phone, and no canvas filter is needed. */
 const toned = new Map<string, HTMLCanvasElement>();
-function tonedSprite(img: HTMLImageElement, key: string, wpx: number, look: 'visited' | 'known' | 'dim', flip = false): HTMLCanvasElement {
+function tonedSprite(img: HTMLImageElement, key: string, wpx: number, look: 'visited' | 'known' | 'dim', flip = false, tone = false): HTMLCanvasElement {
   const step = Math.round(Math.log2(Math.max(4, wpx)) * 12);
-  const k = `${key}:${look}:${step}:${flip ? 1 : 0}`;
+  const k = `${key}:${look}:${step}:${flip ? 1 : 0}:${tone ? 1 : 0}`;
   let c = toned.get(k);
   if (c) return c;
   const W = Math.max(2, Math.round(Math.pow(2, step / 12))), H = Math.max(2, Math.round((W * img.naturalHeight) / img.naturalWidth));
@@ -246,15 +246,22 @@ function tonedSprite(img: HTMLImageElement, key: string, wpx: number, look: 'vis
   }
   if (flip) { g.translate(W, 0); g.scale(-1, 1); }
   g.drawImage(src, 0, 0, W, H);
-  if (look !== 'visited') {
-    // a place you know but have not been to: a little paler; one you cannot go to yet: faded nearly to the paper's colour
+  if (tone || look !== 'visited') {
+    // toned to sit in the painting (`tone`, the town landmarks since 2026-11-05): the cut-outs are cooler and crisper than
+    // the map's warm ochre brushwork, so their blues are warmed, their whites taken down to the paper and their
+    // contrast eased a little. A place you know but have not been to: a little paler too; one you cannot go to yet:
+    // faded nearly to the paper's colour
     const d = g.getImageData(0, 0, W, H), px = d.data;
-    const sat = look === 'known' ? 0.88 : 0.35, lift = look === 'known' ? 0 : 0.08, alpha = look === 'known' ? 1 : 0.8;
+    const sat = (look === 'visited' ? 1 : look === 'known' ? 0.88 : 0.5) * (tone ? 0.9 : 1), lift = look === 'dim' ? 0.05 : 0, alpha = look === 'dim' ? 0.9 : 1;
     for (let i = 0; i < px.length; i += 4) {
-      const l = px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11;
-      px[i] = l + (px[i] - l) * sat + (232 - l) * lift;
-      px[i + 1] = l + (px[i + 1] - l) * sat + (214 - l) * lift;
-      px[i + 2] = l + (px[i + 2] - l) * sat + (172 - l) * lift;
+      let r = px[i], gg = px[i + 1], b = px[i + 2];
+      if (tone) {
+        r = 128 + (r * 0.97 + 9 - 128) * 0.93; gg = 128 + (gg * 0.95 + 4 - 128) * 0.93; b = 128 + (b * 0.84 + 3 - 128) * 0.93;
+      }
+      const l = r * 0.3 + gg * 0.59 + b * 0.11;
+      px[i] = l + (r - l) * sat + (232 - l) * lift;
+      px[i + 1] = l + (gg - l) * sat + (214 - l) * lift;
+      px[i + 2] = l + (b - l) * sat + (172 - l) * lift;
       px[i + 3] *= alpha;
     }
     g.putImageData(d, 0, 0);
@@ -277,6 +284,7 @@ export function drawLandmarks(ctx: CanvasRenderingContext2D, X: (x: number) => n
   const key = `${s.toFixed(3)}|${L.tier}|${L.pins}|${L.here}|${L.blocks?.key.length ?? 0}:${hashKey(L.blocks?.key ?? '')}|${Object.keys(L.landmarks).filter(shown).join(',')}`;
   if (!layoutMemo || layoutMemo.key !== key) layoutMemo = { key, spots: landmarkLayout(s, L.tier, shown, (id) => pins.has(id), (id) => id === L.here, L.blocks?.list) };
   const spots = layoutMemo.spots;
+  if (import.meta.env?.DEV) (window as unknown as { __tofLandmarks?: unknown }).__tofLandmarks = { s, tier: L.tier, here: L.here, pins: L.pins, shown: Object.keys(L.landmarks).filter(shown), blocks: L.blocks?.list, spots: spots.map((q) => q.it.code) };
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'low';
@@ -285,7 +293,7 @@ export function drawLandmarks(ctx: CanvasRenderingContext2D, X: (x: number) => n
     const x = X(sp.x), y = Y(sp.y);
     if (x < -sp.w || y < -10 || x > w + sp.w || y > h + sp.h + 10) continue;
     const img = paintingFor(it);
-    if (img) ctx.drawImage(tonedSprite(img, it.code, sp.w * dpr, look), x - sp.w / 2, y - sp.h, sp.w, sp.h);
+    if (img) ctx.drawImage(tonedSprite(img, it.code, sp.w * dpr, look, false, true), x - sp.w / 2, y - sp.h, sp.w, sp.h);
   }
   // the wells with no painting yet: the old atlas sign for a well, close in
   if (L.tier >= 2) for (const it of LANDMARKS) {
@@ -329,7 +337,7 @@ export function drawPeople(ctx: CanvasRenderingContext2D, X: (x: number) => numb
 }
 
 /** The title cartouche and the scale ornament, zoomed right out only. */
-export function drawCartouche(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, unitsPer100Miles: number) {
+export function drawCartouche(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, s: number, unitsPer100Miles: number, h = Infinity) {
   // the cartouche: about a sixth of the map's width
   {
     const W = 300 * s, H = W / 2;
@@ -372,7 +380,9 @@ export function drawCartouche(ctx: CanvasRenderingContext2D, X: (x: number) => n
   // the scale ornament: 300 miles, ticked every 50
   {
     const len = 3 * unitsPer100Miles * s, hgt = Math.max(6, len / 22);
-    const cx = X(SCALE_BAR.x!), cy = Y(SCALE_BAR.y!);
+    // at its spot, or lifted so its numbers and "English miles" stay on the screen (zoomed right out on a wide screen
+    // the map's foot is at the bottom edge, and the ornament was cut off there)
+    const cx = X(SCALE_BAR.x!), cy = Math.min(Y(SCALE_BAR.y!), h - hgt * 4.2 - 6);
     const x0 = cx - len / 2;
     const img = paintingFor(SCALE_BAR);
     ctx.save();

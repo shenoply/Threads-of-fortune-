@@ -75,12 +75,11 @@ export const LANDMARKS: ArtItem[] = [
   L(33, 'rutba', 'well-rutba', 46.2, 38.2),
 ];
 
-/** The landmarks the repainted travel map (art-src/world/travel-map-master2-4800.png, since 2026-11-04) has painted in at
- *  their towns: their separate overlays are not drawn. The rest (Saqqara's step pyramid, Fayoum's waterwheels, Amman's
- *  theatre, the wells at Ajrud, Ayun Musa and Wadi Feiran) the painter left out or put far from the town (painted out
- *  again, tools/map-repaint.py), so their overlays stay. */
-export const PAINTED_LANDMARKS = new Set<string>(['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '16', '17',
-  '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '32', '33']);
+/** The landmarks painted into the travel map itself, whose separate overlays are then not drawn. None since 2026-11-05:
+ *  the repaint's own buildings stood small and often off their towns, so tools/map-repaint.py paints them all out and
+ *  every town's overlay (public/art/map/NN-<town>.webp) stands on it instead. Kept so a later painting with landmarks
+ *  that are right can list them again (with PAINTED_AT below). */
+export const PAINTED_LANDMARKS = new Set<string>([]);
 /** Where the painting has them, map units [l, t, r, b], measured on the master where the painter put them off the town's
  *  dot; any other painted one is taken to stand on its dot, about 50 units wide. The overlays and the town
  *  names keep clear of these. */
@@ -141,7 +140,7 @@ export const SCALE_BAR: ArtItem = { code: 'B', name: 'scale', kind: 'scale', px:
 
 const W = (n: number, name: string, weather: WeatherKind, xp: number, yp: number): ArtItem =>
   ({ code: `W${n}`, name, kind: 'weather', weather, px: [1024, 1024], ...P(xp, yp) });
-export const WEATHER: ArtItem[] = [W(1, 'cloud', 'cloud', 19.0, 17.7), W(2, 'cloud', 'cloud', 65.5, 24.7), W(3, 'sandstorm', 'sandstorm', 48.0, 70.8), W(4, 'seabirds', 'birds', 15.0, 41.6)];
+export const WEATHER: ArtItem[] = [W(1, 'cloud', 'cloud', 19.0, 17.7), W(2, 'cloud', 'cloud', 51.5, 31.5), W(3, 'sandstorm', 'sandstorm', 48.0, 70.8), W(4, 'seabirds', 'birds', 15.0, 41.6)];
 
 export const FRAME_CORNER: ArtItem = { code: 'F-corner', name: '', kind: 'frame', px: [768, 768] };
 export const MARKERS: ArtItem[] = (['city', 'port', 'camp', 'locked'] as const).map((m) => ({ code: `M-${m}`, name: '', kind: 'marker', px: [512, 512] }));
@@ -168,7 +167,7 @@ export const MAP_LABELS: MapLabel[] = [
   T('Tigris', 'river', 53.0, 32.9, 1, 48),
   T('EGYPT', 'region', 12.0, 67.5, 1.25),
   T('SINAI', 'region', 29.5, 54.4, 0.75),
-  T('PALESTINE', 'region', 32.0, 39.5, 0.55, -58),
+  T('PALESTINE', 'region', 33.6, 40.7, 0.55, -62),   // (on the hills inland since 2026-11-05: at 32.0, 39.5 it lay out at sea)
   T('SYRIA', 'region', 42.0, 33.8, 1),
   T('TRANSJORDAN', 'region', 38.0, 47.8, 0.7),
   T('ARABIA', 'region', 52.0, 67.5, 1.25),
